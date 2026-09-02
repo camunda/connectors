@@ -5,7 +5,7 @@
   "description" : "Create, update, and send a message to your Microsoft Teams",
   "keywords" : [ "create chat", "get chat by ID", "list chats", "list chat members", "send message in chat", "list messages in chat", "create channel", "get channel", "list channels", "send message to channel", "list channel messages", "list message replies", "list members", "chat", "messaging", "team", "channel", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -1375,7 +1375,7 @@
     "type" : "String"
   }, {
     "id" : "data.sendMessageToChannel.documents",
-    "value" : "=if documents_documentMode = \"multiple\" then documents_multiple_expression else if documents_documentMode = \"single\" then (if documents_single_documentSource = \"camunda\" then [documents_single_camundaReference] else if documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: documents_single_inline_content, name: documents_single_inline_fileName, contentType: documents_single_inline_contentType }] else if documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: documents_single_external_url, name: documents_single_external_fileName }] else null) else null",
+    "value" : "=if data.documents_documentMode = \"multiple\" then data.documents_multiple_expression else if data.documents_documentMode = \"single\" then (if data.documents_single_documentSource = \"camunda\" then [data.documents_single_camundaReference] else if data.documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data.documents_single_inline_content, name: data.documents_single_inline_fileName, contentType: data.documents_single_inline_contentType }] else if data.documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data.documents_single_external_url, name: data.documents_single_external_fileName }] else null) else null",
     "group" : "data",
     "binding" : {
       "name" : "data.documents",
@@ -1730,7 +1730,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "9",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

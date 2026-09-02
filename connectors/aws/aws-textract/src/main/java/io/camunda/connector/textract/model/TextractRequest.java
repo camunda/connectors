@@ -6,12 +6,29 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
+import io.camunda.connector.generator.java.annotation.FieldVisibility;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+@DocumentReturnFormat(
+    group = "input",
+    supportedFormats = {DocumentReturnChoice.JSON, DocumentReturnChoice.DOCUMENT},
+    defaultFormat = DocumentReturnChoice.JSON,
+    encoding = FieldVisibility.HIDDEN,
+    tooltip =
+        "How the analysis result should be returned. JSON returns the result directly in the"
+            + " process variables; Document reference uploads it to the document store and returns"
+            + " the reference.",
+    condition =
+        @TemplateProperty.PropertyCondition(
+            property = "input.outputConfigS3Bucket",
+            isActive = false))
 public class TextractRequest extends AwsBaseRequest {
   @Valid @NotNull private TextractRequestData input;
 

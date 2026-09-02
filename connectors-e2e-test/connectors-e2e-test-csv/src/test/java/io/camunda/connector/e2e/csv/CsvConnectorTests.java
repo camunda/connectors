@@ -63,7 +63,9 @@ public class CsvConnectorTests {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("operation", "readCsv")
-            .property("readCsv:data", "name,age,city\nAlice,30,Paris\nBob,25,London")
+            .property("readCsv:document_documentSource", "inline")
+            .property(
+                "readCsv:document_inline_content", "name,age,city\nAlice,30,Paris\nBob,25,London")
             .property("readCsv:format.delimiter", ",")
             .property("readCsv:format.skipHeaderRecord", "true")
             .property("readCsv:format.headers", "=[\"name\", \"age\", \"city\"]")
@@ -94,7 +96,9 @@ public class CsvConnectorTests {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("operation", "readCsv")
-            .property("readCsv:data", "name;age;city\nAlice;30;Paris\nBob;25;London")
+            .property("readCsv:document_documentSource", "inline")
+            .property(
+                "readCsv:document_inline_content", "name;age;city\nAlice;30;Paris\nBob;25;London")
             .property("readCsv:format.delimiter", ";")
             .property("readCsv:format.skipHeaderRecord", "true")
             .property("readCsv:format.headers", "=[\"name\", \"age\", \"city\"]")
@@ -130,7 +134,7 @@ public class CsvConnectorTests {
                 "=[{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]")
             .property("writeCsv:format.delimiter", ",")
             .property("writeCsv:format.headers", "=[\"name\", \"age\"]")
-            .property("writeCsv:createDocument", "false")
+            .property("writeCsv:documentReturnFormat", "TEXT")
             .property("resultVariable", "csvResult")
             .writeTo(new File(tempDir, "template.json"));
 
@@ -159,8 +163,10 @@ public class CsvConnectorTests {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("operation", "readCsv")
+            .property("readCsv:document_documentSource", "inline")
             .property(
-                "readCsv:data", "name,age,city\nAlice,30,Paris\nBob,25,London\nCharlie,35,Berlin")
+                "readCsv:document_inline_content",
+                "name,age,city\nAlice,30,Paris\nBob,25,London\nCharlie,35,Berlin")
             .property("readCsv:format.delimiter", ",")
             .property("readCsv:format.skipHeaderRecord", "true")
             .property("readCsv:format.headers", "=[\"name\", \"age\", \"city\"]")
@@ -195,8 +201,9 @@ public class CsvConnectorTests {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("operation", "readCsv")
+            .property("readCsv:document_documentSource", "inline")
             .property(
-                "readCsv:data",
+                "readCsv:document_inline_content",
                 "product,price,quantity\nWireless Mouse,29.99,10\nOffice Chair,149.5,5\nUSB Cable,12.99,50")
             .property("readCsv:format.delimiter", ",")
             .property("readCsv:format.skipHeaderRecord", "true")
@@ -238,8 +245,9 @@ public class CsvConnectorTests {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("operation", "readCsv")
+            .property("readCsv:document_documentSource", "inline")
             .property(
-                "readCsv:data",
+                "readCsv:document_inline_content",
                 "product,price,quantity\nWireless Mouse,29.99,10\nOffice Chair,149.5,5\nUSB Cable,12.99,50\nMonitor Stand,45,8")
             .property("readCsv:format.delimiter", ",")
             .property("readCsv:format.skipHeaderRecord", "true")

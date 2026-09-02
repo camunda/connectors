@@ -40,6 +40,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
@@ -347,11 +348,11 @@ public class OutboundConnectorRuntimeConfiguration {
    *       camunda.connector.broker.monitoring.port}.
    * </ul>
    *
-   * <p>Pre-existing, out-of-scope-for-#6961 limitation: in topology-discovery mode this still
-   * resolves a single {@code CamundaClient} (whichever is {@code @Primary} when multiple physical
-   * tenants are configured), so it only monitors that one physical tenant's brokers. Broker
-   * monitoring is informational/observability only, not part of job execution, so this is
-   * deliberately deferred rather than converted to a per-physical-tenant map.
+   * <p>This scalar bean monitors the brokers of a single {@code CamundaClient} (whichever is
+   * {@code @Primary} when several physical tenants are configured) and is kept for backward
+   * compatibility with runtimes injecting/overriding it directly. The {@code /outbound} endpoints
+   * instead go through the per-physical-tenant map built by {@link
+   * #buildBrokerJobStreamClientsByPhysicalTenantId}, which monitors every engine's brokers.
    */
   @Bean
   @ConditionalOnProperty(
@@ -363,26 +364,102 @@ public class OutboundConnectorRuntimeConfiguration {
       @ConnectorsObjectMapper ObjectMapper mapper,
       @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
       @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
-    if (StringUtils.isNotBlank(addresses)) {
-      List<URI> uris =
-          Arrays.stream(addresses.split(","))
-              .map(String::trim)
-              .filter(s -> !s.isBlank())
-              .map(URI::create)
-              .toList();
-      if (!uris.isEmpty()) {
-        return new BrokerJobStreamClient(uris, mapper);
-      }
+    List<URI> uris = parseMonitoringAddresses(addresses);
+    if (!uris.isEmpty()) {
+      return new BrokerJobStreamClient(uris, mapper);
     }
     return new BrokerJobStreamClient(camundaClient, monitoringPort, mapper);
+  }
+
+  private static List<URI> parseMonitoringAddresses(String addresses) {
+    if (StringUtils.isBlank(addresses)) {
+      return List.of();
+    }
+    return Arrays.stream(addresses.split(","))
+        .map(String::trim)
+        .filter(s -> !s.isBlank())
+        .map(URI::create)
+        .toList();
+  }
+
+  /**
+   * Resolves every configured physical tenant (engine) ID, sorted for a stable {@code /outbound}
+   * listing order.
+   */
+  private static List<String> physicalTenantIds(
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return clientNames(registry, legacyCamundaClient).stream()
+        .map(name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient))
+        .distinct()
+        .sorted()
+        .toList();
+  }
+
+  /**
+   * Builds one {@link BrokerJobStreamClient} per configured physical tenant, so that {@code
+   * /outbound} can report each engine's own broker/stream connectivity (#7965).
+   *
+   * <p>{@code injectedBrokerJobStreamClient} doubles as the on/off switch: it is {@code null}
+   * exactly when broker monitoring is disabled (its bean is {@code @ConditionalOnProperty}-gated),
+   * in which case no client is built at all and every connector is reported with an {@code UNKNOWN}
+   * connectivity state, as before.
+   *
+   * <p>With a single physical tenant, the already-resolved scalar bean is reused as-is, preserving
+   * behavior (including any override) for existing single-engine deployments. In explicit-addresses
+   * mode the configured addresses are global rather than per-engine, so the same client — querying
+   * that same broker list — is shared by every physical tenant; only topology-discovery mode
+   * resolves each engine's brokers separately, through that engine's own {@code CamundaClient}.
+   *
+   * <p>Deliberately a plain (non-{@code @Bean}) static method: see {@link
+   * #buildOutboundConnectorObjectMappersByPhysicalTenantId} for why {@code Map<String,X>}-typed
+   * {@code @Bean} methods/parameters are avoided in this class.
+   */
+  private static Map<String, BrokerJobStreamClient> buildBrokerJobStreamClientsByPhysicalTenantId(
+      CamundaClientRegistry registry,
+      CamundaClient legacyCamundaClient,
+      BrokerJobStreamClient injectedBrokerJobStreamClient,
+      ObjectMapper mapper,
+      int monitoringPort,
+      String addresses) {
+    if (injectedBrokerJobStreamClient == null) {
+      return Map.of();
+    }
+    boolean shared =
+        clientNames(registry, legacyCamundaClient).size() <= 1
+            || !parseMonitoringAddresses(addresses).isEmpty();
+    return clientNames(registry, legacyCamundaClient).stream()
+        .collect(
+            toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    shared
+                        ? injectedBrokerJobStreamClient
+                        : new BrokerJobStreamClient(
+                            resolveClient(registry, name, legacyCamundaClient),
+                            monitoringPort,
+                            mapper)));
   }
 
   @Bean
   public OutboundConnectorsService outboundConnectorsService(
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
-      @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient) {
+      @Autowired(required = false) CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient,
+      @ConnectorsObjectMapper ObjectMapper mapper,
+      @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
+      @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
     return new OutboundConnectorsService(
-        outboundConnectorConfigurationRegistry, brokerJobStreamClient);
+        outboundConnectorConfigurationRegistry,
+        physicalTenantIds(registry, legacyCamundaClient),
+        buildBrokerJobStreamClientsByPhysicalTenantId(
+            registry,
+            legacyCamundaClient,
+            brokerJobStreamClient,
+            mapper,
+            monitoringPort,
+            addresses));
   }
 
   @Bean
@@ -429,7 +506,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretFilterFactory secretFilterFactory(
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
@@ -487,7 +564,7 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Qualifier("secretKeyCacheManager") CacheManager cacheManager,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     return buildSecretFilterFactoriesByPhysicalTenantId(
         registry, legacyCamundaClient, cacheManager, secretFilterMode);
@@ -516,7 +593,7 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) DocumentFactory documentFactory,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       @Qualifier("secretKeyCacheManager") CacheManager secretKeyCacheManager,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
@@ -589,7 +666,9 @@ public class OutboundConnectorRuntimeConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
+            FeelExpressionEvaluatorBuilder.local().build(), // FEEL annotation processing disabled
+            null,
+            FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 }

@@ -87,6 +87,67 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotReplaceInsideACamundaSecretsReference() {
+    var secretReplacer = mock(SecretReplacer.class);
+
+    String result = SecretUtil.replaceSecrets("=camunda.secrets.FOO", null, secretReplacer);
+
+    assertThat(result).isEqualTo("=camunda.secrets.FOO");
+    verifyNoInteractions(secretReplacer);
+  }
+
+  @Test
+  void shouldStillReplaceALegacyReferenceAlongsideACamundaSecretsReference() {
+    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+
+    String result =
+        SecretUtil.replaceSecrets("camunda.secrets.FOO and {{secrets.FOO}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("camunda.secrets.FOO and resolved");
+  }
+
+  @Test
+  void shouldStillReplaceASecretsPrefixedWordThatIsNotTheCamundaPrefix() {
+    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+
+    assertThat(SecretUtil.replaceSecrets("other.secrets.FOO", null, secretReplacer))
+        .isEqualTo("other.resolved");
+  }
+
+  @Test
+  void shouldReportSecretKeysDeclaredInEitherForm() {
+    assertThat(
+            SecretUtil.retrieveSecretKeysInInput(
+                "{{secrets.BRACED}} secrets.BARE camunda.secrets.REFERENCE"))
+        .containsExactlyInAnyOrder("BRACED", "BARE", "REFERENCE");
+  }
+
+  @Test
+  void shouldReportTheSameNameReplacementLooksUp() {
+    // The parentheses capture reaches past the name to the closing braces, and replaceSecrets trims
+    // before looking a name up. Reporting the untrimmed form left every caller comparing against a
+    // name nothing resolves — error masking asked for "FOO " and masked nothing.
+    var withWhitespace = "{{ secrets.FOO }}";
+    var replaced =
+        SecretUtil.replaceSecrets(
+            withWhitespace, null, (name, context) -> "FOO".equals(name) ? "resolved" : null);
+
+    assertThat(replaced).isEqualTo("resolved");
+    assertThat(SecretUtil.retrieveSecretKeysInInput(withWhitespace)).containsExactly("FOO");
+    assertThat(SecretUtil.retrieveLegacySecretKeysInInput(withWhitespace)).containsExactly("FOO");
+  }
+
+  @Test
+  void shouldReportOnlyLegacyKeysWhenAskedForWhatTheLegacyProvidersHold() {
+    // The new form is resolved by the cluster, never by a legacy provider, so a caller asking what
+    // the legacy providers were responsible for must not be handed a name they never held.
+    assertThat(
+            SecretUtil.retrieveLegacySecretKeysInInput(
+                "{{secrets.BRACED}} secrets.BARE camunda.secrets.REFERENCE"))
+        .containsExactlyInAnyOrder("BRACED", "BARE");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =

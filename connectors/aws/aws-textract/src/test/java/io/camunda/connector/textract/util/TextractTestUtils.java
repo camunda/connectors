@@ -200,6 +200,7 @@ public class TextractTestUtils {
           "1",
           null,
           TextractExecutionType.ASYNC,
+          null, // uploadedExecutionType: template-only, never bound at runtime
           true,
           true,
           true,

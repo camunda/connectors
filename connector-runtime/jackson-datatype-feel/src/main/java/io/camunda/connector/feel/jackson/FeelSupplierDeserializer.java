@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.function.Supplier;
@@ -28,8 +29,9 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
 
   private final JavaType outputType;
 
-  protected FeelSupplierDeserializer(JavaType outputType, FeelExpressionEvaluator evaluator) {
-    super(evaluator, false);
+  protected FeelSupplierDeserializer(
+      JavaType outputType, FeelExpressionEvaluator evaluator, ObjectMapper resultMapper) {
+    super(evaluator, false, resultMapper);
     this.outputType = outputType;
   }
 
@@ -49,8 +51,8 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
 
     if (property.getType().containedTypeCount() == 1) {
       var outputType = property.getType().containedType(0);
-      return new FeelSupplierDeserializer<>(outputType, evaluator);
+      return new FeelSupplierDeserializer<>(outputType, evaluator, resultMapper);
     }
-    return new FeelSupplierDeserializer<>(TypeFactory.unknownType(), evaluator);
+    return new FeelSupplierDeserializer<>(TypeFactory.unknownType(), evaluator, resultMapper);
   }
 }

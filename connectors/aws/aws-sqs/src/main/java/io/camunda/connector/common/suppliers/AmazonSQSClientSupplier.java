@@ -6,11 +6,12 @@
  */
 package io.camunda.connector.common.suppliers;
 
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
+// Client-supplier seam for the AWS SDK v2 SqsClient (issue #7083), mirroring
+// DynamoDbClientSupplier. Takes the whole AwsBaseRequest (serves both outbound and inbound
+// request types) so the implementation can delegate to AwsClientSupport.
 public interface AmazonSQSClientSupplier {
-  SqsClient sqsClient(AwsCredentialsProvider credentialsProvider, String region);
-
-  SqsClient sqsClient(AwsCredentialsProvider credentialsProvider, String region, String endpoint);
+  SqsClient sqsClient(AwsBaseRequest request, String region);
 }

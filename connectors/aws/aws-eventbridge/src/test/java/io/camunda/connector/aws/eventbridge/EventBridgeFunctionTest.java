@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -35,8 +36,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.awscore.DefaultAwsResponseMetadata;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
@@ -77,7 +76,7 @@ class EventBridgeFunctionTest {
   private EventBridgeFunction function;
   @Mock private AwsEventBridgeClientSupplier clientSupplier;
   @Mock private EventBridgeClient client;
-  @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;
+  @Captor private ArgumentCaptor<AwsEventBridgeRequest> eventBridgeRequestArgumentCaptor;
   @Captor private ArgumentCaptor<PutEventsRequest> putEventsRequestArgumentCaptor;
   private ObjectMapper objectMapper;
 
@@ -97,7 +96,7 @@ class EventBridgeFunctionTest {
             .validation(new DefaultValidationProvider())
             .build();
     when(clientSupplier.getAmazonEventBridgeClient(
-            credentialsProviderArgumentCaptor.capture(), eq(REGION)))
+            eventBridgeRequestArgumentCaptor.capture(), eq(REGION)))
         .thenReturn(client);
     when(client.putEvents(putEventsRequestArgumentCaptor.capture()))
         .thenReturn(
@@ -118,9 +117,13 @@ class EventBridgeFunctionTest {
     assertThat(resultEntry.errorCode()).isNull();
     assertThat(resultEntry.errorMessage()).isNull();
 
-    AwsCredentials credentials = credentialsProviderArgumentCaptor.getValue().resolveCredentials();
-    assertThat(credentials.accessKeyId()).isEqualTo(ACCESS_KEY);
-    assertThat(credentials.secretAccessKey()).isEqualTo(SECRET_KEY);
+    var capturedAuthentication = eventBridgeRequestArgumentCaptor.getValue().getAuthentication();
+    assertThat(capturedAuthentication)
+        .isInstanceOf(AwsAuthentication.AwsStaticCredentialsAuthentication.class);
+    var staticAuthentication =
+        (AwsAuthentication.AwsStaticCredentialsAuthentication) capturedAuthentication;
+    assertThat(staticAuthentication.accessKey()).isEqualTo(ACCESS_KEY);
+    assertThat(staticAuthentication.secretKey()).isEqualTo(SECRET_KEY);
 
     var request = context.bindVariables(AwsEventBridgeRequest.class);
 

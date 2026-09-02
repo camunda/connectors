@@ -6,29 +6,18 @@
  */
 package io.camunda.connector.awslambda;
 
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 
 public class AwsLambdaSupplier {
 
-  public LambdaClient awsLambdaService(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return LambdaClient.builder()
-        .credentialsProvider(credentialsProvider)
+  // Delegates to AwsClientSupport (issue #7083); region is passed explicitly since the caller
+  // resolves the deprecated per-function fallback itself.
+  public LambdaClient awsLambdaService(final AwsLambdaRequest request, final String region) {
+    return AwsClientSupport.configureClient(LambdaClient.builder(), request)
         .region(Region.of(region))
-        .build();
-  }
-
-  public LambdaClient awsLambdaService(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return LambdaClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }

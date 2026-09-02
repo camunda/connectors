@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_NativeAcceptance" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.49.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="real_provider_api_smoke" name="Real Provider API Smoke" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Loop</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Loop" sourceRef="StartEvent_1" targetRef="Gateway_Loop" />
+    <bpmn:exclusiveGateway id="Gateway_Loop">
+      <bpmn:incoming>Flow_Start_To_Loop</bpmn:incoming>
+      <bpmn:incoming>Flow_NotSatisfied_To_Loop</bpmn:incoming>
+      <bpmn:outgoing>Flow_Loop_To_Agent</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Loop_To_Agent" sourceRef="Gateway_Loop" targetRef="AI_Agent" />
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>Real provider API smoke test agent</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="0" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Loop_To_Agent</bpmn:incoming>
+      <bpmn:outgoing>Flow_Agent_To_Feedback</bpmn:outgoing>
+      <bpmn:serviceTask id="Lookup_Classified_Fact" name="Lookup Classified Fact">
+        <bpmn:documentation>Looks up the classified internal fact sheet and returns the secret project code name and clearance level. Call this whenever the user asks for the internal/classified code name.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="lookup-classified-fact" retries="0" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_Agent_To_Feedback" sourceRef="AI_Agent" targetRef="User_Feedback" />
+    <bpmn:userTask id="User_Feedback" name="User Feedback">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=agent.responseText" target="responseText" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Agent_To_Feedback</bpmn:incoming>
+      <bpmn:outgoing>Flow_Feedback_To_Satisfied</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_Feedback_To_Satisfied" sourceRef="User_Feedback" targetRef="Gateway_Satisfied" />
+    <bpmn:exclusiveGateway id="Gateway_Satisfied" name="User satisfied?">
+      <bpmn:incoming>Flow_Feedback_To_Satisfied</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotSatisfied_To_Loop</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Satisfied_To_End</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_NotSatisfied_To_Loop" name="no - we follow up" sourceRef="Gateway_Satisfied" targetRef="Gateway_Loop">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied = null or userSatisfied = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Satisfied_To_End" name="yes" sourceRef="Gateway_Satisfied" targetRef="EndEvent_1">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Satisfied_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="real_provider_api_smoke">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Loop_di" bpmnElement="Gateway_Loop" isMarkerVisible="true">
+        <dc:Bounds x="245" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Feedback_di" bpmnElement="User_Feedback">
+        <dc:Bounds x="790" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Satisfied_di" bpmnElement="Gateway_Satisfied" isMarkerVisible="true">
+        <dc:Bounds x="945" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="934" y="282" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1052" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Agent_di" bpmnElement="AI_Agent" isExpanded="true">
+        <dc:Bounds x="360" y="150" width="360" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Lookup_di" bpmnElement="Lookup_Classified_Fact">
+        <dc:Bounds x="480" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_To_Loop_di" bpmnElement="Flow_Start_To_Loop">
+        <di:waypoint x="188" y="250" />
+        <di:waypoint x="245" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NotSatisfied_To_Loop_di" bpmnElement="Flow_NotSatisfied_To_Loop">
+        <di:waypoint x="970" y="225" />
+        <di:waypoint x="970" y="100" />
+        <di:waypoint x="270" y="100" />
+        <di:waypoint x="270" y="225" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="878" y="83" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Loop_To_Agent_di" bpmnElement="Flow_Loop_To_Agent">
+        <di:waypoint x="295" y="250" />
+        <di:waypoint x="360" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Agent_To_Feedback_di" bpmnElement="Flow_Agent_To_Feedback">
+        <di:waypoint x="720" y="250" />
+        <di:waypoint x="790" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Feedback_To_Satisfied_di" bpmnElement="Flow_Feedback_To_Satisfied">
+        <di:waypoint x="890" y="250" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Satisfied_To_End_di" bpmnElement="Flow_Satisfied_To_End">
+        <di:waypoint x="995" y="250" />
+        <di:waypoint x="1052" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1015" y="232" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

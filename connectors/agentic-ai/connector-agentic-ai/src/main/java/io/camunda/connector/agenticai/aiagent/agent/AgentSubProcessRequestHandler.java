@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
-import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -47,15 +47,6 @@ public class AgentSubProcessRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
-  }
-
-  @Override
-  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
-    // When the current turn requested tool calls, the subprocess stays open (tool elements are
-    // activated) and survives job completion, so the agent-instance update can be deferred to the
-    // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
-    // update must be sent synchronously before the job completion command.
-    return !conversation.currentTurn().hasToolCalls();
   }
 
   @Override
@@ -112,17 +103,17 @@ public class AgentSubProcessRequestHandler
         cancelRemainingInstances);
 
     final var variables = new LinkedHashMap<String, Object>();
-    variables.put(AgentSubProcessV1Function.AGENT_CONTEXT_VARIABLE, agentResponse.context());
+    variables.put(AgentProcessVariables.AGENT_CONTEXT, agentResponse.context());
 
     if (completionConditionFulfilled) {
       LOGGER.debug("Completion condition fulfilled, creating agent response variable");
       variables.put(
-          AgentSubProcessV1Function.AGENT_RESPONSE_VARIABLE,
+          AgentProcessVariables.AGENT_RESPONSE,
           createAgentResponseVariable(executionContext, agentResponse));
     } else {
       LOGGER.debug(
           "Completion condition not fulfilled, clearing tool call results for next tool call iteration");
-      variables.put(AgentSubProcessV1Function.TOOL_CALL_RESULTS_VARIABLE, List.of());
+      variables.put(AgentProcessVariables.TOOL_CALL_RESULTS, List.of());
     }
 
     return AgentSubProcessConnectorResponse.builder()
@@ -166,11 +157,11 @@ public class AgentSubProcessRequestHandler
                   new ToolCallElementActivation(
                       toolCall.metadata().name(),
                       Map.ofEntries(
-                          Map.entry(AgentSubProcessV1Function.TOOL_CALL_VARIABLE, toolCall),
+                          Map.entry(AgentProcessVariables.TOOL_CALL, toolCall),
                           // Creating empty toolCallResult variable to avoid variable
                           // to bubble up in the upper scopes while merging variables on
                           // ad-hoc sub-process inner instance completion.
-                          Map.entry(AgentSubProcessV1Function.TOOL_CALL_RESULT_VARIABLE, "")));
+                          Map.entry(AgentProcessVariables.TOOL_CALL_RESULT, "")));
             })
         .toList();
   }

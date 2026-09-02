@@ -7,7 +7,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-e2e-test-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.10.0-SNAPSHOT</version>
+    <version>8.11.0-SNAPSHOT</version>
   </parent>
 
   <description>Agentic AI E2E Tests</description>
@@ -51,6 +51,11 @@
               <includes>
                 <include>**/*E2ETestIT.java</include>
               </includes>
+              <systemPropertyVariables>
+                <!-- Surfaces the connectors container log; scoped to this suite by pointing at a
+                     file logback does not pick up on its own. -->
+                <logback.configurationFile>${project.basedir}/src/test/resources/logback-real-llm.xml</logback.configurationFile>
+              </systemPropertyVariables>
             </configuration>
             <executions>
               <execution>

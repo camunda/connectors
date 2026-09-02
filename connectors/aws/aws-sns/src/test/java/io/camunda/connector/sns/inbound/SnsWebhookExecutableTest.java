@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.sns.inbound;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -285,6 +286,44 @@ class SnsWebhookExecutableTest {
 
     // then
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Notification");
+    // Ensures the happy path actually goes through signature verification, not a mocked no-op.
+    verify(messageManager).parseMessage(any());
+  }
+
+  /**
+   * Signature verification failures from parseMessage() must propagate, not resolve to a
+   * WebhookResult (#7974).
+   */
+  @Test
+  void triggerWebhook_SignatureVerificationFails_PropagatesException() throws Exception {
+    // Configure connector
+    Map<String, Object> actualBPMNProperties =
+        Map.of(
+            "inbound",
+            Map.of(
+                "context", "snstest",
+                "securitySubscriptionAllowedFor", "any"));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    // Configure payload
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "Notification");
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn("GET");
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody()).thenReturn(NOTIFICATION_REQUEST.getBytes(StandardCharsets.UTF_8));
+
+    // Real SnsMessageManager throws an unchecked exception (e.g. SdkClientException) when the
+    // cryptographic signature or signing-cert-URL check fails.
+    when(messageManager.parseMessage(any()))
+        .thenThrow(new RuntimeException("Signature in SNS message was invalid"));
+
+    // when & then
+    testObject.activate(ctx);
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Signature in SNS message was invalid");
   }
 
   @Test

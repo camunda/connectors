@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
@@ -148,7 +148,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                     "name",
                     expectedJsonSchemaName,
                     "strict",
-                    false,
+                    true,
                     "schema",
                     Map.of(
                         "type",
@@ -158,7 +158,9 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                             "text", Map.of("type", "string"),
                             "length", Map.of("type", "number")),
                         "required",
-                        List.of("text", "length"))));
+                        List.of("text", "length"),
+                        "additionalProperties",
+                        false)));
       }
     }
 
@@ -240,7 +242,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
       assertIncident(
           zeebeTest,
           incident -> {
-            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
             assertThat(incident.getErrorMessage())
                 .startsWith("Failed to parse response content as JSON");
           });

@@ -106,7 +106,9 @@ connectors/
 ├── connector-runtime/      # Execution environment for connectors
 ├── connectors/             # 30+ out-of-the-box connectors
 ├── element-template-generator/  # Automated template generation
-├── bundle/                 # Docker images
+├── apps/                   # Applications we deliver (Docker images)
+│   ├── connector-runtime-application/  # Standalone runtime, no connectors
+│   └── bundle/             # Runtime bundled with out-of-the-box connectors
 ├── connector-commons/      # Shared utilities
 └── connectors-e2e-test/    # End-to-end tests
 ```
@@ -146,7 +148,7 @@ mvn clean package -pl connectors/http/rest
 #### Build Docker Bundle
 
 ```bash
-cd bundle && docker build -t camunda/connectors-bundle:latest .
+cd apps/bundle/default-bundle && docker build -t camunda/connectors-bundle:latest .
 ```
 
 ### Run
@@ -154,7 +156,7 @@ cd bundle && docker build -t camunda/connectors-bundle:latest .
 #### Run with Spring Boot
 
 ```bash
-cd connector-runtime/connector-runtime-application
+cd apps/connector-runtime-application
 mvn spring-boot:run
 ```
 

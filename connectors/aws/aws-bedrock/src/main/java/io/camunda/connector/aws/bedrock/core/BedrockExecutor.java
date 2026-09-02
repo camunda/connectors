@@ -6,11 +6,10 @@
  */
 package io.camunda.connector.aws.bedrock.core;
 
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.AwsClientSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.model.BedrockRequest;
 import io.camunda.connector.aws.bedrock.model.RequestData;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class BedrockExecutor {
@@ -23,12 +22,10 @@ public class BedrockExecutor {
     this.requestData = requestData;
   }
 
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, not ignored.
   public static BedrockExecutor create(BedrockRequest bedrockRequest) {
     return new BedrockExecutor(
-        BedrockRuntimeClient.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(bedrockRequest))
-            .region(Region.of(bedrockRequest.getConfiguration().region()))
-            .build(),
+        AwsClientSupport.createClient(BedrockRuntimeClient.builder(), bedrockRequest),
         bedrockRequest.getData());
   }
 

@@ -22,6 +22,8 @@ Deep architecture lives in the reference docs, linked instead of copied:
   `ai-agent.md §N`)
 - [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
 - [`docs/reference/a2a.md`](docs/reference/a2a.md): A2A integration
+- [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
+  for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
@@ -55,6 +57,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
 | **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
 | **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
+| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](docs/reference/native-providers.md)                             |
 
 ## Mental model
 
@@ -96,9 +99,17 @@ conversation and turn types (everything else below).
 High-frequency traps (detail behind each link):
 
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
-  `ai-agent.md` §10.
-- **Partial tool results → no-op**: incomplete results make the composer return `Deferred` and the worker complete
-  without an LLM call. Expected, not a bug. `ai-agent.md` §9.
+  The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
+  completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
+  `jobLease(...)` on each batched turn update
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
+  stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
+  not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
+- **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
+  worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
+  arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
+  `AgentInstanceClient` for a multi-tool-call turn with staggered completion times must account for this call.
+  `ai-agent.md` §9.
 - **Write-ahead, pointer-based store contract**: `storeMessages` writes a new location; `loadMessages` follows the
   `AgentContext` pointer. Never overwrite what the current pointer references. `ai-agent.md` §6.
 - **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
@@ -112,6 +123,11 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
+  messages with identical content have *different* ids. Stability only holds once a message has
+  been persisted and reloaded (or the exact same instance is reused) — tests that independently
+  construct an "expected" message and compare it for equality against one built by the code under
+  test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 
 ## Architectural invariants
 
@@ -201,6 +217,15 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 - Fix null-safety errors by handling the null. Never suppress them.
 - `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
 - For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
+- After adding a new package, run `connector-agentic-ai/bin/generate-package-info.groovy` to fill in any
+  missing `package-info.java` (it's idempotent and scans every package under `src/main/java`, so it also
+  catches pre-existing gaps, not just the one you added):
+  ```bash
+  cd connectors/agentic-ai/connector-agentic-ai
+  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/bin/generate-package-info.groovy"
+  ```
+  Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
+  commit the generated file(s).
 
 ### Definition of Done
 
@@ -249,6 +274,31 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+### Agent definition marker
+
+All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
+hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
+(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
+(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
+(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
+Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
+execution order does not matter — the sub-process transformer cannot carry the task marker into the
+derived template regardless of when the task-marker script runs.
+
+### Deprecation marker (v1 only)
+
+Only the v1 AI Agent Task and Sub-process templates whose minimum Camunda version is 8.10 carry a
+top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)` appended to
+their `name`: the current main/hybrid templates (version 13) and their `versioned/` snapshots at
+versions 10–12. Earlier v1 versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2
+templates. For the generated main/hybrid templates, both transform scripts accept optional
+`deprecationMessage` / `deprecationDocumentationRef` Maven properties — wired only into the v1
+executions in `pom.xml` — and each script strips any inherited `deprecated` block before deciding its
+own and appending `(Deprecated)` to `name` if not already present, the same pattern used for the agent
+definition marker above. `versioned/` snapshots are static and were patched by hand instead (three
+pre-8.10 snapshots already carried an unrelated legacy `"deprecated": true` boolean flag and were left
+untouched).
+
 ## Key entry points
 
 | File                                        | Purpose                                    |
@@ -279,6 +329,34 @@ Follow the structure of existing ADRs (see [ADR 001](docs/adr/001-replace-mcp-cl
 Title, Deciders/Date, Status, Context & Problem, Decision Drivers, Considered Options, Decision
 Outcome.
 
+**Keep it at decision altitude.** An ADR states the problem, the drivers, the options, and the
+choice. It is not a mechanism walkthrough: no code excerpts, no line-number citations, no
+class-by-class narration of how the implementation works. That level of detail belongs in the code
+itself or in the reference docs, and it rots as the code changes while the decision doesn't. If a
+paragraph explains *how* something works rather than *why* it was chosen this way, cut it.
+
+**ADRs own the why; reference docs own the current state.** `ai-agent.md` and friends describe the
+system as it is today, not how it got there. Don't write "this used to be a no-op, but now..." in a
+reference doc — state the current behavior plainly and, if the history matters, link to the ADR
+that made the change. Conversely, don't restate current implementation detail in the ADR beyond
+what's needed to justify the decision.
+
+**Known gaps get a named Follow-up, not a repeated disclaimer.** If a decision leaves a rough edge
+(a duplicate write, a cosmetic divergence, a missing feature blocked on something external), say so
+once, in a `## Follow-up` section, with the concrete condition and mechanism that closes it. Don't
+scatter "accepted as a tradeoff until X" across every file the change touches — state the fact where
+it's observed, and point once at the ADR for the reasoning.
+
+**Code comments and javadoc state their own contract, not another module's rationale.** A method's
+doc should describe what it does and what it requires of its own parameters, including the precise
+state or trigger a caller must observe — even when a sibling type in the same package expresses that
+most precisely (e.g. `handleNoInput`'s link to `CompositionResult.NoInput`). Draw the line at the
+package/module boundary: don't pull in a different module's internal types or decision history just
+to justify a precondition (e.g. an `agentinstance`-package method explaining its own contract via
+the `agent`-package composer's internals). If a precondition can only be understood by reading a
+caller in a different module, that coupling belongs in the ADR or the reference doc, not the method
+signature's javadoc.
+
 ## Keeping documentation up to date
 
 When a change touches documented structure (classes, interfaces, data-model records, config
@@ -287,7 +365,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
   invariants, build/test commands, entry points).
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
-  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
+  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
+  provider specifics → `native-providers.md`.
 - **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 

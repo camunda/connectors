@@ -10,12 +10,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Provider-neutral, normalized finish reason. Primarily diagnostic (tool-call continuation keys off
- * {@link AssistantMessage#hasToolCalls()}, not this field), but it IS consulted for control flow in
- * at least one case: {@code BaseAgentRequestHandler} throws when this reason is {@link
- * KnownStopReason#CONTENT_FILTERED}, failing the job rather than ingesting a filtered response. The
- * raw vendor value is always preserved in {@link AssistantMessage#metadata()} in addition to living
- * on this field for a genuinely unrecognised value (see {@link UnknownStopReason} below).
+ * Provider-neutral, normalized finish reason.
  *
  * <p>This is a sealed interface, not an enum: {@link KnownStopReason} covers the recognised values,
  * while {@link UnknownStopReason} carries a vendor stop reason verbatim when it doesn't map to any
@@ -24,8 +19,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * expected and non-breaking. It is part of the persisted message contract, so serialization (a bare
  * JSON string, see {@link #value()}) must remain backward compatible.
  *
- * <p>Continuation states (e.g. Anthropic {@code pause_turn}) are NOT represented here — see the
- * {@code ChatResult.Continuation} chat result.
+ * <p>Continuation states are NOT represented here — see the {@code ChatResult.Continuation} chat
+ * result. Terminal failure conditions a provider recognizes are NOT represented here either: since
+ * how a provider signals one varies (an HTTP-level error vs. a normal stop/finish reason value), it
+ * throws {@code ChatModelRejectedException} directly rather than returning it as a finish reason.
  */
 public sealed interface StopReason
     permits StopReason.KnownStopReason, StopReason.UnknownStopReason {
@@ -33,10 +30,6 @@ public sealed interface StopReason
   StopReason STOP = KnownStopReason.STOP;
   StopReason LENGTH = KnownStopReason.LENGTH;
   StopReason TOOL_USE = KnownStopReason.TOOL_USE;
-  StopReason CONTENT_FILTERED = KnownStopReason.CONTENT_FILTERED;
-  StopReason GUARDRAIL = KnownStopReason.GUARDRAIL;
-  StopReason ERROR = KnownStopReason.ERROR;
-  StopReason ABORTED = KnownStopReason.ABORTED;
 
   /** The wire value: a known constant's name, or the verbatim vendor string when unrecognised. */
   @JsonValue
@@ -62,15 +55,7 @@ public sealed interface StopReason
     /** The response was truncated because a token/length limit was reached. */
     LENGTH,
     /** The model stopped to invoke one or more tools. */
-    TOOL_USE,
-    /** The response was blocked or redacted by provider content filtering. */
-    CONTENT_FILTERED,
-    /** The response was stopped by a provider-side guardrail policy. */
-    GUARDRAIL,
-    /** The provider reported an error while generating the response. */
-    ERROR,
-    /** The request was aborted before the model could finish generating a response. */
-    ABORTED;
+    TOOL_USE;
 
     @Override
     public String value() {

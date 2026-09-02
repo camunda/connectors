@@ -106,8 +106,11 @@ public class ConnectorResultHandler {
       FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
       try {
         var mappedResponseJson =
-            feelExpressionEvaluator.evaluateToJson(
-                resultExpression, responseContent, wrapResponse(responseContent));
+            evaluateToJsonOrThrow(
+                resultExpression,
+                "Result expression",
+                responseContent,
+                wrapResponse(responseContent));
         if (mappedResponseJson != null) {
           verifyNoForbiddenLiterals(mappedResponseJson);
           var resolvedResponseJson =
@@ -144,8 +147,12 @@ public class ConnectorResultHandler {
     FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
     try {
       var evaluatedJson =
-          feelExpressionEvaluator.evaluateToJson(
-              errorExpression, responseContent, wrapResponse(responseContent), jobContext);
+          evaluateToJsonOrThrow(
+              errorExpression,
+              "Error expression",
+              responseContent,
+              wrapResponse(responseContent),
+              jobContext);
       if (evaluatedJson != null) {
         verifyNoForbiddenLiterals(evaluatedJson);
       }
@@ -182,6 +189,22 @@ public class ConnectorResultHandler {
               });
     } finally {
       FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
+  }
+
+  /**
+   * Evaluates a FEEL expression to JSON, re-throwing a {@link FeelEngineWrapperException} as a
+   * {@link ConnectorInputException} naming which expression ({@code expressionNameForError}) failed
+   * — otherwise the failure surfaces as an incident with no indication of which header or property
+   * caused it.
+   */
+  private String evaluateToJsonOrThrow(
+      final String expression, final String expressionNameForError, final Object... variables) {
+    try {
+      return feelExpressionEvaluator.evaluateToJson(expression, variables);
+    } catch (FeelEngineWrapperException e) {
+      throw new ConnectorInputException(
+          "%s could not be evaluated: %s".formatted(expressionNameForError, e.getMessage()), e);
     }
   }
 

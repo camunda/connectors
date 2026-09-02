@@ -223,7 +223,8 @@ public class DefaultOutboundConnectorFactory
         outboundConnector.inputVariables(),
         configurationOverrides.typeOverride().orElse(outboundConnector.type()),
         instanceProvider,
-        configurationOverrides.timeoutOverride().orElse(null));
+        configurationOverrides.timeoutOverride().orElse(null),
+        outboundConnector.withLease());
   }
 
   @Override

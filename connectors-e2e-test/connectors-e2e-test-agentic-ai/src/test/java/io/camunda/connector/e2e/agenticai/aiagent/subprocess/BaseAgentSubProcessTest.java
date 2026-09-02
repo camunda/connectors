@@ -17,8 +17,8 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -75,28 +75,31 @@ public abstract class BaseAgentSubProcessTest extends BaseAgentTest {
 
   @Override
   protected String elementTemplatePath() {
-    return AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+    return AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
   }
 
   @Override
   protected Map<String, String> elementTemplateProperties() {
-    return AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
+    return AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   // ---------------------------------------------------------------------------
   // Provider redirect
   // ---------------------------------------------------------------------------
 
-  protected ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
+  /** Redirects the connector to the WireMock native OpenAI (Chat Completions) endpoint. */
+  protected ElementTemplate configureDefaultOpenAiProvider(ElementTemplate template) {
     return template
-        .property("provider.type", "openaiCompatible")
-        .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openaiCompatible.authentication.apiKey", "dummy")
-        .property("provider.openaiCompatible.model.model", "test-model");
+        .property("provider.type", "openai")
+        .property("provider.openai.api.type", "completions")
+        .property("provider.openai.backend.type", "openai-api")
+        .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.openai.apiKey", "dummy")
+        .property("provider.openai.model.model", "test-model");
   }
 
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
-    return this::withOpenAiCompatibleProvider;
+    return this::configureDefaultOpenAiProvider;
   }
 
   @Override

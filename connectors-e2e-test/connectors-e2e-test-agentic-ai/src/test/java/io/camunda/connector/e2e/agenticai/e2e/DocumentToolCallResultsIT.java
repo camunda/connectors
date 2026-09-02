@@ -20,11 +20,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -35,6 +38,7 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +46,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -53,17 +58,20 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ResourceLoader;
 
 /**
- * Cross-provider viability test for document handling in tool call results.
+ * Cross-provider viability test for document handling in tool call results, covering both the v1
+ * (LangChain4j-backed) and v2 (native) provider configurations.
  *
  * <p>Validates that real LLM providers can receive and reason about PDF documents extracted from
  * tool call results via the synthetic UserMessage with XML correlation tags.
  *
- * <p>This test is NOT part of the CI suite. Run it manually to assess provider compatibility.
+ * <p>Local-only: runs only when {@code RUN_NATIVE_LLM_E2E=true} and the row's API key is present.
  * Configure API keys via environment variables:
  *
  * <ul>
  *   <li>{@code OPENAI_API_KEY} - OpenAI API key
  *   <li>{@code ANTHROPIC_API_KEY} - Anthropic API key
+ *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
+ *       AWS Bedrock Mantle backend credentials (region defaults to us-east-1)
  *   <li>{@code AWS_BEDROCK_ACCESS_KEY} / {@code AWS_BEDROCK_SECRET_KEY} - AWS Bedrock credentials
  *       (also used for the judge LLM)
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
@@ -84,19 +92,17 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.process-test.judge.chat-model.region=eu-central-1",
       "camunda.process-test.judge.chat-model.credentials.access-key=${AWS_BEDROCK_ACCESS_KEY:NOT_SET}",
       "camunda.process-test.judge.chat-model.credentials.secret-key=${AWS_BEDROCK_SECRET_KEY:NOT_SET}",
-      "camunda.process-test.judge.threshold=0.6"
+      "camunda.process-test.judge.threshold=0.6",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
-@Disabled("Manual viability test - requires real LLM API keys via environment variables")
+@EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 class DocumentToolCallResultsIT {
 
   private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsIT.class);
-
-  private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
 
   private static final String BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
 
@@ -111,6 +117,7 @@ class DocumentToolCallResultsIT {
           + "found in the documents. Be concise.";
 
   private static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
+  private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
 
   @Autowired private CamundaClient camundaClient;
   @Autowired private ResourceLoader resourceLoader;
@@ -146,6 +153,7 @@ class DocumentToolCallResultsIT {
                 + "what project it mentions and when it launched.",
             List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH));
 
+    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -174,6 +182,7 @@ class DocumentToolCallResultsIT {
                 wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
                 wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT));
 
+    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -205,6 +214,7 @@ class DocumentToolCallResultsIT {
                 wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
                 wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO));
 
+    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -231,22 +241,37 @@ class DocumentToolCallResultsIT {
     // modelFilters.add(p -> p.label().contains("gpt-4.1"));
 
     return Stream.of(
-            // OpenAI
-            openai("gpt-4.1"),
-            openai("gpt-5.4"),
-            // Anthropic
-            anthropic("claude-sonnet-4-6"),
-            anthropic("claude-haiku-4-5-20251001"),
-            // AWS Bedrock (Anthropic models via cross-region inference)
-            bedrock("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
-            bedrock("global.anthropic.claude-sonnet-4-6"),
-            bedrock("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+            // OpenAI (v1)
+            openAiV1("gpt-4.1"),
+            openAiV1("gpt-5.4"),
+            // OpenAI (v2)
+            openAiResponsesV2("gpt-4.1"),
+            openAiResponsesV2("gpt-5.4"),
+            openAiCompletionsV2("gpt-4.1"),
+            openAiCompletionsV2("gpt-5.4"),
+            // Anthropic (v1)
+            anthropicV1("claude-sonnet-4-6"),
+            anthropicV1("claude-haiku-4-5-20251001"),
+            // Anthropic (v2)
+            anthropicV2("claude-sonnet-4-6"),
+            anthropicV2("claude-haiku-4-5-20251001"),
+            // Anthropic (v2), AWS Bedrock Mantle backend
+            anthropicBedrockMantleV2("claude-sonnet-5"),
+            anthropicBedrockMantleV2("claude-haiku-4-5"),
+            // AWS Bedrock, v1 (Anthropic models via cross-region inference)
+            bedrockV1("global.anthropic.claude-sonnet-5"),
+            bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+            // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
+            bedrockV2("global.anthropic.claude-sonnet-5"),
+            bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+            // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
+            bedrockV2("eu.amazon.nova-2-lite-v1:0"),
             // Docker Model Runner (OpenAI-compatible)
-            dockerModelRunner("ai/gemma4:latest").disabled(),
-            dockerModelRunner("ai/qwen3.6:latest").disabled(),
+            dockerModelRunnerV1("ai/gemma4:latest").disabled(),
+            dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
             // Ollama (OpenAI-compatible)
-            ollama("qwen3.6:latest").disabled(),
-            ollama("llama3.1:8b").disabled())
+            ollamaV1("qwen3.6:latest").disabled(),
+            ollamaV1("llama3.1:8b").disabled())
         .filter(
             providerConfig ->
                 modelFilters.isEmpty()
@@ -254,12 +279,12 @@ class DocumentToolCallResultsIT {
         .filter(ProviderConfig::isEnabled);
   }
 
-  // -- OpenAI --
-
-  static ProviderConfig openai(String model) {
+  /** OpenAI, v1 (LangChain4j-backed). */
+  static ProviderConfig openAiV1(String model) {
     return new ProviderConfig(
-        "openai/" + model,
-        "OPENAI_API_KEY",
+        "openai-v1/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type",
             "openai",
@@ -269,12 +294,50 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  // -- Anthropic --
-
-  static ProviderConfig anthropic(String model) {
+  /** OpenAI, v2, Responses family. */
+  static ProviderConfig openAiResponsesV2(String model) {
     return new ProviderConfig(
-        "anthropic/" + model,
-        "ANTHROPIC_API_KEY",
+        "openai-responses-v2/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "openai-api",
+            "provider.openai.backend.openai.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.api.type",
+            "responses",
+            "provider.openai.model.model",
+            model));
+  }
+
+  /** OpenAI, v2, Completions family. */
+  static ProviderConfig openAiCompletionsV2(String model) {
+    return new ProviderConfig(
+        "openai-completions-v2/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "openai-api",
+            "provider.openai.backend.openai.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.api.type",
+            "completions",
+            "provider.openai.model.model",
+            model));
+  }
+
+  /** Anthropic, v1 (LangChain4j-backed). */
+  static ProviderConfig anthropicV1(String model) {
+    return new ProviderConfig(
+        "anthropic-v1/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type",
             "anthropic",
@@ -284,12 +347,54 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  // -- AWS Bedrock --
-
-  static ProviderConfig bedrock(String model) {
+  /** Anthropic, v2. */
+  static ProviderConfig anthropicV2(String model) {
     return new ProviderConfig(
-        "bedrock/" + model,
-        "AWS_BEDROCK_ACCESS_KEY",
+        "anthropic-v2/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "anthropic-api",
+            "provider.anthropic.backend.anthropic.apiKey",
+            envOrPlaceholder("ANTHROPIC_API_KEY"),
+            "provider.anthropic.model.model",
+            model));
+  }
+
+  /**
+   * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as
+   * anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+   * api.anthropic.com.
+   */
+  static ProviderConfig anthropicBedrockMantleV2(String model) {
+    return new ProviderConfig(
+        "anthropic-bedrock-mantle-v2/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "aws-bedrock-mantle",
+            "provider.anthropic.backend.awsBedrockMantle.region",
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+            envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
+            "provider.anthropic.model.model",
+            "anthropic." + model));
+  }
+
+  /** AWS Bedrock, v1 (LangChain4j-backed); Anthropic models via cross-region inference. */
+  static ProviderConfig bedrockV1(String model) {
+    return new ProviderConfig(
+        "bedrock-v1/" + model,
+        List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type",
             "bedrock",
@@ -305,28 +410,49 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  // -- Docker Model Runner (OpenAI-compatible) --
+  /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */
+  static ProviderConfig bedrockV2(String model) {
+    return new ProviderConfig(
+        "bedrock-v2/" + model,
+        List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "bedrock",
+            "provider.bedrock.authentication.type",
+            "credentials",
+            "provider.bedrock.authentication.accessKey",
+            envOrPlaceholder("AWS_BEDROCK_ACCESS_KEY"),
+            "provider.bedrock.authentication.secretKey",
+            envOrPlaceholder("AWS_BEDROCK_SECRET_KEY"),
+            "provider.bedrock.region",
+            "eu-central-1",
+            "provider.bedrock.model.model",
+            model));
+  }
 
-  static ProviderConfig dockerModelRunner(String model) {
+  /** Docker Model Runner, v1 (LangChain4j-backed; OpenAI-compatible). */
+  static ProviderConfig dockerModelRunnerV1(String model) {
     var url =
         System.getenv()
             .getOrDefault("DOCKER_MODEL_RUNNER_URL", "http://localhost:12434/engines/llama.cpp/v1");
     return new ProviderConfig(
-        "docker-model-runner/" + model,
-        "DOCKER_MODEL_RUNNER_URL",
+        "docker-model-runner-v1/" + model,
+        List.of(), // local endpoint, no API key env var required
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type", "openaiCompatible",
             "provider.openaiCompatible.endpoint", url,
             "provider.openaiCompatible.model.model", model));
   }
 
-  // -- Ollama (OpenAI-compatible) --
-
-  static ProviderConfig ollama(String model) {
+  /** Ollama, v1 (LangChain4j-backed; OpenAI-compatible). */
+  static ProviderConfig ollamaV1(String model) {
     var url = System.getenv().getOrDefault("OLLAMA_URL", "http://localhost:11434/v1");
     return new ProviderConfig(
-        "ollama/" + model,
-        "OLLAMA_URL",
+        "ollama-v1/" + model,
+        List.of(), // local endpoint, no API key env var required
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type", "openaiCompatible",
             "provider.openaiCompatible.endpoint", url,
@@ -337,7 +463,53 @@ class DocumentToolCallResultsIT {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private io.camunda.client.api.response.ProcessInstanceEvent startProcess(
+  /**
+   * Waits for the process instance to complete, but fails fast on an active incident instead of
+   * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
+   * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
+   * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
+   * Polls both conditions on this thread with a short per-check timeout: {@code CamundaAssert}'s
+   * data source is bound to the test thread, so checking off a background thread (e.g. racing two
+   * {@code CompletableFuture}s) fails with "No data source is set".
+   */
+  private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
+    final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
+    while (Instant.now().isBefore(deadline)) {
+      if (hasActiveIncident(instance)) {
+        throw new AssertionError(
+            ("Process instance %d raised an incident instead of completing - failing fast "
+                    + "instead of waiting out the remaining timeout")
+                .formatted(instance.getProcessInstanceKey()));
+      }
+      if (isCompleted(instance)) {
+        return;
+      }
+    }
+
+    throw new AssertionError(
+        "Timed out waiting for process instance %d to complete"
+            .formatted(instance.getProcessInstanceKey()));
+  }
+
+  private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
+  }
+
+  private static boolean isCompleted(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).isCompleted();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
+  }
+
+  private ProcessInstanceEvent startProcess(
       ProviderConfig provider, String userPrompt, List<String> downloadUrls) {
     var model = buildModel(provider);
 
@@ -357,7 +529,7 @@ class DocumentToolCallResultsIT {
   }
 
   private BpmnModelInstance buildModel(ProviderConfig provider) {
-    var template = ElementTemplate.from(ELEMENT_TEMPLATE_PATH);
+    var template = ElementTemplate.from(provider.elementTemplatePath());
 
     // base properties
     template
@@ -401,30 +573,36 @@ class DocumentToolCallResultsIT {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
   }
 
+  private static String envOrDefault(String envVar, String defaultValue) {
+    return System.getenv().getOrDefault(envVar, defaultValue);
+  }
+
   // ---------------------------------------------------------------------------
   // Provider config record
   // ---------------------------------------------------------------------------
 
   record ProviderConfig(
-      String label, String requiredEnvVar, Map<String, String> properties, boolean enabled) {
+      String label,
+      List<String> requiredEnvVars,
+      boolean enabled,
+      String elementTemplatePath,
+      Map<String, String> properties) {
 
-    ProviderConfig(String label, String requiredEnvVar, Map<String, String> properties) {
-      this(label, requiredEnvVar, properties, true);
+    ProviderConfig(
+        String label,
+        List<String> requiredEnvVars,
+        String elementTemplatePath,
+        Map<String, String> properties) {
+      this(label, requiredEnvVars, true, elementTemplatePath, properties);
     }
 
     ProviderConfig disabled() {
-      return new ProviderConfig(label, requiredEnvVar, properties, false);
+      return new ProviderConfig(label, requiredEnvVars, false, elementTemplatePath, properties);
     }
 
     boolean isEnabled() {
-      if (!enabled) {
-        return false;
-      }
-      // Local providers don't need an API key env var, just the URL
-      if (requiredEnvVar.equals("DOCKER_MODEL_RUNNER_URL") || requiredEnvVar.equals("OLLAMA_URL")) {
-        return true;
-      }
-      return System.getenv(requiredEnvVar) != null;
+      // requiredEnvVars is empty for local providers that need no API key, just a URL.
+      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
     }
 
     @Override

@@ -29,6 +29,8 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
+import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.io.IOException;
 
@@ -63,6 +65,8 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
             .tenantId(context.getDefinition().tenantId())
             .scopeKey(elementInstance.getElementInstanceKey())
             .objectMapper(objectMapper)
+            .resultProcessor(
+                new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
             .build();
     this.processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
   }

@@ -13,12 +13,17 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -30,6 +35,15 @@ import java.util.Map;
 public abstract class TestMessagesFixture {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  /** A minimal valid {@link ChatModelConfiguration} for tests that don't care about its details. */
+  public static final ChatModelConfiguration TEST_CHAT_MODEL =
+      new OpenAiProviderConfiguration(
+          new OpenAiConnection(null, null, new OpenAiModel("test-model", null)));
+
+  /** A minimal valid system prompt configuration for tests that don't care about its details. */
+  public static final SystemPromptConfiguration TEST_SYSTEM_PROMPT =
+      new SystemPromptConfiguration("You are a helpful assistant.");
 
   public static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS =
       List.of(

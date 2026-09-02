@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
       "document management"
     },
     inputDataClass = GoogleDriveRequest.class,
-    version = 8,
+    version = 9,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

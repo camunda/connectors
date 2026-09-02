@@ -25,9 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -49,18 +52,26 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithConditionedLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithLinkedResource;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithNestedDiscriminators;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
 import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
@@ -1360,6 +1371,103 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .orElseThrow();
       assertThat(attachmentBHidden.getValue()).isEqualTo("file");
     }
+
+    @Test
+    void conditionedLinkedResource_allPropertiesGatedOnConditionProperty() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+
+      var expectedOperation = new PropertyCondition.Equals("operation", "op6");
+      var expectedGate = new PropertyCondition.Equals("op6:content.type", "form");
+
+      var conditioned =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch().contains(expectedOperation))
+              .toList();
+
+      assertThat(conditioned).hasSize(4);
+      assertThat(conditioned)
+          .allSatisfy(
+              p ->
+                  assertThat(((PropertyCondition.AllMatch) p.getCondition()).allMatch())
+                      .contains(expectedOperation, expectedGate));
+
+      // No toggle is emitted: the conditionProperty gates the resource instead.
+      assertThat(template.properties())
+          .noneMatch(p -> "op6:formDefinition.include".equals(p.getId()));
+
+      // versionTag keeps its own extra clause on top of the operation + gate conditions.
+      var versionTag = getPropertyById("op6:formDefinition.versionTag", template);
+      assertThat(((PropertyCondition.AllMatch) versionTag.getCondition()).allMatch())
+          .contains(
+              expectedOperation,
+              expectedGate,
+              new PropertyCondition.Equals("op6:formDefinition.bindingType", "versionTag"));
+    }
+
+    @Test
+    void conditionedOptionalLinkedResource_togglesGatedOnConditionPropertyToo() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+
+      var expectedOperation = new PropertyCondition.Equals("operation", "op7");
+      var expectedGate = new PropertyCondition.Equals("op7:content.type", "form");
+      var expectedToggle = new PropertyCondition.Equals("op7:formDefinition.include", "true");
+
+      // The toggle itself is gated on the operation and the conditionProperty, but not on itself.
+      var toggle = getPropertyById("op7:formDefinition.include", template);
+      assertThat(((PropertyCondition.AllMatch) toggle.getCondition()).allMatch())
+          .containsExactly(expectedOperation, expectedGate);
+
+      var resourceId = getPropertyById("op7:formDefinition.resourceId", template);
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .containsExactly(expectedOperation, expectedGate, expectedToggle);
+    }
+
+    @Test
+    void nestedDiscriminators_onOperationConnector_mergeBothConditionsWithTheOperation() {
+      // Regression: merging the operation condition into an existing AllMatch used to mutate an
+      // immutable list and throw UnsupportedOperationException. Only reachable with two levels of
+      // nested discriminators on an @Operation connector, which no connector had until now.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithNestedDiscriminators.class).getFirst();
+
+      var deep = getPropertyById("op1:outer.nested.deep", template);
+      assertThat(deep.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) deep.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op1"),
+              new PropertyCondition.Equals("op1:outer.type", "outerA"),
+              new PropertyCondition.Equals("op1:outer.nested.type", "innerA"));
+    }
+
+    @Test
+    void conditionSupportsOneOf_notJustEquals() {
+      // conditions take the full NestedPropertyCondition contract, so oneOf/equalsBoolean/isActive
+      // work too - not only string equality.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("op8:formDefinition.resourceId", template);
+
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op8"),
+              new PropertyCondition.OneOf("op8:content.type", List.of("form", "template")));
+    }
+
+    @Test
+    void condition_withoutProperty_throws() {
+      assertThatThrownBy(
+              () ->
+                  generator.generate(
+                      OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("must have " + "'property' set");
+    }
   }
 
   @Nested
@@ -1410,6 +1518,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownProperty.DropdownChoice("Latest", "latest"),
               new DropdownProperty.DropdownChoice("Deployment", "deployment"),
               new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+    }
+
+    @Test
+    void classBased_conditionedResource_usesUnprefixedPropertyId() {
+      // Class-based connectors have no operation scope, so the condition must NOT be prefixed. This
+      // is
+      // the withIdPrefix early-return path that the operation-based fixtures never reach.
+      var template =
+          generator.generate(ClassBasedConnectorWithConditionedLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("formDefinition.resourceId", template);
+
+      assertThat(resourceId.getCondition())
+          .isEqualTo(
+              new PropertyCondition.AllMatch(
+                  List.of(new PropertyCondition.Equals("contentType", "form"))));
     }
 
     @Test
@@ -2233,6 +2356,332 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void bareMajorAboveFloor_isAccepted() {
       var template = generator.generate(BareMajorAboveFloorConnector.class).getFirst();
       assertThat(template.engines()).isNotNull();
+    }
+  }
+
+  // --- Configuration chooser gating a sealed-type inline fallback via isEmpty, reproducing the
+  // AWS-credential shape: chooser declared first, fallback's @NestedProperties condition must be
+  // merged (not replace) with the sealed type's own per-subtype discriminator condition, and the
+  // merge must run after the discriminator has already prefixed its dependants' conditions. ---
+  @Nested
+  class ConfigurationGatedFallback {
+
+    @TemplateDiscriminatorProperty(name = "type", group = "authentication")
+    sealed interface FallbackAuth permits StaticCredentials, DefaultChain {}
+
+    @TemplateSubType(id = "credentials", label = "Credentials")
+    record StaticCredentials(
+        @TemplateProperty(group = "authentication", label = "Access key") String accessKey)
+        implements FallbackAuth {}
+
+    @TemplateSubType(id = "defaultChain", label = "Default Chain")
+    record DefaultChain() implements FallbackAuth {}
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:gated-credential:1",
+        version = 1,
+        name = "Gated Credential")
+    record GatedCredential(String field) {}
+
+    static class GatedRequest {
+      @TemplateProperty(
+          id = "configuration",
+          label = "Credential",
+          group = "authentication",
+          type = TemplateProperty.PropertyType.Configuration,
+          optional = true,
+          binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+      private GatedCredential configuration;
+
+      @NestedProperties(
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  property = "configuration",
+                  isEmpty = NullableBoolean.TRUE))
+      private FallbackAuth authentication;
+    }
+
+    @OutboundConnector(name = "Gated", type = "test:gated")
+    @ElementTemplate(
+        id = "test-gated",
+        name = "Gated",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = GatedRequest.class,
+        configurations = {GatedCredential.class})
+    static class GatedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void discriminator_getsBareIsEmptyCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+
+      assertThat(discriminator.getCondition()).isEqualTo(new IsEmpty("configuration", true));
+    }
+
+    @Test
+    void fallbackLeafField_getsMergedAllMatchCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+      var accessKey = getPropertyById("authentication.accessKey", template);
+
+      assertThat(accessKey.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) accessKey.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals(discriminator.getId(), "credentials"), new IsEmpty("configuration", true));
+    }
+
+    @Test
+    void embeddedConfigurationTemplate_doesNotLeakIsEmptyCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var configurationTemplate = template.configurationTemplates().getFirst();
+
+      assertThat(configurationTemplate.properties())
+          .noneMatch(p -> p.getCondition() instanceof IsEmpty);
+    }
+  }
+
+  // A multi-clause @NestedProperties condition: an allMatch override leaves `property` blank (its
+  // clauses carry their own references), which used to read as "no override set" and be dropped
+  // silently. Both clauses must land, merged flat with the sealed type's own discriminator clause
+  // - a nested allMatch has no representation in the element-template schema. ---
+  @Nested
+  class NestedPropertiesAllMatchCondition {
+
+    @TemplateDiscriminatorProperty(name = "type", group = "authentication")
+    sealed interface MultiGatedAuth permits Static, Chain {}
+
+    @TemplateSubType(id = "static", label = "Static")
+    record Static(
+        @TemplateProperty(group = "authentication", label = "Access key") String accessKey)
+        implements MultiGatedAuth {}
+
+    @TemplateSubType(id = "chain", label = "Chain")
+    record Chain() implements MultiGatedAuth {}
+
+    static class MultiGatedRequest {
+      @TemplateProperty(id = "credential", label = "Credential", group = "authentication")
+      private String credential;
+
+      @TemplateProperty(id = "mode", label = "Mode", group = "authentication")
+      private String mode;
+
+      @NestedProperties(
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  // property() has no default and must stay blank for an allMatch condition -
+                  // the very spelling that used to make this override look unset.
+                  property = "",
+                  allMatch = {
+                    @TemplateProperty.NestedPropertyCondition(
+                        property = "credential",
+                        isEmpty = NullableBoolean.TRUE),
+                    @TemplateProperty.NestedPropertyCondition(property = "mode", equals = "inline")
+                  }))
+      private MultiGatedAuth authentication;
+    }
+
+    @OutboundConnector(name = "MultiGated", type = "test:multi-gated")
+    @ElementTemplate(
+        id = "test-multi-gated",
+        name = "MultiGated",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = MultiGatedRequest.class)
+    static class MultiGatedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void allMatchOverride_isAppliedRatherThanSilentlyDropped() {
+      var template = generator.generate(MultiGatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+
+      assertThat(discriminator.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) discriminator.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(new IsEmpty("credential", true), new Equals("mode", "inline"));
+    }
+
+    @Test
+    void allMatchOverride_mergesFlatWithTheDiscriminatorClause() {
+      var template = generator.generate(MultiGatedConnector.class).getFirst();
+      var accessKey = getPropertyById("authentication.accessKey", template);
+
+      assertThat(accessKey.getCondition()).isInstanceOf(AllMatch.class);
+      var clauses = ((AllMatch) accessKey.getCondition()).allMatch();
+      assertThat(clauses)
+          .noneMatch(AllMatch.class::isInstance)
+          .containsExactlyInAnyOrder(
+              new Equals("authentication.type", "static"),
+              new IsEmpty("credential", true),
+              new Equals("mode", "inline"));
+    }
+  }
+
+  // A shared sealed union narrowed for one usage: the credential supports fewer authentication
+  // mechanisms than the inline fields it substitutes for, so the excluded subtype must disappear
+  // from the credential's dropdown while the inline usage of the same union keeps it. ---
+  @Nested
+  class ExcludedSubTypes {
+
+    @TemplateDiscriminatorProperty(
+        name = "type",
+        group = "authentication",
+        defaultValue = "noAuth",
+        description = "Choose the authentication type. Select 'None' if none is necessary")
+    sealed interface SharedAuth permits NoAuth, TokenAuth {}
+
+    @TemplateSubType(id = "noAuth", label = "None")
+    record NoAuth() implements SharedAuth {}
+
+    @TemplateSubType(id = "token", label = "Token")
+    record TokenAuth(
+        @TemplateProperty(group = "authentication", label = "Token") String token,
+        @TemplateProperty(group = "authentication", label = "Realm") String realm)
+        implements SharedAuth {}
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:narrowed-credential:1",
+        version = 1,
+        name = "Narrowed Credential")
+    record NarrowedCredential(
+        @TemplateProperty(
+                group = "authentication",
+                excludeSubTypes = NoAuth.class,
+                description = "Choose the mechanism this credential provides.")
+            SharedAuth authentication) {}
+
+    static class NarrowedRequest {
+      @TemplateProperty(
+          id = "credential",
+          label = "Credential",
+          group = "authentication",
+          type = TemplateProperty.PropertyType.Configuration,
+          optional = true,
+          binding = @TemplateProperty.PropertyBinding(name = "credential"))
+      private NarrowedCredential credential;
+
+      // Same union, no exclusion: keeps every subtype.
+      private SharedAuth authentication;
+    }
+
+    @OutboundConnector(name = "Narrowed", type = "test:narrowed")
+    @ElementTemplate(
+        id = "test-narrowed",
+        name = "Narrowed",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = NarrowedRequest.class,
+        configurations = {NarrowedCredential.class})
+    static class NarrowedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    private Property credentialDiscriminator() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      return template.configurationTemplates().getFirst().properties().stream()
+          .filter(p -> "authentication.type".equals(p.getId()))
+          .findFirst()
+          .orElseThrow();
+    }
+
+    @Test
+    void excludedSubType_isNotOfferedInTheCredentialDropdown() {
+      assertThat(((DropdownProperty) credentialDiscriminator()).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactly("token")
+          .doesNotContain("noAuth");
+    }
+
+    @Test
+    void defaultValueNamingAnExcludedSubType_isDropped() {
+      assertThat(credentialDiscriminator().getValue()).isNull();
+    }
+
+    @Test
+    void excludedSubTypeProperties_areNotEmitted() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      var credentialPropertyIds =
+          template.configurationTemplates().getFirst().properties().stream()
+              .map(Property::getId)
+              .toList();
+
+      assertThat(credentialPropertyIds)
+          .containsExactly("authentication.type", "authentication.token", "authentication.realm");
+    }
+
+    @Test
+    void sameUnionWithoutTheExclusion_keepsEverySubType() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      var inlineDiscriminator = getPropertyById("authentication.type", template);
+
+      assertThat(((DropdownProperty) inlineDiscriminator).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactlyInAnyOrder("noAuth", "token");
+      assertThat(inlineDiscriminator.getValue()).isEqualTo("noAuth");
+    }
+
+    /**
+     * The type-level description is written for the full set of subtypes, so a usage that narrows
+     * it would otherwise point the reader at a choice its dropdown no longer offers.
+     */
+    @Test
+    void perUsageDescription_replacesTheTypeLevelDiscriminatorDescription() {
+      assertThat(credentialDiscriminator().getDescription())
+          .isEqualTo("Choose the mechanism this credential provides.");
+    }
+
+    @Test
+    void sameUnionWithoutTheOverride_keepsTheTypeLevelDescription() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+
+      assertThat(getPropertyById("authentication.type", template).getDescription())
+          .isEqualTo("Choose the authentication type. Select 'None' if none is necessary");
+    }
+
+    // @TemplateProperty also targets method parameters, and an @Operation parameter narrowing a
+    // sealed union must retarget its discriminator description the same way a field does -
+    // otherwise the dropdown drops the choice while the text still names it.
+    @OutboundConnector(name = "NarrowedOp", type = "test:narrowed-op")
+    @ElementTemplate(
+        id = "test-narrowed-op",
+        name = "NarrowedOp",
+        version = 1,
+        engineVersion = "^8.10")
+    static class NarrowedOperationConnector implements OutboundConnectorProvider {
+      @Operation(id = "op", name = "Op")
+      public Object run(
+          @Variable
+              @TemplateProperty(
+                  group = "authentication",
+                  excludeSubTypes = NoAuth.class,
+                  description = "Choose the mechanism this operation provides.")
+              SharedAuth authentication) {
+        return null;
+      }
+    }
+
+    @Test
+    void perUsageDescription_appliesToAnOperationParameterToo() {
+      var template = generator.generate(NarrowedOperationConnector.class).getFirst();
+      var discriminator = getPropertyById("op:type", template);
+
+      assertThat(((DropdownProperty) discriminator).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactly("token");
+      assertThat(discriminator.getDescription())
+          .isEqualTo("Choose the mechanism this operation provides.");
     }
   }
 }

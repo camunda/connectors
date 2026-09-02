@@ -110,6 +110,7 @@ class AsyncTextractCallerTest {
         "1",
         null,
         TextractExecutionType.ASYNC,
+        null, // uploadedExecutionType: template-only, never bound at runtime
         true,
         true,
         true,
@@ -133,6 +134,7 @@ class AsyncTextractCallerTest {
         "1",
         null,
         TextractExecutionType.ASYNC,
+        null, // uploadedExecutionType: template-only, never bound at runtime
         true,
         true,
         true,

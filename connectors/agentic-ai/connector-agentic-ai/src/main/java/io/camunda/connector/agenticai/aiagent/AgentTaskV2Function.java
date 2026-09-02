@@ -21,8 +21,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
  */
 @OutboundConnector(
     name = "AI Agent Task",
-    inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:task:2")
+    inputVariables = {AgentProcessVariables.PROVIDER, AgentProcessVariables.DATA},
+    type = "io.camunda.agenticai:aiagent:task:2",
+    withLease = true)
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.ai-agent-task.v2",
     name = "AI Agent Task",
@@ -35,10 +36,16 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,
-    defaultResultVariable = "agent",
+    defaultResultVariable = AgentProcessVariables.AGENT_RESPONSE,
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
+      @PropertyGroup(
+          id = "advanced-provider-options",
+          label = "Advanced provider options",
+          tooltip = "Advanced options for fine-tuning the connection to the model provider.",
+          openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
+      @PropertyGroup(id = "model-options", label = "Model options", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
           label = "System prompt",

@@ -8,10 +8,12 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Reconstructs a {@link PreviousConversation} (optional system message + completed turns) from a
@@ -21,13 +23,26 @@ public final class TurnReconstructor {
 
   private TurnReconstructor() {}
 
+  /**
+   * Reconstructs turns without stamping {@link AgentConversationTurn#configurationFingerprint()}.
+   */
   public static PreviousConversation reconstruct(List<Message> messages) {
+    return reconstruct(messages, null);
+  }
+
+  /**
+   * @param metadata supplies {@link AgentMetadata#configurationFingerprintAt}, used to stamp each
+   *     reconstructed turn with the fingerprint that was actually effective at its iteration; pass
+   *     {@code null} to leave every turn's fingerprint unstamped (e.g. when it's not needed by the
+   *     caller).
+   */
+  public static PreviousConversation reconstruct(
+      List<Message> messages, @Nullable AgentMetadata metadata) {
     if (messages.isEmpty()) {
       return new PreviousConversation(Optional.empty(), List.of());
     }
 
-    Optional<SystemMessage> systemMessage =
-        messages.getFirst() instanceof SystemMessage sm ? Optional.of(sm) : Optional.empty();
+    Optional<SystemMessage> systemMessage = MessageUtil.leadingSystemMessage(messages);
     var body = messages.subList(systemMessage.isPresent() ? 1 : 0, messages.size());
 
     if (!body.isEmpty() && !(body.getLast() instanceof AssistantMessage)) {
@@ -50,11 +65,13 @@ public final class TurnReconstructor {
                 n -> {
                   int end = assistantIndices.get(n);
                   int start = n == 0 ? 0 : assistantIndices.get(n - 1) + 1;
+                  int iterationKey = n + 1;
                   return new AgentConversationTurn(
-                      n + 1,
+                      iterationKey,
                       List.copyOf(body.subList(start, end)),
                       (AssistantMessage) body.get(end),
-                      AgentMetrics.empty());
+                      AgentMetrics.empty(),
+                      metadata != null ? metadata.configurationFingerprintAt(iterationKey) : null);
                 })
             .toList();
 

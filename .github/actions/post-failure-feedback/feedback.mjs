@@ -212,6 +212,18 @@ async function upsertPrComment(m, md) {
   }
 }
 
+// Publishes the posted message's identity so a later job in the same run can reply in
+// its thread instead of opening a second top-level message for the same failure.
+async function setStepOutput(name, value) {
+  const file = process.env.GITHUB_OUTPUT;
+  if (!file || !value) return;
+  try {
+    await appendFile(file, `${name}=${value}\n`);
+  } catch (e) {
+    console.error(`[feedback] could not write output ${name}: ${e.message || e}`);
+  }
+}
+
 // Draft state of m.pr: the caller-supplied value first (no API call), then the
 // API. Returns false when there is no PR at all (e.g. a push run), and null when
 // a PR exists but the state can't be determined — null is treated as "not a
@@ -269,7 +281,9 @@ async function postSlack(m) {
     });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'unknown');
-    console.log(`[feedback] posted to Slack ${channel}`);
+    console.log(`[feedback] posted to Slack ${channel} (ts=${j.ts})`);
+    await setStepOutput('slack_ts', j.ts);
+    await setStepOutput('slack_channel', j.channel || channel);
   } catch (e) {
     console.error(`[feedback] Slack post failed: ${e.message || e}`);
   }

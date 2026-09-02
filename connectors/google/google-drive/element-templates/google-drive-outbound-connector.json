@@ -5,7 +5,7 @@
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -470,7 +470,7 @@
     "type" : "String"
   }, {
     "id" : "resource.uploadData.document__composer",
-    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
+    "value" : "=if resource.uploadData.document_documentSource = \"camunda\" then resource.uploadData.document_camundaReference else if resource.uploadData.document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: resource.uploadData.document_inline_content, name: resource.uploadData.document_inline_fileName, contentType: resource.uploadData.document_inline_contentType } else if resource.uploadData.document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: resource.uploadData.document_external_url, name: resource.uploadData.document_external_fileName } else null",
     "group" : "operationDetails",
     "binding" : {
       "name" : "resource.uploadData.document",
@@ -564,7 +564,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "9",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

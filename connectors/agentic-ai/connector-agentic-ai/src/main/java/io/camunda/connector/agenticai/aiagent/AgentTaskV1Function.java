@@ -11,7 +11,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV1Request;
+import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -25,11 +27,16 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
  *   <li>CONNECTOR_AI_AGENT_TYPE
  *   <li>CONNECTOR_AI_AGENT_TIMEOUT
  * </ul>
+ *
+ * @deprecated Retained only as a backward-compatibility shim for existing v1 process models; new
+ *     process models should use the v2 AI Agent connector.
  */
+@Deprecated
 @OutboundConnector(
     name = "AI Agent",
-    inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:1")
+    inputVariables = {AgentProcessVariables.PROVIDER, AgentProcessVariables.DATA},
+    type = "io.camunda.agenticai:aiagent:1",
+    withLease = true)
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent Task",
@@ -38,11 +45,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.10",
-    version = 11,
+    version = 13,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV1Request.class,
     outputDataClass = AgentResponse.class,
-    defaultResultVariable = "agent",
+    defaultResultVariable = AgentProcessVariables.AGENT_RESPONSE,
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
@@ -86,19 +93,35 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 public class AgentTaskV1Function implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
+  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
+  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
+      AgentTaskRequestHandler agentRequestHandler,
+      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
+      boolean rewriteV1ProviderConfigToV2) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
+    this.providerConfigurationMapper = providerConfigurationMapper;
+    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
   public AgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentTaskV1Request.class);
-    var executionContext =
-        new AgentTaskExecutionContext(context.getJobContext(), request, toolElementsResolver);
+    var executionContext = buildExecutionContext(context.getJobContext(), request);
     return agentRequestHandler.handleRequest(executionContext);
+  }
+
+  private AgentTaskExecutionContext buildExecutionContext(
+      JobContext jobContext, AgentTaskV1Request request) {
+    if (rewriteV1ProviderConfigToV2) {
+      var nativeConfig = providerConfigurationMapper.map(request.provider());
+      return new AgentTaskExecutionContext(
+          jobContext, request.data(), nativeConfig, toolElementsResolver);
+    }
+
+    return new AgentTaskExecutionContext(jobContext, request, toolElementsResolver);
   }
 }

@@ -62,6 +62,9 @@ class ToolCallResultContentTest {
 
     @Test
     void documentContentBecomesSingleDocumentContent() {
+      // a bare Document is lifted to a first-class DocumentContent, matching every other
+      // content-lift path; the native tool-result converters (not this lift) are responsible for
+      // not double-sending it against the composer's synthetic <doc/> fallback message
       Document document = mock(Document.class);
       assertThat(ToolCallResultContent.contentFromObject(document))
           .containsExactly(DocumentContent.documentContent(document));

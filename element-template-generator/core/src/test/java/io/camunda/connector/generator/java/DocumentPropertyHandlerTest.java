@@ -31,6 +31,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.StringProperty;
+import io.camunda.connector.generator.java.annotation.DocumentSource;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FieldVisibility;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
@@ -57,6 +58,16 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
   record NestedDocRecord(@TemplateDocumentProperty Document doc) {}
 
+  record NestedListDocInput(NestedListDocRecord nested) {}
+
+  record NestedListDocRecord(@TemplateDocumentProperty List<Document> docs) {}
+
+  record BoundPathDocInput(
+      @TemplateDocumentProperty(
+              id = "boundComposer",
+              binding = @TemplateProperty.PropertyBinding(name = "action.document"))
+          Document doc) {}
+
   record VisibilityHiddenInput(
       @TemplateDocumentProperty(
               fileName = FieldVisibility.HIDDEN,
@@ -68,6 +79,23 @@ public class DocumentPropertyHandlerTest extends BaseTest {
               fileName = FieldVisibility.REQUIRED,
               contentType = FieldVisibility.REQUIRED)
           Document doc) {}
+
+  record RestrictedSourcesInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL})
+          Document doc) {}
+
+  record ReorderedSourcesInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.EXTERNAL, DocumentSource.CAMUNDA})
+          Document doc) {}
+
+  record InlineOnlySourceInput(
+      @TemplateDocumentProperty(sources = DocumentSource.INLINE) Document doc) {}
+
+  record NoSourcesInput(@TemplateDocumentProperty(sources = {}) Document doc) {}
+
+  record RestrictedSourcesListInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL})
+          List<Document> docs) {}
 
   record ConditionalDocInput(
       String mode,
@@ -157,6 +185,32 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       engineVersion = "^8.7",
       id = "doc-test",
       name = "Doc Test",
+      inputDataClass = NestedListDocInput.class)
+  static class WithNestedListDoc implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = BoundPathDocInput.class)
+  static class WithBoundPathDoc implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
       inputDataClass = VisibilityHiddenInput.class)
   static class WithHiddenVisibility implements OutboundConnectorFunction {
     @Override
@@ -172,6 +226,71 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       name = "Doc Test",
       inputDataClass = VisibilityRequiredInput.class)
   static class WithRequiredVisibility implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = RestrictedSourcesInput.class)
+  static class WithRestrictedSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = ReorderedSourcesInput.class)
+  static class WithReorderedSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = InlineOnlySourceInput.class)
+  static class WithInlineOnlySource implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = NoSourcesInput.class)
+  static class WithNoSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = RestrictedSourcesListInput.class)
+  static class WithRestrictedSourcesList implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
       return null;
@@ -408,14 +527,7 @@ public class DocumentPropertyHandlerTest extends BaseTest {
     }
   }
 
-  /**
-   * Guards the load-bearing invariant that the composer and every helper sub-field share a common
-   * parent path in their {@code ZeebeInput} bindings. The composer's FEEL expression resolves
-   * helper variables by bare name, which requires them to be siblings in the Zeebe input-mapping
-   * context tree at evaluation time. {@code DocumentPropertyHandler.helperTargetParent} is the
-   * single place that derives this parent; these tests pin its output for both top-level and
-   * nested-record cases.
-   */
+  // Pins helperTargetParent's binding-path output; see ComposerQualification for the composer side.
   @Nested
   class BindingPathInvariant {
 
@@ -466,6 +578,68 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       var externalUrl = getPropertyById("nested.doc_external_url", template);
       assertThat(externalUrl.getCondition())
           .isEqualTo(new Equals("nested.doc_documentSource", "external"));
+    }
+  }
+
+  // A nested helper is a separate local variable from its bare leaf name; verified on a real
+  // engine.
+  @Nested
+  class ComposerQualification {
+
+    @Test
+    void nestedField_composerQualifiesHelperReferencesWithTheNestingPath() {
+      var template = generator.generate(WithNestedDoc.class).getFirst();
+
+      var composer = (HiddenProperty) getPropertyById("nested.doc__composer", template);
+      var value = (String) composer.getValue();
+
+      assertThat(value)
+          .contains("nested.doc_documentSource")
+          .contains("nested.doc_camundaReference")
+          .contains("nested.doc_inline_content")
+          .contains("nested.doc_external_url");
+      assertThat(value).doesNotContain("if doc_documentSource", " doc_camundaReference");
+    }
+
+    /** Same requirement when the nesting comes from the annotation's own binding path. */
+    @Test
+    void bindingPathField_composerQualifiesHelperReferencesWithTheBindingParent() {
+      var template = generator.generate(WithBoundPathDoc.class).getFirst();
+
+      var composer = (HiddenProperty) getPropertyById("boundComposer", template);
+      assertThat(composer.getBinding()).isEqualTo(new ZeebeInput("action.document"));
+
+      // Helpers are bound to action.action_document_*, so that is how they must be read.
+      assertThat(getPropertyById("action_document_documentSource", template).getBinding())
+          .isEqualTo(new ZeebeInput("action.action_document_documentSource"));
+      assertThat((String) composer.getValue())
+          .contains("action.action_document_documentSource")
+          .contains("action.action_document_camundaReference");
+    }
+
+    /** The list variant's mode and multi-expression helpers need the same qualification. */
+    @Test
+    void nestedListField_composerQualifiesModeAndMultipleHelpers() {
+      var template = generator.generate(WithNestedListDoc.class).getFirst();
+
+      var composer = (HiddenProperty) getPropertyById("nested.docs__composer", template);
+      assertThat(composer.getBinding()).isEqualTo(new ZeebeInput("nested.docs"));
+      assertThat((String) composer.getValue())
+          .contains("nested.docs_documentMode")
+          .contains("nested.docs_multiple_expression")
+          .contains("nested.docs_single_documentSource")
+          .contains("nested.docs_single_camundaReference");
+    }
+
+    /** Root-level list: no nesting exists, so bare names are correct as-is. */
+    @Test
+    void rootLevelListField_composerStaysUnqualified() {
+      var template = generator.generate(WithListDoc.class).getFirst();
+      var composer = (HiddenProperty) getPropertyById("docs__composer", template);
+
+      assertThat((String) composer.getValue())
+          .contains("docs_documentMode")
+          .contains("docs_multiple_expression");
     }
   }
 
@@ -524,6 +698,84 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
       var inlineFileName = (StringProperty) getPropertyById("doc_inline_fileName", template);
       assertThat(inlineFileName.getConstraints()).isNull();
+    }
+  }
+
+  @Nested
+  class SourceRestriction {
+
+    @Test
+    void restrictedSources_dropdownOffersOnlyThoseChoices() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("Camunda Document", "camunda"),
+              new DropdownChoice("From URL", "external"));
+    }
+
+    @Test
+    void restrictedSources_omitsExcludedSourceSubProperties() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      assertThat(template.properties())
+          .extracting("id")
+          .doesNotContain("doc_inline_content", "doc_inline_fileName", "doc_inline_contentType")
+          .contains("doc_camundaReference", "doc_external_url");
+    }
+
+    @Test
+    void restrictedSources_composerHasNoBranchForExcludedSource() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      var composer = (HiddenProperty) getPropertyById("doc__composer", template);
+      var value = (String) composer.getValue();
+
+      assertThat(value).contains("\"camunda\"", "\"external\"");
+      assertThat(value).doesNotContain("\"inline\"", "doc_inline_content");
+    }
+
+    @Test
+    void sourceOrderOnAnnotation_drivesGeneratedOrder() {
+      var template = generator.generate(WithReorderedSources.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("From URL", "external"),
+              new DropdownChoice("Camunda Document", "camunda"));
+      assertThat(dropdown.getValue()).isEqualTo("external");
+    }
+
+    @Test
+    void excludingCamunda_defaultsToFirstRemainingSource() {
+      var template = generator.generate(WithInlineOnlySource.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(new DropdownChoice("Inline Content", "inline"));
+      assertThat(dropdown.getValue()).isEqualTo("inline");
+      assertThat(template.properties()).extracting("id").doesNotContain("doc_camundaReference");
+    }
+
+    @Test
+    void emptySources_isRejected() {
+      assertThrows(IllegalArgumentException.class, () -> generator.generate(WithNoSources.class));
+    }
+
+    @Test
+    void restrictedSources_appliesToListSingleMode() {
+      var template = generator.generate(WithRestrictedSourcesList.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("docs_single_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("Camunda Document", "camunda"),
+              new DropdownChoice("From URL", "external"));
+
+      var composer = (HiddenProperty) getPropertyById("docs__composer", template);
+      assertThat((String) composer.getValue()).doesNotContain("\"inline\"");
     }
   }
 

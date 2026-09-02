@@ -12,7 +12,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.aws.AwsUtils;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
@@ -37,7 +36,7 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
     id = "io.camunda.connectors.AWSSQS.inbound.v1",
     name = "Amazon SQS Connector",
     icon = "icon.svg",
-    version = 12,
+    version = 13,
     configurations = {AwsCredentialConfiguration.class},
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",
@@ -119,9 +118,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     var region =
         AwsUtils.extractRegionOrDefault(
             properties.getConfiguration(), properties.getQueue().region());
-    sqsClient =
-        sqsClientSupplier.sqsClient(
-            CredentialsProviderSupportV2.credentialsProvider(properties), region);
+    sqsClient = sqsClientSupplier.sqsClient(properties, region);
 
     try {
       sqsClient.getQueueAttributes(

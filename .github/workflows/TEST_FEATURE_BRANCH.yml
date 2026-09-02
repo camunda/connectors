@@ -62,7 +62,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
@@ -150,10 +150,11 @@ jobs:
           fi
 
       - name: Publish Test Report
-        if: always() && steps.internal.outputs.internal == 'true'
-        uses: scacap/action-surefire-report@v1
+        if: always()
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           check_name: 'Publish Test Report'
+          report_mode: ${{ steps.internal.outputs.internal == 'true' && 'check-run' || 'workflow' }}
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
@@ -163,19 +164,19 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
-          dockerfile: connector-runtime/connector-runtime-application/Dockerfile
+          dockerfile: apps/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
-          dockerfile: bundle/camunda-saas-bundle/Dockerfile
+          dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
-          dockerfile: bundle/default-bundle/Dockerfile
+          dockerfile: apps/bundle/default-bundle/Dockerfile
 
       - name: Check element templates for forbidden links to /next/ documentation
         run: |
@@ -225,7 +226,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
@@ -306,7 +307,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
@@ -370,6 +371,8 @@ jobs:
         shell: bash
 
       - name: Check versioned element templates match main
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
         run: |
           chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
           ./.github/workflows/scripts/check_versioned_element_templates.sh

@@ -6,10 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -17,7 +22,10 @@ public interface AgentInstanceClient {
 
   /**
    * Creates an agent instance on the engine, or returns the key of the existing one. The engine
-   * command is idempotent by {@code elementInstanceKey}.
+   * command is idempotent by {@code elementInstanceKey}. The instance's configuration (model,
+   * provider, system prompt, tools) is sent as a {@code CONFIGURATION} history item rather than as
+   * direct command fields, and {@code jobKey}/{@code jobLease} are forwarded to fence the batched
+   * history against a superseded activation.
    *
    * @throws ConnectorException with code AGENT_INSTANCE_CREATION_FAILED when retries are exhausted
    *     or a non-retryable error occurs
@@ -25,52 +33,71 @@ public interface AgentInstanceClient {
   AgentInstanceKey create(AgentExecutionContext agentExecutionContext);
 
   /**
-   * Updates the status and/or metrics of an existing agent instance. Silently skips when {@code
-   * agentInstanceKey} is {@code null} (e.g. agents that pre-date this feature).
+   * Moves the agent instance to {@code TOOL_DISCOVERY}, fenced against a superseded job activation.
+   * Silently skips when {@code agentInstanceKey} is {@code null}.
    *
-   * @throws ConnectorException with code AGENT_INSTANCE_UPDATE_FAILED when retries are exhausted or
-   *     a non-retryable error occurs
+   * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
+   *     exhausted or a non-retryable error occurs
+   * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
+   *     when the job activation has been superseded
    */
-  void update(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentInstanceUpdateRequest request);
+  void applyToolDiscoveryStart(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey);
 
   /**
-   * Appends one conversation history item per input message of the given turn before the LLM call.
-   * All input messages are considered, e.g. user messages, including virtual ones as well as tool
-   * call results. Silently skips when {@code agentInstanceKey} is {@code null} (e.g. agents that
-   * pre-date the agent-instance feature).
+   * Records the start of a turn: moves the agent instance to {@code THINKING} and appends its input
+   * messages (e.g. a user message, or tool call results correlated against {@code previousTurn}'s
+   * tool calls) to the conversation history in a single batched, lease-fenced update. Also brings
+   * the agent instance's recorded system prompt and tool list up to date whenever {@code
+   * configuration} differs from what was in effect for {@code previousTurn}. Silently skips when
+   * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
+   * feature).
    *
-   * <p>{@code previousTurn} is the turn preceding {@code turn} (typically {@code
-   * conversation.lastTurn()}, which is the previous turn while the current turn is still pending);
-   * its assistant tool calls supply the originating arguments populated on tool-result history
-   * items, correlated by tool-call id. A tool-call result with a non-null id that has no
-   * originating tool call in {@code previousTurn} is treated as an invariant violation.
-   *
-   * @param turnIngestionTimestamp the {@code producedAt} for non-tool-result items (e.g. a user
-   *     message); tool-result items use their own resolved completion timestamp instead (ADR 008)
-   * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
+   * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
+   * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
+   *     when the job activation has been superseded
    */
-  void createHistoryForInputMessages(
+  void applyTurnStart(
       AgentExecutionContext executionContext,
+      AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp);
 
   /**
-   * Appends the assistant history item including turn metrics for the given completed turn, after
-   * the LLM call. Silently skips when {@code agentInstanceKey} is {@code null}.
+   * Records the completion of a turn: sets the agent instance's status to {@code status} and
+   * appends the assistant's response for {@code turn} — including that turn's token, model-call and
+   * tool-call metrics — to the conversation history. Silently skips when {@code agentInstanceKey}
+   * is {@code null}.
    *
-   * @param producedAt the {@code producedAt} for the assistant history item
-   * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
+   * @param producedAt when the assistant response was produced
+   * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
+   * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
+   *     when the job activation has been superseded
    */
-  void createHistoryForAssistantMessage(
+  void applyTurnCompletion(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
-      OffsetDateTime producedAt);
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status);
+
+  /**
+   * Appends one tool call result per entry in {@code toolCallResults} to the conversation history,
+   * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
+   * {@code null}.
+   *
+   * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
+   *     exhausted or a non-retryable error occurs
+   * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
+   *     when the job activation has been superseded
+   */
+  void applyToolCallResults(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      List<ToolCallResult> toolCallResults,
+      AgentConversationTurn previousTurn);
 }

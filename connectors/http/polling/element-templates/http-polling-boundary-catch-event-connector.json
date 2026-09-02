@@ -5,7 +5,7 @@
   "description" : "Polls endpoint at regular intervals",
   "keywords" : [ "poll", "polling", "HTTP", "REST", "wait for response", "check status", "periodic request", "HTTP callback" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -52,6 +52,18 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "authenticationConfiguration",
+    "label" : "Authentication credential",
+    "description" : "Choose a reusable authentication credential, or configure one-time authentication parameters below.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authenticationConfiguration",
+      "type" : "zeebe:property"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:rest-authentication:1"
+  }, {
     "id" : "authentication.type",
     "label" : "Type",
     "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
@@ -60,6 +72,11 @@
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authenticationConfiguration",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -95,9 +112,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "apiKey",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Send API key in header or as query parameter.",
     "type" : "Dropdown",
@@ -121,9 +144,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "apiKey",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -139,9 +168,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "apiKey",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String",
     "secret" : true
@@ -158,9 +193,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "basic",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -176,9 +217,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "basic",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String",
     "secret" : true
@@ -195,9 +242,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "bearer",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "bearer",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String",
     "secret" : true
@@ -218,9 +271,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -236,9 +295,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
@@ -255,9 +320,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String",
@@ -272,9 +343,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
@@ -291,9 +368,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
     "type" : "Dropdown",
@@ -314,9 +397,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "The scopes which you want to request authorization for",
     "placeholder" : "read:contacts",
@@ -338,9 +427,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-refresh-token",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-refresh-token",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -356,9 +451,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-refresh-token",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-refresh-token",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
@@ -372,9 +473,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-refresh-token",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-refresh-token",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String",
@@ -392,9 +499,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-refresh-token",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-refresh-token",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "The refresh token used to obtain a new access token",
     "type" : "String",
@@ -409,24 +522,18 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-refresh-token",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "oauth-refresh-token",
+        "type" : "simple"
+      }, {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "The scopes to request authorization for (space-separated)",
     "type" : "String"
-  }, {
-    "id" : "authenticationConfiguration",
-    "label" : "Authentication credential",
-    "description" : "Choose a reusable REST authentication credential. When set, it is bound as a whole to the connector's 'authenticationConfiguration' input.",
-    "optional" : true,
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authenticationConfiguration",
-      "type" : "zeebe:property"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:rest-authentication:1"
   }, {
     "id" : "method",
     "label" : "Method",
@@ -464,7 +571,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -473,6 +580,35 @@
     "binding" : {
       "name" : "url",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authenticationConfiguration",
+      "isEmpty" : true,
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "urlOverride",
+    "label" : "URL",
+    "description" : "Overrides the URL carried by the selected credential. Required when the credential carries none, as an OAuth credential need not.",
+    "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "url",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authenticationConfiguration",
+      "isEmpty" : false,
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -719,8 +855,7 @@
     "properties" : [ {
       "id" : "authentication.type",
       "label" : "Type",
-      "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
-      "value" : "noAuth",
+      "description" : "Choose the authentication mechanism this credential provides.",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
@@ -736,9 +871,6 @@
       }, {
         "name" : "Bearer token",
         "value" : "bearer"
-      }, {
-        "name" : "None",
-        "value" : "noAuth"
       }, {
         "name" : "OAuth 2.0",
         "value" : "oauth-client-credentials-flow"
@@ -1062,6 +1194,23 @@
         "type" : "simple"
       },
       "tooltip" : "The scopes to request authorization for (space-separated)",
+      "type" : "String"
+    }, {
+      "id" : "url",
+      "label" : "URL",
+      "description" : "The endpoint this credential is bound to. Required for basic, bearer and API key authentication; optional for OAuth, which carries its own token endpoint.",
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^((http://|https://|secrets|\\{\\{).*$)",
+          "message" : "Must be a http(s) URL"
+        }
+      },
+      "group" : "endpoint",
+      "binding" : {
+        "name" : "url",
+        "type" : "property"
+      },
       "type" : "String"
     } ]
   } ],

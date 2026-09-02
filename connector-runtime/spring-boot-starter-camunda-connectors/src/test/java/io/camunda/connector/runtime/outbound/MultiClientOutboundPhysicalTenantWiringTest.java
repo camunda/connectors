@@ -20,7 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.app.TestSingletonOutboundConnector;
+import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +45,7 @@ import org.springframework.context.ApplicationContext;
  * silently resolve to the single legacy scalar bean instead of the real per-physical-tenant map.
  */
 @SpringBootTest(
-    classes = TestConnectorRuntimeApplication.class,
+    classes = {TestConnectorRuntimeApplication.class, TestSingletonOutboundConnector.class},
     properties = {
       "camunda.clients.engine-a.mode=self-managed",
       "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
@@ -55,7 +59,10 @@ import org.springframework.context.ApplicationContext;
       "camunda.clients.engine-b.grpc-address=http://engine-b.internal:26500",
       "camunda.clients.engine-b.physical-tenant-id=tenantb",
       "camunda.connector.polling.enabled=false",
-      "camunda.connector.webhook.enabled=false"
+      "camunda.connector.webhook.enabled=false",
+      // keeps the assembled OutboundConnectorsService from issuing (unreachable) topology
+      // requests when the /outbound listing is built below
+      "camunda.connector.broker.monitoring.enabled=false"
     })
 class MultiClientOutboundPhysicalTenantWiringTest {
 
@@ -64,6 +71,8 @@ class MultiClientOutboundPhysicalTenantWiringTest {
   @Autowired private ApplicationContext applicationContext;
 
   @Autowired private OutboundConnectorManager outboundConnectorManager;
+
+  @Autowired private OutboundConnectorsService outboundConnectorsService;
 
   @SuppressWarnings("unchecked")
   private Map<String, Object> mapBean(String beanName) {
@@ -89,5 +98,21 @@ class MultiClientOutboundPhysicalTenantWiringTest {
   @Test
   void outboundConnectorManagerBeanWiresSuccessfully() {
     assertThat(outboundConnectorManager).isNotNull();
+  }
+
+  @Test
+  void outboundConnectorsServiceListsEveryConfiguredPhysicalTenant() {
+    assertThat(outboundConnectorsService.findAll("runtime-1"))
+        .isNotEmpty()
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .containsOnly("tenanta", "tenantb");
+  }
+
+  @Test
+  void outboundConnectorsServiceNarrowsToTheRequestedPhysicalTenant() {
+    assertThat(outboundConnectorsService.findAll("runtime-1", List.of("tenantb")))
+        .isNotEmpty()
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .containsOnly("tenantb");
   }
 }

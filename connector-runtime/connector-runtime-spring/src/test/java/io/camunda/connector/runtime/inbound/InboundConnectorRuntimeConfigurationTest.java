@@ -18,8 +18,34 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
@@ -30,6 +56,85 @@ class InboundConnectorRuntimeConfigurationTest {
 
   private final InboundConnectorRuntimeConfiguration configuration =
       new InboundConnectorRuntimeConfiguration();
+
+  private InboundConnectorContextImpl contextForSecretFilterMode(SecretFilterMode mode) {
+    var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn("tenant");
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(client);
+    var factory =
+        configuration.springInboundConnectorContextFactory(
+            ConnectorsObjectMapperSupplier.getCopy(),
+            mock(ConnectorsInboundMetrics.class),
+            new SecretProviderAggregator(List.of(alwaysResolvingProvider())),
+            mock(ValidationProvider.class),
+            Map.of("tenant", mock(ProcessInstanceClient.class)),
+            mock(DocumentFactory.class),
+            registry,
+            null,
+            mode);
+    return (InboundConnectorContextImpl)
+        factory.createContext(
+            detailsDeclaringNoSecret(), e -> {}, TestExecutable.class, entry -> {});
+  }
+
+  private static ValidInboundConnectorDetails detailsDeclaringNoSecret() {
+    var properties = Map.of("inbound.type", "io.camunda:connector:1");
+    var element =
+        new InboundConnectorElement(
+            properties,
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData(
+                "process",
+                null,
+                null,
+                0,
+                0,
+                "id",
+                null,
+                null,
+                "<default>",
+                "tenant",
+                new ElementTemplateDetails("Test", "1", "icon"),
+                properties));
+    return (ValidInboundConnectorDetails)
+        InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
+  }
+
+  private static String resolveUndeclared(InboundConnectorContextImpl context) {
+    return context
+        .getSecretHandler()
+        .replaceSecrets("secrets.UNDECLARED", new SecretContext("t", "p"));
+  }
+
+  private static SecretProvider alwaysResolvingProvider() {
+    return new SecretProvider() {
+      @Override
+      public String getSecret(String name, SecretContext context) {
+        return "resolved";
+      }
+    };
+  }
+
+  @Test
+  void springInboundConnectorContextFactory_filtersSecretsUnlessModeIsDisabled() {
+    assertEquals(
+        "secrets.UNDECLARED",
+        resolveUndeclared(contextForSecretFilterMode(SecretFilterMode.STRICT)));
+    assertEquals(
+        "secrets.UNDECLARED", resolveUndeclared(contextForSecretFilterMode(SecretFilterMode.LAX)));
+    assertEquals(
+        "resolved", resolveUndeclared(contextForSecretFilterMode(SecretFilterMode.DISABLED)));
+  }
+
+  static class TestExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
+    @Override
+    public void activate(InboundConnectorContext context) {}
+
+    @Override
+    public void deactivate() {}
+  }
 
   @Test
   void processDefinitionCacheManager_whenEnabled_returnsCaffeineCacheManager() {

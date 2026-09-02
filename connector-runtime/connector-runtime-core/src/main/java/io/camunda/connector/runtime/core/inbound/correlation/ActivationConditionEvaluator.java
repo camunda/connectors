@@ -93,7 +93,8 @@ public class ActivationConditionEvaluator {
       LOG.debug("Activation condition evaluated to: {}", shouldActivate);
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {
-      throw new ConnectorInputException(e);
+      throw new ConnectorInputException(
+          "Activation condition could not be evaluated: %s".formatted(e.getMessage()), e);
     }
   }
 

@@ -187,6 +187,29 @@ public class ConnectorConfigurationUtilTest {
             assertThat(configuration.type()).isEqualTo("io.camunda:connector:XXXXXXX");
           });
     }
+
+    @Test
+    public void shouldRetrieveWithLeaseTrueFromAnnotation() {
+
+      // when
+      OutboundConnectorConfiguration configuration =
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
+              LeasedAnnotatedFunction.class);
+
+      // then
+      assertThat(configuration.withLease()).isTrue();
+    }
+
+    @Test
+    public void shouldDefaultWithLeaseToFalseWhenNotSetOnAnnotation() {
+
+      // when
+      OutboundConnectorConfiguration configuration =
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
+
+      // then
+      assertThat(configuration.withLease()).isFalse();
+    }
   }
 
   @Nested
@@ -321,4 +344,17 @@ class UnannotatedExecutable implements InboundConnectorExecutable {
 
   @Override
   public void deactivate() {}
+}
+
+@OutboundConnector(
+    name = "LEASED",
+    inputVariables = {"FOO"},
+    type = "io.camunda.Leased",
+    withLease = true)
+class LeasedAnnotatedFunction implements OutboundConnectorFunction {
+
+  @Override
+  public Object execute(OutboundConnectorContext context) {
+    return null;
+  }
 }

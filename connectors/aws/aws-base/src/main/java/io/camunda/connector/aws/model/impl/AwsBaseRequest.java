@@ -7,7 +7,9 @@
 package io.camunda.connector.aws.model.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -16,16 +18,9 @@ import java.util.Objects;
 
 public class AwsBaseRequest {
 
-  // Not @NotNull on the field: a subclass may supply authentication from a bound credential by
-  // overriding getAuthentication(). Requiredness is enforced via getter-based validation below,
-  // which respects that override; for subclasses without a credential the behaviour is unchanged.
-  @TemplateProperty(group = "authentication", id = "type")
-  @Valid
-  private AwsAuthentication authentication;
-
-  @TemplateProperty(group = "configuration")
-  private AwsBaseConfiguration configuration;
-
+  // Declared first so it renders (and is emitted in properties[]) before the fallback fields it
+  // gates below - required both for UX (pick a credential before falling back to inline auth) and
+  // by ConditionPropertyOrderRule (a condition's referenced property must appear earlier).
   @TemplateProperty(
       id = "awsCredential",
       label = "AWS credential",
@@ -34,10 +29,37 @@ public class AwsBaseRequest {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
       description =
-          "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's"
-              + " 'awsCredential' input.")
+          "Choose a reusable AWS credential, or configure one-time authentication parameters"
+              + " below.")
   @Valid
   private AwsCredentialConfiguration awsCredential;
+
+  // Not @NotNull, and not @Valid, on the field: a subclass may supply authentication from a bound
+  // credential by overriding getAuthentication(), and once one is bound the raw inline value is
+  // irrelevant - including a leftover discriminator (e.g. type: "credentials") that Modeler emits
+  // unconditionally regardless of which source the user picked, with accessKey/secretKey absent
+  // since those fields are conditionally hidden. Cascading @Valid straight into that object would
+  // fail AwsStaticCredentialsAuthentication's @NotBlank accessKey/secretKey even though it lost.
+  // Requiredness and shape validation are both applied to the effective value instead - see
+  // isAuthenticationPresent() and getInlineAuthenticationWhenNoCredentialBound() below. Hidden and
+  // un-required in the template (via the isEmpty condition) once a credential is chosen above.
+  @NestedProperties(
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "awsCredential",
+              isEmpty = NullableBoolean.TRUE))
+  private AwsAuthentication authentication;
+
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen above: the
+  // bound credential's own region always wins (see getConfiguration()), so leaving `region`
+  // visible and required here would force a value that's silently discarded.
+  @NestedProperties(
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "awsCredential",
+              isEmpty = NullableBoolean.TRUE))
+  @TemplateProperty(group = "configuration")
+  private AwsBaseConfiguration configuration;
 
   public AwsCredentialConfiguration getAwsCredential() {
     return awsCredential;
@@ -69,6 +91,20 @@ public class AwsBaseRequest {
   @JsonIgnore
   public boolean isAuthenticationPresent() {
     return getAuthentication() != null;
+  }
+
+  /**
+   * Validates the inline {@link #authentication} only when no credential is bound. When a
+   * credential is bound, it is the effective source (see {@link #getAuthentication()} javadoc) and
+   * the inline value is irrelevant - including a leftover discriminator (e.g. {@code type:
+   * "credentials"}) that Modeler emits unconditionally regardless of which source the user picked,
+   * which would otherwise fail {@code AwsStaticCredentialsAuthentication}'s {@code @NotBlank
+   * accessKey}/{@code secretKey} even though it lost.
+   */
+  @Valid
+  @JsonIgnore
+  public AwsAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+    return awsCredential != null ? null : authentication;
   }
 
   /**

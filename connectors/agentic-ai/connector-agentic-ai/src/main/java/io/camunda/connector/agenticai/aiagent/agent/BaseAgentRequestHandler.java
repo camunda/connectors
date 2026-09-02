@@ -12,11 +12,15 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -26,14 +30,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
-import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
@@ -43,7 +44,9 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -109,19 +112,25 @@ public abstract class BaseAgentRequestHandler<
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      final var configuration = executionContext.configuration();
+      // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
+      // rest of this invocation once populated here from the durable AgentContext.
+      final var configuration =
+          executionContext.configuration().withToolDefinitions(agentContext.toolDefinitions());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
-      final var previousConversation = TurnReconstructor.reconstruct(loadedMessages);
+      final var previousConversation =
+          TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
       LOGGER.trace("Composing turn input from history and invocation state");
       final var compositionResult =
           agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
       return switch (compositionResult) {
-        case CompositionResult.Deferred ignored -> {
+        case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
+          reportArrivedToolCallResults(
+              executionContext, agentContext, arrivedResults, previousConversation);
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -130,34 +139,59 @@ public abstract class BaseAgentRequestHandler<
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
-                executionContext, agentContext, previousConversation, newMessages, session, store);
+                executionContext,
+                agentContext,
+                configuration,
+                previousConversation,
+                newMessages,
+                session,
+                store);
       };
     }
+  }
+
+  /**
+   * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
+   * previous turn to correlate against.
+   */
+  private void reportArrivedToolCallResults(
+      C executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> arrivedResults,
+      PreviousConversation previousConversation) {
+    if (arrivedResults.isEmpty() || previousConversation.turns().isEmpty()) {
+      return;
+    }
+    agentInstanceClient.applyToolCallResults(
+        executionContext,
+        AgentInstanceKey.from(agentContext.metadata()),
+        arrivedResults,
+        previousConversation.turns().getLast());
   }
 
   private R proceed(
       final C executionContext,
       final AgentContext agentContext,
+      final AgentConfiguration agentConfiguration,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
       final ConversationSession session,
       final ConversationStore store) {
-    var agentConfiguration = executionContext.configuration();
     var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
     throwIfLimitsReached(conversation, agentConfiguration);
-    notifyThinking(executionContext, conversation);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
     // called before ingest, so the current turn is still pending and lastTurn() is the turn
     // preceding it — i.e. the one whose tool calls originated the current turn's tool results.
     // Non-tool-result input items (e.g. the user message) are stamped with this turn-ingestion
     // timestamp; tool-result items use their own resolved completedAt instead (ADR 008).
-    agentInstanceClient.createHistoryForInputMessages(
+    agentInstanceClient.applyTurnStart(
         executionContext,
+        agentConfiguration,
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
@@ -183,19 +217,8 @@ public abstract class BaseAgentRequestHandler<
 
     final var messageStorageCompletionListener =
         createStoreCompletionListener(executionContext, store, agentResponse);
-    if (shouldUpdateAgentInstanceBeforeJobCompletion(storedConversation)) {
-      notifyMetrics(executionContext, storedConversation, agentResponse, true);
-      return buildConnectorResponse(
-          executionContext, storedConversation, agentResponse, messageStorageCompletionListener);
-    }
-
     return buildConnectorResponse(
-        executionContext,
-        storedConversation,
-        agentResponse,
-        AgentJobCompletionListener.compose(
-            messageStorageCompletionListener,
-            createMetricsCompletionListener(executionContext, storedConversation, agentResponse)));
+        executionContext, storedConversation, agentResponse, messageStorageCompletionListener);
   }
 
   /**
@@ -217,20 +240,25 @@ public abstract class BaseAgentRequestHandler<
 
       final var windowedSnapshot =
           workingConversation.window(agentConfiguration.contextWindowSize());
-      final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
-
-      throwIfContentFiltered(chatResult.assistantMessage());
+      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
-      agentInstanceClient.createHistoryForAssistantMessage(
+      continued = chatResult instanceof ChatResult.Continuation;
+      // Exactly one status per round (engine constraint): a continuation round re-asserts THINKING
+      // alongside its assistant item, the final round sends its terminal status instead.
+      final var status =
+          continued
+              ? AgentInstanceUpdateStatus.THINKING
+              : nextAgentInstanceState(workingConversation.currentTurnMetrics().toolCalls());
+      agentInstanceClient.applyTurnCompletion(
           executionContext,
           agentInstanceKey,
           workingConversation.currentTurn(),
-          OffsetDateTime.now());
+          OffsetDateTime.now(),
+          status);
 
-      continued = chatResult instanceof ChatResult.Continuation;
       if (continued) {
         LOGGER.debug(
             "Provider requested continuation (iterationKey={}); resuming with another round",
@@ -243,12 +271,62 @@ public abstract class BaseAgentRequestHandler<
     return workingConversation;
   }
 
-  private void throwIfContentFiltered(AssistantMessage assistantMessage) {
-    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
-          "Model response was blocked by provider content filtering.");
+  /**
+   * Calls the chat model, translating a {@link ChatModelRejectedException} - thrown directly by the
+   * provider when it recognizes a known, unrecoverable-for-now condition - into the equivalent
+   * coded {@link ConnectorException}. Exhaustive over the sealed hierarchy, so a future subtype
+   * fails to compile here until handled.
+   */
+  private ChatResult executeChatModel(
+      ChatModel chatModel, AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+    try {
+      return chatModel.execute(new ChatRequest(executionContext, snapshot));
+    } catch (ChatModelRejectedException e) {
+      throw switch (e) {
+        case ContentFilteredException cfe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+                cfe.getMessage(),
+                cfe,
+                rejectionErrorVariables(cfe));
+        case ContextWindowExceededException cwe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
+                cwe.getMessage(),
+                cwe,
+                rejectionErrorVariables(cwe));
+        case GuardrailInterventionException gie ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED,
+                gie.getMessage(),
+                gie,
+                rejectionErrorVariables(gie));
+      };
     }
+  }
+
+  /**
+   * Surfaces the stop reason and any text the provider had already produced before the rejection as
+   * a nested {@code rejection} error variable, so a BPMN error boundary event can inspect what the
+   * model was doing when it was cut off. Empty when the provider rejected the request before
+   * producing any partial result at all.
+   */
+  private static Map<String, Object> rejectionErrorVariables(ChatModelRejectedException e) {
+    final var partialResult = e.partialResult();
+    if (partialResult == null) {
+      return Map.of();
+    }
+
+    final var assistantMessage = partialResult.assistantMessage();
+    final Map<String, Object> rejection = new LinkedHashMap<>();
+    if (assistantMessage.stopReason() != null) {
+      rejection.put("stopReason", assistantMessage.stopReason().value());
+    }
+    final var text = MessageUtil.contentText(assistantMessage);
+    if (!text.isBlank()) {
+      rejection.put("text", text);
+    }
+    return rejection.isEmpty() ? Map.of() : Map.of("rejection", Map.copyOf(rejection));
   }
 
   private void throwIfLimitsReached(
@@ -278,17 +356,6 @@ public abstract class BaseAgentRequestHandler<
     return SystemMessage.builder().content(MessageUtil.singleTextContent(composedPrompt)).build();
   }
 
-  private void notifyThinking(C executionContext, AgentConversation conversation) {
-    LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
-    agentInstanceClient.update(
-        executionContext,
-        conversation.agentInstanceKey(),
-        AgentInstanceUpdateRequest.builder()
-            .status(AgentInstanceUpdateStatus.THINKING)
-            .tools(conversation.toAgentContext().toolDefinitions())
-            .build());
-  }
-
   private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {
     return toolCallsDelta == 0
         ? AgentInstanceUpdateStatus.IDLE
@@ -302,33 +369,9 @@ public abstract class BaseAgentRequestHandler<
             .context(agentContext)
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    var listener = createToolDiscoveryCompletionListener(executionContext, agentContext);
-    return buildConnectorResponse(executionContext, null, response, listener);
-  }
-
-  private AgentJobCompletionListener createToolDiscoveryCompletionListener(
-      C executionContext, AgentContext agentContext) {
-    return new AgentJobCompletionListener() {
-      @Override
-      public void onJobCompleted() {
-        try {
-          agentInstanceClient.update(
-              executionContext,
-              AgentInstanceKey.from(agentContext.metadata()),
-              AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
-        } catch (Exception e) {
-          LOGGER.error(
-              "Failed to update agent instance status to TOOL_DISCOVERY after job completion", e);
-        }
-      }
-
-      @Override
-      public void onJobCompletionFailed(JobCompletionFailure failure) {
-        LOGGER.debug(
-            "Job completion failed ({}), skipping TOOL_DISCOVERY status update",
-            failure.getClass().getSimpleName());
-      }
-    };
+    agentInstanceClient.applyToolDiscoveryStart(
+        executionContext, AgentInstanceKey.from(agentContext.metadata()));
+    return buildConnectorResponse(executionContext, null, response, null);
   }
 
   /** Called when no agent response should be produced this turn. Default: no-op response. */
@@ -345,16 +388,6 @@ public abstract class BaseAgentRequestHandler<
   protected abstract R handleNoInput(C executionContext);
 
   /**
-   * Returns {@code true} when the agent-instance PATCH must be sent synchronously before the job
-   * completion command is issued. Returning {@code false} defers the PATCH to {@link
-   * AgentJobCompletionListener#onJobCompleted()}, which is safe as long as the element instance
-   * survives job completion (e.g. an AHSP intermediate turn where tool elements are activated and
-   * the subprocess stays open).
-   */
-  protected abstract boolean shouldUpdateAgentInstanceBeforeJobCompletion(
-      AgentConversation conversation);
-
-  /**
    * Builds the connector response from the agent response. Conversation, agent response, and
    * listener may be null (e.g. on no-op, cancellation, or tool-discovery paths). The conversation
    * is provided on the proceed path so subclasses can derive response details (e.g. whether to
@@ -365,82 +398,6 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
-
-  private void notifyMetrics(
-      C executionContext,
-      AgentConversation conversation,
-      AgentResponse response,
-      boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.jobMetrics();
-    // Continuation rounds are pauses (no client tool calls), so the final turn owns the tool-call
-    // count; status must reflect the final turn, while the pushed delta covers the whole
-    // invocation.
-    final var nextState = nextAgentInstanceState(conversation.currentTurnMetrics().toolCalls());
-    final var agentContext = response.context();
-
-    notifyMetrics(executionContext, agentContext, metricsDelta, nextState, rethrowOnFailure);
-  }
-
-  private void notifyMetrics(
-      C executionContext,
-      AgentContext context,
-      AgentMetrics metricsDelta,
-      @Nullable AgentInstanceUpdateStatus nextState,
-      boolean rethrowOnFailure) {
-    try {
-
-      LOGGER.debug(
-          "Updating agent instance metrics: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
-          nextState,
-          metricsDelta.modelCalls(),
-          metricsDelta.tokenUsage().inputTokenCount(),
-          metricsDelta.tokenUsage().outputTokenCount(),
-          metricsDelta.toolCalls());
-      // The agent-instance metrics update is counters-only (model/tool calls, tokens). The per-turn
-      // execution duration is a conversation-history concern and is not transmitted here, so it is
-      // stripped from the delta.
-      var updateRequestBuilder =
-          AgentInstanceUpdateRequest.builder().delta(metricsDelta.withExecutionTime(null));
-      if (nextState != null) {
-        updateRequestBuilder.status(nextState);
-      }
-      agentInstanceClient.update(
-          executionContext,
-          AgentInstanceKey.from(context.metadata()),
-          updateRequestBuilder.build());
-    } catch (Exception e) {
-      LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
-      if (rethrowOnFailure) {
-        throw e;
-      }
-    }
-  }
-
-  private AgentJobCompletionListener createMetricsCompletionListener(
-      C executionContext, AgentConversation conversation, AgentResponse response) {
-    return new AgentJobCompletionListener() {
-      @Override
-      public void onJobCompleted() {
-        notifyMetrics(executionContext, conversation, response, false);
-      }
-
-      @Override
-      public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.jobMetrics().withToolCalls(0);
-        if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
-          // Superseded job: report model/token cost but don't overwrite the current status
-          notifyMetrics(executionContext, response.context(), strippedDelta, null, false);
-        } else {
-          notifyMetrics(
-              executionContext,
-              response.context(),
-              strippedDelta,
-              AgentInstanceUpdateStatus.IDLE,
-              false);
-        }
-      }
-    };
-  }
 
   private static <C extends AgentExecutionContext>
       @Nullable AgentJobCompletionListener createStoreCompletionListener(

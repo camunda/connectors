@@ -31,10 +31,15 @@ import java.util.List;
  * @param enabled whether the connector is enabled or not
  * @param runtimeId hostname of the runtime node that reported this entry
  * @param brokerConnectivityState whether the connector's stream appears as a consumer on all
- *     brokers; {@link BrokerConnectivityState#UNKNOWN} when broker monitoring is not configured or
- *     unreachable
+ *     brokers of the physical tenant (engine) this entry belongs to; {@link
+ *     BrokerConnectivityState#UNKNOWN} when broker monitoring is not configured or unreachable
  * @param streamIds consumer IDs observed across all brokers for this job type; {@code null} when
  *     broker monitoring is unavailable or no consumers were found
+ * @param physicalTenantId the physical tenant (engine) this entry was reported for — the engine
+ *     identity, as opposed to {@code runtimeId}, which is the reporting pod's identity. One entry
+ *     per (connector, physical tenant) pair is returned, since every configured engine runs a job
+ *     worker for every registered connector. {@code null} when no physical tenant is known (legacy
+ *     single-client wiring that supplies no {@code CamundaClientRegistry}).
  */
 @JsonInclude(Include.NON_NULL)
 public record OutboundConnectorResponse(
@@ -45,7 +50,8 @@ public record OutboundConnectorResponse(
     boolean enabled,
     String runtimeId,
     BrokerConnectivityState brokerConnectivityState,
-    List<String> streamIds) {
+    List<String> streamIds,
+    String physicalTenantId) {
 
   /** Convenience constructor without stream enrichment (backward-compatible). */
   public OutboundConnectorResponse(
@@ -55,6 +61,32 @@ public record OutboundConnectorResponse(
       Long timeout,
       boolean enabled,
       String runtimeId) {
-    this(name, type, inputVariables, timeout, enabled, runtimeId, null, null);
+    this(name, type, inputVariables, timeout, enabled, runtimeId, null, null, null);
+  }
+
+  /**
+   * The canonical constructor as it stood before {@code physicalTenantId} was added — kept so
+   * callers compiled against the previous signature keep linking, mirroring the stream-less
+   * convenience constructor above.
+   */
+  public OutboundConnectorResponse(
+      String name,
+      String type,
+      List<String> inputVariables,
+      Long timeout,
+      boolean enabled,
+      String runtimeId,
+      BrokerConnectivityState brokerConnectivityState,
+      List<String> streamIds) {
+    this(
+        name,
+        type,
+        inputVariables,
+        timeout,
+        enabled,
+        runtimeId,
+        brokerConnectivityState,
+        streamIds,
+        null);
   }
 }

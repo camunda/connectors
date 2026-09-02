@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -111,7 +111,7 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorType())
               .isEqualTo(IncidentErrorType.AD_HOC_SUB_PROCESS_NO_RETRIES);
           assertThat(incident.getErrorMessage())
@@ -133,7 +133,7 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorType())
               .isEqualTo(IncidentErrorType.AD_HOC_SUB_PROCESS_NO_RETRIES);
           assertThat(incident.getErrorMessage())

@@ -91,7 +91,7 @@ public class AgentResponseAssert extends AbstractAssert<AgentResponseAssert, Age
     return this;
   }
 
-  public AgentResponseAssert hasResponseTestSatisfying(ThrowingConsumer<String> assertions) {
+  public AgentResponseAssert hasResponseTextSatisfying(ThrowingConsumer<String> assertions) {
     isNotNull();
     Assertions.assertThat(actual.responseText()).isNotNull().satisfies(assertions);
     return this;

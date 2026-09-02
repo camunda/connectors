@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
     engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
-    version = 11,
+    version = 12,
     description = "Manage tables and items with AWS DynamoDB.",
     keywords = {
       "create table",

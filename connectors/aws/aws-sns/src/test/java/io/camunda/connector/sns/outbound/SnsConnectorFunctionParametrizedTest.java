@@ -45,7 +45,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
@@ -93,7 +92,7 @@ class SnsConnectorFunctionParametrizedTest {
   void execute_ShouldSucceedSuccessCases(final SnsConnectorRequest expectedRequest)
       throws JsonProcessingException {
     // given
-    when(snsClientSupplier.getSnsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_TOPIC_REGION)))
+    when(snsClientSupplier.getSnsClient(any(SnsConnectorRequest.class), eq(ACTUAL_TOPIC_REGION)))
         .thenReturn(snsClient);
     PublishResponse publishResponse = mock(PublishResponse.class);
     when(publishResponse.messageId()).thenReturn(MSG_ID);

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
@@ -64,8 +64,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
         .thenReturn(sendMessageResponse);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
-            sqsClientSupplier.sqsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+            sqsClientSupplier.sqsClient(any(AwsBaseRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
@@ -89,8 +88,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
         .thenReturn(sendMessageResponse);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
-            sqsClientSupplier.sqsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+            sqsClientSupplier.sqsClient(any(AwsBaseRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
     Mockito.when(sqsClient.sendMessage(captor.capture()))
@@ -121,8 +119,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
         .thenReturn(sendMessageResponse);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
-            sqsClientSupplier.sqsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+            sqsClientSupplier.sqsClient(any(AwsBaseRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
     Mockito.when(sqsClient.sendMessage(captor.capture()))

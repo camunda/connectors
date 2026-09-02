@@ -70,13 +70,13 @@ public class AgenticAiLangChain4JChatModelConfiguration {
   @ConditionalOnMissingBean
   public BedrockChatModelFactory langChain4JBedrockChatModelFactory(
       AgenticAiConnectorsConfigurationProperties config,
-      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      AgenticAiHttpProxySupport httpProxySupport,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new BedrockChatModelFactory(
         config.aiagent().chatModel(),
-        chatModelHttpProxySupport,
+        httpProxySupport,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter);
@@ -85,11 +85,17 @@ public class AgenticAiLangChain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public GoogleVertexAiChatModelFactory langChain4JGoogleVertexAiChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties config,
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new GoogleVertexAiChatModelFactory(
-        chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter);
   }
 
   @Bean

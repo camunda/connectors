@@ -6,29 +6,19 @@
  */
 package io.camunda.connector.common.suppliers;
 
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
-  public SqsClient sqsClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SqsClient.builder()
-        .credentialsProvider(credentialsProvider)
+  // Delegates to AwsClientSupport (issue #7083). A blank endpoint is now a no-op instead of
+  // failing, and the inbound path now honors a custom endpoint (previously unreachable).
+  @Override
+  public SqsClient sqsClient(final AwsBaseRequest request, final String region) {
+    return AwsClientSupport.configureClient(SqsClient.builder(), request)
         .region(Region.of(region))
-        .build();
-  }
-
-  public SqsClient sqsClient(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return SqsClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }

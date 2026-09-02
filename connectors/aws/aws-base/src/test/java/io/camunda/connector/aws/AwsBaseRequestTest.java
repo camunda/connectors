@@ -6,12 +6,14 @@
  */
 package io.camunda.connector.aws;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
@@ -84,5 +86,36 @@ class AwsBaseRequestTest {
         request.getAuthentication());
     assertEquals("us-east-1", request.getConfiguration().region());
     assertEquals("https://inline-endpoint", request.getConfiguration().endpoint());
+  }
+
+  /**
+   * Reproduces the actual Modeler-generated shape for a credential-only diagram: {@code
+   * authentication.type} is an unconditional zeebe:input with a static default ({@code
+   * "credentials"}), so it is always present even though the user never filled in the
+   * (conditionally hidden) accessKey/secretKey. This must not fail validation now that
+   * awsCredential is bound and takes precedence.
+   */
+  @Test
+  void validationSucceedsWithCredentialBoundDespiteUnconditionalInlineDiscriminator() {
+    AwsBaseRequest request = new AwsBaseRequest();
+    request.setAwsCredential(
+        new AwsCredentialConfiguration(
+            new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                "credential-key", "credential-secret"),
+            "us-east-1"));
+    request.setAuthentication(new AwsAuthentication.AwsStaticCredentialsAuthentication(null, null));
+
+    assertThatCode(() -> new DefaultValidationProvider().validate(request))
+        .doesNotThrowAnyException();
+  }
+
+  /** Without a bound credential, the same incomplete inline authentication must still fail. */
+  @Test
+  void validationFailsWithIncompleteInlineAuthenticationWhenNoCredentialBound() {
+    AwsBaseRequest request = new AwsBaseRequest();
+    request.setConfiguration(new AwsBaseConfiguration("eu-central-1", null));
+    request.setAuthentication(new AwsAuthentication.AwsStaticCredentialsAuthentication(null, null));
+
+    assertThrows(Exception.class, () -> new DefaultValidationProvider().validate(request));
   }
 }

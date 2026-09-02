@@ -17,22 +17,17 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
     name = AgentSubProcessV2Function.JOB_WORKER_NAME,
     type = AgentSubProcessV2Function.JOB_WORKER_TYPE,
     inputVariables = {
-      AgentSubProcessV2Function.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
-      AgentSubProcessV2Function.AGENT_CONTEXT_VARIABLE,
-      AgentSubProcessV2Function.TOOL_CALL_RESULTS_VARIABLE,
-      AgentSubProcessV2Function.PROVIDER_VARIABLE,
-      AgentSubProcessV2Function.DATA_VARIABLE
-    })
+      AgentProcessVariables.AD_HOC_SUB_PROCESS_ELEMENTS,
+      AgentProcessVariables.AGENT_CONTEXT,
+      AgentProcessVariables.TOOL_CALL_RESULTS,
+      AgentProcessVariables.PROVIDER,
+      AgentProcessVariables.DATA
+    },
+    withLease = true)
 public class AgentSubProcessV2Function implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Sub-process";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
-
-  public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
-  public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
-  public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
-  public static final String PROVIDER_VARIABLE = "provider";
-  public static final String DATA_VARIABLE = "data";
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
 

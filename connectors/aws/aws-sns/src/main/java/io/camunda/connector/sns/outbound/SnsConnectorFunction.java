@@ -13,15 +13,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
-import java.util.Optional;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
@@ -38,7 +35,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
     keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 10,
+    version = 11,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),
@@ -70,14 +67,8 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   }
 
   private SnsClient createSnsClient(final SnsConnectorRequest request) {
-    Optional<String> endpoint =
-        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
-    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
     var region = extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
-
-    return endpoint
-        .map(ep -> snsClientSupplier.getSnsClient(credentialsProvider, region, ep))
-        .orElseGet(() -> snsClientSupplier.getSnsClient(credentialsProvider, region));
+    return snsClientSupplier.getSnsClient(request, region);
   }
 
   private PublishResponse sendMsgToSns(final SnsClient snsClient, SnsConnectorRequest request) {

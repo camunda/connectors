@@ -10,6 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVert
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -22,7 +24,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
+@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Enterprise Agent Platform (Vertex AI)")
 public record GoogleVertexAiProviderConfiguration(
     @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {
 
@@ -58,10 +60,34 @@ public record GoogleVertexAiProviderConfiguration(
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
+      @HttpUrl
+          @TemplateProperty(
+              group = "provider",
+              description = "Optional custom API endpoint",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              optional = true)
+          @Nullable String endpoint,
       @Valid @NotNull GoogleVertexAiAuthentication authentication,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
 
-    @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
+    /**
+     * The four-argument constructor predates {@code endpoint} and {@code timeouts} being added to
+     * this record. Existing callers compiled against it must keep working, so it must remain as a
+     * delegating overload rather than disappearing when new components are added.
+     */
+    public GoogleVertexAiConnection(
+        String projectId,
+        String region,
+        GoogleVertexAiAuthentication authentication,
+        GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
+      this(projectId, region, null, authentication, null, model);
+    }
+
+    @AssertFalse(
+        message =
+            "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication
@@ -83,7 +109,7 @@ public record GoogleVertexAiProviderConfiguration(
       group = "provider",
       name = "type",
       defaultValue = "serviceAccountCredentials",
-      description = "Specify the Google Vertex AI authentication strategy.")
+      description = "Specify the Enterprise Agent Platform (Vertex AI) authentication strategy.")
   public sealed interface GoogleVertexAiAuthentication {
     @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
     record ServiceAccountCredentialsAuthentication(

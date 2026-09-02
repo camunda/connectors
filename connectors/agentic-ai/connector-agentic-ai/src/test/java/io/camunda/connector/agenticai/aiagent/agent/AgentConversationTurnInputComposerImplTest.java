@@ -135,6 +135,27 @@ class AgentConversationTurnInputComposerImplTest {
     var history = TurnReconstructor.reconstruct(storedMessages);
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    // the arrived result is carried on Deferred so the caller can report it early (ADR 011)
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
+  }
+
+  @Test
+  void toolResultTurn_missingResults_deferredCarriesOnlyCorrelatingResult() {
+    // a stray/redelivered result for an id this turn isn't waiting on must not appear in
+    // Deferred's arrivedResults, and must not cause a failure either
+    var strayResult = ToolCallResult.builder().id("stray-id").name("unrelated").build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst(), strayResult));
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -264,6 +285,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -288,6 +311,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -378,6 +403,52 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(documentMessage.content())
                   .contains(DocumentContent.documentContent(weatherDoc));
             });
+  }
+
+  @Test
+  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversFallbackMessage() {
+    // a tool call result whose whole content is a Document (not nested in an object): the
+    // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
+    // other content-lift path; the fallback <doc/> message is still composed alongside it
+    // regardless — provider tool-result converters are responsible for not embedding the same
+    // bytes a second time, not this provider-agnostic composition step
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(weatherDoc)
+                    .build(),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(messages).hasSize(2);
+    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(
+            r ->
+                assertThat(r.content())
+                    .containsExactly(DocumentContent.documentContent(weatherDoc)));
+    assertThat(messages.get(1))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            documentMessage ->
+                assertThat(documentMessage.content())
+                    .contains(DocumentContent.documentContent(weatherDoc)));
   }
 
   @Test

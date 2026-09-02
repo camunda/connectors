@@ -17,11 +17,13 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -46,7 +48,11 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
+      strings = {
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        LAST_8_8_ELEMENT_TEMPLATE_PATH
+      })
   void agentVariableDoesNotLeakToGlobalScope(String elementTemplatePath) throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(HAIKU_TEXT, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
@@ -61,7 +67,11 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
+      strings = {
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        LAST_8_8_ELEMENT_TEMPLATE_PATH
+      })
   void agentVariableDoesNotLeakAfterToolCallingAndFeedbackLoop(String elementTemplatePath)
       throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
@@ -85,13 +95,33 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
     assertAgentVariableNotInGlobalScope(zeebeTest);
   }
 
+  /**
+   * The v1-shaped templates ({@code AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH} and the last
+   * 8.8-compatible template) need the legacy {@code openaiCompatible} provider config; the v2
+   * template uses the generic base's {@code configureDefaultOpenAiProvider} instead.
+   */
+  private ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
+    return template
+        .property("provider.type", "openaiCompatible")
+        .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openaiCompatible.authentication.apiKey", "dummy")
+        .property("provider.openaiCompatible.model.model", "test-model");
+  }
+
+  private ElementTemplate configureProvider(String elementTemplatePath, ElementTemplate template) {
+    return AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH.equals(elementTemplatePath)
+        ? configureDefaultOpenAiProvider(template)
+        : withOpenAiCompatibleProvider(template);
+  }
+
   private ZeebeTest runAgentWithCustomResultVariable(
       String elementTemplatePath, Map<String, Object> processVariables) throws IOException {
     final var updatedElementTemplate =
         elementTemplateWithModifications(
             elementTemplatePath,
             elementTemplate ->
-                withOpenAiCompatibleProvider(
+                configureProvider(
+                    elementTemplatePath,
                     elementTemplate.property("resultVariable", CUSTOM_RESULT_VARIABLE)));
     final var updatedElementTemplateFile =
         updatedElementTemplate.writeTo(new File(tempDir, "template.json"));

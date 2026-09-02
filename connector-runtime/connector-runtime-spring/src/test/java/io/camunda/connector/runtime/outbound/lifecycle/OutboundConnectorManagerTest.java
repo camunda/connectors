@@ -28,8 +28,11 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.annotation.value.JobWorkerValue;
+import io.camunda.client.annotation.value.SourceAware;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.jobhandling.JobWorkerManager;
+import io.camunda.client.jobhandling.ManagedJobWorker;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -43,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class OutboundConnectorManagerTest {
 
@@ -54,7 +58,13 @@ class OutboundConnectorManagerTest {
 
   private static OutboundConnectorConfiguration connectorConfig(
       String type, Supplier<OutboundConnectorFunction> instanceSupplier) {
-    return new OutboundConnectorConfiguration(type, new String[0], type, instanceSupplier, null);
+    return connectorConfig(type, instanceSupplier, false);
+  }
+
+  private static OutboundConnectorConfiguration connectorConfig(
+      String type, Supplier<OutboundConnectorFunction> instanceSupplier, boolean withLease) {
+    return new OutboundConnectorConfiguration(
+        type, new String[0], type, instanceSupplier, null, withLease);
   }
 
   private static OutboundConnectorManager managerWith(
@@ -243,5 +253,55 @@ class OutboundConnectorManagerTest {
 
     // resolves to "default" (client name fallback) and finds the map entries without throwing
     verify(jobWorkerManager).closeJobWorkers(manager, client);
+  }
+
+  @Test
+  void onStart_setsWithLeaseOnJobWorkerValue_whenConnectorOptsIn() {
+    var jobWorkerManager = mock(JobWorkerManager.class);
+    var connectorFactory = mock(OutboundConnectorFactory.class);
+    when(connectorFactory.getActiveConfigurations())
+        .thenReturn(
+            List.of(connectorConfig("type-a", () -> mock(OutboundConnectorFunction.class), true)));
+    var documentFactory = mock(DocumentFactory.class);
+    var secretFilterFactory = mock(SecretFilterFactory.class);
+    var manager =
+        managerWith(
+            jobWorkerManager,
+            connectorFactory,
+            Map.of("tenant-a", documentFactory),
+            Map.of("tenant-a", secretFilterFactory));
+    var client = clientWithPhysicalTenantId("tenant-a");
+
+    manager.onStart(client, "engine-a");
+
+    var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
+    assertThat(jobWorkerValue.getWithLease().value()).isTrue();
+  }
+
+  @Test
+  void onStart_leavesWithLeaseUnset_whenConnectorDoesNotOptIn() {
+    var jobWorkerManager = mock(JobWorkerManager.class);
+    var connectorFactory = mock(OutboundConnectorFactory.class);
+    when(connectorFactory.getActiveConfigurations())
+        .thenReturn(
+            List.of(connectorConfig("type-a", () -> mock(OutboundConnectorFunction.class))));
+    var documentFactory = mock(DocumentFactory.class);
+    var secretFilterFactory = mock(SecretFilterFactory.class);
+    var manager =
+        managerWith(
+            jobWorkerManager,
+            connectorFactory,
+            Map.of("tenant-a", documentFactory),
+            Map.of("tenant-a", secretFilterFactory));
+    var client = clientWithPhysicalTenantId("tenant-a");
+
+    manager.onStart(client, "engine-a");
+
+    var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
+    assertThat(jobWorkerValue.getWithLease()).isInstanceOf(SourceAware.Empty.class);
   }
 }

@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
@@ -48,7 +49,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -79,7 +79,7 @@ class SqsConnectorFunctionParametrizedTest {
   @MethodSource("successRequestCases")
   void execute_ShouldSucceedSuccessCases(final String input) throws JsonProcessingException {
     // given
-    when(sqsClientSupplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClientSupplier.sqsClient(any(AwsBaseRequest.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     SendMessageResponse sendMessageResponse = mock(SendMessageResponse.class);
     when(sendMessageResponse.messageId()).thenReturn(MSG_ID);
@@ -111,7 +111,7 @@ class SqsConnectorFunctionParametrizedTest {
   @MockitoSettings(strictness = Strictness.LENIENT)
   void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
-    when(sqsClientSupplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClientSupplier.sqsClient(any(AwsBaseRequest.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     SendMessageResponse sendMessageResponse = mock(SendMessageResponse.class);
     when(sendMessageResponse.messageId()).thenReturn(MSG_ID);

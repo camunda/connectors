@@ -41,9 +41,11 @@ inputs:
   pr_is_draft:
     description: >
       Draft state of `pr` when the caller already knows it — on a pull_request
-      trigger pass ${{ github.event.pull_request.draft }}, on merge_group pass
+      trigger pass the event's pull_request.draft value, on merge_group pass
       "false" (a draft cannot enter a merge queue). Empty means resolve it via
-      the API, which needs github_token.
+      the API, which needs github_token. Do not write an expression here: the
+      template engine evaluates it and the github context is unavailable in an
+      action's input metadata, which makes the whole action fail to load.
     required: false
     default: ""
   skip_on_draft:
@@ -70,10 +72,22 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  slack_ts:
+    description: >
+      Timestamp of the Slack message that was posted, so a later job can reply in its
+      thread instead of starting a second top-level message. Empty when Slack was
+      skipped or the post failed.
+    value: ${{ steps.feedback.outputs.slack_ts }}
+  slack_channel:
+    description: "Channel id the message was posted to. Empty when nothing was posted."
+    value: ${{ steps.feedback.outputs.slack_channel }}
+
 runs:
   using: composite
   steps:
     - name: Render & post failure feedback
+      id: feedback
       shell: bash
       continue-on-error: true
       env:

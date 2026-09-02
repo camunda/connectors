@@ -186,6 +186,10 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       jobWorkerValue.setTimeout(new FromAnnotation<>(Duration.ofMillis(connector.timeout())));
     }
 
+    if (connector.withLease()) {
+      jobWorkerValue.setWithLease(new FromAnnotation<>(true));
+    }
+
     OutboundConnectorFunction connectorFunction =
         connectorInstancesByPhysicalTenant.computeIfAbsent(
             new InstanceCacheKey(physicalTenantId, connector.type()),
@@ -198,7 +202,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     JobHandlerFactory jobHandlerFactory =
         ctx ->
             new SpringConnectorJobHandler(
-                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry),
+                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry, physicalTenantId),
                 jobCallbackCommandWrapperFactory,
                 secretProviderAggregator,
                 validationProvider,

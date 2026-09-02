@@ -27,10 +27,14 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -74,10 +78,14 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   static Stream<ProviderWireFormatFixture> fixtures() {
     return Stream.of(
-        new OpenAiCompletionsWireFormatFixture(),
-        new AnthropicMessagesWireFormatFixture(),
-        new BedrockConverseWireFormatFixture(),
-        new AzureOpenAiCompletionsWireFormatFixture());
+        new OpenAiCompletionsV1WireFormatFixture(),
+        new OpenAiCompletionsV2WireFormatFixture(),
+        new AnthropicMessagesV1WireFormatFixture(),
+        new AnthropicMessagesV2WireFormatFixture(),
+        new BedrockConverseV1WireFormatFixture(),
+        new BedrockConverseV2WireFormatFixture(),
+        new AzureOpenAiCompletionsWireFormatFixture(),
+        new OpenAiResponsesV2WireFormatFixture());
   }
 
   /**
@@ -97,6 +105,25 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
           BaseAgentTest.HTTPS_KEYSTORE_PASSWORD,
           "javax.net.ssl.trustStoreType",
           "PKCS12");
+
+  /**
+   * Delegates to the fixture, which decides its own template unconditionally (v1 for the fixtures
+   * proving the v1→v2 provider-config rewrite, v2 for the ones driving a native provider directly)
+   * — see {@code ProviderWireFormatFixture#elementTemplatePath}.
+   */
+  @Override
+  protected String elementTemplatePath() {
+    return fixture.elementTemplatePath(super.elementTemplatePath());
+  }
+
+  /**
+   * Delegates to the fixture, mirroring {@link #elementTemplatePath()} for the baseline
+   * (non-provider) element template properties.
+   */
+  @Override
+  protected Map<String, String> elementTemplateProperties() {
+    return fixture.elementTemplateBaselineProperties(super.elementTemplateProperties());
+  }
 
   /**
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link

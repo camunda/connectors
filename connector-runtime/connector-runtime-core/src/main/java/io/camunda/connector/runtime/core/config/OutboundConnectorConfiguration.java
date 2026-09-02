@@ -25,7 +25,8 @@ public record OutboundConnectorConfiguration(
     String[] inputVariables,
     String type,
     Supplier<OutboundConnectorFunction> instanceSupplier,
-    @Nullable Long timeout)
+    @Nullable Long timeout,
+    boolean withLease)
     implements ConnectorConfiguration {
 
   public OutboundConnectorConfiguration(
@@ -33,7 +34,16 @@ public record OutboundConnectorConfiguration(
       String[] inputVariables,
       String type,
       Supplier<OutboundConnectorFunction> instance) {
-    this(name, inputVariables, type, instance, null);
+    this(name, inputVariables, type, instance, null, false);
+  }
+
+  public OutboundConnectorConfiguration(
+      String name,
+      String[] inputVariables,
+      String type,
+      Supplier<OutboundConnectorFunction> instance,
+      @Nullable Long timeout) {
+    this(name, inputVariables, type, instance, timeout, false);
   }
 
   @Override

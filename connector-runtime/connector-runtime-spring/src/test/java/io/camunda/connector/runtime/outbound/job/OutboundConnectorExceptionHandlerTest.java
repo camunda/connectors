@@ -18,22 +18,32 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
+import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 
 /**
  * Secrets are masked out of error output by re-resolving them, so this handler has to resolve
@@ -44,6 +54,7 @@ import org.mockito.ArgumentCaptor;
 class OutboundConnectorExceptionHandlerTest {
 
   private final SecretProvider secretProvider = mock(SecretProvider.class);
+  private final List<String> requestedKeys = new ArrayList<>();
   private final OutboundConnectorExceptionHandler handler =
       new OutboundConnectorExceptionHandler(secretProvider);
 
@@ -58,7 +69,11 @@ class OutboundConnectorExceptionHandlerTest {
 
   private SecretContext captureSecretContext() {
     var captor = ArgumentCaptor.forClass(SecretContext.class);
-    verify(secretProvider).fetchAll(any(), captor.capture());
+    verify(secretProvider, atLeastOnce()).fetchAll(any(), captor.capture());
+    // Whether it takes one read or two, every one of them has to use the scope the input was
+    // substituted with: a secret resolved for one engine is not recognized when re-read for
+    // another.
+    assertThat(captor.getAllValues()).containsOnly(captor.getValue());
     return captor.getValue();
   }
 
@@ -75,6 +90,72 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void manageConnectorJobHandlerException_failsWithoutRetryWhenSecretsCannotBeFetchedAtAll() {
+    // a provider that refuses every lookup (e.g. legacy resolution switched off) throws for the
+    // masking fetch too; retrying will not change that, so this must not be treated as transient
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_retriesNormallyWhenFetchingSecretsFailsTransiently() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_retriesWhenTheClusterCouldNotBeReached() {
+    // The central-store fallback raises this when the resolve command itself failed, as opposed to
+    // the cluster answering that it does not hold the name. Nothing is known about the input, so
+    // the job has to keep its remaining attempts — which is exactly what the type is chosen for.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new SecretReferenceResolver.SecretResolutionFailedException(1, "TimeoutException"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_keepsTheOriginalErrorFatalWhenMaskingFailsTransiently() {
+    // The two failures are independent: the job's own can be permanent while reading the values to
+    // redact it merely times out. Classifying from the masking failure alone would hand a job that
+    // can never bind its remaining attempts back.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new ConnectorInputException("secret 'FOO' is not available"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
   void handleFinalResultException_resolvesSecretsAgainstTheJobsPhysicalTenant() {
     var job = jobOnEngine("engine-1");
     when(job.getRetries()).thenReturn(1);
@@ -84,6 +165,356 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(captureSecretContext())
         .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
+  }
+
+  @Test
+  void handleFinalResultException_reportsAnErrorWhenTheMaskingFetchFails() {
+    // The only caller is already inside a catch block, and an exception leaving here escapes it:
+    // the job would then be neither completed nor failed, sitting until its activation timeout
+    // hands it to another worker, which re-runs a connector that has already run. So a masking
+    // fetch that fails has to come back as a result, not as a throw.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved"));
+
+    var result =
+        handler.handleFinalResultException(
+            new RuntimeException("boom"), job, SecretFilter.allowAll());
+
+    assertThat(result).isNotNull();
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void handleFinalResultException_withholdsTheOriginalMessageWhenItCannotBeMasked() {
+    // Nothing to mask with means the original message cannot be shown: it may hold a resolved
+    // secret, and these variables are visible to anyone who can see the process instance.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.handleFinalResultException(
+            new RuntimeException("failed talking to https://api?key=super-secret"),
+            job,
+            SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString()).doesNotContain("super-secret");
+  }
+
+  @Test
+  void handleFinalResultException_logsTheFailureOnlyAfterRedaction() {
+    // The runtime log is a third channel, alongside the payload and the incident message. A
+    // connector was handed resolved secrets, so its error message can carry one back; logging it
+    // on the way in would put in the log exactly what the other two channels redact.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("super-secret"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.handleFinalResultException(
+                    new RuntimeException("failed talking to https://api?key=super-secret"),
+                    job,
+                    SecretFilter.allowAll()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("***"));
+  }
+
+  @Test
+  void handleFinalResultException_logsOnlyTheTypeWhenTheMessageCannotBeRedacted() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.handleFinalResultException(
+                    new RuntimeException("failed talking to https://api?key=super-secret"),
+                    job,
+                    SecretFilter.allowAll()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
+  }
+
+  /**
+   * Every message this handler logs while {@code action} runs, formatted as it would be written.
+   */
+  private static List<String> logsOf(Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+  }
+
+  @Test
+  void withholdsTheMessageWhenTheMaskingReReadComesBackShort() {
+    // A legacy name the input declares must have resolved when the input was bound —
+    // SecretHandler's
+    // replacer throws otherwise — so one missing now means the secret was removed, or access
+    // revoked, while the connector ran. Redacting with what did come back would publish the one
+    // that did not in the clear.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected bar-value and foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString()).doesNotContain("bar-value");
+    assertThat(result.exception().getMessage()).doesNotContain("bar-value");
+    // Not the input's fault, so the job keeps its remaining attempts.
+    assertThat(result.retries()).isEqualTo(2);
+    // A count is publishable; it is not something a secret store told this runtime.
+    assertThat(result.exception().getMessage()).contains("1 of the 2 legacy secrets");
+  }
+
+  @Test
+  void publishesTheMessageWhenTheJobFailedBecauseThatSecretHasNoValue() {
+    // The one case where a name the input declares is expected back empty: substitution itself
+    // threw, so the input never carried BAR's value and there is nothing of it to redact. The
+    // message is the replacer's own and names the secret an operator has to go and create —
+    // withholding it would replace the answer with a description of the question.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretNotAvailableException("BAR"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage())
+        .isEqualTo("Secret with name 'BAR' is not available");
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void redactsEveryValueWhenTheMaskingReReadIsComplete() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value", "BAR", "bar-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected bar-value and foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and ***");
+  }
+
+  @Test
+  void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
+    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so nothing here
+    // holds "DB" and it comes back short by construction. Requiring the new form back would
+    // withhold the error message of nearly every failed job that uses the new syntax. Do not delete
+    // this as redundant with the test above: it is the whole reason completeness is required only
+    // of
+    // the legacy names.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void doesNotWithholdTheMessageBecauseTheReadOfTheNewFormFailed() {
+    // Every legacy name read back, and the new-form read could not have held a value the connector
+    // did: the reference is still in the variables, so the engine never substituted it and what the
+    // connector was handed is the placeholder text. Letting that read's failure propagate would
+    // withhold the message over a fetch that had nothing to contribute.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              if (keys.contains("DB")) {
+                throw new RuntimeException("cluster unreachable");
+              }
+              return List.of("foo-value");
+            });
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void publishesTheMessageWhenOnlyTheNewFormNameIsRefused() {
+    // Legacy resolution switched off, and a job that names no legacy secret: it bound without ever
+    // asking a legacy provider for anything, so the refusal is for a name that cost this job
+    // nothing. Withholding the message would report a setting the job never depended on, and the
+    // refusal being a ConnectorInputException would raise a permanent incident over a masking read.
+    var job = jobNaming("{\"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              if (keys.isEmpty()) {
+                return List.of();
+              }
+              throw new SecretLookupRefusedException(
+                  "Legacy secret resolution is disabled"
+                      + " (camunda.connector.secret-resolver.legacy.mode=OFF)");
+            });
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void masksAReferenceWrittenWithSpaceInsideTheBraces() {
+    // The name the store holds is FOO, and that is the name replacement looked up when it
+    // substituted the value, so it is the name this re-read has to ask for.
+    var job = jobNaming("{\"a\": \"{{ secrets.FOO }}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(requestedKeys).containsExactly("FOO");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  private static ActivatedJob jobNaming(String variables) {
+    var job = mock(ActivatedJob.class);
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getTenantId()).thenReturn("my-tenant");
+    when(job.getBpmnProcessId()).thenReturn("my-process");
+    when(job.getPhysicalTenantId()).thenReturn("engine-1");
+    return job;
+  }
+
+  /**
+   * Answers like the {@link SecretProvider#fetchAll} default over a store holding {@code values}.
+   */
+  private void holdingOnly(Map<String, String> values) {
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              requestedKeys.addAll(keys);
+              return keys.stream().map(values::get).filter(java.util.Objects::nonNull).toList();
+            });
+  }
+
+  @Test
+  void aFailedMaskingFetchIsNeverItselfPublished() {
+    // The fetch failure is no safer to publish than the message it was meant to help redact: a
+    // provider or client error can echo a response body from the secret store. Nothing built from
+    // it can be masked either, since the redaction list is empty by definition on this path.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new RuntimeException("store replied: {\"token\":\"super-secret\"}"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    // Both channels: the payload becomes process variables, and the message becomes the incident
+    // message that prepareFailJobCommand sends to Zeebe.
+    assertThat(result.responseValue().toString()).doesNotContain("super-secret");
+    assertThat(result.exception().getMessage()).doesNotContain("super-secret");
+    // The class name is what an operator needs, and carries no request or response data.
+    assertThat(result.exception().getMessage()).contains("java.lang.RuntimeException");
+  }
+
+  @Test
+  void aRuntimeAuthoredDiagnosticSurvivesTheMaskingFailure() {
+    // Under OFF the operator's fix is to change the model, and the setting plus the form that
+    // replaced it is the whole diagnostic. It is authored by the runtime, not taken from a
+    // provider, so withholding arbitrary provider text is no reason to withhold this.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new SecretLookupRefusedException(
+                "Legacy secret resolution is disabled"
+                    + " (camunda.connector.secret-resolver.legacy.mode=OFF); secret 'FOO' was not"
+                    + " resolved. Reference secrets as camunda.secrets.<name> instead."));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage())
+        .contains("camunda.connector.secret-resolver.legacy.mode=OFF")
+        .contains("camunda.secrets.<name>");
+    // Still a permanent input error: the model has to change, so retrying cannot help.
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aFailedMaskingFetchDoesNotPublishItsOwnErrorVariables() {
+    // exceptionToMap copies a ConnectorException's variables and code into the payload. On this
+    // path it would copy them with an empty redaction list, publishing unmasked exactly the data
+    // the branch exists to withhold.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new ConnectorException(
+                "PROVIDER_CODE",
+                "lookup rejected",
+                null,
+                Map.of("response", "credential super-secret was rejected")));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString())
+        .doesNotContain("super-secret")
+        .doesNotContain("PROVIDER_CODE");
   }
 
   @Test

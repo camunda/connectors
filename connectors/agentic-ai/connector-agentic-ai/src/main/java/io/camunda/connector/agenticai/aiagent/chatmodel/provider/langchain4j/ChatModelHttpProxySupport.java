@@ -23,11 +23,11 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NullUnmarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
   private static final Logger LOG = LoggerFactory.getLogger(ChatModelHttpProxySupport.class);
@@ -163,43 +163,6 @@ public class ChatModelHttpProxySupport {
     }
   }
 
-  public ApacheHttpClient.Builder createAwsHttpClientBuilder(@Nullable URI endpointOverride) {
-    String schemeName =
-        endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
-  }
-
-  software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
-      String schemeName) {
-    software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
-        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-            .useSystemPropertyValues(true);
-
-    proxyConfiguration
-        .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .endpoint(toUri(proxyDetails))
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
-
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
-
-    return awsProxyConfigBuilder.build();
-  }
-
   public Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {
     final var uri = URI.create(endpoint);
     if (uri.getScheme() == null) {
@@ -237,5 +200,60 @@ public class ChatModelHttpProxySupport {
   private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
     return URI.create(
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
+  }
+
+  /**
+   * Unlike the AWS and Azure proxy paths above, {@code com.google.genai.types.ProxyOptions} has no
+   * bypass-list field, so the SDK itself cannot honor {@code CONNECTOR_HTTP_NON_PROXY_HOSTS}/{@code
+   * http.nonProxyHosts}. We resolve the actual target host - the custom {@code endpoint} if
+   * configured, otherwise the default Vertex AI host for the given region - and skip proxying
+   * entirely when it matches a configured non-proxy host pattern.
+   */
+  public Optional<com.google.genai.types.ProxyOptions> createGoogleGenAiProxyOptions(
+      @Nullable String endpoint, String region) {
+    final var targetUri =
+        Optional.ofNullable(endpoint)
+            .filter(StringUtils::isNotBlank)
+            .map(URI::create)
+            .orElseGet(() -> URI.create(defaultGoogleGenAiBaseUrl(region)));
+
+    final var scheme =
+        Optional.ofNullable(targetUri.getScheme()).orElse(ProxyConfiguration.SCHEME_HTTPS);
+    final var host = targetUri.getHost();
+
+    if (host != null && NonProxyHosts.isNonProxyHost(host)) {
+      LOG.debug("Skipping proxy for non-proxy host [{}]", host);
+      return Optional.empty();
+    }
+
+    return proxyConfiguration
+        .getProxyDetails(scheme)
+        .map(
+            proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target host [{}] => [{}://{}:{}]",
+                  host,
+                  proxyDetails.scheme(),
+                  proxyDetails.host(),
+                  proxyDetails.port());
+
+              final var proxyOptionsBuilder =
+                  com.google.genai.types.ProxyOptions.builder()
+                      .type(com.google.genai.types.ProxyType.Known.HTTP)
+                      .host(proxyDetails.host())
+                      .port(proxyDetails.port());
+
+              if (proxyDetails.hasCredentials()) {
+                proxyOptionsBuilder.username(proxyDetails.user()).password(proxyDetails.password());
+              }
+
+              return proxyOptionsBuilder.build();
+            });
+  }
+
+  private static String defaultGoogleGenAiBaseUrl(String region) {
+    return "global".equalsIgnoreCase(region)
+        ? "https://aiplatform.googleapis.com"
+        : "https://%s-aiplatform.googleapis.com".formatted(region);
   }
 }

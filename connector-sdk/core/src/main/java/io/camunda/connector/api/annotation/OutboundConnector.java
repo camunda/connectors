@@ -34,4 +34,18 @@ public @interface OutboundConnector {
 
   /** Job / task type the connector registers for */
   String type();
+
+  /**
+   * Whether to activate jobs for this connector with a lease, fencing complete/fail/throw-error
+   * commands against a stale, superseded activation of the same job.
+   *
+   * <p>This is a request, not a guarantee, and version-skew behavior during a rolling upgrade
+   * differs by transport: over gRPC, a broker or gateway that predates job leasing drops the
+   * unknown field and activates the job without a lease token; over REST, an older gateway instead
+   * rejects the activation request outright (HTTP 400). Connector code that depends on fencing for
+   * correctness must check {@link io.camunda.connector.api.outbound.JobContext#getLeaseToken()} for
+   * {@code null} (the gRPC case) and handle activation failures (the REST case), rather than
+   * assuming a lease token is always present just because this flag is {@code true}.
+   */
+  boolean withLease() default false;
 }

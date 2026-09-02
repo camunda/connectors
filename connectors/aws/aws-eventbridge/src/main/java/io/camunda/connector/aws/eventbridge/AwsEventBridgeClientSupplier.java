@@ -6,29 +6,18 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.AwsClientSupport;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
 public class AwsEventBridgeClientSupplier {
 
+  // Delegates to AwsClientSupport (issue #7083); region param kept only for signature symmetry
+  // with lambda/sns, which do have a real per-resource fallback to apply.
   public EventBridgeClient getAmazonEventBridgeClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return EventBridgeClient.builder()
-        .credentialsProvider(credentialsProvider)
+      final AwsEventBridgeRequest request, final String region) {
+    return AwsClientSupport.configureClient(EventBridgeClient.builder(), request)
         .region(Region.of(region))
-        .build();
-  }
-
-  public EventBridgeClient getAmazonEventBridgeClient(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return EventBridgeClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }
