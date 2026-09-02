@@ -112,14 +112,30 @@ public class SecretUtil {
                       isTruncatedByBarePattern(match)
                           && isDenied(match, context, secretReplacer, resolutionsByName))
               .toList();
+      // Both this list and the bare matches replaceTokens visits below are already left-to-right
+      // ordered (Matcher.find()/results() guarantee it), and denied brackets never overlap. A
+      // single forward cursor -- rather than rescanning the whole list per bare match -- keeps
+      // this pass linear in the number of matches; without it, this loop itself reruns once per
+      // original bare match, turning a quadratic-per-pass scan cubic overall for a payload with
+      // many denied special-character references.
+      int[] cursor = {0};
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_SECRETS,
-              matcher ->
-                  isNotNestedInAny(matcher, deniedBracketedReferences)
-                      ? resolveSecretValue(context, secretReplacer, matcher, resolutionsByName)
-                      : matcher.group());
+              matcher -> {
+                while (cursor[0] < deniedBracketedReferences.size()
+                    && deniedBracketedReferences.get(cursor[0]).end() <= matcher.start()) {
+                  cursor[0]++;
+                }
+                boolean nested =
+                    cursor[0] < deniedBracketedReferences.size()
+                        && matcher.start() >= deniedBracketedReferences.get(cursor[0]).start()
+                        && matcher.end() <= deniedBracketedReferences.get(cursor[0]).end();
+                return !nested
+                    ? resolveSecretValue(context, secretReplacer, matcher, resolutionsByName)
+                    : matcher.group();
+              });
     }
     return input;
   }

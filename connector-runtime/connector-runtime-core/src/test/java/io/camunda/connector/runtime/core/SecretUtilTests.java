@@ -241,6 +241,25 @@ public class SecretUtilTests {
   }
 
   @Test
+  @org.junit.jupiter.api.Timeout(5)
+  void shouldStayFastWithManyDeniedSpecialCharacterReferences() {
+    // Each of these has a ':' in the name, so it's excluded from the bare pass only via the
+    // truncating-bracket path -- none of them ever resolve or disappear, so the bounded rescan
+    // reruns once per reference. Without a linear (not quadratic) per-pass exclusion check, this
+    // is cubic in the reference count and would blow well past the timeout.
+    int count = 300;
+    StringBuilder input = new StringBuilder();
+    for (int i = 0; i < count; i++) {
+      input.append("{{secrets.NAME").append(i).append(":SUFFIX}} ");
+    }
+    SecretReplacer secretReplacer = (name, context) -> null;
+
+    String result = SecretUtil.replaceSecrets(input.toString(), null, secretReplacer);
+
+    assertThat(result).isEqualTo(input.toString());
+  }
+
+  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by
