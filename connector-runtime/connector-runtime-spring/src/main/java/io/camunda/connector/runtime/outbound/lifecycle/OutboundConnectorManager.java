@@ -21,6 +21,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
@@ -48,6 +49,7 @@ public class OutboundConnectorManager {
   private final ObjectMapper objectMapper;
   private final MetricsRecorder metricsRecorder;
   private final DocumentFactory documentFactory;
+  private final SecretFilterFactory secretFilterFactory;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -57,7 +59,8 @@ public class OutboundConnectorManager {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -66,6 +69,7 @@ public class OutboundConnectorManager {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   public void start(final ZeebeClient client) {
@@ -106,7 +110,8 @@ public class OutboundConnectorManager {
             documentFactory,
             objectMapper,
             connectorFunction,
-            connector);
+            connector,
+            secretFilterFactory);
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
   }

@@ -58,7 +58,7 @@ import org.springframework.context.annotation.Import;
   OperateClientAdapterConfiguration.class,
   InboundConnectorRestController.class,
   InboundInstancesRestController.class,
-  GlobalExceptionHandler.class,
+  GlobalExceptionHandler.class
 })
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")

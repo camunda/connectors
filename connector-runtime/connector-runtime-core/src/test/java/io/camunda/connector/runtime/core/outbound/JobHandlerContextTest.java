@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,13 +27,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,10 +42,22 @@ class JobHandlerContextTest {
 
   @Mock private ActivatedJob activatedJob;
   @Mock private SecretProvider secretProvider;
-  @Spy private ObjectMapper objectMapper = new ObjectMapper();
   @Mock private ValidationProvider validationProvider;
 
-  @InjectMocks private JobHandlerContext jobHandlerContext;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private JobHandlerContext jobHandlerContext;
+
+  @BeforeEach
+  void setUp() {
+    jobHandlerContext =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            null,
+            objectMapper,
+            SecretFilter.allowAll());
+  }
 
   @Test
   void getVariables() {
@@ -176,5 +190,31 @@ class JobHandlerContextTest {
     assertThat(thrown.getMessage())
         .isEqualTo(
             "Cannot deserialize value of type `java.lang.Integer` from Array value (token `JsonToken.START_ARRAY`)");
+  }
+
+  @Test
+  void bindVariables_undeclaredSecretIsLeftUnresolvedAndProviderIsNeverCalled() {
+    // Every other test in this file uses SecretFilter.allowAll(), which never exercises the
+    // security boundary #7568 introduced: nothing here previously verified that a restrictive
+    // filter actually blocks resolution through bindVariables.
+    var restrictiveContext =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            null,
+            objectMapper,
+            SecretFilter.allowOnly(List.of("AUTH")));
+    String json = "{ \"value\": \"{{secrets.UNDECLARED}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+
+    var bound = restrictiveContext.bindVariables(SingleStringField.class);
+
+    assertThat(bound.value).isEqualTo("{{secrets.UNDECLARED}}");
+    verify(secretProvider, never()).getSecret(eq("UNDECLARED"), any());
+  }
+
+  public static class SingleStringField {
+    public String value;
   }
 }

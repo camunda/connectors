@@ -33,6 +33,9 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.document.factory.DocumentFactory;
@@ -65,18 +68,15 @@ public class ConnectorJobHandler implements JobHandler {
   protected ObjectMapper objectMapper;
 
   private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
+  private final SecretFilterFactory secretFilterFactory;
 
-  /**
-   * Create a handler wrapper for the specified connector function.
-   *
-   * @param call - the connector function to call
-   */
   public ConnectorJobHandler(
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
       final DocumentFactory documentFactory,
-      final ObjectMapper objectMapper) {
+      final ObjectMapper objectMapper,
+      final SecretFilterFactory secretFilterFactory) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
@@ -84,6 +84,7 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
@@ -125,17 +126,25 @@ public class ConnectorJobHandler implements JobHandler {
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
-    ConnectorResult result = getConnectorResult(job);
-    processFinalResult(client, job, result);
+    SecretFilter secretFilter =
+        secretFilterFactory.create(
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+    ConnectorResult result = getConnectorResult(job, secretFilter);
+    processFinalResult(client, job, result, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job) {
+  private ConnectorResult getConnectorResult(ActivatedJob job, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
       var context =
           new JobHandlerContext(
-              job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
+              job,
+              getSecretProvider(),
+              validationProvider,
+              documentFactory,
+              objectMapper,
+              secretFilter);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(
@@ -148,7 +157,7 @@ public class ConnectorJobHandler implements JobHandler {
       return new SuccessResult(response, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff);
+          e, job, retryBackoff, secretFilter);
     }
   }
 
@@ -168,7 +177,8 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void processFinalResult(JobClient client, ActivatedJob job, ConnectorResult finalResult) {
+  private void processFinalResult(
+      JobClient client, ActivatedJob job, ConnectorResult finalResult, SecretFilter secretFilter) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           ConnectorHelper.examineErrorExpression(
@@ -180,7 +190,9 @@ public class ConnectorJobHandler implements JobHandler {
           () -> handleSuccessResult(client, job, finalResult));
     } catch (Exception ex) {
       failJob(
-          client, job, this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job));
+          client,
+          job,
+          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter));
     }
   }
 
