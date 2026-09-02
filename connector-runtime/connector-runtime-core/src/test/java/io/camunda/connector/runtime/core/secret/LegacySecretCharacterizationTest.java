@@ -106,6 +106,18 @@ class LegacySecretCharacterizationTest {
   }
 
   @Test
+  void aReferenceNestedInsideAnArrayOfArraysIsReplaced() throws Exception {
+    Map<String, String> secrets = Map.of("TOKEN", "tok123");
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
+    String input = "{\"values\":[[\"{{secrets.TOKEN}}\"]]}";
+
+    var result =
+        SecretUtil.replaceSecrets((ObjectNode) objectMapper.readTree(input), null, secretReplacer);
+
+    assertThat(result).isEqualTo(objectMapper.readTree("{\"values\":[[\"tok123\"]]}"));
+  }
+
+  @Test
   void aReferenceEmbeddedInALongerValueIsReplaced() {
     Map<String, String> secrets = Map.of("TOKEN", "tok123", "A", "a1", "B", "b2");
     SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());

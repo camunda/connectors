@@ -113,16 +113,24 @@ public class SecretUtil {
       } else if (value.isObject()) {
         walkTree((ObjectNode) value, converter, extendedFieldPath);
       } else if (value.isArray()) {
-        ArrayNode arrayNode = (ArrayNode) value;
-        for (int i = 0; i < arrayNode.size(); i++) {
-          JsonNode item = arrayNode.get(i);
-          if (item instanceof TextNode stringValue) {
-            arrayNode.set(
-                i, new TextNode(converter.apply(stringValue.asText(), extendedFieldPath)));
-          } else if (item.isObject()) {
-            walkTree((ObjectNode) item, converter, extendedFieldPath);
-          }
-        }
+        walkArray((ArrayNode) value, converter, extendedFieldPath);
+      }
+    }
+  }
+
+  /** Recurses into array elements at arbitrary depth, mirroring {@link #walkTree}. */
+  private static void walkArray(
+      ArrayNode arrayNode,
+      BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    for (int i = 0; i < arrayNode.size(); i++) {
+      JsonNode item = arrayNode.get(i);
+      if (item instanceof TextNode stringValue) {
+        arrayNode.set(i, new TextNode(converter.apply(stringValue.asText(), fieldPath)));
+      } else if (item.isObject()) {
+        walkTree((ObjectNode) item, converter, fieldPath);
+      } else if (item.isArray()) {
+        walkArray((ArrayNode) item, converter, fieldPath);
       }
     }
   }
