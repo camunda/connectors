@@ -415,7 +415,7 @@ class JobHandlerContextTest {
             objectMapper,
             SecretFilter.allowOnly(List.of(new Secret("AUTH", List.of()))));
     String json = "{ \"value\": \"{{secrets.UNDECLARED}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
 
     var bound = restrictiveContext.bindVariables(TestClassString.class);
 
