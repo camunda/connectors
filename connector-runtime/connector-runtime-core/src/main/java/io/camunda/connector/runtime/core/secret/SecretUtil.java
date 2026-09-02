@@ -41,20 +41,28 @@ public class SecretUtil {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
+    // Shared across both passes so that a name resolved (or denied) while scanning brackets is
+    // never looked up again for the bare-pass denial check below -- secretReplacer is not
+    // guaranteed side-effect-free in production (a provider aggregator can count each resolution),
+    // so a name must be asked for at most once per call, whichever pass asks first.
+    Map<String, String> resolutionsByName = new HashMap<>();
+    input = replaceSecretsWithParentheses(input, context, secretReplacer, resolutionsByName);
+    input = replaceSecretsWithoutParentheses(input, context, secretReplacer, resolutionsByName);
     return input;
   }
 
   private static String replaceSecretsWithParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
+      String input,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<String, String> resolutionsByName) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
+              matcher -> resolveSecretValue(context, secretReplacer, matcher, resolutionsByName));
     }
     return input;
   }
@@ -67,20 +75,20 @@ public class SecretUtil {
    * secretReplacer} directly, for every such bracket, whether ITS full name resolves -- rather than
    * relying on what an earlier pass recorded -- treats an original-input denial and a
    * chain-generated one identically, since neither is distinguishable from the bare pass's point of
-   * view: both are just bracketed text this scan must not re-litigate a prefix of. Verdicts are
-   * memoized per name for the life of this call, since the same name can recur across this pass's
-   * own bounded-rescan iterations and the replacer is assumed pure for a given context.
+   * view: both are just bracketed text this scan must not re-litigate a prefix of.
    */
   private static String replaceSecretsWithoutParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    Map<String, Boolean> deniedByName = new HashMap<>();
+      String input,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<String, String> resolutionsByName) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       List<MatchResult> deniedBracketedReferences =
           SECRET_PATTERN_PARENTHESES
               .matcher(input)
               .results()
-              .filter(match -> isDenied(match, context, secretReplacer, deniedByName))
+              .filter(match -> isDenied(match, context, secretReplacer, resolutionsByName))
               .toList();
       input =
           replaceTokens(
@@ -88,7 +96,7 @@ public class SecretUtil {
               SECRET_PATTERN_SECRETS,
               matcher ->
                   isNotNestedInAny(matcher, deniedBracketedReferences)
-                      ? resolveSecretValue(context, secretReplacer, matcher)
+                      ? resolveSecretValue(context, secretReplacer, matcher, resolutionsByName)
                       : matcher.group());
     }
     return input;
@@ -98,17 +106,19 @@ public class SecretUtil {
       MatchResult bracketedMatch,
       SecretContext context,
       SecretReplacer secretReplacer,
-      Map<String, Boolean> deniedByName) {
+      Map<String, String> resolutionsByName) {
     String name = bracketedMatch.group("secret").trim();
-    return deniedByName.computeIfAbsent(
-        name, n -> secretReplacer.replaceSecrets(n, context) == null);
+    return resolve(name, context, secretReplacer, resolutionsByName) == null;
   }
 
   private static String resolveSecretValue(
-      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Matcher matcher,
+      Map<String, String> resolutionsByName) {
     var secretName = matcher.group("secret").trim();
     if (!secretName.isBlank()) {
-      var result = secretReplacer.replaceSecrets(secretName, context);
+      var result = resolve(secretName, context, secretReplacer, resolutionsByName);
       if (result != null) {
         return result;
       } else {
@@ -117,6 +127,21 @@ public class SecretUtil {
     } else {
       return null;
     }
+  }
+
+  // A plain computeIfAbsent would re-invoke secretReplacer for every denied name (Map treats a
+  // null result as "still absent"), defeating the memoization this exists for.
+  private static String resolve(
+      String name,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<String, String> resolutionsByName) {
+    if (resolutionsByName.containsKey(name)) {
+      return resolutionsByName.get(name);
+    }
+    String result = secretReplacer.replaceSecrets(name, context);
+    resolutionsByName.put(name, result);
+    return result;
   }
 
   public static String replaceTokens(
