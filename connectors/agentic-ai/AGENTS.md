@@ -372,5 +372,3 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
-
-<!-- scratch: trip paths-filter to live-verify AI_AGENT_CPT_PR.yml (real-LLM step, timeout, Testcontainers image visibility). Revert before merge. -->
