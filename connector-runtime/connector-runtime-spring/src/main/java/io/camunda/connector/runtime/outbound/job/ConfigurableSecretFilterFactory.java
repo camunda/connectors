@@ -21,6 +21,8 @@ import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.util.HashSet;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +90,12 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
   }
 
   private static Throwable mostSpecificCause(Throwable t) {
+    // Java permits a cyclic cause chain (a.initCause(b) after b was already given cause a), so
+    // this must not walk unboundedly -- track visited throwables by identity and stop the moment
+    // one repeats, rather than hang the worker on a malformed third-party exception.
+    Set<Throwable> seen = new HashSet<>();
     Throwable current = t;
-    while (current.getCause() != null) {
+    while (current.getCause() != null && seen.add(current)) {
       current = current.getCause();
     }
     return current;
