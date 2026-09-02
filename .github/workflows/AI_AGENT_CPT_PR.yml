@@ -24,6 +24,9 @@ concurrency:
 
 permissions:
   contents: read
+  # Required by dorny/paths-filter on the `pull_request` event - it calls the GitHub REST API
+  # to list changed files and fails outright without this scope.
+  pull-requests: read
 
 jobs:
   run-ai-agent-cpt:
@@ -119,7 +122,7 @@ jobs:
       # `install`, not `package`: this must put every SNAPSHOT jar both the bundle AND the e2e
       # test module need into ~/.m2, once, for the union of their --also-make dependency sets -
       # connectors-e2e-test-agentic-ai depends on connectors-e2e-test-base, which is NOT pulled
-      # in by building bundle/default-bundle alone. Doing it this way (mirroring E2E_BRANCH_RUN.yml's
+      # in by building apps/bundle/default-bundle alone. Doing it this way (mirroring E2E_BRANCH_RUN.yml's
       # own "install once, then verify -pl <module> without -am" pattern) means the later `verify`
       # step can skip -am entirely and read already-installed deps from .m2 - avoiding building
       # the shared modules (e.g. connector-agentic-ai) twice in one job.
@@ -127,8 +130,15 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         run: |
           ./mvnw --batch-mode install -DskipTests -DskipChecks \
-            --projects "connector-runtime/connector-runtime-application,bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai" \
+            --projects "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai" \
             --also-make
+
+      # Fails fast with a clear error if the bundle jar wasn't produced, rather than a confusing
+      # Docker COPY failure downstream. Same check MERGE_QUEUE_HELM_TEST.yaml runs after its own
+      # equivalent build step.
+      - name: Check default-bundle jar exists
+        if: steps.changes.outputs.ai == 'true'
+        run: ls -lh apps/bundle/default-bundle/target/
 
       - name: Compute image tag
         if: steps.changes.outputs.ai == 'true'
@@ -164,7 +174,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         uses: docker/build-push-action@v7
         with:
-          context: bundle/default-bundle/
+          context: apps/bundle/default-bundle/
           load: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64
