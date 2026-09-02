@@ -41,9 +41,6 @@ import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
-import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.cache.support.NoOpCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -67,11 +64,17 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   /**
-   * Wrapped in {@link SecretKeyCacheHolder} rather than exposed as a plain {@link Cache} bean:
-   * registering an unqualified {@code Cache}, just like an unqualified {@code CacheManager}, would
+   * Wrapped in {@link SecretKeyCacheHolder} rather than exposed as a plain {@code Cache} bean:
+   * registering an unqualified cache bean, just like an unqualified {@code CacheManager}, would
    * collide with a host application's own cache bean of that exact type — the same ambiguous-bean
    * problem this replaces, one type level down. The holder is package-private, so no code outside
    * this configuration class can declare or depend on a bean of this type either.
+   *
+   * <p>Built directly from Caffeine, not from Spring's cache abstraction: see {@link
+   * SecretKeyCacheHolder}'s javadoc for why. The "disabled" cache is a dedicated {@link NoOpCache},
+   * not a {@code maximumSize(0)} Caffeine cache — Caffeine's own eviction runs on its maintenance
+   * cycle, not synchronously on every write, so a value can still be observed on an
+   * immediately-following get, unlike Spring's {@code NoOpCache} this replaces.
    */
   @Bean
   SecretKeyCacheHolder secretKeyCacheStore(
@@ -80,13 +83,10 @@ public class OutboundConnectorRuntimeConfiguration {
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.max-size:1000}")
           int cacheMaxSize) {
     if (!cacheEnabled) {
-      return new SecretKeyCacheHolder(new NoOpCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
+      return new SecretKeyCacheHolder(new NoOpCache<>());
     }
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
-    return new SecretKeyCacheHolder(
-        new CaffeineCache(
-            SecretKeyCache.SECRET_KEY_CACHE_NAME,
-            Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
+    return new SecretKeyCacheHolder(Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
   }
 
   @Bean

@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import org.springframework.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Wraps the secret-key {@link Cache} so the bean exposed to the Spring context is never itself a
@@ -25,5 +27,13 @@ import org.springframework.cache.Cache;
  * {@code Cache} injection points), the same problem this replaces at the {@code CacheManager}
  * level. Package-private so nothing outside this configuration class can declare or depend on this
  * exact type either.
+ *
+ * <p>Uses Caffeine's own {@code Cache}, not Spring's {@code org.springframework.cache.Cache}: the
+ * Spring wrapper types live in {@code spring-context-support}, which also carries {@code
+ * JCacheCacheManager}. Combined with the {@code cache-api} JAR this runtime already pulls in
+ * transitively (via the Operate client's {@code ehcache} dependency), putting that class on a
+ * host's classpath satisfies Spring Boot's JCache auto-configuration conditions and can silently
+ * replace the host's own auto-configured {@code CacheManager} — confirmed via {@code
+ * dependency:tree}, not theoretical. Caffeine's {@code Cache} needs neither dependency.
  */
-record SecretKeyCacheHolder(Cache cache) {}
+record SecretKeyCacheHolder(Cache<Long, Map<String, List<String>>> cache) {}

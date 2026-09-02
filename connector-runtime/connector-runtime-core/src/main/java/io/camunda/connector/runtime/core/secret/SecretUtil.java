@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretContext;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -24,7 +25,6 @@ import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
@@ -41,20 +41,44 @@ public class SecretUtil {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
+    // Populated by the parentheses pass with exactly the bracketed text it actually attempted and
+    // left literal -- not recomputed from a snapshot at the pass boundary, which cannot tell a
+    // genuine denial apart from bracket text a resolution happened to generate. See both passes'
+    // javadoc below.
+    Set<String> deniedBracketedTexts = new HashSet<>();
+    input = replaceSecretsWithParentheses(input, context, secretReplacer, deniedBracketedTexts);
+    input = replaceSecretsWithoutParentheses(input, context, secretReplacer, deniedBracketedTexts);
     return input;
   }
 
+  /**
+   * Records every bracketed occurrence this pass actually attempts into {@code
+   * deniedBracketedTexts} — denied ({@code secretReplacer} returned null, so the literal text is
+   * left in place) or no longer denied (it resolved). A chained resolution can itself produce new
+   * bracketed text (e.g. a secret whose stored value spells {@code {{secrets.B}}}), possibly on
+   * this pass's own last bounded iteration, so it never gets attempted here at all -- it must not
+   * end up in the denied set on that account, since nothing here ever ruled on it.
+   */
   private static String replaceSecretsWithParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
+      String input,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Set<String> deniedBracketedTexts) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
+              matcher -> {
+                String resolved = resolveSecretValue(context, secretReplacer, matcher);
+                if (matcher.group().equals(resolved)) {
+                  deniedBracketedTexts.add(matcher.group());
+                } else {
+                  deniedBracketedTexts.remove(matcher.group());
+                }
+                return resolved;
+              });
     }
     return input;
   }
@@ -75,17 +99,14 @@ public class SecretUtil {
    * the current text as denied: a resolution can itself produce new bracketed text (a secret whose
    * stored value happens to spell {@code {{secrets.B}}}), and the parentheses pass never attempted
    * that occurrence at all, so it was never "denied" by anything. {@code deniedBracketedTexts} is
-   * the actual denied set, fixed once at the pass boundary from the incoming input; each
-   * iteration's recompute is filtered down to it before the nesting check.
+   * the actual denied set the parentheses pass recorded above; each iteration's recompute here is
+   * filtered down to it before the nesting check.
    */
   private static String replaceSecretsWithoutParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    Set<String> deniedBracketedTexts =
-        SECRET_PATTERN_PARENTHESES
-            .matcher(input)
-            .results()
-            .map(MatchResult::group)
-            .collect(Collectors.toSet());
+      String input,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Set<String> deniedBracketedTexts) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       List<MatchResult> deniedBracketedReferences =

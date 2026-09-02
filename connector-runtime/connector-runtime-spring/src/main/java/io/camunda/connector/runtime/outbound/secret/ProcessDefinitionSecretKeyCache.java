@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.exception.OperateException;
@@ -42,7 +43,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.Cache;
 
 public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSecretKeyCache.class);
@@ -60,9 +60,10 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   private final CamundaOperateClient camundaOperateClient;
-  private final Cache cache;
+  private final Cache<Long, Map<String, List<String>>> cache;
 
-  public ProcessDefinitionSecretKeyCache(CamundaOperateClient camundaOperateClient, Cache cache) {
+  public ProcessDefinitionSecretKeyCache(
+      CamundaOperateClient camundaOperateClient, Cache<Long, Map<String, List<String>>> cache) {
     this.camundaOperateClient = camundaOperateClient;
     this.cache = cache;
   }
@@ -70,16 +71,33 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   @Override
   public List<String> getSecretKeys(SecretKeyContext secretKeyContext) {
     return cache
-        .get(
-            secretKeyContext.processDefinitionKey(),
-            () -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
+        .get(secretKeyContext.processDefinitionKey(), this::fetchSecretKeysByElementIdsUnchecked)
         .getOrDefault(secretKeyContext.elementId(), Collections.emptyList());
+  }
+
+  /**
+   * Caffeine's mapping function is a plain {@code Function}, which cannot declare {@link
+   * OperateException}; wrapping it in {@link SecretKeyLookupException} is the only wrapper on this
+   * whole lookup path — Caffeine, unlike Spring's {@code Cache#get(Object, Callable)}, rethrows an
+   * unchecked mapping-function failure unwrapped, so every other exception here reaches the caller
+   * exactly as thrown.
+   */
+  private Map<String, List<String>> fetchSecretKeysByElementIdsUnchecked(
+      long processDefinitionKey) {
+    try {
+      return fetchSecretKeysByElementIds(processDefinitionKey);
+    } catch (OperateException e) {
+      throw new SecretKeyLookupException(
+          "Failed to look up declared secret keys for process definition key "
+              + processDefinitionKey,
+          e);
+    }
   }
 
   private Map<String, List<String>> fetchSecretKeysByElementIds(long processDefinitionKey)
       throws OperateException {
     if (camundaOperateClient == null) {
-      throw new IllegalStateException(
+      throw new SecretFilterUnavailableException(
           "No CamundaOperateClient available to look up declared secret keys for process"
               + " definition key "
               + processDefinitionKey
