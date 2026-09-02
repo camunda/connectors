@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 import classify
@@ -47,6 +48,11 @@ KEY_LABEL_PREFIX = planning.KEY_LABEL_PREFIX
 #: two lookups below fail closed, a repository the token cannot reach would wedge every
 #: dispatch shut rather than merely returning nothing.
 FIX_PR_REPOS = [REPO, E2E_REPO]
+#: How long an open fix PR keeps holding its dispatch key; see
+#: planning.PR_LOCK_TTL_HOURS. Set to 0 to restore the old never-expiring lock.
+PR_LOCK_TTL_HOURS = int(
+    os.environ.get("ALWAYSGREEN_PR_LOCK_TTL_HOURS", str(planning.PR_LOCK_TTL_HOURS))
+)
 
 
 class DiscoveryError(RuntimeError):
@@ -289,24 +295,35 @@ def covered_fingerprints() -> set[str]:
     return out
 
 
-def open_fix_pr_keys() -> tuple[set[str], bool]:
+def open_fix_pr_keys() -> tuple[set[str], set[str], bool]:
     """Dispatch keys that already have an open fix PR, in any repo a fix can land in.
 
     Read from the `ag-key:<source>:<base_ref>:<surface>` label the fix workflow
     stamps, not from the PR body: the body's coverage block is written by the agent
     and cannot be relied on to exist.
 
-    Returns (keys, ok). As with `inflight_keys`, a failed lookup makes the caller
-    suppress rather than risk a duplicate PR.
+    A PR past PR_LOCK_TTL_HOURS stops holding its key, so a fix PR left unreviewed
+    cannot wedge its surface shut for good; `covered_fingerprints` still suppresses a
+    repeat of the specs it already claims.
+
+    Returns (keys, keys_with_coverage, ok). `keys_with_coverage` is the subset whose
+    every holding PR claims at least one fingerprint, so `plan` can decide those keys
+    per spec instead of locking the surface. A block that parses to nothing — absent,
+    or present with no `fp=` line — claims nothing, and a key any of whose holders
+    claims nothing stays out of the subset and keeps the coarse lock: the marker
+    comment alone is not a statement of remit. As with `inflight_keys`, a failed
+    lookup makes the caller suppress rather than risk a duplicate PR.
     """
     out: set[str] = set()
+    uncovered: set[str] = set()
     ok = True
+    now = datetime.now(timezone.utc)
     for repo in FIX_PR_REPOS:
         prs, err = gh_json_ex(
             [
                 "pr", "list", "--repo", repo,
                 "--search", f"label:{FIX_LABEL} is:open",
-                "--limit", "100", "--json", "labels",
+                "--limit", "100", "--json", "labels,number,createdAt,body",
             ],
             None,
         )
@@ -315,13 +332,39 @@ def open_fix_pr_keys() -> tuple[set[str], bool]:
             ok = False
             continue
         for pr in prs if isinstance(prs, list) else []:
+            keys: set[str] = set()
             for label in pr.get("labels") or []:
                 name = (label.get("name") or "").strip()
                 if name.startswith(KEY_LABEL_PREFIX):
                     key = name[len(KEY_LABEL_PREFIX) :].strip()
                     if key:
-                        out.add(key)
-    return out, ok
+                        keys.add(key)
+            if not keys:
+                continue
+            if planning.pr_lock_expired(
+                pr.get("createdAt") or "", now, PR_LOCK_TTL_HOURS
+            ):
+                log(
+                    f"lock expired after {PR_LOCK_TTL_HOURS}h: {repo}#{pr.get('number')} "
+                    f"no longer holds {', '.join(sorted(keys))}"
+                )
+                continue
+            out |= keys
+            covered = planning.parse_coverage_block(pr.get("body"))
+            if not covered:
+                uncovered |= keys
+            # Named in the log so a suppressed run says which PR held it shut without
+            # anyone cross-listing open fix PRs by hand.
+            log(
+                f"open fix PR {repo}#{pr.get('number')} holds "
+                f"{', '.join(sorted(keys))}: "
+                + (
+                    f"{len(covered)} spec(s) claimed, others dispatchable"
+                    if covered
+                    else "claims no specs, whole surface locked"
+                )
+            )
+    return out, out - uncovered, ok
 
 
 def inflight_keys() -> tuple[set[str], bool]:
@@ -554,9 +597,10 @@ def _run() -> int:
             keys = {c.key for c in candidates}
             log("::warning::in-flight lookup failed; suppressing dispatch this run")
 
-        pr_keys, pr_keys_ok = open_fix_pr_keys()
+        pr_keys, pr_keys_covered, pr_keys_ok = open_fix_pr_keys()
         if not pr_keys_ok:
             pr_keys = {c.key for c in candidates}
+            pr_keys_covered = set()
             log("::warning::open fix PR lookup failed; suppressing dispatch this run")
 
         spec_paths = {s.file for c in candidates for s in c.specs if s.file}
@@ -571,6 +615,7 @@ def _run() -> int:
             covered_fingerprints=covered_fingerprints(),
             inflight_keys=keys,
             open_pr_keys=pr_keys,
+            open_pr_keys_with_coverage=pr_keys_covered,
             product_bug_fingerprints=product_bug_fingerprints(),
             claimed_paths=claimed,
             max_dispatches=args.max_dispatches,

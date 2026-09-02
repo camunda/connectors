@@ -18,6 +18,7 @@ Two levels of identity are used, for different jobs:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 import classify
 
@@ -37,6 +38,52 @@ SUPPRESSED_PATH_CLAIMED = "spec-path-claimed-by-open-pr"
 #: mode is a label that is never created, which disables dedupe without any error.
 KEY_LABEL_PREFIX = "ag-key:"
 MAX_LABEL_LENGTH = 50
+
+
+#: How long an open fix PR's key label keeps holding its dispatch key.
+#:
+#: The lock is there to win the race described above, but nothing released it: the
+#: label stops matching `is:open` only when a human merges or closes the PR, so the
+#: agent's own output locked the agent out of its own surface until someone acted on
+#: it. camunda-platform-helm#6927 held one key from 2026-08-20 and every affected
+#: triage for the six days after reported `open-fix-pr-for-surface` and dispatched
+#: nothing.
+#:
+#: A surface carries many independent causes, so this window is how long an unrelated
+#: failure waits. Two hours is roughly three failing runs at the 20-40 minute pipeline
+#: cadence: long enough that the same cause is not re-dispatched while an agent's PR is
+#: still being read, short enough that a different cause waits hours rather than days.
+#: `inflight_keys` still allows one agent per key, so the floor on duplicate work is an
+#: agent's runtime rather than this TTL.
+PR_LOCK_TTL_HOURS = 2
+
+
+def pr_lock_expired(
+    created_at: str | None, now: datetime, ttl_hours: int = PR_LOCK_TTL_HOURS
+) -> bool:
+    """Whether an open fix PR is too old to keep holding its dispatch key.
+
+    A missing or unparseable timestamp keeps the lock, and `ttl_hours <= 0` disables
+    expiry altogether: the bias matches the `ok` flags in discover's key lookups,
+    where an unproven state suppresses rather than risks a duplicate PR.
+
+    Either timestamp is read as UTC when it carries no offset, so a naive `now` does
+    not raise against GitHub's offset-aware `createdAt`.
+    """
+    if ttl_hours <= 0:
+        return False
+    text = (created_at or "").strip()
+    if not text:
+        return False
+    try:
+        created = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return now - created > timedelta(hours=ttl_hours)
 
 
 def dispatch_key(base_ref: str, surface: str, source: str = "") -> str:
@@ -116,6 +163,7 @@ def plan_dispatches(
     inflight_keys: set[str],
     open_pr_keys: set[str],
     product_bug_fingerprints: set[str],
+    open_pr_keys_with_coverage: set[str] | None = None,
     claimed_paths: dict[str, int] | None = None,
     max_dispatches: int = 2,
     dispatchable_surfaces: frozenset[str] = classify.DISPATCHABLE_SURFACES,
@@ -124,8 +172,15 @@ def plan_dispatches(
 
     Checks are ordered cheapest-and-most-decisive first so the summary reports the
     most useful reason when several apply.
+
+    `open_pr_keys_with_coverage` are the keys of `open_pr_keys` whose every holding PR
+    claims at least one fingerprint in its coverage block. Those PRs state which specs
+    they claim, so the coarse per-surface lock is skipped for them and the per-spec
+    accounting below decides. A PR whose block claims nothing — absent, or present but
+    empty — is not one of them and keeps its surface locked.
     """
     plan = Plan()
+    pr_keys_with_coverage = open_pr_keys_with_coverage or set()
 
     for cand in candidates:
         if cand.surface not in dispatchable_surfaces:
@@ -138,10 +193,13 @@ def plan_dispatches(
             plan.suppressed.append(Suppression(cand, SUPPRESSED_IN_FLIGHT, cand.key))
             continue
 
-        # An open fix PR for this surface stops a second agent regardless of what the
-        # PR body claims. The coverage block is written by the agent, so a PR that
-        # omitted it would otherwise be invisible here and the failure re-dispatched.
-        if cand.key in open_pr_keys:
+        # An open fix PR that claims no specs stops a second agent on its surface: the
+        # coverage block is written by the agent, so one that is missing or empty
+        # states nothing about its remit and the whole surface has to be assumed.
+        # A PR that claims at least one spec is authoritative per spec through
+        # `covered_fingerprints`, so locking its surface only hides its neighbours —
+        # and a surface's failures are usually independent of each other.
+        if cand.key in open_pr_keys and cand.key not in pr_keys_with_coverage:
             plan.suppressed.append(Suppression(cand, SUPPRESSED_PR_OPEN, cand.key))
             continue
 
