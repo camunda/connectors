@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -370,5 +372,27 @@ class JobHandlerContextTest {
     assertThat(thrown.getMessage())
         .isEqualTo(
             "Cannot deserialize value of type `java.lang.Integer` from Array value (token `JsonToken.START_ARRAY`)");
+  }
+
+  @Test
+  void bindVariables_undeclaredSecretIsLeftUnresolvedAndProviderIsNeverCalled() {
+    // Every other test above uses SecretFilter.allowAll(), which never exercises the security
+    // boundary #7568 introduced: nothing here previously verified that a restrictive filter
+    // actually blocks resolution through bindVariables.
+    var restrictiveContext =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            null,
+            objectMapper,
+            SecretFilter.allowOnly(List.of("AUTH")));
+    String json = "{ \"value\": \"{{secrets.UNDECLARED}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+
+    var bound = restrictiveContext.bindVariables(TestClassString.class);
+
+    assertThat(bound.value).isEqualTo("{{secrets.UNDECLARED}}");
+    verify(secretProvider, never()).getSecret(eq("UNDECLARED"), any());
   }
 }

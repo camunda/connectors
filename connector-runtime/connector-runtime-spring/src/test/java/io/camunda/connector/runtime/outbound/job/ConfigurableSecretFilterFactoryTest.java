@@ -19,11 +19,16 @@ package io.camunda.connector.runtime.outbound.job;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.util.List;
@@ -31,6 +36,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.NoOpCache;
 
 @ExtendWith(MockitoExtension.class)
 class ConfigurableSecretFilterFactoryTest {
@@ -98,5 +106,94 @@ class ConfigurableSecretFilterFactoryTest {
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Error retrieving secret keys");
+  }
+
+  @Test
+  void create_strict_whenCacheThrows_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    // The incident must be actionable (element ID, process-definition key, exception class) but
+    // must never carry the cause's own message: a client/parser exception message can echo
+    // response-body content.
+    when(secretKeyCache.getSecretKeys(any()))
+        .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining(ELEMENT_ID)
+        .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
+        .hasMessageContaining(RuntimeException.class.getName())
+        .hasMessageNotContaining("Operate returned 404 for process definition 42");
+  }
+
+  @Test
+  void create_strict_whenCauseIsWrappedSeveralLayersDeep_messageIdentifiesTheRootCause() {
+    // Spring's Cache#get(key, Callable) wraps the loader's exception in
+    // Cache.ValueRetrievalException, and a client can wrap the real failure in its own generic
+    // exception type on top of that -- a single getCause() would still return a non-discriminating
+    // wrapper type; the message must walk to the actual root.
+    var rootCause = new java.net.ConnectException("Connection refused");
+    when(secretKeyCache.getSecretKeys(any()))
+        .thenThrow(
+            new RuntimeException(
+                "outer",
+                new RuntimeException("sdk wrapper", new RuntimeException("mid", rootCause))));
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining(java.net.ConnectException.class.getName())
+        .hasMessageNotContaining("Connection refused");
+  }
+
+  @Test
+  void create_strict_whenCauseChainIsCyclic_terminatesInsteadOfHanging() {
+    // Throwable#initCause permits a legal cycle (a's cause is b, b's cause is a) if a third-party
+    // exception is constructed that way; walking to the "most specific" cause must still
+    // terminate rather than loop forever.
+    var a = new RuntimeException("a");
+    var b = new RuntimeException("b", a);
+    a.initCause(b);
+    when(secretKeyCache.getSecretKeys(any())).thenThrow(a);
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void
+      create_strict_whenProcessDefinitionFetchFailsThroughACaffeineCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
+    // Cache.ValueRetrievalException -- unlike the mock above, this reproduces the wrapping that
+    // hid the exception type in production.
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
+        new CaffeineCache("test", Caffeine.newBuilder().build()));
+  }
+
+  @Test
+  void
+      create_strict_whenProcessDefinitionFetchFailsThroughANoOpCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(new NoOpCache("test"));
+  }
+
+  private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(Cache cache) {
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY).execute())
+        .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
+    SecretKeyCache realSecretKeyCache = new ProcessDefinitionSecretKeyCache(camundaClient, cache);
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining(ELEMENT_ID)
+        .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
+        .hasMessageContaining(RuntimeException.class.getName())
+        .hasMessageNotContaining("could not be loaded using")
+        .hasMessageNotContaining("Operate returned 404 for process definition 42");
   }
 }
