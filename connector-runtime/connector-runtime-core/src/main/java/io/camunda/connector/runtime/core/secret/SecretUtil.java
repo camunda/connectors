@@ -101,27 +101,41 @@ public class SecretUtil {
   }
 
   private static void walkJsonNode(
-      JsonNode input,
-      BiFunction<String, List<String>, String> converter,
-      List<String> fieldPath) {
+      JsonNode input, BiFunction<String, List<String>, String> converter, List<String> fieldPath) {
     switch (input.getNodeType()) {
-    case ARRAY -> walkArray((ArrayNode) input, converter, fieldPath);
-    case OBJECT -> walkObject((ObjectNode) input, converter, fieldPath);
-    default -> {}
+      case ARRAY -> walkArray((ArrayNode) input, converter, fieldPath);
+      case OBJECT -> walkObject((ObjectNode) input, converter, fieldPath);
+      default -> {}
     }
-
   }
 
-  private static void walkObject(ObjectNode input, BiFunction<String, List<String>, String> converter,
+  /**
+   * Substitutes property names as well as values: the raw-text pass this replaced matched anywhere
+   * in the document, key or value, so a placeholder written as a property name (e.g. {@code
+   * {"{{secrets.KEY}}": "value"}}) resolved just as one written as a value did. Renaming is
+   * deferred until after the entry is otherwise processed, and runs over a snapshot of the original
+   * entries, since renaming a key while iterating the node's live property view would throw.
+   */
+  private static void walkObject(
+      ObjectNode input,
+      BiFunction<String, List<String>, String> converter,
       List<String> fieldPath) {
-    for (Entry<String, JsonNode> entry : input.properties()) {
+    for (Entry<String, JsonNode> entry : List.copyOf(input.properties())) {
+      String key = entry.getKey();
       JsonNode value = entry.getValue();
       List<String> extendedFieldPath = new ArrayList<>(fieldPath);
-      extendedFieldPath.add(entry.getKey());
+      extendedFieldPath.add(key);
+
       if (value instanceof TextNode stringValue) {
-        input.put(entry.getKey(), converter.apply(stringValue.asText(), extendedFieldPath));
-      } else  {
+        input.put(key, converter.apply(stringValue.asText(), extendedFieldPath));
+      } else {
         walkJsonNode(value, converter, extendedFieldPath);
+      }
+
+      String newKey = converter.apply(key, extendedFieldPath);
+      if (!newKey.equals(key)) {
+        input.set(newKey, input.get(key));
+        input.remove(key);
       }
     }
   }
@@ -135,7 +149,7 @@ public class SecretUtil {
       JsonNode item = arrayNode.get(i);
       if (item instanceof TextNode stringValue) {
         arrayNode.set(i, new TextNode(converter.apply(stringValue.asText(), fieldPath)));
-      } else  {
+      } else {
         walkJsonNode(item, converter, fieldPath);
       }
     }
