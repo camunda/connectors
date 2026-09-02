@@ -91,12 +91,60 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_taskWithoutTemplate_excluded_returnsEmptyList() throws IOException {
+  void getSecretKeys_taskWithoutTemplate_returnsItsOwnSecrets() throws IOException {
+    // zeebe:modelerTemplate records how an element was authored, not what it is, so a task
+    // without one is still eligible and its own declared secrets are still returned.
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-no-template.bpmn"));
 
     var keys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "plain-task"));
 
-    assertThat(keys).isEmpty();
+    assertThat(keys).containsExactly("SECRET_X");
+  }
+
+  @Test
+  void getSecretKeys_adHocSubProcessAndChild_returnsEachElementsOwnSecrets() throws IOException {
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-adhoc-subprocess.bpmn"));
+
+    var subProcessKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "agent-subprocess"));
+    var childKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "child-task"));
+
+    assertThat(subProcessKeys).containsExactly("ADHOC_SECRET");
+    assertThat(childKeys).containsExactly("CHILD_SECRET");
+  }
+
+  @Test
+  void getSecretKeys_nestedEmbeddedSubProcessesAndGrandchild_returnsEachElementsOwnSecrets()
+      throws IOException {
+    // Verifies the fix generalizes beyond AdHocSubProcess: a plain (embedded) SubProcess can
+    // itself be a connector host, at any nesting depth, same as the ad-hoc flavor.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-nested-embedded-subprocess.bpmn"));
+
+    var outerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "outer-subprocess"));
+    var innerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "inner-subprocess"));
+    var grandchildKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task"));
+
+    assertThat(outerKeys).containsExactly("OUTER_SECRET");
+    assertThat(innerKeys).containsExactly("INNER_SECRET");
+    assertThat(grandchildKeys).containsExactly("GRANDCHILD_SECRET");
+  }
+
+  @Test
+  void getSecretKeys_messageIntermediateThrowEventAndEndEvent_returnsEachElementsOwnSecrets()
+      throws IOException {
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-message-events.bpmn"));
+
+    var throwEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-throw"));
+    var endEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end"));
+
+    assertThat(throwEventKeys).containsExactly("THROW_EVENT_SECRET");
+    assertThat(endEventKeys).containsExactly("END_EVENT_SECRET");
   }
 
   @Test

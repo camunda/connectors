@@ -21,6 +21,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -59,15 +60,31 @@ public class SecretUtil {
     return input;
   }
 
+  /**
+   * A denied bracketed reference — e.g. {@code {{secrets.FOO:BAR}}} when only {@code FOO} is
+   * allowed — is left untouched by the parentheses pass, but its own text still contains {@code
+   * secrets.FOO}, which the bare pattern would happily match and resolve on its own since {@code
+   * FOO} genuinely is allowed. Excluding bare matches nested in a still-literal bracketed reference
+   * closes that: the bracket pass already ruled on that name, and the bare pass must not
+   * re-litigate a truncated prefix of it. The exclusion is recomputed on every iteration, against
+   * whatever {@code input} that iteration is about to scan, so a still-denied reference stays
+   * excluded across the bounded rescan below that lets a resolved value chain into a further
+   * replacement.
+   */
   private static String replaceSecretsWithoutParentheses(
       String input, SecretContext context, SecretReplacer secretReplacer) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
+      List<MatchResult> deniedBracketedReferences =
+          SECRET_PATTERN_PARENTHESES.matcher(input).results().toList();
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
+              matcher ->
+                  isNotNestedInAny(matcher, deniedBracketedReferences)
+                      ? resolveSecretValue(context, secretReplacer, matcher)
+                      : matcher.group());
     }
     return input;
   }
@@ -103,13 +120,36 @@ public class SecretUtil {
   }
 
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return Objects.isNull(input)
-        ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
-            .distinct()
-            .toList();
+    if (Objects.isNull(input)) {
+      return List.of();
+    }
+    List<MatchResult> bracketedReferences =
+        SECRET_PATTERN_PARENTHESES.matcher(input).results().toList();
+    return Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+        .flatMap(
+            pattern ->
+                pattern
+                    .matcher(input)
+                    .results()
+                    .filter(
+                        result ->
+                            pattern != SECRET_PATTERN_SECRETS
+                                || isNotNestedInAny(result, bracketedReferences)))
+        .map(matchResult -> matchResult.group("secret").trim())
+        .distinct()
+        .toList();
+  }
+
+  /**
+   * A bare {@code secrets.NAME} match nested inside a {@code {{secrets.NAME}}} occurrence is not a
+   * second, independent declaration — it is the bare pattern's narrower character class re-reading
+   * the same literal text and stopping short at a character the bracket form tolerates (e.g. {@code
+   * :}). Left in, a model declaring only {@code {{secrets.LONG:SUFFIX}}} would also admit the
+   * truncated "LONG" into the allow-list, letting a runtime value spell that shorter name and
+   * resolve a secret the model never declared.
+   */
+  private static boolean isNotNestedInAny(MatchResult candidate, List<MatchResult> outerMatches) {
+    return outerMatches.stream()
+        .noneMatch(outer -> candidate.start() >= outer.start() && candidate.end() <= outer.end());
   }
 }

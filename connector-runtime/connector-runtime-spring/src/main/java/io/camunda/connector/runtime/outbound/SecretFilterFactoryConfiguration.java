@@ -23,42 +23,48 @@ import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.cache.support.NoOpCacheManager;
+import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.NoOpCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SecretFilterFactoryConfiguration {
+
+  /**
+   * Wrapped in {@link SecretKeyCacheHolder} rather than exposed as a plain {@link Cache} bean:
+   * registering an unqualified {@code Cache}, just like an unqualified {@code CacheManager}, would
+   * collide with a host application's own cache bean of that exact type — the same ambiguous-bean
+   * problem this replaces, one type level down. The holder is package-private, so no code outside
+   * this configuration class can declare or depend on a bean of this type either.
+   */
   @Bean
-  public CacheManager secretKeyCacheManager(
+  SecretKeyCacheHolder secretKeyCacheStore(
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.enabled:true}")
           boolean cacheEnabled,
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.max-size:1000}")
           int cacheMaxSize) {
     if (!cacheEnabled) {
-      return new NoOpCacheManager();
+      return new SecretKeyCacheHolder(new NoOpCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
     }
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
-    CaffeineCacheManager cacheManager =
-        new CaffeineCacheManager(SecretKeyCache.SECRET_KEY_CACHE_NAME);
-    cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(boundedMaxSize));
-    return cacheManager;
+    return new SecretKeyCacheHolder(
+        new CaffeineCache(
+            SecretKeyCache.SECRET_KEY_CACHE_NAME,
+            Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, @Qualifier("secretKeyCacheManager") CacheManager cacheManager) {
-    return new ProcessDefinitionSecretKeyCache(
-        camundaClient, cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
+      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
+    return new ProcessDefinitionSecretKeyCache(camundaClient, secretKeyCacheStore.cache());
   }
 
   @Bean
   public SecretFilterFactory secretFilterFactory(
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
