@@ -42,6 +42,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -271,7 +272,8 @@ class InboundSecretReferenceBindingTest {
             e -> {},
             objectMapper,
             entry -> {},
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     return context.bindProperties(Credentials.class);
   }
 

@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
@@ -96,7 +97,9 @@ public class InboundConnectorRuntimeConfiguration {
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Value("${camunda.connector.secret-resolver.secret-filter.inbound.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
     Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
             registry, legacyCamundaClient, legacyDocumentFactory);
@@ -125,7 +128,8 @@ public class InboundConnectorRuntimeConfiguration {
                           validationProvider,
                           processInstanceClientsByPhysicalTenantId.get(physicalTenantId),
                           documentFactoriesByPhysicalTenantId.get(physicalTenantId),
-                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient));
+                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
+                          secretFilterMode);
                     }));
     return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
   }

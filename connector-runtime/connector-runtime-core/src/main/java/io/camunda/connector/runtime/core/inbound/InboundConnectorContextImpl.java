@@ -51,9 +51,14 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -89,19 +94,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
-      CamundaClient camundaClient) {
-    // No name-level restriction, because on this path there is nothing for one to reject. The
-    // outbound filter's allow-list is drawn from the deployed model while replacement runs over the
-    // job's variables, and that asymmetry is what it protects: a legacy name carried by a runtime
-    // value resolves only if the model declares it too. Here the two sides coincide — legacy
-    // replacement only ever runs over this element's own zeebe:property text, read from the
-    // deployed
-    // model (see getPropertiesWithSecrets and bindElementProperties), and never over a runtime
-    // value, since an evaluation result is data and is never fed back through replacement. An
-    // allow-list derived from the model would therefore be the same set as the text it filters.
-    // #7730 would wire a filter in regardless, making that a checked property rather than one that
-    // holds because of where the call sites read from.
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+      CamundaClient camundaClient,
+      SecretFilterMode secretFilterMode) {
+    // The allow-list is the union of every element's own raw properties (see extractSecrets),
+    // not just this connector's aggregate rawPropertiesWithoutKeywords: bindElementProperties
+    // below resolves secrets against whichever element the correlation actually activated, which
+    // may be a different element of this same connector (e.g. an intermediate catch event sharing
+    // a correlation key with the primary triggering element) than the one that seeded
+    // this.properties. Scoping the filter to only the "primary" element's properties could
+    // wrongly reject a secret legitimately declared on a sibling element. Like this.properties
+    // itself, the filter is built once here and is not refreshed by updateConnectorDetails on a
+    // redeploy; that pre-existing staleness is unchanged by this filter sharing its lifecycle.
+    super(
+        secretProvider, buildSecretFilter(secretFilterMode, connectorDetails), validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -130,7 +135,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       ActivityLogWriter logs,
-      CamundaClient camundaClient) {
+      CamundaClient camundaClient,
+      SecretFilterMode secretFilterMode) {
     this(
         secretProvider,
         validationProvider,
@@ -140,7 +146,44 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         cancellationCallback,
         objectMapper,
         logs,
-        camundaClient);
+        camundaClient,
+        secretFilterMode);
+  }
+
+  /**
+   * Builds the secret filter from data already in hand at construction time: unlike outbound,
+   * inbound properties are parsed into {@code rawProperties} maps up front, so the allow-list needs
+   * no BPMN re-fetch, no cache, and no laziness — {@code LAX} and {@code STRICT} are therefore
+   * equivalent here, since there is no fallible I/O for them to diverge on.
+   */
+  private static SecretFilter buildSecretFilter(
+      SecretFilterMode secretFilterMode, ValidInboundConnectorDetails connectorDetails) {
+    return switch (secretFilterMode) {
+      case DISABLED -> SecretFilter.allowAll();
+      case LAX, STRICT ->
+          SecretFilter.allowOnly(
+              extractSecrets(
+                  connectorDetails.connectorElements().stream()
+                      .map(InboundConnectorElement::rawProperties)
+                      .toList()));
+    };
+  }
+
+  /**
+   * Every secret a connector's raw {@code zeebe:property} text declares, across all of its
+   * elements, paired with the field path the property's (possibly dotted) key maps to once {@link
+   * InboundPropertyHandler#readWrappedProperties} nests it — the same path a leaf occupies when
+   * {@link SecretUtil#replaceSecrets} walks the wrapped property tree at resolution time.
+   */
+  static List<Secret> extractSecrets(Collection<Map<String, String>> rawPropertiesPerElement) {
+    return rawPropertiesPerElement.stream()
+        .flatMap(rawProperties -> rawProperties.entrySet().stream())
+        .flatMap(
+            entry ->
+                SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+        .distinct()
+        .toList();
   }
 
   @Override

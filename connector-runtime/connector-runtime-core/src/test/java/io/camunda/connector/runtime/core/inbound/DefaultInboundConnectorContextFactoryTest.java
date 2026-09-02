@@ -28,6 +28,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +62,8 @@ class DefaultInboundConnectorContextFactoryTest {
             validationProvider,
             processInstanceClient,
             documentFactory,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
   }
 
   @Test

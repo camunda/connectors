@@ -47,6 +47,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -189,7 +190,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     var result = context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
@@ -233,7 +235,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     var request =
         DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes())).build();
 
@@ -257,7 +260,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -287,7 +291,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     context.bindProperties(TestPropertiesClass.class);
@@ -312,7 +317,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     assertThat(context.getDefinition().physicalTenantId()).isEqualTo("engine-1");
   }
@@ -330,7 +336,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -356,7 +363,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -400,7 +408,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -422,7 +431,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();
@@ -445,7 +455,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -488,7 +499,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -522,7 +534,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -547,7 +560,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -584,7 +598,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -614,7 +629,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -644,7 +660,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -673,7 +690,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -703,7 +721,8 @@ class InboundConnectorContextImplTest {
             (e) -> {},
             mapper,
             activityLogRegistry,
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     // when
     TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);

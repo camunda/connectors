@@ -17,6 +17,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -69,7 +70,8 @@ public class PollingIntervalConfigurationTest {
             (e) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             new ActivityLogRegistry(),
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
   }
 
   @ParameterizedTest

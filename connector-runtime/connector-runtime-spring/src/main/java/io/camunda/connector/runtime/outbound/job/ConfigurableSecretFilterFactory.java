@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import org.slf4j.Logger;
@@ -62,11 +63,5 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             }
           }
         });
-  }
-
-  public enum SecretFilterMode {
-    DISABLED,
-    LAX,
-    STRICT
   }
 }

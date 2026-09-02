@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
@@ -453,7 +454,8 @@ public class InboundExecutableRegistryTest {
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
             null,
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -505,7 +507,8 @@ public class InboundExecutableRegistryTest {
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
             activityLogRegistry,
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -553,7 +556,8 @@ public class InboundExecutableRegistryTest {
                 t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
                 new ObjectMapper(),
                 activityLogRegistry,
-                mock(CamundaClient.class)));
+                mock(CamundaClient.class),
+                SecretFilterMode.STRICT));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
     when(definition.deduplicationId()).thenReturn(RANDOM_STRING);
@@ -930,7 +934,8 @@ public class InboundExecutableRegistryTest {
             t -> {},
             new ObjectMapper(),
             activityLogRegistry,
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(realContext);
     when(factory.getInstance(any())).thenReturn(executable);

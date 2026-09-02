@@ -45,13 +45,13 @@ import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecu
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.metrics.MeteredSecretProviderAggregator;
-import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;

@@ -41,6 +41,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.nio.charset.StandardCharsets;
@@ -154,7 +155,8 @@ class InboundWebhookRestControllerTest {
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             new ActivityLogRegistry(),
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     var registry = new WebhookConnectorRegistry();
     registry.register(
@@ -198,7 +200,8 @@ class InboundWebhookRestControllerTest {
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             new ActivityLogRegistry(),
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     var registry = new WebhookConnectorRegistry(true);
     registry.register(
@@ -245,7 +248,8 @@ class InboundWebhookRestControllerTest {
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             activityLogRegistry,
-            mock(CamundaClient.class));
+            mock(CamundaClient.class),
+            SecretFilterMode.STRICT);
 
     return new RegisteredExecutable.Activated(
         executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId()));

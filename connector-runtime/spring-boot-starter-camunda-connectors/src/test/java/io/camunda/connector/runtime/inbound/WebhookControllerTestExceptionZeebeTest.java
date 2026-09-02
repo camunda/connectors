@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilterMode;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
@@ -246,7 +247,8 @@ class WebhookControllerTestExceptionZeebeTest {
             (e) -> {},
             mapper,
             new ActivityLogRegistry(),
-            camundaClient);
+            camundaClient,
+            SecretFilterMode.STRICT);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
