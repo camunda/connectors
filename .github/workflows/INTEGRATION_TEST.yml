@@ -119,6 +119,13 @@ jobs:
             LOOKUP_KEY="${{ inputs.release-branch || github.ref_name }}"
             echo "Initial lookup key: '${LOOKUP_KEY}'"
             
+            # Merge-queue refs carry the real base branch as everything between the
+            # gh-readonly-queue/ prefix and the trailing /pr-<number>-<sha> segment.
+            if [[ "$LOOKUP_KEY" =~ ^gh-readonly-queue/(.+)/pr-[0-9]+ ]]; then
+              LOOKUP_KEY="${BASH_REMATCH[1]}"
+              echo "Detected merge-queue ref, transformed to '${LOOKUP_KEY}'"
+            fi
+            
             # Transform release-x.y.z branches to their base branch for lookup
             # Format: release-x.y.z(-alphaN)?(-rcM)?
             if [[ "$LOOKUP_KEY" =~ ^release-([0-9]+)\.([0-9]+)\.[0-9]+ ]]; then
