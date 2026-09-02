@@ -532,6 +532,13 @@
       "id" : "chatMaxTokens",
       "label" : "Max tokens",
       "optional" : true,
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^(=.*|[1-9][0-9]*|)$",
+          "message" : "Must be a positive integer, or a FEEL expression"
+        }
+      },
       "feel" : "optional",
       "group" : "modelServing",
       "binding" : {
@@ -946,7 +953,11 @@
       "label" : "Chunk index",
       "optional" : false,
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|0|[1-9][0-9]*)$",
+          "message" : "Must be a non-negative integer, or a FEEL expression"
+        }
       },
       "feel" : "optional",
       "group" : "sql",
@@ -998,7 +1009,11 @@
       "label" : "Job ID",
       "optional" : false,
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|0|[1-9][0-9]*)$",
+          "message" : "Must be a non-negative integer, or a FEEL expression"
+        }
       },
       "feel" : "optional",
       "group" : "jobs",
@@ -1090,7 +1105,11 @@
       "label" : "Run ID",
       "optional" : false,
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|0|[1-9][0-9]*)$",
+          "message" : "Must be a non-negative integer, or a FEEL expression"
+        }
       },
       "feel" : "optional",
       "group" : "jobs",
