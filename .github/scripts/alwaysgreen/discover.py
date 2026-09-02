@@ -273,98 +273,105 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
 # ---------------------------------------------------------------------------
 
 
-def covered_fingerprints() -> set[str]:
-    """Fingerprints already claimed by an open fix PR, in any repo a fix can land in.
+def open_fix_prs(repo: str) -> tuple[list[dict], bool]:
+    """Open fix PRs in one repository, with the fields dedupe needs. Returns (prs, ok).
 
-    Scanned across FIX_PR_REPOS rather than the source repo alone: a test-side fix
-    lands in the e2e repository, so a source-repo-only scan finds nothing and this
-    layer never fires.
+    A seam, so `dedupe_inputs` can be unit-tested without a token.
     """
-    out: set[str] = set()
-    for repo in FIX_PR_REPOS:
-        prs = gh_json(
-            [
-                "pr", "list", "--repo", repo,
-                "--search", f"label:{FIX_LABEL} is:open",
-                "--limit", "100", "--json", "number,body",
-            ],
-            [],
-        )
-        for pr in prs if isinstance(prs, list) else []:
-            out |= planning.parse_coverage_block(pr.get("body"))
-    return out
+    prs, err = gh_json_ex(
+        [
+            "pr", "list", "--repo", repo,
+            "--search", f"label:{FIX_LABEL} is:open",
+            "--limit", "100", "--json", "labels,number,createdAt,body",
+        ],
+        None,
+    )
+    if prs is None or not isinstance(prs, list):
+        log(f"::warning::open fix PR lookup failed for {repo}: {err.strip()[:200]}")
+        return [], False
+    return prs, True
 
 
-def open_fix_pr_keys() -> tuple[set[str], set[str], bool]:
-    """Dispatch keys that already have an open fix PR, in any repo a fix can land in.
+def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
+    """(covered fingerprints, keys with an open PR, keys decided per spec, ok).
 
-    Read from the `ag-key:<source>:<base_ref>:<surface>` label the fix workflow
-    stamps, not from the PR body: the body's coverage block is written by the agent
-    and cannot be relied on to exist.
+    One lookup behind one `ok`, across every repo a fix can land in — FIX_PR_REPOS, not
+    the source repo alone, since a test-side fix lands in the e2e repository. Coverage
+    used to come from a second, separate `gh` call whose failure was swallowed into an
+    empty set. That was survivable while every open fix PR locked its whole surface,
+    because the key layer caught what the empty set missed; once a claiming PR's key
+    stops locking, the two must agree or a failed coverage lookup dispatches a duplicate
+    fix for a spec that PR already claims.
+
+    Keys are read from the `ag-key:<source>:<base_ref>:<surface>` label the fix workflow
+    stamps, not from the PR body: the body's coverage block is written by the agent and
+    cannot be relied on to exist.
 
     A PR past PR_LOCK_TTL_HOURS stops holding its key, so a fix PR left unreviewed
-    cannot wedge its surface shut for good; `covered_fingerprints` still suppresses a
-    repeat of the specs it already claims.
+    cannot wedge its surface shut for good.
 
-    Returns (keys, keys_with_coverage, ok). `keys_with_coverage` is the subset whose
-    every holding PR claims at least one fingerprint, so `plan` can decide those keys
-    per spec instead of locking the surface. A block that parses to nothing — absent,
-    or present with no `fp=` line — claims nothing, and a key any of whose holders
-    claims nothing stays out of the subset and keeps the coarse lock: the marker
-    comment alone is not a statement of remit. As with `inflight_keys`, a failed
-    lookup makes the caller suppress rather than risk a duplicate PR.
+    `keys_with_coverage` is the subset whose every active holder claims at least one
+    fingerprint, so `plan` can decide those keys per spec instead of locking the
+    surface. A block that parses to nothing — absent, or present with no `fp=` line —
+    claims nothing, and a key any of whose active holders claims nothing stays out of
+    the subset: the marker comment alone is not a statement of remit.
+
+    Coverage is collected from every open fix PR, expired or not: the specs a PR claims
+    stay claimed for as long as it is open, and only the coarse key lock is time-bound.
+
+    As with `inflight_keys`, a failed lookup makes the caller suppress rather than risk
+    a duplicate PR.
     """
-    out: set[str] = set()
+    covered: set[str] = set()
+    keys: set[str] = set()
     uncovered: set[str] = set()
     ok = True
     now = datetime.now(timezone.utc)
     for repo in FIX_PR_REPOS:
-        prs, err = gh_json_ex(
-            [
-                "pr", "list", "--repo", repo,
-                "--search", f"label:{FIX_LABEL} is:open",
-                "--limit", "100", "--json", "labels,number,createdAt,body",
-            ],
-            None,
-        )
-        if prs is None:
-            log(f"::warning::open fix PR lookup failed for {repo}: {err.strip()[:200]}")
+        prs, repo_ok = open_fix_prs(repo)
+        if not repo_ok:
             ok = False
             continue
-        for pr in prs if isinstance(prs, list) else []:
-            keys: set[str] = set()
+        for pr in prs:
+            claims = planning.parse_coverage_block(pr.get("body"))
+            covered |= claims
+            pr_keys: set[str] = set()
             for label in pr.get("labels") or []:
                 name = (label.get("name") or "").strip()
                 if name.startswith(KEY_LABEL_PREFIX):
                     key = name[len(KEY_LABEL_PREFIX) :].strip()
                     if key:
-                        keys.add(key)
-            if not keys:
+                        pr_keys.add(key)
+            if not pr_keys:
                 continue
             if planning.pr_lock_expired(
                 pr.get("createdAt") or "", now, PR_LOCK_TTL_HOURS
             ):
                 log(
                     f"lock expired after {PR_LOCK_TTL_HOURS}h: {repo}#{pr.get('number')} "
-                    f"no longer holds {', '.join(sorted(keys))}"
+                    f"no longer holds {', '.join(sorted(pr_keys))}"
                 )
                 continue
-            out |= keys
-            covered = planning.parse_coverage_block(pr.get("body"))
-            if not covered:
-                uncovered |= keys
-            # Named in the log so a suppressed run says which PR held it shut without
-            # anyone cross-listing open fix PRs by hand.
+            keys |= pr_keys
+            if not claims:
+                uncovered |= pr_keys
             log(
                 f"open fix PR {repo}#{pr.get('number')} holds "
-                f"{', '.join(sorted(keys))}: "
-                + (
-                    f"{len(covered)} spec(s) claimed, others dispatchable"
-                    if covered
-                    else "claims no specs, whole surface locked"
-                )
+                f"{', '.join(sorted(pr_keys))}, claiming {len(claims)} spec(s)"
             )
-    return out, out - uncovered, ok
+    # Per key, not per PR: dispatchability is an intersection over every active holder,
+    # so a PR-level line cannot state it. Logged so a suppressed run names its blocker
+    # without anyone cross-listing open fix PRs by hand.
+    for key in sorted(keys):
+        log(
+            f"key {key}: "
+            + (
+                "locked (a holder claims no specs)"
+                if key in uncovered
+                else "decided per spec (every holder claims some)"
+            )
+        )
+    return covered, keys, keys - uncovered, ok
 
 
 def inflight_keys() -> tuple[set[str], bool]:
@@ -597,8 +604,11 @@ def _run() -> int:
             keys = {c.key for c in candidates}
             log("::warning::in-flight lookup failed; suppressing dispatch this run")
 
-        pr_keys, pr_keys_covered, pr_keys_ok = open_fix_pr_keys()
-        if not pr_keys_ok:
+        covered, pr_keys, pr_keys_covered, dedupe_ok = dedupe_inputs()
+        if not dedupe_ok:
+            # Cannot prove what an open PR already covers, so suppress every candidate:
+            # the key set and the coverage set must be one snapshot or a partial read
+            # licenses a duplicate PR.
             pr_keys = {c.key for c in candidates}
             pr_keys_covered = set()
             log("::warning::open fix PR lookup failed; suppressing dispatch this run")
@@ -612,7 +622,7 @@ def _run() -> int:
 
         result = planning.plan_dispatches(
             candidates,
-            covered_fingerprints=covered_fingerprints(),
+            covered_fingerprints=covered,
             inflight_keys=keys,
             open_pr_keys=pr_keys,
             open_pr_keys_with_coverage=pr_keys_covered,
