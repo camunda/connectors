@@ -172,6 +172,25 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldUseTheFullNameResolutionOfAChainGeneratedBracketRatherThanItsBarePrefix() {
+    // A's own resolved value happens to spell "{{secrets.FOO:BAR}}". "FOO:BAR" is itself allowed
+    // (a different name from its bare prefix "FOO", which is also separately allowed but to a
+    // different value). The bare pass must apply FOO:BAR's own resolution to the whole bracket,
+    // not resolve the truncated bare prefix "FOO" and discard the full name's actual value.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A".equals(name)) return "{{secrets.FOO:BAR}}";
+          if ("FOO:BAR".equals(name)) return "FULL_VALUE";
+          if ("FOO".equals(name)) return "PREFIX_VALUE";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("FULL_VALUE");
+  }
+
+  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by
