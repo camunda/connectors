@@ -57,6 +57,7 @@ import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -192,17 +193,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   /**
-   * An empty field path on every entry: {@link SecretFilter}'s field-path scoping exists to
-   * distinguish where in a resolved JSON tree a secret was declared versus where it is being
-   * resolved, and this allow-list has no such tree to scope against — it names every legacy secret
-   * this connector's raw {@code zeebe:property} text declares, full stop. An empty path is a
-   * wildcard for {@link SecretFilter#allowOnly} (it is a prefix of every path), so this reduces to
-   * the flat name-only matching this allow-list was always meant to express.
+   * Each secret paired with the field path its declaring property's (possibly dotted) key maps to
+   * once {@link InboundPropertyHandler#readWrappedProperties} nests it — the same path a leaf
+   * occupies when {@link SecretUtil#replaceSecrets} walks the wrapped property tree at resolution
+   * time. Scoping by that path, rather than admitting every declared name everywhere via an
+   * empty-path wildcard, keeps a secret declared under one field (e.g. {@code
+   * authentication.token}) from also being allowed under an unrelated sibling field.
    */
   private List<Secret> declaredSecretNames(Map<String, String> rawProperties) {
-    return rawProperties.values().stream()
-        .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
-        .map(name -> new Secret(name, List.of()))
+    return rawProperties.entrySet().stream()
+        .flatMap(
+            entry ->
+                SecretUtil.retrieveLegacySecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+        .distinct()
         .toList();
   }
 
