@@ -113,6 +113,23 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_propagatesTransitivelyThroughAChainOfReferences() throws IOException {
+    // innerBaseUrl declares INNER_SECRET; baseUrl = "=innerBaseUrl + \"/static-context\""
+    // references innerBaseUrl; url = "=baseUrl" references baseUrl, not innerBaseUrl directly.
+    // The secret has to reach url through two hops of the dependency chain, not just one.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-chained-references.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .containsExactlyInAnyOrder(
+            new Secret("INNER_SECRET", List.of("innerBaseUrl")),
+            new Secret("INNER_SECRET", List.of("baseUrl")),
+            new Secret("INNER_SECRET", List.of("url")));
+  }
+
+  @Test
   void getSecretKeys_propagationDoesNotReachAnInputThatDoesNotReferenceTheDeclaringVariable()
       throws IOException {
     // method ("get") and connectionTimeoutInSeconds ("20") are unrelated static inputs on the same
