@@ -1,7 +1,8 @@
 name: AI Agent CPT Tests (PR)
 
-# Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI, see #8234) on a PR before it
-# reaches the merge queue, gated by the `ai-agent-cpt` label so it isn't triggered accidentally.
+# Runs the real-LLM AI Agent CPT suite (OpenAI only for now — Google Vertex AI isn't wired up
+# yet, see #8234) on a PR before it reaches the merge queue, gated by the `ai-agent-cpt` label
+# so it isn't triggered accidentally.
 #
 # Deliberately a standalone workflow rather than adding `pull_request` to MERGE_QUEUE_HELM_TEST.yaml:
 # that file's build-image job also feeds trigger-sm-e2e/trigger-saas-e2e, which gate only on
@@ -134,11 +135,12 @@ jobs:
             --also-make
 
       # Fails fast with a clear error if the bundle jar wasn't produced, rather than a confusing
-      # Docker COPY failure downstream. Same check MERGE_QUEUE_HELM_TEST.yaml runs after its own
-      # equivalent build step.
+      # Docker COPY failure downstream. Checks the actual glob the Dockerfile depends on, not just
+      # that target/ exists. Same check MERGE_QUEUE_HELM_TEST.yaml runs after its own equivalent
+      # build step.
       - name: Check default-bundle jar exists
         if: steps.changes.outputs.ai == 'true'
-        run: ls -lh apps/bundle/default-bundle/target/
+        run: ls -lh apps/bundle/default-bundle/target/*-with-dependencies.jar
 
       - name: Compute image tag
         if: steps.changes.outputs.ai == 'true'
