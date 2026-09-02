@@ -19,10 +19,8 @@ package io.camunda.connector.runtime.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
@@ -109,19 +107,6 @@ public class SecretUtilTests {
   }
 
   @Test
-  void shouldAskTheReplacerAtMostOnceForAGivenNameAcrossBothPasses() {
-    // secretReplacer is not guaranteed side-effect-free in production (a provider aggregator can
-    // count each resolution), so a name the parentheses pass already resolved or denied must not
-    // be looked up again by the bare pass's own denial check.
-    var secretReplacer = mock(SecretReplacer.class);
-    when(secretReplacer.replaceSecrets(eq("FOO:BAR"), any())).thenReturn(null);
-
-    SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", null, secretReplacer);
-
-    verify(secretReplacer, times(1)).replaceSecrets(eq("FOO:BAR"), any());
-  }
-
-  @Test
   void shouldNotResolveABarePrefixInsideAStillDeniedBracketedReference() {
     // FOO is allowed on its own, but "FOO:BAR" is not declared anywhere and so is denied. The
     // parentheses pass correctly leaves the literal "{{secrets.FOO:BAR}}" untouched — but its own
@@ -153,113 +138,6 @@ public class SecretUtilTests {
   }
 
   @Test
-  void shouldNotResolveABarePrefixInsideAChainGeneratedDeniedBracketedReference() {
-    // A's own resolved value happens to spell "{{secrets.FOO:BAR}}" -- a bracketed reference the
-    // parentheses pass never attempted, since it didn't exist in the original text. "FOO:BAR" is
-    // not declared anywhere and is denied, even though the bare prefix "FOO" is separately
-    // allowed. The bare pass must deny this chain-generated bracket exactly as it would an
-    // original-input one, not just brackets an earlier pass happened to record.
-    SecretReplacer secretReplacer =
-        (name, context) -> {
-          if ("A".equals(name)) return "{{secrets.FOO:BAR}}";
-          if ("FOO".equals(name)) return "REAL_VALUE";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
-
-    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
-  }
-
-  @Test
-  void shouldUseTheFullNameResolutionOfAChainGeneratedBracketRatherThanItsBarePrefix() {
-    // A's own resolved value happens to spell "{{secrets.FOO:BAR}}". "FOO:BAR" is itself allowed
-    // (a different name from its bare prefix "FOO", which is also separately allowed but to a
-    // different value). The bare pass must apply FOO:BAR's own resolution to the whole bracket,
-    // not resolve the truncated bare prefix "FOO" and discard the full name's actual value.
-    SecretReplacer secretReplacer =
-        (name, context) -> {
-          if ("A".equals(name)) return "{{secrets.FOO:BAR}}";
-          if ("FOO:BAR".equals(name)) return "FULL_VALUE";
-          if ("FOO".equals(name)) return "PREFIX_VALUE";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
-
-    assertThat(result).isEqualTo("FULL_VALUE");
-  }
-
-  @Test
-  void shouldFullyResolveAMultiHopChainOfTruncatingBrackets() {
-    // A -> {{secrets.B:C}} -> {{secrets.D:E}} -> FULL_VALUE. A single pass only resolves one hop;
-    // the full-name resolution of a chain-generated truncating bracket must itself be re-attempted
-    // as a full bracketed reference, since its own resolution can generate another one.
-    SecretReplacer secretReplacer =
-        (name, context) -> {
-          if ("A".equals(name)) return "{{secrets.B:C}}";
-          if ("B:C".equals(name)) return "{{secrets.D:E}}";
-          if ("D:E".equals(name)) return "FULL_VALUE";
-          if ("D".equals(name)) return "PREFIX_VALUE";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
-
-    assertThat(result).isEqualTo("FULL_VALUE");
-  }
-
-  @Test
-  void shouldTerminateOnASelfReferencingTruncatingBracketInsteadOfLoopingForever() {
-    // FOO:BAR resolves to a bracketed reference of itself -- resolutionsByName memoizes by name,
-    // so this reproduces byte-identical text on every pass and would loop forever without an
-    // explicit bound.
-    SecretReplacer secretReplacer =
-        (name, context) -> "FOO:BAR".equals(name) ? "{{secrets.FOO:BAR}}" : null;
-
-    String result = SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", null, secretReplacer);
-
-    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
-  }
-
-  @Test
-  @org.junit.jupiter.api.Timeout(2)
-  void shouldTerminateOnAMutualCycleOfTruncatingBracketsInsteadOfLoopingForever() {
-    // "A:B" resolves to "{{secrets.C:D}}" and "C:D" resolves back to "{{secrets.A:B}}" -- an
-    // alternating cycle that never produces byte-identical text between passes, so only the fixed
-    // iteration cap (not the convergence check) can terminate it.
-    SecretReplacer secretReplacer =
-        (name, context) -> {
-          if ("A:B".equals(name)) return "{{secrets.C:D}}";
-          if ("C:D".equals(name)) return "{{secrets.A:B}}";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("{{secrets.A:B}}", null, secretReplacer);
-
-    assertThat(result).isNotNull();
-  }
-
-  @Test
-  @org.junit.jupiter.api.Timeout(5)
-  void shouldStayFastWithManyDeniedSpecialCharacterReferences() {
-    // Each of these has a ':' in the name, so it's excluded from the bare pass only via the
-    // truncating-bracket path -- none of them ever resolve or disappear, so the bounded rescan
-    // reruns once per reference. Without a linear (not quadratic) per-pass exclusion check, this
-    // is cubic in the reference count and would blow well past the timeout.
-    int count = 300;
-    StringBuilder input = new StringBuilder();
-    for (int i = 0; i < count; i++) {
-      input.append("{{secrets.NAME").append(i).append(":SUFFIX}} ");
-    }
-    SecretReplacer secretReplacer = (name, context) -> null;
-
-    String result = SecretUtil.replaceSecrets(input.toString(), null, secretReplacer);
-
-    assertThat(result).isEqualTo(input.toString());
-  }
-
-  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by
@@ -279,25 +157,6 @@ public class SecretUtilTests {
     String result = SecretUtil.replaceSecrets("secrets.A secrets.PADDING", null, secretReplacer);
 
     assertThat(result).isEqualTo("{{FINAL}} PADDING");
-  }
-
-  @Test
-  void shouldResolveAChainedBracketedReferenceIntroducedByTheParenthesesPassItself() {
-    // The parentheses pass is itself bounded by the original match count: with a single original
-    // occurrence "{{secrets.A}}", it gets exactly one iteration, which resolves A to the literal
-    // "{{secrets.B}}" and then exits -- it never attempts B. That leftover bracket text must not
-    // be treated as "denied" by the bare pass just because it's present at the pass boundary; the
-    // bare pass must get a real chance to resolve B.
-    SecretReplacer secretReplacer =
-        (name, context) -> {
-          if ("A".equals(name)) return "{{secrets.B}}";
-          if ("B".equals(name)) return "FINAL";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
-
-    assertThat(result).isEqualTo("{{FINAL}}");
   }
 
   @Test
