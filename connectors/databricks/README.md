@@ -110,10 +110,13 @@ Result expression:
   }
 
 Exclusive gateway:
-  =sqlState = "FAILED"    -> error handling path
-  =sqlState = "CANCELED"  -> cancellation path
-  (default)               -> continue
+  =sqlState = "FAILED"                          -> error handling path
+  =sqlState = "CANCELED"                        -> cancellation path
+  =sqlState = "PENDING" or sqlState = "RUNNING"  -> poll loop (Get statement status and result)
+  (default, i.e. SUCCEEDED or CLOSED)            -> continue
 ```
+
+The `PENDING`/`RUNNING` branch matters whenever `wait_timeout` is `0s`, or `CONTINUE` on a timeout — both return a non-terminal `status.state` with HTTP 200. Routing everything but `FAILED`/`CANCELED` to `(default)` would treat a still-running statement as complete.
 
 **Why not an error expression?** The template deliberately ships **no default error expression**. An error expression is evaluated against the *mapped output* whenever **Result variable** or **Result expression** is set, not against the raw response — so an expression written against `response.body.status.state` evaluates `response.body` as `null` and silently never fires, exactly when a task is configured the normal way. A failed statement would then complete as a success. (Verified against a real workspace: with a result mapping the expression's `response` is the mapped variable map; without one it is the raw HTTP result.)
 
