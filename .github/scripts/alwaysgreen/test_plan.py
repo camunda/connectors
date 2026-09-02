@@ -386,6 +386,55 @@ def test_open_pr_touching_a_spec_path_suppresses_the_candidate():
     assert "#2951" in result.suppressed[0].detail
 
 
+def test_a_claimed_path_does_not_drop_the_fresh_specs_beside_it():
+    # The interaction the narrowed surface lock exists for: an open PR still holds the
+    # spec file it is fixing, that spec keeps failing until the PR merges, and a new
+    # failure lands beside it. Suppressing the whole candidate on the first path hit
+    # cancelled the widened lock out.
+    claimed = _spec(name="still failing", file="tests/8.10/smoke-tests.spec.ts")
+    fresh = _spec(name="new failure", file="tests/8.10/other-tests.spec.ts")
+    cand = _cand(specs=[claimed, fresh])
+
+    result = _plan(
+        [cand],
+        open_pr_keys={cand.key},
+        open_pr_keys_with_coverage={cand.key},
+        claimed_paths={"tests/8.10/smoke-tests.spec.ts": 2951},
+    )
+    assert len(result.dispatches) == 1
+    assert [s.test_name for s in result.dispatches[0].specs] == ["new failure"]
+
+
+def test_a_candidate_whose_every_spec_is_path_claimed_is_still_suppressed():
+    claimed = _spec(name="still failing", file="tests/8.10/smoke-tests.spec.ts")
+    cand = _cand(specs=[claimed])
+    result = _plan([cand], claimed_paths={"tests/8.10/smoke-tests.spec.ts": 2951})
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_PATH_CLAIMED
+    assert "#2951" in result.suppressed[0].detail
+
+
+def test_specs_dropped_by_more_than_one_source_report_all_of_them():
+    # Reporting a mixed remainder as one source hid the others, so the summary named
+    # the wrong blocker.
+    covered = _spec(name="covered", file="tests/8.10/a.spec.ts")
+    path = _spec(name="path claimed", file="tests/8.10/b.spec.ts")
+    cand = _cand(specs=[covered, path])
+    covered_fp = classify.spec_fingerprint(
+        "main", classify.SURFACE_SM_E2E, covered.file, covered.test_name
+    )
+
+    result = _plan(
+        [cand],
+        covered_fingerprints={covered_fp},
+        claimed_paths={"tests/8.10/b.spec.ts": 2951},
+    )
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_ALL_ACCOUNTED
+    assert plan.SUPPRESSED_PR_COVERED in result.suppressed[0].detail
+    assert plan.SUPPRESSED_PATH_CLAIMED in result.suppressed[0].detail
+
+
 def test_a_sibling_version_path_does_not_shadow_the_failing_one():
     # Matching on basenames would make an open PR against 8.9 suppress an 8.10 failure.
     cand = _cand(specs=[_spec(file="tests/8.10/smoke-tests.spec.ts")])

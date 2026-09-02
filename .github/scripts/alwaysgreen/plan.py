@@ -31,6 +31,8 @@ SUPPRESSED_PRODUCT_BUG = "tracked-by-open-product-bug"
 SUPPRESSED_NO_EVIDENCE = "no-failing-specs-extracted"
 SUPPRESSED_CAP = "per-run-cap-reached"
 SUPPRESSED_PATH_CLAIMED = "spec-path-claimed-by-open-pr"
+#: Every spec was dropped, but by more than one of the sources above.
+SUPPRESSED_ALL_ACCOUNTED = "all-specs-already-accounted-for"
 
 #: GitHub rejects a label longer than this, and the dispatch key is stamped on fix
 #: PRs as `ag-key:<key>`. Asserted over the supported matrix in test_plan.py so a new
@@ -214,24 +216,7 @@ def plan_dispatches(
             plan.suppressed.append(Suppression(cand, SUPPRESSED_NO_EVIDENCE))
             continue
 
-        # Author-agnostic: the other agents editing these files (the e2e repo's own
-        # nightly triage, another product pipeline, a human) dedupe on schemes this
-        # one cannot see, so the only reliable signal is that the file is already
-        # open in a PR. Keyed on exact repo-relative paths, so tests/8.9/x.spec.ts
-        # never shadows tests/8.10/x.spec.ts.
         claimed = claimed_paths or {}
-        if not cand.job_level and claimed:
-            hits = sorted({(s.file, claimed[s.file]) for s in cand.specs if s.file in claimed})
-            if hits:
-                plan.suppressed.append(
-                    Suppression(
-                        cand,
-                        SUPPRESSED_PATH_CLAIMED,
-                        ", ".join(f"{path} (#{number})" for path, number in hits),
-                    )
-                )
-                continue
-
         fps = cand.fingerprints
 
         if fps and all(f in product_bug_fingerprints for f in fps):
@@ -240,16 +225,43 @@ def plan_dispatches(
             )
             continue
 
-        # Drop specs an open PR already covers; dispatch only what is left.
+        # Drop specs an open PR, a product bug or an already-claimed spec file accounts
+        # for; dispatch only what is left. The path claim is author-agnostic: the other
+        # agents editing these files (the e2e repo's own nightly triage, another product
+        # pipeline, a human) dedupe on schemes this one cannot see, so the only reliable
+        # signal is that the file is already open in a PR. Keyed on exact repo-relative
+        # paths, so tests/8.9/x.spec.ts never shadows tests/8.10/x.spec.ts.
+        #
+        # Per spec, not per candidate. Suppressing the whole candidate on the first hit
+        # dropped the fresh specs beside the claimed one, which cancels out the narrowed
+        # surface lock above: a candidate carrying both a still-failing claimed spec and
+        # a new one is exactly the case that lock was widened to let through.
         if not cand.job_level:
-            remaining = [
-                s
-                for s, fp in zip(cand.specs, cand.spec_fingerprints)
-                if fp not in covered_fingerprints
-                and fp not in product_bug_fingerprints
-            ]
+            accounted: list[str] = []
+            path_hits: set[tuple[str, int]] = set()
+            remaining = []
+            for spec, fp in zip(cand.specs, cand.spec_fingerprints):
+                if fp in covered_fingerprints:
+                    accounted.append(SUPPRESSED_PR_COVERED)
+                elif fp in product_bug_fingerprints:
+                    accounted.append(SUPPRESSED_PRODUCT_BUG)
+                elif spec.file in claimed:
+                    accounted.append(SUPPRESSED_PATH_CLAIMED)
+                    path_hits.add((spec.file, claimed[spec.file]))
+                else:
+                    remaining.append(spec)
             if not remaining:
-                plan.suppressed.append(Suppression(cand, SUPPRESSED_PR_COVERED))
+                sources = sorted(set(accounted))
+                detail = (
+                    ", ".join(f"{path} (#{number})" for path, number in sorted(path_hits))
+                    if sources == [SUPPRESSED_PATH_CLAIMED]
+                    else ",".join(sources)
+                )
+                plan.suppressed.append(
+                    Suppression(cand, sources[0], detail)
+                    if len(sources) == 1
+                    else Suppression(cand, SUPPRESSED_ALL_ACCOUNTED, detail)
+                )
                 continue
             cand.specs = remaining
         elif fps and all(f in covered_fingerprints for f in fps):
