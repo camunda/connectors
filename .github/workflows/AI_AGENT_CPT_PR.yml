@@ -33,7 +33,7 @@ jobs:
   run-ai-agent-cpt:
     name: AI Agent E2E Tests (CPT)
     runs-on: gcp-core-8-default
-    timeout-minutes: 30
+    timeout-minutes: 45
     # Fork PRs get no secrets from `pull_request` by design (never widen this to
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
     # account to unvetted fork code before review). Mirrors BUILD_PR_DOCKER_IMAGES.yml's gate,
