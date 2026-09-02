@@ -254,6 +254,56 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldFullyResolveAMultiHopChainOfTruncatingBrackets() {
+    // A -> {{secrets.B:C}} -> {{secrets.D:E}} -> FULL_VALUE. A single pass only resolves one hop;
+    // the full-name resolution of a chain-generated truncating bracket must itself be re-attempted
+    // as a full bracketed reference, since its own resolution can generate another one.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A".equals(name)) return "{{secrets.B:C}}";
+          if ("B:C".equals(name)) return "{{secrets.D:E}}";
+          if ("D:E".equals(name)) return "FULL_VALUE";
+          if ("D".equals(name)) return "PREFIX_VALUE";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("FULL_VALUE");
+  }
+
+  @Test
+  void shouldTerminateOnASelfReferencingTruncatingBracketInsteadOfLoopingForever() {
+    // FOO:BAR resolves to a bracketed reference of itself -- resolutionsByName memoizes by name,
+    // so this reproduces byte-identical text on every pass and would loop forever without an
+    // explicit bound.
+    SecretReplacer secretReplacer =
+        (name, context) -> "FOO:BAR".equals(name) ? "{{secrets.FOO:BAR}}" : null;
+
+    String result = SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
+  }
+
+  @Test
+  @org.junit.jupiter.api.Timeout(2)
+  void shouldTerminateOnAMutualCycleOfTruncatingBracketsInsteadOfLoopingForever() {
+    // "A:B" resolves to "{{secrets.C:D}}" and "C:D" resolves back to "{{secrets.A:B}}" -- an
+    // alternating cycle that never produces byte-identical text between passes, so only the fixed
+    // iteration cap (not the convergence check) can terminate it.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A:B".equals(name)) return "{{secrets.C:D}}";
+          if ("C:D".equals(name)) return "{{secrets.A:B}}";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A:B}}", null, secretReplacer);
+
+    assertThat(result).isNotNull();
+  }
+
+  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by
