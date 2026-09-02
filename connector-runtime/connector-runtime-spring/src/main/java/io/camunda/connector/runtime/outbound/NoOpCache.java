@@ -19,6 +19,8 @@ package io.camunda.connector.runtime.outbound;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +56,13 @@ final class NoOpCache<K, V> implements Cache<K, V> {
   public Map<K, V> getAll(
       Iterable<? extends K> keys,
       Function<? super Set<? extends K>, ? extends Map<? extends K, ? extends V>> mappingFunction) {
-    return Map.of();
+    // A disabled cache avoids retention, not loading: still invoke the mapping function for the
+    // full requested key set and return its result, just without storing anything.
+    Set<K> keySet = new LinkedHashSet<>();
+    for (K key : keys) {
+      keySet.add(key);
+    }
+    return new LinkedHashMap<>(mappingFunction.apply(keySet));
   }
 
   @Override
