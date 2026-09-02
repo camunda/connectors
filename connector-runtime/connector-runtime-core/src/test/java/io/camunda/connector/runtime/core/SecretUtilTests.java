@@ -138,6 +138,25 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotResolveABarePrefixInsideAChainGeneratedDeniedBracketedReference() {
+    // A's own resolved value happens to spell "{{secrets.FOO:BAR}}" -- a bracketed reference the
+    // parentheses pass never attempted, since it didn't exist in the original text. "FOO:BAR" is
+    // not declared anywhere and is denied, even though the bare prefix "FOO" is separately
+    // allowed. The bare pass must deny this chain-generated bracket exactly as it would an
+    // original-input one, not just brackets an earlier pass happened to record.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A".equals(name)) return "{{secrets.FOO:BAR}}";
+          if ("FOO".equals(name)) return "REAL_VALUE";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
+  }
+
+  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by
