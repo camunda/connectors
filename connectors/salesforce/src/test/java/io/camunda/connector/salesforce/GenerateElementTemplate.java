@@ -44,7 +44,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -825,19 +827,33 @@ public class GenerateElementTemplate {
     return List.of(
         new Preset(
             "sObject_get",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "get")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "get")),
         new Preset(
             "sObject_post",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "post")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "post")),
         new Preset(
             "sObject_patch",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "patch")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "patch")),
         new Preset(
             "sObject_delete",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "delete")),
-        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")),
-        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")),
-        new Preset("composite", java.util.Map.of("salesforceOperationType", "composite")));
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "delete")),
+        new Preset("soqlQuery", orderedMap("salesforceOperationType", "soqlQuery")),
+        new Preset("apexRest", orderedMap("salesforceOperationType", "apexRest")),
+        new Preset("composite", orderedMap("salesforceOperationType", "composite")));
+  }
+
+  /**
+   * {@code Map.of} backs its iteration order with a per-JVM-process salt, so a fresh generator run
+   * can serialize these properties in a different key order than a previous run even though the
+   * content is identical -- producing spurious diffs against the committed element template. This
+   * preserves the given key/value order deterministically across runs.
+   */
+  private static Map<String, String> orderedMap(String... keysAndValues) {
+    Map<String, String> map = new LinkedHashMap<>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      map.put(keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return map;
   }
 
   private static final String SALESFORCE_ICON =
