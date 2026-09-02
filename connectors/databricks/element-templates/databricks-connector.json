@@ -560,6 +560,12 @@
       "label" : "Temperature",
       "description" : "Between 0.0 and 2.0.",
       "optional" : true,
+      "constraints" : {
+        "pattern" : {
+          "value" : "^(=.*|[01](\\.[0-9]+)?|2(\\.0+)?|)$",
+          "message" : "Must be between 0.0 and 2.0, or a FEEL expression"
+        }
+      },
       "feel" : "optional",
       "group" : "modelServing",
       "binding" : {
@@ -1046,8 +1052,14 @@
     {
       "id" : "idempotencyToken",
       "label" : "Idempotency token",
-      "description" : "Note: without a token, a connector retry can start the job a second time.",
+      "description" : "Note: without a token, a connector retry can start the job a second time. Databricks accepts at most 64 characters.",
       "optional" : true,
+      "constraints" : {
+        "pattern" : {
+          "value" : "^(=.*|.{0,64})$",
+          "message" : "Databricks accepts at most 64 characters, or use a FEEL expression"
+        }
+      },
       "feel" : "optional",
       "group" : "jobs",
       "binding" : {
@@ -1068,7 +1080,7 @@
           }
         ]
       },
-      "tooltip" : "Databricks returns the existing run instead of starting a new one when a token is reused. Deriving it from a process variable makes the trigger safe to retry.",
+      "tooltip" : "Databricks returns the existing run instead of starting a new one when a token is reused. Deriving it from a process variable makes the trigger safe to retry. The literal-value check cannot see through a FEEL expression, so make sure what it evaluates to also stays within 64 characters -- a process instance key is fine, a concatenation of several ids may not be.",
       "type" : "String"
     },
     {
