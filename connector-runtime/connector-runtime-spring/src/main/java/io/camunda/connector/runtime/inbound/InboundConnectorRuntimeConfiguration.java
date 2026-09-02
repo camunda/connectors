@@ -44,6 +44,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,14 +93,21 @@ public class InboundConnectorRuntimeConfiguration {
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
       ProcessInstanceClient processInstanceClient,
-      DocumentFactory documentFactory) {
+      DocumentFactory documentFactory,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
+    // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
+    // fail; the inbound allow-list is built from data already in memory, so it never fails and both
+    // modes behave identically here — only DISABLED turns this off.
+    boolean secretFilterEnabled = secretFilterMode != SecretFilterMode.DISABLED;
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
         processInstanceClient,
-        documentFactory);
+        documentFactory,
+        secretFilterEnabled);
   }
 
   @Bean
