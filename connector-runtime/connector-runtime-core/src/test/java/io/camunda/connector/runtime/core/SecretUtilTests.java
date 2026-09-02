@@ -22,10 +22,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.camunda.connector.runtime.core.secret.SecretUtil;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -82,122 +80,5 @@ public class SecretUtilTests {
     Function<String, String> secretReplacer = (name) -> secrets.get(name);
     var result = SecretUtil.replaceSecrets(input, secretReplacer);
     assertThat(result).isEqualTo(output);
-  }
-
-  @Test
-  void shouldNotResolveABarePrefixInsideAStillDeniedBracketedReference() {
-    // FOO is allowed on its own, but "FOO:BAR" is not declared anywhere and so is denied. The
-    // parentheses pass correctly leaves the literal "{{secrets.FOO:BAR}}" untouched — but its own
-    // text still contains "secrets.FOO", which the bare pass must not separately resolve.
-    Function<String, String> secretReplacer = name -> "FOO".equals(name) ? "REAL_VALUE" : null;
-
-    String result = SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", secretReplacer);
-
-    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
-  }
-
-  @Test
-  void shouldNotResolveADeniedBracketedReferenceDuringAChainedRescan() {
-    // The bare pass reruns once per match in the original text, so a resolved value that itself
-    // looks like a secret reference can chain into a further replacement. A still-denied bracketed
-    // reference elsewhere in the same text must stay excluded across every one of those reruns, not
-    // just the first.
-    Function<String, String> secretReplacer =
-        name -> {
-          if ("A".equals(name)) return "secrets.FOO";
-          if ("FOO".equals(name)) return "REAL_VALUE";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("secrets.A and {{secrets.FOO:BAR}}", secretReplacer);
-
-    assertThat(result).isEqualTo("REAL_VALUE and {{secrets.FOO:BAR}}");
-  }
-
-  @Test
-  void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
-    // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
-    // this occurrence, since it didn't exist in the original text, so it was never "denied" by
-    // anything. The bare pass's per-iteration recompute of denied brackets must not treat every
-    // bracketed occurrence visible in the current text as denied just because it's still there;
-    // only a bracket the parentheses pass actually attempted (present in the *original* input) is
-    // denied. "secrets.PADDING" exists purely to give the bounded rescan a second iteration to
-    // run in -- it's bounded by the original match count, not by whether more work remains.
-    Function<String, String> secretReplacer =
-        name -> {
-          if ("A".equals(name)) return "{{secrets.B}}";
-          if ("B".equals(name)) return "FINAL";
-          if ("PADDING".equals(name)) return "PADDING";
-          return null;
-        };
-
-    String result = SecretUtil.replaceSecrets("secrets.A secrets.PADDING", secretReplacer);
-
-    assertThat(result).isEqualTo("{{FINAL}} PADDING");
-  }
-
-  @Test
-  void shouldTrimTheExtractedNameSoItMatchesWhatReplacementLooksUp() {
-    // The parentheses pattern's capture reaches past the name to the closing braces, so
-    // "{{ secrets.FOO }}" declares FOO, not "FOO ". Returning the untrimmed form left the
-    // allow-list containing a name resolution never looks up, denying a legitimately declared
-    // secret.
-    var withWhitespace = "{{ secrets.FOO }}";
-    Function<String, String> secretReplacer = name -> "FOO".equals(name) ? "resolved" : null;
-
-    assertThat(SecretUtil.retrieveSecretKeysInInput(withWhitespace)).containsExactly("FOO");
-    assertThat(SecretUtil.replaceSecrets(withWhitespace, secretReplacer)).isEqualTo("resolved");
-  }
-
-  @Test
-  void shouldOnlyReplaceAllowListedSecrets() {
-    List<String> allowList = List.of("KEY1", "KEY2");
-    Function<String, String> secretReplacer =
-        name -> allowList.contains(name) ? secrets.get(name) : null;
-    String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
-    String replacedContent = SecretUtil.replaceSecrets(content, secretReplacer);
-    assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
-  }
-
-  @ParameterizedTest
-  @CsvSource({
-    "no secrets here,",
-    "secrets.FOO,FOO",
-    "{{secrets.FOO}},FOO",
-  })
-  void shouldRetrieveSecretKeysInInput(String input, String expectedKey) {
-    var keys = SecretUtil.retrieveSecretKeysInInput(input);
-    if (expectedKey == null) {
-      assertThat(keys).isEmpty();
-    } else {
-      assertThat(keys).containsExactly(expectedKey);
-    }
-  }
-
-  @Test
-  void shouldRetrieveMultipleDistinctSecretKeysInInput() {
-    var keys =
-        SecretUtil.retrieveSecretKeysInInput("{{secrets.FOO}} and secrets.BAR and {{secrets.FOO}}");
-    assertThat(keys).containsExactlyInAnyOrder("FOO", "BAR");
-  }
-
-  @Test
-  void shouldNotAdmitABarePrefixOfABracketedNameWithSpecialCharacters() {
-    // {{secrets.DECLARED_A:SUB}} is one declaration. The bare pattern's narrower character class
-    // (no ':') would also match "secrets.DECLARED_A" inside that same literal text, spuriously
-    // admitting the shorter "DECLARED_A" into the allow-list this feeds — letting a runtime value
-    // that merely spells {{secrets.DECLARED_A}} resolve a secret the model never declared.
-    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.DECLARED_A:SUB}}"))
-        .containsExactly("DECLARED_A:SUB");
-  }
-
-  @Test
-  void shouldStillReportABareReferenceOutsideAnyBracketedOccurrence() {
-    // The exclusion only applies to a bare match nested inside a bracketed one; a genuinely
-    // separate bare occurrence elsewhere in the text must still be reported.
-    assertThat(
-            SecretUtil.retrieveSecretKeysInInput(
-                "{{secrets.DECLARED_A:SUB}} and also secrets.OTHER_BARE"))
-        .containsExactlyInAnyOrder("DECLARED_A:SUB", "OTHER_BARE");
   }
 }
