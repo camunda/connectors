@@ -143,6 +143,16 @@ public class Health {
     }
   }
 
+  /**
+   * Returns a new {@link Health} with the given error, preserving the original status and details.
+   *
+   * @param error the error for the new instance
+   * @return a new Health with the same status and details but the supplied error
+   */
+  public Health withError(Error error) {
+    return new Health(this.status, error, this.details);
+  }
+
   private Health(Builder builder) {
     this.status = builder.status;
     this.error = builder.error;

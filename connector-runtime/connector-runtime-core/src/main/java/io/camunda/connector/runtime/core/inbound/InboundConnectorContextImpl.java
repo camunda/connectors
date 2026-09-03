@@ -23,6 +23,7 @@ import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -33,10 +34,13 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -57,6 +61,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private Health health = Health.unknown();
 
   private final EvictingQueue<Activity> logs;
+
+  private volatile List<String> reReadSecrets;
+
+  // an activated element resolves through its own SecretHandler, so its captures are pulled in here
+  private final Map<ProcessElement, AbstractConnectorContext> activatedElementContexts =
+      new ConcurrentHashMap<>();
+  private final Set<String> capturedElementSecretValues = ConcurrentHashMap.newKeySet();
+
+  private static final String REDACTION_UNAVAILABLE_MESSAGE =
+      "Message withheld: could not verify it does not contain a secret value";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -104,7 +118,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
     try {
-      return correlationHandler.correlate(connectorDetails.connectorElements(), variables);
+      var result = correlationHandler.correlate(connectorDetails.connectorElements(), variables);
+      trackActivatedElement(result);
+      return result;
     } catch (FeelEngineWrapperException e) {
       log(Activity.level(Severity.ERROR).tag("error").message(e.getMessage()));
       return new CorrelationResult.Failure.Other(e);
@@ -189,7 +205,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void reportHealth(Health health) {
-    this.health = health;
+    this.health = redactHealth(health);
   }
 
   @Override
@@ -199,8 +215,135 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    LOG.debug("{}", log);
-    this.logs.add(log);
+    var masked = redact(log);
+    LOG.debug("{}", masked);
+    this.logs.add(masked);
+  }
+
+  /**
+   * The values an operator-visible message must not carry. Read once and cached on first complete
+   * success, so a transient provider failure fails closed for that one message instead of poisoning
+   * every later one. {@code null} means "could not be established", never "nothing to redact".
+   *
+   * <p>The captured values are additive to a successful, complete re-read and never a substitute
+   * for a failed one: a connector can declare a secret it never got around to binding before the
+   * provider went down.
+   */
+  private List<String> secretValuesForRedaction() {
+    var reRead = reReadSecretValues();
+    if (reRead == null) {
+      return null;
+    }
+    var captured = new ArrayList<>(getSecretHandler().getResolvedValues());
+    captured.addAll(capturedElementSecretValues());
+    if (captured.isEmpty()) {
+      return reRead;
+    }
+    var union = new ArrayList<>(reRead);
+    union.addAll(captured);
+    return union;
+  }
+
+  /**
+   * Records the element context a correlation activated, so what it resolves can be redacted here.
+   *
+   * <p>An activated element resolves secrets through its own {@link
+   * io.camunda.connector.runtime.core.secret.SecretHandler} — {@code ProcessElementContext} is a
+   * second binding path, and every successful {@code CorrelationResult} hands the connector one —
+   * so its captures live outside this context and have to be pulled in. Without them a value the
+   * element bound and this context never did is invisible to the re-read once it rotates, and gets
+   * published in the clear.
+   *
+   * <p>Held per element, so a long-running executable keeps at most one reference per deployed
+   * element rather than one per correlation; a displaced context's values are harvested before it
+   * is dropped.
+   */
+  private void trackActivatedElement(CorrelationResult result) {
+    if (!(result instanceof CorrelationResult.Success success)
+        || !(success.activatedElement() instanceof AbstractConnectorContext elementContext)) {
+      return;
+    }
+    var displaced =
+        activatedElementContexts.put(success.activatedElement().getElement(), elementContext);
+    if (displaced != null && displaced != elementContext) {
+      capturedElementSecretValues.addAll(displaced.getSecretHandler().getResolvedValues());
+    }
+  }
+
+  private List<String> capturedElementSecretValues() {
+    var values = new ArrayList<>(capturedElementSecretValues);
+    activatedElementContexts
+        .values()
+        .forEach(context -> values.addAll(context.getSecretHandler().getResolvedValues()));
+    return values;
+  }
+
+  private List<String> reReadSecretValues() {
+    var cached = reReadSecrets;
+    if (cached != null) {
+      return cached;
+    }
+    var values = fetchSecretValuesForRedaction();
+    if (values != null) {
+      reReadSecrets = values;
+    }
+    return values;
+  }
+
+  /** Scans every grouped element's raw properties, not just this context's representative one. */
+  private List<String> fetchSecretValuesForRedaction() {
+    var names =
+        connectorDetails.connectorElements().stream()
+            .flatMap(element -> element.rawProperties().values().stream())
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList();
+    if (names.isEmpty()) {
+      return List.of();
+    }
+    try {
+      var values = new ArrayList<String>(names.size());
+      for (var name : names) {
+        var value = secretProvider.getSecret(name);
+        // a name that comes back empty is a partial read, treated the same as a failed one
+        if (value == null) {
+          return null;
+        }
+        values.add(value);
+      }
+      return values;
+    } catch (Exception e) {
+      // never the provider's own message: it can echo the secret store's response
+      LOG.warn("Could not fetch secret values to redact activity log: {}", e.getClass().getName());
+      return null;
+    }
+  }
+
+  private String redactMessage(String message) {
+    if (message == null) {
+      return null;
+    }
+    var secrets = secretValuesForRedaction();
+    return secrets == null
+        ? REDACTION_UNAVAILABLE_MESSAGE
+        : SecretUtil.hideSecretsFromMessage(message, secrets);
+  }
+
+  private Health redactHealth(Health health) {
+    if (health == null || health.getError() == null) {
+      return health;
+    }
+    var error = health.getError();
+    return health.withError(
+        new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+  }
+
+  private Activity redact(Activity activity) {
+    return new Activity(
+        activity.severity(),
+        activity.tag(),
+        activity.timestamp(),
+        redactMessage(activity.message()));
   }
 
   @Override
