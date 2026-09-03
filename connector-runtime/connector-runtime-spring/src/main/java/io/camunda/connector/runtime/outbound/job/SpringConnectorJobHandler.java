@@ -495,11 +495,11 @@ public class SpringConnectorJobHandler implements JobHandler {
     } else if (finalResult instanceof ConnectorResult.ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
+      // The wrapper message is redacted, but its cause is not, so do not log the throwable.
       LOGGER.error(
           "Exception while completing job: {}, message: {}",
           JobForLog.from(job),
-          errorResult.exception().getMessage(),
-          errorResult.exception());
+          errorResult.exception().getMessage());
 
       // pre-response failure path: function threw before returning a response, so notify with a
       // null response (subscribers to JobCompletionListener can still react)
