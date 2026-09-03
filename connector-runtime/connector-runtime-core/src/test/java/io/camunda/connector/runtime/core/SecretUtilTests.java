@@ -115,4 +115,10 @@ public class SecretUtilTests {
         SecretUtil.retrieveSecretKeysInInput("{{secrets.FOO}} and secrets.BAR and {{secrets.FOO}}");
     assertThat(keys).containsExactlyInAnyOrder("FOO", "BAR");
   }
+
+  @Test
+  void shouldTrimSecretKeyExtractedFromBracketedReference() {
+    var keys = SecretUtil.retrieveSecretKeysInInput("{{ secrets.FOO:BAR }}");
+    assertThat(keys).contains("FOO:BAR");
+  }
 }
