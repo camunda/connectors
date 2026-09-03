@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.secret;
 
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import io.camunda.connector.api.secret.SecretContext;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +50,13 @@ public class SecretUtil {
         REFERENCE,
         matcher -> {
           String value = resolve(name(matcher), context, secretReplacer, resolutions);
-          return value == null ? matcher.group() : new String(encoder.quoteAsString(value));
+          return value == null ? matcher.group() : jsonEscape(value);
         });
+  }
+
+  // the form actually spliced into the substituted JSON, which a raw-value capture would miss
+  public static String jsonEscape(String value) {
+    return new String(encoder.quoteAsString(value));
   }
 
   public static String replaceTokens(
@@ -94,5 +100,17 @@ public class SecretUtil {
     return input == null
         ? List.of()
         : REFERENCE.matcher(input).results().map(SecretUtil::name).distinct().toList();
+  }
+
+  // Longest secret first: masking a shorter secret that prefixes a longer one would destroy the
+  // longer match and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET".
+  public static String hideSecretsFromMessage(String message, List<String> secrets) {
+    if (message == null) {
+      return "";
+    }
+    return secrets.stream()
+        .filter(secret -> !secret.isEmpty())
+        .sorted(Comparator.comparingInt(String::length).reversed())
+        .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
   }
 }
