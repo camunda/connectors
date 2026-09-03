@@ -95,14 +95,14 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void create_strict_whenCacheThrows_throwsIllegalArgumentException() {
+  void create_strict_whenCacheThrows_throwsSecretAllowListUnavailableException() {
     when(secretKeyCache.getSecretKeys(any())).thenThrow(new RuntimeException("fetch failed"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(SecretAllowListUnavailableException.class)
         .hasMessageContaining("Error retrieving secret keys");
   }
 
@@ -158,7 +158,7 @@ class ConfigurableSecretFilterFactoryTest {
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(SecretAllowListUnavailableException.class);
   }
 
   @Test
