@@ -356,11 +356,6 @@ public class OutboundConnectorExceptionHandler {
     return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
   }
 
-  /**
-   * The allow-list lookup reads the process definition from secondary storage, which a
-   * just-deployed definition has yet to reach, so a failure to read it is backed off rather than
-   * retried at once — remaining attempts would otherwise all be spent inside that window.
-   */
   private static Duration retryBackoffFor(Exception failure, Duration configured) {
     return failure instanceof SecretAllowListUnavailableException
         ? Objects.requireNonNullElse(configured, ALLOW_LIST_RETRY_BACKOFF)
@@ -370,8 +365,6 @@ public class OutboundConnectorExceptionHandler {
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
     if (e instanceof SecretAllowListUnavailableException) {
-      // Nothing to redact: every substitution goes through the allow-list, so one that could not
-      // be read means no secret value ever reached the input.
       return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
     }
     var masking = fetchSecretsForMasking(job, secretFilter, e);

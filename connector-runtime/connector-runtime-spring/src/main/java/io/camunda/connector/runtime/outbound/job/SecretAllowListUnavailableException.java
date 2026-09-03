@@ -18,11 +18,6 @@ package io.camunda.connector.runtime.outbound.job;
 
 import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 
-/**
- * Raised when the allow-list of secret names an element may resolve could not be read. The message
- * is the runtime's own throughout — an element ID, a process definition key and an exception class
- * name — so it is safe to publish verbatim.
- */
 class SecretAllowListUnavailableException extends RuntimeException
     implements SecretFailureDiagnostic {
 
