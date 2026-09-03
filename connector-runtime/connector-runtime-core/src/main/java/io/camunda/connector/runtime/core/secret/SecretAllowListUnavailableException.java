@@ -24,10 +24,19 @@ package io.camunda.connector.runtime.core.secret;
  *
  * <p>It lives here rather than beside the filter factory that throws it because the runtime that
  * has to recognise it on the failure path is in this module.
+ *
+ * <p>Its message is written by this runtime and names only the element and the type of the lookup
+ * failure, so it is publishable where an arbitrary provider's message is not.
  */
-public class SecretAllowListUnavailableException extends RuntimeException {
+public class SecretAllowListUnavailableException extends RuntimeException
+    implements SecretFailureDiagnostic {
 
   public SecretAllowListUnavailableException(String message) {
     super(message);
+  }
+
+  @Override
+  public String publishableMessage() {
+    return getMessage();
   }
 }

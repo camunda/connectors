@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.Erro
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
+import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.document.factory.DocumentFactory;
@@ -129,22 +130,26 @@ public class ConnectorJobHandler implements JobHandler {
     SecretFilter secretFilter =
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
-    ConnectorResult result = getConnectorResult(job, secretFilter);
-    processFinalResult(client, job, result, secretFilter);
+    // built here rather than inside the call, so the values it substituted are still available to
+    // redact with afterwards: a secret rotated in the store since then no longer re-reads to what
+    // this job actually sent, and the error it provoked would publish the value it did send
+    var context =
+        new JobHandlerContext(
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter);
+    ConnectorResult result = getConnectorResult(job, context, secretFilter);
+    processFinalResult(client, job, result, secretFilter, context.getSecretHandler());
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job, SecretFilter secretFilter) {
+  private ConnectorResult getConnectorResult(
+      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-      var context =
-          new JobHandlerContext(
-              job,
-              getSecretProvider(),
-              validationProvider,
-              documentFactory,
-              objectMapper,
-              secretFilter);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(
@@ -157,7 +162,7 @@ public class ConnectorJobHandler implements JobHandler {
       return new SuccessResult(response, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff, secretFilter);
+          e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues());
     }
   }
 
@@ -178,7 +183,11 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   private void processFinalResult(
-      JobClient client, ActivatedJob job, ConnectorResult finalResult, SecretFilter secretFilter) {
+      JobClient client,
+      ActivatedJob job,
+      ConnectorResult finalResult,
+      SecretFilter secretFilter,
+      SecretHandler secretHandler) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           ConnectorHelper.examineErrorExpression(
@@ -186,13 +195,14 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders(),
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error),
+          error -> handleBPMNError(client, job, error, secretFilter, secretHandler),
           () -> handleSuccessResult(client, job, finalResult));
     } catch (Exception ex) {
       failJob(
           client,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter));
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              ex, job, secretFilter, secretHandler.getResolvedValues()));
     }
   }
 
@@ -204,6 +214,7 @@ public class ConnectorJobHandler implements JobHandler {
     } else if (finalResult instanceof ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
+      // The wrapper message is redacted, but its cause is not, so do not log the throwable.
       LOGGER.error(
           "Exception while completing job: {} for tenant: {}, message: {}",
           job.getKey(),
@@ -213,10 +224,22 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
+  private void handleBPMNError(
+      JobClient client,
+      ActivatedJob job,
+      ConnectorError rawError,
+      SecretFilter secretFilter,
+      SecretHandler secretHandler) {
+    // redacted before the Zeebe command is built from it: neither throwError nor failJob masks
+    // anything of its own, and an error expression can copy a response that echoes a secret back
+    var error =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, secretHandler.getResolvedValues());
     if (error instanceof BpmnError bpmnError) {
       checkVariablesSize(bpmnError.variables());
-      LOGGER.debug("Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.code());
+      // the code is not redacted, so it stays out of the log: unlike the command and the error
+      // variables that carry it, pod logs are shipped to systems with their own access controls
+      LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
       LOGGER.debug("Throwing incident for job {}", job.getKey());
