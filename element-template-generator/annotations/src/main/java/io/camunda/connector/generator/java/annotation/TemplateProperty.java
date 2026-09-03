@@ -55,6 +55,13 @@ public @interface TemplateProperty {
   boolean optional() default OPTIONAL_DEFAULT;
 
   /**
+   * Whether users can edit the property in the properties panel. Set to {@link
+   * NullableBoolean#FALSE} to emit {@code "editable": false}. Other values omit the member because
+   * {@code true} is the element-template schema default.
+   */
+  NullableBoolean editable() default NullableBoolean.NULL;
+
+  /**
    * Overrides the property type. By default, the generator will use the field type to determine the
    * property type. Most primitive fields will be mapped to String properties by default.
    *
