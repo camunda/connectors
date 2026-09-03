@@ -43,6 +43,15 @@ public class OutboundConnectorContextBuilderTest {
   }
 
   @Test
+  public void getVariables_preservesDecimalText() {
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("decimal", new java.math.BigDecimal("0.00000001")))
+            .build();
+    assertThat(context.getJobContext().getVariables()).contains("0.00000001");
+  }
+
+  @Test
   public void shouldProvideVariablesAsMapAndReplaceSecrets() {
     var properties = Map.of("foo", "{{secrets.FOO}}");
     var context =

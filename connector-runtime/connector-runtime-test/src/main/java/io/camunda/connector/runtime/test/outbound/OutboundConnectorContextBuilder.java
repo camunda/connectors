@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.test.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -237,7 +238,19 @@ public class OutboundConnectorContextBuilder {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
       var asTree = objectMapper.valueToTree(variables != null ? variables : Map.of());
       variablesWithSecrets = getSecretHandler().replaceSecrets(asTree, null);
-      this.jobContext = new TestJobContext(() -> headers, variablesWithSecrets::toString);
+      this.jobContext =
+          new TestJobContext(() -> headers, () -> writeVariablesAsJson(variablesWithSecrets));
+    }
+
+    private String writeVariablesAsJson(JsonNode node) {
+      try {
+        return objectMapper
+            .writer()
+            .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+            .writeValueAsString(node);
+      } catch (JsonProcessingException e) {
+        throw new IllegalStateException("Failed to serialize variables: " + node, e);
+      }
     }
 
     @Override
