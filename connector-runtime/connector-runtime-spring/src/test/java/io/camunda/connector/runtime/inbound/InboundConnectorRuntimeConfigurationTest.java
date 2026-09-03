@@ -124,9 +124,12 @@ class InboundConnectorRuntimeConfigurationTest {
   }
 
   private static String resolveUndeclared(InboundConnectorContextImpl context) {
+    var probe = new ObjectMapper().createObjectNode().put("value", "secrets.UNDECLARED");
     return context
         .getSecretHandler()
-        .replaceSecrets("secrets.UNDECLARED", new SecretContext("t", "p"));
+        .replaceSecrets(probe, new SecretContext("t", "p"))
+        .get("value")
+        .asText();
   }
 
   private static SecretProvider alwaysResolvingProvider() {

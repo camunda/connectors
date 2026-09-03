@@ -953,7 +953,7 @@ class SpringConnectorJobHandlerTest {
       // when
       var result =
           JobBuilder.create()
-              .withVariables("{{secrets.FOO}}")
+              .withVariables("{ \"value\": \"{{secrets.FOO}}\" }")
               .executeAndCaptureResult(jobHandler, false);
 
       // then
@@ -974,7 +974,7 @@ class SpringConnectorJobHandlerTest {
       // when
       var result =
           JobBuilder.create()
-              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
+              .withVariables("{ \"integer\" : \"{{secrets.FOO}}\" }")
               .executeAndCaptureResult(jobHandler, false);
 
       // then
@@ -995,7 +995,7 @@ class SpringConnectorJobHandlerTest {
       // when
       var result =
           JobBuilder.create()
-              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
+              .withVariables("{ \"integer\" : \"{{secrets.FOO}}\" }")
               .executeAndCaptureResult(jobHandler, false);
 
       // then

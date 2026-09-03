@@ -16,11 +16,16 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -52,7 +57,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
   private final DocumentFactory documentFactory;
-  private String jsonWithSecrets = null;
+  private JsonNode jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,
@@ -65,7 +70,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;
-    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
+    this.jobContext = new ActivatedJobContext(job, () -> writeJson(getJsonReplacedWithSecrets()));
   }
 
   @Override
@@ -75,44 +80,114 @@ public class JobHandlerContext extends AbstractConnectorContext
     return mappedObject;
   }
 
-  private String getJsonReplacedWithSecrets() {
+  private JsonNode getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
       jsonWithSecrets =
           getSecretHandler()
               .replaceSecrets(
-                  job.getVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+                  parseVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     }
     return jsonWithSecrets;
+  }
+
+  /**
+   * Parses via this context's own {@code objectMapper}, with {@code USE_BIG_DECIMAL_FOR_FLOATS}
+   * enabled, rather than {@code job.getVariablesAsType(JsonNode.class)} — the client's own {@code
+   * JsonMapper} parses untyped JSON numbers to {@code double} by default, which loses precision
+   * (e.g. {@code 0.1234567890123456789012345} -> {@code 0.12345678901234568}) before the value ever
+   * reaches a {@code BigDecimal}-typed connector field. Reading through an {@code ObjectReader}
+   * rather than reconfiguring the shared mapper keeps that feature scoped to this one parse. The
+   * node factory is additionally configured with {@code withExactBigDecimals(true)}: its default
+   * strips trailing zeros off the parsed {@code BigDecimal} itself at node construction (e.g.
+   * {@code 1.10} becomes scale-1 {@code 1.1}), a value change a {@code BigDecimal}-typed connector
+   * field would observe via {@code equals}, not merely a difference in how it prints.
+   */
+  private JsonNode parseVariables() {
+    JsonNode variables;
+    try {
+      variables =
+          objectMapper
+              .reader()
+              .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+              .with(JsonNodeFactory.withExactBigDecimals(true))
+              .forType(JsonNode.class)
+              .readValue(job.getVariables());
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
+    if (!variables.isObject()) {
+      throw new ConnectorInputException("This is not a JSON object");
+    }
+    return variables;
+  }
+
+  /**
+   * {@code JsonNode.toString()} serializes through Jackson's shared internal mapper, which writes a
+   * {@code DecimalNode} via plain {@code BigDecimal.toString()} — reintroducing scientific notation
+   * for small-magnitude values (e.g. {@code 0.00000001} -> {@code 1E-8}) even though the digits
+   * themselves survived parsing. {@code WRITE_BIGDECIMAL_AS_PLAIN} keeps the plain-decimal form the
+   * raw job JSON used.
+   *
+   * <p>Jackson refuses plain output for a {@code BigDecimal} whose scale falls outside ±9999 (e.g.
+   * {@code 1e-10000}, which parses fine into a {@code DecimalNode}). Such a document is written
+   * without the feature instead, i.e. in scientific notation — the same text the previous
+   * raw-string path returned — rather than failing the job.
+   */
+  private String writeJson(JsonNode node) {
+    try {
+      return objectMapper
+          .writer()
+          .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+          .writeValueAsString(node);
+    } catch (JsonGenerationException e) {
+      return writeJsonWithoutPlainDecimals(node);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
+  }
+
+  private String writeJsonWithoutPlainDecimals(JsonNode node) {
+    try {
+      return objectMapper.writeValueAsString(node);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
   }
 
   private <T> T mapJson(Class<T> cls) {
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
-      return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (JsonParseException e) {
-      throw new ConnectorInputException("This is not a JSON object", e);
-    } catch (InvalidFormatException
-        | InvalidNullException
-        | InvalidTypeIdException
-        | PropertyBindingException e) {
+      return objectMapper.treeToValue(jsonWithSecrets, cls);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
+  }
+
+  private static ConnectorInputException translateJsonException(JsonProcessingException e) {
+    if (e instanceof JsonParseException) {
+      return new ConnectorInputException("This is not a JSON object", e);
+    }
+    if (e instanceof InvalidFormatException
+        || e instanceof InvalidNullException
+        || e instanceof InvalidTypeIdException
+        || e instanceof PropertyBindingException) {
+      MismatchedInputException mappingException = (MismatchedInputException) e;
       String errorMessage =
-          e.getPath().stream()
+          mappingException.getPath().stream()
               .map(JsonMappingException.Reference::getFieldName)
               .reduce((s, s2) -> s.concat(", ").concat(s2))
               .map("Json object contains an invalid field: "::concat)
               .map(
                   s ->
-                      e.getTargetType() == null
+                      mappingException.getTargetType() == null
                           ? s
                           : s.concat(". It Must be `")
-                              .concat(e.getTargetType().getSimpleName())
+                              .concat(mappingException.getTargetType().getSimpleName())
                               .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
-
-      throw new ConnectorInputException(errorMessage, e);
-    } catch (JsonProcessingException e) {
-      throw new ConnectorInputException(e.getOriginalMessage(), e);
+      return new ConnectorInputException(errorMessage, e);
     }
+    return new ConnectorInputException(e.getOriginalMessage(), e);
   }
 
   @Override

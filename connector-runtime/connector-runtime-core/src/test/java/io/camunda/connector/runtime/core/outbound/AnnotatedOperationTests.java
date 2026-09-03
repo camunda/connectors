@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -153,6 +154,12 @@ public class AnnotatedOperationTests {
     }
     when(activatedJob.getCustomHeaders()).thenReturn(customHeaders);
     when(activatedJob.getVariables()).thenReturn(json);
+    try {
+      when(activatedJob.getVariablesAsType(JsonNode.class))
+          .thenReturn(new ObjectMapper().readTree(json));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     return new JobHandlerContext(
         activatedJob,
         new NoOpSecretProvider(),

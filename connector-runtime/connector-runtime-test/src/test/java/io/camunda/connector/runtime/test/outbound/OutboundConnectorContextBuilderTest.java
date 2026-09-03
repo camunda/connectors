@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -27,11 +29,36 @@ import org.junit.jupiter.api.function.Executable;
 
 public class OutboundConnectorContextBuilderTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static ObjectNode wrap(String value) {
+    return OBJECT_MAPPER.createObjectNode().put("value", value);
+  }
+
   @Test
   public void shouldProvideVariablesAsString() {
     var json = "{ \"foo\" : \"FOO\" }";
     var context = OutboundConnectorContextBuilder.create().variables(json).build();
     assertThat(context.getJobContext().getVariables()).isEqualTo("{\"foo\":\"FOO\"}");
+  }
+
+  @Test
+  public void getVariables_preservesDecimalText() {
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("decimal", new java.math.BigDecimal("0.00000001")))
+            .build();
+    assertThat(context.getJobContext().getVariables()).contains("0.00000001");
+  }
+
+  @Test
+  public void getVariables_fallsBackToScientificNotationForOutOfRangeDecimalScale() {
+    // Jackson accepts plain output only for a BigDecimal scale within +-9999.
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("decimal", new java.math.BigDecimal("1e-10000")))
+            .build();
+    assertThat(context.getJobContext().getVariables()).contains("1E-10000");
   }
 
   @Test
@@ -79,15 +106,16 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldProvideSecret() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo", null);
-    assertThat(replaced).isEqualTo("FOO");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("secrets.foo"), null);
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO");
   }
 
   @Test
   public void shouldThrowOnMissingSecret() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("x", "FOO").build();
-    Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo", null);
+    Executable replacement =
+        () -> context.getSecretHandler().replaceSecrets(wrap("secrets.foo"), null);
     assertThrows(
         ConnectorInputException.class, replacement, "Secret with name 'foo' is not available");
   }
@@ -100,16 +128,16 @@ public class OutboundConnectorContextBuilderTest {
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo secrets.bar", null);
-    assertThat(replaced).isEqualTo("FOO BAR");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("secrets.foo secrets.bar"), null);
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO BAR");
   }
 
   @Test
   public void shouldProvideSecretWithParentheses() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}}", null);
-    assertThat(replaced).isEqualTo("FOO");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("{{secrets.foo}}"), null);
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO");
   }
 
   @Test
@@ -121,8 +149,8 @@ public class OutboundConnectorContextBuilderTest {
             .secret("bar", "BAR")
             .build();
     var replaced =
-        context.getSecretHandler().replaceSecrets("{{secrets.foo}} {{secrets.bar}}", null);
-    assertThat(replaced).isEqualTo("FOO BAR");
+        context.getSecretHandler().replaceSecrets(wrap("{{secrets.foo}} {{secrets.bar}}"), null);
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO BAR");
   }
 
   private record TestRecord(String foo) {}

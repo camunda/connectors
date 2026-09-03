@@ -17,11 +17,19 @@
 package io.camunda.connector.runtime.core.secret;
 
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -39,22 +47,131 @@ public class SecretUtil {
           "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
               + "|secrets\\.(?<bare>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
-  public static String replaceSecrets(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
+  /**
+   * Substitutes every legacy secret reference in the tree, in place, and returns the same node.
+   *
+   * <p>One walk, one scan per string: a second pass over already-substituted text is what let a
+   * narrower form re-read the inside of a reference the first pass had consumed (and, when the walk
+   * renames a property, made the second pass iterate a reordered snapshot of the object).
+   */
+  public static JsonNode replaceSecrets(
+      JsonNode input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    Map<String, String> resolutions = new HashMap<>();
-    return replaceTokens(
+    if (!input.isObject()) {
+      throw new IllegalStateException("input must be an ObjectNode.");
+    }
+    Map<Secret, String> resolutions = new HashMap<>();
+    walkJsonNode(
         input,
-        REFERENCE,
-        matcher -> {
-          String value = resolve(name(matcher), context, secretReplacer, resolutions);
-          return value == null ? matcher.group() : jsonEscape(value);
-        });
+        (stringValue, fieldPath) ->
+            replaceTokens(
+                stringValue,
+                REFERENCE,
+                matcher -> {
+                  var value =
+                      resolve(name(matcher), fieldPath, context, secretReplacer, resolutions);
+                  return value == null ? matcher.group() : value;
+                }),
+        new ArrayList<>());
+    return input;
   }
 
-  // the form actually spliced into the substituted JSON, which a raw-value capture would miss
+  /**
+   * Asks the replacer at most once per secret <em>and field path</em>: the same name is a separate
+   * question at a different path, since that is the granularity the allow-list authorizes at.
+   */
+  private static String resolve(
+      String name,
+      List<String> fieldPath,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<Secret, String> resolutions) {
+    var secret = new Secret(name, fieldPath);
+    if (!resolutions.containsKey(secret)) {
+      resolutions.put(secret, secretReplacer.replaceSecrets(secret, context));
+    }
+    return resolutions.get(secret);
+  }
+
+  private static String name(MatchResult match) {
+    var braced = match.group("braced");
+    return braced != null ? braced : match.group("bare");
+  }
+
+  private static void walkJsonNode(
+      JsonNode input, BiFunction<String, List<String>, String> converter, List<String> fieldPath) {
+    switch (input.getNodeType()) {
+      case ARRAY -> walkArray((ArrayNode) input, converter, fieldPath);
+      case OBJECT -> walkObject((ObjectNode) input, converter, fieldPath);
+      default -> {}
+    }
+  }
+
+  /**
+   * Substitutes property names as well as values: the raw-text pass this replaced matched anywhere
+   * in the document, key or value, so a placeholder written as a property name (e.g. {@code
+   * {"{{secrets.KEY}}": "value"}}) resolved just as one written as a value did. Renaming is
+   * deferred until after the entry is otherwise processed, and runs over a snapshot of the original
+   * entries, since renaming a key while iterating the node's live property view would throw.
+   */
+  private static void walkObject(
+      ObjectNode input,
+      BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    // Map.entry(...) reads each key/value pair eagerly, decoupling the snapshot from the live
+    // map: input.properties() entries are backed by the same map nodes ObjectNode#set/remove
+    // mutate, so a snapshot that merely copies the entry objects (e.g. List.copyOf(...)) would
+    // still observe later renames through entries for keys processed earlier in this same loop.
+    for (Entry<String, JsonNode> entry :
+        input.properties().stream().map(e -> Map.entry(e.getKey(), e.getValue())).toList()) {
+      String key = entry.getKey();
+      JsonNode value = entry.getValue();
+      List<String> extendedFieldPath = new ArrayList<>(fieldPath);
+      extendedFieldPath.add(key);
+
+      if (value instanceof TextNode stringValue) {
+        input.set(key, new TextNode(converter.apply(stringValue.asText(), extendedFieldPath)));
+      } else {
+        walkJsonNode(value, converter, extendedFieldPath);
+        // Reinserts this entry's own (possibly object/array-mutated-in-place, otherwise
+        // untouched) value at its own original key, in snapshot order. Without this, a key
+        // rename earlier in this same loop that happens to collide with this entry's still
+        // unprocessed key would silently overwrite this entry before its own turn came, and this
+        // entry's non-text value — having no put/set of its own — would never overwrite it back.
+        input.set(key, value);
+      }
+
+      String newKey = converter.apply(key, extendedFieldPath);
+      if (!newKey.equals(key)) {
+        input.set(newKey, input.get(key));
+        input.remove(key);
+      }
+    }
+  }
+
+  /** Recurses into array elements at arbitrary depth, mirroring {@link #walkJsonNode}. */
+  private static void walkArray(
+      ArrayNode arrayNode,
+      BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    for (int i = 0; i < arrayNode.size(); i++) {
+      JsonNode item = arrayNode.get(i);
+      if (item instanceof TextNode stringValue) {
+        arrayNode.set(i, new TextNode(converter.apply(stringValue.asText(), fieldPath)));
+      } else {
+        walkJsonNode(item, converter, fieldPath);
+      }
+    }
+  }
+
+  /**
+   * The form a resolved value takes once the substituted tree is serialized back to JSON. The walk
+   * writes the raw value into a {@code TextNode} and lets Jackson escape it on output, so this is
+   * not applied during substitution — but a caller redacting a message that quotes the serialized
+   * JSON has to match this form as well as the raw one.
+   */
   public static String jsonEscape(String value) {
     return new String(encoder.quoteAsString(value));
   }
@@ -74,21 +191,22 @@ public class SecretUtil {
     return output.toString();
   }
 
-  /** Asks the replacer at most once per name, for providers that meter or charge per lookup. */
-  private static String resolve(
-      String name,
-      SecretContext context,
-      SecretReplacer secretReplacer,
-      Map<String, String> resolutions) {
-    if (!resolutions.containsKey(name)) {
-      resolutions.put(name, secretReplacer.replaceSecrets(name, context));
-    }
-    return resolutions.get(name);
-  }
-
-  private static String name(MatchResult match) {
-    var braced = match.group("braced");
-    return braced != null ? braced : match.group("bare");
+  /** Every secret the given tree declares, each scoped to the field path it occupies. */
+  public static List<Secret> retrieveSecretKeysInInput(ObjectNode input) {
+    List<Secret> result = new ArrayList<>();
+    walkJsonNode(
+        input,
+        (stringValue, fieldPath) -> {
+          REFERENCE
+              .matcher(stringValue)
+              .results()
+              .map(SecretUtil::name)
+              .map(name -> new Secret(name, fieldPath))
+              .forEach(result::add);
+          return stringValue;
+        },
+        new ArrayList<>());
+    return result;
   }
 
   /**

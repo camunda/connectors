@@ -16,8 +16,12 @@
  */
 package io.camunda.connector.runtime.core.testutil.classexample;
 
+import java.math.BigDecimal;
+
 public class TestClass {
   public Integer integer;
+  public BigDecimal decimal;
+  public Long longValue;
 
   public TestClass(Integer integer) {
     this.integer = integer;
