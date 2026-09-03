@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v21.0.10-dev
+FROM reg.mini.dev/1212/openjre-base:v21.0.12-dev
 
 # If you don't have access to Minimus hardened base images, you can use public
 # base images like this instead on your own risk:
@@ -9,7 +9,7 @@ VOLUME /tmp
 WORKDIR /
 
 # Switch to root to allow setting up our own user and dirs
-USER root
+USER 0
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
 # Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
