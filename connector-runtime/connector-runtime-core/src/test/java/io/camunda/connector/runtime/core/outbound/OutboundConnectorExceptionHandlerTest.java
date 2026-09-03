@@ -78,7 +78,8 @@ class OutboundConnectorExceptionHandlerTest {
         handler.handleFinalResultException(
             new RuntimeException("boom"), job, throwingFilter, List.of());
 
-    assertThat(result.retries()).isEqualTo(2);
+    // zero, as on the successful path and on the legacy overload: the connector has already run
+    assertThat(result.retries()).isEqualTo(0);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
     assertThat(result.exception().getMessage()).doesNotContain("process-definition lookup failed");
     assertThat(result.exception()).hasNoCause();
@@ -100,7 +101,7 @@ class OutboundConnectorExceptionHandlerTest {
         handlerWithThrowingProvider.handleFinalResultException(
             new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
 
-    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retries()).isEqualTo(0);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
     assertThat(result.exception().getMessage()).doesNotContain("secret store unavailable");
     assertThat(result.exception()).hasNoCause();
@@ -369,6 +370,83 @@ class OutboundConnectorExceptionHandlerTest {
         .doesNotContain("vault said")
         .doesNotContain("api rejected");
     assertThat(result.exception()).hasNoCause();
+    // zero, as on the successful path: the connector has already run, so a retry has nothing to do
+    assertThat(result.retries()).isEqualTo(0);
+  }
+
+  @Test
+  void anUnreadableSecretKeepsTheRemainingRetriesWhenNeitherFailureIsAboutTheInput() {
+    // an unreachable secret store is a transient failure, and so is the job's own error here, so
+    // the job keeps the attempts it had left
+    var job = jobWithSecretReference();
+    var handlerWithThrowingProvider =
+        new OutboundConnectorExceptionHandler(
+            mock(
+                SecretProvider.class,
+                invocation -> {
+                  throw new IllegalStateException("secret store unreachable");
+                }));
+
+    var result =
+        handlerWithThrowingProvider.manageConnectorJobHandlerException(
+            new RuntimeException("upstream timed out"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isEqualTo(job.getRetries() - 1);
+  }
+
+  @Test
+  void anUnreadableSecretStillDoesNotRetryAJobWhoseInputCanNeverBind() {
+    // the job's own failure is unchanged by the masking read failing, so an input error that will
+    // never bind must not become retryable just because the values to redact it could not be read
+    var job = jobWithSecretReference();
+    var handlerWithThrowingProvider =
+        new OutboundConnectorExceptionHandler(
+            mock(
+                SecretProvider.class,
+                invocation -> {
+                  throw new IllegalStateException("secret store unreachable");
+                }));
+
+    var result =
+        handlerWithThrowingProvider.manageConnectorJobHandlerException(
+            new ConnectorInputException(new RuntimeException("property is not a number")),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isEqualTo(0);
+    assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
+  }
+
+  @Test
+  void anUnreadableSecretDoesNotRetryWhenTheMaskingReadItselfSaysTheInputIsAtFault() {
+    // a provider that refuses to resolve at all throws for every name, including the ones this
+    // fetch only needed for masking, and that refusal is permanent
+    var job = jobWithSecretReference();
+    var handlerWithRefusingProvider =
+        new OutboundConnectorExceptionHandler(
+            mock(
+                SecretProvider.class,
+                invocation -> {
+                  throw new ConnectorInputException(new RuntimeException("resolution refused"));
+                }));
+
+    var result =
+        handlerWithRefusingProvider.manageConnectorJobHandlerException(
+            new RuntimeException("upstream timed out"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isEqualTo(0);
+    assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
+    assertThat(result.exception().getMessage()).doesNotContain("resolution refused");
   }
 
   @Test

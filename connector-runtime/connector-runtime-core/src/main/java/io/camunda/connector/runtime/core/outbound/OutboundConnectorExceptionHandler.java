@@ -379,6 +379,14 @@ public class OutboundConnectorExceptionHandler {
     }
   }
 
+  /**
+   * Whether an exception says the input can never bind, whoever raised it. Such a job is not worth
+   * another attempt; anything else — an unreachable cluster, a timeout — is.
+   */
+  private static boolean isFatalInputError(Throwable e) {
+    return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e,
       ActivatedJob job,
@@ -391,11 +399,18 @@ public class OutboundConnectorExceptionHandler {
     var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
+      // Either failure can be the permanent one, so both are consulted. A provider that refuses to
+      // resolve at all throws for every key, including the ones this fetch only needed for masking;
+      // and the job's own failure is still whatever it was, so an input error that will never bind
+      // must not become retryable just because reading the values to redact it happened to fail.
+      // Only when neither says the input is at fault does the job keep its remaining attempts.
+      int retries =
+          isFatalInputError(masking.failure()) || isFatalInputError(e) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
           Map.of("error", exceptionToMap(wrappedException, List.of())),
           wrappedException,
-          job.getRetries() - 1,
+          retries,
           retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
     List<String> secrets = withCaptured(masking, capturedSecrets);
@@ -533,7 +548,7 @@ public class OutboundConnectorExceptionHandler {
     if (ex instanceof ConnectorException connectorException) {
       errorCode = connectorException.getErrorCode();
     }
-    if (ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException) {
+    if (isFatalInputError(ex)) {
       retries = 0;
     }
     return handleSDKException(job, newException, retries, errorCode, retryBackoff, secrets);
@@ -577,12 +592,17 @@ public class OutboundConnectorExceptionHandler {
       Exception ex, ActivatedJob job, SecretFilter secretFilter, List<String> capturedSecrets) {
     var masking = fetchSecretsForMasking(job, secretFilter, ex);
     if (masking.unavailable()) {
+      LOGGER.error(
+          "Exception while processing job: {} for tenant: {}, type: {}. Its message is withheld:"
+              + " the values to redact it with could not be read.",
+          job.getKey(),
+          job.getTenantId(),
+          ex.getClass().getName());
       var wrappedException = unmaskableError(masking.failure());
+      // zero, as on every other path out of here: the connector has already run, so there is
+      // nothing left for another attempt to do
       return new ConnectorResult.ErrorResult(
-          // secrets could not be fetched, so there is nothing to mask with
-          Map.of("error", exceptionToMap(wrappedException, List.of())),
-          wrappedException,
-          job.getRetries() - 1);
+          Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, 0);
     }
     List<String> secrets = withCaptured(masking, capturedSecrets);
     Exception newException =
