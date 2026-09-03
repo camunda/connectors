@@ -26,9 +26,11 @@ import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTo
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SlowTest
 @WireMockTest
 class OAuthClientCredentialsTokenResolverTest {
 
