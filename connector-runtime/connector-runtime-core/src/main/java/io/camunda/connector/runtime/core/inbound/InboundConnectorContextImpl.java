@@ -46,8 +46,10 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -302,6 +304,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    * re-litigating a truncated prefix of a bracketed name the bracket pass had already refused;
    * there is no second pass left to re-litigate anything.
    *
+   * <p>Each allowed secret is scoped to the nested field path produced from its declaring
+   * property's dotted key.
+   *
    * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
    */
   private static SecretFilter secretFilter(
@@ -310,8 +315,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return SecretFilter.allowAll();
     }
     return SecretFilter.allowOnly(
-        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
-            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+        connectorDetails.rawPropertiesWithoutKeywords().entrySet().stream()
+            .flatMap(
+                entry ->
+                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }

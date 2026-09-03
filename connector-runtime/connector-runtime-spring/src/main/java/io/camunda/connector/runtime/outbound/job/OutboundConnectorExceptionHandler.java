@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -30,6 +31,7 @@ import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
 import java.util.*;
@@ -208,22 +210,23 @@ public class OutboundConnectorExceptionHandler {
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
     try {
       var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-              .filter(secretFilter::isAllowed)
-              .toList();
+          allowedKeys(
+              SecretUtil.retrieveSecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
+              secretFilter);
+      var allowedNames = allowedKeys.stream().map(Secret::secretName).distinct().toList();
       // A job that declares no secret has nothing to redact, so no provider is asked for anything:
       // a custom fetchAll that refuses every batch must not withhold such a job's error message.
-      if (allowedKeys.isEmpty()) {
+      if (allowedNames.isEmpty()) {
         return new MaskingSecrets(List.of(), null);
       }
-      var values = this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId()));
+      var values = this.secretProvider.fetchAll(allowedNames, new SecretContext(job.getTenantId()));
       // A short read means a value the connector held is missing from the redaction list, so the
       // message can't be shown: the default fetchAll drops names it can't resolve silently.
-      if (values.size() < allowedKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
+      if (values.size() < allowedNames.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
             new MaskingSecretsIncompleteException(
-                allowedKeys.size() - values.size(), allowedKeys.size()));
+                allowedNames.size() - values.size(), allowedNames.size()));
       }
       return new MaskingSecrets(values, null);
     } catch (Exception ex) {
@@ -234,6 +237,10 @@ public class OutboundConnectorExceptionHandler {
           safeDiagnostic(ex));
       return new MaskingSecrets(List.of(), ex);
     }
+  }
+
+  private static List<Secret> allowedKeys(List<Secret> keys, SecretFilter secretFilter) {
+    return keys.stream().filter(secretFilter::isAllowed).toList();
   }
 
   /**
