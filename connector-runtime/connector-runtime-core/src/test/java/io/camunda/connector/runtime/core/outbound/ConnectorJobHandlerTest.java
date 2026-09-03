@@ -39,6 +39,7 @@ import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
@@ -635,6 +636,55 @@ class ConnectorJobHandlerTest {
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
+    }
+
+    @Test
+    void shouldBackOffUnreadableSecretAllowList_WhenNoRetryBackoffHeaderIsSet() {
+      // given -- no retry backoff header, which is what 50 older element template versions ship:
+      // every remaining attempt was previously spent within milliseconds
+      int initialRetries = 3;
+      var jobBuilder = JobBuilder.create().useJobClient(jobClient).withRetries(initialRetries);
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new SecretAllowListUnavailableException(
+                    "Error retrieving secret keys for element 'Activity_1' in process definition"
+                        + " key 42 (io.camunda.operate.exception.OperateException)");
+              });
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(initialRetries - 1);
+      verify(secondStepMock).retryBackoff(Duration.ofSeconds(5));
+      verify(secondStepMock).errorMessage(contains("Activity_1"));
+      verify(secondStepMock).send();
+    }
+
+    @Test
+    void shouldBackOffUnreadableSecretAllowList_WhateverTheModelAsksFor() {
+      // given -- the model's backoff paces calls to the target system, which this failure never
+      // reached, so the allow-list read uses its own regardless
+      int initialRetries = 3;
+      var jobBuilder =
+          JobBuilder.create()
+              .useJobClient(jobClient)
+              .withRetries(initialRetries)
+              .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "PT1M"));
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new SecretAllowListUnavailableException("lookup failed");
+              });
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(initialRetries - 1);
+      verify(secondStepMock).retryBackoff(Duration.ofSeconds(5));
+      verify(secondStepMock, times(0)).retryBackoff(Duration.ofMinutes(1));
     }
   }
 
