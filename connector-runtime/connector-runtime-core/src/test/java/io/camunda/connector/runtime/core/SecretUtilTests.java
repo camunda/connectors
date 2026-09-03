@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -81,5 +82,11 @@ public class SecretUtilTests {
     SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
     var result = SecretUtil.replaceSecrets(input, null, secretReplacer);
     assertThat(result).isEqualTo(output);
+  }
+
+  @Test
+  void shouldTrimSecretKeyExtractedFromBracketedReference() {
+    var keys = SecretUtil.retrieveSecretKeysInInput("{{ secrets.FOO:BAR }}");
+    assertThat(keys).contains("FOO:BAR");
   }
 }

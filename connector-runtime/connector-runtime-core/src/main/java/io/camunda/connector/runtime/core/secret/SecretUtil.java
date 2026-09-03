@@ -99,13 +99,22 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /**
+   * Names are trimmed, because that is the name {@link #resolveSecretValue} looks up: the
+   * parentheses pattern's capture reaches past the name to the closing braces, so {@code {{
+   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form also
+   * breaks consumers that do not normalize again. For example, exception redaction filters extracted
+   * names against the allow-list before fetching their values; a colon-bearing name has no independent
+   * bare-pattern match, so the untrimmed name is filtered out and its value cannot be redacted from an
+   * exception message.
+   */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
         ? List.of()
         : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
+            .map(matchResult -> matchResult.group("secret").trim())
             .distinct()
             .toList();
   }
