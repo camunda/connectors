@@ -54,6 +54,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -270,6 +271,43 @@ class OpenAiChatModelFactoryClientTest {
         postRequestedFor(urlPathEqualTo("/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "oauth-access-token",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new OAuthClientCredentialsAuthentication(
+                    wireMock.getHttpBaseUrl() + "/oauth/token",
+                    "client-123",
+                    "secret-123",
+                    null,
+                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
+                        .BASIC_AUTH_HEADER,
+                    null))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("Authorization", equalTo("Bearer oauth-access-token")));
   }
 
   @Test
