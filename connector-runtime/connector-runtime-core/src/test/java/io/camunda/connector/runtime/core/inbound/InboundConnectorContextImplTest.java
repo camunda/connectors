@@ -733,6 +733,33 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void reportHealth_doesNotDedupeTwoDifferentUnmaskableFailures() {
+    // given a provider that is down, so every health report is withheld
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var downProvider = mock(SecretProvider.class);
+    when(downProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            downProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when two distinct failures are reported during the outage
+    context.reportHealth(Health.down(new RuntimeException("kafka broker unreachable")));
+    context.reportHealth(Health.down(new RuntimeException("deserialization failed")));
+
+    // then both are logged rather than the second being deduped against the first
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(2);
+  }
+
+  @Test
   void log_masksASecretThatRotatedAfterItWasBound() {
     // given a provider that resolves FOO to one value at bind time and a different one on re-read
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));

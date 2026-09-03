@@ -486,7 +486,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       throw new IllegalArgumentException("Health must not be null");
     }
     var masked = redactHealth(health);
-    if (masked.equals(this.health)) {
+    if (!isWithheld(masked) && masked.equals(this.health)) {
       return;
     }
     var activityLog =
@@ -606,6 +606,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     return secrets == null
         ? REDACTION_UNAVAILABLE_MESSAGE
         : SecretUtil.hideSecretsFromMessage(message, secrets);
+  }
+
+  // an unmaskable health can't be verified as a repeat either, so it must never be deduped away
+  private static boolean isWithheld(Health health) {
+    return health.getError() != null
+        && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message());
   }
 
   private @Nullable Health redactHealth(@Nullable Health health) {
