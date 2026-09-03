@@ -166,9 +166,16 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     Map<ZeebeInput, List<String>> ownSecretNamesByInput = new LinkedHashMap<>();
     for (ZeebeInput input : inputs) {
       pathByInput.put(input, Arrays.asList(input.getTarget().split("\\.")));
+      // Legacy-only: this allow-list gates SecretHandler's substitution of the legacy
+      // {{secrets.X}}/secrets.X forms alone (SecretUtil.replaceSecrets never touches the new
+      // camunda.secrets.<name> form -- the engine substitutes that one before the job is
+      // activated, per ADR-0007). Including the new form's names here (as
+      // SecretUtil.retrieveSecretKeysInInput does) would let a `camunda.secrets.X` declaration
+      // also authorize a legacy `secrets.X` lookup at that path, crossing the two secret stores --
+      // mirrors InboundConnectorContextImpl's equivalent allow-list, which already excludes it.
       ownSecretNamesByInput.put(
           input,
-          SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream()
+          SecretUtil.retrieveLegacySecretKeysInInput(input.getSource()).stream()
               .map(String::trim)
               .distinct()
               .toList());

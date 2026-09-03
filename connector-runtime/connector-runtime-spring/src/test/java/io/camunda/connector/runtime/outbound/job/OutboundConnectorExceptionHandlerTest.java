@@ -340,12 +340,12 @@ class OutboundConnectorExceptionHandlerTest {
 
   @Test
   void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
-    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so nothing here
-    // holds "DB" and it comes back short by construction. Requiring the new form back would
-    // withhold the error message of nearly every failed job that uses the new syntax. Do not delete
-    // this as redundant with the test above: it is the whole reason completeness is required only
-    // of
-    // the legacy names.
+    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so it must not be
+    // asked for here at all -- a name declared only in the new form must not authorize resolving
+    // that same name as a legacy secret, since the two are separate stores (this is also why
+    // requestedKeys must not contain "DB": if it were requested and this provider held a value
+    // under that name for an unrelated reason, it would leak into a message this filter never
+    // authorized it to redact into).
     var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
     when(job.getRetries()).thenReturn(3);
     holdingOnly(Map.of("FOO", "foo-value"));
@@ -357,67 +357,8 @@ class OutboundConnectorExceptionHandlerTest {
             Duration.ofSeconds(1),
             SecretFilter.allowAll());
 
+    assertThat(requestedKeys).containsExactly("FOO");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
-  }
-
-  @Test
-  void doesNotWithholdTheMessageBecauseTheReadOfTheNewFormFailed() {
-    // Every legacy name read back, and the new-form read could not have held a value the connector
-    // did: the reference is still in the variables, so the engine never substituted it and what the
-    // connector was handed is the placeholder text. Letting that read's failure propagate would
-    // withhold the message over a fetch that had nothing to contribute.
-    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
-    when(job.getRetries()).thenReturn(3);
-    when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              if (keys.contains("DB")) {
-                throw new RuntimeException("cluster unreachable");
-              }
-              return List.of("foo-value");
-            });
-
-    var result =
-        handler.manageConnectorJobHandlerException(
-            new RuntimeException("api rejected foo-value"),
-            job,
-            Duration.ofSeconds(1),
-            SecretFilter.allowAll());
-
-    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
-    assertThat(result.retries()).isEqualTo(2);
-  }
-
-  @Test
-  void publishesTheMessageWhenOnlyTheNewFormNameIsRefused() {
-    // Legacy resolution switched off, and a job that names no legacy secret: it bound without ever
-    // asking a legacy provider for anything, so the refusal is for a name that cost this job
-    // nothing. Withholding the message would report a setting the job never depended on, and the
-    // refusal being a ConnectorInputException would raise a permanent incident over a masking read.
-    var job = jobNaming("{\"b\": \"camunda.secrets.DB\"}");
-    when(job.getRetries()).thenReturn(3);
-    when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              if (keys.isEmpty()) {
-                return List.of();
-              }
-              throw new SecretLookupRefusedException(
-                  "Legacy secret resolution is disabled"
-                      + " (camunda.connector.secret-resolver.legacy.mode=OFF)");
-            });
-
-    var result =
-        handler.manageConnectorJobHandlerException(
-            new RuntimeException("api rejected the request"),
-            job,
-            Duration.ofSeconds(1),
-            SecretFilter.allowAll());
-
-    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
-    assertThat(result.retries()).isEqualTo(2);
   }
 
   @Test

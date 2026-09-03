@@ -170,20 +170,16 @@ public class OutboundConnectorExceptionHandler {
    * has to go and create. Withholding it would replace the answer with a description of the
    * question.
    *
-   * <p>The new {@code camunda.secrets.<name>} form is asked for, but neither required back nor
-   * allowed to fail the read. The engine substitutes a reference in a job's variables before the
-   * job is activated (ADR-0007, Context 1), so both states this scan can see are ones where nothing
-   * of that secret is in the message: a reference still visible in the variables is one the engine
-   * did not substitute, and the connector was handed the placeholder text rather than a value;
-   * where the engine did substitute, no reference is left for this scan to find. Requiring it back
-   * would withhold the error message of nearly every failed job that uses the new syntax.
-   *
-   * <p>What that leaves is a real gap, not addressed here: a connector that echoes an
-   * engine-substituted value into its error message publishes it, because the name never reached
-   * this runtime and so the value is not in the redaction list. ADR-0007 Decision 1 leaves job-path
-   * secrets to the engine, and an activated job does not carry the references it was resolved from,
-   * so there is nothing here to derive the name from. The only rule that would cover the case is
-   * withholding every outbound error message, substituted or not.
+   * <p>The new {@code camunda.secrets.<name>} form is not read here at all: {@code secretFilter}
+   * only ever allows a name a {@code zeebe:input} declared through the legacy forms ( {@link
+   * SecretUtil#retrieveLegacySecretKeysInInput}, not the union that also admits the new form) — a
+   * {@code camunda.secrets.<name>} declaration must not authorize resolving that same name as a
+   * legacy secret, since the two are separate stores. A read scoped to that same filter could
+   * therefore never come back with a reference-form name a legacy declaration didn't already cover,
+   * so there was nothing for it to add. This leaves the same gap ADR-0007 Decision 1 already
+   * accepts: a connector that echoes an engine-substituted {@code camunda.secrets} value into its
+   * error message publishes it, since an activated job carries no record of which reference it was
+   * resolved from.
    */
   private MaskingSecrets fetchSecretsForMasking(
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
@@ -203,19 +199,7 @@ public class OutboundConnectorExceptionHandler {
             new MaskingSecretsIncompleteException(
                 legacyKeys.size() - legacyValues.size(), legacyKeys.size()));
       }
-      var referenceKeys =
-          allowedKeys(
-                  SecretUtil.retrieveSecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
-                  secretFilter)
-              .stream()
-              .filter(key -> !legacyKeys.contains(key))
-              .toList();
-      if (referenceKeys.isEmpty()) {
-        return new MaskingSecrets(legacyValues, null);
-      }
-      var values = new ArrayList<>(legacyValues);
-      values.addAll(fetchReferencedSecrets(referenceKeys, context, job));
-      return new MaskingSecrets(List.copyOf(values), null);
+      return new MaskingSecrets(legacyValues, null);
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -223,45 +207,6 @@ public class OutboundConnectorExceptionHandler {
           job.getTenantId(),
           ex.getMessage());
       return new MaskingSecrets(List.of(), ex);
-    }
-  }
-
-  /**
-   * Reads the values behind names written in the new form, or nothing if that read fails.
-   *
-   * <p>A failure here is dropped rather than withholding the message, because on this path the read
-   * can hardly ever contribute anything to redact with: a name in the new form is visible to {@link
-   * #fetchSecretsForMasking}'s scan only where the engine left the reference unsubstituted, and the
-   * connector then held the placeholder text. The one exception is a name that appears substituted
-   * in one variable and literally in another — data of {@code JSON} kind spelling out a reference
-   * (ADR-0007, Context 11) — where the value is in the message and this read would have caught it.
-   * That is the same exposure the paragraph above already accepts, and it is not worth withholding
-   * the message of every job whose legacy secrets read back fine and whose reference read timed
-   * out.
-   *
-   * <p>A refusal is dropped here too, {@link SecretFailureDiagnostic} and all, and that is the
-   * point rather than an oversight. Both refusals the runtime raises are raised per name, so with
-   * legacy resolution switched off a job naming no legacy secret at all reaches this line and is
-   * refused for a name the legacy providers were never responsible for. Withholding the message
-   * would report a setting that cost this job nothing — it bound without asking a legacy provider
-   * for anything — and, because the refusal is a {@code ConnectorInputException}, would also raise
-   * a permanent incident over a masking read. The diagnostic keeps its audience where it is acted
-   * on, which is a binding that actually needed the value; here it goes to the log.
-   */
-  private List<String> fetchReferencedSecrets(
-      List<Secret> referenceKeys, SecretContext context, ActivatedJob job) {
-    try {
-      return this.secretProvider.fetchAll(
-          referenceKeys.stream().map(Secret::secretName).toList(), context);
-    } catch (Exception ex) {
-      LOGGER.warn(
-          "Reading the values behind the camunda.secrets references named by job: {} for tenant: {}"
-              + " failed with {}: {}. Its error message is redacted with the legacy secrets alone.",
-          job.getKey(),
-          job.getTenantId(),
-          ex.getClass().getName(),
-          ex.getMessage());
-      return List.of();
     }
   }
 
