@@ -31,9 +31,8 @@ import org.jspecify.annotations.Nullable;
  * credential <em>object</em> is cached here, never a token: azure-identity's credentials already
  * cache and auto-refresh their own tokens internally.
  *
- * <p>The cache key is derived via {@link HashedCacheKey} (shared with {@code
- * CaffeineOAuthTokenCache} in connector-commons/http-client) so that raw credential material such
- * as a client secret is never stored in plain text as a map key.
+ * <p>The cache key is derived via {@link HashedCacheKey} so that raw credential material such as a
+ * client secret is never stored in plain text as a map key.
  *
  * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
  * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
