@@ -188,8 +188,9 @@ jobs:
   # `.github/scripts/alwaysgreen/discover.py` reads, so gating on it puts the gate and
   # the classifier on the same evidence.
   #
-  # Scoped to the SM stage: since triage moved to alwaysgreen-failure-watch.yml, the
-  # only thing left that needs this answer inside the run is the SM feedback job below.
+  # Scoped to the SM stage: since triage moved to the watcher jobs in
+  # connectors-streak-detector.yml, the only thing left that needs this answer inside
+  # the run is the SM feedback job below.
   # The ref normalisation and supported-ref list moved with triage, so they exist in one
   # place rather than two that can drift.
   detect-failures:
@@ -696,7 +697,11 @@ jobs:
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
-  # Triage is NOT a job here. It runs from alwaysgreen-failure-watch.yml, a workflow_run
+  # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x
-  # instead of a per-branch `if:` that only this copy of the file ever received. Calling
-  # it from both places would dispatch twice per failing run.
+  # instead of a per-branch `if:` that only this copy of the file ever received.
+  #
+  # The stable branches still have their copy of this job, so the listener checks whether
+  # an in-pipeline triage already classified a run and stands down when it did -- two
+  # classifications would mean two Slack threads for one failure. That check stops
+  # matching by itself as each stable branch drops the job.

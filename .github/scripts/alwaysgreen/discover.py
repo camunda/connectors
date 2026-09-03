@@ -157,6 +157,35 @@ def failure_annotations(check_run_url: str | None) -> list[str]:
     ]
 
 
+#: Job conclusions that count as a failure worth classifying.
+#:
+#: This MUST stay identical to the scan in connectors-streak-detector.yml, which decides
+#: whether triage runs at all. The two are separate implementations — one bash, one
+#: Python — and a conclusion the scan counts but this does not produces the worst
+#: outcome available: a triage run that finds no candidate and reports the failing run as
+#: having nothing to dispatch.
+COUNTABLE_JOB_CONCLUSIONS = ("failure", "cancelled", "timed_out")
+#: The subset that counts when the run ITSELF was cancelled. A `cancelled` job inside a
+#: run that completed is a job timeout -- how the SaaS stage dies when the downstream run
+#: outlives its watcher. A run that was cancelled as a whole is the merge queue or a human
+#: dropping it, and its cancelled jobs carry no failure.
+COUNTABLE_IN_CANCELLED_RUN = ("failure",)
+
+
+def countable_conclusions(run_id: str) -> tuple[str, ...]:
+    """Which job conclusions count for this run, mirroring the scan's two-level rule.
+
+    An unreadable run conclusion falls back to the full set: over-including makes triage
+    report a candidate it might not dispatch, while under-including drops a real failure
+    silently, and only one of those is recoverable by looking at the summary.
+    """
+    meta, _ = gh_json_ex(["api", f"repos/{REPO}/actions/runs/{run_id}"], None)
+    conclusion = meta.get("conclusion") if isinstance(meta, dict) else None
+    if conclusion == "cancelled":
+        return COUNTABLE_IN_CANCELLED_RUN
+    return COUNTABLE_JOB_CONCLUSIONS
+
+
 def failing_jobs(run_id: str) -> list[dict]:
     """The run's failing jobs.
 
@@ -170,10 +199,11 @@ def failing_jobs(run_id: str) -> list[dict]:
     )
     if data is None or not isinstance(data, dict):
         raise DiscoveryError(f"could not list jobs for run {run_id}: {err.strip()[:200]}")
+    countable = countable_conclusions(run_id)
     return [
         j
         for j in (data.get("jobs") or [])
-        if isinstance(j, dict) and j.get("conclusion") == "failure"
+        if isinstance(j, dict) and j.get("conclusion") in countable
     ]
 
 

@@ -286,3 +286,68 @@ def test_a_mixed_report_dispatches_the_real_spec_without_the_setup_one(monkeypat
     cand = discover.saas_candidate("1", "main", "Trigger SaaS E2E tests", Path("/tmp/x"))
     assert cand.surface == planning.classify.SURFACE_SAAS_E2E
     assert [s.file for s in cand.specs] == ["tests/8.10/smoke-tests.spec.ts"]
+
+
+# ---------------------------------------------------------------------------
+# The conclusion set: the scanner's gate and the classifier must agree
+# ---------------------------------------------------------------------------
+
+
+def _stub_run_and_jobs(monkeypatch, run_conclusion, jobs):
+    """Serve a run's metadata and its job list from one stubbed gh caller."""
+
+    def fake(args, default):
+        path = args[-1]
+        if path.endswith("/jobs?per_page=100"):
+            return ({"jobs": jobs}, "")
+        return ({"conclusion": run_conclusion}, "")
+
+    monkeypatch.setattr(discover, "gh_json_ex", fake)
+
+
+def test_a_timed_out_job_in_a_completed_run_is_classified(monkeypatch):
+    # The scan counts it, so this must too: a conclusion the gate counts and the
+    # classifier drops sends triage looking for a candidate that was filtered out.
+    _stub_run_and_jobs(
+        monkeypatch,
+        "success",
+        [{"name": "Trigger SaaS E2E tests", "conclusion": "cancelled"}],
+    )
+    assert [j["name"] for j in discover.failing_jobs("1")] == ["Trigger SaaS E2E tests"]
+
+
+def test_a_cancelled_job_in_a_cancelled_run_is_not_classified(monkeypatch):
+    # The whole run was dropped by the queue or a human; that is not a test failure.
+    _stub_run_and_jobs(
+        monkeypatch,
+        "cancelled",
+        [{"name": "Trigger SaaS E2E tests", "conclusion": "cancelled"}],
+    )
+    assert discover.failing_jobs("1") == []
+
+
+def test_a_real_failure_in_a_cancelled_run_is_still_classified(monkeypatch):
+    _stub_run_and_jobs(
+        monkeypatch,
+        "cancelled",
+        [
+            {"name": "Trigger SaaS E2E tests", "conclusion": "cancelled"},
+            {"name": "Playwright e2e full after install", "conclusion": "failure"},
+        ],
+    )
+    assert [j["name"] for j in discover.failing_jobs("1")] == [
+        "Playwright e2e full after install"
+    ]
+
+
+def test_an_unreadable_run_conclusion_keeps_the_wider_set(monkeypatch):
+    # Over-including shows up in the summary as a candidate that may not dispatch;
+    # under-including drops a real failure with nothing to look at.
+    def fake(args, default):
+        path = args[-1]
+        if path.endswith("/jobs?per_page=100"):
+            return ({"jobs": [{"name": "x", "conclusion": "timed_out"}]}, "")
+        return (None, "boom")
+
+    monkeypatch.setattr(discover, "gh_json_ex", fake)
+    assert [j["name"] for j in discover.failing_jobs("1")] == ["x"]

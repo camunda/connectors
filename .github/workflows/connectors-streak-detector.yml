@@ -283,6 +283,7 @@ jobs:
     outputs:
       run_id: ${{ steps.run.outputs.id }}
       any_failed: ${{ steps.scan.outputs.any_failed }}
+      already_triaged: ${{ steps.scan.outputs.already_triaged }}
       base_ref: ${{ steps.scan.outputs.base_ref }}
       base_ref_supported: ${{ steps.scan.outputs.base_ref_supported }}
       parent_slack_ts: ${{ steps.parent.outputs.slack_ts }}
@@ -348,6 +349,28 @@ jobs:
           if ! jq -e 'has("jobs") and (.jobs | type == "array")' <<<"$jobs_json" >/dev/null; then
             echo "::error::could not list jobs for run ${RUN_ID}; got: $(head -c 300 <<<"$jobs_json")"
             exit 1
+          fi
+
+          # stable/8.7-8.10 still carry their own push-gated `alwaysgreen-triage` job,
+          # which classifies the run from inside it. When that job actually ran, this
+          # listener must not classify the same run again: two classifications mean two
+          # Slack threads for one failure, and the only thing standing between them and
+          # two fix agents is triage's in-flight check winning a race. It is measurable
+          # -- 6 of the last 100 runs were stable pushes whose failure propagated far
+          # enough to satisfy that gate.
+          #
+          # `success` only. A skipped in-pipeline triage did not classify anything, so
+          # this listener is the sole gate for that run -- which is the whole point on
+          # merge_group. A failed one did classify but got nowhere, and there a second
+          # independent attempt from here is worth more than silence.
+          #
+          # This is self-clearing: as each stable branch drops its in-pipeline job, the
+          # check simply stops matching and the listener takes over.
+          already_triaged=false
+          if [ "$(jq '[.jobs[]
+                       | select(.name | startswith("AlwaysGreen triage and fix dispatch"))
+                       | select(.conclusion == "success")] | length' <<<"$jobs_json")" -gt 0 ]; then
+            already_triaged=true
           fi
 
           # Nested jobs of called workflows are in this list too, under
@@ -432,6 +455,11 @@ jobs:
             echo ""
             if [ "$any_failed" != "true" ]; then
               echo "No failing jobs. Nothing to triage."
+            elif [ "$already_triaged" = "true" ]; then
+              echo "This branch still triages in-pipeline, and that job already"
+              echo "classified this run — not classifying it a second time."
+              echo ""
+              printf '%s\n' "$failed" | sed 's/^/- /'
             elif [ "$base_ref_supported" = "true" ]; then
               echo "Failing jobs, handed to triage:"
               echo ""
@@ -446,6 +474,9 @@ jobs:
 
           if [ "$any_failed" = "true" ]; then
             printf 'Failing jobs:\n%s\n' "$failed"
+            if [ "$already_triaged" = "true" ]; then
+              echo "In-pipeline triage already classified run ${RUN_ID}; skipping to avoid a duplicate."
+            fi
             if [ "$base_ref_supported" != "true" ]; then
               echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to alwaysgreen-triage.yml and alwaysgreen-fix.yml to enable it."
             fi
@@ -469,6 +500,7 @@ jobs:
 
           {
             echo "any_failed=${any_failed}"
+            echo "already_triaged=${already_triaged}"
             echo "base_ref=${base_ref}"
             echo "base_ref_supported=${base_ref_supported}"
           } | tee -a "$GITHUB_OUTPUT"
@@ -537,6 +569,7 @@ jobs:
     needs: scan-run
     if: >-
       needs.scan-run.outputs.any_failed == 'true' &&
+      needs.scan-run.outputs.already_triaged != 'true' &&
       needs.scan-run.outputs.base_ref_supported == 'true'
     permissions:
       contents: read
