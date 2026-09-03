@@ -485,7 +485,6 @@
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -515,11 +514,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The OAuth token endpoint",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -545,11 +544,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -575,11 +574,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.audience",
     "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -602,11 +601,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
     "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "value" : "BASIC_AUTH_HEADER",
     "constraints" : {
@@ -632,6 +631,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send as Basic Auth header",
@@ -643,7 +643,6 @@
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.scopes",
     "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -666,6 +665,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The scopes which you want to request authorization for (e.g.read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
