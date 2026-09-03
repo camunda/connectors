@@ -359,15 +359,23 @@ jobs:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           DISPATCHED: ${{ steps.mode.outputs.dispatch }}
           BASE_REF: ${{ steps.target.outputs.base_ref }}
+          # The run being classified, from the resolved target rather than from the plan.
+          # The plan is missing in exactly the case that needs this most -- a discovery
+          # failure -- and now that every active triage posts, the two no-dispatch
+          # branches are the ones a medic actually receives for a watcher-only failure.
+          # Without it the alert links the listener's own run and the reader has to go
+          # hunting for the pipeline that broke.
+          TARGET_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.target.outputs.run_id }}
         run: |
           set -euo pipefail
           [ -f /tmp/alwaysgreen-plan.json ] || echo '{"dispatches":[],"suppressed":[],"noise":[],"blame":{}}' > /tmp/alwaysgreen-plan.json
           count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
           failing_url=$(jq -r '.run_url // ""' /tmp/alwaysgreen-plan.json)
+          [ -n "$failing_url" ] || failing_url="${TARGET_RUN_URL}"
           surfaces=$(jq -r '[.dispatches[].surface] | join(", ")' /tmp/alwaysgreen-plan.json)
 
           if [ "${PLAN_OUTCOME}" != "success" ]; then
-            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ] && [ "${DISPATCHED}" = "true" ]; then
             text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${BASE_REF}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ]; then
@@ -382,7 +390,7 @@ jobs:
               | if length == 0 then "no failing job mapped to a known surface"
                 else (group_by(.) | map("\(.[0]) x\(length)") | join(", ")) end' \
               /tmp/alwaysgreen-plan.json 2>/dev/null || echo "unknown")
-            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           fi
 
           # Kept so the post-dispatch step can append agent links via chat.update

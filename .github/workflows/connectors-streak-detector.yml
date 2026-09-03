@@ -562,8 +562,12 @@ jobs:
               --data-urlencode "channel=${ALERT_CHANNEL_ID}" \
               --data-urlencode "limit=60" || echo '{}')
             if [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ]; then
-              # Top-level messages only: a thread reply carries thread_ts, and replying
-              # under a reply would nest the agent's update out of sight.
+              # Top-level messages only, but "top-level" is not "has no thread_ts": once
+              # a message has replies, Slack returns it with thread_ts EQUAL to its own
+              # ts. Testing for absence alone therefore drops the very parent being
+              # looked for on any run whose feedback message was already replied to --
+              # every replay of a threaded run -- and triage would open a second
+              # top-level message beside it. A reply is the case where the two differ.
               #
               # The run URL alone does not identify the feedback message -- the streak
               # job in this same workflow embeds the very same URL as "Latest failing
@@ -575,7 +579,7 @@ jobs:
                         --arg active "$STREAK_MARKER_ACTIVE" \
                         --arg resolved "$STREAK_MARKER_RESOLVED" '
                 [ .messages[]
-                  | select(has("thread_ts") | not)
+                  | select((.thread_ts // .ts) == .ts)
                   | select((.text // "") | contains($url))
                   | select((.text // "") | contains($active) | not)
                   | select((.text // "") | contains($resolved) | not) ]

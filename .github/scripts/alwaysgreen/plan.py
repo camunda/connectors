@@ -178,6 +178,38 @@ class Plan:
     noise: list[tuple[str, str]] = field(default_factory=list)
 
 
+def merge_candidates_by_key(candidates: list[Candidate]) -> list[Candidate]:
+    """Collapse candidates that share a dispatch key into one.
+
+    `build_candidates` produces one candidate per failing job, but the dispatch key is
+    per surface — so a run with two failing jobs on the same surface yields two
+    candidates carrying the same key, and every dedupe layer downstream is keyed on
+    exactly that. None of them looks at the plan being built, so both would be
+    dispatched: two agents, same remit, same files, inside one pass.
+
+    Run 33179631020 is the shape — the SM `smoke` and `full` legs both failed, and both
+    candidates read the same Playwright report, so the merge also removes the duplicate
+    spec evidence that would otherwise be handed to the agent twice.
+
+    First-seen order is preserved so the plan stays stable across runs. The surviving
+    candidate keeps the first job's name and evidence pointers; a merged candidate is
+    job-level only if every part was, because one part carrying specs means there is
+    per-spec evidence to dispatch on.
+    """
+    merged: dict[str, Candidate] = {}
+    for cand in candidates:
+        first = merged.get(cand.key)
+        if first is None:
+            merged[cand.key] = cand
+            continue
+        seen = {(s.file, s.test_name) for s in first.specs}
+        first.specs.extend(
+            s for s in cand.specs if (s.file, s.test_name) not in seen
+        )
+        first.job_level = first.job_level and cand.job_level
+    return list(merged.values())
+
+
 def plan_dispatches(
     candidates: list[Candidate],
     *,
@@ -204,7 +236,7 @@ def plan_dispatches(
     plan = Plan()
     pr_keys_with_coverage = open_pr_keys_with_coverage or set()
 
-    for cand in candidates:
+    for cand in merge_candidates_by_key(candidates):
         if cand.surface not in dispatchable_surfaces:
             plan.suppressed.append(
                 Suppression(cand, SUPPRESSED_NOT_DISPATCHABLE, cand.surface)
