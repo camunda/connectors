@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -40,6 +41,8 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -239,8 +242,99 @@ class InboundConnectorContextImplTest {
         provider, (e) -> {}, details, null, (e) -> {}, mapper, EvictingQueue.create(10));
   }
 
+  private InboundConnectorContextImpl cancellingContext(
+      ValidInboundConnectorDetails details,
+      SecretProvider provider,
+      List<Throwable> cancellations) {
+    return new InboundConnectorContextImpl(
+        provider, (e) -> {}, details, null, cancellations::add, mapper, EvictingQueue.create(10));
+  }
+
   private static Activity errorSaying(String message) {
     return Activity.level(Severity.ERROR).tag("test").message(message);
+  }
+
+  @Test
+  void cancel_masksASecretInTheErrorTheRuntimePublishesAsHealth() {
+    // the executable registry reports what a connector cancels with as
+    // Health.down(exceptionThrown),
+    // which publishes the throwable's toString() through the health endpoint
+    var cancellations = new ArrayList<Throwable>();
+    var context =
+        cancellingContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.FOO")),
+            secretProvider,
+            cancellations);
+
+    context.cancel(new IllegalStateException("api rejected bar"));
+
+    assertThat(cancellations).singleElement();
+    var published = Health.down(cancellations.getFirst());
+    assertThat(published.getError().message()).doesNotContain("bar").contains("api rejected ***");
+    // the type it replaced is still named, so the report stays diagnosable
+    assertThat(published.getError().message()).contains("IllegalStateException");
+  }
+
+  @Test
+  void cancel_keepsRetryMetadataWhileMaskingTheMessage() {
+    // the registry restarts the executable from these, so redaction may not change them
+    var cancellations = new ArrayList<Throwable>();
+    var context =
+        cancellingContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.FOO")),
+            secretProvider,
+            cancellations);
+
+    context.cancel(
+        ConnectorRetryException.builder()
+            .errorCode("AUTH-401")
+            .message("api rejected bar")
+            .retries(4)
+            .backoffDuration(Duration.ofSeconds(30))
+            .build());
+
+    assertThat(cancellations)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ConnectorRetryException.class,
+            retry -> {
+              assertThat(retry.getMessage()).isEqualTo("api rejected ***");
+              assertThat(retry.getRetries()).isEqualTo(4);
+              assertThat(retry.getBackoffDuration()).isEqualTo(Duration.ofSeconds(30));
+              assertThat(retry.getErrorCode()).isEqualTo("AUTH-401");
+            });
+  }
+
+  @Test
+  void cancel_withholdsTheMessageWhenSecretValuesCannotBeFetched() {
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var cancellations = new ArrayList<Throwable>();
+    var context =
+        cancellingContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.FOO")),
+            failingProvider,
+            cancellations);
+
+    context.cancel(new IllegalStateException("api rejected bar"));
+
+    assertThat(cancellations).singleElement();
+    assertThat(cancellations.getFirst().getMessage()).doesNotContain("bar");
+  }
+
+  @Test
+  void cancel_passesTheErrorThroughWhenThereIsNothingToRedact() {
+    var cancellations = new ArrayList<Throwable>();
+    var context =
+        cancellingContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.FOO")),
+            secretProvider,
+            cancellations);
+    var original = new IllegalStateException("the broker closed the connection");
+
+    context.cancel(original);
+
+    assertThat(cancellations).singleElement().isSameAs(original);
   }
 
   @Test

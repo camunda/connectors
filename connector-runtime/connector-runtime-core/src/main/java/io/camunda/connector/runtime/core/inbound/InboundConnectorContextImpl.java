@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -177,9 +178,48 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public void cancel(Throwable exception) {
     try {
-      cancellationCallback.accept(exception);
+      cancellationCallback.accept(redactCancellationError(exception));
     } catch (Throwable e) {
       LOG.error("Failed to deliver the cancellation signal to the runtime", e);
+    }
+  }
+
+  /**
+   * Redacts what a connector cancels with, because the runtime publishes it: the executable
+   * registry turns it into {@code Health.down(exceptionThrown)}, which reports the throwable's type
+   * and its {@link Throwable#toString()} through the health endpoint. A connector that cancels with
+   * an API's rejection carries that API's text, and a rejected credential is often echoed in it, so
+   * this needs the same redaction reported health and activity log entries already get.
+   *
+   * <p>A retry request keeps its type and its retry metadata: the registry restarts the executable
+   * from them, so anything else would silently change whether it comes back, how often, and how
+   * soon. Anything else is reported as a type of its own, naming the type it replaced, since the
+   * message a throwable carries cannot be rewritten in place.
+   */
+  private Throwable redactCancellationError(Throwable exception) {
+    if (exception == null || exception.getMessage() == null) {
+      return exception;
+    }
+    var redacted = redactMessage(exception.getMessage());
+    if (redacted.equals(exception.getMessage())) {
+      return exception;
+    }
+    if (exception instanceof ConnectorRetryException retry) {
+      return ConnectorRetryException.builder()
+          .errorCode(retry.getErrorCode())
+          .message(redacted)
+          .retries(retry.getRetries())
+          .backoffDuration(retry.getBackoffDuration())
+          .build();
+    }
+    return new RedactedCancellationError(exception.getClass().getName() + ": " + redacted);
+  }
+
+  /** Stands in for a cancellation error whose message had to be rewritten to redact a secret. */
+  private static final class RedactedCancellationError extends RuntimeException {
+
+    private RedactedCancellationError(String message) {
+      super(message);
     }
   }
 
