@@ -33,6 +33,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
@@ -68,6 +71,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 
 class SpringConnectorJobHandlerTest {
 
@@ -1832,6 +1836,34 @@ class SpringConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, false);
 
       assertThat(result.getErrorMessage()).doesNotContain("old-value");
+    }
+
+    @Test
+    void aSecretThatRotatedBetweenBindAndMaskingIsNotLoggedFromTheCause() throws Exception {
+      var jobHandler =
+          connectorThrowingTheBoundToken(rotatingSecretProvider("old-value", "new-value"));
+      var logger = (Logger) LoggerFactory.getLogger(SpringConnectorJobHandler.class);
+      var appender = new ListAppender<ILoggingEvent>();
+      appender.start();
+      logger.addAppender(appender);
+      try {
+        JobBuilder.create()
+            .withVariables(INPUT_DECLARING_A_SECRET)
+            .executeAndCaptureResult(jobHandler, false, false);
+      } finally {
+        logger.detachAppender(appender);
+        appender.stop();
+      }
+
+      assertThat(appender.list)
+          .filteredOn(
+              event -> event.getFormattedMessage().startsWith("Exception while completing job"))
+          .singleElement()
+          .satisfies(
+              event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain("old-value");
+                assertThat(event.getThrowableProxy()).isNull();
+              });
     }
 
     @Test
