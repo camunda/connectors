@@ -163,9 +163,9 @@ gateways that require it): `OpenAiChatModelFactory.applyCustomBackend` wraps the
 `OAuthClientCredentialsTokenResolver` (`provider/authentication/oauth/`, backed by the same
 `OAuthService`/`OAuthTokenCache` the HTTP connector uses) as a `com.openai.credential.BearerTokenCredential`
 supplier via `builder.credential(...)`, invoked fresh on every request — the same mechanism
-`OpenAiFoundryCredentialResolver` uses for Entra ID. The MCP client's `OAuthHeadersSupplier` was
-migrated onto the same resolver, so all OAuth2 client-credentials token fetching in this module shares
-one cache.
+`OpenAiFoundryCredentialResolver` uses for Entra ID. The MCP client's `OAuthHeadersSupplier` is
+migrated onto the same resolver in a stacked follow-up, so all OAuth2 client-credentials token
+fetching in this module eventually shares one cache.
 
 `OpenAiFoundryBackend` (Microsoft Foundry / Azure OpenAI) exposes the same request customizations as
 `headers`/`queryParameters`/`bodyProperties`, but hidden, matching
