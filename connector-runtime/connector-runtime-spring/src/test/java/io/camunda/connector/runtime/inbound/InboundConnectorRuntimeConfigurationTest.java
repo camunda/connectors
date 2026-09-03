@@ -71,12 +71,21 @@ class InboundConnectorRuntimeConfigurationTest {
    *
    * <p>The probe has to be the chained case: this context resolves the element's own property text,
    * so any name written there is declared by definition and the allow-list is a superset of it.
+   *
+   * <p>DISABLED used to resolve that to {@code leaked-value}, because the bare pass ran over the
+   * brace pass's output and the filter was the only thing standing in the way. The single scan
+   * removes the second pass, so the chain is closed at its source and all three modes refuse the
+   * name. The probe no longer discriminates between modes, and there is no longer a way to
+   * construct an undeclared name on this path: what the filter here guards against is a resolution
+   * step that no longer exists. The filter itself stays, and {@link
+   * #springInboundConnectorContextFactory_filtersSecretsUnlessModeIsDisabled} still exercises it on
+   * the path where a caller supplies the text.
    */
   @Test
   void processElementContextFactory_refusesAChainedNameOnTheActivatedElement() {
     assertEquals("secrets.CHAINED", resolveChainedViaElementContext(SecretFilterMode.STRICT));
     assertEquals("secrets.CHAINED", resolveChainedViaElementContext(SecretFilterMode.LAX));
-    assertEquals("leaked-value", resolveChainedViaElementContext(SecretFilterMode.DISABLED));
+    assertEquals("secrets.CHAINED", resolveChainedViaElementContext(SecretFilterMode.DISABLED));
   }
 
   private String resolveUndeclared(SecretFilterMode mode) {
