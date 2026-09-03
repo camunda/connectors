@@ -67,6 +67,28 @@ class OAuthBearerTokenInterceptorTest {
   }
 
   @Test
+  void replacesExistingAuthorizationHeaderRatherThanAppending() {
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenReturn("resolved-token");
+    when(delegate.execute(any(), any())).thenReturn(response);
+
+    final var wrapped = interceptor.intercept(delegate);
+    final var request =
+        HttpRequest.builder()
+            .method(HttpMethod.GET)
+            .baseUrl("https://api.example.com")
+            .putHeader("Authorization", "Bearer stale-token")
+            .build();
+
+    wrapped.execute(request);
+
+    final var captor = ArgumentCaptor.forClass(HttpRequest.class);
+    verify(delegate).execute(captor.capture(), any());
+    assertThat(captor.getValue().headers().values("Authorization"))
+        .containsExactly("Bearer resolved-token");
+  }
+
+  @Test
   void resolvesTokenAgainOnEachRequest() {
     when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
         .thenReturn("token-1", "token-2");
