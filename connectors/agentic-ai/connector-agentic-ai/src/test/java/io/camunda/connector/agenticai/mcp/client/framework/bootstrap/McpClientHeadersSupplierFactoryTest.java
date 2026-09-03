@@ -11,7 +11,7 @@ import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientHttpTransportConfiguration;
@@ -22,8 +22,6 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication.ClientAuthenticationMethod;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.HttpClient;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,15 +41,13 @@ class McpClientHeadersSupplierFactoryTest {
   private static final Map<String, String> STATIC_HEADERS =
       Map.of("X-Static-Header", "static-value");
 
-  @Mock private OAuthService oAuthService;
-  @Mock private HttpClient httpClient;
-  @Mock private ObjectMapper objectMapper;
+  @Mock private OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   private McpClientHeadersSupplierFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = spy(new McpClientHeadersSupplierFactory(oAuthService, httpClient, objectMapper));
+    factory = spy(new McpClientHeadersSupplierFactory(oAuthClientCredentialsTokenResolver));
   }
 
   @Nested
@@ -261,10 +257,9 @@ class McpClientHeadersSupplierFactoryTest {
           mockConstruction(
               OAuthHeadersSupplier.class,
               (constructed, context) -> {
-                assertThat(context.arguments().get(0)).isEqualTo(oAuthService);
-                assertThat(context.arguments().get(1)).isEqualTo(httpClient);
-                assertThat(context.arguments().get(2)).isEqualTo(objectMapper);
-                assertThat(context.arguments().get(3)).isEqualTo(OAUTH_CONFIG.oauth());
+                assertThat(context.arguments().get(0))
+                    .isEqualTo(oAuthClientCredentialsTokenResolver);
+                assertThat(context.arguments().get(1)).isEqualTo(OAUTH_CONFIG.oauth());
                 when(constructed.get()).thenReturn(Map.of("Authorization", "Bearer oauth"));
               })) {
         testCode.run();
