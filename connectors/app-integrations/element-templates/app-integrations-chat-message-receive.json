@@ -1,0 +1,63 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "App Integrations Chat Message Receive Task",
+  "id" : "io.camunda.connectors.AppIntegrationsChat.Receive.v1",
+  "description" : "Wait for the next message in the Teams or Slack conversation this process is holding",
+  "keywords" : [ "teams", "microsoft teams", "slack", "chat", "conversation", "reply", "message start", "receive message" ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/app-integrations/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:ReceiveTask" ],
+  "elementType" : {
+    "value" : "bpmn:ReceiveTask"
+  },
+  "engines" : {
+    "camunda" : "^8.10"
+  },
+  "groups" : [ {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  } ],
+  "properties" : [ {
+    "type" : "Hidden",
+    "value" : "io.camunda.appIntegrations.chatMessage",
+    "binding" : {
+      "type" : "bpmn:Message#property",
+      "name" : "name"
+    }
+  }, {
+    "id" : "correlationKey",
+    "label" : "Conversation",
+    "description" : "The conversation to listen to",
+    "type" : "String",
+    "value" : "=chatMessage.conversationKey",
+    "feel" : "required",
+    "group" : "correlation",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "binding" : {
+      "type" : "bpmn:Message#zeebe:subscription#property",
+      "name" : "correlationKey"
+    }
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "value" : "chatMessage",
+    "type" : "String",
+    "group" : "output",
+    "binding" : {
+      "type" : "zeebe:output",
+      "source" : "=chatMessage"
+    }
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDguNUMyMSA3LjEzMzE3IDIxIDUgMjEgNUMyMSA0LjQ2OTU3IDIwLjc4OTMgMy45NjA4NiAyMC40MTQyIDMuNTg1NzlDMjAuMDM5MSAzLjIxMDcxIDE5LjUzMDQgMyAxOSAzSDRDMy40Njk1NyAzIDIuOTYwODYgMy4yMTA3MSAyLjU4NTc5IDMuNTg1NzlDMi4yMTA3MSAzLjk2MDg2IDIgNC40Njk1NyAyIDVWMjEuMjg2QzIuMDAwMDIgMjEuNDI2NCAyLjA0MTY3IDIxLjU2MzcgMi4xMTk2OSAyMS42ODA0QzIuMTk3NyAyMS43OTcxIDIuMzA4NTggMjEuODg4MSAyLjQzODMxIDIxLjk0MTlDMi41NjgwMyAyMS45OTU2IDIuNzEwNzcgMjIuMDA5NyAyLjg0ODQ5IDIxLjk4MjNDMi45ODYyIDIxLjk1NDkgMy4xMTI3IDIxLjg4NzMgMy4yMTIgMjEuNzg4TDUuNDE0IDE5LjU4NkM1Ljc4ODk5IDE5LjIxMDkgNi4yOTc2MSAxOS4wMDAxIDYuODI4IDE5SDEwIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yMC45MzU5IDE3LjcxNzFDMjEuMTI2OCAxNy41MjY4IDIxLjI3ODMgMTcuMzAwOCAyMS4zODE3IDE3LjA1MThDMjEuNDg1IDE2LjgwMjkgMjEuNTM4MiAxNi41MzYgMjEuNTM4MiAxNi4yNjY0QzIxLjUzODIgMTUuOTk2OSAyMS40ODUgMTUuNzMgMjEuMzgxNyAxNS40ODExQzIxLjI3ODMgMTUuMjMyMSAyMS4xMjY4IDE1LjAwNjEgMjAuOTM1OSAxNC44MTU4TDE4Ljk3MzIgMTIuODUzMkwxMy44NTMzIDE3Ljk3MzFMMTUuODE1OSAxOS45MzU3QzE2LjAwNjIgMjAuMTI2NyAxNi4yMzIzIDIwLjI3ODEgMTYuNDgxMiAyMC4zODE1QzE2LjczMDIgMjAuNDg0OSAxNi45OTcgMjAuNTM4MSAxNy4yNjY2IDIwLjUzODFDMTcuNTM2MSAyMC41MzgxIDE3LjgwMyAyMC40ODQ5IDE4LjA1MiAyMC4zODE1QzE4LjMwMDkgMjAuMjc4MSAxOC41MjcgMjAuMTI2NyAxOC43MTcyIDE5LjkzNTdMMjAuOTM1OSAxNy43MTcxWiIgc3Ryb2tlPSIjRkY0QzAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yMi4zODY1IDIxLjM4NjdMMTkuODI2NiAxOC44MjY4IiBzdHJva2U9IiNGRjRDMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTE1LjEzMzMgMTYuNjkzNEwxMyAxNC41NjAxIiBzdHJva2U9IiNGRjRDMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTE3LjY5MzMgMTQuMTMzM0wxNS41NiAxMiIgc3Ryb2tlPSIjRkY0QzAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik02IDhIMTUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTYgMTJIMTAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg=="
+  }
+}

@@ -22,8 +22,13 @@ public record SendMessageResult(List<Delivery> deliveries, List<Failure> failure
    * What a later send passes back to reply: for Slack {@code conversation} is the channel target
    * and {@code messageId} the thread anchor; for Teams {@code conversation} is the conversation
    * target.
+   *
+   * <p>{@code conversationKey} is an opaque handle on the chat conversation, to be compared and
+   * never parsed, that a chat-message catch event takes as its correlation key. A backend that
+   * predates it leaves it {@code null}.
    */
-  public record Delivery(String platform, String conversation, String messageId) {}
+  public record Delivery(
+      String platform, String conversation, String messageId, String conversationKey) {}
 
   public record Failure(String platform, String conversation, String reason) {}
 }
