@@ -7,7 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,8 +17,8 @@ import com.anthropic.core.http.HttpClient;
 import com.anthropic.core.http.HttpMethod;
 import com.anthropic.core.http.HttpRequest;
 import com.anthropic.core.http.HttpResponse;
+import com.anthropic.core.http.Interceptor;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,33 +33,25 @@ class OAuthBearerTokenInterceptorTest {
   @Mock private HttpClient delegate;
   @Mock private HttpResponse response;
 
-  private OAuthAuthentication authentication;
-  private OAuthBearerTokenInterceptor interceptor;
+  private Interceptor interceptor;
 
   @BeforeEach
   void setUp() {
-    authentication =
-        new OAuthAuthentication(
+    interceptor =
+        OAuthBearerTokenInterceptor.create(
+            tokenResolver,
             "https://auth.example.com/oauth/token",
             "my-client-id",
             "my-client-secret",
             null,
             OAuthConstants.BASIC_AUTH_HEADER,
             null);
-    interceptor =
-        new OAuthBearerTokenInterceptor(
-            tokenResolver,
-            authentication.oauthTokenEndpoint(),
-            authentication.clientId(),
-            authentication.clientSecret(),
-            authentication.audience(),
-            authentication.clientAuthentication(),
-            authentication.scopes());
   }
 
   @Test
   void addsBearerAuthorizationHeaderResolvedPerRequest() {
-    when(tokenResolver.resolveAccessToken(authentication)).thenReturn("resolved-token");
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenReturn("resolved-token");
     when(delegate.execute(any(), any())).thenReturn(response);
 
     final var wrapped = interceptor.intercept(delegate);
@@ -74,7 +68,8 @@ class OAuthBearerTokenInterceptorTest {
 
   @Test
   void resolvesTokenAgainOnEachRequest() {
-    when(tokenResolver.resolveAccessToken(authentication)).thenReturn("token-1", "token-2");
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenReturn("token-1", "token-2");
     when(delegate.execute(any(), any())).thenReturn(response);
 
     final var wrapped = interceptor.intercept(delegate);
@@ -84,6 +79,23 @@ class OAuthBearerTokenInterceptorTest {
     wrapped.execute(request);
     wrapped.execute(request);
 
-    verify(tokenResolver, org.mockito.Mockito.times(2)).resolveAccessToken(authentication);
+    verify(tokenResolver, times(2))
+        .resolveAccessToken(
+            "https://auth.example.com/oauth/token",
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+  }
+
+  @Test
+  void doesNotSupportAsyncExecution() {
+    final var wrapped = interceptor.intercept(delegate);
+    final var request =
+        HttpRequest.builder().method(HttpMethod.GET).baseUrl("https://api.example.com").build();
+
+    assertThatThrownBy(() -> wrapped.executeAsync(request))
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 }
