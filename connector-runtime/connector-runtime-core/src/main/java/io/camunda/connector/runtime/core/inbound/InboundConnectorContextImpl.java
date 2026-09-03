@@ -32,6 +32,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +66,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       EvictingQueue logs) {
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this(
+        secretProvider,
+        validationProvider,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        logs,
+        false);
+  }
+
+  /**
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
+   *     by the deployed {@code zeebe:property} text replacement runs over (#7730).
+   */
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      EvictingQueue logs,
+      boolean secretFilterEnabled) {
+    super(secretProvider, secretFilter(connectorDetails, secretFilterEnabled), validationProvider);
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
     this.properties =
@@ -100,6 +125,39 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     } catch (Throwable e) {
       LOG.error("Failed to deliver the cancellation signal to the runtime", e);
     }
+  }
+
+  /**
+   * The allow-list is drawn from the same {@code rawPropertiesWithoutKeywords} map that {@link
+   * #properties} is built from, so the names permitted and the text filtered always come from one
+   * read. Both are fixed at construction on this branch — {@code connectorDetails} and {@code
+   * properties} are final and there is no {@code updateConnectorDetails} — so the hot-swap and
+   * torn-read failure directions main had to close are not representable here.
+   *
+   * <p>This is what the filter stops: {@link SecretUtil#replaceSecrets} runs the brace pass and
+   * then runs the bare pass over that pass's output, so a resolved value containing
+   * reference-shaped text otherwise produces a lookup for a name no model declares. Confirmed
+   * present on this branch before backporting: a secret whose value is the literal {@code
+   * secrets.CHAINED} resolved {@code CHAINED} under the previous allow-all filter.
+   *
+   * <p>Narrower than the equivalent on 8.8/8.9, and deliberately so. This branch's {@code
+   * SecretUtil} has neither their nested-match exclusion in {@code retrieveSecretKeysInInput} nor
+   * their denied-bracket exclusion in {@code replaceSecretsWithoutParentheses} (#8592, #8593), so a
+   * model declaring {@code {{secrets.FOO:BAR}}} also admits the truncated {@code FOO}. That is a
+   * pre-existing property of this branch, unchanged by this filter in either direction.
+   *
+   * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
+   */
+  private static SecretFilter secretFilter(
+      ValidInboundConnectorDetails connectorDetails, boolean secretFilterEnabled) {
+    if (!secretFilterEnabled) {
+      return SecretFilter.allowAll();
+    }
+    return SecretFilter.allowOnly(
+        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList());
   }
 
   @Override
