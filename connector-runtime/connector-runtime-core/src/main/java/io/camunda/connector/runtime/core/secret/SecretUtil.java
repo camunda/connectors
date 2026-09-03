@@ -17,71 +17,37 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretContext;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
 
-  private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
-
-  private static final Pattern SECRET_PATTERN_PARENTHESES =
-      Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
+  // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
+  // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
+  private static final Pattern REFERENCE =
+      Pattern.compile(
+          "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
+              + "|secrets\\.(?<bare>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   public static String replaceSecrets(
       String input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
-    return input;
-  }
-
-  private static String replaceSecretsWithParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
-    }
-    return input;
-  }
-
-  private static String replaceSecretsWithoutParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
-    }
-    return input;
-  }
-
-  private static String resolveSecretValue(
-      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
-    var secretName = matcher.group("secret").trim();
-    if (!secretName.isBlank()) {
-      var result = secretReplacer.replaceSecrets(secretName, context);
-      if (result != null) {
-        return result;
-      } else {
-        return matcher.group();
-      }
-    } else {
-      return null;
-    }
+    Map<String, String> resolutions = new HashMap<>();
+    return replaceTokens(
+        input,
+        REFERENCE,
+        matcher -> {
+          String value = resolve(name(matcher), context, secretReplacer, resolutions);
+          return value == null ? matcher.group() : value;
+        });
   }
 
   public static String replaceTokens(
@@ -99,23 +65,32 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /** Asks the replacer at most once per name, for providers that meter or charge per lookup. */
+  private static String resolve(
+      String name,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<String, String> resolutions) {
+    if (!resolutions.containsKey(name)) {
+      resolutions.put(name, secretReplacer.replaceSecrets(name, context));
+    }
+    return resolutions.get(name);
+  }
+
+  private static String name(MatchResult match) {
+    var braced = match.group("braced");
+    return braced != null ? braced : match.group("bare");
+  }
+
   /**
-   * Names are trimmed, because that is the name {@link #resolveSecretValue} looks up: the
-   * parentheses pattern's capture reaches past the name to the closing braces, so {@code {{
-   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form also
-   * breaks consumers that do not normalize again. For example, exception redaction filters
-   * extracted names against the allow-list before fetching their values; a colon-bearing name has
-   * no independent bare-pattern match, so the untrimmed name is filtered out and its value cannot
-   * be redacted from an exception message.
+   * Every secret name the given text declares, in either form, read by the same scan {@link
+   * #replaceSecrets} uses: a name that method asks a provider for appears here spelled exactly as
+   * it asks for it, and no name appears that the scan never read. Feeding both from one scan is
+   * what keeps the outbound allow-list and exception redaction agreeing with resolution.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return Objects.isNull(input)
+    return input == null
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret").trim())
-            .distinct()
-            .toList();
+        : REFERENCE.matcher(input).results().map(SecretUtil::name).distinct().toList();
   }
 }
