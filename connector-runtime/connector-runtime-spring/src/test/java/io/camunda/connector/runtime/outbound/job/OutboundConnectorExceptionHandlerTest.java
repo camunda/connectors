@@ -74,7 +74,7 @@ class OutboundConnectorExceptionHandlerTest {
         handler.handleFinalResultException(
             new RuntimeException("boom"), job, throwingFilter, List.of());
 
-    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retries()).isZero();
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
   }
 
@@ -94,7 +94,7 @@ class OutboundConnectorExceptionHandlerTest {
         handlerWithThrowingProvider.handleFinalResultException(
             new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
 
-    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retries()).isZero();
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
   }
 
@@ -429,6 +429,78 @@ class OutboundConnectorExceptionHandlerTest {
         .hasNoCause();
     assertThat(errorPayload(result)).doesNotContainKeys("variables", "code");
     assertThat(errorPayload(result).toString()).doesNotContain("super-secret");
+  }
+
+  @Test
+  void aFinalResultFailureIsNotRetriedWhenTheValuesToRedactItWithCannotBeRead() {
+    // Reaching here means the connector has already run, so a retry would repeat its side effects
+    // — whether or not the message could be redacted.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handlerOverMaskingStore.handleFinalResultException(
+            new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aJobIsNotRetriedWhenTheMaskingReadSaysTheInputCanNeverBind() {
+    // A provider that refuses every lookup throws for the masking read too; retrying will not
+    // change that, so it must not be reported as transient.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any()))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved", null));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aJobThatCanNeverBindStaysFatalWhenTheMaskingReadOnlyFailedTransiently() {
+    // The two failures are independent: the job's own can be permanent while reading the values to
+    // redact it merely times out. Classifying from the masking failure alone would hand a job that
+    // can never bind its remaining attempts back.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new ConnectorInputException("bad input", null),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aJobKeepsItsAttemptsWhenNeitherFailureBlamesTheInput() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isEqualTo(2);
   }
 
   @Test
