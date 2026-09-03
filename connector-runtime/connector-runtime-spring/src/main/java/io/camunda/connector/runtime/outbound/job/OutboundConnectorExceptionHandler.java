@@ -418,11 +418,22 @@ public class OutboundConnectorExceptionHandler {
     };
   }
 
+  /** Redacts expression-chosen variables that are about to be published as a diagnostic. */
+  public Map<String, Object> maskDiagnosticVariables(
+      Map<String, Object> variables, ActivatedJob job, SecretFilter secretFilter) {
+    if (variables == null || variables.isEmpty()) {
+      return variables;
+    }
+    var masking = fetchSecretsForMasking(job, secretFilter, null);
+    return masking.unavailable() ? Map.of() : maskVariables(variables, masking.secrets());
+  }
+
   /** Redacts an error an error expression produced; {@code failJob}/{@code throwError} do not. */
   public ConnectorError maskConnectorError(
       ConnectorError error, ActivatedJob job, SecretFilter secretFilter) {
     return switch (error) {
-      // ignoreError completes the job with business variables, which are never redacted
+      // business output on the branch that completes the job; the branch that raises an incident
+      // instead redacts them itself, via maskDiagnosticVariables
       case IgnoreError ignoreError -> ignoreError;
       case BpmnError bpmnError -> {
         if (nothingToRedact(bpmnError.errorMessage(), bpmnError.variables())) {

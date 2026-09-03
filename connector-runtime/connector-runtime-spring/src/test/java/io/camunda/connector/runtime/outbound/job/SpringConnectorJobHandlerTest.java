@@ -2272,6 +2272,28 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
+    void ignoreErrorIsRedactedOnTheBranchThatRaisesAnIncident() throws Exception {
+      // ignoreError is unsupported for an ad-hoc sub-process response, so this branch fails the job
+      // instead of completing it - the variables become diagnostic output, and
+      // prepareFailJobCommand appends them to the incident message.
+      var ahspResponse =
+          new TestAdHocSubProcessResponse(
+              Map.of("body", "rejected token " + ECHOED), Map.of(), List.of(), false, false);
+      var handler = newConnectorJobHandler(context -> ahspResponse);
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader("=ignoreError({detail: response.body})")
+              .executeAndCaptureResult(handler, false);
+
+      assertThat(result.getErrorMessage())
+          .startsWith("IgnoreError is not supported for this connector")
+          .doesNotContain(ECHOED);
+      assertThat(result.getVariables()).containsEntry("detail", "rejected token ***");
+    }
+
+    @Test
     void ignoreErrorIsNotRedacted() throws Exception {
       // the boundary of this fix: ignoreError completes the job with unredacted business variables
       var result =

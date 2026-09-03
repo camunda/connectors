@@ -577,6 +577,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               response,
               ignoreError,
               counterMetricsContext,
+              secretFilter,
               deadline);
     }
   }
@@ -589,6 +590,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       ConnectorResponse response,
       IgnoreError ignoreError,
       CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter,
       long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult
         && successResult.connectorResponse() instanceof AdHocSubProcessConnectorResponse) {
@@ -596,11 +598,17 @@ public class SpringConnectorJobHandler implements JobHandler {
           "IgnoreError not supported for AdHocSubProcessConnectorResponse, job {}", job.getKey());
       var cause =
           new UnsupportedOperationException("IgnoreError is not supported for this connector");
+      // this branch raises an incident rather than completing the job, so the variables the
+      // expression chose become diagnostic output and prepareFailJobCommand appends them to its
+      // message - redacted here, unlike on the completion branch below
+      var variables =
+          outboundConnectorExceptionHandler.maskDiagnosticVariables(
+              ignoreError.variables(), job, secretFilter);
       CompletableFuture<CommandOutcome> failJobRequest =
           failJob(
               client,
               job,
-              new ConnectorResult.ErrorResult(ignoreError.variables(), cause, 0, null),
+              new ConnectorResult.ErrorResult(variables, cause, 0, null),
               counterMetricsContext,
               deadline);
 
