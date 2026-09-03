@@ -20,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -89,6 +92,22 @@ class AiAgentJobWorkerHandlerTest {
         null
       """;
 
+  private static final String RESPONSE_ECHO_ERROR_EXPRESSION =
+      """
+      =if response.responseText != null then
+        jobError("agent replied: " + response.responseText)
+      else
+        null
+      """;
+
+  private static final String RESPONSE_ECHO_BPMN_ERROR_EXPRESSION =
+      """
+      =if response.responseText != null then
+        bpmnError("AGENT_REPLY_CODE", "agent replied: " + response.responseText)
+      else
+        null
+      """;
+
   private static final JobWorkerAgentResponse AGENT_RESPONSE_VARIABLE =
       JobWorkerAgentResponse.builder().responseText("Dummy response").build();
 
@@ -104,6 +123,10 @@ class AiAgentJobWorkerHandlerTest {
   private ActivatedJob job;
 
   private Map<String, String> jobHeaders;
+
+  // what the input binding substituted into this job's variables, as the execution context factory
+  // reports it back
+  private final List<String> valuesSubstitutedIntoTheJobsInput = new ArrayList<>();
 
   private AiAgentJobWorkerHandler handler;
   private CamundaClient camundaClient;
@@ -122,8 +145,12 @@ class AiAgentJobWorkerHandlerTest {
     when(job.getType()).thenReturn(AiAgentJobWorker.JOB_WORKER_TYPE);
     when(job.getCustomHeaders()).thenReturn(jobHeaders);
 
-    when(executionContextFactory.createExecutionContext(camundaClient, job))
-        .thenReturn(executionContext);
+    when(executionContextFactory.createExecutionContext(eq(camundaClient), eq(job), anyList()))
+        .thenAnswer(
+            invocation -> {
+              invocation.<List<String>>getArgument(2).addAll(valuesSubstitutedIntoTheJobsInput);
+              return executionContext;
+            });
 
     final var outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(secretProvider);
@@ -571,6 +598,87 @@ class AiAgentJobWorkerHandlerTest {
               .isEqualTo(
                   Map.of(
                       "type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
+        });
+  }
+
+  @Test
+  void redactsSecretsFromAJobErrorTheErrorExpressionBuiltFromTheAgentResponse() throws Exception {
+    // The agent ran successfully, so nothing has masked its response yet: a model or tool that
+    // echoes a resolved credential back puts it into the error expression's output, and from there
+    // into the incident message and the process variables.
+    jobHeaders.put("errorExpression", RESPONSE_ECHO_ERROR_EXPRESSION);
+    when(job.getVariables()).thenReturn("{\"token\":\"{{secrets.TOKEN}}\"}");
+    when(secretProvider.fetchAll(anyList(), any())).thenReturn(List.of("s3cr3t"));
+
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenReturn(
+            JobWorkerAgentCompletion.builder()
+                .completionConditionFulfilled(true)
+                .cancelRemainingInstances(false)
+                .agentResponse(
+                    AgentResponse.builder()
+                        .context(AgentContext.empty())
+                        .responseText("the token s3cr3t was rejected")
+                        .build())
+                .build());
+
+    handler.handle(camundaClient, job);
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage())
+              .isEqualTo("agent replied: the token *** was rejected");
+          assertThat(request.getVariables())
+              .containsExactly(entry("error", "agent replied: the token *** was rejected"));
+        });
+  }
+
+  @Test
+  void redactsABpmnErrorFromTheErrorExpressionWithoutTouchingItsCode() throws Exception {
+    // Boundary events match on the code, so redacting it would stop the error being caught, even
+    // when the code happens to read like a secret value.
+    jobHeaders.put("errorExpression", RESPONSE_ECHO_BPMN_ERROR_EXPRESSION);
+    when(job.getVariables()).thenReturn("{\"token\":\"{{secrets.TOKEN}}\"}");
+    when(secretProvider.fetchAll(anyList(), any())).thenReturn(List.of("AGENT_REPLY_CODE"));
+
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenReturn(
+            JobWorkerAgentCompletion.builder()
+                .completionConditionFulfilled(true)
+                .cancelRemainingInstances(false)
+                .agentResponse(
+                    AgentResponse.builder()
+                        .context(AgentContext.empty())
+                        .responseText("AGENT_REPLY_CODE is not a valid credential")
+                        .build())
+                .build());
+
+    handler.handle(camundaClient, job);
+
+    assertJobErrorRequest(
+        request -> {
+          assertThat(request.getErrorCode()).isEqualTo("AGENT_REPLY_CODE");
+          assertThat(request.getErrorMessage())
+              .isEqualTo("agent replied: *** is not a valid credential");
+        });
+  }
+
+  @Test
+  void redactsWithTheValueTheAgentWasHandedAfterTheSecretRotates() throws Exception {
+    // The store returns the rotated value on the masking re-read, so redacting with that alone
+    // leaves the value the agent was actually given in the message.
+    valuesSubstitutedIntoTheJobsInput.add("the-old-value");
+    when(job.getVariables()).thenReturn("{\"token\":\"{{secrets.TOKEN}}\"}");
+    when(secretProvider.fetchAll(anyList(), any())).thenReturn(List.of("the-new-value"));
+
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenThrow(new RuntimeException("rejected credential the-old-value"));
+
+    handler.handle(camundaClient, job);
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage()).doesNotContain("the-old-value").contains("***");
         });
   }
 

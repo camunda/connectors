@@ -36,6 +36,8 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -91,7 +93,10 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     final SecretFilter secretFilter =
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
-    final var agentResult = getAgentResult(jobClient, job, secretFilter);
+    // the values this job's input binding substituted, so an error raised after one of them rotates
+    // is still redacted with what the agent was handed
+    final List<String> capturedSecrets = new ArrayList<>();
+    final var agentResult = getAgentResult(jobClient, job, secretFilter, capturedSecrets);
 
     try {
       Optional<ConnectorError> optionalConnectorError =
@@ -102,7 +107,13 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
 
       optionalConnectorError.ifPresentOrElse(
           connectorError ->
-              handleConnectorError(jobClient, job, connectorError, counterMetricsContext),
+              handleConnectorError(
+                  jobClient,
+                  job,
+                  connectorError,
+                  counterMetricsContext,
+                  secretFilter,
+                  capturedSecrets),
           () -> {
             switch (agentResult) {
               case AgentSuccessResult successResult ->
@@ -115,25 +126,30 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job, secretFilter),
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              e, job, secretFilter, capturedSecrets),
           counterMetricsContext);
     }
   }
 
   private JobWorkerAgentResult getAgentResult(
-      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final SecretFilter secretFilter,
+      final List<String> capturedSecrets) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
 
-      final var executionContext = executionContextFactory.createExecutionContext(jobClient, job);
+      final var executionContext =
+          executionContextFactory.createExecutionContext(jobClient, job, capturedSecrets);
       final var completion = agentRequestHandler.handleRequest(executionContext);
 
       return new AgentSuccessResult(completion);
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter);
+              e, job, retryBackoff, secretFilter, capturedSecrets);
       return new AgentErrorResult(errorResult);
     }
   }
@@ -141,8 +157,16 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private void handleConnectorError(
       final JobClient jobClient,
       final ActivatedJob job,
-      final ConnectorError connectorError,
-      final CounterMetricsContext counterMetricsContext) {
+      final ConnectorError rawError,
+      final CounterMetricsContext counterMetricsContext,
+      final SecretFilter secretFilter,
+      final List<String> capturedSecrets) {
+    // an error expression builds its message and variables from the agent's response, which a
+    // provider can echo a resolved secret back into; redacted before the Zeebe command is built
+    final var connectorError =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, capturedSecrets);
+
     switch (connectorError) {
       case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError, counterMetricsContext);
       case JobError jobError ->
@@ -238,9 +262,11 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final ActivatedJob job,
       final ErrorResult errorResult,
       final CounterMetricsContext counterMetricsContext) {
+    // the wrapper message is redacted, but its cause is not, so the throwable is not logged
     LOGGER.error(
-        "Exception while completing AI Agent job with key %s".formatted(job.getKey()),
-        errorResult.exception());
+        "Exception while completing AI Agent job with key {}, message: {}",
+        job.getKey(),
+        errorResult.exception().getMessage());
 
     final var failCommand = prepareFailJobCommand(jobClient, job, errorResult);
     executeCommandAsync(failCommand, job, counterMetricsContext);
