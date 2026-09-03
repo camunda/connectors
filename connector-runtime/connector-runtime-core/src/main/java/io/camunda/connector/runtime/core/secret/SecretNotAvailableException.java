@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 
 /**
  * A secret reference the filter allowed, for which no configured provider held a value. The
@@ -32,5 +33,15 @@ public class SecretNotAvailableException extends ConnectorInputException {
 
   public SecretNotAvailableException(String secretName) {
     super(String.format("Secret with name '%s' is not available", secretName), null);
+  }
+
+  /**
+   * Omits {@code secret.fieldPath()}: it is derived from JSON property names, and {@link
+   * SecretUtil} supports resolving secrets into property names as well as values, so a path segment
+   * may itself carry a resolved secret's text — echoing it here would leak that text into an error
+   * message error masking cannot always catch.
+   */
+  public SecretNotAvailableException(Secret secret) {
+    this(secret.secretName());
   }
 }

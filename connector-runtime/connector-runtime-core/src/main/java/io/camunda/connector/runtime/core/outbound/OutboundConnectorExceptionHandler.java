@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -30,6 +31,7 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -272,22 +274,23 @@ public class OutboundConnectorExceptionHandler {
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
     try {
       var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-              .filter(secretFilter::isAllowed)
-              .toList();
-      if (allowedKeys.isEmpty()) {
+          allowedKeys(
+              SecretUtil.retrieveSecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
+              secretFilter);
+      var allowedNames = allowedKeys.stream().map(Secret::secretName).distinct().toList();
+      if (allowedNames.isEmpty()) {
         return new MaskingSecrets(List.of(), null);
       }
-      var values = this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId()));
+      var values = this.secretProvider.fetchAll(allowedNames, new SecretContext(job.getTenantId()));
       // fetchAll drops the names it cannot resolve, so a short read is a silent one: a name the
       // input declares resolved when it was bound, so one missing now means the secret was removed,
       // or access revoked, while the connector ran. Redacting with what did come back would publish
       // the one that did not in the clear.
-      if (values.size() < allowedKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
+      if (values.size() < allowedNames.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
             new MaskingSecretsIncompleteException(
-                allowedKeys.size() - values.size(), allowedKeys.size()));
+                allowedNames.size() - values.size(), allowedNames.size()));
       }
       return new MaskingSecrets(values, null);
     } catch (Exception ex) {
@@ -298,6 +301,10 @@ public class OutboundConnectorExceptionHandler {
           safeDiagnostic(ex));
       return new MaskingSecrets(List.of(), ex);
     }
+  }
+
+  private static List<Secret> allowedKeys(List<Secret> keys, SecretFilter secretFilter) {
+    return keys.stream().filter(secretFilter::isAllowed).toList();
   }
 
   /**

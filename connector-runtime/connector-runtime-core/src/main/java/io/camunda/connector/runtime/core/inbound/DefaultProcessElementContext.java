@@ -24,7 +24,9 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -84,8 +86,11 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
       return SecretFilter.allowAll();
     }
     return SecretFilter.allowOnly(
-        connectorElement.rawProperties().values().stream()
-            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+        connectorElement.rawProperties().entrySet().stream()
+            .flatMap(
+                entry ->
+                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }
