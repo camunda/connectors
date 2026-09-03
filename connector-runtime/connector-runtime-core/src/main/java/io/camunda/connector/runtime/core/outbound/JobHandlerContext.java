@@ -16,13 +16,15 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
-import io.camunda.client.api.command.InternalClientException;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -68,7 +70,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;
-    this.jobContext = new ActivatedJobContext(job, () -> getJsonReplacedWithSecrets().toString());
+    this.jobContext = new ActivatedJobContext(job, () -> writeJson(getJsonReplacedWithSecrets()));
   }
 
   @Override
@@ -101,20 +103,53 @@ public class JobHandlerContext extends AbstractConnectorContext
     return jsonWithSecrets;
   }
 
+  /**
+   * Parses via this context's own {@code objectMapper}, with {@code USE_BIG_DECIMAL_FOR_FLOATS}
+   * enabled, rather than {@code job.getVariablesAsType(JsonNode.class)} — the client's own {@code
+   * JsonMapper} parses untyped JSON numbers to {@code double} by default, which loses precision
+   * (e.g. {@code 0.1234567890123456789012345} -> {@code 0.12345678901234568}) before the value ever
+   * reaches a {@code BigDecimal}-typed connector field. Reading through an {@code ObjectReader}
+   * rather than reconfiguring the shared mapper keeps that feature scoped to this one parse. The
+   * node factory is additionally configured with {@code withExactBigDecimals(true)}: its default
+   * strips trailing zeros off the parsed {@code BigDecimal} itself at node construction (e.g.
+   * {@code 1.10} becomes scale-1 {@code 1.1}), a value change a {@code BigDecimal}-typed connector
+   * field would observe via {@code equals}, not merely a difference in how it prints.
+   */
   private JsonNode parseVariables() {
     JsonNode variables;
     try {
-      variables = job.getVariablesAsType(JsonNode.class);
-    } catch (InternalClientException e) {
-      if (e.getCause() instanceof JsonProcessingException jsonProcessingException) {
-        throw translateJsonException(jsonProcessingException);
-      }
-      throw e;
+      variables =
+          objectMapper
+              .reader()
+              .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+              .with(JsonNodeFactory.withExactBigDecimals(true))
+              .forType(JsonNode.class)
+              .readValue(job.getVariables());
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
     }
     if (!variables.isObject()) {
       throw new ConnectorInputException("This is not a JSON object");
     }
     return variables;
+  }
+
+  /**
+   * {@code JsonNode.toString()} serializes through Jackson's shared internal mapper, which writes a
+   * {@code DecimalNode} via plain {@code BigDecimal.toString()} — reintroducing scientific notation
+   * for small-magnitude values (e.g. {@code 0.00000001} -> {@code 1E-8}) even though the digits
+   * themselves survived parsing. {@code WRITE_BIGDECIMAL_AS_PLAIN} keeps the plain-decimal form the
+   * raw job JSON used.
+   */
+  private String writeJson(JsonNode node) {
+    try {
+      return objectMapper
+          .writer()
+          .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+          .writeValueAsString(node);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
   }
 
   private <T> T mapJson(Class<T> cls) {

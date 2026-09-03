@@ -23,9 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.InternalClientException;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -40,7 +38,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,23 +60,8 @@ class JobHandlerContextTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private JobHandlerContext jobHandlerContext;
 
-  /**
-   * Mirrors {@code CamundaObjectMapper.fromJson}, which is what the real {@code ActivatedJob}
-   * delegates {@code getVariablesAsType} to: malformed JSON surfaces as an {@link
-   * InternalClientException} wrapping the original Jackson exception, not the Jackson exception
-   * itself.
-   */
-  private static JsonNode parseLikeClient(String json) {
-    try {
-      return new ObjectMapper().readValue(json, JsonNode.class);
-    } catch (IOException e) {
-      throw new InternalClientException(
-          String.format("Failed to deserialize json '%s' to class '%s'", json, JsonNode.class), e);
-    }
-  }
-
   private void stubVariables(String json) {
-    when(activatedJob.getVariablesAsType(JsonNode.class)).thenAnswer(inv -> parseLikeClient(json));
+    when(activatedJob.getVariables()).thenReturn(json);
   }
 
   @BeforeEach
@@ -97,7 +80,41 @@ class JobHandlerContextTest {
   void getVariables() {
     stubVariables("{}");
     jobHandlerContext.getJobContext().getVariables();
-    verify(activatedJob).getVariablesAsType(JsonNode.class);
+    verify(activatedJob).getVariables();
+  }
+
+  @Test
+  void bindVariables_preservesFullDecimalPrecision() {
+    stubVariables("{ \"decimal\": 0.1234567890123456789012345 }");
+    BigDecimal bound = jobHandlerContext.bindVariables(TestClass.class).decimal;
+    assertThat(bound).isEqualByComparingTo(new BigDecimal("0.1234567890123456789012345"));
+  }
+
+  @Test
+  void bindVariables_preservesTrailingZeroScale() {
+    // isEqualByComparingTo alone would pass even if the default node factory silently stripped
+    // the trailing zero (1.10 -> 1.1): equals()/isEqualTo is scale-sensitive, compareTo is not.
+    stubVariables("{ \"decimal\": 1.10 }");
+    BigDecimal bound = jobHandlerContext.bindVariables(TestClass.class).decimal;
+    assertThat(bound).isEqualTo(new BigDecimal("1.10"));
+  }
+
+  @Test
+  void bindVariables_preservesLongBeyondDoublePrecision() {
+    stubVariables("{ \"longValue\": 9007199254740993 }");
+    assertThat(jobHandlerContext.bindVariables(TestClass.class).longValue)
+        .isEqualTo(9007199254740993L);
+  }
+
+  @Test
+  void getVariables_preservesDecimalText() {
+    stubVariables(
+        "{ \"a\": 0.00000001, \"b\": 1.10, \"c\": 0.1234567890123456789012345, \"d\":"
+            + " 9007199254740993 }");
+    String variables = jobHandlerContext.getJobContext().getVariables();
+    assertThat(variables)
+        .contains("0.00000001", "1.10", "0.1234567890123456789012345")
+        .contains("9007199254740993");
   }
 
   @Test
