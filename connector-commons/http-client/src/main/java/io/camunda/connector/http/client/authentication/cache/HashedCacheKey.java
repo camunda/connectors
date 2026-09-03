@@ -19,17 +19,12 @@ package io.camunda.connector.http.client.authentication.cache;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.Objects;
 
 /**
- * Derives a SHA-256-hashed cache key from credential-configuration fields, so that sensitive
- * material (client secrets, tokens) is never stored in plain text as a map key. Shared between
- * {@code CaffeineOAuthTokenCache} (connector-commons/http-client) and the Agentic AI module's
- * {@code EntraIdTokenCredentialFactory}, which both hash a tuple of credential fields to key an
- * in-memory Caffeine cache. Only key derivation is shared: the two caches' value types, sizing and
- * expiry policies differ intentionally and are not unified here.
+ * Derives a SHA-256-hashed cache key from a tuple of credential-configuration fields, so that
+ * sensitive material (client secrets, tokens) is never stored in plain text as a cache key.
  */
 public final class HashedCacheKey {
 
@@ -38,19 +33,25 @@ public final class HashedCacheKey {
 
   private HashedCacheKey() {}
 
-  /** Hashes the given parts, joined with a NUL separator; {@code null} parts count as empty. */
+  /**
+   * Hashes the given parts; {@code null} parts count as empty. Each part is length-prefixed before
+   * hashing, so parts can never be split differently to collide on the same digest.
+   */
   public static String of(String... parts) {
-    final var raw =
-        String.join(
-            "\0", Arrays.stream(parts).map(part -> Objects.requireNonNullElse(part, "")).toList());
-    return sha256Hex(raw);
-  }
-
-  private static String sha256Hex(String raw) {
     final MessageDigest digest = SHA_256_DIGEST.get();
     digest.reset();
-    final byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-    return HexFormat.of().formatHex(hash);
+    for (final String part : parts) {
+      final byte[] bytes = Objects.requireNonNullElse(part, "").getBytes(StandardCharsets.UTF_8);
+      digest.update(
+          new byte[] {
+            (byte) (bytes.length >>> 24),
+            (byte) (bytes.length >>> 16),
+            (byte) (bytes.length >>> 8),
+            (byte) bytes.length
+          });
+      digest.update(bytes);
+    }
+    return HexFormat.of().formatHex(digest.digest());
   }
 
   private static MessageDigest createSha256Digest() {
