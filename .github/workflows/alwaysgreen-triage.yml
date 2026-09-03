@@ -322,7 +322,7 @@ jobs:
             if [ "$(jq '.suppressed | length' /tmp/alwaysgreen-plan.json)" -gt 0 ]; then
               echo "### Suppressed"
               echo ""
-              jq -r '.suppressed[] | "- `\(.surface)`: \(.reason)\(if .detail != "" then " (\(.detail))" else "" end)"' \
+              jq -r '.suppressed[] | "- `\(.surface)`: \(.reason)\(if .detail != "" then " (\(.detail))" else "" end)\(if (.specs // []) | length > 0 then "\n  - " + ((.specs) | join("\n  - ")) else "" end)"' \
                 /tmp/alwaysgreen-plan.json
               echo ""
             fi

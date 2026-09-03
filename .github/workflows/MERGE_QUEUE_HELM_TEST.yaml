@@ -209,9 +209,31 @@ jobs:
 
           # filter=latest is the default, stated so a re-run cannot pick up a previous
           # attempt's failures and re-report a failure that is already gone.
-          failed=$(gh api --paginate \
+          #
+          # --slurp and flatten: --paginate emits one document per page, and past 100
+          # jobs an unslurped grep would still work but the count below would not.
+          #
+          # The same conclusions the watcher and the classifier count, or an SM job that
+          # hits its own timeout-minutes gets triaged with no Slack message and no PR
+          # comment to go with it. A job timeout is reported as `cancelled`, not
+          # `timed_out` -- that is what the 100-run sample shows -- so `cancelled` has to
+          # be in here for the timeout case to be covered at all.
+          #
+          # The watcher's whole-run exception cannot be applied here: this job runs while
+          # the run is still in progress, so the run has no conclusion yet. That leaves
+          # one false-alert shape -- a run cancelled as a whole, where this job survives
+          # long enough to see a cancelled SM job. It is the right way round to be wrong:
+          # this job posts a Slack message and a PR comment, it dispatches nothing, and a
+          # rare message about a cancelled run costs less than silence on a real SM
+          # timeout. Dispatch decisions stay with the watcher, which can tell the two
+          # apart.
+          failed=$(gh api --paginate --slurp \
             "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
-            --jq '.jobs[] | select(.conclusion == "failure") | .name')
+            | jq -r '[.[].jobs[]]
+                     | .[]
+                     | select(.conclusion as $c
+                              | ["failure", "cancelled", "timed_out"] | index($c))
+                     | .name')
 
           # Nested jobs of the called SM workflow appear under
           # `Trigger SM E2E tests / ...`, which is what makes a non-blocking Playwright

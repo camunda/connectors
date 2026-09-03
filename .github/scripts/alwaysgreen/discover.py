@@ -656,12 +656,18 @@ def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict
             }
             for c in result.dispatches
         ],
+        # `specs` matters for the surfaces that are classified but never dispatched --
+        # saas-setup above all, whose whole value as a report is naming the setup spec
+        # that failed. Without it the entry is a bare verdict and the reader has to go
+        # back to the run to learn anything. Empty for a job-level suppression, which has
+        # no spec to name.
         "suppressed": [
             {
                 "surface": s.candidate.surface,
                 "dispatch_key": s.candidate.key,
                 "reason": s.reason,
                 "detail": s.detail,
+                "specs": sorted({sp.file for sp in s.candidate.specs}),
             }
             for s in result.suppressed
         ],

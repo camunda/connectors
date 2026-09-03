@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import classify
 import discover
 import plan as planning
 
@@ -366,3 +367,49 @@ def test_jobs_beyond_the_first_page_are_still_classified(monkeypatch):
     jobs[110] = {"name": "late-failure", "conclusion": "failure"}
     _stub_run_and_jobs(monkeypatch, "success", jobs, pages=2)
     assert [j["name"] for j in discover.failing_jobs("1")] == ["late-failure"]
+
+
+def test_a_suppressed_surface_reports_its_spec_paths():
+    # The point of a classified-but-undispatched surface is the report, and a reader who
+    # only gets `reason` has to go back to the run to learn anything. Asserted on the
+    # serialised payload, because that is what the artifact and the summary consume --
+    # the candidate keeping its specs in memory proves nothing about what is emitted.
+    spec = classify.FailingSpec(
+        file="tests/8.10/test-setup.spec.ts", test_name="setup", error="boom"
+    )
+    cand = planning.Candidate(
+        base_ref="main",
+        surface=classify.SURFACE_SAAS_PROVISIONING,
+        job_name="Trigger SaaS E2E tests",
+        source="connectors",
+        specs=[spec],
+    )
+    result = planning.plan_dispatches(
+        [cand],
+        covered_fingerprints=set(),
+        inflight_keys=set(),
+        open_pr_keys=set(),
+        product_bug_fingerprints=set(),
+    )
+    assert result.dispatches == []
+    payload = discover.serialise(result, classify.Blame(None, None, None, "none"), "1")
+    assert payload["suppressed"][0]["specs"] == ["tests/8.10/test-setup.spec.ts"]
+
+
+def test_a_job_level_suppression_reports_no_specs():
+    cand = planning.Candidate(
+        base_ref="main",
+        surface=classify.SURFACE_HELM_INSTALL,
+        job_name="install for install on gke - agrn",
+        source="connectors",
+        job_level=True,
+    )
+    result = planning.plan_dispatches(
+        [cand],
+        covered_fingerprints=set(),
+        inflight_keys=set(),
+        open_pr_keys=set(),
+        product_bug_fingerprints=set(),
+    )
+    payload = discover.serialise(result, classify.Blame(None, None, None, "none"), "1")
+    assert payload["suppressed"][0]["specs"] == []
