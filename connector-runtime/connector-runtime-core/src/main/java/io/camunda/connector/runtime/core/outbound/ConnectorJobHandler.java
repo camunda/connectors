@@ -31,6 +31,9 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
@@ -60,31 +63,19 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected ObjectMapper objectMapper;
 
-  /**
-   * Create a handler wrapper for the specified connector function.
-   *
-   * @param call - the connector function to call
-   */
-  public ConnectorJobHandler(
-      final OutboundConnectorFunction call, ValidationProvider validationProvider) {
-    this.call = call;
-    this.validationProvider = validationProvider;
-  }
+  private final SecretFilterFactory secretFilterFactory;
 
-  /**
-   * Create a handler wrapper for the specified connector function.
-   *
-   * @param call - the connector function to call
-   */
   public ConnectorJobHandler(
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
-      final ObjectMapper objectMapper) {
+      final ObjectMapper objectMapper,
+      final SecretFilterFactory secretFilterFactory) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   protected static Map<String, Object> exceptionToMap(Exception exception) {
@@ -176,11 +167,16 @@ public class ConnectorJobHandler implements JobHandler {
       return;
     }
 
+    SecretFilter secretFilter =
+        secretFilterFactory.create(
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+
     ConnectorResult result;
 
     try {
       var context =
-          new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
+          new JobHandlerContext(
+              job, getSecretProvider(), validationProvider, objectMapper, secretFilter);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(

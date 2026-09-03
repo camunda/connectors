@@ -22,8 +22,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -80,5 +82,43 @@ public class SecretUtilTests {
     Function<String, String> secretReplacer = (name) -> secrets.get(name);
     var result = SecretUtil.replaceSecrets(input, secretReplacer);
     assertThat(result).isEqualTo(output);
+  }
+
+  @Test
+  void shouldOnlyReplaceAllowListedSecrets() {
+    List<String> allowList = List.of("KEY1", "KEY2");
+    Function<String, String> secretReplacer =
+        name -> allowList.contains(name) ? secrets.get(name) : null;
+    String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
+    String replacedContent = SecretUtil.replaceSecrets(content, secretReplacer);
+    assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "no secrets here,",
+    "secrets.FOO,FOO",
+    "{{secrets.FOO}},FOO",
+  })
+  void shouldRetrieveSecretKeysInInput(String input, String expectedKey) {
+    var keys = SecretUtil.retrieveSecretKeysInInput(input);
+    if (expectedKey == null) {
+      assertThat(keys).isEmpty();
+    } else {
+      assertThat(keys).containsExactly(expectedKey);
+    }
+  }
+
+  @Test
+  void shouldRetrieveMultipleDistinctSecretKeysInInput() {
+    var keys =
+        SecretUtil.retrieveSecretKeysInInput("{{secrets.FOO}} and secrets.BAR and {{secrets.FOO}}");
+    assertThat(keys).containsExactlyInAnyOrder("FOO", "BAR");
+  }
+
+  @Test
+  void shouldTrimSecretKeyExtractedFromBracketedReference() {
+    var keys = SecretUtil.retrieveSecretKeysInInput("{{ secrets.FOO:BAR }}");
+    assertThat(keys).contains("FOO:BAR");
   }
 }

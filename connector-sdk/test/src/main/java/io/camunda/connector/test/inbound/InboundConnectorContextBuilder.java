@@ -35,6 +35,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -207,7 +208,7 @@ public class InboundConnectorContextBuilder {
         SecretProvider secretProvider,
         ValidationProvider validationProvider,
         CorrelationResult result) {
-      super(secretProvider, validationProvider);
+      super(secretProvider, SecretFilter.allowAll(), validationProvider);
       this.result = result;
       try {
         propertiesWithSecrets =
