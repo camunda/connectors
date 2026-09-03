@@ -272,8 +272,12 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected void logError(ActivatedJob job, Exception ex) {
+    // The wrapper message is redacted, but its cause is not, so do not log the throwable.
     LOGGER.error(
-        "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
+        "Exception while processing job: {} for tenant: {}, message: {}",
+        job.getKey(),
+        job.getTenantId(),
+        ex.getMessage());
   }
 
   protected void completeJob(
