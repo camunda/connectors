@@ -356,18 +356,23 @@ public class OutboundConnectorExceptionHandler {
     return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
   }
 
+  /**
+   * The allow-list lookup reads the process definition from secondary storage, which a
+   * just-deployed definition has yet to reach, so a failure to read it is backed off rather than
+   * retried at once — remaining attempts would otherwise all be spent inside that window.
+   */
+  private static Duration retryBackoffFor(Exception failure, Duration configured) {
+    return failure instanceof SecretAllowListUnavailableException
+        ? Objects.requireNonNullElse(configured, ALLOW_LIST_RETRY_BACKOFF)
+        : configured;
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
     if (e instanceof SecretAllowListUnavailableException) {
       // Nothing to redact: every substitution goes through the allow-list, so one that could not
-      // be read means no secret value ever reached the input. Backed off rather than failed
-      // outright — the lookup reads the process definition from secondary storage, which a
-      // just-deployed definition has yet to reach.
-      return handleGenericException(
-          job,
-          e,
-          List.of(),
-          Objects.requireNonNullElse(retryBackoffDuration, ALLOW_LIST_RETRY_BACKOFF));
+      // be read means no secret value ever reached the input.
+      return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
     }
     var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
@@ -382,7 +387,10 @@ public class OutboundConnectorExceptionHandler {
           isFatalInputError(masking.failure()) || isFatalInputError(e) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
-          Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, retries);
+          Map.of("error", exceptionToMap(wrappedException, List.of())),
+          wrappedException,
+          retries,
+          retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
     List<String> secrets = masking.secrets();
     return switch (e) {

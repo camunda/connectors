@@ -208,6 +208,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("boom"), job, null, unreadableAllowList);
 
     assertThat(result.exception()).hasMessageContaining("Activity_1");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
   }
 
   @Test
