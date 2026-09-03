@@ -22,7 +22,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.ArrayList;
@@ -35,6 +38,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 public class SecretUtilTests {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static ObjectNode wrap(String value) {
+    return OBJECT_MAPPER.createObjectNode().put("value", value);
+  }
 
   @ParameterizedTest
   @CsvSource({
@@ -60,9 +69,9 @@ public class SecretUtilTests {
   })
   void testSecretPattern(String input, String secret, Boolean shouldDetect) {
     var secretReplacer = mock(SecretReplacer.class);
-    SecretUtil.replaceSecrets(input, null, secretReplacer);
+    SecretUtil.replaceSecrets(wrap(input), null, secretReplacer);
     if (shouldDetect) {
-      verify(secretReplacer).replaceSecrets(eq(secret), any());
+      verify(secretReplacer).replaceSecrets(eq(new Secret(secret, List.of("value"))), any());
     } else {
       verifyNoInteractions(secretReplacer);
     }
@@ -83,37 +92,44 @@ public class SecretUtilTests {
         "{\"field1\": \"{{secrets.KEY1}}\", \"field2\": \"{{secrets.KEY2}}\"}|{\"field1\": \"VALUE1\", \"field2\": \"VALUE2\"}",
       },
       delimiter = '|') // delimiter is needed to escape the comma in the json
-  void testSecretReplacementWithJsonInput(String input, String output) {
-    SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
-    var result = SecretUtil.replaceSecrets(input, null, secretReplacer);
-    assertThat(result).isEqualTo(output);
+  void testSecretReplacementWithJsonInput(String input, String output) throws Exception {
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
+    var result =
+        SecretUtil.replaceSecrets((ObjectNode) OBJECT_MAPPER.readTree(input), null, secretReplacer);
+    assertThat(result).isEqualTo(OBJECT_MAPPER.readTree(output));
   }
 
   @Test
   void shouldNotReplaceInsideACamundaSecretsReference() {
     var secretReplacer = mock(SecretReplacer.class);
 
-    String result = SecretUtil.replaceSecrets("=camunda.secrets.FOO", null, secretReplacer);
+    var result = SecretUtil.replaceSecrets(wrap("=camunda.secrets.FOO"), null, secretReplacer);
 
-    assertThat(result).isEqualTo("=camunda.secrets.FOO");
+    assertThat(result.get("value").asText()).isEqualTo("=camunda.secrets.FOO");
     verifyNoInteractions(secretReplacer);
   }
 
   @Test
   void shouldStillReplaceALegacyReferenceAlongsideACamundaSecretsReference() {
-    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+    SecretReplacer secretReplacer =
+        (secret, context) -> "FOO".equals(secret.secretName()) ? "resolved" : null;
 
-    String result =
-        SecretUtil.replaceSecrets("camunda.secrets.FOO and {{secrets.FOO}}", null, secretReplacer);
+    var result =
+        SecretUtil.replaceSecrets(
+            wrap("camunda.secrets.FOO and {{secrets.FOO}}"), null, secretReplacer);
 
-    assertThat(result).isEqualTo("camunda.secrets.FOO and resolved");
+    assertThat(result.get("value").asText()).isEqualTo("camunda.secrets.FOO and resolved");
   }
 
   @Test
   void shouldStillReplaceASecretsPrefixedWordThatIsNotTheCamundaPrefix() {
-    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+    SecretReplacer secretReplacer =
+        (secret, context) -> "FOO".equals(secret.secretName()) ? "resolved" : null;
 
-    assertThat(SecretUtil.replaceSecrets("other.secrets.FOO", null, secretReplacer))
+    assertThat(
+            SecretUtil.replaceSecrets(wrap("other.secrets.FOO"), null, secretReplacer)
+                .get("value")
+                .asText())
         .isEqualTo("other.resolved");
   }
 
@@ -133,9 +149,11 @@ public class SecretUtilTests {
     var withWhitespace = "{{ secrets.FOO }}";
     var replaced =
         SecretUtil.replaceSecrets(
-            withWhitespace, null, (name, context) -> "FOO".equals(name) ? "resolved" : null);
+            wrap(withWhitespace),
+            null,
+            (secret, context) -> "FOO".equals(secret.secretName()) ? "resolved" : null);
 
-    assertThat(replaced).isEqualTo("resolved");
+    assertThat(replaced.get("value").asText()).isEqualTo("resolved");
     assertThat(SecretUtil.retrieveSecretKeysInInput(withWhitespace)).containsExactly("FOO");
     assertThat(SecretUtil.retrieveLegacySecretKeysInInput(withWhitespace)).containsExactly("FOO");
   }
@@ -154,20 +172,20 @@ public class SecretUtilTests {
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
-        (name, context) -> allowList.contains(name) ? secrets.get(name) : null;
+        (secret, context) ->
+            allowList.contains(secret.secretName()) ? secrets.get(secret.secretName()) : null;
     String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
     SecretContext secretContext = new SecretContext("tenantId", "processId");
-    String replacedContent = SecretUtil.replaceSecrets(content, secretContext, secretReplacer);
-    assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
+    var replacedContent = SecretUtil.replaceSecrets(wrap(content), secretContext, secretReplacer);
+    assertThat(replacedContent.get("value").asText())
+        .isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
   }
 
   @Test
   void shouldNotResolveABarePrefixOfADeniedBracketedName() {
     var asked = new ArrayList<String>();
 
-    assertThat(
-            SecretUtil.replaceSecrets(
-                "{{secrets.PROD:API}}", null, recording(asked, Map.of("PROD", "p4ssw0rd"))))
+    assertThat(replacedValue("{{secrets.PROD:API}}", asked, Map.of("PROD", "p4ssw0rd")))
         .isEqualTo("{{secrets.PROD:API}}");
     assertThat(asked).containsExactly("PROD:API");
   }
@@ -177,8 +195,7 @@ public class SecretUtilTests {
     var asked = new ArrayList<String>();
     var secrets = Map.of("A", "{{secrets.PROD:API}}", "PROD", "p4ssw0rd");
 
-    assertThat(SecretUtil.replaceSecrets("{{secrets.A}}", null, recording(asked, secrets)))
-        .isEqualTo("{{secrets.PROD:API}}");
+    assertThat(replacedValue("{{secrets.A}}", asked, secrets)).isEqualTo("{{secrets.PROD:API}}");
     assertThat(asked).containsExactly("A");
   }
 
@@ -187,8 +204,7 @@ public class SecretUtilTests {
     var asked = new ArrayList<String>();
     var secrets = Map.of("NOTE", "see secrets.OTHER", "OTHER", "TOP_SECRET");
 
-    assertThat(SecretUtil.replaceSecrets("{{secrets.NOTE}}", null, recording(asked, secrets)))
-        .isEqualTo("see secrets.OTHER");
+    assertThat(replacedValue("{{secrets.NOTE}}", asked, secrets)).isEqualTo("see secrets.OTHER");
     assertThat(asked).containsExactly("NOTE");
   }
 
@@ -204,9 +220,7 @@ public class SecretUtilTests {
   void shouldAskForEveryNameAtMostOnce() {
     var asked = new ArrayList<String>();
 
-    assertThat(
-            SecretUtil.replaceSecrets(
-                "secrets.K secrets.K {{secrets.K}}", null, recording(asked, Map.of("K", "V"))))
+    assertThat(replacedValue("secrets.K secrets.K {{secrets.K}}", asked, Map.of("K", "V")))
         .isEqualTo("V V V");
     assertThat(asked).containsExactly("K");
   }
@@ -216,7 +230,7 @@ public class SecretUtilTests {
     var asked = new ArrayList<String>();
     var input = "{{secrets.DENIED}} secrets.DENIED {{secrets.DENIED}}";
 
-    assertThat(SecretUtil.replaceSecrets(input, null, recording(asked, Map.of()))).isEqualTo(input);
+    assertThat(replacedValue(input, asked, Map.of())).isEqualTo(input);
     assertThat(asked).containsExactly("DENIED");
   }
 
@@ -228,8 +242,7 @@ public class SecretUtilTests {
             .mapToObj(i -> "{{secrets.DENIED" + i + ":X}}")
             .collect(Collectors.joining(" "));
 
-    assertThat(SecretUtil.replaceSecrets(payload, null, recording(asked, Map.of())))
-        .isEqualTo(payload);
+    assertThat(replacedValue(payload, asked, Map.of())).isEqualTo(payload);
     assertThat(asked).hasSize(5000);
   }
 
@@ -240,14 +253,22 @@ public class SecretUtilTests {
     var asked = new ArrayList<String>();
     var input = "{\"pw\":\"{{secrets.\0}}\"}";
 
-    assertThat(SecretUtil.replaceSecrets(input, null, recording(asked, Map.of()))).isEqualTo(input);
+    assertThat(replacedValue(input, asked, Map.of())).isEqualTo(input);
     assertThat(asked).containsExactly("\0");
   }
 
   private static SecretReplacer recording(List<String> asked, Map<String, String> secrets) {
-    return (name, context) -> {
-      asked.add(name);
-      return secrets.get(name);
+    return (secret, context) -> {
+      asked.add(secret.secretName());
+      return secrets.get(secret.secretName());
     };
+  }
+
+  /** The substituted text of the single {@code value} property {@link #wrap} puts a string in. */
+  private static String replacedValue(
+      String input, List<String> asked, Map<String, String> secrets) {
+    return SecretUtil.replaceSecrets(wrap(input), null, recording(asked, secrets))
+        .get("value")
+        .asText();
   }
 }

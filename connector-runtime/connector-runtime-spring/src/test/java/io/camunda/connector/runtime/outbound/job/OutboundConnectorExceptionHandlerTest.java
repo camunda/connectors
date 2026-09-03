@@ -27,6 +27,8 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -34,6 +36,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
@@ -57,6 +60,8 @@ import org.slf4j.LoggerFactory;
  */
 class OutboundConnectorExceptionHandlerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final SecretProvider secretProvider = mock(SecretProvider.class);
   private final List<String> requestedKeys = new ArrayList<>();
   private final OutboundConnectorExceptionHandler handler =
@@ -64,11 +69,21 @@ class OutboundConnectorExceptionHandlerTest {
 
   private static ActivatedJob jobOnEngine(String physicalTenantId) {
     var job = mock(ActivatedJob.class);
-    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    var variables = "{\"token\": \"{{secrets.FOO}}\"}";
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn(physicalTenantId);
     return job;
+  }
+
+  private static ObjectNode readTree(String json) {
+    try {
+      return (ObjectNode) OBJECT_MAPPER.readTree(json);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private SecretContext captureSecretContext() {
@@ -517,7 +532,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new SecretNotAvailableException("BAR"),
+            new SecretNotAvailableException(new Secret("BAR", List.of("b"))),
             job,
             Duration.ofSeconds(1),
             SecretFilter.allowAll(),
@@ -546,13 +561,37 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void aSecretOccurringAtSeveralPathsIsLookedUpOnlyOnce() {
+    // Secret now carries fieldPath, so TOKEN at three different paths is three distinct Secret
+    // values; the re-read must still collapse them into a single provider lookup by name rather
+    // than fetching the same secret once per path it occurs at.
+    var job =
+        jobNaming(
+            "{\"a\": \"{{secrets.TOKEN}}\", \"b\": \"{{secrets.TOKEN}}\", \"c\":"
+                + " \"{{secrets.TOKEN}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("TOKEN", "token-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected token-value everywhere"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(requestedKeys).containsExactly("TOKEN");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** everywhere");
+  }
+
+  @Test
   void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
-    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so nothing here
-    // holds "DB" and it comes back short by construction. Requiring the new form back would
-    // withhold the error message of nearly every failed job that uses the new syntax. Do not delete
-    // this as redundant with the test above: it is the whole reason completeness is required only
-    // of
-    // the legacy names.
+    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so it must not be
+    // asked for here at all -- a name declared only in the new form must not authorize resolving
+    // that same name as a legacy secret, since the two are separate stores (this is also why
+    // requestedKeys must not contain "DB": if it were requested and this provider held a value
+    // under that name for an unrelated reason, it would leak into a message this filter never
+    // authorized it to redact into).
     var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
     when(job.getRetries()).thenReturn(3);
     holdingOnly(Map.of("FOO", "foo-value"));
@@ -565,6 +604,7 @@ class OutboundConnectorExceptionHandlerTest {
             SecretFilter.allowAll(),
             List.of());
 
+    assertThat(requestedKeys).containsExactly("FOO");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
   }
 
@@ -653,6 +693,7 @@ class OutboundConnectorExceptionHandlerTest {
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn("engine-1");
