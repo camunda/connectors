@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
@@ -96,14 +97,14 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void create_strict_whenCacheThrows_throwsIllegalArgumentException() {
+  void create_strict_whenCacheThrows_throwsSecretAllowListUnavailableException() {
     when(secretKeyCache.getSecretKeys(any())).thenThrow(new RuntimeException("fetch failed"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(SecretAllowListUnavailableException.class)
         .hasMessageContaining("Error retrieving secret keys");
   }
 
@@ -196,7 +197,7 @@ class ConfigurableSecretFilterFactoryTest {
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(SecretAllowListUnavailableException.class);
   }
 
   private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(

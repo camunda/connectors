@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.job;
 
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -88,7 +89,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                   context.elementId(),
                   context.processDefinitionKey(),
                   realCause.getClass().getName());
-              throw new IllegalArgumentException(
+              throw new SecretAllowListUnavailableException(
                   "Error retrieving secret keys for element '"
                       + context.elementId()
                       + "' in process definition key "

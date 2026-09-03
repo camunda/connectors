@@ -24,6 +24,7 @@ import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -36,6 +37,9 @@ public class OutboundConnectorExceptionHandler {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
+
+  private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
+
   private final SecretProvider secretProvider;
 
   public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
@@ -140,8 +144,17 @@ public class OutboundConnectorExceptionHandler {
     };
   }
 
+  private static Duration retryBackoffFor(Exception failure, Duration configured) {
+    return failure instanceof SecretAllowListUnavailableException
+        ? ALLOW_LIST_RETRY_BACKOFF
+        : configured;
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+    if (e instanceof SecretAllowListUnavailableException) {
+      return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
+    }
     List<String> secrets;
     try {
       var allowedKeys =
@@ -163,7 +176,8 @@ public class OutboundConnectorExceptionHandler {
       return new ConnectorResult.ErrorResult(
           Map.of("error", exceptionToMap(wrappedException)),
           wrappedException,
-          job.getRetries() - 1);
+          job.getRetries() - 1,
+          retryBackoffFor(ex, retryBackoffDuration));
     }
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
