@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Logger;
@@ -153,6 +154,60 @@ class OutboundConnectorExceptionHandlerTest {
             SecretFilter.allowAll());
 
     assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheReasonTheAllowListCouldNotBeRead() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException(
+                "Error retrieving secret keys for element 'Activity_1' in process definition key 42"
+                    + " (io.camunda.client.api.command.ProblemException)"),
+            job,
+            null,
+            SecretFilter.allowAll());
+
+    assertThat(result.exception())
+        .hasMessageContaining("Activity_1")
+        .hasMessageContaining("ProblemException");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+    verifyNoInteractions(secretProvider);
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_prefersTheModelsBackoffWhenTheAllowListCouldNotBeRead() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException("lookup failed"),
+            job,
+            Duration.ofMinutes(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofMinutes(1));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheAllowListFailureRaisedByTheMaskingRead() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    SecretFilter unreadableAllowList =
+        name -> {
+          throw new SecretAllowListUnavailableException(
+              "Error retrieving secret keys for element 'Activity_1'");
+        };
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, null, unreadableAllowList);
+
+    assertThat(result.exception()).hasMessageContaining("Activity_1");
   }
 
   @Test

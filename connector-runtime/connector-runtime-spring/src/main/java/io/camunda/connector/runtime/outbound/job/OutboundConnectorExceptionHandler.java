@@ -44,6 +44,8 @@ public class OutboundConnectorExceptionHandler {
   /** Stands in for a container that (transitively) contains itself, so masking cannot loop. */
   private static final String CIRCULAR_REFERENCE = "[circular reference]";
 
+  private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
+
   private final SecretProvider secretProvider;
 
   public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
@@ -356,6 +358,17 @@ public class OutboundConnectorExceptionHandler {
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+    if (e instanceof SecretAllowListUnavailableException) {
+      // Nothing to redact: every substitution goes through the allow-list, so one that could not
+      // be read means no secret value ever reached the input. Backed off rather than failed
+      // outright — the lookup reads the process definition from secondary storage, which a
+      // just-deployed definition has yet to reach.
+      return handleGenericException(
+          job,
+          e,
+          List.of(),
+          Objects.requireNonNullElse(retryBackoffDuration, ALLOW_LIST_RETRY_BACKOFF));
+    }
     var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
