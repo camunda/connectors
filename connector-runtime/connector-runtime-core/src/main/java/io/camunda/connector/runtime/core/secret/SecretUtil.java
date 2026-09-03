@@ -34,9 +34,8 @@ public class SecretUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
-  // One pattern, so that one left-to-right scan consumes each reference whole. Scanning per form or
-  // per caller instead lets a narrower alternative re-read the inside of a wider match under its
-  // own alphabet -- the FOO of {{secrets.FOO:BAR}} -- a name the text never declared.
+  // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
+  // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
   private static final Pattern REFERENCE =
       Pattern.compile(
           "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
@@ -53,8 +52,7 @@ public class SecretUtil {
         input,
         REFERENCE,
         matcher -> {
-          String name = legacyName(matcher);
-          String value = name == null ? null : resolve(name, context, secretReplacer, resolutions);
+          String value = resolve(legacyName(matcher), context, secretReplacer, resolutions);
           return value == null ? matcher.group() : new String(encoder.quoteAsString(value));
         });
   }
@@ -75,10 +73,13 @@ public class SecretUtil {
   }
 
   private static @Nullable String resolve(
-      String name,
+      @Nullable String name,
       SecretContext context,
       SecretReplacer secretReplacer,
       Map<String, String> resolutions) {
+    if (name == null) {
+      return null;
+    }
     if (!resolutions.containsKey(name)) {
       resolutions.put(name, secretReplacer.replaceSecrets(name, context));
     }
@@ -119,7 +120,7 @@ public class SecretUtil {
   }
 
   private static List<String> keysIn(String input, String... groups) {
-    return Objects.isNull(input)
+    return input == null
         ? List.of()
         : REFERENCE
             .matcher(input)
