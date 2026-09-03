@@ -57,10 +57,13 @@ import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
@@ -84,6 +87,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private volatile ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
+  private volatile @Nullable List<String> reReadSecrets;
+  private final Set<String> capturedSecretValues = ConcurrentHashMap.newKeySet();
+
+  private static final String REDACTION_UNAVAILABLE_MESSAGE =
+      "Message withheld: could not verify it does not contain a secret value";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -429,15 +437,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private <T> T bindElementProperties(
       ValidInboundConnectorDetails details, Map<String, String> rawProperties, Class<T> cls) {
+    var handler = secretHandler(rawProperties);
     try {
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
-      var withSecrets =
-          InboundPropertyHandler.getPropertiesWithSecrets(
-              secretHandler(rawProperties),
-              objectMapper,
-              wrapped,
-              new SecretContext(
-                  details.tenantId(), details.processDefinitionId(), physicalTenantId()));
+      Map<String, Object> withSecrets;
+      try {
+        withSecrets =
+            InboundPropertyHandler.getPropertiesWithSecrets(
+                handler,
+                objectMapper,
+                wrapped,
+                new SecretContext(
+                    details.tenantId(), details.processDefinitionId(), physicalTenantId()));
+      } finally {
+        capturedSecretValues.addAll(handler.getResolvedValues());
+      }
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
@@ -485,7 +499,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     if (health == null) {
       throw new IllegalArgumentException("Health must not be null");
     }
-    if (health.equals(this.health)) {
+    var masked = redactHealth(health);
+    if (!isWithheld(masked) && masked.equals(this.health)) {
       return;
     }
     var activityLog =
@@ -494,9 +509,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             .withMessage(
                 String.format(
                     "Health status changed to %s, details: %s",
-                    health.getStatus(), health.getDetails()))
-            .withSeverity(health.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
-            .andReportHealth(health)
+                    masked.getStatus(), masked.getDetails()))
+            .withSeverity(masked.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
+            .andReportHealth(masked)
             .build();
     // append the activity log to store the health status change history
     activityLogWriter.log(
@@ -504,7 +519,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
             activityLog));
-    this.health = health;
+    this.health = masked;
   }
 
   @Override
@@ -514,14 +529,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    if (log.healthChange() != null) {
-      this.health = log.healthChange();
+    var masked = redact(log);
+    if (masked.healthChange() != null) {
+      this.health = masked.healthChange();
     }
     activityLogWriter.log(
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
-            log));
+            masked));
   }
 
   @Override
@@ -541,7 +557,94 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.RUNTIME,
-            builder.build()));
+            redact(builder.build())));
+  }
+
+  // captures are only ever unioned into a successful, complete re-read, never a substitute for one
+  private @Nullable List<String> secretValuesForRedaction() {
+    var reRead = reReadSecretValues();
+    if (reRead == null) {
+      return null;
+    }
+    if (capturedSecretValues.isEmpty()) {
+      return reRead;
+    }
+    var union = new ArrayList<>(reRead);
+    union.addAll(capturedSecretValues);
+    return union;
+  }
+
+  private @Nullable List<String> reReadSecretValues() {
+    var cached = reReadSecrets;
+    if (cached != null) {
+      return cached;
+    }
+    var values = fetchSecretValuesForRedaction();
+    if (values != null) {
+      reReadSecrets = values;
+    }
+    return values;
+  }
+
+  // legacy names across every grouped element, not just this context's representative one
+  private @Nullable List<String> fetchSecretValuesForRedaction() {
+    var names =
+        connectorDetails.connectorElements().stream()
+            .flatMap(element -> element.rawProperties().values().stream())
+            .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
+            .distinct()
+            .toList();
+    if (names.isEmpty()) {
+      return List.of();
+    }
+    try {
+      var values = secretProvider.fetchAll(names, redactionSecretContext());
+      // fewer values than names means a partial read, treated the same as a failed one
+      return values.size() < names.size() ? null : values;
+    } catch (Exception e) {
+      LOG.warn("Could not fetch secret values to redact activity log: {}", e.getClass().getName());
+      return null;
+    }
+  }
+
+  private SecretContext redactionSecretContext() {
+    return new SecretContext(
+        connectorDetails.tenantId(), connectorDetails.processDefinitionId(), physicalTenantId());
+  }
+
+  private @Nullable String redactMessage(@Nullable String message) {
+    if (message == null) {
+      return null;
+    }
+    var secrets = secretValuesForRedaction();
+    return secrets == null
+        ? REDACTION_UNAVAILABLE_MESSAGE
+        : SecretUtil.hideSecretsFromMessage(message, secrets);
+  }
+
+  // an unmaskable health can't be verified as a repeat either, so it must never be deduped away
+  private static boolean isWithheld(Health health) {
+    return health.getError() != null
+        && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message());
+  }
+
+  private @Nullable Health redactHealth(@Nullable Health health) {
+    if (health == null || health.getError() == null) {
+      return health;
+    }
+    var error = health.getError();
+    return health.withError(
+        new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+  }
+
+  private Activity redact(Activity activity) {
+    return new Activity(
+        activity.severity(),
+        activity.tag(),
+        activity.timestamp(),
+        redactMessage(activity.message()),
+        activity.data(),
+        redactHealth(activity.healthChange()));
   }
 
   @Override
@@ -556,15 +659,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
-      propertiesWithSecrets =
-          InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(),
-              objectMapper,
-              properties,
-              new SecretContext(
-                  connectorDetails.tenantId(),
-                  connectorDetails.processDefinitionId(),
-                  physicalTenantId()));
+      var handler = getSecretHandler();
+      try {
+        propertiesWithSecrets =
+            InboundPropertyHandler.getPropertiesWithSecrets(
+                handler,
+                objectMapper,
+                properties,
+                new SecretContext(
+                    connectorDetails.tenantId(),
+                    connectorDetails.processDefinitionId(),
+                    physicalTenantId()));
+      } finally {
+        capturedSecretValues.addAll(handler.getResolvedValues());
+      }
     }
     return propertiesWithSecrets;
   }
@@ -612,6 +720,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               + message);
     }
     connectorDetails = newDetails;
+    reReadSecrets = null;
     logRuntime(
         builder ->
             builder

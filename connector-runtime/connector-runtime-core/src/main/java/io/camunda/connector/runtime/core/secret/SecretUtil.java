@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,8 @@ import org.jspecify.annotations.Nullable;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
+
+  private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
   // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
   // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
@@ -174,6 +178,16 @@ public class SecretUtil {
     }
   }
 
+  /**
+   * The form a resolved value takes once the substituted tree is serialized back to JSON. The walk
+   * writes the raw value into a {@code TextNode} and lets Jackson escape it on output, so this is
+   * not applied during substitution — but a caller redacting a message that quotes the serialized
+   * JSON has to match this form as well as the raw one.
+   */
+  public static String jsonEscape(String value) {
+    return new String(encoder.quoteAsString(value));
+  }
+
   public static String replaceTokens(
       String original, Pattern pattern, Function<Matcher, String> converter) {
     int lastIndex = 0;
@@ -257,5 +271,17 @@ public class SecretUtil {
             .flatMap(match -> Stream.of(groups).map(match::group))
             .filter(Objects::nonNull)
             .distinct();
+  }
+
+  // Longest secret first: masking a shorter secret that prefixes a longer one would destroy the
+  // longer match and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET".
+  public static String hideSecretsFromMessage(String message, List<String> secrets) {
+    if (message == null) {
+      return "";
+    }
+    return secrets.stream()
+        .filter(secret -> !secret.isEmpty())
+        .sorted(Comparator.comparingInt(String::length).reversed())
+        .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
   }
 }
