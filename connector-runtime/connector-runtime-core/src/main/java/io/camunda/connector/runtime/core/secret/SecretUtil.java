@@ -46,11 +46,11 @@ public class SecretUtil {
         REFERENCE,
         matcher -> {
           String value = resolve(name(matcher), secretReplacer, resolutions);
-          return value == null ? matcher.group() : value;
+          return value == null ? matcher.group() : jsonEscape(value);
         });
   }
 
-  // The form a value would take once spliced into JSON, which a raw-value capture would miss.
+  // The form actually spliced into the substituted JSON, which a raw-value capture would miss.
   public static String jsonEscape(String value) {
     return new String(JsonStringEncoder.getInstance().quoteAsString(value));
   }

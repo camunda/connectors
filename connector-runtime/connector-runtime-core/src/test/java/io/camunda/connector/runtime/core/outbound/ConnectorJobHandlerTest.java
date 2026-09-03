@@ -36,6 +36,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -1402,7 +1403,7 @@ class ConnectorJobHandlerTest {
           },
           rotatingSecretProvider,
           e -> {},
-          null,
+          ConnectorsObjectMapperSupplier.getCopy(),
           SecretFilterFactory.disabled());
     }
 
@@ -1429,6 +1430,44 @@ class ConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, false);
 
       assertThat(result.getErrorMessage()).doesNotContain("stable-value");
+    }
+
+    @Test
+    void aValueCarryingAJsonEscapeIsBoundAndRedactedUnchanged() {
+      // the value is spliced into the job's variables as JSON, so it is escaped on the way in:
+      // splicing it raw would bind "pa<newline>ss" instead, which is neither what the store holds
+      // nor what a capture or a re-read could match
+      var jobHandler = connectorThrowingTheBoundToken("pa\\nss", "new-value");
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).isEqualTo("api rejected ***");
+    }
+  }
+
+  @Nested
+  class SecretProviderDiscoveryFailureTests {
+
+    @Test
+    void aProviderThatCannotBeBuiltFailsTheJobRatherThanAbandoningIt() {
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> "never reached", null, e -> {}, null, SecretFilterFactory.disabled()) {
+            @Override
+            protected SecretProvider getSecretProvider() {
+              throw new IllegalStateException("no secret provider could be discovered");
+            }
+          };
+
+      var result =
+          JobBuilder.create().withVariables("{}").executeAndCaptureResult(jobHandler, false, false);
+
+      // discovery runs before anything is bound, so the failure carries no secret and is reported
+      // as it is; letting it escape would leave the job for its activation timeout instead
+      assertThat(result.getErrorMessage()).isEqualTo("no secret provider could be discovered");
     }
   }
 }

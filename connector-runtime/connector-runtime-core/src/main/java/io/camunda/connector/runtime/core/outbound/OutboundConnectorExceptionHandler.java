@@ -70,6 +70,16 @@ public class OutboundConnectorExceptionHandler {
     this.secretProvider = secretProvider;
   }
 
+  /**
+   * For a job whose secret provider could not be built at all. Discovery runs before the input is
+   * bound, so such a job resolved nothing: its failure cannot carry a secret value, and there is no
+   * provider left to ask for one either. Withholding the message here would hide a runtime failure
+   * an operator has to see, to redact values that were never substituted.
+   */
+  static OutboundConnectorExceptionHandler withoutSecretProvider() {
+    return new OutboundConnectorExceptionHandler(null);
+  }
+
   static Map<String, Object> exceptionToMap(Exception wrappedException, List<String> secrets) {
     Map<String, Object> result = new HashMap<>();
     // Every wrapper built here carries the failure it reports as its cause, except the one that
@@ -203,6 +213,10 @@ public class OutboundConnectorExceptionHandler {
    */
   private MaskingSecrets fetchSecretsForMasking(
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
+    if (secretProvider == null) {
+      // see withoutSecretProvider(): nothing was resolved, so there is nothing to redact
+      return new MaskingSecrets(List.of(), null);
+    }
     try {
       var keys =
           allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter);

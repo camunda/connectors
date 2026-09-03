@@ -171,16 +171,19 @@ public class ConnectorJobHandler implements JobHandler {
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
 
-    // one provider instance for both binding and the masking re-read
-    var jobSecretProvider = getSecretProvider();
-    var exceptionHandler = new OutboundConnectorExceptionHandler(jobSecretProvider);
-
     ConnectorResult result;
 
     // declared outside the try: what it resolved is what a rotated re-read would no longer match
     JobHandlerContext context = null;
+    // starts out with no provider, and gets one inside the try: discovering a provider can fail,
+    // and that failure has always failed the job rather than escaped this method and abandoned it
+    OutboundConnectorExceptionHandler exceptionHandler =
+        OutboundConnectorExceptionHandler.withoutSecretProvider();
 
     try {
+      // one provider instance for both binding and the masking re-read
+      var jobSecretProvider = getSecretProvider();
+      exceptionHandler = new OutboundConnectorExceptionHandler(jobSecretProvider);
       context =
           new JobHandlerContext(
               job, jobSecretProvider, validationProvider, objectMapper, secretFilter);
@@ -197,6 +200,7 @@ public class ConnectorJobHandler implements JobHandler {
               ex, job, retryBackoff, secretFilter, capturedSecrets(context));
     }
 
+    final OutboundConnectorExceptionHandler errorHandler = exceptionHandler;
     final List<String> capturedSecrets = capturedSecrets(context);
 
     try {
@@ -210,7 +214,7 @@ public class ConnectorJobHandler implements JobHandler {
                 handleBPMNError(
                     client,
                     job,
-                    exceptionHandler.maskConnectorError(error, job, secretFilter, capturedSecrets));
+                    errorHandler.maskConnectorError(error, job, secretFilter, capturedSecrets));
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -229,7 +233,7 @@ public class ConnectorJobHandler implements JobHandler {
       failJob(
           client,
           job,
-          exceptionHandler.handleFinalResultException(ex, job, secretFilter, capturedSecrets));
+          errorHandler.handleFinalResultException(ex, job, secretFilter, capturedSecrets));
     }
   }
 

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
@@ -36,6 +37,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -436,6 +438,83 @@ class InboundConnectorContextImplTest {
     // then no read is attempted for a health that carries no message to redact
     assertThat(context.getHealth()).isEqualTo(Health.up());
     verify(provider, never()).getSecret(any());
+  }
+
+  @Test
+  void log_masksASecretAnActivatedElementBoundBeforeItRotated() {
+    // given a correlation that hands the connector an element context, which resolves through its
+    // own secret handler rather than this one
+    EvictingQueue<Activity> logs = EvictingQueue.create(10);
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret("FOO")).thenReturn("old-value", "new-value");
+    var details = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context = correlatingContext(details, rotatingProvider, logs);
+
+    // when the element binds the secret and it rotates before anything is logged
+    var activatedElement =
+        ((CorrelationResult.Success) context.correlateWithResult(Map.of())).activatedElement();
+    activatedElement.getProperties();
+    context.log(errorActivity("token was old-value"));
+
+    // then the value the element bound is redacted, even though this context never bound it and a
+    // re-read now returns a different one
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void reportHealth_masksASecretAnActivatedElementBoundBeforeItRotated() {
+    // given
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret("FOO")).thenReturn("old-value", "new-value");
+    var details = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context = correlatingContext(details, rotatingProvider, EvictingQueue.create(10));
+
+    // when
+    var activatedElement =
+        ((CorrelationResult.Success) context.correlateWithResult(Map.of())).activatedElement();
+    activatedElement.getProperties();
+    context.reportHealth(Health.down(new RuntimeException("token was old-value")));
+
+    // then
+    assertThat(context.getHealth().getError().message())
+        .doesNotContain("old-value")
+        .endsWith("token was ***");
+  }
+
+  @Test
+  void log_masksASecretWhoseValueCarriesAJsonEscape() {
+    // given a value that is not its own JSON representation
+    EvictingQueue<Activity> logs = EvictingQueue.create(10);
+    var value = "pa\\nss";
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret("FOO")).thenReturn(value, "new-value");
+    var context =
+        loggingContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.FOO")), rotatingProvider, logs);
+
+    // when it is bound and then rotates, leaving only the capture to redact with
+    assertThat(context.getProperties()).containsEntry("token", value);
+    context.log(errorActivity("token was " + value));
+
+    // then it was spliced into the properties JSON escaped, so what was bound is what was captured
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  private InboundConnectorContextImpl correlatingContext(
+      ValidInboundConnectorDetails details, SecretProvider provider, EvictingQueue<Activity> logs) {
+    var elementContext =
+        new DefaultProcessElementContext(
+            details.connectorElements().getFirst(), (e) -> {}, provider, mapper);
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.MessagePublished(elementContext, 1L, "<default>"));
+    return new InboundConnectorContextImpl(
+        provider, (e) -> {}, details, correlationHandler, (e) -> {}, mapper, logs);
   }
 
   @NotNull

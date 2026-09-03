@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -205,6 +206,19 @@ public class SecretUtilTests {
 
     assertThat(SecretUtil.replaceSecrets(input, recording(asked, Map.of()))).isEqualTo(input);
     assertThat(asked).containsExactly("\0");
+  }
+
+  @Test
+  void shouldEscapeTheValueItSplicesIntoJson() throws Exception {
+    // callers substitute into a JSON document and parse the result, so the value has to survive
+    // that round trip: spliced raw, a backslash sequence would bind as whatever JSON reads it as
+    var value = "pa\\nss\"quoted\"";
+    var substituted = SecretUtil.replaceSecrets("{\"token\":\"{{secrets.FOO}}\"}", name -> value);
+
+    assertThat(substituted).isEqualTo("{\"token\":\"pa\\\\nss\\\"quoted\\\"\"}");
+    assertThat(
+            ConnectorsObjectMapperSupplier.getCopy().readTree(substituted).get("token").textValue())
+        .isEqualTo(value);
   }
 
   private static Function<String, String> recording(
