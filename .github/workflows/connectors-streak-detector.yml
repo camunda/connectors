@@ -54,10 +54,6 @@ on:
         required: false
         default: true
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
-
 env:
   ALERT_CHANNEL_ID: 'C0AK0AVKRL0'
   STREAK_THRESHOLD: '3'
@@ -80,6 +76,15 @@ defaults:
 jobs:
   detect-streak:
     name: Detect failure streak
+    # Per branch, because this job maintains ONE live Slack message per base ref and two
+    # concurrent updates would fight over it. Job-scoped rather than workflow-scoped: at
+    # workflow level it also governed the triage jobs below, and on a manual replay
+    # `workflow_run.head_branch` is empty, so every replay collapsed into one bucket and
+    # GitHub cancelled all but one of them -- observed, three of five replays cancelled
+    # with no job run at all. The scan must never be dropped that way.
+    concurrency:
+      group: streak-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
     # Only protected-branch push runs accumulate streaks; success runs can
     # resolve an existing live message.
     if: >-
@@ -267,6 +272,8 @@ jobs:
   #
   # This listener fires for both event types: over the same window, 104/104 merge_group
   # and 88/88 push pipeline completions produced a run of it.
+  # Deliberately ungrouped: it is a read, it is cheap, and every finished run must get
+  # one. Serialisation belongs to triage, which declares its own per-base_ref group.
   scan-run:
     name: Scan the finished run
     runs-on: ubuntu-latest
