@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.MSFT.O365.Mail.inbound",
     name = "Microsoft O365 Inbound Email Connector",
     icon = "icon.svg",
-    version = 1,
+    version = 2,
     inputDataClass = MsInboundEmailProperties.class,
     description = "Poll M365 Outlook emails",
     documentationRef =
