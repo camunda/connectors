@@ -278,6 +278,23 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_shadowedInputDoesNotRelayItsOwnDependenciesSecret() throws IOException {
+    // The shadowed input is itself a dependent here: baseUrl carries T, authentication reads
+    // baseUrl, authentication.token is then written from process data, and copy reads the whole
+    // authentication object. Muting only the shadowed input's *own* names is not enough -- the
+    // walk would keep traversing through it and reach baseUrl, granting T at copy, which
+    // prefix-matches copy.token, the field that carries the shadowed subtree's attacker data.
+    // A shadowed input terminates the branch instead.
+    when(xmlRequest.execute())
+        .thenReturn(loadBpmn("outbound-with-shadowed-input-as-dependency.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys).containsExactly(new Secret("T", List.of("baseUrl")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));

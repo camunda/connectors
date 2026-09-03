@@ -250,9 +250,15 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         if (!visited.add(dependency)) {
           continue;
         }
-        if (!shadowedWriters.contains(dependency)) {
-          ownSecretNamesByInput.get(dependency).forEach(name -> result.add(new Secret(name, path)));
+        // A shadowed dependency terminates the branch rather than merely contributing no names
+        // of its own: whatever flowed *into* it is just as unreachable through it as its own
+        // secret is, since part of what it produced was replaced by the later writer beneath it.
+        // Walking past it would grant a secret two hops up at this input's path -- which, being
+        // a prefix, covers this input's copy of that same shadowed subtree.
+        if (shadowedWriters.contains(dependency)) {
+          continue;
         }
+        ownSecretNamesByInput.get(dependency).forEach(name -> result.add(new Secret(name, path)));
         pending.addAll(directDependencies.getOrDefault(dependency, List.of()));
       }
     }
