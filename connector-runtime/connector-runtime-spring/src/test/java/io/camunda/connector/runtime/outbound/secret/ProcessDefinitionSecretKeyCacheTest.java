@@ -190,15 +190,34 @@ class ProcessDefinitionSecretKeyCacheTest {
     // authentication.token = secrets.TOKEN is declared first, then authentication (the whole
     // parent object) is overwritten wholesale, replacing that field's secret-bearing value. url
     // references authentication.token afterwards, but by then the token write is shadowed by
-    // the parent overwrite -- TOKEN must not be allowed on url.
+    // the parent overwrite -- TOKEN must not be allowed on url, nor on its own now-overwritten
+    // path: the runtime field at authentication.token holds whatever the parent overwrite put
+    // there, not the secret, so granting TOKEN there would let that overwritten (potentially
+    // attacker-controlled) value resolve a secret it never carried.
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-parent-overwrite.bpmn"));
 
     var keys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
 
-    assertThat(keys)
-        .contains(new Secret("TOKEN", List.of("authentication", "token")))
-        .doesNotContain(new Secret("TOKEN", List.of("url")));
+    // Nothing in this BPMN ever reads authentication.token from a path that's still effective, so
+    // TOKEN isn't just absent from the two paths above -- it's not granted anywhere at all. This
+    // is stricter than doesNotContain(...) on its own: it also catches a regression that grants
+    // TOKEN at some third path this test doesn't otherwise name.
+    assertThat(keys).isEmpty();
+  }
+
+  @Test
+  void getSecretKeys_laterWriteToTheSameExactPathInvalidatesTheEarlierWriter() throws IOException {
+    // Two inputs target the identical path authentication.token: the first carries TOKEN, the
+    // second overwrites it with a plain value. The runtime field holds only the second input's
+    // value, so TOKEN must not be granted at that path -- the earlier grant would otherwise let
+    // the overwriting (potentially attacker-controlled) value resolve a secret it never carried.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-same-path-overwrite.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys).isEmpty();
   }
 
   @Test

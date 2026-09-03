@@ -199,7 +199,16 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     List<Secret> result = new ArrayList<>();
     for (ZeebeInput input : inputs) {
       List<String> path = pathByInput.get(input);
-      ownSecretNamesByInput.get(input).forEach(name -> result.add(new Secret(name, path)));
+      // A later mapping can overwrite this input's own target -- directly, or by writing to a
+      // parent path that replaces the whole subtree beneath it -- before the sequence finishes.
+      // effectiveTargets reflects the final state once the loop above has processed every input,
+      // so if it no longer maps `path` back to this exact input, this input's value is not
+      // reachable at `path` any more; granting the secret there would let whatever the actual
+      // final writer put in that field -- potentially attacker-controlled -- resolve a secret it
+      // never carried.
+      if (effectiveTargets.get(path) == input) {
+        ownSecretNamesByInput.get(input).forEach(name -> result.add(new Secret(name, path)));
+      }
 
       Set<ZeebeInput> visited = new HashSet<>();
       Deque<ZeebeInput> pending = new ArrayDeque<>(directDependencies.get(input));
