@@ -12,6 +12,7 @@ import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves an OAuth2 client-credentials access token for a {@code custom}/compatible LLM backend,
@@ -30,6 +31,22 @@ public class OAuthClientCredentialsTokenResolver {
     this.oAuthService = oAuthService;
     this.oAuthTokenCache = oAuthTokenCache;
     this.httpClient = httpClient;
+  }
+
+  /**
+   * Resolves an access token from the given client-credentials fields, without requiring callers to
+   * construct the HTTP connector's {@link OAuthAuthentication} domain model themselves.
+   */
+  public String resolveAccessToken(
+      String oauthTokenEndpoint,
+      String clientId,
+      String clientSecret,
+      @Nullable String audience,
+      String clientAuthentication,
+      @Nullable String scopes) {
+    return resolveAccessToken(
+        new OAuthAuthentication(
+            oauthTokenEndpoint, clientId, clientSecret, audience, clientAuthentication, scopes));
   }
 
   public String resolveAccessToken(OAuthAuthentication authentication) {
