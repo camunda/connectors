@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLException;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.core5.http.HttpStatus;
 
@@ -77,12 +78,30 @@ public class CustomApacheHttpClient implements HttpClient {
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
           "The request timed out. Please try increasing the read and connection timeouts.",
           e);
+    } catch (SSLException e) {
+      throw new ConnectorException(
+          "SSL_HANDSHAKE_FAILED",
+          "TLS handshake failed: "
+              + rootMessage(e)
+              + ". Verify that the server's certificate is trusted by this runtime, and that no "
+              + "proxy or firewall is interfering with the TLS handshake.",
+          e);
     } catch (IOException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
-          "An error occurred while executing the request, or the connection was aborted",
+          "An error occurred while executing the request, or the connection was aborted: "
+              + rootMessage(e),
           e);
     }
+  }
+
+  /** Returns the message of the deepest cause, e.g. the PKIX text of a wrapped TLS failure. */
+  private static String rootMessage(Throwable t) {
+    var cause = t;
+    while (cause.getCause() != null && cause.getCause() != cause) {
+      cause = cause.getCause();
+    }
+    return cause.getMessage();
   }
 
   public static String getHeaderIgnoreCase(Map<String, Object> headers, String headerName) {
