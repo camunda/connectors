@@ -303,9 +303,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    * #updateConnectorDetails} does not rebuild it — so unlike the outbound path there is no
    * separately-timed state for a hot swap to leave stale.
    *
-   * <p>This is what the filter stops: {@link SecretUtil#replaceSecrets} runs the brace pass and
-   * then runs the bare pass over that pass's output, so a resolved value containing
-   * reference-shaped text otherwise produces a lookup for a name no model declares.
+   * <p>This is what the filter still stops: a name only a sibling element declares, and any name in
+   * text a caller supplies rather than the element's own properties. The escalation it was written
+   * for -- {@link SecretUtil#replaceSecrets} running the bare pass over the brace pass's output, so
+   * that a resolved value containing reference-shaped text reached a secret no model declares -- is
+   * closed at its source: the single scan consumes each reference whole and never re-reads what it
+   * resolved.
    *
    * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
    */
