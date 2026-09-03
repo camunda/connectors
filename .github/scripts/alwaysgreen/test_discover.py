@@ -104,8 +104,10 @@ def test_an_expired_non_claiming_holder_does_not_lock_a_claiming_one(monkeypatch
 
 
 def test_an_expired_holder_releases_its_key_but_keeps_its_claims(monkeypatch):
-    # The specs a PR claims stay claimed while it is open; only the coarse key lock is
-    # time-bound, so the failure it fixed is still suppressed per spec.
+    # A coverage-block fingerprint is the PR's stated remit and has no TTL, so the
+    # failure it claims to fix stays suppressed per spec even once the key lock is gone.
+    # This is about the block's contents, not about the files the PR touches, which
+    # expire separately (see the spec-path claim tests below).
     _stub(monkeypatch, [_pr(1, ["connectors:main:sm-smoke-e2e"], claims=["aaaaaaaa"], age_hours=99)])
     covered, keys, per_spec, _ok = discover.dedupe_inputs()
     assert covered == {"aaaaaaaa"}

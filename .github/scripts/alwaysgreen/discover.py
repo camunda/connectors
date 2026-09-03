@@ -341,8 +341,12 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
     claims nothing, and a key any of whose active holders claims nothing stays out of
     the subset: the marker comment alone is not a statement of remit.
 
-    Coverage is collected from every open fix PR, expired or not: the specs a PR claims
-    stay claimed for as long as it is open, and only the coarse key lock is time-bound.
+    Coverage is collected from every open fix PR, expired or not, and is the one thing
+    here with no TTL at all: a fingerprint in a PR's coverage block is that PR's stated
+    remit, and it holds for as long as the PR is open. The two locks a PR takes
+    implicitly do expire — its dispatch key after PR_LOCK_TTL_HOURS from `createdAt`
+    (below), and the spec files it touches after PATH_CLAIM_TTL_HOURS from `updatedAt`
+    (`paths_claimed_by_open_prs`).
 
     As with `inflight_keys`, a failed lookup makes the caller suppress rather than risk
     a duplicate PR.
