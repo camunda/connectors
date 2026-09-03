@@ -44,6 +44,20 @@ on:
     workflows: ["Merge queue Helm test"]
     types:
       - completed
+  # Manual replay, mirroring alwaysgreen-triage.yml's own dispatch path. Two uses: it
+  # is the only way to exercise this workflow before it reaches the default branch,
+  # since workflow_run fires only for the copy on that branch; and it re-runs the
+  # decision for a past pipeline run without re-running the pipeline.
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Pipeline run to judge. Required: a replay always names its target.'
+        required: true
+      dry_run:
+        description: 'Classify and report, but dispatch no fix agent'
+        type: boolean
+        required: false
+        default: true
 
 defaults:
   run:
@@ -60,20 +74,59 @@ jobs:
     permissions:
       actions: read
     outputs:
+      run_id: ${{ steps.run.outputs.id }}
       any_failed: ${{ steps.scan.outputs.any_failed }}
       base_ref: ${{ steps.scan.outputs.base_ref }}
       base_ref_supported: ${{ steps.scan.outputs.base_ref_supported }}
       parent_slack_ts: ${{ steps.parent.outputs.slack_ts }}
       parent_slack_channel: ${{ steps.parent.outputs.slack_channel }}
     steps:
-      - name: Scan the triggering run's job conclusions
+      - name: Resolve the run to judge
+        id: run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          run_id="${INPUT_RUN_ID:-$EVENT_RUN_ID}"
+          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id must be numeric, got '${run_id}'"
+            exit 1
+          fi
+
+          # Conclusion, url and branch are read from the API rather than from
+          # github.event.workflow_run, so a manual replay and a triggered run take the
+          # same path and neither can be judged on a field the other does not have.
+          meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")
+          if [ "$(jq -r '.workflow_id // "" ' <<<"$meta")" = "" ]; then
+            echo "::error::run ${run_id} could not be read: $(head -c 300 <<<"$meta")"
+            exit 1
+          fi
+
+          # A replay of the wrong workflow would classify jobs the AlwaysGreen surfaces
+          # know nothing about, and report a clean triage for a pipeline that never ran.
+          name=$(jq -r '.name // ""' <<<"$meta")
+          if [ "$name" != "Merge queue Helm test" ]; then
+            echo "::error::run ${run_id} is '${name}', not a Merge queue Helm test run"
+            exit 1
+          fi
+
+          {
+            echo "id=${run_id}"
+            echo "url=$(jq -r '.html_url' <<<"$meta")"
+            echo "conclusion=$(jq -r '.conclusion // "" ' <<<"$meta")"
+            echo "head_branch=$(jq -r '.head_branch // "" ' <<<"$meta")"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Scan the run's job conclusions
         id: scan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
-          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_ID: ${{ steps.run.outputs.id }}
+          RUN_URL: ${{ steps.run.outputs.url }}
+          RUN_CONCLUSION: ${{ steps.run.outputs.conclusion }}
+          HEAD_BRANCH: ${{ steps.run.outputs.head_branch }}
         run: |
           set -euo pipefail
 
@@ -203,7 +256,7 @@ jobs:
         if: steps.scan.outputs.any_failed == 'true'
         env:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_URL: ${{ steps.run.outputs.url }}
         run: |
           set -euo pipefail
           ts=""
@@ -259,8 +312,16 @@ jobs:
     uses: ./.github/workflows/alwaysgreen-triage.yml
     secrets: inherit
     with:
-      run_id: ${{ github.event.workflow_run.id }}
+      run_id: ${{ needs.detect.outputs.run_id }}
       base_ref: ${{ needs.detect.outputs.base_ref }}
-      tooling_ref: main
+      # This workflow's own ref, not a literal `main`. On a workflow_run event that IS
+      # the default branch, so production behaviour is unchanged; on a manual replay
+      # from a branch it makes the replay test that branch's tooling rather than
+      # silently classifying with main's.
+      tooling_ref: ${{ github.ref_name }}
+      # A replay defaults to classifying without dispatching, so exercising this
+      # workflow cannot open a fix PR by accident. Absent on workflow_run, where the
+      # Vault flag alone decides.
+      dry_run: ${{ inputs.dry_run || false }}
       parent_slack_ts: ${{ needs.detect.outputs.parent_slack_ts }}
       parent_slack_channel: ${{ needs.detect.outputs.parent_slack_channel }}
