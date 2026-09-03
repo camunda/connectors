@@ -78,7 +78,8 @@ public record OAuthClientCredentialsAuthentication(
         @Nullable
         @TemplateProperty(
             group = "provider",
-            tooltip = "The scopes which you want to request authorization for (e.g., read:contacts)",
+            tooltip =
+                "The scopes which you want to request authorization for (e.g., read:contacts)",
             optional = true)
         String scopes)
     implements OpenAiCustomEndpointAuthentication, AnthropicCustomEndpointAuthentication {
