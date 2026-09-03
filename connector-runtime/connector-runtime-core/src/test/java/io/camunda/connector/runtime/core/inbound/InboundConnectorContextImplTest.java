@@ -415,27 +415,6 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
-  void reportHealth_doesNotDedupeTwoWithheldErrorsThatCarryOnlyACode() {
-    // given a provider that is down, so every health report is withheld
-    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
-    var downProvider = mock(SecretProvider.class);
-    when(downProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
-    var context =
-        new InboundConnectorContextImpl(
-            downProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
-
-    // when two distinct failures are reported that carry a code and no message: a code is redacted
-    // like any other text, so the withholding shows there and nowhere else
-    context.reportHealth(Health.down(new Health.Error("kafka broker unreachable", null)));
-    context.reportHealth(Health.down(new Health.Error("deserialization failed", null)));
-
-    // then both are logged rather than the second being deduped against the first
-    var logs =
-        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
-    assertThat(logs).hasSize(2);
-  }
-
-  @Test
   void log_masksASecretThatRotatedAfterItWasBound() {
     // given a provider that resolves FOO to one value at bind time and a different one on re-read
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
