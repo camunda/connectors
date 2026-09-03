@@ -107,7 +107,7 @@ public class OutboundConnectorExceptionHandler {
   private static Object maskSecrets(Object value, List<String> secrets, Set<Object> enclosing) {
     return switch (value) {
       case null -> null;
-      case String string -> hideSecretsFromMessage(string, secrets);
+      case String string -> SecretUtil.hideSecretsFromMessage(string, secrets);
       case Map<?, ?> map -> {
         // error variables are user-supplied, so a container may contain itself
         if (!enclosing.add(map)) {
@@ -140,7 +140,7 @@ public class OutboundConnectorExceptionHandler {
     map.forEach(
         (key, entry) ->
             masked.put(
-                hideSecretsFromMessage(String.valueOf(key), secrets),
+                SecretUtil.hideSecretsFromMessage(String.valueOf(key), secrets),
                 maskSecrets(entry, secrets, enclosing)));
     return masked;
   }
@@ -168,6 +168,16 @@ public class OutboundConnectorExceptionHandler {
     boolean unavailable() {
       return failure != null;
     }
+  }
+
+  // unions bind-time captures into a successful re-read, so a rotated secret is still redacted
+  private static List<String> withCaptured(MaskingSecrets masking, List<String> captured) {
+    if (captured.isEmpty()) {
+      return masking.secrets();
+    }
+    var union = new ArrayList<String>(masking.secrets());
+    union.addAll(captured);
+    return union;
   }
 
   /**
@@ -396,7 +406,11 @@ public class OutboundConnectorExceptionHandler {
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
-      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+      Exception e,
+      ActivatedJob job,
+      Duration retryBackoffDuration,
+      SecretFilter secretFilter,
+      List<String> capturedSecrets) {
     if (e instanceof SecretAllowListUnavailableException) {
       return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
     }
@@ -418,7 +432,7 @@ public class OutboundConnectorExceptionHandler {
           retries,
           retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
-    List<String> secrets = masking.secrets();
+    List<String> secrets = withCaptured(masking, capturedSecrets);
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
@@ -434,17 +448,25 @@ public class OutboundConnectorExceptionHandler {
 
   /** Redacts expression-chosen variables that are about to be published as a diagnostic. */
   public Map<String, Object> maskDiagnosticVariables(
-      Map<String, Object> variables, ActivatedJob job, SecretFilter secretFilter) {
+      Map<String, Object> variables,
+      ActivatedJob job,
+      SecretFilter secretFilter,
+      List<String> capturedSecrets) {
     if (variables == null || variables.isEmpty()) {
       return variables;
     }
     var masking = fetchSecretsForMasking(job, secretFilter, null);
-    return masking.unavailable() ? Map.of() : maskVariables(variables, masking.secrets());
+    return masking.unavailable()
+        ? Map.of()
+        : maskVariables(variables, withCaptured(masking, capturedSecrets));
   }
 
   /** Redacts an error an error expression produced; {@code failJob}/{@code throwError} do not. */
   public ConnectorError maskConnectorError(
-      ConnectorError error, ActivatedJob job, SecretFilter secretFilter) {
+      ConnectorError error,
+      ActivatedJob job,
+      SecretFilter secretFilter,
+      List<String> capturedSecrets) {
     return switch (error) {
       // business output on the branch that completes the job; the branch that raises an incident
       // instead redacts them itself, via maskDiagnosticVariables
@@ -455,30 +477,34 @@ public class OutboundConnectorExceptionHandler {
         }
         var masking = fetchSecretsForMasking(job, secretFilter, null);
         // the error code is never redacted: boundary events match on it
-        yield masking.unavailable()
-            ? new BpmnError(
-                bpmnError.errorCode(), unmaskableError(masking.failure()).getMessage(), Map.of())
-            : new BpmnError(
-                bpmnError.errorCode(),
-                redactNullable(bpmnError.errorMessage(), masking.secrets()),
-                maskVariables(bpmnError.variables(), masking.secrets()));
+        if (masking.unavailable()) {
+          yield new BpmnError(
+              bpmnError.errorCode(), unmaskableError(masking.failure()).getMessage(), Map.of());
+        }
+        var secrets = withCaptured(masking, capturedSecrets);
+        yield new BpmnError(
+            bpmnError.errorCode(),
+            redactNullable(bpmnError.errorMessage(), secrets),
+            maskVariables(bpmnError.variables(), secrets));
       }
       case JobError jobError -> {
         if (nothingToRedact(jobError.errorMessage(), jobError.variables())) {
           yield jobError;
         }
         var masking = fetchSecretsForMasking(job, secretFilter, null);
-        yield masking.unavailable()
-            ? new JobError(
-                unmaskableError(masking.failure()).getMessage(),
-                Map.of(),
-                jobError.retries(),
-                jobError.retryBackoff())
-            : new JobError(
-                redactNullable(jobError.errorMessage(), masking.secrets()),
-                maskVariables(jobError.variables(), masking.secrets()),
-                jobError.retries(),
-                jobError.retryBackoff());
+        if (masking.unavailable()) {
+          yield new JobError(
+              unmaskableError(masking.failure()).getMessage(),
+              Map.of(),
+              jobError.retries(),
+              jobError.retryBackoff());
+        }
+        var secrets = withCaptured(masking, capturedSecrets);
+        yield new JobError(
+            redactNullable(jobError.errorMessage(), secrets),
+            maskVariables(jobError.variables(), secrets),
+            jobError.retries(),
+            jobError.retryBackoff());
       }
     };
   }
@@ -489,32 +515,22 @@ public class OutboundConnectorExceptionHandler {
         && (variables == null || variables.isEmpty());
   }
 
-  /** Unlike {@link #hideSecretsFromMessage}, keeps a null message null rather than "". */
+  /** Unlike {@link SecretUtil#hideSecretsFromMessage}, keeps a null message null rather than "". */
   private static String redactNullable(String message, List<String> secrets) {
-    return message == null ? null : hideSecretsFromMessage(message, secrets);
-  }
-
-  private static String hideSecretsFromMessage(String message, List<String> secrets) {
-    if (!Objects.isNull(message))
-      return secrets.stream()
-          // a provider may answer with an empty value, and replacing that matches everywhere
-          .filter(secret -> !secret.isEmpty())
-          // longest first: masking a secret that prefixes another would destroy the longer match
-          // and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET"
-          .sorted(Comparator.comparingInt(String::length).reversed())
-          .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
-    else return "";
+    return message == null ? null : SecretUtil.hideSecretsFromMessage(message, secrets);
   }
 
   private ConnectorResult.ErrorResult handleBackOffException(Exception e, List<String> secrets) {
-    Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
+    Exception newException =
+        new Exception(SecretUtil.hideSecretsFromMessage(e.getMessage(), secrets), e);
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
   }
 
   private ConnectorResult.ErrorResult handleConnectorRetryException(
       ActivatedJob job, ConnectorRetryException ex, List<String> secrets, Duration retryBackoff) {
-    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    Exception newException =
+        new Exception(SecretUtil.hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.debug(
         "ConnectorRetryException while processing job: {} for tenant: {}, error message: {}",
         job.getKey(),
@@ -551,7 +567,8 @@ public class OutboundConnectorExceptionHandler {
 
   private ConnectorResult.ErrorResult handleGenericException(
       ActivatedJob job, Exception ex, List<String> secrets, Duration retryBackoff) {
-    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    Exception newException =
+        new Exception(SecretUtil.hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.debug(
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
@@ -593,7 +610,7 @@ public class OutboundConnectorExceptionHandler {
    * withholding it there would leave the runtime silent about why.
    */
   public ConnectorResult.ErrorResult handleFinalResultException(
-      Exception ex, ActivatedJob job, SecretFilter secretFilter) {
+      Exception ex, ActivatedJob job, SecretFilter secretFilter, List<String> capturedSecrets) {
     var masking = fetchSecretsForMasking(job, secretFilter, ex);
     if (masking.unavailable()) {
       LOGGER.error(
@@ -606,8 +623,9 @@ public class OutboundConnectorExceptionHandler {
       return new ConnectorResult.ErrorResult(
           Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, 0);
     }
-    List<String> secrets = masking.secrets();
-    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    List<String> secrets = withCaptured(masking, capturedSecrets);
+    Exception newException =
+        new Exception(SecretUtil.hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
