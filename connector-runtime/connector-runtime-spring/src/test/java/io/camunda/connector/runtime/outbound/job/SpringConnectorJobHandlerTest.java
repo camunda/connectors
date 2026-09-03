@@ -2144,15 +2144,29 @@ class SpringConnectorJobHandlerTest {
 
     @Test
     void jobErrorKeepsTheRetriesAndBackoffTheExpressionAsked() throws Exception {
-      var result =
-          JobBuilder.create()
-              .withVariables(INPUT_DECLARING_A_SECRET)
-              .withErrorExpressionHeader(
-                  "=jobError(\"Request failed: \" + response.body, {}, 7, duration(\"PT5M\"))")
-              .executeAndCaptureResult(echoingConnector(), false, false);
+      var failCommand = mock(FailJobCommandStep1.class);
+      var failCommandStep2 =
+          mock(FailJobCommandStep1.FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
+      var jobClient = mock(JobClient.class);
+      when(jobClient.newFailCommand(any())).thenReturn(failCommand);
+      when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
+      when(failCommandStep2.errorMessage(any())).thenReturn(failCommandStep2);
+      when(failCommandStep2.retryBackoff(any())).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(anyMap())).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(any(Object.class))).thenReturn(failCommandStep2);
 
-      assertThat(result.getErrorMessage()).doesNotContain(ECHOED);
-      assertThat(result.getRetries()).isEqualTo(7);
+      JobBuilder.create()
+          .useJobClient(jobClient)
+          .withVariables(INPUT_DECLARING_A_SECRET)
+          .withErrorExpressionHeader(
+              "=jobError(\"Request failed: \" + response.body, {}, 7, duration(\"PT5M\"))")
+          .execute(echoingConnector());
+
+      var messageCaptor = ArgumentCaptor.forClass(String.class);
+      verify(failCommandStep2).errorMessage(messageCaptor.capture());
+      assertThat(messageCaptor.getValue()).doesNotContain(ECHOED);
+      verify(failCommand).retries(7);
+      verify(failCommandStep2).retryBackoff(Duration.ofMinutes(5));
     }
 
     @Test
