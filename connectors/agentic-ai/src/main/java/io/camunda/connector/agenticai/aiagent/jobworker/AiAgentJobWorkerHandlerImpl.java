@@ -38,6 +38,7 @@ import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -85,7 +86,10 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     final SecretFilter secretFilter =
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
-    final var agentResult = getAgentResult(jobClient, job, secretFilter);
+    // kept for the error paths: a secret rotated since the input was bound no longer reads back,
+    // and the value an error message carries is the one substituted then
+    final List<String> capturedSecrets = new ArrayList<>();
+    final var agentResult = getAgentResult(jobClient, job, secretFilter, capturedSecrets);
 
     try {
       Optional<ConnectorError> optionalConnectorError =
@@ -95,7 +99,8 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));
 
       optionalConnectorError.ifPresentOrElse(
-          connectorError -> handleConnectorError(jobClient, job, connectorError),
+          connectorError ->
+              handleConnectorError(jobClient, job, connectorError, secretFilter, capturedSecrets),
           () -> {
             switch (agentResult) {
               case AgentSuccessResult successResult ->
@@ -108,33 +113,45 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          // no captured values to add: the context that resolved them is not kept past binding
           this.outboundConnectorExceptionHandler.handleFinalResultException(
-              e, job, secretFilter, List.of()));
+              e, job, secretFilter, List.copyOf(capturedSecrets)));
     }
   }
 
   private JobWorkerAgentResult getAgentResult(
-      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final SecretFilter secretFilter,
+      final List<String> capturedSecrets) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
 
       final var executionContext =
-          executionContextFactory.createExecutionContext(jobClient, job, secretFilter);
+          executionContextFactory.createExecutionContext(
+              jobClient, job, secretFilter, capturedSecrets::addAll);
       final var completion = agentRequestHandler.handleRequest(executionContext);
 
       return new AgentSuccessResult(completion);
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter, List.of());
+              e, job, retryBackoff, secretFilter, List.copyOf(capturedSecrets));
       return new AgentErrorResult(errorResult);
     }
   }
 
   private void handleConnectorError(
-      final JobClient jobClient, final ActivatedJob job, final ConnectorError connectorError) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final ConnectorError rawError,
+      final SecretFilter secretFilter,
+      final List<String> capturedSecrets) {
+    // an error expression builds its message from the response, which can carry a resolved secret,
+    // so it is redacted before the Zeebe command is built from it
+    final var connectorError =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, List.copyOf(capturedSecrets));
     switch (connectorError) {
       case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError);
       case JobError jobError ->
@@ -215,9 +232,12 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
 
   private void failJob(
       final JobClient jobClient, final ActivatedJob job, final ErrorResult errorResult) {
+    // the message is redacted, the exception it was built from is not: logging the throwable would
+    // print the original cause, secrets and all
     LOGGER.error(
-        "Exception while completing AI Agent job with key %s".formatted(job.getKey()),
-        errorResult.exception());
+        "Exception while completing AI Agent job with key {}: {}",
+        job.getKey(),
+        errorResult.exception().getMessage());
 
     try {
       connectorsOutboundMetrics.increaseFailure(job);
@@ -246,10 +266,11 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
 
   private void throwBpmnError(
       final JobClient jobClient, final ActivatedJob job, final BpmnError bpmnError) {
+    // the code is not redacted, so it stays out of the log: unlike the command and the error
+    // variables that carry it, pod logs are shipped to systems with their own access controls
     LOGGER.error(
-        "BPMN error while completing AI Agent job with key {}. Code: {}. Message: {}",
+        "BPMN error while completing AI Agent job with key {}. Message: {}",
         job.getKey(),
-        bpmnError.errorCode(),
         bpmnError.errorMessage());
 
     try {

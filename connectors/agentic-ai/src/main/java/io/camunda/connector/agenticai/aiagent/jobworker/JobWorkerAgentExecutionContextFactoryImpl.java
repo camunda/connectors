@@ -12,11 +12,12 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import java.util.List;
+import java.util.function.Consumer;
 
 public class JobWorkerAgentExecutionContextFactoryImpl
     implements JobWorkerAgentExecutionContextFactory {
@@ -38,11 +39,20 @@ public class JobWorkerAgentExecutionContextFactoryImpl
 
   @Override
   public JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
-    final OutboundConnectorContext context =
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final SecretFilter secretFilter,
+      final Consumer<List<String>> capturedSecrets) {
+    final JobHandlerContext context =
         new JobHandlerContext(
             job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
-    final var request = context.bindVariables(JobWorkerAgentRequest.class);
-    return new JobWorkerAgentExecutionContext(jobClient, job, request);
+    try {
+      final var request = context.bindVariables(JobWorkerAgentRequest.class);
+      return new JobWorkerAgentExecutionContext(jobClient, job, request);
+    } finally {
+      // reported even when binding throws: the values substituted before it failed are the ones
+      // the failure's message can carry
+      capturedSecrets.accept(context.getSecretHandler().getResolvedValues());
+    }
   }
 }

@@ -374,6 +374,166 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(result.retries()).isEqualTo(2);
   }
 
+  @Test
+  void aFailedMaskingFetchNeverReachesTheIncident() {
+    // The provider's own exception is as unsafe to publish as the message it was meant to help
+    // redact, and on this path there is nothing to redact it with.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any()))
+        .thenThrow(
+            new ConnectorExceptionBuilder()
+                .errorCode("super-secret")
+                .message("store rejected the bundle: super-secret")
+                .errorVariables(Map.of("responseBody", "super-secret"))
+                .build());
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected super-secret"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception())
+        .hasMessageStartingWith("Fetching secrets failed, original error can't be displayed")
+        .hasMessageNotContaining("super-secret")
+        .hasNoCause();
+    assertThat(errorPayload(result)).doesNotContainKeys("variables", "code");
+    assertThat(errorPayload(result).toString()).doesNotContain("super-secret");
+  }
+
+  @Test
+  void aFailedMaskingFetchNeverReachesTheIncidentOfAFinalResultFailure() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(maskingStore.fetchAll(any(), any()))
+        .thenThrow(
+            new ConnectorExceptionBuilder()
+                .errorCode("super-secret")
+                .message("store rejected the bundle: super-secret")
+                .errorVariables(Map.of("responseBody", "super-secret"))
+                .build());
+
+    var result =
+        handlerOverMaskingStore.handleFinalResultException(
+            new RuntimeException("api rejected super-secret"),
+            job,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception())
+        .hasMessageStartingWith("Fetching secrets failed, original error can't be displayed")
+        .hasMessageNotContaining("super-secret")
+        .hasNoCause();
+    assertThat(errorPayload(result)).doesNotContainKeys("variables", "code");
+    assertThat(errorPayload(result).toString()).doesNotContain("super-secret");
+  }
+
+  @Test
+  void aMaskingReadThatComesBackShortWithholdsTheMessage() {
+    // The default fetchAll drops names it cannot resolve, so a partial answer leaves a value the
+    // connector held out of the redaction list: the message may still carry it.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"{{secrets.ROTATED}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "readable"));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected super-secret"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception())
+        .hasMessageStartingWith("Fetching secrets failed, original error can't be displayed")
+        .hasMessageNotContaining("super-secret")
+        .hasNoCause();
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void aMaskingReadThatComesBackShortIsAcceptedWhenTheJobFailedForThatSameSecret() {
+    // The job already failed because the secret has no value, so the short read reports nothing
+    // new — withholding the message here would hide the very error the operator needs.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"{{secrets.MISSING}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "readable"));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new ConnectorInputException("Secret with name 'MISSING' is not available", null),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception())
+        .hasMessage("Secret with name 'MISSING' is not available")
+        .hasMessageNotContaining("Fetching secrets failed");
+  }
+
+  @Test
+  void theErrorVariablesOfAConnectorExceptionAreMasked() {
+    // For HTTP connectors these carry the full response body and headers, so an API echoing a
+    // rejected credential back would otherwise publish it as a process variable.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "super-secret"));
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("401")
+            .message("Unauthorized")
+            .errorVariables(
+                Map.of(
+                    "response",
+                    Map.of(
+                        "body",
+                        List.of("token super-secret rejected"),
+                        "headers",
+                        Map.of("Authorization", "Bearer super-secret"))))
+            .build();
+
+    var result =
+        handlerOverMaskingStore.handleFinalResultException(
+            connectorException, job, SecretFilter.allowAll(), List.of());
+
+    var payload = errorPayload(result);
+    assertThat(payload.get("variables").toString()).doesNotContain("super-secret");
+    assertThat(payload.get("variables").toString()).contains("***");
+    // boundary events match on the code, so it is published as raised
+    assertThat(payload).containsEntry("code", "401");
+  }
+
+  @Test
+  void theErrorVariablesOfAConnectorExceptionAreMaskedWithBindTimeCapturesToo() {
+    // The value rotated after the input was bound, so it no longer reads back — the variables
+    // still carry the value the connector actually sent.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "rotated-value"));
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("401")
+            .message("Unauthorized")
+            .errorVariables(Map.of("responseBody", "token bound-value rejected"))
+            .build();
+
+    var result =
+        handlerOverMaskingStore.handleFinalResultException(
+            connectorException, job, SecretFilter.allowAll(), List.of("bound-value"));
+
+    assertThat(errorPayload(result).get("variables").toString()).doesNotContain("bound-value");
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> errorPayload(
+      io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult result) {
+    return (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+  }
+
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);

@@ -416,6 +416,26 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void reportHealth_doesNotDedupeTwoDifferentUnmaskableCodeOnlyFailures() {
+    // given a provider that is down, so every health report is withheld
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var downProvider = mock(SecretProvider.class);
+    when(downProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            downProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when two distinct failures carrying only a code are reported during the outage
+    context.reportHealth(Health.down(new Health.Error("KAFKA_BROKER_UNREACHABLE", null)));
+    context.reportHealth(Health.down(new Health.Error("DESERIALIZATION_FAILED", null)));
+
+    // then both are logged: the code is withheld too, so neither can be verified as a repeat
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(2);
+  }
+
+  @Test
   void log_masksASecretThatRotatedAfterItWasBound() {
     // given a provider that resolves FOO to one value at bind time and a different one on re-read
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));

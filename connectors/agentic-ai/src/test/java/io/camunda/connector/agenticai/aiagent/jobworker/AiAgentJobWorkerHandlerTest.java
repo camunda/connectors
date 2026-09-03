@@ -25,6 +25,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -59,6 +61,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,6 +73,7 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @WireMockTest
 @ExtendWith(MockitoExtension.class)
@@ -122,8 +126,11 @@ class AiAgentJobWorkerHandlerTest {
     when(job.getType()).thenReturn(AiAgentJobWorker.JOB_WORKER_TYPE);
     when(job.getCustomHeaders()).thenReturn(jobHeaders);
 
-    when(executionContextFactory.createExecutionContext(
-            eq(camundaClient), eq(job), any(SecretFilter.class)))
+    // lenient: a test covering the bind-time capture path replaces this stubbing
+    Mockito.lenient()
+        .when(
+            executionContextFactory.createExecutionContext(
+                eq(camundaClient), eq(job), any(SecretFilter.class), any()))
         .thenReturn(executionContext);
 
     final var outboundConnectorExceptionHandler =
@@ -555,6 +562,142 @@ class AiAgentJobWorkerHandlerTest {
                   Map.of(
                       "type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
         });
+  }
+
+  @Test
+  void redactsSecretsFromAJobErrorProducedByTheErrorExpression() {
+    // an error expression builds its message from the agent's response, which can echo a resolved
+    // secret straight back into the incident
+    namesSecret("super-secret");
+    jobHeaders.put("errorExpression", "=jobError(\"agent replied: \" + response.responseText)");
+
+    respondsWith("token super-secret rejected");
+
+    handler.handle(camundaClient, job);
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage())
+              .isEqualTo("agent replied: token *** rejected")
+              .doesNotContain("super-secret");
+          assertThat(request.getVariables().toString()).doesNotContain("super-secret");
+        });
+  }
+
+  @Test
+  void redactsSecretsFromABpmnErrorProducedByTheErrorExpressionAndKeepsItsCodeOutOfTheLog() {
+    namesSecret("super-secret");
+    jobHeaders.put(
+        "errorExpression", "=bpmnError(\"MY_CODE\", \"agent replied: \" + response.responseText)");
+
+    respondsWith("token super-secret rejected");
+
+    var logged = logsOf(() -> handler.handle(camundaClient, job));
+
+    assertJobErrorRequest(
+        request -> {
+          // boundary events match on the code, so it reaches the command unredacted
+          assertThat(request.getErrorCode()).isEqualTo("MY_CODE");
+          assertThat(request.getErrorMessage())
+              .isEqualTo("agent replied: token *** rejected")
+              .doesNotContain("super-secret");
+        });
+    // the code is not redacted, so it stays out of the log
+    assertThat(logged).noneMatch(message -> message.contains("MY_CODE"));
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+  }
+
+  @Test
+  void neverLogsTheUnredactedCauseOfAFailedJob() {
+    namesSecret("super-secret");
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenThrow(new RuntimeException("api rejected super-secret"));
+
+    var events = logEventsOf(() -> handler.handle(camundaClient, job));
+
+    // awaited so the asynchronous fail command lands before this test ends
+    assertJobFailRequest(
+        request -> assertThat(request.getErrorMessage()).isEqualTo("api rejected ***"));
+    assertThat(events)
+        .noneMatch(
+            event ->
+                event.getThrowableProxy() != null
+                    && throwableText(event.getThrowableProxy()).contains("super-secret"));
+    assertThat(events)
+        .noneMatch(event -> event.getFormattedMessage().contains("super-secret"))
+        .anyMatch(event -> event.getFormattedMessage().contains("api rejected ***"));
+  }
+
+  @Test
+  void redactsASecretThatRotatedAfterTheInputWasBound() {
+    // the value read back is no longer the one substituted into the input, so only the value
+    // captured at bind time can redact the message the connector actually produced
+    namesSecret("rotated-value");
+    when(executionContextFactory.createExecutionContext(
+            eq(camundaClient), eq(job), any(SecretFilter.class), any()))
+        .thenAnswer(
+            invocation -> {
+              invocation.<Consumer<List<String>>>getArgument(3).accept(List.of("bound-value"));
+              throw new RuntimeException("api rejected bound-value");
+            });
+
+    handler.handle(camundaClient, job);
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage())
+              .isEqualTo("api rejected ***")
+              .doesNotContain("bound-value");
+          assertThat(request.getVariables().toString()).doesNotContain("bound-value");
+        });
+  }
+
+  /** Makes the job's input name a secret the provider resolves to {@code value}. */
+  private void namesSecret(String value) {
+    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of(value));
+  }
+
+  private void respondsWith(String responseText) {
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenReturn(
+            JobWorkerAgentCompletion.builder()
+                .completionConditionFulfilled(true)
+                .cancelRemainingInstances(false)
+                .agentResponse(
+                    AgentResponse.builder()
+                        .context(AgentContext.empty())
+                        .responseText(responseText)
+                        .build())
+                .build());
+  }
+
+  private static String throwableText(ch.qos.logback.classic.spi.IThrowableProxy proxy) {
+    var text = new StringBuilder();
+    for (var current = proxy; current != null; current = current.getCause()) {
+      text.append(current.getClassName()).append(current.getMessage());
+    }
+    return text.toString();
+  }
+
+  private static List<String> logsOf(Runnable action) {
+    return logEventsOf(action).stream().map(ILoggingEvent::getFormattedMessage).toList();
+  }
+
+  /** Every event the handler logs while {@code action} runs, throwables included. */
+  private static List<ILoggingEvent> logEventsOf(Runnable action) {
+    var logger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AiAgentJobWorkerHandlerImpl.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return List.copyOf(appender.list);
   }
 
   private Map<String, Object> asMap(final ToolCallProcessVariable toolCallProcessVariable) {

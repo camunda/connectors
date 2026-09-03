@@ -1377,12 +1377,19 @@ class SpringConnectorJobHandlerTest {
             .executeAndCaptureResult(jobHandlerRaisingException, false);
 
     // then
+    // The incident message says why nothing can be shown and names the type that failed, and
+    // withholds two messages: the connector's own, which is what there is nothing to redact from,
+    // and the fetch failure's, which is no safer — a provider or client error can echo a response
+    // body from the secret store.
     assertThat(resultForMissingSecret.getErrorMessage())
-        .startsWith(
-            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
+        .startsWith("Fetching secrets failed, original error can't be displayed")
+        .contains("java.lang.RuntimeException")
+        .doesNotContain("Network error while fetching secrets");
     assertThat(resultForRaisingException.getErrorMessage())
-        .startsWith(
-            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
+        .startsWith("Fetching secrets failed, original error can't be displayed")
+        .contains("java.lang.RuntimeException")
+        .doesNotContain("Network error while fetching secrets")
+        .doesNotContain("Crazy error something with bar");
   }
 
   @Test

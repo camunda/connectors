@@ -17,22 +17,15 @@
 package io.camunda.connector.runtime.outbound.job;
 
 /**
- * Thrown when the allow-list of secret names an element may resolve could not be read, so no secret
- * value ever reached the input. The lookup reads the process definition from secondary storage,
- * which a just-deployed definition has yet to reach, so this failure is worth another attempt after
- * a backoff rather than immediately.
+ * A secret failure whose message this runtime wrote itself, and may therefore report where a
+ * provider's own message has to be withheld: it is built from what the runtime knows about the job,
+ * never from a secret store's response.
+ *
+ * <p>These are the failures an operator has to act on, and a type name alone does not say which
+ * setting to change or how many values are missing. Withholding arbitrary provider text is not a
+ * reason to withhold text written to be read.
  */
-class SecretAllowListUnavailableException extends RuntimeException
-    implements SecretFailureDiagnostic {
+interface SecretFailureDiagnostic {
 
-  SecretAllowListUnavailableException(String message) {
-    super(message);
-  }
-
-  // written by this runtime from the element it could not read the allow-list for, so it is
-  // reported even where a provider's own message has to be withheld
-  @Override
-  public String publishableMessage() {
-    return getMessage();
-  }
+  String publishableMessage();
 }
