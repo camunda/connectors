@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves the {@code Authorization} header for the MCP client via the shared {@link
@@ -41,11 +42,22 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
               config.scopes());
       return Map.of("Authorization", "Bearer " + accessToken);
     } catch (ConnectorException e) {
+      final var responseBody = extractResponseBody(e.getErrorVariables());
       throw new ConnectorException(
           e.getErrorCode(),
-          "MCP client authentication failed: " + e.getMessage(),
+          "MCP client authentication failed: %s%s"
+              .formatted(e.getMessage(), responseBody != null ? " - " + responseBody : ""),
           e,
           e.getErrorVariables());
     }
+  }
+
+  private static @Nullable Object extractResponseBody(
+      @Nullable Map<String, Object> errorVariables) {
+    if (errorVariables == null) {
+      return null;
+    }
+    final var response = errorVariables.get("response");
+    return response instanceof Map<?, ?> responseMap ? responseMap.get("body") : null;
   }
 }

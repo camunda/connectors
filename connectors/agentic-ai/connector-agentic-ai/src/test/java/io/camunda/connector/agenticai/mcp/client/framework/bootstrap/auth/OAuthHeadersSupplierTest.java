@@ -82,9 +82,10 @@ class OAuthHeadersSupplierTest {
   }
 
   @Test
-  void preservesErrorVariablesFromResolverFailure() {
-    final var errorVariables =
-        Map.<String, Object>of("response", Map.of("body", Map.of("error", "invalid_client")));
+  void preservesErrorVariablesAndResponseBodyFromResolverFailure() {
+    final var body =
+        Map.of("error", "invalid_client", "error_description", "Invalid client credentials");
+    final var errorVariables = Map.<String, Object>of("response", Map.of("body", body));
     when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
         .thenThrow(
             new ConnectorException(
@@ -94,6 +95,7 @@ class OAuthHeadersSupplierTest {
 
     assertThatThrownBy(supplier::get)
         .isInstanceOf(ConnectorException.class)
+        .hasMessage("MCP client authentication failed: token endpoint returned 401 - " + body)
         .satisfies(
             e ->
                 assertThat(((ConnectorException) e).getErrorVariables()).isEqualTo(errorVariables));
