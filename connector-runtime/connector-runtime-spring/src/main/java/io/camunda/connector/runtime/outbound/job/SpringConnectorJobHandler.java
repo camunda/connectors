@@ -191,22 +191,23 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
-    ConnectorResult result = getConnectorResult(job, secretFilter);
-    processFinalResult(client, job, result, counterMetricsContext, secretFilter);
+    var context =
+        new JobHandlerContext(
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter);
+    ConnectorResult result = getConnectorResult(job, context, secretFilter);
+    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job, SecretFilter secretFilter) {
+  private ConnectorResult getConnectorResult(
+      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-      var context =
-          new JobHandlerContext(
-              job,
-              getSecretProvider(),
-              validationProvider,
-              documentFactory,
-              objectMapper,
-              secretFilter);
       var response = call.execute(context);
       var responseVariables =
           connectorResultHandler.createOutputVariables(
@@ -219,13 +220,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       return new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff, secretFilter);
+          e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues());
     }
   }
 
   private void processFinalResult(
       JobClient client,
       ActivatedJob job,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
       SecretFilter secretFilter) {
@@ -237,7 +239,9 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error, counterMetricsContext),
+          error ->
+              handleConnectorError(
+                  client, job, context, error, counterMetricsContext, secretFilter),
           () -> handleSuccessResult(client, job, finalResult, counterMetricsContext));
     } catch (Exception ex) {
       if (Thread.currentThread().isInterrupted()) {
@@ -261,7 +265,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       failJob(
           client,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter),
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              ex, job, secretFilter, context.getSecretHandler().getResolvedValues()),
           counterMetricsContext);
     }
   }
@@ -280,22 +285,32 @@ public class SpringConnectorJobHandler implements JobHandler {
       LOGGER.error(
           "Exception while completing job: {}, message: {}",
           JobForLog.from(job),
-          errorResult.exception().getMessage(),
-          errorResult.exception());
+          errorResult.exception().getMessage());
       failJob(jobClient, job, errorResult, counterMetricsContext);
     }
   }
 
-  private void handleBPMNError(
+  private void handleConnectorError(
       JobClient client,
       ActivatedJob job,
-      ConnectorError error,
-      CounterMetricsContext counterMetricsContext) {
+      JobHandlerContext context,
+      ConnectorError rawError,
+      CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter) {
+    // redacted before the Zeebe command is built from it: failJob and throwError mask nothing of
+    // their own, and these two branches build their command directly rather than going through
+    // manageConnectorJobHandlerException
+    var error =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, context.getSecretHandler().getResolvedValues());
+
     switch (error) {
       case BpmnError bpmnError -> {
         checkVariablesSize(bpmnError.variables());
-        LOGGER.debug(
-            "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
+        // the code is deliberately never redacted, since boundary events match on it, so it stays
+        // out of the log: pod logs are shipped to systems with their own retention and access
+        // controls, and the job key already identifies the line
+        LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
         throwBpmnError(client, job, bpmnError, counterMetricsContext);
       }
       case JobError jobError -> {

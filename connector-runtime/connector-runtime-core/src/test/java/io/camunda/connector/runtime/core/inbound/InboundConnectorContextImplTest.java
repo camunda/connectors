@@ -194,6 +194,152 @@ class InboundConnectorContextImplTest {
     assertThat(replace(context, "secrets.INJECTED")).isEqualTo("resolved");
   }
 
+  @Test
+  void log_masksASecretResolvedForThisConnector() {
+    // given a connector declaring a legacy secret this context can resolve
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when an activity's message happens to carry the resolved value
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
+
+    // then the logged message has the value masked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
+
+    // then the raw message is withheld rather than published unmasked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.message()).doesNotContain("bar");
+              assertThat(log.message()).contains("withheld");
+            });
+  }
+
+  @Test
+  void reportHealth_masksASecretInTheErrorMessage() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when the reported health carries the resolved value in its error
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+
+    // then it is masked both in the stored health and in the activity log
+    assertThat(context.getHealth().getError().message()).doesNotContain("bar");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> assertThat(log.healthChange().getError().message()).doesNotContain("bar"));
+  }
+
+  @Test
+  void reportHealth_dedupesIdenticalHealthAfterMasking() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when the same failure is reported twice
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+
+    // then the second report is deduped against the masked, not the raw, health
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(1);
+  }
+
+  @Test
+  void reportHealth_doesNotDedupeTwoDifferentUnmaskableFailures() {
+    // given a provider that is down, so every health report is withheld
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var downProvider = mock(SecretProvider.class);
+    when(downProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            downProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when two distinct failures are reported during the outage
+    context.reportHealth(Health.down(new RuntimeException("kafka broker unreachable")));
+    context.reportHealth(Health.down(new RuntimeException("deserialization failed")));
+
+    // then both are logged rather than the second being deduped against the first
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(2);
+  }
+
+  @Test
+  void log_masksASecretThatRotatedAfterItWasBound() {
+    // given a provider that resolves FOO to one value at bind time and a different one on re-read
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var context =
+        new InboundConnectorContextImpl(
+            rotatingProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when the bound value is used, binding first so it is actually substituted and captured
+    context.getProperties();
+    context.log(
+        activity -> activity.withSeverity(Severity.ERROR).withMessage("token was old-value"));
+
+    // then the bound value is redacted even though a re-read would return a different one
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).last().satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenTheReReadComesBackShort() {
+    // given a connector declaring two secrets but only one resolving on re-read
+    var definition = getInboundConnectorDefinition(Map.of("a", "secrets.FOO", "b", "secrets.BAR"));
+    var partialProvider = mock(SecretProvider.class);
+    when(partialProvider.fetchAll(any(), any())).thenReturn(List.of("only-one-value"));
+    var context =
+        new InboundConnectorContextImpl(
+            partialProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when nothing was ever bound, so only the (incomplete) re-read is available
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was leaked"));
+
+    // then the message is withheld rather than published with only one of the two values masked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).contains("withheld"));
+  }
+
   private static ValidInboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);

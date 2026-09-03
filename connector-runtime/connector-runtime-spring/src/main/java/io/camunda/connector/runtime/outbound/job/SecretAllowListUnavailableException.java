@@ -16,15 +16,27 @@
  */
 package io.camunda.connector.runtime.outbound.job;
 
+import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
+
 /**
  * Thrown when the allow-list of secret names an element may resolve could not be read, so no secret
  * value ever reached the input. The lookup reads the process definition from secondary storage,
  * which a just-deployed definition has yet to reach, so this failure is worth another attempt after
  * a backoff rather than immediately.
  */
-class SecretAllowListUnavailableException extends RuntimeException {
+class SecretAllowListUnavailableException extends RuntimeException
+    implements SecretFailureDiagnostic {
 
   SecretAllowListUnavailableException(String message) {
     super(message);
+  }
+
+  /**
+   * The runtime wrote this message itself — it names the element and the process definition, not
+   * anything a secret store echoed back — so it stays readable when an error has to be withheld.
+   */
+  @Override
+  public String publishableMessage() {
+    return getMessage();
   }
 }
