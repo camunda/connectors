@@ -9,7 +9,7 @@ VOLUME /tmp
 WORKDIR /
 
 # Switch to root to allow setting up our own user and dirs
-USER root
+USER 0
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
 # Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
