@@ -25,8 +25,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -156,5 +159,84 @@ public class SecretUtilTests {
     SecretContext secretContext = new SecretContext("tenantId", "processId");
     String replacedContent = SecretUtil.replaceSecrets(content, secretContext, secretReplacer);
     assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
+  }
+
+  @Test
+  void shouldNotResolveABarePrefixOfADeniedBracketedName() {
+    var asked = new ArrayList<String>();
+
+    assertThat(
+            SecretUtil.replaceSecrets(
+                "{{secrets.PROD:API}}", null, recording(asked, Map.of("PROD", "p4ssw0rd"))))
+        .isEqualTo("{{secrets.PROD:API}}");
+    assertThat(asked).containsExactly("PROD:API");
+  }
+
+  @Test
+  void shouldNotResolveABracketedReferenceAResolvedValueIntroduces() {
+    var asked = new ArrayList<String>();
+    var secrets = Map.of("A", "{{secrets.PROD:API}}", "PROD", "p4ssw0rd");
+
+    assertThat(SecretUtil.replaceSecrets("{{secrets.A}}", null, recording(asked, secrets)))
+        .isEqualTo("{{secrets.PROD:API}}");
+    assertThat(asked).containsExactly("A");
+  }
+
+  @Test
+  void shouldNotResolveABareReferenceAResolvedValueIntroduces() {
+    var asked = new ArrayList<String>();
+    var secrets = Map.of("NOTE", "see secrets.OTHER", "OTHER", "TOP_SECRET");
+
+    assertThat(SecretUtil.replaceSecrets("{{secrets.NOTE}}", null, recording(asked, secrets)))
+        .isEqualTo("see secrets.OTHER");
+    assertThat(asked).containsExactly("NOTE");
+  }
+
+  @Test
+  void shouldReportOnlyTheNameABracketedReferenceDeclares() {
+    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.PROD:API}}"))
+        .containsExactly("PROD:API");
+    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.camunda.secrets.FOO}}"))
+        .containsExactly("camunda.secrets.FOO");
+  }
+
+  @Test
+  void shouldAskForEveryNameAtMostOnce() {
+    var asked = new ArrayList<String>();
+
+    assertThat(
+            SecretUtil.replaceSecrets(
+                "secrets.K secrets.K {{secrets.K}}", null, recording(asked, Map.of("K", "V"))))
+        .isEqualTo("V V V");
+    assertThat(asked).containsExactly("K");
+  }
+
+  @Test
+  void shouldScanAPayloadOfDeniedReferencesOnce() {
+    var asked = new ArrayList<String>();
+    var payload =
+        IntStream.range(0, 5000)
+            .mapToObj(i -> "{{secrets.DENIED" + i + ":X}}")
+            .collect(Collectors.joining(" "));
+
+    assertThat(SecretUtil.replaceSecrets(payload, null, recording(asked, Map.of())))
+        .isEqualTo(payload);
+    assertThat(asked).hasSize(5000);
+  }
+
+  @Test
+  void shouldLeaveAReferenceWithoutANameUntouched() {
+    var secretReplacer = mock(SecretReplacer.class);
+
+    assertThat(SecretUtil.replaceSecrets("{\"pw\":\"{{secrets.}}\"}", null, secretReplacer))
+        .isEqualTo("{\"pw\":\"{{secrets.}}\"}");
+    verifyNoInteractions(secretReplacer);
+  }
+
+  private static SecretReplacer recording(List<String> asked, Map<String, String> secrets) {
+    return (name, context) -> {
+      asked.add(name);
+      return secrets.get(name);
+    };
   }
 }
