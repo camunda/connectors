@@ -77,10 +77,10 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.83.1</version.grpc>
+    <version.grpc>1.84.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.36.0</version.protobuf>
+    <version.protobuf>4.36.1</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.7</version.aws-sdk2>
+    <version.aws-sdk2>2.54.11</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
 
-    <version.google-api-client>2.9.0</version.google-api-client>
+    <version.google-api-client>2.9.1</version.google-api-client>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
@@ -150,10 +150,10 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.11.2</version.lz4-java>
 
-    <version.microsoft-graph>6.67.0</version.microsoft-graph>
+    <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
-    <version.azure-identity>1.18.5</version.azure-identity>
+    <version.azure-identity>1.18.6</version.azure-identity>
     <version.azure-core>1.59.1</version.azure-core>
     <version.azure-cosmos>4.82.0</version.azure-cosmos>
 
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
-    <version.box-sdk>5.15.1</version.box-sdk>
+    <version.box-sdk>5.15.2</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -192,7 +192,7 @@ limitations under the License.</license.inlineheader>
     <version.langchain4j>1.19.0</version.langchain4j>
     <version.mcp-sdk>2.0.1</version.mcp-sdk>
     <version.elasticsearch-java>8.19.21</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
+    <version.elasticsearch-rest-client>8.19.21</version.elasticsearch-rest-client>
 
     <version.scala>3.9.0</version.scala>
 
@@ -207,7 +207,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.10.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
-    <plugin.version.maven-compiler-plugin>3.15.0</plugin.version.maven-compiler-plugin>
+    <plugin.version.maven-compiler-plugin>3.16.0</plugin.version.maven-compiler-plugin>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
 
