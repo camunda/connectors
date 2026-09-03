@@ -28,8 +28,10 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -78,6 +80,8 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
+    assertThat(result.exception().getMessage()).doesNotContain("process-definition lookup failed");
+    assertThat(result.exception()).hasNoCause();
   }
 
   @Test
@@ -98,6 +102,8 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
+    assertThat(result.exception().getMessage()).doesNotContain("secret store unavailable");
+    assertThat(result.exception()).hasNoCause();
   }
 
   @Test
@@ -287,6 +293,243 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(result.exception()).hasMessageContaining("Activity_1");
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+  }
+
+  @Test
+  void anUnreadableSecretPublishesNeitherTheProvidersWordsNorTheOriginalError() {
+    // The provider's own message can carry secret material, and so can the error that was supposed
+    // to be redacted: on this path neither has been masked, so neither may be published.
+    var job = jobWithSecretReference();
+    SecretProvider throwingProvider =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new IllegalStateException(
+                  "vault said: {\"token\":\"" + FooBarSecretProvider.SECRET_VALUE + "\"}");
+            });
+    var handlerWithThrowingProvider = new OutboundConnectorExceptionHandler(throwingProvider);
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("AUTH-401")
+            .message("api rejected " + FooBarSecretProvider.SECRET_VALUE)
+            .errorVariables(Map.of("responseBody", FooBarSecretProvider.SECRET_VALUE))
+            .build();
+
+    var result =
+        handlerWithThrowingProvider.manageConnectorJobHandlerException(
+            connectorException, job, Duration.ofSeconds(1), SecretFilter.allowAll(), List.of());
+
+    @SuppressWarnings("unchecked")
+    var errorPayload =
+        (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+    assertThat(errorPayload).doesNotContainKey("variables");
+    assertThat(errorPayload).doesNotContainKey("code");
+    assertThat(errorPayload.toString())
+        .doesNotContain(FooBarSecretProvider.SECRET_VALUE)
+        .doesNotContain("vault said")
+        .doesNotContain("api rejected");
+    assertThat(result.exception())
+        .hasNoCause()
+        .hasMessageContaining("Fetching secrets failed")
+        .hasMessageNotContaining("vault said")
+        .hasMessageNotContaining("api rejected");
+    // the type reported is the withheld-error stand-in, never the ConnectorException whose code and
+    // variables would otherwise be copied into the payload unmasked
+    assertThat(errorPayload.get("type").toString()).endsWith("SecretsUnavailableException");
+  }
+
+  @Test
+  void anUnreadableSecretOnTheFinalResultPathPublishesNothingUnmaskedEither() {
+    var job = jobWithSecretReference();
+    SecretProvider throwingProvider =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new IllegalStateException("vault said: " + FooBarSecretProvider.SECRET_VALUE);
+            });
+    var handlerWithThrowingProvider = new OutboundConnectorExceptionHandler(throwingProvider);
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("AUTH-401")
+            .message("api rejected " + FooBarSecretProvider.SECRET_VALUE)
+            .errorVariables(Map.of("responseBody", FooBarSecretProvider.SECRET_VALUE))
+            .build();
+
+    var result =
+        handlerWithThrowingProvider.handleFinalResultException(
+            connectorException, job, SecretFilter.allowAll(), List.of());
+
+    @SuppressWarnings("unchecked")
+    var errorPayload =
+        (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+    assertThat(errorPayload).doesNotContainKey("variables");
+    assertThat(errorPayload).doesNotContainKey("code");
+    assertThat(errorPayload.toString())
+        .doesNotContain(FooBarSecretProvider.SECRET_VALUE)
+        .doesNotContain("vault said")
+        .doesNotContain("api rejected");
+    assertThat(result.exception()).hasNoCause();
+  }
+
+  @Test
+  void aFailedMaskingFetchDoesNotPublishItsOwnErrorVariables() {
+    // exceptionToMap copies a ConnectorException's variables and code into the payload. On this
+    // path it would copy them with an empty redaction list, publishing unmasked exactly the data
+    // the branch exists to withhold.
+    var job = jobWithSecretReference();
+    SecretProvider throwingProvider =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new ConnectorExceptionBuilder()
+                  .errorCode("PROVIDER_CODE")
+                  .message("lookup rejected")
+                  .errorVariables(Map.of("response", "credential super-secret was rejected"))
+                  .build();
+            });
+    var handlerWithThrowingProvider = new OutboundConnectorExceptionHandler(throwingProvider);
+
+    var result =
+        handlerWithThrowingProvider.manageConnectorJobHandlerException(
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.responseValue().toString())
+        .doesNotContain("super-secret")
+        .doesNotContain("PROVIDER_CODE");
+  }
+
+  @Test
+  void masksTheErrorVariablesCopiedOffTheOriginalException() {
+    // an API that echoes a rejected credential back would otherwise publish it as a process
+    // variable, which is visible to anyone who can see the process instance
+    var job = jobWithSecretReference();
+    var nested = new HashMap<String, Object>();
+    nested.put("body", "rejected " + FooBarSecretProvider.SECRET_VALUE);
+    nested.put("headers", List.of("Authorization: " + FooBarSecretProvider.SECRET_VALUE));
+    nested.put("status", 401);
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("AUTH-401")
+            .message("api rejected the request")
+            .errorVariables(
+                Map.of("response", nested, FooBarSecretProvider.SECRET_VALUE + "-key", "value"))
+            .build();
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            connectorException, job, Duration.ofSeconds(1), SecretFilter.allowAll(), List.of());
+
+    @SuppressWarnings("unchecked")
+    var errorPayload =
+        (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+    @SuppressWarnings("unchecked")
+    var variables = (Map<String, Object>) errorPayload.get("variables");
+    assertThat(variables.toString()).doesNotContain(FooBarSecretProvider.SECRET_VALUE);
+    assertThat(variables).containsKey("***-key");
+    @SuppressWarnings("unchecked")
+    var maskedResponse = (Map<String, Object>) variables.get("response");
+    assertThat(maskedResponse.get("body")).isEqualTo("rejected ***");
+    assertThat(maskedResponse.get("headers")).isEqualTo(List.of("Authorization: ***"));
+    // scalars keep their type, since processes may branch on them
+    assertThat(maskedResponse.get("status")).isEqualTo(401);
+    // boundary events match on the code, so it is deliberately left alone
+    assertThat(errorPayload.get("code")).isEqualTo("AUTH-401");
+  }
+
+  @Test
+  void errorVariablesThatContainThemselvesAreReportedRatherThanRecursedForever() {
+    var job = jobWithSecretReference();
+    var cyclic = new HashMap<String, Object>();
+    cyclic.put("body", "rejected " + FooBarSecretProvider.SECRET_VALUE);
+    cyclic.put("self", cyclic);
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .errorCode("AUTH-401")
+            .message("api rejected the request")
+            .errorVariables(Map.of("response", cyclic))
+            .build();
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            connectorException, job, Duration.ofSeconds(1), SecretFilter.allowAll(), List.of());
+
+    @SuppressWarnings("unchecked")
+    var errorPayload =
+        (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+    @SuppressWarnings("unchecked")
+    var variables = (Map<String, Object>) errorPayload.get("variables");
+    @SuppressWarnings("unchecked")
+    var maskedResponse = (Map<String, Object>) variables.get("response");
+    assertThat(maskedResponse.get("self")).isEqualTo("[circular reference]");
+    assertThat(maskedResponse.get("body")).isEqualTo("rejected ***");
+  }
+
+  @Test
+  void aMaskingReadThatComesBackShortWithholdsTheMessage() {
+    // fetchAll drops the names it cannot resolve, so a short read is a silent one: redacting with
+    // what did come back would publish the value that did not in the clear.
+    var job = jobNaming("{\"a\": \"{{secrets.HELD}}\", \"b\": \"{{secrets.REVOKED}}\"}");
+    var handlerHoldingOne =
+        new OutboundConnectorExceptionHandler(holdingOnly(Map.of("HELD", "held-value")));
+
+    var result =
+        handlerHoldingOne.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected revoked-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception().getMessage())
+        .contains("Fetching secrets failed")
+        .doesNotContain("revoked-value")
+        // the count is written by this runtime, so it is publishable and says what to act on
+        .contains("1 of the 2 secrets this job's input names could not be read back");
+    assertThat(result.exception()).hasNoCause();
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
+  void aJobThatFailedOnAMissingSecretStillReportsWhichSecretIsMissing() {
+    // the re-read comes back short for the very name the job failed on, which is what the job's own
+    // failure already says: withholding it would replace a useful message with a generic one
+    var job = jobNaming("{\"a\": \"{{secrets.HELD}}\", \"b\": \"{{secrets.MISSING}}\"}");
+    var handlerHoldingOne =
+        new OutboundConnectorExceptionHandler(holdingOnly(Map.of("HELD", "held-value")));
+
+    var result =
+        handlerHoldingOne.manageConnectorJobHandlerException(
+            new SecretNotAvailableException("MISSING"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception().getMessage())
+        .isEqualTo("Secret with name 'MISSING' is not available");
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aCompleteReadStillMasksEveryValueItReturned() {
+    var job = jobNaming("{\"a\": \"{{secrets.HELD}}\", \"b\": \"{{secrets.ALSO_HELD}}\"}");
+    var handlerHoldingBoth =
+        new OutboundConnectorExceptionHandler(
+            holdingOnly(Map.of("HELD", "held-value", "ALSO_HELD", "other-value")));
+
+    var result =
+        handlerHoldingBoth.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected held-value and other-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and ***");
   }
 
   @Test
