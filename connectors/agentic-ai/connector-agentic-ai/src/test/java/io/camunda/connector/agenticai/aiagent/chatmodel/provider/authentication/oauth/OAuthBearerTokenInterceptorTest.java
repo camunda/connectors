@@ -44,7 +44,15 @@ class OAuthBearerTokenInterceptorTest {
             null,
             OAuthConstants.BASIC_AUTH_HEADER,
             null);
-    interceptor = new OAuthBearerTokenInterceptor(tokenResolver, authentication);
+    interceptor =
+        new OAuthBearerTokenInterceptor(
+            tokenResolver,
+            authentication.oauthTokenEndpoint(),
+            authentication.clientId(),
+            authentication.clientSecret(),
+            authentication.audience(),
+            authentication.clientAuthentication(),
+            authentication.scopes());
   }
 
   @Test
