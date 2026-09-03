@@ -97,4 +97,20 @@ class LazyLoadingSecretFilterTest {
 
     assertTrue(callCount.get() == 1, "Supplier must not be re-invoked after a cached failure");
   }
+
+  @Test
+  void isAllowed_supplierThrowsError_doesNotFailOpenOnSubsequentCalls() {
+    var callCount = new AtomicInteger(0);
+    var filter =
+        new LazyLoadingSecretFilter(
+            () -> {
+              callCount.incrementAndGet();
+              throw new NoClassDefFoundError("some.missing.Class");
+            });
+
+    assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed("UNDECLARED_SECRET"));
+    assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed("ANOTHER_UNDECLARED_SECRET"));
+
+    assertTrue(callCount.get() == 1, "Supplier must not be re-invoked after a cached failure");
+  }
 }
