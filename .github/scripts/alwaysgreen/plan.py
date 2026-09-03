@@ -201,12 +201,26 @@ def merge_candidates_by_key(candidates: list[Candidate]) -> list[Candidate]:
         first = merged.get(cand.key)
         if first is None:
             merged[cand.key] = cand
-            continue
-        seen = {(s.file, s.test_name) for s in first.specs}
-        first.specs.extend(
-            s for s in cand.specs if (s.file, s.test_name) not in seen
-        )
-        first.job_level = first.job_level and cand.job_level
+        else:
+            first.specs.extend(cand.specs)
+            first.job_level = first.job_level and cand.job_level
+
+    # Deduplicate every accumulated list, not just the parts added above. Two sources of
+    # repeats: a candidate can arrive already carrying them, because `sm_candidates`
+    # accumulates specs from every downloaded report and two reports can cover the same
+    # spec; and a single later candidate can repeat one internally. A duplicate is not
+    # cosmetic -- it hands the agent the same spec twice and repeats its fingerprint in
+    # the coverage block.
+    for cand in merged.values():
+        seen: set[tuple[str, str]] = set()
+        unique = []
+        for spec in cand.specs:
+            ident = (spec.file, spec.test_name)
+            if ident in seen:
+                continue
+            seen.add(ident)
+            unique.append(spec)
+        cand.specs = unique
     return list(merged.values())
 
 

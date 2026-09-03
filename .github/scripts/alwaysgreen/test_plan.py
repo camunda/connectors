@@ -517,3 +517,33 @@ def test_a_job_level_part_does_not_make_the_merge_job_level():
     )
     assert len(result.dispatches) == 1
     assert result.dispatches[0].job_level is False
+
+
+def test_duplicates_inside_one_candidate_are_removed():
+    # sm_candidates accumulates specs from every downloaded report, so a candidate can
+    # arrive already carrying repeats when two reports cover the same spec.
+    spec = _spec(file="tests/SM-8.9/a.spec.ts")
+    result = _plan([_cand(specs=[spec, spec])])
+    assert [s.file for s in result.dispatches[0].specs] == ["tests/SM-8.9/a.spec.ts"]
+
+
+def test_duplicates_inside_a_later_candidate_are_removed():
+    spec = _spec(file="tests/SM-8.9/b.spec.ts")
+    result = _plan(
+        [
+            _cand(specs=[_spec(file="tests/SM-8.9/a.spec.ts")]),
+            _cand(specs=[spec, spec]),
+        ]
+    )
+    assert sorted(s.file for s in result.dispatches[0].specs) == [
+        "tests/SM-8.9/a.spec.ts",
+        "tests/SM-8.9/b.spec.ts",
+    ]
+
+
+def test_a_merged_candidate_claims_each_fingerprint_once():
+    # The coverage block is built from these, and a repeated fp is a repeated claim.
+    spec = _spec(file="tests/SM-8.9/a.spec.ts")
+    result = _plan([_cand(specs=[spec]), _cand(specs=[spec])])
+    fps = result.dispatches[0].fingerprints
+    assert len(fps) == len(set(fps)) == 1
