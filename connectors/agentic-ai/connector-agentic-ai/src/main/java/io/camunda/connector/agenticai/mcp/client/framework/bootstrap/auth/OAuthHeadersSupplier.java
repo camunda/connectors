@@ -12,6 +12,14 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.Map;
 import java.util.function.Supplier;
 
+/**
+ * Resolves the {@code Authorization} header for the MCP client via the shared {@link
+ * OAuthClientCredentialsTokenResolver}. Note: a token endpoint response without {@code expires_in}
+ * is never cached by that resolver, so this supplier refetches on every {@link #get()} call in that
+ * case, unlike the hand-rolled cache this class previously had (which defaulted to a five-minute
+ * TTL). Accepted tradeoff for sharing identical caching semantics with the OpenAI/Anthropic {@code
+ * custom} backends; see {@code OAuthClientCredentialsTokenResolverTest} for the covered behavior.
+ */
 public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   private final OAuthClientCredentialsTokenResolver tokenResolver;
