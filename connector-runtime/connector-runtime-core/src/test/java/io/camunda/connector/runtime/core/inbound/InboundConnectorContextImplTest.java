@@ -622,6 +622,117 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void log_masksASecretResolvedForThisConnector() {
+    // given a connector declaring a legacy secret this context can resolve
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an activity's message happens to carry the resolved value
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
+
+    // then the logged message has the value masked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
+
+    // then the raw message is withheld rather than published unmasked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.message()).doesNotContain("bar");
+              assertThat(log.message()).contains("withheld");
+            });
+  }
+
+  @Test
+  void reportHealth_masksASecretInTheErrorMessage() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the reported health carries the resolved value in its error
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+
+    // then it is masked both in the stored health and in the activity log
+    assertThat(context.getHealth().getError().message()).doesNotContain("bar");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> assertThat(log.healthChange().getError().message()).doesNotContain("bar"));
+  }
+
+  @Test
+  void reportHealth_dedupesIdenticalHealthAfterMasking() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the same failure is reported twice
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+
+    // then the second report is deduped against the masked, not the raw, health
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(1);
+  }
+
+  @Test
   void bindProperties_shouldForwardClusterVariableExpressionToCluster() {
     // given a property referencing a cluster-scoped variable (e.g. camunda.vars.env.*)
     var definition =

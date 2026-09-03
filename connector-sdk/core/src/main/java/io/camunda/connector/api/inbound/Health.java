@@ -190,6 +190,11 @@ public class Health {
     return new Health(this.status, this.error, details, this.lastUpdatedAt);
   }
 
+  // preserves lastUpdatedAt, mirroring withDetails
+  public Health withError(Error error) {
+    return new Health(this.status, error, this.details, this.lastUpdatedAt);
+  }
+
   private Health() {
     this(Status.UNKNOWN, null, null);
   }

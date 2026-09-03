@@ -82,6 +82,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private volatile ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
+  private volatile @Nullable List<String> redactionSecrets;
+
+  private static final String REDACTION_UNAVAILABLE_MESSAGE =
+      "Message withheld: could not verify it does not contain a secret value";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -471,7 +475,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     if (health == null) {
       throw new IllegalArgumentException("Health must not be null");
     }
-    if (health.equals(this.health)) {
+    var masked = redactHealth(health);
+    if (masked.equals(this.health)) {
       return;
     }
     var activityLog =
@@ -480,9 +485,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             .withMessage(
                 String.format(
                     "Health status changed to %s, details: %s",
-                    health.getStatus(), health.getDetails()))
-            .withSeverity(health.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
-            .andReportHealth(health)
+                    masked.getStatus(), masked.getDetails()))
+            .withSeverity(masked.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
+            .andReportHealth(masked)
             .build();
     // append the activity log to store the health status change history
     activityLogWriter.log(
@@ -490,7 +495,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
             activityLog));
-    this.health = health;
+    this.health = masked;
   }
 
   @Override
@@ -500,14 +505,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    if (log.healthChange() != null) {
-      this.health = log.healthChange();
+    var masked = redact(log);
+    if (masked.healthChange() != null) {
+      this.health = masked.healthChange();
     }
     activityLogWriter.log(
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
-            log));
+            masked));
   }
 
   @Override
@@ -527,7 +533,67 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.RUNTIME,
-            builder.build()));
+            redact(builder.build())));
+  }
+
+  // legacy names only, matching the scope of secretFilterEnabled's own allow-list (#7730 tracks
+  // the new camunda.secrets.<name> form for inbound)
+  private List<String> secretValuesForRedaction() {
+    var cached = redactionSecrets;
+    if (cached != null) {
+      return cached;
+    }
+    var values = fetchSecretValuesForRedaction();
+    if (values != null) {
+      redactionSecrets = values;
+    }
+    return values;
+  }
+
+  private @Nullable List<String> fetchSecretValuesForRedaction() {
+    var names = declaredSecretNames(connectorDetails.rawPropertiesWithoutKeywords());
+    if (names.isEmpty()) {
+      return List.of();
+    }
+    try {
+      return secretProvider.fetchAll(names, redactionSecretContext());
+    } catch (Exception e) {
+      LOG.warn("Could not fetch secret values to redact activity log: {}", e.getClass().getName());
+      return null;
+    }
+  }
+
+  private SecretContext redactionSecretContext() {
+    return new SecretContext(
+        connectorDetails.tenantId(), connectorDetails.processDefinitionId(), physicalTenantId());
+  }
+
+  private @Nullable String redactMessage(@Nullable String message) {
+    if (message == null) {
+      return null;
+    }
+    var secrets = secretValuesForRedaction();
+    return secrets == null
+        ? REDACTION_UNAVAILABLE_MESSAGE
+        : SecretUtil.hideSecretsFromMessage(message, secrets);
+  }
+
+  private @Nullable Health redactHealth(@Nullable Health health) {
+    if (health == null || health.getError() == null) {
+      return health;
+    }
+    var error = health.getError();
+    return health.withError(new Health.Error(error.code(), redactMessage(error.message())));
+  }
+
+  private Activity redact(Activity activity) {
+    return new Activity(
+        activity.severity(),
+        activity.tag(),
+        activity.timestamp(),
+        redactMessage(activity.message()),
+        activity.data(),
+        redactHealth(activity.healthChange()));
   }
 
   @Override
