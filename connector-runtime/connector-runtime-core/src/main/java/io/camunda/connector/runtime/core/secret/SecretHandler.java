@@ -20,7 +20,8 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ public class SecretHandler {
   protected SecretReplacer secretReplacer;
 
   // values this instance substituted, so a caller can redact against a rotated re-read
-  private final List<String> resolvedValues = new CopyOnWriteArrayList<>();
+  private final Set<String> resolvedValues = ConcurrentHashMap.newKeySet();
 
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;

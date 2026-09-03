@@ -423,17 +423,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private <T> T bindElementProperties(
       ValidInboundConnectorDetails details, Map<String, String> rawProperties, Class<T> cls) {
+    var handler = secretHandler(rawProperties);
     try {
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
-      var handler = secretHandler(rawProperties);
-      var withSecrets =
-          InboundPropertyHandler.getPropertiesWithSecrets(
-              handler,
-              objectMapper,
-              wrapped,
-              new SecretContext(
-                  details.tenantId(), details.processDefinitionId(), physicalTenantId()));
-      capturedSecretValues.addAll(handler.getResolvedValues());
+      Map<String, Object> withSecrets;
+      try {
+        withSecrets =
+            InboundPropertyHandler.getPropertiesWithSecrets(
+                handler,
+                objectMapper,
+                wrapped,
+                new SecretContext(
+                    details.tenantId(), details.processDefinitionId(), physicalTenantId()));
+      } finally {
+        capturedSecretValues.addAll(handler.getResolvedValues());
+      }
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
@@ -609,7 +613,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return health;
     }
     var error = health.getError();
-    return health.withError(new Health.Error(error.code(), redactMessage(error.message())));
+    return health.withError(
+        new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
   }
 
   private Activity redact(Activity activity) {
@@ -635,16 +640,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
       var handler = getSecretHandler();
-      propertiesWithSecrets =
-          InboundPropertyHandler.getPropertiesWithSecrets(
-              handler,
-              objectMapper,
-              properties,
-              new SecretContext(
-                  connectorDetails.tenantId(),
-                  connectorDetails.processDefinitionId(),
-                  physicalTenantId()));
-      capturedSecretValues.addAll(handler.getResolvedValues());
+      try {
+        propertiesWithSecrets =
+            InboundPropertyHandler.getPropertiesWithSecrets(
+                handler,
+                objectMapper,
+                properties,
+                new SecretContext(
+                    connectorDetails.tenantId(),
+                    connectorDetails.processDefinitionId(),
+                    physicalTenantId()));
+      } finally {
+        capturedSecretValues.addAll(handler.getResolvedValues());
+      }
     }
     return propertiesWithSecrets;
   }
