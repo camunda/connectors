@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -31,7 +30,6 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
-import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -47,7 +45,6 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +54,6 @@ public class ConnectorJobHandler implements JobHandler {
   // Protects Zeebe from enormously large messages it cannot handle
   public static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
-
-  private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
 
   protected final OutboundConnectorFunction call;
   protected SecretProvider secretProvider;
@@ -175,12 +170,16 @@ public class ConnectorJobHandler implements JobHandler {
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
 
+    // one provider instance for both binding and the masking re-read
+    var jobSecretProvider = getSecretProvider();
+    var exceptionHandler = new OutboundConnectorExceptionHandler(jobSecretProvider);
+
     ConnectorResult result;
 
     try {
       var context =
           new JobHandlerContext(
-              job, getSecretProvider(), validationProvider, objectMapper, secretFilter);
+              job, jobSecretProvider, validationProvider, objectMapper, secretFilter);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(
@@ -188,30 +187,9 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       result = new ConnectorResult.SuccessResult(response, responseVariables);
-    } catch (ConnectorRetryException ex) {
-      LOGGER.debug(
-          "ConnectorRetryException while processing job: {} for tenant: {}",
-          job.getKey(),
-          job.getTenantId(),
-          ex);
-      String errorCode = ex.getErrorCode();
-      result =
-          handleSDKException(
-              job,
-              ex,
-              Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
-              errorCode,
-              Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
     } catch (Exception ex) {
-      LOGGER.debug(
-          "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
-      String errorCode = null;
-      if (ex instanceof ConnectorException connectorException) {
-        errorCode = connectorException.getErrorCode();
-      }
       result =
-          handleSDKException(
-              job, ex, job.getRetries() - 1, errorCode, retryBackoffFor(ex, retryBackoff));
+          exceptionHandler.manageConnectorJobHandlerException(ex, job, retryBackoff, secretFilter);
     }
 
     try {
@@ -222,7 +200,8 @@ public class ConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
           .ifPresentOrElse(
               error -> {
-                handleBPMNError(client, job, error);
+                handleBPMNError(
+                    client, job, exceptionHandler.maskConnectorError(error, job, secretFilter));
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -237,15 +216,15 @@ public class ConnectorJobHandler implements JobHandler {
                 }
               });
     } catch (Exception ex) {
-      logError(job, ex);
-      // failure while parsing the error expression
-      failJob(client, job, new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, 0));
+      // failure while parsing the error expression; logged by the handler once redacted
+      failJob(client, job, exceptionHandler.handleFinalResultException(ex, job, secretFilter));
     }
   }
 
   private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
     if (error instanceof BpmnError bpmnError) {
-      LOGGER.debug("Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.code());
+      // the code is deliberately never redacted, so it is not echoed into the log either
+      LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
       LOGGER.debug("Throwing incident for job {}", job.getKey());
@@ -258,33 +237,6 @@ public class ConnectorJobHandler implements JobHandler {
               jobError.retries(),
               jobError.retryBackoff()));
     }
-  }
-
-  /**
-   * An allow-list that could not be read means no secret value ever reached the input, and the
-   * lookup behind it reads the process definition from secondary storage, which a just-deployed
-   * definition has yet to reach. That race resolves on the next attempt, so the read gets its own
-   * backoff rather than the model's: the model's paces calls to the target system, which this
-   * failure never reached, and it is zero in older element template versions -- which spent every
-   * remaining attempt within milliseconds.
-   */
-  private static Duration retryBackoffFor(Exception failure, Duration configured) {
-    return failure instanceof SecretAllowListUnavailableException
-        ? ALLOW_LIST_RETRY_BACKOFF
-        : configured;
-  }
-
-  private ConnectorResult handleSDKException(
-      ActivatedJob job, Exception ex, Integer retries, String errorCode, Duration backoffDuration) {
-    LOGGER.debug(
-        "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
-        job.getKey(),
-        job.getTenantId(),
-        errorCode,
-        retries,
-        backoffDuration);
-
-    return new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
   }
 
   protected SecretProvider getSecretProvider() {
