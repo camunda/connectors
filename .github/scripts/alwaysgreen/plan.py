@@ -60,10 +60,30 @@ MAX_LABEL_LENGTH = 50
 PR_LOCK_TTL_HOURS = 2
 
 
+#: How long an open PR's touched spec files keep blocking a dispatch that would edit
+#: them.
+#:
+#: The claim exists so two agents do not rewrite the same spec at the same time, and it
+#: is author-agnostic for that reason — but nothing released it either, and a claim is
+#: coarser than the key lock: it holds every failure in every file the PR touches, for
+#: whatever the PR happens to be. A draft opened on 2026-08-26 touching ten spec files
+#: still held them on 2026-09-03, and run 33727363856 reported
+#: `spec-path-claimed-by-open-pr` and dispatched nothing.
+#:
+#: Measured from last activity, not from creation, and a day rather than the key lock's
+#: two hours: a PR being written, reviewed or rebased touches its own timestamp well
+#: inside a day, so an active one never loses its files, while one nobody has touched
+#: since yesterday is not work in progress that a second agent could collide with.
+PATH_CLAIM_TTL_HOURS = 24
+
+
 def pr_lock_expired(
     created_at: str | None, now: datetime, ttl_hours: int = PR_LOCK_TTL_HOURS
 ) -> bool:
-    """Whether an open fix PR is too old to keep holding its dispatch key.
+    """Whether an open PR is too old to keep holding a lock.
+
+    Used for both locks a PR can hold: its dispatch key, from `createdAt`, and the spec
+    files it touches, from `updatedAt`. Only the timestamp and the TTL differ.
 
     A missing or unparseable timestamp keeps the lock, and `ttl_hours <= 0` disables
     expiry altogether: the bias matches the `ok` flags in discover's key lookups,

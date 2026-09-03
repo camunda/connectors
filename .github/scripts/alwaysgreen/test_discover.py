@@ -139,3 +139,73 @@ def test_a_failed_lookup_reports_not_ok(monkeypatch):
     _stub(monkeypatch, [_pr(1, ["connectors:main:sm-smoke-e2e"], claims=["aaaaaaaa"])], ok=False)
     _covered, _keys, _per_spec, ok = discover.dedupe_inputs()
     assert ok is False
+
+
+SPEC = "tests/8.10/smoke-tests.spec.ts"
+
+
+def _stub_pr_list(monkeypatch, prs, *, err=""):
+    """Serve `prs` as the open-PR listing behind the spec-path claim lookup."""
+
+    def fake(args, default):
+        return (None, err) if err else (list(prs), "")
+
+    monkeypatch.setattr(discover, "gh_json_ex", fake)
+
+
+def _claiming_pr(number, *, idle_hours=0, files=(SPEC,)):
+    return {
+        "number": number,
+        "files": [{"path": f} for f in files],
+        "updatedAt": _ago(hours=idle_hours),
+    }
+
+
+def test_a_live_pr_claims_the_spec_files_it_touches(monkeypatch):
+    _stub_pr_list(monkeypatch, [_claiming_pr(3153)])
+    claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert claims == {SPEC: 3153}
+    assert ok is True
+
+
+def test_an_idle_pr_stops_claiming_its_spec_files(monkeypatch):
+    # The case that wedged run 33727363856: a draft untouched for eight days still held
+    # every spec file it touched, so every failure in those files went undispatched.
+    _stub_pr_list(monkeypatch, [_claiming_pr(3153, idle_hours=8 * 24)])
+    claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert claims == {}
+    assert ok is True
+
+
+def test_an_idle_pr_with_a_truncated_file_list_does_not_suppress(monkeypatch):
+    # Truncation is only a problem for a PR whose claims still count. Checking the TTL
+    # first keeps a large stale PR from failing the lookup for everyone.
+    files = [f"tests/8.10/spec-{i}.spec.ts" for i in range(120)]
+    _stub_pr_list(monkeypatch, [_claiming_pr(3153, idle_hours=8 * 24, files=files)])
+    claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert claims == {}
+    assert ok is True
+
+
+def test_a_live_pr_with_a_truncated_file_list_still_suppresses(monkeypatch):
+    files = [f"tests/8.10/spec-{i}.spec.ts" for i in range(120)]
+    _stub_pr_list(monkeypatch, [_claiming_pr(3153, files=files)])
+    _claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert ok is False
+
+
+def test_a_missing_timestamp_keeps_the_claim(monkeypatch):
+    # Same bias as the key lock: an unproven state suppresses rather than risking two
+    # agents rewriting one spec.
+    pr = _claiming_pr(3153)
+    pr["updatedAt"] = ""
+    _stub_pr_list(monkeypatch, [pr])
+    claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert claims == {SPEC: 3153}
+    assert ok is True
+
+
+def test_a_failed_pr_listing_suppresses(monkeypatch):
+    _stub_pr_list(monkeypatch, [], err="gh: not found")
+    _claims, ok = discover.paths_claimed_by_open_prs({SPEC})
+    assert ok is False

@@ -48,23 +48,36 @@ KEY_LABEL_PREFIX = planning.KEY_LABEL_PREFIX
 #: two lookups below fail closed, a repository the token cannot reach would wedge every
 #: dispatch shut rather than merely returning nothing.
 FIX_PR_REPOS = [REPO, E2E_REPO]
+
+
+def _ttl_hours(env_var: str, default: int) -> int:
+    """An overridable TTL dial, read defensively.
+
+    Matches the degrade-don't-crash bias of everything else here: an unreadable
+    timestamp keeps the lock and a failed lookup suppresses, so a malformed dial must
+    not raise at import and take down every entry point in this module. Set to 0 to
+    restore the old never-expiring lock.
+    """
+    try:
+        return int(os.environ.get(env_var, "").strip() or default)
+    except ValueError:
+        print(
+            f"::warning::unparseable {env_var}; using the default ({default}h).",
+            file=sys.stderr,
+        )
+        return default
+
+
 #: How long an open fix PR keeps holding its dispatch key; see
-#: planning.PR_LOCK_TTL_HOURS. Set to 0 to restore the old never-expiring lock.
-#: Read defensively, matching the degrade-don't-crash bias of everything else here: an
-#: unreadable `createdAt` keeps the lock and a failed lookup suppresses, so a malformed
-#: dial must not raise at import and take down every entry point in this module.
-try:
-    PR_LOCK_TTL_HOURS = int(
-        os.environ.get("ALWAYSGREEN_PR_LOCK_TTL_HOURS", "").strip()
-        or planning.PR_LOCK_TTL_HOURS
-    )
-except ValueError:
-    print(
-        "::warning::unparseable ALWAYSGREEN_PR_LOCK_TTL_HOURS; using the default "
-        f"({planning.PR_LOCK_TTL_HOURS}h).",
-        file=sys.stderr,
-    )
-    PR_LOCK_TTL_HOURS = planning.PR_LOCK_TTL_HOURS
+#: planning.PR_LOCK_TTL_HOURS.
+PR_LOCK_TTL_HOURS = _ttl_hours(
+    "ALWAYSGREEN_PR_LOCK_TTL_HOURS", planning.PR_LOCK_TTL_HOURS
+)
+#: How long an open PR keeps blocking dispatches that would edit the spec files it
+#: touches; see planning.PATH_CLAIM_TTL_HOURS.
+PATH_CLAIM_TTL_HOURS = _ttl_hours(
+    "ALWAYSGREEN_PATH_CLAIM_TTL_HOURS", planning.PATH_CLAIM_TTL_HOURS
+)
 
 
 class DiscoveryError(RuntimeError):
@@ -422,6 +435,9 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
     fix, and a bot PR all count. Filtering by author would reintroduce exactly the
     blindness this layer exists to close.
 
+    A PR idle for longer than PATH_CLAIM_TTL_HOURS stops claiming its files, so a
+    forgotten draft cannot hold a surface's spec files shut indefinitely.
+
     Returns (claims, ok). On any lookup failure `ok` is False and the caller
     suppresses: a missed dispatch retries on the next failing run, a duplicate PR
     editing the same lines does not un-happen.
@@ -433,7 +449,7 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
     prs, err = gh_json_ex(
         [
             "pr", "list", "--repo", E2E_REPO, "--state", "open",
-            "--limit", "100", "--json", "number,files",
+            "--limit", "100", "--json", "number,files,updatedAt",
         ],
         None,
     )
@@ -447,8 +463,20 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
         log("::warning::open PR listing hit the page limit; suppressing this run")
         return claims, False
 
+    now = datetime.now(timezone.utc)
     for pr in prs:
         number = pr.get("number")
+        # Before the truncation check below, so a stale PR large enough to truncate
+        # cannot suppress the run either — it claims nothing, so its file list does
+        # not need to be complete.
+        if planning.pr_lock_expired(
+            pr.get("updatedAt") or "", now, PATH_CLAIM_TTL_HOURS
+        ):
+            log(
+                f"path claim expired after {PATH_CLAIM_TTL_HOURS}h: {E2E_REPO}#{number} "
+                "no longer claims the spec files it touches"
+            )
+            continue
         files = pr.get("files") or []
         # gh caps the per-PR file list. A truncated list under-reports claims, which
         # would read as "nothing claimed" — the one wrong answer this layer must not
