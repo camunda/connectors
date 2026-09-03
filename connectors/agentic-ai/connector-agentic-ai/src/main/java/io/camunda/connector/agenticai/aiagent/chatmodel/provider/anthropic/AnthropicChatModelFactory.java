@@ -13,6 +13,8 @@ import com.anthropic.core.http.ProxyAuthenticator;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthBearerTokenInterceptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -20,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -35,14 +38,17 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
+  private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public AnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
-      AnthropicMessageResponseConverter responseConverter) {
+      AnthropicMessageResponseConverter responseConverter,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
+    this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
   }
 
   @Override
@@ -56,21 +62,25 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
     final var connection = model.anthropic();
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
-    final var client = buildClient(connection.backend(), timeout, httpProxySupport);
+    final var client =
+        buildClient(
+            connection.backend(), timeout, httpProxySupport, oAuthClientCredentialsTokenResolver);
     return new AnthropicChatModel(client, model, requestConverter, responseConverter);
   }
 
   private static AnthropicClient buildClient(
       AnthropicBackend backend,
       @Nullable Duration timeout,
-      AgenticAiHttpProxySupport httpProxySupport) {
+      AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var builder = AnthropicOkHttpClient.builder();
 
     switch (backend) {
       case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           applyAwsBedrockMantleBackend(builder, awsBedrockMantleBackend);
-      case AnthropicCustomBackend custom -> applyCustomBackend(builder, custom);
+      case AnthropicCustomBackend custom ->
+          applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
     if (timeout != null) {
@@ -101,13 +111,30 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   private static void applyCustomBackend(
-      AnthropicOkHttpClient.Builder builder, AnthropicCustomBackend custom) {
+      AnthropicOkHttpClient.Builder builder,
+      AnthropicCustomBackend custom,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     builder.baseUrl(custom.custom().endpoint());
 
     switch (custom.custom().authentication()) {
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case NoAuthentication ignored -> {}
+      case OAuthClientCredentialsAuthentication oauth ->
+          builder.addInterceptor(
+              new OAuthBearerTokenInterceptor(
+                  oAuthClientCredentialsTokenResolver, toOAuthAuthentication(oauth)));
     }
+  }
+
+  private static io.camunda.connector.http.client.model.auth.OAuthAuthentication
+      toOAuthAuthentication(OAuthClientCredentialsAuthentication oauth) {
+    return new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
+        oauth.oauthTokenEndpoint(),
+        oauth.clientId(),
+        oauth.clientSecret(),
+        oauth.audience(),
+        oauth.clientAuthentication().oauthConstant(),
+        oauth.scopes());
   }
 
   private static void applyAwsBedrockMantleBackend(

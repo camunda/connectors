@@ -51,11 +51,13 @@ public class AgenticAiNativeProvidersConfiguration {
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
-    return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new AnthropicChatModelFactory(
+        httpProxySupport, requestConverter, responseConverter, oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
