@@ -24,6 +24,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;
 
 public class DefaultProcessElementContext extends AbstractConnectorContext
@@ -41,11 +42,51 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
       ValidationProvider validationProvider,
       SecretProvider secretProvider,
       ObjectMapper objectMapper) {
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this(connectorElement, validationProvider, secretProvider, objectMapper, false);
+  }
+
+  /**
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names this
+   *     element's own deployed {@code zeebe:property} text declares (#7730).
+   */
+  public DefaultProcessElementContext(
+      InboundConnectorElement connectorElement,
+      ValidationProvider validationProvider,
+      SecretProvider secretProvider,
+      ObjectMapper objectMapper,
+      boolean secretFilterEnabled) {
+    super(secretProvider, secretFilter(connectorElement, secretFilterEnabled), validationProvider);
     this.connectorElement = connectorElement;
     this.objectMapper = objectMapper;
     this.properties =
         InboundPropertyHandler.readWrappedProperties(connectorElement.rawProperties());
+  }
+
+  /**
+   * Scoped to this one element's {@code rawProperties} — the exact text {@link
+   * #getPropertiesWithSecrets} filters — rather than to every element of the executable. A name
+   * only a sibling element declares is therefore refused here, matching the per-call scoping #8538
+   * settled on upstream after a union across siblings proved too wide.
+   *
+   * <p>This context is a second inbound resolution path, distinct from {@code
+   * InboundConnectorContextImpl}: {@code canActivate} hands it to connectors as {@code
+   * ActivationCheckResult.Success.CanActivate#activatedElement()}, and every successful {@code
+   * CorrelationResult} carries one, so its public {@code getProperties()} and {@code
+   * bindProperties()} resolve secrets too. It is the analogue of main's {@code
+   * BindableProcessElement}, which is why upstream filters that and this filters here.
+   *
+   * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
+   */
+  private static SecretFilter secretFilter(
+      InboundConnectorElement connectorElement, boolean secretFilterEnabled) {
+    if (!secretFilterEnabled) {
+      return SecretFilter.allowAll();
+    }
+    return SecretFilter.allowOnly(
+        connectorElement.rawProperties().values().stream()
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList());
   }
 
   @Override
