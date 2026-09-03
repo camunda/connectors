@@ -12,17 +12,12 @@ import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionConte
 import java.util.List;
 
 public interface JobWorkerAgentExecutionContextFactory {
-  JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job);
-
   /**
    * Collects into {@code capturedSecretValues} every value substituted into the job's input,
    * whether the binding then succeeds or fails, so that an error reported for this job can be
    * redacted with the values the agent was actually handed rather than with whatever the secret
    * store holds by the time the error is built.
    */
-  default JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job, final List<String> capturedSecretValues) {
-    return createExecutionContext(jobClient, job);
-  }
+  JobWorkerAgentExecutionContext createExecutionContext(
+      final JobClient jobClient, final ActivatedJob job, final List<String> capturedSecretValues);
 }

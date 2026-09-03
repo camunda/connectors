@@ -18,7 +18,6 @@ import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
-import java.util.ArrayList;
 import java.util.List;
 
 public class JobWorkerAgentExecutionContextFactoryImpl
@@ -40,12 +39,6 @@ public class JobWorkerAgentExecutionContextFactoryImpl
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.secretFilterFactory = secretFilterFactory;
-  }
-
-  @Override
-  public JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job) {
-    return createExecutionContext(jobClient, job, new ArrayList<>());
   }
 
   @Override

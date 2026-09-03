@@ -562,39 +562,6 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(error(result)).containsEntry("code", "401");
   }
 
-  /**
-   * Callers compiled against an earlier 8.9 patch release call the signatures that predate the
-   * captured values, and they still link and still redact with what the re-read returns.
-   */
-  @Test
-  @SuppressWarnings("deprecation")
-  void manageConnectorJobHandlerException_redactsForCallersThatPassNoCapturedValues() {
-    var job = jobWithSecretReference();
-    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("bar-value"));
-
-    var result =
-        handlerOverStore.manageConnectorJobHandlerException(
-            new RuntimeException("api rejected bar-value"),
-            job,
-            Duration.ofSeconds(1),
-            SecretFilter.allowAll());
-
-    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  void handleFinalResultException_redactsForCallersThatPassNoCapturedValues() {
-    var job = jobWithSecretReference();
-    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("bar-value"));
-
-    var result =
-        handlerOverStore.handleFinalResultException(
-            new RuntimeException("api rejected bar-value"), job, SecretFilter.allowAll());
-
-    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
-  }
-
   @SuppressWarnings("unchecked")
   private Map<String, Object> maskedErrorVariables(Map<String, Object> errorVariables) {
     var job = jobWithSecretReference();
