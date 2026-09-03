@@ -171,9 +171,15 @@ def job_leaf_name(job_name: str) -> str:
 def surface_for_job(job_name: str) -> str | None:
     """Map a *failing* job name to the surface that broke.
 
-    Callers must filter on `conclusion == "failure"` first: a skipped
-    `Playwright e2e after install …` job is present in most runs and would
-    otherwise be misread as an SM e2e failure.
+    Callers must filter on the countable conclusions first — see
+    `discover.COUNTABLE_JOB_CONCLUSIONS`, which is `failure`, `cancelled` and
+    `timed_out`, less `cancelled` when the run itself was cancelled. Filtering on
+    `failure` alone reintroduces timeout blindness: a job that hits its own
+    `timeout-minutes` is reported as `cancelled`, and the SaaS stage dies that way
+    whenever the downstream run outlives its watcher.
+
+    Some filter is required either way. A skipped `Playwright e2e after install …` job
+    is present in most runs and would otherwise be misread as an SM e2e failure.
     """
     leaf = job_leaf_name(job_name)
 

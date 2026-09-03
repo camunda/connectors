@@ -295,6 +295,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_RUN_ID: ${{ inputs.run_id }}
           EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: |
           set -euo pipefail
           run_id="${INPUT_RUN_ID:-$EVENT_RUN_ID}"
@@ -320,8 +321,44 @@ jobs:
             exit 1
           fi
 
+          # An unfinished run has a partial job list, and reading it as final would
+          # either report a green pipeline that has not finished failing yet or invoke
+          # triage before the evidence artifacts are uploaded. The workflow_run event
+          # only fires on `completed`, so this guards the replay path -- where a run id
+          # is typed by hand and nothing else checks.
+          status=$(jq -r '.status // ""' <<<"$meta")
+          if [ "$status" != "completed" ]; then
+            echo "::error::run ${run_id} is '${status}', not completed; there is nothing final to judge yet"
+            exit 1
+          fi
+
+          # A re-run reuses the run id and increments the attempt, and workflow_run fires
+          # once per attempt -- while the scan below asks for `filter=latest`. So a
+          # listener for attempt N that starts late reads attempt N+1's jobs: if N+1 has
+          # finished, both listeners classify the same attempt and post the same failure
+          # twice; if it is still running, N's listener reads partial state.
+          #
+          # The newest attempt is the one worth judging, so the stale listener stands
+          # down rather than the newer one -- which also keeps `filter=latest` honest for
+          # the replay path, where a typed run id means "whatever that run looks like
+          # now".
+          stale=false
+          current_attempt=$(jq -r '.run_attempt // 1' <<<"$meta")
+          if [ -n "${EVENT_RUN_ATTEMPT:-}" ] \
+             && [ "${EVENT_RUN_ATTEMPT}" -lt "${current_attempt}" ]; then
+            stale=true
+            echo "::notice::attempt ${EVENT_RUN_ATTEMPT} of run ${run_id} is superseded by attempt ${current_attempt}; standing down."
+            {
+              echo "## AlwaysGreen failure watch"
+              echo ""
+              echo "Attempt ${EVENT_RUN_ATTEMPT} of run ${run_id} was superseded by"
+              echo "attempt ${current_attempt}, whose own listener judges it. Nothing done here."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           {
             echo "id=${run_id}"
+            echo "stale=${stale}"
             echo "url=$(jq -r '.html_url' <<<"$meta")"
             echo "conclusion=$(jq -r '.conclusion // "" ' <<<"$meta")"
             echo "head_branch=$(jq -r '.head_branch // "" ' <<<"$meta")"
@@ -329,6 +366,7 @@ jobs:
 
       - name: Scan the run's job conclusions
         id: scan
+        if: steps.run.outputs.stale != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ steps.run.outputs.id }}
