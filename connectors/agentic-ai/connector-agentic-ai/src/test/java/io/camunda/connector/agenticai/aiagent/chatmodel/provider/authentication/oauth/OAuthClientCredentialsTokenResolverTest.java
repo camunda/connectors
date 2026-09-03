@@ -146,6 +146,47 @@ class OAuthClientCredentialsTokenResolverTest {
             null);
 
     assertThatThrownBy(() -> resolver.resolveAccessToken(auth))
-        .isInstanceOf(ConnectorException.class);
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            e -> {
+              @SuppressWarnings("unchecked")
+              final var response =
+                  (java.util.Map<String, Object>)
+                      ((ConnectorException) e).getErrorVariables().get("response");
+              @SuppressWarnings("unchecked")
+              final var body = (java.util.Map<String, Object>) response.get("body");
+              assertThat(body).containsEntry("error", "invalid_client");
+            });
+  }
+
+  @Test
+  void shouldThrowConnectorExceptionOnBlankAccessToken() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "",
+                          "token_type": "Bearer",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    assertThatThrownBy(() -> resolver.resolveAccessToken(auth))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("blank access_token");
   }
 }
