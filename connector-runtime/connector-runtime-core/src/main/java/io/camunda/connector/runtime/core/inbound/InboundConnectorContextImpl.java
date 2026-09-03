@@ -490,8 +490,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   // an unmaskable health can't be verified as a repeat either, so it must never be deduped away
   private static boolean isWithheld(Health health) {
-    return health.getError() != null
-        && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message());
+    var error = health.getError();
+    // the code is redacted as well, and an error may carry only a code, in which case the sentinel
+    // is the only place the withholding shows
+    return error != null
+        && (REDACTION_UNAVAILABLE_MESSAGE.equals(error.message())
+            || REDACTION_UNAVAILABLE_MESSAGE.equals(error.code()));
   }
 
   private Health redactHealth(Health health) {

@@ -305,6 +305,20 @@ public class OutboundConnectorExceptionHandler {
         : configured;
   }
 
+  /**
+   * @deprecated retained for callers compiled against earlier 8.9 patch releases. Without the
+   *     values the input binding substituted, an error raised after a secret rotated between
+   *     binding and this call is redacted with the new value only, leaving the one the connector
+   *     actually saw in the message. Prefer {@link #manageConnectorJobHandlerException(Exception,
+   *     ActivatedJob, Duration, SecretFilter, List)}.
+   */
+  @Deprecated
+  public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
+      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+    return manageConnectorJobHandlerException(
+        e, job, retryBackoffDuration, secretFilter, List.of());
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e,
       ActivatedJob job,
@@ -481,6 +495,17 @@ public class OutboundConnectorExceptionHandler {
    * evaluate on the next attempt, and reaching here at all means the connector has already run, so
    * a retry would repeat its side effects.
    */
+  /**
+   * @deprecated retained for callers compiled against earlier 8.9 patch releases. See {@link
+   *     #manageConnectorJobHandlerException(Exception, ActivatedJob, Duration, SecretFilter)} for
+   *     what passing no captured values costs.
+   */
+  @Deprecated
+  public ConnectorResult.ErrorResult handleFinalResultException(
+      Exception ex, ActivatedJob job, SecretFilter secretFilter) {
+    return handleFinalResultException(ex, job, secretFilter, List.of());
+  }
+
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter, List<String> capturedSecrets) {
     var masking = fetchSecretsForMasking(job, secretFilter, ex);

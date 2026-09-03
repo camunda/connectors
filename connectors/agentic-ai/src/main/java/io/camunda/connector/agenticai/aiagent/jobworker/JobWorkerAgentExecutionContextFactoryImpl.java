@@ -12,13 +12,14 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JobWorkerAgentExecutionContextFactoryImpl
     implements JobWorkerAgentExecutionContextFactory {
@@ -44,13 +45,25 @@ public class JobWorkerAgentExecutionContextFactoryImpl
   @Override
   public JobWorkerAgentExecutionContext createExecutionContext(
       final JobClient jobClient, final ActivatedJob job) {
+    return createExecutionContext(jobClient, job, new ArrayList<>());
+  }
+
+  @Override
+  public JobWorkerAgentExecutionContext createExecutionContext(
+      final JobClient jobClient, final ActivatedJob job, final List<String> capturedSecretValues) {
     final SecretFilter secretFilter =
         secretFilterFactory.create(
             new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
-    final OutboundConnectorContext context =
+    final JobHandlerContext context =
         new JobHandlerContext(
             job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
-    final var request = context.bindVariables(JobWorkerAgentRequest.class);
-    return new JobWorkerAgentExecutionContext(jobClient, job, request);
+    try {
+      final var request = context.bindVariables(JobWorkerAgentRequest.class);
+      return new JobWorkerAgentExecutionContext(jobClient, job, request);
+    } finally {
+      // a binding that fails part-way has still substituted values, and the failure reported for it
+      // is redacted with them
+      capturedSecretValues.addAll(context.getSecretHandler().getResolvedValues());
+    }
   }
 }
