@@ -168,10 +168,35 @@ jobs:
       scenario: alwaysgreen
       shortname: agrn
 
+  # The failure signal for everything AlwaysGreen: the jobs API, not needs.*.result.
+  # A non-blocking SM Playwright leg, and this workflow's own merge_group
+  # continue-on-error, each hide a real failure from every `result` the gates below can
+  # read. Observed on the sibling branch as run 33727876677: the Playwright full leg
+  # failed, the run concluded `success`, and no feedback, no triage and no fix agent
+  # followed. The gate here was the same one. Full rationale in
+  # alwaysgreen-detect-failures.yml.
+  #
+  # Pinned to @main like alwaysgreen-triage.yml below, for the same reason: the
+  # AlwaysGreen workflows and their .github/scripts/alwaysgreen tooling live on main
+  # only, and this scan has to agree with the ref normalisation and the supported-ref
+  # list they enforce. Nothing is backported as a result -- updating main is enough.
+  #
+  # run-ai-agent-cpt is deliberately absent from `needs`: it does not exist on this
+  # branch, and naming it would make the whole workflow invalid.
+  detect-failures:
+    name: AlwaysGreen failure detection
+    needs: [ build-image, trigger-sm-e2e, trigger-saas-e2e ]
+    if: always()
+    permissions:
+      actions: read
+    uses: camunda/connectors/.github/workflows/alwaysgreen-detect-failures.yml@main
+
   sm-e2e-debug-summary:
     name: AlwaysGreen failure feedback (SM E2E)
-    needs: trigger-sm-e2e
-    if: always() && needs.trigger-sm-e2e.result == 'failure'
+    needs: [ trigger-sm-e2e, detect-failures ]
+    # Not needs.trigger-sm-e2e.result: a non-blocking SM leg failing leaves that at
+    # `success`, which produced no SM feedback at all in run 33727876677.
+    if: always() && needs.detect-failures.outputs.sm_failed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: ${{ github.event_name == 'merge_group' }}
@@ -523,10 +548,16 @@ jobs:
   # docker-build-helm-integration.yml). Nothing under alwaysgreen needs backporting to
   # this branch as a result -- updating main is enough, by construction.
   #
-  # push only, for now. Half the failing jobs come from merge_group, but those belong
-  # to the PR under test -- its author is already looking at it, and a fix PR in the
-  # e2e repository would not unblock that queue entry. Same gate as
-  # connectors-streak-detector.yml.
+  # Every event this workflow runs on, not push only. merge_group failures were held
+  # back on the reasoning that they belong to the PR under test -- but a merge-queue
+  # entry runs the same SM and SaaS suites against the same clusters, so a red one is
+  # the same e2e regression seen ~10 minutes earlier, and holding it back lost the
+  # majority of the signal. It is also safe to let through: this workflow is not a
+  # required check for the queue -- there is no required_status_checks rule on this
+  # branch -- so a triage failure cannot block a queue entry. Dedupe is unchanged: the
+  # queue ref normalises to its base branch, so a merge_group run and the push run that
+  # follows it derive the same dispatch key, and the second is suppressed by the
+  # in-flight / open-fix-PR layers.
   alwaysgreen-triage:
     name: AlwaysGreen triage and fix dispatch
     # run-ai-agent-cpt is deliberately absent: it exists only on main, and a `needs`
@@ -539,9 +570,17 @@ jobs:
       - sm-e2e-debug-summary
       - trigger-saas-e2e
       - saas-e2e-debug-summary
+      - detect-failures
+    # detect-failures, not contains(needs.*.result, 'failure'): continue-on-error --
+    # here and on the non-blocking SM Playwright leg -- keeps a real failure out of
+    # every `result` this job can see. See the comment on that job.
+    #
+    # base_ref_supported keeps a manual dispatch from an arbitrary ref out: triage
+    # hard-errors on a base_ref outside main|stable/8.7-8.9, so calling it for one
+    # would only add a red job. detect-failures annotates and summarises that case.
     if: >-
-      always() && github.event_name == 'push' &&
-      contains(needs.*.result, 'failure')
+      always() && needs.detect-failures.outputs.any_failed == 'true' &&
+      needs.detect-failures.outputs.base_ref_supported == 'true'
     permissions:
       contents: read
       actions: write
@@ -549,7 +588,9 @@ jobs:
     uses: camunda/connectors/.github/workflows/alwaysgreen-triage.yml@main
     secrets: inherit
     with:
-      base_ref: ${{ github.ref_name }}
+      # Normalised by detect-failures: on merge_group github.ref_name is the
+      # per-PR queue ref, which triage rejects as an unsupported base_ref.
+      base_ref: ${{ needs.detect-failures.outputs.base_ref }}
       tooling_ref: main
       # Reply in whichever feedback message was posted, so one failure stays one
       # Slack thread. Empty when neither stage failed or Slack was unavailable.
