@@ -234,6 +234,16 @@ public class OutboundConnectorExceptionHandler {
     }
   }
 
+  // unions bind-time captures into a successful re-read, so a rotated secret is still redacted
+  private static List<String> withCaptured(MaskingSecrets masking, List<String> captured) {
+    if (captured.isEmpty()) {
+      return masking.secrets();
+    }
+    var union = new ArrayList<String>(masking.secrets());
+    union.addAll(captured);
+    return union;
+  }
+
   private static List<String> allowedKeys(List<String> keys, SecretFilter secretFilter) {
     return keys.stream().filter(secretFilter::isAllowed).toList();
   }
@@ -335,7 +345,11 @@ public class OutboundConnectorExceptionHandler {
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
-      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+      Exception e,
+      ActivatedJob job,
+      Duration retryBackoffDuration,
+      SecretFilter secretFilter,
+      List<String> capturedSecrets) {
     if (e instanceof SecretAllowListUnavailableException) {
       // nothing was resolved, so there is nothing to redact and no reason to ask a provider
       return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
@@ -350,7 +364,7 @@ public class OutboundConnectorExceptionHandler {
           job.getRetries() - 1,
           retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
-    List<String> secrets = masking.secrets();
+    List<String> secrets = withCaptured(masking, capturedSecrets);
     if (e instanceof ConnectorRetryException connectorRetryException) {
       return handleConnectorRetryException(
           job, connectorRetryException, secrets, retryBackoffDuration);
@@ -360,7 +374,10 @@ public class OutboundConnectorExceptionHandler {
 
   /** Redacts an error an error expression produced; {@code failJob}/{@code throwError} do not. */
   public ConnectorError maskConnectorError(
-      ConnectorError error, ActivatedJob job, SecretFilter secretFilter) {
+      ConnectorError error,
+      ActivatedJob job,
+      SecretFilter secretFilter,
+      List<String> capturedSecrets) {
     return switch (error) {
       case BpmnError bpmnError -> {
         if (nothingToRedact(bpmnError.message(), bpmnError.variables())) {
@@ -372,7 +389,7 @@ public class OutboundConnectorExceptionHandler {
           yield new BpmnError(
               bpmnError.code(), unmaskableError(masking.failure()).getMessage(), Map.of());
         }
-        var secrets = masking.secrets();
+        var secrets = withCaptured(masking, capturedSecrets);
         yield new BpmnError(
             bpmnError.code(),
             redactNullable(bpmnError.message(), secrets),
@@ -390,7 +407,7 @@ public class OutboundConnectorExceptionHandler {
               jobError.retries(),
               jobError.retryBackoff());
         }
-        var secrets = masking.secrets();
+        var secrets = withCaptured(masking, capturedSecrets);
         yield new JobError(
             redactNullable(jobError.message(), secrets),
             maskVariables(jobError.variables(), secrets),
@@ -480,7 +497,7 @@ public class OutboundConnectorExceptionHandler {
    * log exactly what the incident and the process variables are redacted to keep out.
    */
   public ConnectorResult.ErrorResult handleFinalResultException(
-      Exception ex, ActivatedJob job, SecretFilter secretFilter) {
+      Exception ex, ActivatedJob job, SecretFilter secretFilter, List<String> capturedSecrets) {
     var masking = fetchSecretsForMasking(job, secretFilter, ex);
     if (masking.unavailable()) {
       LOGGER.error(
@@ -493,7 +510,7 @@ public class OutboundConnectorExceptionHandler {
       return new ConnectorResult.ErrorResult(
           Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, 0);
     }
-    List<String> secrets = masking.secrets();
+    List<String> secrets = withCaptured(masking, capturedSecrets);
     Exception newException =
         new Exception(SecretUtil.hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(

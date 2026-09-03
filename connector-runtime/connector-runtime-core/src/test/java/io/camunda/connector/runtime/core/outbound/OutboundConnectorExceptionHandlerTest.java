@@ -72,7 +72,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected xSUPERSECRET"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(requestedKeys).containsExactly("SHORT", "LONG");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
@@ -90,7 +91,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
   }
@@ -106,7 +108,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     verifyNoInteractions(secretProvider);
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
@@ -123,7 +126,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected allowed-value and denied-value"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowOnly(List.of("ALLOWED")));
+            SecretFilter.allowOnly(List.of("ALLOWED")),
+            List.of());
 
     assertThat(requestedKeys).containsExactly("ALLOWED");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and denied-value");
@@ -145,7 +149,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected super-secret"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage())
         .startsWith("Fetching secrets failed, so the original error cannot be displayed")
@@ -165,7 +170,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected foo-value"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage())
         .contains("1 of the 2 secrets this job's input names could not be read back")
@@ -181,7 +187,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new SecretNotAvailableException("FOO"), job, NO_BACKOFF, SecretFilter.allowAll());
+            new SecretNotAvailableException("FOO"),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage())
         .isEqualTo("Secret with name 'FOO' is not available");
@@ -197,7 +207,8 @@ class OutboundConnectorExceptionHandlerTest {
             handler.maskConnectorError(
                 new JobError("rejected bar", Map.of("detail", "rejected bar"), 0, null),
                 job,
-                SecretFilter.allowAll());
+                SecretFilter.allowAll(),
+                List.of());
 
     assertThat(masked.message()).isEqualTo("rejected ***");
     assertThat(masked.variables()).containsEntry("detail", "rejected ***");
@@ -215,7 +226,8 @@ class OutboundConnectorExceptionHandlerTest {
             handler.maskConnectorError(
                 new BpmnError("bar", "rejected bar", Map.of("detail", "rejected bar")),
                 job,
-                SecretFilter.allowAll());
+                SecretFilter.allowAll(),
+                List.of());
 
     // boundary events match on the code, so it keeps a value equal to the secret's
     assertThat(masked.code()).isEqualTo("bar");
@@ -230,10 +242,64 @@ class OutboundConnectorExceptionHandlerTest {
 
     var masked =
         handler.maskConnectorError(
-            new BpmnError("AUTH_FAILED", null, null), job, SecretFilter.allowAll());
+            new BpmnError("AUTH_FAILED", null, null), job, SecretFilter.allowAll(), List.of());
 
     verifyNoInteractions(secretProvider);
     assertThat(((BpmnError) masked).message()).isNull();
+  }
+
+  @Test
+  void aSecretThatRotatedBetweenBindAndMaskingIsStillRedacted() {
+    // the re-read returns what the store holds now, so the value the message carries is only
+    // known from what was actually substituted into the job's input
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    holdingOnly(Map.of("FOO", "new-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected old-value"),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of("old-value"));
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void aCapturedValueDoesNotSubstituteForAFailedReRead() {
+    // a job can declare a secret it never got around to binding, so captures are additive to a
+    // complete read rather than a stand-in for one
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"{{secrets.BAR}}\"}");
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected bar-value"),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of("foo-value"));
+
+    assertThat(result.exception().getMessage())
+        .startsWith("Fetching secrets failed, so the original error cannot be displayed")
+        .doesNotContain("bar-value");
+  }
+
+  @Test
+  void anErrorExpressionErrorRedactsARotatedSecretToo() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    holdingOnly(Map.of("FOO", "new-value"));
+
+    var masked =
+        (JobError)
+            handler.maskConnectorError(
+                new JobError("rejected old-value", Map.of(), 0, null),
+                job,
+                SecretFilter.allowAll(),
+                List.of("old-value"));
+
+    assertThat(masked.message()).isEqualTo("rejected ***");
   }
 
   @Test
@@ -243,7 +309,10 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.handleFinalResultException(
-            new RuntimeException("result expression saw bar"), job, SecretFilter.allowAll());
+            new RuntimeException("result expression saw bar"),
+            job,
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("result expression saw ***");
     assertThat(result.retries()).isZero();

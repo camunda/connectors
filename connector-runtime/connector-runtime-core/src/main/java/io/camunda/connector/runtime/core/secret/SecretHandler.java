@@ -17,7 +17,10 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +33,21 @@ public class SecretHandler {
 
   protected Function<String, String> secretReplacer;
 
+  // values this instance substituted, so a caller can redact against a rotated re-read
+  private final Set<String> resolvedValues = ConcurrentHashMap.newKeySet();
+
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;
     secretReplacer =
         name -> {
           if (secretFilter.isAllowed(name)) {
-            return Optional.ofNullable(secretProvider.getSecret(name))
-                .orElseThrow(() -> new SecretNotAvailableException(name));
+            var value =
+                Optional.ofNullable(secretProvider.getSecret(name))
+                    .orElseThrow(() -> new SecretNotAvailableException(name));
+            resolvedValues.add(value);
+            // a message that re-serializes the input carries this form, not the raw value
+            resolvedValues.add(SecretUtil.jsonEscape(value));
+            return value;
           }
           LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
           return null;
@@ -45,5 +56,9 @@ public class SecretHandler {
 
   public String replaceSecrets(String input) {
     return SecretUtil.replaceSecrets(input, secretReplacer);
+  }
+
+  public List<String> getResolvedValues() {
+    return List.copyOf(resolvedValues);
   }
 }

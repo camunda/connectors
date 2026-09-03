@@ -1381,4 +1381,54 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorMessage()).isEmpty();
     }
   }
+
+  // the value bound at execution time can differ from what a later re-read returns if it rotated
+  @Nested
+  class RotationRaceSecretMaskingTests {
+
+    private record TokenHolder(String token) {}
+
+    private static final String INPUT_DECLARING_A_SECRET = "{ \"token\" : \"{{secrets.FOO}}\" }";
+
+    private ConnectorJobHandler connectorThrowingTheBoundToken(
+        String boundValue, String rotatedValue) {
+      var callCount = new AtomicInteger();
+      SecretProvider rotatingSecretProvider =
+          name -> callCount.getAndIncrement() == 0 ? boundValue : rotatedValue;
+      return new ConnectorJobHandler(
+          context -> {
+            var bound = context.bindVariables(TokenHolder.class);
+            throw new RuntimeException("api rejected " + bound.token());
+          },
+          rotatingSecretProvider,
+          e -> {},
+          null,
+          SecretFilterFactory.disabled());
+    }
+
+    @Test
+    void aSecretThatRotatedBetweenBindAndMaskingIsStillRedacted() {
+      var jobHandler = connectorThrowingTheBoundToken("old-value", "new-value");
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("old-value");
+    }
+
+    @Test
+    void aStableSecretIsStillRedactedTheOrdinaryWay() {
+      // the union must not depend on rotation happening: an unrotated secret is redacted too
+      var jobHandler = connectorThrowingTheBoundToken("stable-value", "stable-value");
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("stable-value");
+    }
+  }
 }

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +48,11 @@ public class SecretUtil {
           String value = resolve(name(matcher), secretReplacer, resolutions);
           return value == null ? matcher.group() : value;
         });
+  }
+
+  // The form a value would take once spliced into JSON, which a raw-value capture would miss.
+  public static String jsonEscape(String value) {
+    return new String(JsonStringEncoder.getInstance().quoteAsString(value));
   }
 
   /** Asks the replacer at most once per name, for providers that meter or charge per lookup. */

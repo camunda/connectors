@@ -44,6 +44,7 @@ import io.camunda.zeebe.client.api.worker.JobHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,8 +177,11 @@ public class ConnectorJobHandler implements JobHandler {
 
     ConnectorResult result;
 
+    // declared outside the try: what it resolved is what a rotated re-read would no longer match
+    JobHandlerContext context = null;
+
     try {
-      var context =
+      context =
           new JobHandlerContext(
               job, jobSecretProvider, validationProvider, objectMapper, secretFilter);
       var response = call.execute(context);
@@ -189,8 +193,11 @@ public class ConnectorJobHandler implements JobHandler {
       result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception ex) {
       result =
-          exceptionHandler.manageConnectorJobHandlerException(ex, job, retryBackoff, secretFilter);
+          exceptionHandler.manageConnectorJobHandlerException(
+              ex, job, retryBackoff, secretFilter, capturedSecrets(context));
     }
+
+    final List<String> capturedSecrets = capturedSecrets(context);
 
     try {
       final ConnectorResult finalResult = result;
@@ -201,7 +208,9 @@ public class ConnectorJobHandler implements JobHandler {
           .ifPresentOrElse(
               error -> {
                 handleBPMNError(
-                    client, job, exceptionHandler.maskConnectorError(error, job, secretFilter));
+                    client,
+                    job,
+                    exceptionHandler.maskConnectorError(error, job, secretFilter, capturedSecrets));
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -217,8 +226,22 @@ public class ConnectorJobHandler implements JobHandler {
               });
     } catch (Exception ex) {
       // failure while parsing the error expression; logged by the handler once redacted
-      failJob(client, job, exceptionHandler.handleFinalResultException(ex, job, secretFilter));
+      failJob(
+          client,
+          job,
+          exceptionHandler.handleFinalResultException(ex, job, secretFilter, capturedSecrets));
     }
+  }
+
+  /**
+   * The values this job's input actually had substituted into it. The masking re-read asks the
+   * provider again, so a secret that rotated in between comes back as its new value, leaving the
+   * old one still in the error message with nothing to match it.
+   *
+   * <p>Null when the context itself could not be built, which is also when nothing was resolved.
+   */
+  private static List<String> capturedSecrets(JobHandlerContext context) {
+    return context == null ? List.of() : context.getSecretHandler().getResolvedValues();
   }
 
   private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
