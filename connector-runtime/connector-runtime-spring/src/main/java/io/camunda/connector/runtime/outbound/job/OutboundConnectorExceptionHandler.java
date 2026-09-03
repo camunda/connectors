@@ -282,11 +282,11 @@ public class OutboundConnectorExceptionHandler {
    *
    * <p>The exception's class name is reported, which carries no request or response data. And where
    * the failure is one the runtime raised itself, so is its {@link
-   * SecretFailureDiagnostic#publishableMessage()}: the two failures this runtime introduces —
-   * legacy resolution switched off, and a name with no reference form — are precisely the ones an
-   * operator has to act on, and a type name alone does not say which setting to change or which
-   * charset a name has to fit. Withholding arbitrary provider text is not a reason to withhold text
-   * written to be read.
+   * SecretFailureDiagnostic#publishableMessage()}: the two failures this runtime raises — an
+   * allow-list that could not be read, and a masking re-read that came back short — are precisely
+   * the ones an operator has to act on, and a type name alone names neither the element whose
+   * lookup failed nor how many secrets went missing. Withholding arbitrary provider text is not a
+   * reason to withhold text written to be read.
    */
   // A provider's own message can carry secret material - a bundle that parses as a non-object puts
   // the value into Jackson's coercion error - so only what SecretReferenceResolver keeps is logged.
@@ -350,8 +350,8 @@ public class OutboundConnectorExceptionHandler {
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
       // Either failure can be the permanent one, so both are consulted. A provider that refuses
-      // to resolve at all (e.g. legacy resolution switched off) throws for every key, including
-      // the ones this fetch only needed for masking; and the job's own failure is still whatever
+      // to resolve at all throws for every key, including the ones this fetch only needed for
+      // masking; and the job's own failure is still whatever
       // it was, so an input error that will never bind must not become retryable just because
       // reading the values to redact it happened to time out. Only when neither says the input is
       // at fault does the job keep its remaining attempts.
@@ -383,8 +383,8 @@ public class OutboundConnectorExceptionHandler {
       SecretFilter secretFilter,
       List<String> capturedSecrets) {
     return switch (error) {
-      // business output on the branch that completes the job; the branch that raises an incident
-      // instead redacts them itself, via maskDiagnosticVariables
+      // ignoreError completes the job with business variables, which are deliberately not
+      // redacted; this branch has no incident-raising counterpart on this runtime
       case IgnoreError ignoreError -> ignoreError;
       case BpmnError bpmnError -> {
         if (nothingToRedact(bpmnError.errorMessage(), bpmnError.variables())) {

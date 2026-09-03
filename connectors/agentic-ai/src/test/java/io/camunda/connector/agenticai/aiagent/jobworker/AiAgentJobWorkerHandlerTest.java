@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -261,6 +262,68 @@ class AiAgentJobWorkerHandlerTest {
                                     Map.entry("toolCall", asMap(agentResponse.toolCalls().get(1))),
                                     Map.entry("toolCallResult", ""))));
                   });
+        });
+  }
+
+  @Test
+  void redactsASecretTheErrorExpressionCopiedIntoAJobError() throws Exception {
+    // the job's input declares a secret, and the agent's response echoes its resolved value back
+    jobHeaders.put("errorExpression", ERROR_EXPRESSION);
+    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("Job error response"));
+
+    final var agentResponse =
+        AgentResponse.builder()
+            .context(AgentContext.empty())
+            .responseText("Job error response")
+            .build();
+
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenReturn(
+            JobWorkerAgentCompletion.builder()
+                .completionConditionFulfilled(true)
+                .cancelRemainingInstances(false)
+                .agentResponse(agentResponse)
+                .build());
+
+    handler.handle(camundaClient, job);
+
+    // nothing else redacts this path: the fail command is built straight from the expression
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage()).isEqualTo("The text '***' led to a job error");
+          assertThat(request.getVariables())
+              .containsExactly(entry("error", "The text '***' led to a job error"));
+        });
+  }
+
+  @Test
+  void redactsASecretTheErrorExpressionCopiedIntoABpmnError() throws Exception {
+    jobHeaders.put("errorExpression", ERROR_EXPRESSION);
+    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("BPMN error response"));
+
+    final var agentResponse =
+        AgentResponse.builder()
+            .context(AgentContext.empty())
+            .responseText("BPMN error response")
+            .build();
+
+    when(agentRequestHandler.handleRequest(executionContext))
+        .thenReturn(
+            JobWorkerAgentCompletion.builder()
+                .completionConditionFulfilled(true)
+                .cancelRemainingInstances(false)
+                .agentResponse(agentResponse)
+                .build());
+
+    handler.handle(camundaClient, job);
+
+    assertJobErrorRequest(
+        request -> {
+          // the code is never redacted: boundary events match on it
+          assertThat(request.getErrorCode()).isEqualTo("RESPONSE_TEXT_BPMN_ERROR_CODE");
+          assertThat(request.getErrorMessage()).isEqualTo("The text '***' led to an BPMN error");
         });
   }
 

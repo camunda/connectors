@@ -30,10 +30,11 @@ package io.camunda.connector.runtime.core.secret;
  * that a reader of the incident can already see — but a secret's value, or any part of a store's
  * response, is not.
  *
- * <p>The point is that the two failures this runtime introduces are exactly the ones an operator
- * has to act on, and neither is diagnosable from a type alone: legacy resolution being switched off
- * is fixed by naming the setting and the form that replaced it, and a name that has no reference
- * form is fixed by naming the charset that admits one.
+ * <p>The point is that the failures this runtime raises itself are exactly the ones an operator has
+ * to act on, and neither is diagnosable from a type alone: an allow-list that could not be read is
+ * fixed by naming the element and the process definition whose lookup failed, and a masking re-read
+ * that came back short is fixed by saying how many of the job's secrets went missing. Both messages
+ * are built without interpolating any provider or client text.
  */
 public interface SecretFailureDiagnostic {
 

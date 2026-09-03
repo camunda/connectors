@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -102,7 +103,8 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
 
       optionalConnectorError.ifPresentOrElse(
           connectorError ->
-              handleConnectorError(jobClient, job, connectorError, counterMetricsContext),
+              handleConnectorError(
+                  jobClient, job, connectorError, counterMetricsContext, secretFilter),
           () -> {
             switch (agentResult) {
               case AgentSuccessResult successResult ->
@@ -115,7 +117,8 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job, secretFilter),
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              e, job, secretFilter, List.of()),
           counterMetricsContext);
     }
   }
@@ -133,7 +136,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter);
+              e, job, retryBackoff, secretFilter, List.of());
       return new AgentErrorResult(errorResult);
     }
   }
@@ -141,8 +144,21 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private void handleConnectorError(
       final JobClient jobClient,
       final ActivatedJob job,
-      final ConnectorError connectorError,
-      final CounterMetricsContext counterMetricsContext) {
+      final ConnectorError rawConnectorError,
+      final CounterMetricsContext counterMetricsContext,
+      final SecretFilter secretFilter) {
+    // This worker builds its Zeebe command straight from the error expression's result, the same
+    // way SpringConnectorJobHandler does, so it needs the same redaction: neither failJob nor
+    // throwError masks anything of its own, and an expression copying the agent's response can
+    // carry a credential the model or a tool echoed back.
+    //
+    // Redacted against the masking re-read alone: the values captured while binding live in a
+    // JobHandlerContext that JobWorkerAgentExecutionContextFactoryImpl discards, so a secret that
+    // rotated since the job was bound is not covered here.
+    final var connectorError =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawConnectorError, job, secretFilter, List.of());
+
     switch (connectorError) {
       case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError, counterMetricsContext);
       case JobError jobError ->
