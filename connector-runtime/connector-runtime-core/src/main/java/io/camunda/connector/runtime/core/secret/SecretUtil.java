@@ -18,9 +18,12 @@ package io.camunda.connector.runtime.core.secret;
 
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import io.camunda.connector.api.secret.SecretContext;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -31,66 +34,27 @@ public class SecretUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
-  // The negative lookbehind keeps this legacy pattern out of a new-form camunda.secrets.<name>
-  // reference, which ends in the same three characters. Without it the legacy pass, which runs
-  // first and over raw model text, would replace secrets.TOKEN inside camunda.secrets.TOKEN from a
-  // local provider — reading the wrong store, and destroying the reference before the cluster ever
-  // sees it.
-  private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("(?<!camunda\\.)secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
-
-  private static final Pattern SECRET_PATTERN_PARENTHESES =
-      Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
+  // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
+  // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
+  private static final Pattern REFERENCE =
+      Pattern.compile(
+          "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
+              + "|camunda\\.secrets\\.(?<reference>[\\p{Alnum}_-]+)"
+              + "|secrets\\.(?<bare>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   public static String replaceSecrets(
       String input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
-    return input;
-  }
-
-  private static String replaceSecretsWithParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
-    }
-    return input;
-  }
-
-  private static String replaceSecretsWithoutParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
-    }
-    return input;
-  }
-
-  private static @Nullable String resolveSecretValue(
-      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
-    var secretName = matcher.group("secret").trim();
-    if (!secretName.isBlank()) {
-      var result = secretReplacer.replaceSecrets(secretName, context);
-      if (result != null) {
-        return new String(encoder.quoteAsString(result));
-      } else {
-        return matcher.group();
-      }
-    } else {
-      return null;
-    }
+    Map<String, String> resolutions = new HashMap<>();
+    return replaceTokens(
+        input,
+        REFERENCE,
+        matcher -> {
+          String value = resolve(legacyName(matcher), context, secretReplacer, resolutions);
+          return value == null ? matcher.group() : new String(encoder.quoteAsString(value));
+        });
   }
 
   public static String replaceTokens(
@@ -108,52 +72,61 @@ public class SecretUtil {
     return output.toString();
   }
 
+  private static @Nullable String resolve(
+      @Nullable String name,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<String, String> resolutions) {
+    if (name == null) {
+      return null;
+    }
+    if (!resolutions.containsKey(name)) {
+      resolutions.put(name, secretReplacer.replaceSecrets(name, context));
+    }
+    return resolutions.get(name);
+  }
+
+  private static @Nullable String legacyName(MatchResult match) {
+    var braced = match.group("braced");
+    return braced != null ? braced : match.group("bare");
+  }
+
   /**
    * Whether the text contains a legacy secret reference, in either of its two spellings. Used where
    * the legacy form is not supported and has to be reported rather than silently left in place.
    */
   public static boolean containsLegacySecretReference(String input) {
-    return input != null
-        && (SECRET_PATTERN_PARENTHESES.matcher(input).find()
-            || SECRET_PATTERN_SECRETS.matcher(input).find());
+    return keysIn(input, "braced", "bare").findAny().isPresent();
   }
 
   /**
-   * Every secret name the given text declares, in either form. The new form is included so that
-   * excluding it from {@link #SECRET_PATTERN_SECRETS} does not shrink the outbound allow-list this
-   * feeds: a name a model declares as {@code camunda.secrets.NAME} stays permitted, exactly as it
-   * was before the two patterns were separated.
+   * Every secret name the given text declares, in any of the three forms, read by the same scan
+   * {@link #replaceSecrets} uses: a name that method asks a legacy provider for appears here
+   * spelled exactly as it asks for it, and no name appears that the scan never read. The {@code
+   * camunda.secrets.<name>} form is reported too, though the cluster resolves that one rather than
+   * this class.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return keysIn(
-        input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN);
+    return keysIn(input, "braced", "bare", "reference").toList();
   }
 
   /**
-   * Every secret name the given text declares in one of the two legacy forms. Excludes the new
-   * {@code camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller
-   * asking what the legacy providers were responsible for is not handed names they never held.
+   * Every secret name the given text declares in one of the two legacy forms. Excludes the {@code
+   * camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller asking
+   * what the legacy providers were responsible for is not handed names they never held.
    */
   public static List<String> retrieveLegacySecretKeysInInput(String input) {
-    return keysIn(input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS);
+    return keysIn(input, "braced", "bare").toList();
   }
 
-  /**
-   * Names are trimmed, because that is the name {@link #replaceSecrets} looks up: the parentheses
-   * pattern's capture reaches past the name to the closing braces, so {@code <code>{{ secrets.FOO
-   * }}</code>} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form left every
-   * caller comparing a name against one nothing ever resolves — the outbound allow-list did its own
-   * trimming, error masking did not, and so masked nothing for a reference written with a space
-   * inside the braces.
-   */
-  private static List<String> keysIn(String input, Pattern... patterns) {
-    return Objects.isNull(input)
-        ? List.of()
-        : Stream.of(patterns)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret").trim())
-            .distinct()
-            .toList();
+  private static Stream<String> keysIn(String input, String... groups) {
+    return input == null
+        ? Stream.of()
+        : REFERENCE
+            .matcher(input)
+            .results()
+            .flatMap(match -> Stream.of(groups).map(match::group))
+            .filter(Objects::nonNull)
+            .distinct();
   }
 }
