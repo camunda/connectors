@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.outbound.job;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
@@ -130,5 +132,26 @@ class LazyLoadingSecretFilterTest {
     filter.isAllowed(query("ANY"));
 
     assertTrue(callCount.get() == 1, "Supplier must be called exactly once even when null");
+  }
+
+  @Test
+  void isAllowed_supplierFailureCached_supplierNotReinvoked() {
+    var callCount = new AtomicInteger(0);
+    var failure = new IllegalStateException("secret key lookup failed");
+    var filter =
+        new LazyLoadingSecretFilter(
+            () -> {
+              callCount.incrementAndGet();
+              throw failure;
+            });
+
+    var firstThrown =
+        assertThrows(IllegalStateException.class, () -> filter.isAllowed(query("ANY")));
+    var secondThrown =
+        assertThrows(IllegalStateException.class, () -> filter.isAllowed(query("ANY")));
+
+    assertTrue(callCount.get() == 1, "Supplier must be called exactly once even on failure");
+    assertSame(failure, firstThrown);
+    assertSame(failure, secondThrown);
   }
 }

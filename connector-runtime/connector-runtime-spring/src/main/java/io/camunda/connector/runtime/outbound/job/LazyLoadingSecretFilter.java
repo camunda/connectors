@@ -36,6 +36,7 @@ public class LazyLoadingSecretFilter implements SecretFilter {
 
   private volatile boolean initialized = false;
   private SecretFilter delegate;
+  private RuntimeException initializationFailure;
 
   public LazyLoadingSecretFilter(Supplier<List<Secret>> secretsSupplier) {
     this.secretsSupplier = secretsSupplier;
@@ -46,11 +47,19 @@ public class LazyLoadingSecretFilter implements SecretFilter {
     if (!initialized) {
       synchronized (this) {
         if (!initialized) {
-          List<Secret> names = secretsSupplier.get();
-          delegate = names != null ? SecretFilter.allowOnly(names) : SecretFilter.allowAll();
-          initialized = true;
+          try {
+            List<Secret> names = secretsSupplier.get();
+            delegate = names != null ? SecretFilter.allowOnly(names) : SecretFilter.allowAll();
+          } catch (RuntimeException e) {
+            initializationFailure = e;
+          } finally {
+            initialized = true;
+          }
         }
       }
+    }
+    if (initializationFailure != null) {
+      throw initializationFailure;
     }
     return delegate.isAllowed(context);
   }
