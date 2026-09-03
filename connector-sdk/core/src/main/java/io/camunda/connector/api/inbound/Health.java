@@ -190,6 +190,17 @@ public class Health {
     return new Health(this.status, this.error, details, this.lastUpdatedAt);
   }
 
+  /**
+   * Returns a new {@link Health} with the given error, preserving the original {@link
+   * #getLastUpdatedAt() lastUpdatedAt} timestamp.
+   *
+   * @param error the error for the new instance
+   * @return a new Health with the same status, details, and timestamp but the supplied error
+   */
+  public Health withError(Error error) {
+    return new Health(this.status, error, this.details, this.lastUpdatedAt);
+  }
+
   private Health() {
     this(Status.UNKNOWN, null, null);
   }
