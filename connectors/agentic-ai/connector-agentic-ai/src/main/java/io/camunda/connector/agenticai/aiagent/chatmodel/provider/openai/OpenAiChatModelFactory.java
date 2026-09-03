@@ -11,9 +11,11 @@ import com.openai.azure.AzureUrlPathMode;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.http.ProxyAuthenticator;
+import com.openai.credential.BearerTokenCredential;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
@@ -23,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -46,16 +49,19 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private final OpenAiApiFamilyStrategy completionsStrategy;
   private final OpenAiApiFamilyStrategy responsesStrategy;
   private final OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver;
+  private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public OpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiApiFamilyStrategy completionsStrategy,
       OpenAiApiFamilyStrategy responsesStrategy,
-      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     this.httpProxySupport = httpProxySupport;
     this.completionsStrategy = completionsStrategy;
     this.responsesStrategy = responsesStrategy;
     this.openAiFoundryCredentialResolver = openAiFoundryCredentialResolver;
+    this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
   }
 
   @Override
@@ -71,7 +77,11 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
     final var client =
         buildClient(
-            connection.backend(), timeout, httpProxySupport, openAiFoundryCredentialResolver);
+            connection.backend(),
+            timeout,
+            httpProxySupport,
+            openAiFoundryCredentialResolver,
+            oAuthClientCredentialsTokenResolver);
     final var strategy = strategyFor(connection.api());
     return new OpenAiChatModel(client, model, strategy);
   }
@@ -87,14 +97,16 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       OpenAiBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
-      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var builder = OpenAIOkHttpClient.builder();
 
     switch (backend) {
       case OpenAiApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
       case OpenAiFoundryBackend foundryBackend ->
           applyFoundryBackend(builder, foundryBackend, openAiFoundryCredentialResolver);
-      case OpenAiCustomBackend custom -> applyCustomBackend(builder, custom);
+      case OpenAiCustomBackend custom ->
+          applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
     if (timeout != null) {
@@ -132,13 +144,32 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   }
 
   private static void applyCustomBackend(
-      OpenAIOkHttpClient.Builder builder, OpenAiCustomBackend custom) {
+      OpenAIOkHttpClient.Builder builder,
+      OpenAiCustomBackend custom,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var connection = custom.custom();
     builder.baseUrl(connection.endpoint());
 
     switch (connection.authentication()) {
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
+      case OAuthClientCredentialsAuthentication oauth ->
+          builder.credential(
+              BearerTokenCredential.create(
+                  () ->
+                      oAuthClientCredentialsTokenResolver.resolveAccessToken(
+                          toOAuthAuthentication(oauth))));
     }
+  }
+
+  private static io.camunda.connector.http.client.model.auth.OAuthAuthentication
+      toOAuthAuthentication(OAuthClientCredentialsAuthentication oauth) {
+    return new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
+        oauth.oauthTokenEndpoint(),
+        oauth.clientId(),
+        oauth.clientSecret(),
+        oauth.audience(),
+        oauth.clientAuthentication().oauthConstant(),
+        oauth.scopes());
   }
 
   /**
