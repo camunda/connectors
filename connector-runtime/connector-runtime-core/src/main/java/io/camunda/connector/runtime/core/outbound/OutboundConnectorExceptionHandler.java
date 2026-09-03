@@ -62,6 +62,19 @@ public class OutboundConnectorExceptionHandler {
    */
   private static final class SecretFilterUnavailableException extends RuntimeException {}
 
+  /**
+   * The type name published in the {@code error} payload, which deployed models read and can match
+   * on. A missing secret is reported under the type this branch has always reported it under: the
+   * distinct class is a marker {@link #reportsAnUnavailableSecret} needs internally to tell that
+   * one failure apart on the masking re-read, and giving it a published name of its own would break
+   * a process that switches on the old one.
+   */
+  private static String publishedTypeOf(Throwable cause) {
+    return cause instanceof SecretNotAvailableException
+        ? ConnectorInputException.class.getName()
+        : cause.getClass().getName();
+  }
+
   private static Map<String, Object> exceptionToMap(
       Exception wrappedException, List<String> secrets) {
     Map<String, Object> result = new HashMap<>();
@@ -69,7 +82,7 @@ public class OutboundConnectorExceptionHandler {
     // deliberately withholds it — that one reports itself, rather than dereferencing a null.
     Throwable originalCause =
         wrappedException.getCause() != null ? wrappedException.getCause() : wrappedException;
-    result.put("type", originalCause.getClass().getName());
+    result.put("type", publishedTypeOf(originalCause));
     var message = wrappedException.getMessage();
     if (message != null) {
       result.put(
@@ -107,7 +120,7 @@ public class OutboundConnectorExceptionHandler {
   private static Map<String, Object> withheldExceptionToMap(
       Exception e, Exception wrappedException) {
     Map<String, Object> result = new HashMap<>();
-    result.put("type", e.getClass().getName());
+    result.put("type", publishedTypeOf(e));
     var message = wrappedException.getMessage();
     if (message != null) {
       result.put(

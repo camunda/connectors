@@ -590,6 +590,34 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(result.exception().getMessage())
         .isEqualTo("Secret with name 'MISSING' is not available");
     assertThat(result.retries()).isZero();
+    // the type deployed models can match on is unchanged by this branch introducing a distinct
+    // class for the runtime's own use
+    assertThat(errorPayloadOf(result))
+        .containsEntry("type", ConnectorInputException.class.getName());
+  }
+
+  @Test
+  void aMissingSecretReportedThroughTheLegacyOverloadKeepsThePublishedTypeToo() {
+    var job = jobWithSecretReference();
+    var providerThatMustNotBeCalled =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new AssertionError("this legacy overload must not resolve any secret");
+            });
+    var handlerWithGuard = new OutboundConnectorExceptionHandler(providerThatMustNotBeCalled);
+
+    var result =
+        handlerWithGuard.manageConnectorJobHandlerException(
+            new SecretNotAvailableException("MISSING"), job, Duration.ofSeconds(1));
+
+    assertThat(errorPayloadOf(result))
+        .containsEntry("type", ConnectorInputException.class.getName());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> errorPayloadOf(ConnectorResult.ErrorResult result) {
+    return (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
   }
 
   @Test
