@@ -206,22 +206,28 @@ public class OutboundConnectorExceptionHandler {
   private MaskingSecrets fetchSecretsForMasking(
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
     try {
-      var context =
-          new SecretContext(job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId());
       var legacyKeys =
           allowedKeys(SecretUtil.retrieveLegacySecretKeysInInput(job.getVariables()), secretFilter);
-      var legacyValues = this.secretProvider.fetchAll(legacyKeys, context);
+      var referenceKeys =
+          allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter)
+              .stream()
+              .filter(key -> !legacyKeys.contains(key))
+              .toList();
+      // A job that declares no secret has nothing to redact, so no provider is asked for anything:
+      // a custom fetchAll that refuses every batch must not withhold such a job's error message.
+      if (legacyKeys.isEmpty() && referenceKeys.isEmpty()) {
+        return new MaskingSecrets(List.of(), null);
+      }
+      var context =
+          new SecretContext(job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId());
+      List<String> legacyValues =
+          legacyKeys.isEmpty() ? List.of() : this.secretProvider.fetchAll(legacyKeys, context);
       if (legacyValues.size() < legacyKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
             new MaskingSecretsIncompleteException(
                 legacyKeys.size() - legacyValues.size(), legacyKeys.size()));
       }
-      var referenceKeys =
-          allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter)
-              .stream()
-              .filter(key -> !legacyKeys.contains(key))
-              .toList();
       if (referenceKeys.isEmpty()) {
         return new MaskingSecrets(legacyValues, null);
       }
@@ -233,7 +239,7 @@ public class OutboundConnectorExceptionHandler {
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
           job.getKey(),
           job.getTenantId(),
-          ex.getMessage());
+          safeDiagnostic(ex));
       return new MaskingSecrets(List.of(), ex);
     }
   }
@@ -267,11 +273,10 @@ public class OutboundConnectorExceptionHandler {
     } catch (Exception ex) {
       LOGGER.warn(
           "Reading the values behind the camunda.secrets references named by job: {} for tenant: {}"
-              + " failed with {}: {}. Its error message is redacted with the legacy secrets alone.",
+              + " failed with {}. Its error message is redacted with the legacy secrets alone.",
           job.getKey(),
           job.getTenantId(),
-          ex.getClass().getName(),
-          ex.getMessage());
+          safeDiagnostic(ex));
       return List.of();
     }
   }
@@ -339,6 +344,14 @@ public class OutboundConnectorExceptionHandler {
    * charset a name has to fit. Withholding arbitrary provider text is not a reason to withhold text
    * written to be read.
    */
+  // A provider's own message can carry secret material - a bundle that parses as a non-object puts
+  // the value into Jackson's coercion error - so only what SecretReferenceResolver keeps is logged.
+  private static String safeDiagnostic(Exception fetchFailure) {
+    return fetchFailure instanceof SecretFailureDiagnostic diagnosable
+        ? fetchFailure.getClass().getName() + ": " + diagnosable.publishableMessage()
+        : fetchFailure.getClass().getName();
+  }
+
   private static RuntimeException unmaskableError(Exception fetchFailure) {
     return new SecretsUnavailableException(
         fetchFailure.getClass().getName(),
@@ -459,6 +472,11 @@ public class OutboundConnectorExceptionHandler {
   private static String hideSecretsFromMessage(String message, List<String> secrets) {
     if (!Objects.isNull(message))
       return secrets.stream()
+          // a provider may answer with an empty value, and replacing that matches everywhere
+          .filter(secret -> !secret.isEmpty())
+          // longest first: masking a secret that prefixes another would destroy the longer match
+          // and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET"
+          .sorted(Comparator.comparingInt(String::length).reversed())
           .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
     else return "";
   }
