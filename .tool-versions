@@ -1,4 +1,4 @@
 java temurin-21.0.12+101.0.LTS
-maven 3.9.14
+maven 3.9.16
 pre-commit 4.6.2
 nodejs 24.20.0

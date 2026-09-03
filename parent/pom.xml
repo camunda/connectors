@@ -121,7 +121,8 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
 
-    <version.bouncycastle>1.85</version.bouncycastle>
+    <version.bouncycastle.bcpkix>1.85</version.bouncycastle.bcpkix>
+    <version.bouncycastle.bcprov>1.85.2</version.bouncycastle.bcprov>
     <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.51.0</version.slack>
@@ -545,12 +546,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle.bcpkix}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle.bcprov}</version>
       </dependency>
 
       <dependency>
