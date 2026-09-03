@@ -214,6 +214,7 @@ public class ConnectorJobHandler implements JobHandler {
     } else if (finalResult instanceof ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
+      // The wrapper message is redacted, but its cause is not, so do not log the throwable.
       LOGGER.error(
           "Exception while completing job: {} for tenant: {}, message: {}",
           job.getKey(),
