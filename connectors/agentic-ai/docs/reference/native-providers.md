@@ -154,9 +154,18 @@ name (`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating
 ### Backends
 
 `OpenAiCustomBackend` is the only variant exposing user-configurable
-`headers`/`queryParameters`/`bodyProperties`, and requires an API key — no no-auth option, because the
-SDK client builder requires a credential source to build at all. Overrides merge additively per-key
-via `OpenAiRequestCustomizations` (shared between both converters).
+`headers`/`queryParameters`/`bodyProperties` — no no-auth option, because the SDK client builder
+requires a credential source to build at all. Overrides merge additively per-key via
+`OpenAiRequestCustomizations` (shared between both converters). Its
+`OpenAiCustomEndpointAuthentication` sealed interface supports `apiKey` (static) and
+`OAuthClientCredentialsAuthentication` (OAuth 2.0 client-credentials flow, for OpenAI-compatible API
+gateways that require it): `OpenAiChatModelFactory.applyCustomBackend` wraps the shared
+`OAuthClientCredentialsTokenResolver` (`provider/authentication/oauth/`, backed by the same
+`OAuthService`/`OAuthTokenCache` the HTTP connector uses) as a `com.openai.credential.BearerTokenCredential`
+supplier via `builder.credential(...)`, invoked fresh on every request — the same mechanism
+`OpenAiFoundryCredentialResolver` uses for Entra ID. The MCP client's `OAuthHeadersSupplier` was
+migrated onto the same resolver, so all OAuth2 client-credentials token fetching in this module shares
+one cache.
 
 `OpenAiFoundryBackend` (Microsoft Foundry / Azure OpenAI) exposes the same request customizations as
 `headers`/`queryParameters`/`bodyProperties`, but hidden, matching
