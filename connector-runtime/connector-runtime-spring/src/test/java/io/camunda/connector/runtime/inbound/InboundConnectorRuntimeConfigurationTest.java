@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -111,5 +112,66 @@ class InboundConnectorRuntimeConfigurationTest {
 
     @Override
     public void deactivate() {}
+  }
+
+  /**
+   * The second inbound resolution path. {@code canActivate} hands connectors a {@code
+   * ProcessElementContext} — and every successful {@code CorrelationResult} carries one — whose
+   * public {@code getProperties()}/{@code bindProperties()} resolve secrets through their own
+   * {@code SecretHandler}. Filtering only {@code springInboundConnectorContextFactory} leaves this
+   * one allow-all, so a connector holding the activated element could still resolve a chained name
+   * no model declares even under STRICT. This is the analogue of the {@code BindableProcessElement}
+   * path #8538 filters upstream.
+   *
+   * <p>The probe has to be the chained case: this context resolves the element's own property text,
+   * so any name written there is declared by definition and the allow-list is a superset of it.
+   * What it must refuse is a name that only a resolved <em>value</em> spells — CHAIN_ROOT's value
+   * is the literal {@code secrets.CHAINED}, which the bare pass then runs over.
+   */
+  @Test
+  void processElementContextFactory_refusesAChainedNameOnTheActivatedElement() {
+    assertEquals("secrets.CHAINED", resolveChainedViaActivatedElement(SecretFilterMode.STRICT));
+    assertEquals("secrets.CHAINED", resolveChainedViaActivatedElement(SecretFilterMode.LAX));
+    assertEquals("leaked-value", resolveChainedViaActivatedElement(SecretFilterMode.DISABLED));
+  }
+
+  private String resolveChainedViaActivatedElement(SecretFilterMode mode) {
+    var elementFactory =
+        configuration.processElementContextFactory(
+            new ObjectMapper(),
+            mock(ValidationProvider.class),
+            new SecretProviderAggregator(List.of(chainingProvider())),
+            mode);
+    var handler =
+        new InboundCorrelationHandler(
+            mock(io.camunda.zeebe.client.ZeebeClient.class),
+            new io.camunda.connector.feel.FeelEngineWrapper(),
+            elementFactory,
+            java.time.Duration.ofSeconds(60));
+    var result = handler.canActivate(List.of(chainRootElement()), Map.of());
+    var activated = ((ActivationCheckResult.Success.CanActivate) result).activatedElement();
+    return (String) activated.getProperties().get("token");
+  }
+
+  private static InboundConnectorElement chainRootElement() {
+    var properties =
+        Map.of("inbound.type", "io.camunda:connector:1", "token", "{{secrets.CHAIN_ROOT}}");
+    return new InboundConnectorElement(
+        properties,
+        new StandaloneMessageCorrelationPoint("", "", null, null),
+        new ProcessElement("process", 0, 0, "id", "<default>"));
+  }
+
+  private static SecretProvider chainingProvider() {
+    return new SecretProvider() {
+      @Override
+      public String getSecret(String name, SecretContext context) {
+        return switch (name.trim()) {
+          case "CHAIN_ROOT" -> "secrets.CHAINED";
+          case "CHAINED" -> "leaked-value";
+          default -> null;
+        };
+      }
+    };
   }
 }

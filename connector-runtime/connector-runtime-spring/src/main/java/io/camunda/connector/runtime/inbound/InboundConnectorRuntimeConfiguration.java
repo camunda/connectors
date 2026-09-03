@@ -74,9 +74,16 @@ public class InboundConnectorRuntimeConfiguration {
   public ProcessElementContextFactory processElementContextFactory(
       ObjectMapper objectMapper,
       @Autowired(required = false) ValidationProvider validationProvider,
-      SecretProviderAggregator secretProviderAggregator) {
+      SecretProviderAggregator secretProviderAggregator,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
+    // Same DISABLED-only opt-out as springInboundConnectorContextFactory: this is the second
+    // inbound resolution path, reached through canActivate and every successful CorrelationResult.
     return new DefaultProcessElementContextFactory(
-        secretProviderAggregator, validationProvider, objectMapper);
+        secretProviderAggregator,
+        validationProvider,
+        objectMapper,
+        secretFilterMode != SecretFilterMode.DISABLED);
   }
 
   @Bean
