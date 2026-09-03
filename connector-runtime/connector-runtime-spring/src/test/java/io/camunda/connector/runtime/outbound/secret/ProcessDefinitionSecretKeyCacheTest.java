@@ -221,6 +221,26 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_laterOverwriteOfAPropagationTargetInvalidatesThePropagatedGrant()
+      throws IOException {
+    // baseUrl = secrets.TOKEN is declared first; url = "=baseUrl" propagates TOKEN to url while
+    // baseUrl is still the effective writer url's expression reads. A third mapping then
+    // overwrites url directly with attacker-controlled data -- url's runtime value comes from that
+    // third mapping, not from the (no longer effective) propagation through the second, so TOKEN
+    // must not be granted at url even though the dependency edge to it was genuinely resolved at
+    // the time it was computed.
+    when(xmlRequest.execute())
+        .thenReturn(loadBpmn("outbound-with-overwritten-propagation-target.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .containsExactly(new Secret("TOKEN", List.of("baseUrl")))
+        .doesNotContain(new Secret("TOKEN", List.of("url")));
+  }
+
+  @Test
   void getSecretKeys_laterChildOverwriteShadowsTheParentForAReferenceToThatChild()
       throws IOException {
     // authentication = secrets.WHOLE_SECRET is declared first; authentication.token is then
