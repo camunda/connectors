@@ -76,27 +76,27 @@ public sealed interface OpenAiCustomEndpointAuthentication {
               message = "Must be a http(s) URL")
           @TemplateProperty(
               group = "provider",
-              description = "The OAuth token endpoint",
+              tooltip = "The OAuth token endpoint",
               label = "OAuth 2.0 token endpoint")
           String oauthTokenEndpoint,
       @FEEL
           @NotEmpty
           @TemplateProperty(
               group = "provider",
-              description = "Your application's client ID from the OAuth client",
+              tooltip = "Your application's client ID from the OAuth client",
               label = "Client ID")
           String clientId,
       @FEEL
           @NotEmpty
           @TemplateProperty(
               group = "provider",
-              description = "Your application's client secret from the OAuth client",
+              tooltip = "Your application's client secret from the OAuth client",
               label = "Client secret")
           String clientSecret,
       @FEEL
           @TemplateProperty(
               group = "provider",
-              description = "The unique identifier of the target API you want to access",
+              tooltip = "The unique identifier of the target API you want to access",
               optional = true)
           String audience,
       @NotNull
@@ -112,13 +112,13 @@ public sealed interface OpenAiCustomEndpointAuthentication {
                     label = "Send client credentials in body")
               },
               defaultValue = "BASIC_AUTH_HEADER",
-              description =
+              tooltip =
                   "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
           ClientAuthenticationMethod clientAuthentication,
       @FEEL
           @TemplateProperty(
               group = "provider",
-              description =
+              tooltip =
                   "The scopes which you want to request authorization for (e.g.read:contacts)",
               optional = true)
           String scopes)
