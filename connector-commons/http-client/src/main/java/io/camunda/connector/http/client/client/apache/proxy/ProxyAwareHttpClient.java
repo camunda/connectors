@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class ProxyAwareHttpClient implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(ProxyAwareHttpClient.class);
 
-  private final ProxyHandler proxyHandler = new ProxyHandler();
+  private final ProxyHandler proxyHandler;
   private final TimeoutConfiguration timeoutConfiguration;
   private final ProxyContext proxyContext;
   private final CloseableHttpClient client;
@@ -65,10 +65,25 @@ public class ProxyAwareHttpClient implements Closeable {
       ProxyContext proxyContext,
       boolean followRedirects,
       SSLContext sslContext) {
+    this(timeoutConfiguration, proxyContext, followRedirects, sslContext, new ProxyHandler());
+  }
+
+  /**
+   * Uses the given {@link ProxyHandler} instead of the default one, for a caller whose proxy
+   * env-var convention differs from {@link
+   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()}.
+   */
+  public ProxyAwareHttpClient(
+      TimeoutConfiguration timeoutConfiguration,
+      ProxyContext proxyContext,
+      boolean followRedirects,
+      SSLContext sslContext,
+      ProxyHandler proxyHandler) {
     this.timeoutConfiguration = timeoutConfiguration;
     this.proxyContext = proxyContext;
     this.followRedirects = followRedirects;
     this.sslContext = sslContext;
+    this.proxyHandler = proxyHandler;
     this.client = createClient();
   }
 

@@ -22,10 +22,12 @@ import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyAwareHttpClient;
+import io.camunda.connector.http.client.client.apache.proxy.ProxyHandler;
 import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +46,29 @@ import org.apache.hc.core5.http.HttpStatus;
 public class CustomApacheHttpClient implements HttpClient {
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
+
+  /**
+   * {@code null} means the default {@link
+   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()}. Stored
+   * rather than a pre-built {@link ProxyHandler}: {@link #newClient} builds one fresh per request,
+   * same as before this override existed, so proxy env vars are still read live per request rather
+   * than captured once at construction.
+   */
+  private final ProxyConfiguration proxyConfigurationOverride;
+
+  public CustomApacheHttpClient() {
+    this.proxyConfigurationOverride = null;
+  }
+
+  /**
+   * Uses the given proxy configuration instead of the default {@link
+   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()} -- for
+   * callers whose proxy env-var convention differs (e.g. Agentic AI's {@code
+   * CONNECTOR_HTTP(S)_PLAIN_PROXY_*}).
+   */
+  public CustomApacheHttpClient(ProxyConfiguration proxyConfiguration) {
+    this.proxyConfigurationOverride = proxyConfiguration;
+  }
 
   /**
    * Converts the given {@link HttpClientRequest} to an Apache {@link
@@ -171,12 +196,17 @@ public class CustomApacheHttpClient implements HttpClient {
     var scheme = apacheRequest.getScheme();
     var sslContext =
         request.hasClientTls() ? ClientTlsFactory.create(request.getClientTls()) : null;
+    final var proxyHandler =
+        proxyConfigurationOverride != null
+            ? new ProxyHandler(proxyConfigurationOverride)
+            : new ProxyHandler();
     return new ProxyAwareHttpClient(
         new ProxyAwareHttpClient.TimeoutConfiguration(
             request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
         new ProxyAwareHttpClient.ProxyContext(scheme, host),
         request.isFollowRedirects(),
-        sslContext);
+        sslContext,
+        proxyHandler);
   }
 
   private static Map<String, List<String>> formatHeaders(Header[] headersArray) {

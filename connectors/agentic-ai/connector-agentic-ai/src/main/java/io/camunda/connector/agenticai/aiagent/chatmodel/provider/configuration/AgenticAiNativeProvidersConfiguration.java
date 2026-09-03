@@ -99,15 +99,23 @@ public class AgenticAiNativeProvidersConfiguration {
    * anywhere in the context, that bean's registration is skipped, and without this call the holder
    * would fall back to lazily creating a second, different default instance the first time
    * non-Spring HTTP client code reaches it -- silently diverging from the cache this resolver uses.
+   *
+   * <p>The token-fetch transport is built from {@link AgenticAiHttpProxySupport}'s proxy
+   * configuration rather than {@link CustomApacheHttpClient}'s own default, so OAuth token requests
+   * go through the same {@code CONNECTOR_HTTP(S)_PLAIN_PROXY_*}-configured proxy as the OpenAI/
+   * Anthropic API calls themselves, rather than silently bypassing it.
    */
   @Bean
   @ConditionalOnMissingBean
   public OAuthClientCredentialsTokenResolver aiAgentOAuthClientCredentialsTokenResolver(
-      ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider) {
+      ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider,
+      AgenticAiHttpProxySupport httpProxySupport) {
     final var oAuthTokenCache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
     OAuthTokenCacheHolder.set(oAuthTokenCache);
     return new OAuthClientCredentialsTokenResolver(
-        new OAuthService(), oAuthTokenCache, new CustomApacheHttpClient());
+        new OAuthService(),
+        oAuthTokenCache,
+        new CustomApacheHttpClient(httpProxySupport.getProxyConfiguration()));
   }
 
   @Bean
