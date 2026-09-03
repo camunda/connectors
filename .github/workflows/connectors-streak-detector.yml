@@ -250,14 +250,23 @@ jobs:
   #   * the pipeline's own `continue-on-error: ${{ github.event_name == 'merge_group' }}`,
   #     one level up.
   #
-  # Measured over the 34 most recent completed runs (2026-09-03): 25 failing jobs sat in
-  # runs that concluded `success` and 2 in runs that concluded `cancelled`, against 3 in
-  # a run that concluded `failure`. The gate was missing roughly 90% of real failures.
-  #
   # It also could not be fixed centrally, because that file is per-branch: the jobs-API
   # fix reached main only, and stable/8.7-8.10 kept reading `needs.*.result`. A reusable
   # workflow cannot help either -- it cannot reach into its caller's `if:`, because it
   # never runs. A workflow_run listener can, and covers every branch from this one copy.
+  #
+  # Measured over the 100 most recent completed runs (2026-09-03) -- 55 merge_group, 45
+  # push -- carrying 73 non-AlwaysGreen job failures:
+  #
+  #   main base    23 failures, all already covered by the jobs-API gate on that branch
+  #   stable bases 50 failures, of which its push-only + needs.*.result gate saw 6
+  #                (SM 0/23, SaaS 0/13, build 6/14)
+  #
+  # Every stable SaaS failure was invisible, and every one of them was on merge_group,
+  # which that gate excluded outright.
+  #
+  # This listener fires for both event types: over the same window, 104/104 merge_group
+  # and 88/88 push pipeline completions produced a run of it.
   scan-run:
     name: Scan the finished run
     runs-on: ubuntu-latest
@@ -383,17 +392,29 @@ jobs:
               ;;
           esac
 
-          # Mirrors the list alwaysgreen-triage.yml and alwaysgreen-fix.yml accept.
-          # stable/8.10 is knowingly absent from all three: its runs reach this listener
-          # (via merge_group -- its own copy of the pipeline still carries
-          # `push: branches: [main]`, so it never runs on its own pushes), but
-          # alwaysgreen-fix.yml maps main to the 8.10 suite as well, so enabling it
-          # would give two branches separate dispatch keys aimed at the same specs.
-          # Reported here rather than swallowed, so the gap is visible in the summary
-          # instead of looking like a green run.
+          # Mirrors the list alwaysgreen-triage.yml and alwaysgreen-fix.yml accept; all
+          # three are widened together or a dispatch hard-errors on arrival.
+          #
+          # stable/8.10 is in the list because its runs are here and they fail: 10 runs
+          # and 15 failing jobs over the last 100, all reaching this listener via
+          # merge_group, since its own copy of the pipeline still carries
+          # `push: branches: [main]` and so never runs on its own pushes. It was the only
+          # base ref the list rejected, and rejecting it silently dropped a fifth of all
+          # failures.
+          #
+          # The reason it was held back: alwaysgreen-fix.yml maps main to the 8.10 suite
+          # too, because main is 8.11.0-SNAPSHOT and the e2e repository has no tests/8.11
+          # yet, so main and stable/8.10 carry separate dispatch keys aimed at the same
+          # specs. That is now bounded by the spec-path claim rather than by an allowlist:
+          # a fix PR touching a spec blocks any other dispatch that would edit the same
+          # file for as long as it stays active, which is the collision this actually
+          # guards against.
+          #
+          # An unsupported ref is still reported rather than swallowed, so the gap is
+          # visible in the summary instead of looking like a green run.
           base_ref_supported=true
           case "$base_ref" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *) base_ref_supported=false ;;
           esac
 
@@ -423,6 +444,20 @@ jobs:
             fi
           else
             echo "No failing jobs in run ${RUN_ID}."
+            # A red run with no failing job is a contradiction, and the one that would
+            # read as a clean triage. `startup_failure` is the usual cause -- an invalid
+            # workflow file produces no jobs at all -- and there is nothing for the fix
+            # agent to classify, so say so out loud instead of reporting nothing.
+            case "${RUN_CONCLUSION}" in
+              failure|startup_failure|timed_out)
+                echo "::warning::run ${RUN_ID} concluded '${RUN_CONCLUSION}' but exposes no failing job, so there is nothing to triage. A startup failure or a broken workflow file looks like this."
+                {
+                  echo ""
+                  echo "> Concluded \`${RUN_CONCLUSION}\` with no failing job to classify."
+                  echo "> Check the run itself — a startup failure produces no jobs."
+                } >> "$GITHUB_STEP_SUMMARY"
+                ;;
+            esac
           fi
 
           {

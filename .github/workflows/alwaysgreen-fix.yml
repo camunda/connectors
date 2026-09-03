@@ -117,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$BASE_REF" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *) echo "::error::unsupported base_ref '$BASE_REF'"; exit 1 ;;
           esac
           case "$SURFACE" in
