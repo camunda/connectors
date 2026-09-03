@@ -38,6 +38,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
@@ -62,9 +63,17 @@ public class InboundConnectorRuntimeConfiguration {
   public ProcessElementContextFactory processElementContextFactory(
       ObjectMapper objectMapper,
       @Autowired(required = false) ValidationProvider validationProvider,
-      SecretProviderAggregator secretProviderAggregator) {
+      SecretProviderAggregator secretProviderAggregator,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
+    // Same DISABLED-only opt-out as springInboundConnectorContextFactory: this is the second
+    // inbound resolution path, carried as the activatedElement of every successful
+    // CorrelationResult.
     return new DefaultProcessElementContextFactory(
-        secretProviderAggregator, validationProvider, objectMapper);
+        secretProviderAggregator,
+        validationProvider,
+        objectMapper,
+        secretFilterMode != SecretFilterMode.DISABLED);
   }
 
   @Bean
@@ -88,13 +97,20 @@ public class InboundConnectorRuntimeConfiguration {
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
-      OperateClientAdapter operateClientAdapter) {
+      OperateClientAdapter operateClientAdapter,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
+    // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
+    // fail; the inbound allow-list is built from data already in memory, so it never fails and both
+    // modes behave identically here — only DISABLED turns this off.
+    boolean secretFilterEnabled = secretFilterMode != SecretFilterMode.DISABLED;
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter);
+        operateClientAdapter,
+        secretFilterEnabled);
   }
 
   @Bean
