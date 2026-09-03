@@ -121,7 +121,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       case NoAuthentication ignored -> {}
       case OAuthClientCredentialsAuthentication oauth ->
           builder.addInterceptor(
-              new OAuthBearerTokenInterceptor(
+              OAuthBearerTokenInterceptor.create(
                   oAuthClientCredentialsTokenResolver,
                   oauth.oauthTokenEndpoint(),
                   oauth.clientId(),
