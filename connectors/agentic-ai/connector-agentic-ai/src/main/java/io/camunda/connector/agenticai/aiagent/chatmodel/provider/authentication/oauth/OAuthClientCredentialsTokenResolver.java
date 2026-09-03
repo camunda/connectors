@@ -56,10 +56,19 @@ public class OAuthClientCredentialsTokenResolver {
   private TokenResponse fetchToken(OAuthAuthentication authentication) {
     final var request = oAuthService.createOAuthRequestFrom(authentication);
     try {
-      return httpClient.execute(request, oAuthService::extractTokenFromResponse).entity();
+      final var response =
+          httpClient.execute(request, oAuthService::extractTokenFromResponse).entity();
+      if (response.accessToken() == null || response.accessToken().isBlank()) {
+        throw new ConnectorException(
+            "OAUTH_TOKEN_ERROR", "OAuth token response contains a blank access_token");
+      }
+      return response;
     } catch (ConnectorException e) {
       throw new ConnectorException(
-          e.getErrorCode(), "OAuth client-credentials authentication failed: " + e.getMessage(), e);
+          e.getErrorCode(),
+          "OAuth client-credentials authentication failed: " + e.getMessage(),
+          e,
+          e.getErrorVariables());
     }
   }
 }
