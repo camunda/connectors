@@ -37,6 +37,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final ValidationProvider validationProvider;
   private final ProcessInstanceClient processInstanceClient;
   private final DocumentFactory documentFactory;
+  private final boolean secretFilterEnabled;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
@@ -45,6 +46,25 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final ValidationProvider validationProvider,
       final ProcessInstanceClient processInstanceClient,
       final DocumentFactory documentFactory) {
+    this(
+        mapper,
+        correlationHandler,
+        secretProviderAggregator,
+        validationProvider,
+        processInstanceClient,
+        documentFactory,
+        false);
+  }
+
+  public DefaultInboundConnectorContextFactory(
+      final ObjectMapper mapper,
+      final InboundCorrelationHandler correlationHandler,
+      final SecretProviderAggregator secretProviderAggregator,
+      final ValidationProvider validationProvider,
+      final ProcessInstanceClient processInstanceClient,
+      final DocumentFactory documentFactory,
+      final boolean secretFilterEnabled) {
+    this.secretFilterEnabled = secretFilterEnabled;
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
@@ -69,7 +89,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             correlationHandler,
             cancellationCallback,
             objectMapper,
-            logWriter);
+            logWriter,
+            secretFilterEnabled);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =
