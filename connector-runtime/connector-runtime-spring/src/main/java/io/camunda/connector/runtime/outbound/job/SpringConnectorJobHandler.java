@@ -228,7 +228,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private record ResultWithDeadline(ConnectorResult result, long deadline) {}
 
   private ResultWithDeadline getConnectorResult(
-      ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
+      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     long deadline = job.getDeadline();
     try {
@@ -271,7 +271,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     } catch (Exception e) {
       return new ResultWithDeadline(
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter),
+              e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues()),
           deadline);
     }
   }
@@ -420,7 +420,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void processFinalResult(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
       SecretFilter secretFilter,
@@ -471,7 +471,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               client,
               job,
               this.outboundConnectorExceptionHandler.handleFinalResultException(
-                  ex, job, secretFilter),
+                  ex, job, secretFilter, context.getSecretHandler().getResolvedValues()),
               counterMetricsContext,
               deadline);
       notifyFailureOnCommandOutcome(
@@ -516,7 +516,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleConnectorError(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       ConnectorError rawError,
       CounterMetricsContext counterMetricsContext,
@@ -524,7 +524,9 @@ public class SpringConnectorJobHandler implements JobHandler {
       long deadline) {
     var response = connectorResponseOrNull(finalResult);
     // redacted before the Zeebe command and the listener payload are built from it
-    var error = outboundConnectorExceptionHandler.maskConnectorError(rawError, job, secretFilter);
+    var error =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, context.getSecretHandler().getResolvedValues());
 
     switch (error) {
       case BpmnError bpmnError -> {
@@ -586,7 +588,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleIgnoreError(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       ConnectorResponse response,
       IgnoreError ignoreError,
@@ -604,7 +606,10 @@ public class SpringConnectorJobHandler implements JobHandler {
       // message - redacted here, unlike on the completion branch below
       var variables =
           outboundConnectorExceptionHandler.maskDiagnosticVariables(
-              ignoreError.variables(), job, secretFilter);
+              ignoreError.variables(),
+              job,
+              secretFilter,
+              context.getSecretHandler().getResolvedValues());
       CompletableFuture<CommandOutcome> failJobRequest =
           failJob(
               client,
