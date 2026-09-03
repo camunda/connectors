@@ -51,10 +51,15 @@ class HashedCacheKeyTest {
   }
 
   @Test
-  void singlePartKeyMatchesHashingThatPartAlone() {
-    // EntraIdTokenCredentialFactory.managedIdentity(clientId) hashes a single value with no
-    // separator needed -- of(String...) must reproduce that exact shape for a 1-arg call.
-    assertThat(HashedCacheKey.of("some-client-id")).isEqualTo(HashedCacheKey.of("some-client-id"));
-    assertThat(HashedCacheKey.of("some-client-id")).isNotEqualTo(HashedCacheKey.of("other"));
+  void matchesKnownSha256TestVector() {
+    // Independently computed: SHA-256 of the 4-byte big-endian length of "some-client-id" (14),
+    // followed by its UTF-8 bytes.
+    assertThat(HashedCacheKey.of("some-client-id"))
+        .isEqualTo("2b6a0d97721c0e3cfd435f609664e1a7b1092e724e7cb62f3b755f3eaceb635f");
+  }
+
+  @Test
+  void partsCannotBeSplitDifferentlyToCollide() {
+    assertThat(HashedCacheKey.of("a\0b", "c")).isNotEqualTo(HashedCacheKey.of("a", "b\0c"));
   }
 }
