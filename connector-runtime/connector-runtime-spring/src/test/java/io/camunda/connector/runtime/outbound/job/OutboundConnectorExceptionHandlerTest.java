@@ -29,7 +29,10 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import java.time.Duration;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class OutboundConnectorExceptionHandlerTest {
 
@@ -174,5 +177,92 @@ class OutboundConnectorExceptionHandlerTest {
             Duration.ofSeconds(1));
 
     assertThat(result.retries()).isEqualTo(0);
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheReasonTheAllowListCouldNotBeRead() {
+    var job = jobWithSecretReference();
+    SecretProvider providerThatMustNotBeCalled =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new AssertionError(
+                  "an unreadable allow-list means no secret ever reached the input, so there is"
+                      + " nothing to resolve for masking");
+            });
+    var handlerWithGuard = new OutboundConnectorExceptionHandler(providerThatMustNotBeCalled);
+
+    var result =
+        handlerWithGuard.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException(
+                "Error retrieving secret keys for element 'Activity_1' in process definition key 42"
+                    + " (io.camunda.client.api.command.ProblemException)"),
+            job,
+            null,
+            SecretFilter.allowAll());
+
+    assertThat(result.exception())
+        .hasMessageContaining("Activity_1")
+        .hasMessageContaining("ProblemException");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+  }
+
+  @ParameterizedTest
+  @MethodSource("modelBackoffs")
+  void manageConnectorJobHandlerException_backsOffTheAllowListReadWhateverTheModelAsksFor(
+      Duration modelBackoff) {
+    var job = jobWithSecretReference();
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException("lookup failed"),
+            job,
+            modelBackoff,
+            SecretFilter.allowAll());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  private static Stream<Duration> modelBackoffs() {
+    return Stream.of(
+        null, Duration.ZERO, Duration.ofSeconds(-1), Duration.ofSeconds(30), Duration.ofMinutes(1));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_keepsTheModelsBackoffForOtherMaskingFailures() {
+    var job = jobWithSecretReference();
+    SecretProvider throwingProvider =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new IllegalStateException("timed out");
+            });
+    var handlerWithThrowingProvider = new OutboundConnectorExceptionHandler(throwingProvider);
+
+    var result =
+        handlerWithThrowingProvider.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(30), SecretFilter.allowAll());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(30));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheAllowListFailureRaisedByTheMaskingRead() {
+    var job = jobWithSecretReference();
+    SecretFilter unreadableAllowList =
+        name -> {
+          throw new SecretAllowListUnavailableException(
+              "Error retrieving secret keys for element 'Activity_1'");
+        };
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, null, unreadableAllowList);
+
+    assertThat(result.exception()).hasMessageContaining("Activity_1");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
   }
 }

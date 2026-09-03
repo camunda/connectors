@@ -69,7 +69,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                   context.elementId(),
                   context.processDefinitionKey(),
                   realCause.getClass().getName());
-              throw new IllegalArgumentException(
+              throw new SecretAllowListUnavailableException(
                   "Error retrieving secret keys for element '"
                       + context.elementId()
                       + "' in process definition key "
