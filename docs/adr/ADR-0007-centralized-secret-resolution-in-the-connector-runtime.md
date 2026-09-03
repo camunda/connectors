@@ -184,3 +184,11 @@ So the filter is not defence in depth against a hypothetical future call site; i
 **It also removes a failure direction rather than adding one.** While the filter was allow-all it could not deny anything. An allow-list drawn from the executable's model would have introduced denials, because a live executable's model is mutable: `updateConnectorDetails` swaps its elements in place when a new process version is hot-swapped onto it, so a list read at a different moment than the text it judges can refuse a secret that text itself declares. Deriving the list from the text in hand makes that unrepresentable — there is no second, separately-timed piece of state to disagree with.
 
 The general lesson is not that a structural guarantee is cheap to make enforced, but that the guarantee has to be stated about the right thing. "Replacement only sees model text" was asserted of a function that feeds its own output back through itself, and neither the original decision nor the first amendment checked that.
+
+## Amendment 3: the startup guard pairing `FALLBACK` with a strict secret filter is removed
+
+Amendment 1's "Paired with a strict secret filter" made the pairing a code invariant: the runtime refused to start under `FALLBACK` unless `camunda.connector.secret-resolver.secret-filter.mode` was `STRICT`. That guard is removed.
+
+**Why.** `STRICT` is a breaking change for a diagram whose legacy references the filter's allow-list does not cover — see Decision 2's asymmetry and Amendment 2's extension to inbound. A deployment that hits this needs a way to keep running while it fixes the affected diagrams, and pairing `FALLBACK` with `LAX` or `DISABLED` is exactly that escape hatch. Refusing to start denied it, forcing an operator to choose between reverting the legacy mode away from `FALLBACK` altogether and being unable to migrate incrementally, or fixing every diagram before restarting at all.
+
+**What was traded away.** The residual risk Amendment 1 accepted — the two forms reaching the same store with protections of different strength — is no longer bounded by the runtime refusing to start; it is now a deployment choice enforced only by documentation. An operator who sets `FALLBACK` with `LAX` or `DISABLED` gets exactly the reach Amendment 1 warned about, deliberately, for as long as the migration takes.
