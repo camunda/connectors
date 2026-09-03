@@ -44,6 +44,8 @@ public class SecretHandler {
                 Optional.ofNullable(secretProvider.getSecret(name, context))
                     .orElseThrow(() -> new SecretNotAvailableException(name));
             resolvedValues.add(value);
+            // the substituted JSON carries this form, not the raw value, when it differs
+            resolvedValues.add(SecretUtil.jsonEscape(value));
             return value;
           }
           LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);

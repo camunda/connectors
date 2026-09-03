@@ -542,11 +542,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             redact(builder.build())));
   }
 
-  // every value a SecretHandler this context built ever substituted, immune to a later rotation
+  // captures are only ever unioned into a successful, complete re-read, never a substitute for one
   private @Nullable List<String> secretValuesForRedaction() {
     var reRead = reReadSecretValues();
     if (reRead == null) {
-      return capturedSecretValues.isEmpty() ? null : List.copyOf(capturedSecretValues);
+      return null;
     }
     if (capturedSecretValues.isEmpty()) {
       return reRead;
@@ -692,6 +692,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               + message);
     }
     connectorDetails = newDetails;
+    reReadSecrets = null;
     logRuntime(
         builder ->
             builder
