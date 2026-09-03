@@ -272,17 +272,26 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
         f"saas counts total={counts.total} failed={counts.failed} "
         f"flaky={counts.flaky} setup_failed={counts.setup_failed} -> {cand.surface}"
     )
-    if cand.surface != classify.SURFACE_SAAS_E2E:
-        # Only a genuine non-setup test failure is actionable in test code.
+    if cand.surface == classify.SURFACE_SAAS_INFRA:
+        # No report at all, or a report with no failing spec: there is nothing to hand an
+        # agent, so this surface is reported and routed rather than dispatched.
         cand.specs = []
         return cand
 
-    # A mixed report — org provisioning broke *and* a real spec failed — stays
-    # dispatchable for the real one, but the setup failures must not travel with it.
-    # The agent is told to fix every spec it is given, and test-setup.spec.ts failing
-    # is a cluster/org problem no test-code change can address. Dropping them here also
-    # keeps them out of the coverage block, so the provisioning failure stays
-    # unclaimed and is re-triaged rather than marked handled.
+    if cand.surface == classify.SURFACE_SAAS_PROVISIONING:
+        # Every failing spec here IS test-setup.spec.ts, and it travels with the
+        # dispatch: it is the only evidence of what broke, and the fix lives in the
+        # org-creation step or the setup spec's waiting rather than in a test body. The
+        # agent is told as much in the prompt, so it does not go looking for an
+        # assertion to change.
+        return cand
+
+    # A mixed report — org provisioning broke *and* a real spec failed — is a
+    # saas-smoke-e2e dispatch for the real one, and the setup failures must not travel
+    # with it: the agent would be told to fix a spec whose failure is a cluster problem,
+    # and mixing the two remits in one PR is how a provisioning fix gets buried. Dropping
+    # them here also keeps them out of the coverage block, so the provisioning half stays
+    # unclaimed and is re-triaged on its own as saas-setup.
     dropped = [s for s in cand.specs if classify.is_setup_spec(s.file)]
     if dropped:
         log(

@@ -100,7 +100,12 @@ def normalise_base_ref(ref: str) -> str:
 
 SURFACE_SM_E2E = "sm-smoke-e2e"
 SURFACE_SAAS_E2E = "saas-smoke-e2e"
-SURFACE_SAAS_PROVISIONING = "saas-provisioning"
+#: The SaaS setup/provisioning stage: every failing spec in the report is
+#: test-setup.spec.ts, so the org or cluster never came up. Wire name kept short
+#: deliberately — it becomes part of the `ag-key:<source>:<base_ref>:<surface>` label and
+#: GitHub caps a label at 50 characters, which "saas-provisioning" overflows for the
+#: longest source in test_plan.py's matrix. A missing label silently disables dedupe.
+SURFACE_SAAS_PROVISIONING = "saas-setup"
 SURFACE_SAAS_INFRA = "saas-infra"
 SURFACE_HELM_INSTALL = "helm-install"
 SURFACE_HELM_CLEANUP = "helm-cleanup"
@@ -110,9 +115,16 @@ SURFACE_CI_INFRA = "ci-infra"
 #: is reported and routed, never dispatched — see DISPATCHABLE_SURFACES.
 SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 
-#: Surfaces the first increment dispatches. Everything else is recorded and
-#: reported but not handed to the agent yet.
-DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
+#: Surfaces handed to the fix agent. Everything else is recorded and reported only.
+#:
+#: SURFACE_SAAS_PROVISIONING is here because a provisioning failure IS actionable, just
+#: not in a spec body: the e2e repository owns the org-creation workflow steps and the
+#: setup spec's waiting, and hardening a flaky external call is the agent's documented
+#: job. What stays out is SURFACE_SAAS_INFRA, where the report is missing or has no
+#: failing spec at all — an agent handed no evidence has nothing to work from.
+DISPATCHABLE_SURFACES = frozenset(
+    {SURFACE_SM_E2E, SURFACE_SAAS_E2E, SURFACE_SAAS_PROVISIONING}
+)
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
 #: carries no independent signal.

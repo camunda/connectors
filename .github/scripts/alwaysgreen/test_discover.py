@@ -10,6 +10,7 @@ the TTL skip, and the intersection over holders — so it is tested here against
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import discover
 import plan as planning
@@ -211,3 +212,77 @@ def test_a_failed_pr_listing_suppresses(monkeypatch):
     _stub_pr_list(monkeypatch, [], err="gh: not found")
     _claims, ok = discover.paths_claimed_by_open_prs({SPEC})
     assert ok is False
+
+
+# ---------------------------------------------------------------------------
+# SaaS sub-classification: which surfaces keep their evidence
+# ---------------------------------------------------------------------------
+
+
+def _saas_report(files):
+    """A downstream Playwright report whose listed spec files all failed."""
+    return {
+        "config": {"rootDir": "/home/runner/work/x/x/tests/8.10"},
+        "suites": [
+            {
+                "suites": [
+                    {
+                        "specs": [
+                            {
+                                "file": f,
+                                "title": f"t {f}",
+                                "ok": False,
+                                "tests": [
+                                    {
+                                        "projectName": "chromium-v2",
+                                        "results": [
+                                            {"status": "failed", "error": {"message": "boom"}}
+                                        ],
+                                    }
+                                ],
+                            }
+                            for f in files
+                        ]
+                    }
+                ]
+            }
+        ],
+    }
+
+
+def _stub_saas(monkeypatch, files):
+    """Drive saas_candidate off a synthetic downstream report."""
+    monkeypatch.setattr(discover, "download_artifacts", lambda *a, **k: True)
+    monkeypatch.setattr(
+        discover,
+        "read_json_files",
+        lambda root, name: (
+            [{"downstream_run_url": "https://github.com/o/r/actions/runs/9"}]
+            if name.startswith("alwaysgreen-saas-category")
+            else [_saas_report(files)]
+        ),
+    )
+    monkeypatch.setattr(
+        discover,
+        "gh_json_ex",
+        lambda args, default: ({"artifacts": [{"name": "json-report-v2"}]}, ""),
+    )
+
+
+def test_a_provisioning_failure_keeps_its_setup_spec_as_evidence(monkeypatch):
+    # The setup spec is the only record of what broke, so it travels with the dispatch.
+    _stub_saas(monkeypatch, ["tests/8.10/test-setup.spec.ts"])
+    cand = discover.saas_candidate("1", "main", "Trigger SaaS E2E tests", Path("/tmp/x"))
+    assert cand.surface == planning.classify.SURFACE_SAAS_PROVISIONING
+    assert [s.file for s in cand.specs] == ["tests/8.10/test-setup.spec.ts"]
+
+
+def test_a_mixed_report_dispatches_the_real_spec_without_the_setup_one(monkeypatch):
+    # Two remits must not land in one PR: the provisioning half returns on its own.
+    _stub_saas(
+        monkeypatch,
+        ["tests/8.10/test-setup.spec.ts", "tests/8.10/smoke-tests.spec.ts"],
+    )
+    cand = discover.saas_candidate("1", "main", "Trigger SaaS E2E tests", Path("/tmp/x"))
+    assert cand.surface == planning.classify.SURFACE_SAAS_E2E
+    assert [s.file for s in cand.specs] == ["tests/8.10/smoke-tests.spec.ts"]

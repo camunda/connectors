@@ -55,6 +55,22 @@ def test_non_dispatchable_surface_is_recorded_not_dispatched():
     assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
 
 
+def test_saas_setup_is_dispatched():
+    # A provisioning failure is actionable — the org-creation step or the setup spec's
+    # waiting — so it is dispatched rather than reported only. Its evidence is the setup
+    # spec, which discover deliberately keeps for this surface alone.
+    result = _plan([_cand(surface=classify.SURFACE_SAAS_PROVISIONING)])
+    assert result.suppressed == []
+    assert [c.surface for c in result.dispatches] == [classify.SURFACE_SAAS_PROVISIONING]
+
+
+def test_saas_infra_is_still_not_dispatched():
+    # No report, or a report with no failing spec: nothing to hand an agent.
+    result = _plan([_cand(surface=classify.SURFACE_SAAS_INFRA)])
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
+
+
 def test_in_flight_agent_blocks_the_same_surface():
     # The 2026-07-23 case: consecutive runs, same cause, agent still working.
     cand = _cand()
