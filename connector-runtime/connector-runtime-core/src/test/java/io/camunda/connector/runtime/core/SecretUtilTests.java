@@ -234,12 +234,14 @@ public class SecretUtilTests {
   }
 
   @Test
-  void shouldLeaveAReferenceWithoutANameUntouched() {
-    var secretReplacer = mock(SecretReplacer.class);
+  void shouldNotWriteTheTextNullWhereANameIsAllWhitespace() {
+    // The NUL is written as an escape rather than as a raw byte: a raw NUL makes git treat the
+    // whole file as binary, which hides every later change to it from review.
+    var asked = new ArrayList<String>();
+    var input = "{\"pw\":\"{{secrets.\0}}\"}";
 
-    assertThat(SecretUtil.replaceSecrets("{\"pw\":\"{{secrets.}}\"}", null, secretReplacer))
-        .isEqualTo("{\"pw\":\"{{secrets.}}\"}");
-    verifyNoInteractions(secretReplacer);
+    assertThat(SecretUtil.replaceSecrets(input, null, recording(asked, Map.of()))).isEqualTo(input);
+    assertThat(asked).containsExactly("\0");
   }
 
   private static SecretReplacer recording(List<String> asked, Map<String, String> secrets) {

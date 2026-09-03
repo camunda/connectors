@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,18 +49,29 @@ public class SecretUtil {
       throw new IllegalStateException("input cant be null.");
     }
     Map<String, String> resolutions = new HashMap<>();
-    StringBuilder output = new StringBuilder();
-    Matcher matcher = REFERENCE.matcher(input);
+    return replaceTokens(
+        input,
+        REFERENCE,
+        matcher -> {
+          String name = legacyName(matcher);
+          String value = name == null ? null : resolve(name, context, secretReplacer, resolutions);
+          return value == null ? matcher.group() : new String(encoder.quoteAsString(value));
+        });
+  }
+
+  public static String replaceTokens(
+      String original, Pattern pattern, Function<Matcher, String> converter) {
     int lastIndex = 0;
+    StringBuilder output = new StringBuilder();
+    Matcher matcher = pattern.matcher(original);
     while (matcher.find()) {
-      String name = legacyName(matcher);
-      String value = name == null ? null : resolve(name, context, secretReplacer, resolutions);
-      output
-          .append(input, lastIndex, matcher.start())
-          .append(value == null ? matcher.group() : new String(encoder.quoteAsString(value)));
+      output.append(original, lastIndex, matcher.start()).append(converter.apply(matcher));
       lastIndex = matcher.end();
     }
-    return output.append(input, lastIndex, input.length()).toString();
+    if (lastIndex < original.length()) {
+      output.append(original, lastIndex, original.length());
+    }
+    return output.toString();
   }
 
   private static @Nullable String resolve(
