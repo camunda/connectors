@@ -28,7 +28,10 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.CorrelationRequest;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
@@ -38,6 +41,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -232,9 +236,8 @@ class InboundConnectorContextImplTest {
   // API response, and both are read by anyone who can see the connector in Operate.
   //
   // Main's suite also covers health dedup (against the masked value, and the two-distinct-outage
-  // case) and a secret declared only by a grouped sibling element. Neither is representable on this
-  // branch: reportHealth does not dedup here and writes no activity log of its own, and there is a
-  // single connector-level property text rather than a per-element one that a sibling could extend.
+  // case), which is not representable on this branch: reportHealth does not dedup here and writes
+  // no activity log of its own.
 
   private InboundConnectorContextImpl contextOf(
       ValidInboundConnectorDetails details, SecretProvider provider) {
@@ -423,6 +426,177 @@ class InboundConnectorContextImplTest {
     assertThat(context.getLogs())
         .singleElement()
         .satisfies(log -> assertThat(log.message()).contains("withheld"));
+  }
+
+  @Test
+  void log_masksASecretDeclaredOnlyByAGroupedSiblingElement() {
+    // given two elements grouped under one deduplication ID: they agree on everything the grouping
+    // compares, and differ only in resultExpression, which PROPERTIES_EXCLUDED_FROM_DEDUPLICATION
+    // allows to differ -- so only the sibling declares SIBLING, and only the first element's
+    // properties become the group's representative ones
+    var provider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext context) {
+            return switch (name) {
+              case "FOO" -> "bar";
+              case "SIBLING" -> "sibling-value";
+              default -> null;
+            };
+          }
+        };
+    var context =
+        contextOf(
+            groupedInboundConnectorDefinition(
+                Map.of("token", "secrets.FOO"),
+                Map.of("resultExpression", "={token: secrets.SIBLING}")),
+            provider);
+
+    // when a message carries the value only the sibling element declares
+    context.log(errorSaying("token was sibling-value"));
+
+    // then it is masked too: the re-read covers every grouped element
+    assertThat(context.getLogs())
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void canActivate_masksASecretTheActivatedElementResolvedBeforeItRotated() {
+    // given a provider that answers one value now and a different one on the redaction re-read
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var details = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context = contextActivating(details, rotatingProvider);
+
+    // when the connector reads the properties of the element it was handed, resolving FOO there
+    // rather than on the connector-level context
+    var activated = (ActivationCheckResult.Success.CanActivate) context.canActivate(Map.of());
+    assertThat(activated.activatedElement().getElement())
+        .isEqualTo(details.connectorElements().getFirst().element());
+    assertThat(activated.activatedElement().getProperties()).containsEntry("token", "old-value");
+
+    // then that value is redacted from what the connector reports afterwards, even though a re-read
+    // now returns a different one
+    context.log(errorSaying("token was old-value"));
+    context.reportHealth(Health.down(new RuntimeException("token was old-value")));
+
+    assertThat(context.getLogs())
+        .last()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+    assertThat(context.getHealth().getError().message()).doesNotContain("old-value");
+  }
+
+  @Test
+  void correlate_masksASecretTheActivatedElementBoundBeforeItRotated() {
+    // given the same rotation, reached through correlation rather than the activation check
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var details = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var elementContext = elementContextOf(details, rotatingProvider);
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any(CorrelationRequest.class)))
+        .thenReturn(
+            new CorrelationResult.Success.MessagePublished(elementContext, 1L, "<default>"));
+    var context =
+        new InboundConnectorContextImpl(
+            rotatingProvider,
+            (e) -> {},
+            details,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    // when the connector binds the activated element's properties
+    var result =
+        (CorrelationResult.Success.MessagePublished)
+            context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+    assertThat(result.messageKey()).isEqualTo(1L);
+    assertThat(result.activatedElement().bindProperties(Map.class))
+        .containsEntry("token", "old-value");
+
+    // then the bound value is redacted from the activity log
+    context.log(errorSaying("token was old-value"));
+
+    assertThat(context.getLogs())
+        .last()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void cancel_masksASecretTheActivatedElementResolvedBeforeItRotated() {
+    // given the same rotation, reported through cancellation, which the runtime publishes as
+    // Health.down(exceptionThrown)
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var details = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    List<Throwable> cancellations = new ArrayList<>();
+    var context = contextActivating(details, rotatingProvider, cancellations);
+
+    // when the connector resolves the secret through the element it was handed and then cancels
+    // with an error quoting it
+    var activated = (ActivationCheckResult.Success.CanActivate) context.canActivate(Map.of());
+    activated.activatedElement().getProperties();
+    context.cancel(new RuntimeException("token was old-value"));
+
+    // then the value is redacted from what the runtime publishes
+    assertThat(cancellations)
+        .singleElement()
+        .satisfies(error -> assertThat(error.getMessage()).doesNotContain("old-value"));
+  }
+
+  private InboundConnectorContextImpl contextActivating(
+      ValidInboundConnectorDetails details, SecretProvider provider) {
+    return contextActivating(details, provider, new ArrayList<>());
+  }
+
+  private InboundConnectorContextImpl contextActivating(
+      ValidInboundConnectorDetails details,
+      SecretProvider provider,
+      List<Throwable> cancellations) {
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.canActivate(any(), any()))
+        .thenReturn(
+            new ActivationCheckResult.Success.CanActivate(elementContextOf(details, provider)));
+    return new InboundConnectorContextImpl(
+        provider,
+        (e) -> {},
+        details,
+        correlationHandler,
+        cancellations::add,
+        mapper,
+        EvictingQueue.create(10));
+  }
+
+  private DefaultProcessElementContext elementContextOf(
+      ValidInboundConnectorDetails details, SecretProvider provider) {
+    return new DefaultProcessElementContext(
+        details.connectorElements().getFirst(), (e) -> {}, provider, mapper);
+  }
+
+  private static ValidInboundConnectorDetails groupedInboundConnectorDefinition(
+      Map<String, String> sharedProperties, Map<String, String> siblingOnlyProperties) {
+    var shared = new HashMap<>(sharedProperties);
+    shared.put("inbound.type", "io.camunda:connector:1");
+    var siblingProperties = new HashMap<>(shared);
+    siblingProperties.putAll(siblingOnlyProperties);
+    var first =
+        new InboundConnectorElement(
+            shared,
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElement("bool", 0, 0, "first", "<default>"));
+    var sibling =
+        new InboundConnectorElement(
+            siblingProperties,
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElement("bool", 0, 0, "sibling", "<default>"));
+    var details = InboundConnectorDetails.of("grouped", List.of(first, sibling));
+    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
+    return (ValidInboundConnectorDetails) details;
   }
 
   @Test

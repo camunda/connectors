@@ -25,6 +25,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.List;
 import java.util.Map;
 
 public class DefaultProcessElementContext extends AbstractConnectorContext
@@ -104,6 +105,16 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
   @Override
   public Map<String, Object> getProperties() {
     return getPropertiesWithSecrets(properties);
+  }
+
+  /**
+   * The secret values resolved through this element context so far. The connector-level context
+   * that handed this element to the connector adds them to what it redacts: a value bound here and
+   * rotated afterwards can no longer be re-read from the provider, so nothing else would recognise
+   * it in an activity log or a health error.
+   */
+  List<String> resolvedSecretValues() {
+    return getSecretHandler().getResolvedValues();
   }
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {

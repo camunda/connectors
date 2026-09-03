@@ -139,7 +139,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public ActivationCheckResult canActivate(Object variables) {
-    return correlationHandler.canActivate(connectorDetails.connectorElements(), variables);
+    return capturing(
+        correlationHandler.canActivate(connectorDetails.connectorElements(), variables));
   }
 
   @Override
@@ -155,7 +156,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
     try {
-      return correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      return capturing(
+          correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest));
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -172,6 +174,83 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               .message("Failed to correlate inbound event " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
+    }
+  }
+
+  /**
+   * Every successful activation check and correlation hands the connector a context for the element
+   * that matched, and that context resolves its own element's raw properties through a secret
+   * handler of its own. What it resolves has to reach this context's captured values: a value the
+   * connector binds through the activated element and that rotates before the connector reports an
+   * error is no longer re-readable, so nothing else would recognise it in the activity log or the
+   * health error that follows.
+   *
+   * <p>Upstream binds element properties on the connector-level context itself, so its captures
+   * land there directly. Here the element context is a separate object built by a shared factory,
+   * with no reference back to this one, so it is drained as the connector reads it instead.
+   */
+  private ActivationCheckResult capturing(ActivationCheckResult result) {
+    if (result instanceof ActivationCheckResult.Success.CanActivate canActivate) {
+      return new ActivationCheckResult.Success.CanActivate(
+          capturing(canActivate.activatedElement()));
+    }
+    return result;
+  }
+
+  private CorrelationResult capturing(CorrelationResult result) {
+    return switch (result) {
+      case CorrelationResult.Success.ProcessInstanceCreated created ->
+          new CorrelationResult.Success.ProcessInstanceCreated(
+              capturing(created.activatedElement()),
+              created.processInstanceKey(),
+              created.tenantId());
+      case CorrelationResult.Success.MessagePublished published ->
+          new CorrelationResult.Success.MessagePublished(
+              capturing(published.activatedElement()),
+              published.messageKey(),
+              published.tenantId());
+      case CorrelationResult.Success.MessageAlreadyCorrelated correlated ->
+          new CorrelationResult.Success.MessageAlreadyCorrelated(
+              capturing(correlated.activatedElement()));
+      default -> result;
+    };
+  }
+
+  private ProcessElementContext capturing(ProcessElementContext element) {
+    return element instanceof DefaultProcessElementContext resolving
+        ? new CapturingProcessElementContext(resolving, capturedSecretValues)
+        : element;
+  }
+
+  /**
+   * Adds what an element context resolves to the connector-level captured values, at the point the
+   * connector reads it and so before it can report anything derived from it.
+   */
+  private record CapturingProcessElementContext(
+      DefaultProcessElementContext delegate, Set<String> capturedSecretValues)
+      implements ProcessElementContext {
+
+    @Override
+    public ProcessElement getElement() {
+      return delegate.getElement();
+    }
+
+    @Override
+    public <T> T bindProperties(Class<T> cls) {
+      try {
+        return delegate.bindProperties(cls);
+      } finally {
+        capturedSecretValues.addAll(delegate.resolvedSecretValues());
+      }
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+      try {
+        return delegate.getProperties();
+      } finally {
+        capturedSecretValues.addAll(delegate.resolvedSecretValues());
+      }
     }
   }
 
@@ -361,9 +440,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     return values;
   }
 
+  // names across every grouped element, not just the representative one this context binds from:
+  // elements are grouped on the properties deduplication hashes, and PROPERTIES_EXCLUDED_FROM_
+  // DEDUPLICATION lets siblings still differ in resultExpression, activationCondition,
+  // correlationKeyExpression and the rest, so a sibling can declare a secret of its own and resolve
+  // it through the element context correlation hands the connector
   private List<String> fetchSecretValuesForRedaction() {
     var names =
-        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
+        connectorDetails.connectorElements().stream()
+            .flatMap(element -> element.rawProperties().values().stream())
             .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
             .distinct()
             .toList();
