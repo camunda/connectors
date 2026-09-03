@@ -168,33 +168,28 @@ jobs:
       scenario: alwaysgreen
       shortname: agrn
 
-  # The failure signal for everything AlwaysGreen, read from the jobs API rather than
-  # from `needs.*.result`.
+  # Did the SM stage fail? That is the whole remit -- the one question still asked from
+  # inside the run, by the SM feedback job below.
   #
-  # `needs.*.result` cannot see two of the ways a job in this pipeline fails:
+  # It is NOT the general AlwaysGreen failure signal any more. That moved to the watcher
+  # in connectors-streak-detector.yml, which judges the finished run from outside it and
+  # so covers every stage, every branch and every event. `needs` here is therefore only
+  # what answers the SM question: SaaS and the AI-agent job were in this list purely so
+  # the old general scan could not read a stage before it concluded, and with the general
+  # scan gone, keeping them would make the SM Slack alert wait up to 25 minutes for a
+  # SaaS stage it does not look at. SaaS failures are not lost -- `saas-e2e-debug-summary`
+  # reports them, and the watcher triages them.
   #
-  #   * A nested job of a called workflow that carries continue-on-error. The SM
-  #     Playwright matrix in camunda-platform-helm is
-  #     `continue-on-error: ${{ !matrix.blocking }}`, and its `full` leg is
-  #     `blocking: false` — so when only that leg fails, INTEGRATION_TEST.yml still
-  #     reports success and `needs.trigger-sm-e2e.result` is `success`.
-  #   * This workflow's own `continue-on-error: ${{ github.event_name == 'merge_group' }}`,
-  #     which does the same one level up.
-  #
-  # Both are real, observed states: in run 33366607997 the SM `full` leg and the SaaS
-  # stage both failed, yet no `needs.*.result` said `failure`, the run concluded
-  # `success`, and neither the SM feedback job nor triage ran. The jobs API reported
-  # `conclusion: failure` for both jobs the whole time — which is also what
-  # `.github/scripts/alwaysgreen/discover.py` reads, so gating on it puts the gate and
-  # the classifier on the same evidence.
-  #
-  # Scoped to the SM stage: since triage moved to the watcher jobs in
-  # connectors-streak-detector.yml, the only thing left that needs this answer inside
-  # the run is the SM feedback job below.
-  # The ref normalisation and supported-ref list moved with triage, so they exist in one
-  # place rather than two that can drift.
-  detect-failures:
-    name: AlwaysGreen failure detection
+  # Why the jobs API and not `needs.trigger-sm-e2e.result`: the SM Playwright matrix in
+  # camunda-platform-helm runs its `full` leg with
+  # `continue-on-error: ${{ !matrix.blocking }}`, so a `full`-only failure leaves
+  # INTEGRATION_TEST.yml reporting success and that `result` saying `success`. Run
+  # 33366607997 is the case -- a red `full` leg and no SM feedback at all. The API
+  # reported `conclusion: failure` for the nested job the whole time.
+  detect-sm-failure:
+    # Keeps the `AlwaysGreen ` prefix: the watcher's scan drops jobs by that prefix so a
+    # hiccup in AlwaysGreen's own plumbing is never read as a pipeline failure.
+    name: AlwaysGreen SM failure detection
     needs: [ build-image, trigger-sm-e2e ]
     if: always()
     runs-on: ubuntu-latest
@@ -204,7 +199,7 @@ jobs:
     outputs:
       sm_failed: ${{ steps.scan.outputs.sm_failed }}
     steps:
-      - name: Scan this run's job conclusions
+      - name: Scan the SM stage's job conclusions
         id: scan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -234,10 +229,10 @@ jobs:
 
   sm-e2e-debug-summary:
     name: AlwaysGreen failure feedback (SM E2E)
-    needs: [ trigger-sm-e2e, detect-failures ]
+    needs: [ trigger-sm-e2e, detect-sm-failure ]
     # Not needs.trigger-sm-e2e.result: a non-blocking SM leg failing leaves that at
     # `success`, which is how run 33366607997 produced no SM feedback at all.
-    if: always() && needs.detect-failures.outputs.sm_failed == 'true'
+    if: always() && needs.detect-sm-failure.outputs.sm_failed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: ${{ github.event_name == 'merge_group' }}
