@@ -529,8 +529,9 @@ public class SpringConnectorJobHandler implements JobHandler {
     switch (error) {
       case BpmnError bpmnError -> {
         checkVariablesSize(bpmnError.variables());
-        LOGGER.debug(
-            "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
+        // the code is not redacted, so it stays out of the log: unlike the command and the error
+        // variables that carry it, pod logs are shipped to systems with their own access controls
+        LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
             throwBpmnError(client, job, bpmnError, counterMetricsContext, deadline);
         notifyFailureOnCommandOutcome(
