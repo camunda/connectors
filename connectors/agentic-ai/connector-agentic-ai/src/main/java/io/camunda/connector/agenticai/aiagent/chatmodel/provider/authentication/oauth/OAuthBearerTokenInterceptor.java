@@ -37,7 +37,7 @@ public final class OAuthBearerTokenInterceptor {
                   clientAuthentication,
                   scopes);
           final var authorizedRequest =
-              request.toBuilder().putHeader("Authorization", "Bearer " + accessToken).build();
+              request.toBuilder().replaceHeaders("Authorization", "Bearer " + accessToken).build();
           return client.execute(authorizedRequest, requestOptions);
         });
   }
