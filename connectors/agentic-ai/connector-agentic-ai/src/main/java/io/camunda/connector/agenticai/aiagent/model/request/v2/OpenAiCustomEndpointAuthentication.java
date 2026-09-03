@@ -119,7 +119,7 @@ public sealed interface OpenAiCustomEndpointAuthentication {
           @TemplateProperty(
               group = "provider",
               tooltip =
-                  "The scopes which you want to request authorization for (e.g.read:contacts)",
+                  "The scopes which you want to request authorization for (e.g., read:contacts)",
               optional = true)
           String scopes)
       implements OpenAiCustomEndpointAuthentication {

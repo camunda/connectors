@@ -1343,7 +1343,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The scopes which you want to request authorization for (e.g.read:contacts)",
+    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.openai.timeouts.timeout",
