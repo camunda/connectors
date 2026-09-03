@@ -190,14 +190,17 @@ public class OutboundConnectorExceptionHandler {
           allowedKeys(
               SecretUtil.retrieveLegacySecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
               secretFilter);
-      var legacyValues =
-          this.secretProvider.fetchAll(
-              legacyKeys.stream().map(Secret::secretName).toList(), context);
-      if (legacyValues.size() < legacyKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
+      // Secret now carries fieldPath, so the same name occurring at several paths is several
+      // distinct Secret values -- dedup by name here, rather than relying on the Secret list
+      // itself being duplicate-free, so one provider lookup covers every occurrence of a name
+      // instead of one lookup per occurrence.
+      var legacyNames = legacyKeys.stream().map(Secret::secretName).distinct().toList();
+      var legacyValues = this.secretProvider.fetchAll(legacyNames, context);
+      if (legacyValues.size() < legacyNames.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
             new MaskingSecretsIncompleteException(
-                legacyKeys.size() - legacyValues.size(), legacyKeys.size()));
+                legacyNames.size() - legacyValues.size(), legacyNames.size()));
       }
       return new MaskingSecrets(legacyValues, null);
     } catch (Exception ex) {

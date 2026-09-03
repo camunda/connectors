@@ -339,6 +339,29 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void aSecretOccurringAtSeveralPathsIsLookedUpOnlyOnce() {
+    // Secret now carries fieldPath, so TOKEN at three different paths is three distinct Secret
+    // values; the re-read must still collapse them into a single provider lookup by name rather
+    // than fetching the same secret once per path it occurs at.
+    var job =
+        jobNaming(
+            "{\"a\": \"{{secrets.TOKEN}}\", \"b\": \"{{secrets.TOKEN}}\", \"c\":"
+                + " \"{{secrets.TOKEN}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("TOKEN", "token-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected token-value everywhere"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(requestedKeys).containsExactly("TOKEN");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** everywhere");
+  }
+
+  @Test
   void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
     // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so it must not be
     // asked for here at all -- a name declared only in the new form must not authorize resolving
