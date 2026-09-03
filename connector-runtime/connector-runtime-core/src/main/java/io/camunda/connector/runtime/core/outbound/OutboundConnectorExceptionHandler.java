@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.BpmnError;
@@ -345,6 +346,14 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
+   * Whether an exception says the input can never bind, whoever raised it. Such a job is not worth
+   * another attempt; anything else — an unreachable cluster, a timeout — is.
+   */
+  private static boolean isFatalInputError(Throwable e) {
+    return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
+  }
+
+  /**
    * An allow-list that could not be read means no secret value ever reached the input, and the
    * lookup behind it reads the process definition from secondary storage, which a just-deployed
    * definition has yet to reach. That race resolves on the next attempt, so the read gets its own
@@ -371,11 +380,19 @@ public class OutboundConnectorExceptionHandler {
     var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
+      // Either failure can be the permanent one, so both are consulted. A provider that refuses
+      // to resolve at all (e.g. legacy resolution switched off) throws for every key, including
+      // the ones this fetch only needed for masking; and the job's own failure is still whatever
+      // it was, so an input error that will never bind must not become retryable just because
+      // reading the values to redact it happened to time out. Only when neither says the input is
+      // at fault does the job keep its remaining attempts.
+      int retries =
+          isFatalInputError(masking.failure()) || isFatalInputError(e) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
           Map.of("error", exceptionToMap(wrappedException, List.of())),
           wrappedException,
-          job.getRetries() - 1,
+          retries,
           retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
     List<String> secrets = withCaptured(masking, capturedSecrets);

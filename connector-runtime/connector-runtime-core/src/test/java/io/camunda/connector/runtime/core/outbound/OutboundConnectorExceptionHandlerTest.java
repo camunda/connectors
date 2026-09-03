@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.JobError;
@@ -156,6 +157,59 @@ class OutboundConnectorExceptionHandlerTest {
         .startsWith("Fetching secrets failed, so the original error cannot be displayed")
         .contains("java.lang.RuntimeException")
         .doesNotContain("super-secret");
+  }
+
+  @Test
+  void aMaskingFetchThatSaysTheInputIsAtFaultSpendsNoFurtherAttempt() {
+    // A provider that refuses every lookup (e.g. legacy resolution switched off) throws for the
+    // masking fetch too; retrying will not change that, so this is not a transient failure.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.getSecret("FOO"))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved", null));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aJobWhoseOwnFailureSaysTheInputIsAtFaultSpendsNoFurtherAttemptEither() {
+    // The job's failure is still whatever it was: an input that will never bind must not become
+    // retryable just because reading the values to redact it happened to time out.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.getSecret("FOO")).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new ConnectorInputException("secret 'FOO' is not available", null),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void aMaskingFetchThatFailedTransientlyKeepsTheJobsRemainingAttempts() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\"}");
+    when(secretProvider.getSecret("FOO")).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            NO_BACKOFF,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retries()).isEqualTo(2);
   }
 
   @Test
