@@ -38,8 +38,10 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
@@ -1469,4 +1471,67 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorMessage()).isNull();
     }
   }
+
+  /** The value bound at execution time can differ from what a later re-read returns. */
+  @Nested
+  class RotationRaceSecretMaskingTests {
+
+    private static final String INPUT_DECLARING_A_SECRET = "{ \"token\" : \"{{secrets.FOO}}\" }";
+
+    private SecretProvider rotatingSecretProvider(String boundValue, String rotatedValue) {
+      return new SecretProvider() {
+        @Override
+        public String getSecret(String secretName, SecretContext context) {
+          return boundValue;
+        }
+
+        @Override
+        public List<String> fetchAll(List<String> keys, SecretContext context) {
+          return keys.stream().map(key -> rotatedValue).toList();
+        }
+      };
+    }
+
+    private ConnectorJobHandler connectorThrowingTheBoundToken(SecretProvider secretProvider) {
+      return new ConnectorJobHandler(
+          context -> {
+            var bound = context.bindVariables(TokenHolder.class);
+            throw new RuntimeException("api rejected " + bound.token());
+          },
+          secretProvider,
+          e -> {},
+          null,
+          ConnectorsObjectMapperSupplier.getCopy(),
+          SecretFilterFactory.disabled());
+    }
+
+    @Test
+    void aSecretThatRotatedBetweenBindAndMaskingIsStillRedacted() {
+      var jobHandler =
+          connectorThrowingTheBoundToken(rotatingSecretProvider("old-value", "new-value"));
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("old-value");
+    }
+
+    @Test
+    void aStableSecretIsStillRedactedTheOrdinaryWay() {
+      // the union must not depend on rotation happening: an unrotated secret is redacted too
+      var jobHandler =
+          connectorThrowingTheBoundToken(rotatingSecretProvider("stable-value", "stable-value"));
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("stable-value");
+    }
+  }
+
+  private record TokenHolder(String token) {}
 }

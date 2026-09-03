@@ -26,7 +26,6 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -36,10 +35,13 @@ import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -49,7 +51,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorReportingContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private final InboundConnectorDetails connectorDetails;
+  private final ValidInboundConnectorDetails connectorDetails;
   private final Map<String, Object> properties;
 
   private final InboundCorrelationHandler correlationHandler;
@@ -61,6 +63,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Long activationTimestamp;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
+  private volatile List<String> reReadSecrets;
+  private final Set<String> capturedSecretValues = ConcurrentHashMap.newKeySet();
+
+  private static final String REDACTION_UNAVAILABLE_MESSAGE =
+      "Message withheld: could not verify it does not contain a secret value";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -239,7 +246,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void reportHealth(Health health) {
-    this.health = health;
+    this.health = redactHealth(health);
   }
 
   @Override
@@ -249,13 +256,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    switch (log.severity()) {
-      case DEBUG -> LOG.debug(log.toString());
-      case ERROR -> LOG.error(log.toString());
-      case INFO -> LOG.info(log.toString());
-      case WARNING -> LOG.warn(log.toString());
+    var masked = redact(log);
+    switch (masked.severity()) {
+      case DEBUG -> LOG.debug(masked.toString());
+      case ERROR -> LOG.error(masked.toString());
+      case INFO -> LOG.info(masked.toString());
+      case WARNING -> LOG.warn(masked.toString());
     }
-    this.logs.add(log);
+    this.logs.add(masked);
   }
 
   @Override
@@ -275,14 +283,90 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
-      propertiesWithSecrets =
-          InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(),
-              objectMapper,
-              properties,
-              new SecretContext(connectorDetails.tenantId()));
+      var handler = getSecretHandler();
+      try {
+        propertiesWithSecrets =
+            InboundPropertyHandler.getPropertiesWithSecrets(
+                handler, objectMapper, properties, new SecretContext(connectorDetails.tenantId()));
+      } finally {
+        capturedSecretValues.addAll(handler.getResolvedValues());
+      }
     }
     return propertiesWithSecrets;
+  }
+
+  // captures are only ever unioned into a successful, complete re-read, never a substitute for one
+  private List<String> secretValuesForRedaction() {
+    var reRead = reReadSecretValues();
+    if (reRead == null) {
+      return null;
+    }
+    if (capturedSecretValues.isEmpty()) {
+      return reRead;
+    }
+    var union = new ArrayList<>(reRead);
+    union.addAll(capturedSecretValues);
+    return union;
+  }
+
+  private List<String> reReadSecretValues() {
+    var cached = reReadSecrets;
+    if (cached != null) {
+      return cached;
+    }
+    var values = fetchSecretValuesForRedaction();
+    if (values != null) {
+      reReadSecrets = values;
+    }
+    return values;
+  }
+
+  private List<String> fetchSecretValuesForRedaction() {
+    var names =
+        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList();
+    if (names.isEmpty()) {
+      return List.of();
+    }
+    try {
+      var values = secretProvider.fetchAll(names, new SecretContext(connectorDetails.tenantId()));
+      // fewer values than names means a partial read, treated the same as a failed one
+      return values.size() < names.size() ? null : values;
+    } catch (Exception e) {
+      LOG.warn("Could not fetch secret values to redact activity log: {}", e.getClass().getName());
+      return null;
+    }
+  }
+
+  private String redactMessage(String message) {
+    if (message == null) {
+      return null;
+    }
+    var secrets = secretValuesForRedaction();
+    return secrets == null
+        ? REDACTION_UNAVAILABLE_MESSAGE
+        : SecretUtil.hideSecretsFromMessage(message, secrets);
+  }
+
+  private Health redactHealth(Health health) {
+    if (health == null || health.getError() == null) {
+      return health;
+    }
+    var error = health.getError();
+    // an error is only ever set through Health.down(...), so rebuilding as down keeps the status
+    return Health.down(
+        new Health.Error(redactMessage(error.code()), redactMessage(error.message())),
+        health.getDetails());
+  }
+
+  private Activity redact(Activity activity) {
+    return new Activity(
+        activity.severity(),
+        activity.tag(),
+        activity.timestamp(),
+        redactMessage(activity.message()));
   }
 
   @Override

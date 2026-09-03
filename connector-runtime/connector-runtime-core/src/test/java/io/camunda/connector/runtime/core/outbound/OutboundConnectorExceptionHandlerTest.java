@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableExcept
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,8 @@ class OutboundConnectorExceptionHandlerTest {
         };
 
     var result =
-        handler.handleFinalResultException(new RuntimeException("boom"), job, throwingFilter);
+        handler.handleFinalResultException(
+            new RuntimeException("boom"), job, throwingFilter, List.of());
 
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
@@ -92,7 +94,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handlerWithThrowingProvider.handleFinalResultException(
-            new RuntimeException("boom"), job, SecretFilter.allowAll());
+            new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
 
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
@@ -214,7 +216,8 @@ class OutboundConnectorExceptionHandlerTest {
                     + " (io.camunda.operate.exception.OperateException)"),
             job,
             null,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception())
         .hasMessageContaining("Activity_1")
@@ -234,7 +237,8 @@ class OutboundConnectorExceptionHandlerTest {
             new SecretAllowListUnavailableException("lookup failed"),
             job,
             modelBackoff,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
     assertThat(result.retries()).isEqualTo(2);
@@ -258,7 +262,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handlerWithThrowingProvider.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(30), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(30),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(30));
   }
@@ -274,7 +282,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, null, unreadableAllowList);
+            new RuntimeException("boom"), job, null, unreadableAllowList, List.of());
 
     assertThat(result.exception()).hasMessageContaining("Activity_1");
     assertThat(result.retries()).isEqualTo(2);
@@ -295,7 +303,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected xSUPERSECRET"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
   }
@@ -313,7 +322,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
   }
@@ -336,7 +346,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
     assertThat(result.retries()).isEqualTo(2);

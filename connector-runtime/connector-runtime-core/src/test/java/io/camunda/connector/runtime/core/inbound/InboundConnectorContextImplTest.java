@@ -27,7 +27,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -220,6 +223,112 @@ class InboundConnectorContextImplTest {
     var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;
+  }
+
+  // An activity log and a health error are both connector-authored text that routinely quotes an
+  // API response, and both are read by anyone who can see the connector in Operate.
+  //
+  // Main's suite also covers health dedup (against the masked value, and the two-distinct-outage
+  // case) and a secret declared only by a grouped sibling element. Neither is representable on this
+  // branch: reportHealth does not dedup here and writes no activity log of its own, and there is a
+  // single connector-level property text rather than a per-element one that a sibling could extend.
+
+  private InboundConnectorContextImpl contextOf(
+      ValidInboundConnectorDetails details, SecretProvider provider) {
+    return new InboundConnectorContextImpl(
+        provider, (e) -> {}, details, null, (e) -> {}, mapper, EvictingQueue.create(10));
+  }
+
+  private static Activity errorSaying(String message) {
+    return Activity.level(Severity.ERROR).tag("test").message(message);
+  }
+
+  @Test
+  void log_masksASecretResolvedForThisConnector() {
+    // given a connector declaring a secret this context can resolve
+    var context =
+        contextOf(getInboundConnectorDefinition(Map.of("token", "secrets.FOO")), secretProvider);
+
+    // when an activity's message happens to carry the resolved value
+    context.log(errorSaying("token was bar"));
+
+    // then the logged message has the value masked
+    assertThat(context.getLogs())
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        contextOf(getInboundConnectorDefinition(Map.of("token", "secrets.FOO")), failingProvider);
+
+    // when
+    context.log(errorSaying("token was bar"));
+
+    // then the raw message is withheld rather than published unmasked
+    assertThat(context.getLogs())
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.message()).doesNotContain("bar");
+              assertThat(log.message()).contains("withheld");
+            });
+  }
+
+  @Test
+  void reportHealth_masksASecretInTheErrorMessage() {
+    // given
+    var context =
+        contextOf(getInboundConnectorDefinition(Map.of("token", "secrets.FOO")), secretProvider);
+
+    // when the reported health carries the resolved value in its error
+    context.reportHealth(Health.down(new RuntimeException("token was bar")));
+
+    // then it is masked in the stored health, which is what the status endpoint serves
+    assertThat(context.getHealth().getStatus()).isEqualTo(Health.Status.DOWN);
+    assertThat(context.getHealth().getError().message()).doesNotContain("bar");
+  }
+
+  @Test
+  void log_masksASecretThatRotatedAfterItWasBound() {
+    // given a provider that resolves FOO to one value at bind time and a different one on re-read
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var context =
+        contextOf(getInboundConnectorDefinition(Map.of("token", "secrets.FOO")), rotatingProvider);
+
+    // when the bound value is used, binding first so it is actually substituted and captured
+    context.getProperties();
+    context.log(errorSaying("token was old-value"));
+
+    // then the bound value is redacted even though a re-read would return a different one
+    assertThat(context.getLogs())
+        .last()
+        .satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenTheReReadComesBackShort() {
+    // given a connector declaring two secrets of which only one resolves on re-read
+    var partialProvider = mock(SecretProvider.class);
+    when(partialProvider.fetchAll(any(), any())).thenReturn(List.of("only-one-value"));
+    var context =
+        contextOf(
+            getInboundConnectorDefinition(Map.of("a", "secrets.FOO", "b", "secrets.BAR")),
+            partialProvider);
+
+    // when nothing was ever bound, so only the (incomplete) re-read is available
+    context.log(errorSaying("token was leaked"));
+
+    // then the message is withheld rather than published with only one of the two values masked
+    assertThat(context.getLogs())
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).contains("withheld"));
   }
 
   @Test
