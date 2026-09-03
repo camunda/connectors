@@ -42,7 +42,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 
@@ -178,8 +181,10 @@ class OutboundConnectorExceptionHandlerTest {
     verifyNoInteractions(secretProvider);
   }
 
-  @Test
-  void manageConnectorJobHandlerException_prefersTheModelsBackoffWhenTheAllowListCouldNotBeRead() {
+  @ParameterizedTest
+  @MethodSource("modelBackoffs")
+  void manageConnectorJobHandlerException_backsOffTheAllowListReadWhateverTheModelAsksFor(
+      Duration modelBackoff) {
     var job = jobOnEngine("engine-1");
     when(job.getRetries()).thenReturn(3);
 
@@ -187,10 +192,29 @@ class OutboundConnectorExceptionHandlerTest {
         handler.manageConnectorJobHandlerException(
             new SecretAllowListUnavailableException("lookup failed"),
             job,
-            Duration.ofMinutes(1),
+            modelBackoff,
             SecretFilter.allowAll());
 
-    assertThat(result.retryBackoff()).isEqualTo(Duration.ofMinutes(1));
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  private static Stream<Duration> modelBackoffs() {
+    return Stream.of(
+        null, Duration.ZERO, Duration.ofSeconds(-1), Duration.ofSeconds(30), Duration.ofMinutes(1));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_keepsTheModelsBackoffForOtherMaskingFailures() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(30), SecretFilter.allowAll());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(30));
   }
 
   @Test

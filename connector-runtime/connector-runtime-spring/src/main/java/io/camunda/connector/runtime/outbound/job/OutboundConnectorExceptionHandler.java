@@ -358,7 +358,7 @@ public class OutboundConnectorExceptionHandler {
 
   private static Duration retryBackoffFor(Exception failure, Duration configured) {
     return failure instanceof SecretAllowListUnavailableException
-        ? Objects.requireNonNullElse(configured, ALLOW_LIST_RETRY_BACKOFF)
+        ? ALLOW_LIST_RETRY_BACKOFF
         : configured;
   }
 
