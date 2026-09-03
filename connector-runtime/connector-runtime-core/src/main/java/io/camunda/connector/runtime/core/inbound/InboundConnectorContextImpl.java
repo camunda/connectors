@@ -51,12 +51,14 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -198,9 +200,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         secretProvider, SecretFilter.allowOnly(declaredSecretNames(rawProperties)));
   }
 
-  private List<String> declaredSecretNames(Map<String, String> rawProperties) {
-    return rawProperties.values().stream()
-        .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
+  /**
+   * Each secret paired with the field path its declaring property's (possibly dotted) key maps to
+   * once {@link InboundPropertyHandler#readWrappedProperties} nests it — the same path a leaf
+   * occupies when {@link SecretUtil#replaceSecrets} walks the wrapped property tree at resolution
+   * time. Scoping by that path, rather than admitting every declared name everywhere via an
+   * empty-path wildcard, keeps a secret declared under one field (e.g. {@code
+   * authentication.token}) from also being allowed under an unrelated sibling field.
+   */
+  private List<Secret> declaredSecretNames(Map<String, String> rawProperties) {
+    return rawProperties.entrySet().stream()
+        .flatMap(
+            entry ->
+                SecretUtil.retrieveLegacySecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+        .distinct()
         .toList();
   }
 
