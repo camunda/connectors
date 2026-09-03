@@ -280,16 +280,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    * properties} are final and there is no {@code updateConnectorDetails} — so the hot-swap and
    * torn-read failure directions the outbound path had to close are not representable here.
    *
-   * <p>This is what the filter stops: {@link SecretUtil#replaceSecrets} runs the brace pass and
-   * then runs the bare pass over that pass's output, so a resolved value containing
-   * reference-shaped text otherwise produces a lookup for a name no model declares. Verified
-   * present on this branch before backporting: a secret whose value is the literal {@code
-   * secrets.CHAINED} resolved {@code CHAINED} under the previous allow-all filter.
+   * <p>This is what the filter still stops: a name only a sibling element declares, and any name in
+   * text a caller supplies rather than the element's own properties. The escalation it was written
+   * for -- {@link SecretUtil#replaceSecrets} running the bare pass over the brace pass's output, so
+   * that a resolved value containing reference-shaped text reached a secret no model declares --
+   * was verified present on this branch before backporting: a secret whose value is the literal
+   * {@code secrets.CHAINED} resolved {@code CHAINED} under the previous allow-all filter. It is now
+   * closed at its source: the single scan consumes each reference whole and never re-reads what it
+   * resolved.
    *
-   * <p>Distinct from the denied-bracket exclusion in {@code replaceSecretsWithoutParentheses}
-   * (#8593), which stops the bare pass re-litigating a truncated prefix of a bracketed name the
-   * bracket pass already refused. The two are complementary: that one guards a name the text still
-   * spells, this one a name only a resolved value spells.
+   * <p>The denied-bracket exclusion in {@code replaceSecretsWithoutParentheses} (#8593) this was
+   * described as complementary to is gone with the same change. It stopped the bare pass
+   * re-litigating a truncated prefix of a bracketed name the bracket pass had already refused;
+   * there is no second pass left to re-litigate anything.
    *
    * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
    */
