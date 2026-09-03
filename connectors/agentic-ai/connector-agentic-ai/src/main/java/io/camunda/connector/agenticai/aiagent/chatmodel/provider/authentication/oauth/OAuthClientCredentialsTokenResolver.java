@@ -15,8 +15,9 @@ import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Resolves an OAuth2 client-credentials access token for a {@code custom}/compatible LLM backend.
- * Backed by the same {@link OAuthService} and {@link OAuthTokenCache} the HTTP connector uses.
+ * Resolves an OAuth2 client-credentials access token for a {@code custom}/compatible LLM backend,
+ * shared by the OpenAI and Anthropic native providers. Backed by the same {@link OAuthService} and
+ * {@link OAuthTokenCache} the HTTP connector uses.
  */
 public class OAuthClientCredentialsTokenResolver {
 

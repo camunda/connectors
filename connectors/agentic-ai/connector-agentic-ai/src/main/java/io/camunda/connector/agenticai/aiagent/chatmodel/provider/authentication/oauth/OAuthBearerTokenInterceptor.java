@@ -10,11 +10,8 @@ import com.anthropic.core.http.Interceptor;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Anthropic-side half of the shared OAuth2 client-credentials mechanism: the anthropic-java SDK has
- * no public dynamic-credential hook (unlike openai-java's {@code Credential}), so a bearer token is
- * instead injected per-request via {@link Interceptor#syncOnly}, backed by the same {@link
- * OAuthClientCredentialsTokenResolver} the OpenAI provider uses. Synchronous only: this provider's
- * chat model never calls the anthropic-java async client.
+ * Injects a resolved bearer token per-request via {@link Interceptor#syncOnly}. Synchronous only:
+ * this provider's chat model never calls the anthropic-java async client.
  */
 public final class OAuthBearerTokenInterceptor {
 
