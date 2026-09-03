@@ -335,6 +335,7 @@ jobs:
           RUN_URL: ${{ steps.run.outputs.url }}
           RUN_CONCLUSION: ${{ steps.run.outputs.conclusion }}
           HEAD_BRANCH: ${{ steps.run.outputs.head_branch }}
+          IS_REPLAY: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
 
@@ -352,24 +353,43 @@ jobs:
           fi
 
           # stable/8.7-8.10 still carry their own push-gated `alwaysgreen-triage` job,
-          # which classifies the run from inside it. When that job actually ran, this
-          # listener must not classify the same run again: two classifications mean two
-          # Slack threads for one failure, and the only thing standing between them and
-          # two fix agents is triage's in-flight check winning a race. It is measurable
-          # -- 6 of the last 100 runs were stable pushes whose failure propagated far
-          # enough to satisfy that gate.
+          # which classifies the run from inside it. When that job actually did the work,
+          # this listener must not classify the same run again: two classifications mean
+          # two Slack threads for one failure, and the only thing standing between them
+          # and two fix agents is triage's in-flight check winning a race. It is
+          # measurable -- 6 of the last 100 runs were stable pushes whose failure
+          # propagated far enough to satisfy that gate.
           #
-          # `success` only. A skipped in-pipeline triage did not classify anything, so
-          # this listener is the sole gate for that run -- which is the whole point on
-          # merge_group. A failed one did classify but got nowhere, and there a second
-          # independent attempt from here is worth more than silence.
+          # "Did the work" cannot be read from the job's conclusion. Triage runs
+          # `Discover and plan` with continue-on-error, and `Flag discovery failure` only
+          # warns, so a run whose discovery blew up still concludes `success` -- and
+          # suppressing that would kill the retry this check is supposed to allow. Nor can
+          # the step's own conclusion be used: a continue-on-error step reports `success`
+          # in this API whatever happened to it. What IS reported faithfully is `skipped`,
+          # so the two flag steps are read instead:
           #
-          # This is self-clearing: as each stable branch drops its in-pipeline job, the
-          # check simply stops matching and the listener takes over.
+          #   Flag discovery failure  skipped -> discovery succeeded
+          #   Report disabled and stop skipped -> the Vault flag was not `disabled`
+          #
+          # Both skipped, on a job that concluded success, is the only state that means a
+          # classification actually happened.
+          #
+          # Automatic runs only. A manual replay names its target on purpose, and
+          # refusing to re-classify a run someone explicitly asked about would make the
+          # replay path useless for every historical run -- which is most of them.
+          #
+          # Self-clearing: as each stable branch drops its in-pipeline job the check stops
+          # matching and the listener takes over.
           already_triaged=false
-          if [ "$(jq '[.jobs[]
-                       | select(.name | startswith("AlwaysGreen triage and fix dispatch"))
-                       | select(.conclusion == "success")] | length' <<<"$jobs_json")" -gt 0 ]; then
+          if [ "${IS_REPLAY}" != "true" ] \
+             && [ "$(jq '[.jobs[]
+                          | select(.name | startswith("AlwaysGreen triage and fix dispatch"))
+                          | select(.conclusion == "success")
+                          | select([.steps[]?
+                              | select(.name == "Flag discovery failure" or
+                                       .name == "Report disabled and stop")
+                              | select(.conclusion != "skipped")] | length == 0)]
+                         | length' <<<"$jobs_json")" -gt 0 ]; then
             already_triaged=true
           fi
 
@@ -460,6 +480,7 @@ jobs:
             elif [ "$already_triaged" = "true" ]; then
               echo "This branch still triages in-pipeline, and that job already"
               echo "classified this run — not classifying it a second time."
+              echo "Replay it explicitly if you want a second classification."
               echo ""
               printf '%s\n' "$failed" | sed 's/^/- /'
             elif [ "$base_ref_supported" = "true" ]; then
