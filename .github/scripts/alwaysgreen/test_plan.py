@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import classify
 import plan
 
@@ -167,6 +169,13 @@ def test_parse_returns_empty_when_absent():
     assert plan.parse_coverage_block(None) == set()
 
 
+def test_parse_returns_empty_for_a_block_that_claims_nothing():
+    # The marker alone is not a statement of remit: discover reads an empty result as
+    # "claims no specs" and keeps the coarse surface lock, same as a missing block.
+    assert plan.parse_coverage_block("Body\n\n<!-- alwaysgreen-fixed\n-->\n") == set()
+    assert plan.parse_coverage_block("Body\n\n<!-- alwaysgreen-fixed\nfp=\n-->\n") == set()
+
+
 def test_merge_appends_block_when_missing():
     merged = plan.merge_coverage_block("Body text", {"aaaaaaaa"})
     assert "fp=aaaaaaaa" in merged
@@ -219,6 +228,114 @@ def test_open_fix_pr_blocks_even_when_the_body_claims_nothing():
     assert result.dispatches == []
 
 
+def test_open_fix_pr_with_a_coverage_block_does_not_block_an_unclaimed_spec():
+    # A surface carries independent causes: the PR claims one spec, and its
+    # neighbour must still reach an agent rather than wait for a human to merge.
+    claimed = _spec(name="already fixed")
+    fresh = _spec(name="new failure", file="tests/SM-8.10/other-tests.spec.ts")
+    cand = _cand(surface=classify.SURFACE_SM_E2E, specs=[claimed, fresh])
+    claimed_fp = classify.spec_fingerprint(
+        "main", classify.SURFACE_SM_E2E, claimed.file, claimed.test_name
+    )
+
+    result = _plan(
+        [cand],
+        covered_fingerprints={claimed_fp},
+        open_pr_keys={"main:sm-smoke-e2e"},
+        open_pr_keys_with_coverage={"main:sm-smoke-e2e"},
+    )
+    assert len(result.dispatches) == 1
+    assert [s.test_name for s in result.dispatches[0].specs] == ["new failure"]
+
+
+def test_open_fix_pr_with_a_coverage_block_still_suppresses_the_specs_it_claims():
+    cand = _cand(surface=classify.SURFACE_SM_E2E)
+    result = _plan(
+        [cand],
+        covered_fingerprints=set(cand.spec_fingerprints),
+        open_pr_keys={"main:sm-smoke-e2e"},
+        open_pr_keys_with_coverage={"main:sm-smoke-e2e"},
+    )
+    assert result.dispatches == []
+    assert [s.reason for s in result.suppressed] == [plan.SUPPRESSED_PR_COVERED]
+
+
+def test_a_second_holder_without_a_coverage_block_keeps_the_surface_locked():
+    # `keys_with_coverage` is the intersection over holders, so one PR that claims
+    # nothing still locks the surface even beside one that claims a spec.
+    cand = _cand(surface=classify.SURFACE_SM_E2E)
+    result = _plan(
+        [cand],
+        open_pr_keys={"main:sm-smoke-e2e"},
+        open_pr_keys_with_coverage=set(),
+    )
+    assert result.dispatches == []
+    assert [s.reason for s in result.suppressed] == [plan.SUPPRESSED_PR_OPEN]
+
+
+def test_in_flight_agent_still_blocks_a_coverage_declaring_surface():
+    # Narrowing the PR lock must not touch the concurrency rule: one agent per key.
+    cand = _cand(surface=classify.SURFACE_SM_E2E)
+    result = _plan(
+        [cand],
+        inflight_keys={"main:sm-smoke-e2e"},
+        open_pr_keys={"main:sm-smoke-e2e"},
+        open_pr_keys_with_coverage={"main:sm-smoke-e2e"},
+    )
+    assert result.dispatches == []
+    assert [s.reason for s in result.suppressed] == [plan.SUPPRESSED_IN_FLIGHT]
+
+
+# ---------------------------------------------------------------------------
+# PR lock expiry
+# ---------------------------------------------------------------------------
+
+NOW = datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc)
+
+
+def _ago(**kw):
+    return (NOW - timedelta(**kw)).isoformat().replace("+00:00", "Z")
+
+
+def test_fresh_fix_pr_keeps_holding_its_key():
+    assert plan.pr_lock_expired(_ago(minutes=30), NOW, 2) is False
+
+
+def test_fix_pr_past_the_ttl_releases_its_key():
+    # Nothing but a merge or close used to release the label, so an unreviewed fix PR
+    # wedged its surface shut indefinitely.
+    assert plan.pr_lock_expired("2026-08-20T14:56:44Z", NOW, 2) is True
+
+
+def test_ttl_is_read_in_hours_not_days():
+    assert plan.pr_lock_expired(_ago(hours=6), NOW, 2) is True
+    assert plan.pr_lock_expired(_ago(hours=6), NOW, plan.PR_LOCK_TTL_HOURS) is True
+
+
+def test_ttl_boundary_is_inclusive_of_the_lock():
+    assert plan.pr_lock_expired(_ago(hours=2), NOW, 2) is False
+    assert plan.pr_lock_expired(_ago(hours=2, minutes=1), NOW, 2) is True
+
+
+def test_unreadable_timestamp_keeps_the_lock():
+    for value in ("", None, "yesterday", "2026-13-45T00:00:00Z"):
+        assert plan.pr_lock_expired(value, NOW, 2) is False
+
+
+def test_naive_created_at_is_read_as_utc():
+    assert plan.pr_lock_expired("2026-08-20T14:56:44", NOW, 2) is True
+
+
+def test_naive_now_does_not_raise_against_an_offset_aware_created_at():
+    naive_now = NOW.replace(tzinfo=None)
+    assert plan.pr_lock_expired("2026-08-20T14:56:44Z", naive_now, 2) is True
+    assert plan.pr_lock_expired(_ago(minutes=30), naive_now, 2) is False
+
+
+def test_zero_ttl_restores_the_never_expiring_lock():
+    assert plan.pr_lock_expired("2026-01-01T00:00:00Z", NOW, 0) is False
+
+
 # ---------------------------------------------------------------------------
 # Source namespacing
 # ---------------------------------------------------------------------------
@@ -267,6 +384,55 @@ def test_open_pr_touching_a_spec_path_suppresses_the_candidate():
     assert result.dispatches == []
     assert result.suppressed[0].reason == plan.SUPPRESSED_PATH_CLAIMED
     assert "#2951" in result.suppressed[0].detail
+
+
+def test_a_claimed_path_does_not_drop_the_fresh_specs_beside_it():
+    # The interaction the narrowed surface lock exists for: an open PR still holds the
+    # spec file it is fixing, that spec keeps failing until the PR merges, and a new
+    # failure lands beside it. Suppressing the whole candidate on the first path hit
+    # cancelled the widened lock out.
+    claimed = _spec(name="still failing", file="tests/8.10/smoke-tests.spec.ts")
+    fresh = _spec(name="new failure", file="tests/8.10/other-tests.spec.ts")
+    cand = _cand(specs=[claimed, fresh])
+
+    result = _plan(
+        [cand],
+        open_pr_keys={cand.key},
+        open_pr_keys_with_coverage={cand.key},
+        claimed_paths={"tests/8.10/smoke-tests.spec.ts": 2951},
+    )
+    assert len(result.dispatches) == 1
+    assert [s.test_name for s in result.dispatches[0].specs] == ["new failure"]
+
+
+def test_a_candidate_whose_every_spec_is_path_claimed_is_still_suppressed():
+    claimed = _spec(name="still failing", file="tests/8.10/smoke-tests.spec.ts")
+    cand = _cand(specs=[claimed])
+    result = _plan([cand], claimed_paths={"tests/8.10/smoke-tests.spec.ts": 2951})
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_PATH_CLAIMED
+    assert "#2951" in result.suppressed[0].detail
+
+
+def test_specs_dropped_by_more_than_one_source_report_all_of_them():
+    # Reporting a mixed remainder as one source hid the others, so the summary named
+    # the wrong blocker.
+    covered = _spec(name="covered", file="tests/8.10/a.spec.ts")
+    path = _spec(name="path claimed", file="tests/8.10/b.spec.ts")
+    cand = _cand(specs=[covered, path])
+    covered_fp = classify.spec_fingerprint(
+        "main", classify.SURFACE_SM_E2E, covered.file, covered.test_name
+    )
+
+    result = _plan(
+        [cand],
+        covered_fingerprints={covered_fp},
+        claimed_paths={"tests/8.10/b.spec.ts": 2951},
+    )
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_ALL_ACCOUNTED
+    assert plan.SUPPRESSED_PR_COVERED in result.suppressed[0].detail
+    assert plan.SUPPRESSED_PATH_CLAIMED in result.suppressed[0].detail
 
 
 def test_a_sibling_version_path_does_not_shadow_the_failing_one():

@@ -18,6 +18,7 @@ Two levels of identity are used, for different jobs:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 import classify
 
@@ -30,6 +31,8 @@ SUPPRESSED_PRODUCT_BUG = "tracked-by-open-product-bug"
 SUPPRESSED_NO_EVIDENCE = "no-failing-specs-extracted"
 SUPPRESSED_CAP = "per-run-cap-reached"
 SUPPRESSED_PATH_CLAIMED = "spec-path-claimed-by-open-pr"
+#: Every spec was dropped, but by more than one of the sources above.
+SUPPRESSED_ALL_ACCOUNTED = "all-specs-already-accounted-for"
 
 #: GitHub rejects a label longer than this, and the dispatch key is stamped on fix
 #: PRs as `ag-key:<key>`. Asserted over the supported matrix in test_plan.py so a new
@@ -37,6 +40,52 @@ SUPPRESSED_PATH_CLAIMED = "spec-path-claimed-by-open-pr"
 #: mode is a label that is never created, which disables dedupe without any error.
 KEY_LABEL_PREFIX = "ag-key:"
 MAX_LABEL_LENGTH = 50
+
+
+#: How long an open fix PR's key label keeps holding its dispatch key.
+#:
+#: The lock is there to win the race described above, but nothing released it: the
+#: label stops matching `is:open` only when a human merges or closes the PR, so the
+#: agent's own output locked the agent out of its own surface until someone acted on
+#: it. camunda-platform-helm#6927 held one key from 2026-08-20 and every affected
+#: triage for the six days after reported `open-fix-pr-for-surface` and dispatched
+#: nothing.
+#:
+#: A surface carries many independent causes, so this window is how long an unrelated
+#: failure waits. Two hours is roughly three failing runs at the 20-40 minute pipeline
+#: cadence: long enough that the same cause is not re-dispatched while an agent's PR is
+#: still being read, short enough that a different cause waits hours rather than days.
+#: `inflight_keys` still allows one agent per key, so the floor on duplicate work is an
+#: agent's runtime rather than this TTL.
+PR_LOCK_TTL_HOURS = 2
+
+
+def pr_lock_expired(
+    created_at: str | None, now: datetime, ttl_hours: int = PR_LOCK_TTL_HOURS
+) -> bool:
+    """Whether an open fix PR is too old to keep holding its dispatch key.
+
+    A missing or unparseable timestamp keeps the lock, and `ttl_hours <= 0` disables
+    expiry altogether: the bias matches the `ok` flags in discover's key lookups,
+    where an unproven state suppresses rather than risks a duplicate PR.
+
+    Either timestamp is read as UTC when it carries no offset, so a naive `now` does
+    not raise against GitHub's offset-aware `createdAt`.
+    """
+    if ttl_hours <= 0:
+        return False
+    text = (created_at or "").strip()
+    if not text:
+        return False
+    try:
+        created = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return now - created > timedelta(hours=ttl_hours)
 
 
 def dispatch_key(base_ref: str, surface: str, source: str = "") -> str:
@@ -116,6 +165,7 @@ def plan_dispatches(
     inflight_keys: set[str],
     open_pr_keys: set[str],
     product_bug_fingerprints: set[str],
+    open_pr_keys_with_coverage: set[str] | None = None,
     claimed_paths: dict[str, int] | None = None,
     max_dispatches: int = 2,
     dispatchable_surfaces: frozenset[str] = classify.DISPATCHABLE_SURFACES,
@@ -124,8 +174,15 @@ def plan_dispatches(
 
     Checks are ordered cheapest-and-most-decisive first so the summary reports the
     most useful reason when several apply.
+
+    `open_pr_keys_with_coverage` are the keys of `open_pr_keys` whose every holding PR
+    claims at least one fingerprint in its coverage block. Those PRs state which specs
+    they claim, so the coarse per-surface lock is skipped for them and the per-spec
+    accounting below decides. A PR whose block claims nothing — absent, or present but
+    empty — is not one of them and keeps its surface locked.
     """
     plan = Plan()
+    pr_keys_with_coverage = open_pr_keys_with_coverage or set()
 
     for cand in candidates:
         if cand.surface not in dispatchable_surfaces:
@@ -138,10 +195,19 @@ def plan_dispatches(
             plan.suppressed.append(Suppression(cand, SUPPRESSED_IN_FLIGHT, cand.key))
             continue
 
-        # An open fix PR for this surface stops a second agent regardless of what the
-        # PR body claims. The coverage block is written by the agent, so a PR that
-        # omitted it would otherwise be invisible here and the failure re-dispatched.
-        if cand.key in open_pr_keys:
+        # An open fix PR that claims no specs stops a second agent on its surface: the
+        # coverage block is written by the agent, so one that is missing or empty
+        # states nothing about its remit and the whole surface has to be assumed.
+        # A PR that claims at least one spec is authoritative per spec through
+        # `covered_fingerprints`, so locking its surface only hides its neighbours —
+        # and a surface's failures are usually independent of each other.
+        #
+        # Two residuals it does not cover. A partially written block reads as
+        # authoritative, since the gate only asks "claims anything?"; validating it
+        # against `/tmp/fingerprints.json` in alwaysgreen-fix.yml is the fix. And a
+        # claim-nothing PR holds its surface only until PR_LOCK_TTL_HOURS, past which
+        # `inflight_keys` and the dispatch caps are the only bound.
+        if cand.key in open_pr_keys and cand.key not in pr_keys_with_coverage:
             plan.suppressed.append(Suppression(cand, SUPPRESSED_PR_OPEN, cand.key))
             continue
 
@@ -149,24 +215,7 @@ def plan_dispatches(
             plan.suppressed.append(Suppression(cand, SUPPRESSED_NO_EVIDENCE))
             continue
 
-        # Author-agnostic: the other agents editing these files (the e2e repo's own
-        # nightly triage, another product pipeline, a human) dedupe on schemes this
-        # one cannot see, so the only reliable signal is that the file is already
-        # open in a PR. Keyed on exact repo-relative paths, so tests/8.9/x.spec.ts
-        # never shadows tests/8.10/x.spec.ts.
         claimed = claimed_paths or {}
-        if not cand.job_level and claimed:
-            hits = sorted({(s.file, claimed[s.file]) for s in cand.specs if s.file in claimed})
-            if hits:
-                plan.suppressed.append(
-                    Suppression(
-                        cand,
-                        SUPPRESSED_PATH_CLAIMED,
-                        ", ".join(f"{path} (#{number})" for path, number in hits),
-                    )
-                )
-                continue
-
         fps = cand.fingerprints
 
         if fps and all(f in product_bug_fingerprints for f in fps):
@@ -175,16 +224,43 @@ def plan_dispatches(
             )
             continue
 
-        # Drop specs an open PR already covers; dispatch only what is left.
+        # Drop specs an open PR, a product bug or an already-claimed spec file accounts
+        # for; dispatch only what is left. The path claim is author-agnostic: the other
+        # agents editing these files (the e2e repo's own nightly triage, another product
+        # pipeline, a human) dedupe on schemes this one cannot see, so the only reliable
+        # signal is that the file is already open in a PR. Keyed on exact repo-relative
+        # paths, so tests/8.9/x.spec.ts never shadows tests/8.10/x.spec.ts.
+        #
+        # Per spec, not per candidate. Suppressing the whole candidate on the first hit
+        # dropped the fresh specs beside the claimed one, which cancels out the narrowed
+        # surface lock above: a candidate carrying both a still-failing claimed spec and
+        # a new one is exactly the case that lock was widened to let through.
         if not cand.job_level:
-            remaining = [
-                s
-                for s, fp in zip(cand.specs, cand.spec_fingerprints)
-                if fp not in covered_fingerprints
-                and fp not in product_bug_fingerprints
-            ]
+            accounted: list[str] = []
+            path_hits: set[tuple[str, int]] = set()
+            remaining = []
+            for spec, fp in zip(cand.specs, cand.spec_fingerprints):
+                if fp in covered_fingerprints:
+                    accounted.append(SUPPRESSED_PR_COVERED)
+                elif fp in product_bug_fingerprints:
+                    accounted.append(SUPPRESSED_PRODUCT_BUG)
+                elif spec.file in claimed:
+                    accounted.append(SUPPRESSED_PATH_CLAIMED)
+                    path_hits.add((spec.file, claimed[spec.file]))
+                else:
+                    remaining.append(spec)
             if not remaining:
-                plan.suppressed.append(Suppression(cand, SUPPRESSED_PR_COVERED))
+                sources = sorted(set(accounted))
+                detail = (
+                    ", ".join(f"{path} (#{number})" for path, number in sorted(path_hits))
+                    if sources == [SUPPRESSED_PATH_CLAIMED]
+                    else ",".join(sources)
+                )
+                plan.suppressed.append(
+                    Suppression(cand, sources[0], detail)
+                    if len(sources) == 1
+                    else Suppression(cand, SUPPRESSED_ALL_ACCOUNTED, detail)
+                )
                 continue
             cand.specs = remaining
         elif fps and all(f in covered_fingerprints for f in fps):
