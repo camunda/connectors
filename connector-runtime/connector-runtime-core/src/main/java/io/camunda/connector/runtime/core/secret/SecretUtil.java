@@ -99,13 +99,22 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /**
+   * Names are trimmed, because that is the name {@link #resolveSecretValue} looks up: the
+   * parentheses pattern's capture reaches past the name to the closing braces, so {@code {{
+   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form denies a
+   * legitimately declared name at resolution time -- for a name outside the bare pattern's
+   * character class (e.g. {@code FOO:BAR}), there is no independent bare-pattern match to
+   * coincidentally supply the trimmed form, so the declared secret is silently left unresolved
+   * under STRICT.
+   */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
         ? List.of()
         : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
+            .map(matchResult -> matchResult.group("secret").trim())
             .distinct()
             .toList();
   }
