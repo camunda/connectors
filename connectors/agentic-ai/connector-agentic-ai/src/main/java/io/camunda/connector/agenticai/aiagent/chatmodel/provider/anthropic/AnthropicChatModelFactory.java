@@ -122,19 +122,14 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       case OAuthClientCredentialsAuthentication oauth ->
           builder.addInterceptor(
               new OAuthBearerTokenInterceptor(
-                  oAuthClientCredentialsTokenResolver, toOAuthAuthentication(oauth)));
+                  oAuthClientCredentialsTokenResolver,
+                  oauth.oauthTokenEndpoint(),
+                  oauth.clientId(),
+                  oauth.clientSecret(),
+                  oauth.audience(),
+                  oauth.clientAuthentication().oauthConstant(),
+                  oauth.scopes()));
     }
-  }
-
-  private static io.camunda.connector.http.client.model.auth.OAuthAuthentication
-      toOAuthAuthentication(OAuthClientCredentialsAuthentication oauth) {
-    return new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
-        oauth.oauthTokenEndpoint(),
-        oauth.clientId(),
-        oauth.clientSecret(),
-        oauth.audience(),
-        oauth.clientAuthentication().oauthConstant(),
-        oauth.scopes());
   }
 
   private static void applyAwsBedrockMantleBackend(

@@ -14,6 +14,7 @@ import com.anthropic.core.http.Interceptor;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import java.util.concurrent.CompletableFuture;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Anthropic-side half of the shared OAuth2 client-credentials mechanism: the anthropic-java SDK has
@@ -27,9 +28,17 @@ public class OAuthBearerTokenInterceptor implements Interceptor {
   private final OAuthAuthentication authentication;
 
   public OAuthBearerTokenInterceptor(
-      OAuthClientCredentialsTokenResolver tokenResolver, OAuthAuthentication authentication) {
+      OAuthClientCredentialsTokenResolver tokenResolver,
+      String oauthTokenEndpoint,
+      String clientId,
+      String clientSecret,
+      @Nullable String audience,
+      String clientAuthentication,
+      @Nullable String scopes) {
     this.tokenResolver = tokenResolver;
-    this.authentication = authentication;
+    this.authentication =
+        new OAuthAuthentication(
+            oauthTokenEndpoint, clientId, clientSecret, audience, clientAuthentication, scopes);
   }
 
   @Override
