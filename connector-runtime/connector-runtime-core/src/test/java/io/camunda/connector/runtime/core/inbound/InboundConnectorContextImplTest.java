@@ -112,8 +112,6 @@ class InboundConnectorContextImplTest {
         .isInstanceOf(String.class);
   }
 
-  @NotNull
-
   // #7730: inbound secret resolution is restricted to the names the element's own deployed
   // zeebe:property text declares. The allow-list is a superset of what a correctly-authored model
   // names, so what it actually stops is a second-order lookup: replaceSecrets runs the brace pass
@@ -200,6 +198,7 @@ class InboundConnectorContextImplTest {
     assertThat(replace(context, "secrets.INJECTED")).isEqualTo("resolved");
   }
 
+  @NotNull
   private static ValidInboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);
