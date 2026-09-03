@@ -23,12 +23,14 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -37,17 +39,21 @@ import org.jspecify.annotations.Nullable;
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
 
-  // The negative lookbehind keeps this legacy pattern out of a new-form camunda.secrets.<name>
-  // reference, which ends in the same three characters. Without it the legacy pass, which runs
-  // first and over raw model text, would replace secrets.TOKEN inside camunda.secrets.TOKEN from a
-  // local provider — reading the wrong store, and destroying the reference before the cluster ever
-  // sees it.
-  private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("(?<!camunda\\.)secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
+  // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
+  // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
+  private static final Pattern REFERENCE =
+      Pattern.compile(
+          "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
+              + "|camunda\\.secrets\\.(?<reference>[\\p{Alnum}_-]+)"
+              + "|secrets\\.(?<bare>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
-  private static final Pattern SECRET_PATTERN_PARENTHESES =
-      Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
-
+  /**
+   * Substitutes every legacy secret reference in the tree, in place, and returns the same node.
+   *
+   * <p>One walk, one scan per string: a second pass over already-substituted text is what let a
+   * narrower form re-read the inside of a reference the first pass had consumed (and, when the walk
+   * renames a property, made the second pass iterate a reordered snapshot of the object).
+   */
   public static JsonNode replaceSecrets(
       JsonNode input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
@@ -56,49 +62,50 @@ public class SecretUtil {
     if (!input.isObject()) {
       throw new IllegalStateException("input must be an ObjectNode.");
     }
-    input = replaceSecretsWithParentheses((ObjectNode) input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses((ObjectNode) input, context, secretReplacer);
-    return input;
-  }
-
-  private static ObjectNode replaceSecretsWithParentheses(
-      ObjectNode input, SecretContext context, SecretReplacer secretReplacer) {
+    Map<Secret, String> resolutions = new HashMap<>();
     walkJsonNode(
         input,
-        (stringValue, fieldPath) -> {
-          var secretVariableNameWithParenthesesMatcher =
-              SECRET_PATTERN_PARENTHESES.matcher(stringValue);
-          while (secretVariableNameWithParenthesesMatcher.find()) {
-            stringValue =
-                replaceTokens(
-                    stringValue,
-                    SECRET_PATTERN_PARENTHESES,
-                    matcher -> resolveSecretValue(context, secretReplacer, matcher, fieldPath));
-          }
-          return stringValue;
-        },
+        (stringValue, fieldPath) ->
+            replaceTokens(
+                stringValue,
+                REFERENCE,
+                matcher -> {
+                  var value =
+                      resolve(legacyName(matcher), fieldPath, context, secretReplacer, resolutions);
+                  return value == null ? matcher.group() : value;
+                }),
         new ArrayList<>());
     return input;
   }
 
-  private static ObjectNode replaceSecretsWithoutParentheses(
-      ObjectNode input, SecretContext context, SecretReplacer secretReplacer) {
-    walkJsonNode(
-        input,
-        (stringValue, fieldPath) -> {
-          var secretVariableNameWithParenthesesMatcher =
-              SECRET_PATTERN_SECRETS.matcher(stringValue);
-          while (secretVariableNameWithParenthesesMatcher.find()) {
-            stringValue =
-                replaceTokens(
-                    stringValue,
-                    SECRET_PATTERN_SECRETS,
-                    matcher -> resolveSecretValue(context, secretReplacer, matcher, fieldPath));
-          }
-          return stringValue;
-        },
-        new ArrayList<>());
-    return input;
+  /**
+   * Asks the replacer at most once per secret <em>and field path</em>: the same name is a separate
+   * question at a different path, since that is the granularity the allow-list authorizes at.
+   */
+  private static @Nullable String resolve(
+      @Nullable String name,
+      List<String> fieldPath,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<Secret, String> resolutions) {
+    if (name == null) {
+      return null;
+    }
+    var secret = new Secret(name, fieldPath);
+    if (!resolutions.containsKey(secret)) {
+      resolutions.put(secret, secretReplacer.replaceSecrets(secret, context));
+    }
+    return resolutions.get(secret);
+  }
+
+  /**
+   * The name a legacy provider is asked for, or {@code null} for a {@code camunda.secrets.<name>}
+   * reference — matched only so that one scan consumes it whole, and left in place for the cluster
+   * to resolve.
+   */
+  private static @Nullable String legacyName(MatchResult match) {
+    var braced = match.group("braced");
+    return braced != null ? braced : match.group("bare");
   }
 
   private static void walkJsonNode(
@@ -167,24 +174,6 @@ public class SecretUtil {
     }
   }
 
-  private static @Nullable String resolveSecretValue(
-      SecretContext context,
-      SecretReplacer secretReplacer,
-      Matcher matcher,
-      List<String> fieldPath) {
-    var secretName = matcher.group("secret").trim();
-    if (!secretName.isBlank()) {
-      var result = secretReplacer.replaceSecrets(new Secret(secretName, fieldPath), context);
-      if (result != null) {
-        return result;
-      } else {
-        return matcher.group();
-      }
-    } else {
-      return null;
-    }
-  }
-
   public static String replaceTokens(
       String original, Pattern pattern, Function<Matcher, String> converter) {
     int lastIndex = 0;
@@ -205,52 +194,34 @@ public class SecretUtil {
    * the legacy form is not supported and has to be reported rather than silently left in place.
    */
   public static boolean containsLegacySecretReference(String input) {
-    return input != null
-        && (SECRET_PATTERN_PARENTHESES.matcher(input).find()
-            || SECRET_PATTERN_SECRETS.matcher(input).find());
+    return keysIn(input, "braced", "bare").findAny().isPresent();
   }
 
   /**
-   * Every secret name the given text declares, in either form. The new form is included so that
-   * excluding it from {@link #SECRET_PATTERN_SECRETS} does not shrink the outbound allow-list this
-   * feeds: a name a model declares as {@code camunda.secrets.NAME} stays permitted, exactly as it
-   * was before the two patterns were separated.
+   * Every secret the given tree declares, in any of the three forms, each scoped to the field path
+   * it occupies. The {@code camunda.secrets.<name>} form is reported too, though the cluster
+   * resolves that one rather than this class.
    */
   public static List<Secret> retrieveSecretKeysInInput(ObjectNode input) {
-    return keysIn(
-        input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN);
+    return keysIn(input, "braced", "bare", "reference");
   }
 
   /**
-   * Every secret name the given text declares in one of the two legacy forms. Excludes the new
-   * {@code camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller
-   * asking what the legacy providers were responsible for is not handed names they never held.
+   * Every secret the given tree declares in one of the two legacy forms, each scoped to the field
+   * path it occupies. Excludes the {@code camunda.secrets.<name>} form, which the legacy providers
+   * never resolve, so that a caller asking what the legacy providers were responsible for is not
+   * handed names they never held.
    */
   public static List<Secret> retrieveLegacySecretKeysInInput(ObjectNode input) {
-    return keysIn(input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS);
+    return keysIn(input, "braced", "bare");
   }
 
-  /**
-   * Names are trimmed, because that is the name {@link #replaceSecrets} looks up: the parentheses
-   * pattern's capture reaches past the name to the closing braces, so {@code <code>{{ secrets.FOO
-   * }}</code>} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form left every
-   * caller comparing a name against one nothing ever resolves — the outbound allow-list did its own
-   * trimming, error masking did not, and so masked nothing for a reference written with a space
-   * inside the braces.
-   */
-  private static List<Secret> keysIn(ObjectNode input, Pattern... patterns) {
+  private static List<Secret> keysIn(ObjectNode input, String... groups) {
     List<Secret> result = new ArrayList<>();
     walkJsonNode(
         input,
         (stringValue, fieldPath) -> {
-          result.addAll(
-              Stream.of(patterns)
-                  .map(pattern -> pattern.matcher(stringValue))
-                  .flatMap(Matcher::results)
-                  .map(matchResult -> matchResult.group("secret").trim())
-                  .distinct()
-                  .map(secretName -> new Secret(secretName, fieldPath))
-                  .toList());
+          keysIn(stringValue, groups).map(name -> new Secret(name, fieldPath)).forEach(result::add);
           return stringValue;
         },
         new ArrayList<>());
@@ -258,41 +229,33 @@ public class SecretUtil {
   }
 
   /**
-   * Every secret name the given text declares, in either form. The new form is included so that
-   * excluding it from {@link #SECRET_PATTERN_SECRETS} does not shrink the outbound allow-list this
-   * feeds: a name a model declares as {@code camunda.secrets.NAME} stays permitted, exactly as it
-   * was before the two patterns were separated.
+   * Every secret name the given text declares, in any of the three forms, read by the same scan
+   * {@link #replaceSecrets} uses: a name that method asks a legacy provider for appears here
+   * spelled exactly as it asks for it, and no name appears that the scan never read. The {@code
+   * camunda.secrets.<name>} form is reported too, though the cluster resolves that one rather than
+   * this class.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return keysIn(
-        input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN);
+    return keysIn(input, "braced", "bare", "reference").toList();
   }
 
   /**
-   * Every secret name the given text declares in one of the two legacy forms. Excludes the new
-   * {@code camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller
-   * asking what the legacy providers were responsible for is not handed names they never held.
+   * Every secret name the given text declares in one of the two legacy forms. Excludes the {@code
+   * camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller asking
+   * what the legacy providers were responsible for is not handed names they never held.
    */
   public static List<String> retrieveLegacySecretKeysInInput(String input) {
-    return keysIn(input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS);
+    return keysIn(input, "braced", "bare").toList();
   }
 
-  /**
-   * Names are trimmed, because that is the name {@link #replaceSecrets} looks up: the parentheses
-   * pattern's capture reaches past the name to the closing braces, so {@code <code>{{ secrets.FOO
-   * }}</code>} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form left every
-   * caller comparing a name against one nothing ever resolves — the outbound allow-list did its own
-   * trimming, error masking did not, and so masked nothing for a reference written with a space
-   * inside the braces.
-   */
-  private static List<String> keysIn(String input, Pattern... patterns) {
-    return Objects.isNull(input)
-        ? List.of()
-        : Stream.of(patterns)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret").trim())
-            .distinct()
-            .toList();
+  private static Stream<String> keysIn(String input, String... groups) {
+    return input == null
+        ? Stream.of()
+        : REFERENCE
+            .matcher(input)
+            .results()
+            .flatMap(match -> Stream.of(groups).map(match::group))
+            .filter(Objects::nonNull)
+            .distinct();
   }
 }

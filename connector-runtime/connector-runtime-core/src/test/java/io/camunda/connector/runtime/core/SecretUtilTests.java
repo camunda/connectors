@@ -28,8 +28,11 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -176,5 +179,96 @@ public class SecretUtilTests {
     var replacedContent = SecretUtil.replaceSecrets(wrap(content), secretContext, secretReplacer);
     assertThat(replacedContent.get("value").asText())
         .isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
+  }
+
+  @Test
+  void shouldNotResolveABarePrefixOfADeniedBracketedName() {
+    var asked = new ArrayList<String>();
+
+    assertThat(replacedValue("{{secrets.PROD:API}}", asked, Map.of("PROD", "p4ssw0rd")))
+        .isEqualTo("{{secrets.PROD:API}}");
+    assertThat(asked).containsExactly("PROD:API");
+  }
+
+  @Test
+  void shouldNotResolveABracketedReferenceAResolvedValueIntroduces() {
+    var asked = new ArrayList<String>();
+    var secrets = Map.of("A", "{{secrets.PROD:API}}", "PROD", "p4ssw0rd");
+
+    assertThat(replacedValue("{{secrets.A}}", asked, secrets)).isEqualTo("{{secrets.PROD:API}}");
+    assertThat(asked).containsExactly("A");
+  }
+
+  @Test
+  void shouldNotResolveABareReferenceAResolvedValueIntroduces() {
+    var asked = new ArrayList<String>();
+    var secrets = Map.of("NOTE", "see secrets.OTHER", "OTHER", "TOP_SECRET");
+
+    assertThat(replacedValue("{{secrets.NOTE}}", asked, secrets)).isEqualTo("see secrets.OTHER");
+    assertThat(asked).containsExactly("NOTE");
+  }
+
+  @Test
+  void shouldReportOnlyTheNameABracketedReferenceDeclares() {
+    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.PROD:API}}"))
+        .containsExactly("PROD:API");
+    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.camunda.secrets.FOO}}"))
+        .containsExactly("camunda.secrets.FOO");
+  }
+
+  @Test
+  void shouldAskForEveryNameAtMostOnce() {
+    var asked = new ArrayList<String>();
+
+    assertThat(replacedValue("secrets.K secrets.K {{secrets.K}}", asked, Map.of("K", "V")))
+        .isEqualTo("V V V");
+    assertThat(asked).containsExactly("K");
+  }
+
+  @Test
+  void shouldAskForEveryDeniedNameAtMostOnce() {
+    var asked = new ArrayList<String>();
+    var input = "{{secrets.DENIED}} secrets.DENIED {{secrets.DENIED}}";
+
+    assertThat(replacedValue(input, asked, Map.of())).isEqualTo(input);
+    assertThat(asked).containsExactly("DENIED");
+  }
+
+  @Test
+  void shouldScanAPayloadOfDeniedReferencesOnce() {
+    var asked = new ArrayList<String>();
+    var payload =
+        IntStream.range(0, 5000)
+            .mapToObj(i -> "{{secrets.DENIED" + i + ":X}}")
+            .collect(Collectors.joining(" "));
+
+    assertThat(replacedValue(payload, asked, Map.of())).isEqualTo(payload);
+    assertThat(asked).hasSize(5000);
+  }
+
+  @Test
+  void shouldNotWriteTheTextNullWhereANameIsAllWhitespace() {
+    // The NUL is written as an escape rather than as a raw byte: a raw NUL makes git treat the
+    // whole file as binary, which hides every later change to it from review.
+    var asked = new ArrayList<String>();
+    var input = "{\"pw\":\"{{secrets.\0}}\"}";
+
+    assertThat(replacedValue(input, asked, Map.of())).isEqualTo(input);
+    assertThat(asked).containsExactly("\0");
+  }
+
+  private static SecretReplacer recording(List<String> asked, Map<String, String> secrets) {
+    return (secret, context) -> {
+      asked.add(secret.secretName());
+      return secrets.get(secret.secretName());
+    };
+  }
+
+  /** The substituted text of the single {@code value} property {@link #wrap} puts a string in. */
+  private static String replacedValue(
+      String input, List<String> asked, Map<String, String> secrets) {
+    return SecretUtil.replaceSecrets(wrap(input), null, recording(asked, secrets))
+        .get("value")
+        .asText();
   }
 }
