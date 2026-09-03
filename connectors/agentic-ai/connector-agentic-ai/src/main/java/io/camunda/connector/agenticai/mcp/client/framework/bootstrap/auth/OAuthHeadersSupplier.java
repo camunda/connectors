@@ -14,11 +14,8 @@ import java.util.function.Supplier;
 
 /**
  * Resolves the {@code Authorization} header for the MCP client via the shared {@link
- * OAuthClientCredentialsTokenResolver}. Note: a token endpoint response without {@code expires_in}
- * is never cached by that resolver, so this supplier refetches on every {@link #get()} call in that
- * case, unlike the hand-rolled cache this class previously had (which defaulted to a five-minute
- * TTL). Accepted tradeoff for sharing identical caching semantics with the OpenAI/Anthropic {@code
- * custom} backends; see {@code OAuthClientCredentialsTokenResolverTest} for the covered behavior.
+ * OAuthClientCredentialsTokenResolver}. Note: a response without {@code expires_in} is never
+ * cached, so {@link #get()} refetches a token on every call in that case.
  */
 public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
@@ -45,7 +42,10 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
       return Map.of("Authorization", "Bearer " + accessToken);
     } catch (ConnectorException e) {
       throw new ConnectorException(
-          e.getErrorCode(), "MCP client authentication failed: " + e.getMessage(), e);
+          e.getErrorCode(),
+          "MCP client authentication failed: " + e.getMessage(),
+          e,
+          e.getErrorVariables());
     }
   }
 }

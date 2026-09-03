@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication.ClientAuthenticationMethod;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -78,5 +79,23 @@ class OAuthHeadersSupplierTest {
     assertThatThrownBy(supplier::get)
         .isInstanceOf(ConnectorException.class)
         .hasMessage("MCP client authentication failed: token endpoint returned 401");
+  }
+
+  @Test
+  void preservesErrorVariablesFromResolverFailure() {
+    final var errorVariables =
+        Map.<String, Object>of("response", Map.of("body", Map.of("error", "invalid_client")));
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenThrow(
+            new ConnectorException(
+                "OAUTH_TOKEN_ERROR", "token endpoint returned 401", null, errorVariables));
+
+    final var supplier = new OAuthHeadersSupplier(tokenResolver, config);
+
+    assertThatThrownBy(supplier::get)
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            e ->
+                assertThat(((ConnectorException) e).getErrorVariables()).isEqualTo(errorVariables));
   }
 }
