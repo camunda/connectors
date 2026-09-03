@@ -320,11 +320,11 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
         return cand
 
     if cand.surface == classify.SURFACE_SAAS_PROVISIONING:
-        # Every failing spec here IS test-setup.spec.ts, and it travels with the
-        # dispatch: it is the only evidence of what broke, and the fix lives in the
-        # org-creation step or the setup spec's waiting rather than in a test body. The
-        # agent is told as much in the prompt, so it does not go looking for an
-        # assertion to change.
+        # Kept as report evidence, not as a dispatch payload -- this surface is not in
+        # DISPATCHABLE_SURFACES, so no agent ever receives it. Every failing spec here IS
+        # test-setup.spec.ts, and naming it is the whole value of the report: the reader
+        # learns which setup step gave way without opening the run. `serialise` carries
+        # these paths into the suppressed entry.
         return cand
 
     # A mixed report — org provisioning broke *and* a real spec failed — is a

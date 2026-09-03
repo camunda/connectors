@@ -1,7 +1,8 @@
 # description: Classifies a failed AlwaysGreen run and dispatches the fix agent.
-#              Called as the final job of MERGE_QUEUE_HELM_TEST.yaml, so
-#              github.run_id is the failing run and its artifacts are readable here.
-#              Also dispatchable with an explicit run_id to replay a past run.
+#              The run it classifies is `run_id` when given, and the calling run
+#              otherwise — so a caller that IS the failing run can omit it, while the
+#              watcher in connectors-streak-detector.yml and a manual replay both name
+#              their target. Artifacts are read from whichever run that resolves to.
 # type: CI
 # owner: @camunda/test-automation-team
 ---
@@ -62,9 +63,9 @@ on:
     inputs:
       run_id:
         description: >
-          AlwaysGreen run to classify. Required: a manual replay always targets a
-          specific past run. The workflow_call path does not take this input and uses
-          the calling run instead.
+          AlwaysGreen run to classify. Required here: a manual replay always targets a
+          specific past run. On the workflow_call path it is optional, and a caller that
+          is itself the failing run leaves it unset.
         required: true
       base_ref:
         description: 'Branch the failing run was on'
@@ -212,9 +213,10 @@ jobs:
           CALLER_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          # The fallback serves workflow_call, where run_id is not an input at all and
-          # github.run_id is the caller's run — exactly the run that failed. On
-          # workflow_dispatch run_id is required, so the fallback never applies there.
+          # The fallback serves a workflow_call that omits run_id, where github.run_id is
+          # the caller's own run — exactly the run that failed. It does not apply to
+          # workflow_dispatch, where run_id is required, nor to a workflow_call that
+          # names one, which is how the watcher targets a run it is not part of.
           run_id="${INPUT_RUN_ID:-$CALLER_RUN_ID}"
           if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
             echo "::error::run_id must be numeric, got '$run_id'"
@@ -337,7 +339,17 @@ jobs:
         id: slack
         # The token is a repository secret rather than a Vault read, so there is no
         # import step to gate on — an absent secret makes the step a no-op instead.
-        if: ${{ steps.mode.outputs.active == 'true' && (steps.plan.outputs.count != '0' || inputs.parent_slack_ts != '') }}
+        #
+        # Every active triage posts, whatever it concluded. It used to also require a
+        # dispatch candidate or a parent thread, which silently dropped the one branch
+        # written for the remaining case: the ":information_source: nothing to dispatch"
+        # text below could never be sent. That was survivable while triage only ran from
+        # inside the pipeline, where a failing stage had already produced a feedback
+        # message to thread under. The watcher brings exactly the runs that have neither
+        # — a build or Helm failure, a stable-branch leg whose feedback gate was skipped,
+        # a surface that is classified but not dispatchable — so the old condition would
+        # have left the failures this workflow exists to surface in the job summary only.
+        if: ${{ steps.mode.outputs.active == 'true' }}
         continue-on-error: true
         env:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}

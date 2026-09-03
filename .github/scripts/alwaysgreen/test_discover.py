@@ -271,7 +271,9 @@ def _stub_saas(monkeypatch, files):
 
 
 def test_a_provisioning_failure_keeps_its_setup_spec_as_evidence(monkeypatch):
-    # The setup spec is the only record of what broke, so it travels with the dispatch.
+    # Report evidence, not a dispatch payload: this surface is reported-only, and the
+    # spec is what makes the report worth reading. That it survives into the emitted
+    # payload is asserted separately, on the serialised plan.
     _stub_saas(monkeypatch, ["tests/8.10/test-setup.spec.ts"])
     cand = discover.saas_candidate("1", "main", "Trigger SaaS E2E tests", Path("/tmp/x"))
     assert cand.surface == planning.classify.SURFACE_SAAS_PROVISIONING
