@@ -4,7 +4,7 @@ Read this in full before touching any file. It is the agent's contract; the disp
 prompt deliberately carries almost nothing so this stays the single source of truth.
 
 The pipeline is `.github/workflows/MERGE_QUEUE_HELM_TEST.yaml`, on `main` and
-`stable/8.7`–`8.10`. On every push and every merge-queue entry it builds the connectors bundle images, deploys them to
+`stable/8.7`–`8.10`. Each run of it builds the connectors bundle images, deploys them to
 GKE via the Helm charts, runs a Self-Managed smoke suite, and separately triggers a SaaS
 smoke suite. A watcher in `connectors-streak-detector.yml` picks up every finished run,
 `alwaysgreen-triage.yml` classifies a failure and dispatches you with the specs already
@@ -120,7 +120,9 @@ Where the fix goes, in order of likelihood:
    endpoint. Harden the step that makes the call: retry with backoff and an explicit
    per-attempt timeout, so a blip self-heals. Do **not** add `continue-on-error`, and do
    not widen a timeout so far that a real outage looks green. A sustained outage must
-   still go red.
+   still go red. The dispatch prompt widens your edit scope for this surface to cover
+   those workflow, action and script files; nothing outside the scope it states is
+   yours to change, whatever this section suggests.
 2. **The setup spec waits wrongly** — it proceeds before the org or cluster is actually
    ready. Fix the waiting in `tests/<version>/test-setup.spec.ts` or the helper it calls.
 3. **The call is failing for a real reason** — a malformed request, a bad credential, a
@@ -233,7 +235,7 @@ behind them:
 | `saas-smoke-e2e` on `main`       | `tests/8.10/`, `pages/8.10/`       | `charts/camunda-platform-8.10/` |
 | `sm-smoke-e2e` on `stable/8.9`   | `tests/SM-8.9/`, `pages/SM-8.9/`   | `charts/camunda-platform-8.9/`  |
 | `saas-smoke-e2e` on `stable/8.9` | `tests/8.9/`, `pages/8.9/`         | `charts/camunda-platform-8.9/`  |
-| `saas-setup` on any branch       | same as `saas-smoke-e2e`, plus the workflow steps below | — |
+| `saas-setup` on any branch       | `tests/<version>/`, `pages/<version>/`, **plus** the workflow/action files that provision the SaaS org and the scripts they call | — |
 
 `stable/8.8` and `stable/8.7` follow the same pattern.
 

@@ -584,8 +584,13 @@ def build_candidates(run_id: str, base_ref: str, workdir: Path):
         if surface is None:
             continue
 
+        # The job's own conclusion, not a hardcoded "failure". noise_verdict only ever
+        # calls a `failure` noise, so a cancelled or timed-out job passed as "failure"
+        # is matched against the cancellation marker and discarded as NOISE_CANCELLED --
+        # which is precisely the job-timeout case failing_jobs now goes out of its way
+        # to keep.
         verdict = classify.noise_verdict(
-            conclusion="failure",
+            conclusion=job.get("conclusion") or "",
             step_count=len(job.get("steps") or []),
             failure_annotations=failure_annotations(job.get("check_run_url")),
         )

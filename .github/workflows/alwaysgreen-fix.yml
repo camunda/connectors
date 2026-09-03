@@ -117,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$BASE_REF" in
-            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
+            main|stable/8.7|stable/8.8|stable/8.9) ;;
             *) echo "::error::unsupported base_ref '$BASE_REF'"; exit 1 ;;
           esac
           case "$SURFACE" in
@@ -137,10 +137,26 @@ jobs:
           # The e2e suite directory. SM specs live under an SM- prefix, SaaS specs under
           # the bare version, and pages/ mirrors tests/ exactly.
           if [ "$SURFACE" = "sm-smoke-e2e" ]; then suite="SM-${version}"; else suite="${version}"; fi
+          # What the agent is allowed to edit, stated per surface rather than assumed.
+          # A saas-setup failure is the org or cluster never coming up, and FIX-AGENT.md
+          # sends the agent at the workflow step making the external call or at the setup
+          # spec's waiting -- neither of which is under tests/<suite>/. Advertising a
+          # remedy the prompt forbids leaves the agent choosing between declining and
+          # disobeying, so the scope has to widen with the contract.
+          if [ "$SURFACE" = "saas-setup" ]; then
+            edit_scope="tests/${suite}/ and pages/${suite}/, plus the workflow and action
+          files that provision the SaaS org for that suite (.github/workflows/,
+          .github/actions/) and the scripts they call (scripts/)"
+          else
+            edit_scope="tests/${suite}/ and pages/${suite}/"
+          fi
           {
             echo "version=${version}"
             echo "suite=${suite}"
             echo "chart=camunda-platform-${version}"
+            echo "edit_scope<<EOF_SCOPE"
+            echo "${edit_scope}"
+            echo "EOF_SCOPE"
           } >> "$GITHUB_OUTPUT"
 
       - name: Checkout main for tooling
@@ -402,6 +418,7 @@ jobs:
           SURFACE: ${{ inputs.surface }}
           VERSION: ${{ steps.target.outputs.version }}
           SUITE: ${{ steps.target.outputs.suite }}
+          EDIT_SCOPE: ${{ steps.target.outputs.edit_scope }}
           CHART: ${{ steps.target.outputs.chart }}
           FAILING_RUN_URL: ${{ inputs.failing_run_url }}
           TRIAGE_RUN_URL: ${{ inputs.triage_run_url }}
@@ -420,8 +437,8 @@ jobs:
           contract, and the constraints. Do not skip it.
 
           Failing surface: ${SURFACE}   Branch to fix against: ${BASE_REF}   Version: ${VERSION}
-          Edit only this version directory:
-            c8-cross-component-e2e-tests: tests/${SUITE}/ and pages/${SUITE}/
+          Edit only this scope:
+            c8-cross-component-e2e-tests: ${EDIT_SCOPE}
           A sibling version directory that is passing must not be touched.
           camunda-platform-helm (charts/${CHART}/) and camunda-docs are READ-ONLY: this
           token cannot push to them. A chart-side root cause is a legitimate finding —
