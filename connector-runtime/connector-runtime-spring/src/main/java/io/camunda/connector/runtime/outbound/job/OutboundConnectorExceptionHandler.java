@@ -44,6 +44,8 @@ public class OutboundConnectorExceptionHandler {
   /** Stands in for a container that (transitively) contains itself, so masking cannot loop. */
   private static final String CIRCULAR_REFERENCE = "[circular reference]";
 
+  private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
+
   private final SecretProvider secretProvider;
 
   public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
@@ -354,8 +356,17 @@ public class OutboundConnectorExceptionHandler {
     return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
   }
 
+  private static Duration retryBackoffFor(Exception failure, Duration configured) {
+    return failure instanceof SecretAllowListUnavailableException
+        ? ALLOW_LIST_RETRY_BACKOFF
+        : configured;
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+    if (e instanceof SecretAllowListUnavailableException) {
+      return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
+    }
     var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
@@ -369,7 +380,10 @@ public class OutboundConnectorExceptionHandler {
           isFatalInputError(masking.failure()) || isFatalInputError(e) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
-          Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, retries);
+          Map.of("error", exceptionToMap(wrappedException, List.of())),
+          wrappedException,
+          retries,
+          retryBackoffFor(masking.failure(), retryBackoffDuration));
     }
     List<String> secrets = masking.secrets();
     return switch (e) {
