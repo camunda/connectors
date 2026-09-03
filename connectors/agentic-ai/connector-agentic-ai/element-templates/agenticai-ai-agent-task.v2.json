@@ -416,6 +416,9 @@
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.apiKey",
@@ -434,6 +437,191 @@
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.custom.authentication.type",
         "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",

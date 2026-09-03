@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -156,6 +157,103 @@ class AnthropicChatModelConfigurationTest {
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesCustomBackendWithOAuthClientCredentialsAuthAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://custom.example.com",
+                "authentication": {
+                  "type": "oauth-client-credentials-flow",
+                  "oauthTokenEndpoint": "https://auth.example.com/oauth/token",
+                  "clientId": "client-123",
+                  "clientSecret": "secret-123",
+                  "scopes": "read:llm"
+                }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final AnthropicCustomBackend custom = (AnthropicCustomBackend) parsed.anthropic().backend();
+    assertThat(custom.custom().authentication())
+        .isEqualTo(
+            new OAuthClientCredentialsAuthentication(
+                "https://auth.example.com/oauth/token",
+                "client-123",
+                "secret-123",
+                null,
+                OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                "read:llm"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void oAuthClientCredentialsAuthenticationRedactsSecretsInToString() {
+    final var auth =
+        new OAuthClientCredentialsAuthentication(
+            "https://auth.example.com/oauth/token",
+            "client-123",
+            "super-secret-value",
+            null,
+            OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+            null);
+
+    assertThat(auth.toString())
+        .contains("clientId=[REDACTED]", "clientSecret=[REDACTED]")
+        .doesNotContain("client-123", "super-secret-value");
+  }
+
+  @Test
+  void requiredOAuthClientCredentialsFieldsAreEnforced() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicCustomBackend(
+                    new AnthropicCustomBackend.CustomBackend(
+                        "https://custom.example.com",
+                        null,
+                        null,
+                        null,
+                        new OAuthClientCredentialsAuthentication("", "", "", null, null, null))),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.oauthTokenEndpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.clientId");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.clientSecret");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            });
   }
 
   @Test
