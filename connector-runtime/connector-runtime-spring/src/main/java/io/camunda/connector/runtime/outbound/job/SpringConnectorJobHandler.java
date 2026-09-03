@@ -436,7 +436,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       optionalConnectorError.ifPresentOrElse(
           error ->
               handleConnectorError(
-                  client, job, context, finalResult, error, counterMetricsContext, deadline),
+                  client,
+                  job,
+                  context,
+                  finalResult,
+                  error,
+                  counterMetricsContext,
+                  secretFilter,
+                  deadline),
           () ->
               handleFinalResult(
                   client, job, context, finalResult, counterMetricsContext, deadline));
@@ -511,10 +518,13 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult finalResult,
-      ConnectorError error,
+      ConnectorError rawError,
       CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter,
       long deadline) {
     var response = connectorResponseOrNull(finalResult);
+    // redacted before the Zeebe command and the listener payload are built from it
+    var error = outboundConnectorExceptionHandler.maskConnectorError(rawError, job, secretFilter);
 
     switch (error) {
       case BpmnError bpmnError -> {
