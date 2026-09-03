@@ -6,13 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,8 +29,7 @@ public class McpClientBaseConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientHeadersSupplierFactory mcpClientHeadersSupplierFactory(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new McpClientHeadersSupplierFactory(
-        new OAuthService(), new CustomApacheHttpClient(), objectMapper);
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+    return new McpClientHeadersSupplierFactory(oAuthClientCredentialsTokenResolver);
   }
 }
