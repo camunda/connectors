@@ -182,7 +182,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error),
+          error -> handleBPMNError(client, job, error, secretFilter),
           () -> handleSuccessResult(client, job, finalResult));
     } catch (Exception ex) {
       if (Thread.currentThread().isInterrupted()) {
@@ -221,11 +221,15 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
+  private void handleBPMNError(
+      JobClient client, ActivatedJob job, ConnectorError rawError, SecretFilter secretFilter) {
+    // redacted before the Zeebe command is built from it
+    var error = outboundConnectorExceptionHandler.maskConnectorError(rawError, job, secretFilter);
     if (error instanceof BpmnError bpmnError) {
       checkVariablesSize(bpmnError.variables());
-      LOGGER.debug(
-          "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
+      // the code is not redacted, so it stays out of the log: unlike the command and the error
+      // variables that carry it, pod logs are shipped to systems with their own access controls
+      LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
       checkVariablesSize(jobError.variables());

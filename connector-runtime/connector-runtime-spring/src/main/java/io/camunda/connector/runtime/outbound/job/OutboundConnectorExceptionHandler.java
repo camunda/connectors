@@ -24,7 +24,10 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -37,6 +40,9 @@ public class OutboundConnectorExceptionHandler {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
+
+  /** Stands in for a container that (transitively) contains itself, so masking cannot loop. */
+  private static final String CIRCULAR_REFERENCE = "[circular reference]";
 
   private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
 
@@ -101,6 +107,127 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
+   * Masks every secret occurrence in {@code value}, recursing through maps and collections.
+   *
+   * <p>Only strings are rewritten; numbers, booleans and other scalars keep their type, since
+   * processes may branch on them. Values of types other than {@link Map}/{@link Collection}/{@link
+   * String} are passed through untouched — a secret held in a field of a custom object is not
+   * reached.
+   */
+  private static Object maskSecrets(Object value, List<String> secrets, Set<Object> enclosing) {
+    return switch (value) {
+      case null -> null;
+      case String string -> hideSecretsFromMessage(string, secrets);
+      case Map<?, ?> map -> {
+        // error variables are user-supplied, so a container may contain itself
+        if (!enclosing.add(map)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          yield maskMap(map, secrets, enclosing);
+        } finally {
+          enclosing.remove(map);
+        }
+      }
+      case Collection<?> collection -> {
+        if (!enclosing.add(collection)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          yield collection.stream().map(item -> maskSecrets(item, secrets, enclosing)).toList();
+        } finally {
+          enclosing.remove(collection);
+        }
+      }
+      default -> value;
+    };
+  }
+
+  private static Map<String, Object> maskMap(
+      Map<?, ?> map, List<String> secrets, Set<Object> enclosing) {
+    // keys are masked too, and collapsed keys simply overwrite rather than fail
+    var masked = new LinkedHashMap<String, Object>();
+    map.forEach(
+        (key, entry) ->
+            masked.put(
+                hideSecretsFromMessage(String.valueOf(key), secrets),
+                maskSecrets(entry, secrets, enclosing)));
+    return masked;
+  }
+
+  /** Typed variant of {@link #maskSecrets}, which returns {@link Object} to allow a sentinel. */
+  private static Map<String, Object> maskVariables(
+      Map<String, Object> variables, List<String> secrets) {
+    if (variables == null) {
+      return null;
+    }
+    Set<Object> enclosing = Collections.newSetFromMap(new IdentityHashMap<>());
+    enclosing.add(variables);
+    return maskMap(variables, secrets, enclosing);
+  }
+
+  /**
+   * The values to redact from an error message, or the failure that prevented reading them.
+   *
+   * <p>Every call site needs the values before it can report anything, and none may let a failure
+   * to read them escape: one would replace a classified result with an unclassified throw, and
+   * another is already inside a catch block whose escape route abandons the job.
+   */
+  private record MaskingSecrets(List<String> secrets, Exception failure) {
+
+    boolean unavailable() {
+      return failure != null;
+    }
+  }
+
+  /**
+   * Reads the values to redact. A provider may refuse a key outright, and it throws here for keys
+   * this fetch only ever wanted for masking, so the failure is returned rather than raised.
+   */
+  private MaskingSecrets fetchSecretsForMasking(ActivatedJob job, SecretFilter secretFilter) {
+    try {
+      var allowedKeys =
+          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+              .filter(secretFilter::isAllowed)
+              .toList();
+      // A job that declares no secret has nothing to redact, so no provider is asked for anything:
+      // a custom fetchAll that refuses every batch must not withhold such a job's error message.
+      if (allowedKeys.isEmpty()) {
+        return new MaskingSecrets(List.of(), null);
+      }
+      return new MaskingSecrets(
+          this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId())), null);
+    } catch (Exception ex) {
+      LOGGER.error(
+          "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
+          job.getKey(),
+          job.getTenantId(),
+          safeDiagnostic(ex));
+      return new MaskingSecrets(List.of(), ex);
+    }
+  }
+
+  /**
+   * A provider's own message can carry secret material — a bundle that parses as a non-object puts
+   * the value it could not coerce into Jackson's error — so only the exception's class name, which
+   * carries no request or response data, is reported.
+   */
+  private static String safeDiagnostic(Exception fetchFailure) {
+    return fetchFailure.getClass().getName();
+  }
+
+  /**
+   * Stands in for an error that cannot be shown. With no values to redact with, the original
+   * message has to be dropped rather than reported unmasked — it may hold a resolved secret. The
+   * failure that prevented masking is dropped with it, and for the same reason.
+   */
+  private static String unmaskableErrorMessage(Exception fetchFailure) {
+    return "Fetching secrets failed, original error can't be displayed as the error message might"
+        + " contain secrets: "
+        + safeDiagnostic(fetchFailure);
+  }
+
+  /**
    * Preserves the pre-existing three-argument overload for callers compiled against it. This
    * overload has no filter to redact secrets with, so it withholds the original message outright
    * rather than falling back to an unfiltered {@link SecretFilter#allowAll()} — the whole point of
@@ -155,19 +282,9 @@ public class OutboundConnectorExceptionHandler {
     if (e instanceof SecretAllowListUnavailableException) {
       return handleGenericException(job, e, List.of(), retryBackoffFor(e, retryBackoffDuration));
     }
-    List<String> secrets;
-    try {
-      var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-              .filter(secretFilter::isAllowed)
-              .toList();
-      secrets = this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId()));
-    } catch (Exception ex) {
-      LOGGER.error(
-          "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
-          job.getKey(),
-          job.getTenantId(),
-          ex.getMessage());
+    var masking = fetchSecretsForMasking(job, secretFilter);
+    if (masking.unavailable()) {
+      var ex = masking.failure();
       var wrappedException =
           new RuntimeException(
               "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
@@ -179,6 +296,7 @@ public class OutboundConnectorExceptionHandler {
           job.getRetries() - 1,
           retryBackoffFor(ex, retryBackoffDuration));
     }
+    List<String> secrets = masking.secrets();
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
@@ -190,9 +308,62 @@ public class OutboundConnectorExceptionHandler {
     };
   }
 
-  private String hideSecretsFromMessage(String message, List<String> secrets) {
+  /** Redacts an error an error expression produced; {@code failJob}/{@code throwError} do not. */
+  public ConnectorError maskConnectorError(
+      ConnectorError error, ActivatedJob job, SecretFilter secretFilter) {
+    return switch (error) {
+      case BpmnError bpmnError -> {
+        if (nothingToRedact(bpmnError.errorMessage(), bpmnError.variables())) {
+          yield bpmnError;
+        }
+        var masking = fetchSecretsForMasking(job, secretFilter);
+        // the error code is never redacted: boundary events match on it
+        yield masking.unavailable()
+            ? new BpmnError(
+                bpmnError.errorCode(), unmaskableErrorMessage(masking.failure()), Map.of())
+            : new BpmnError(
+                bpmnError.errorCode(),
+                redactNullable(bpmnError.errorMessage(), masking.secrets()),
+                maskVariables(bpmnError.variables(), masking.secrets()));
+      }
+      case JobError jobError -> {
+        if (nothingToRedact(jobError.errorMessage(), jobError.variables())) {
+          yield jobError;
+        }
+        var masking = fetchSecretsForMasking(job, secretFilter);
+        yield masking.unavailable()
+            ? new JobError(
+                unmaskableErrorMessage(masking.failure()),
+                Map.of(),
+                jobError.retries(),
+                jobError.retryBackoff())
+            : new JobError(
+                redactNullable(jobError.errorMessage(), masking.secrets()),
+                maskVariables(jobError.variables(), masking.secrets()),
+                jobError.retries(),
+                jobError.retryBackoff());
+      }
+    };
+  }
+
+  private static boolean nothingToRedact(String errorMessage, Map<String, Object> variables) {
+    return (errorMessage == null || errorMessage.isEmpty())
+        && (variables == null || variables.isEmpty());
+  }
+
+  /** Unlike {@link #hideSecretsFromMessage}, keeps a null message null rather than "". */
+  private static String redactNullable(String message, List<String> secrets) {
+    return message == null ? null : hideSecretsFromMessage(message, secrets);
+  }
+
+  private static String hideSecretsFromMessage(String message, List<String> secrets) {
     if (!Objects.isNull(message))
       return secrets.stream()
+          // a provider may answer with an empty value, and replacing that matches everywhere
+          .filter(secret -> !secret.isEmpty())
+          // longest first: masking a secret that prefixes another would destroy the longer match
+          // and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET"
+          .sorted(Comparator.comparingInt(String::length).reversed())
           .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
     else return "";
   }
@@ -291,19 +462,9 @@ public class OutboundConnectorExceptionHandler {
    */
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    List<String> secrets;
-    try {
-      var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-              .filter(secretFilter::isAllowed)
-              .toList();
-      secrets = this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId()));
-    } catch (Exception fetchException) {
-      LOGGER.error(
-          "Exception while processing job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
-          job.getKey(),
-          job.getTenantId(),
-          fetchException.getMessage());
+    var masking = fetchSecretsForMasking(job, secretFilter);
+    if (masking.unavailable()) {
+      var fetchException = masking.failure();
       var wrappedException =
           new RuntimeException(
               "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
@@ -314,7 +475,8 @@ public class OutboundConnectorExceptionHandler {
           wrappedException,
           job.getRetries() - 1);
     }
-    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    Exception newException =
+        new Exception(hideSecretsFromMessage(ex.getMessage(), masking.secrets()), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
