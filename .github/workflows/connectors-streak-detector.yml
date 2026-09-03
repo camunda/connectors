@@ -30,6 +30,11 @@ on:
     workflows: ["Merge queue Helm test"]
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: 'probe'
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
