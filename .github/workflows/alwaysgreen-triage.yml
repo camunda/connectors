@@ -14,6 +14,14 @@ on:
         description: 'Branch the failing run was on (main, stable/8.x)'
         required: true
         type: string
+      run_id:
+        description: >
+          AlwaysGreen run to classify. Optional: a caller that IS the failing run leaves
+          it unset and `github.run_id` is used. alwaysgreen-failure-watch.yml is a
+          separate run watching a finished one, so it has to name its target.
+        required: false
+        type: string
+        default: ''
       chart_version:
         description: 'Chart directory the run deployed, e.g. camunda-platform-8.10'
         required: false
@@ -71,7 +79,7 @@ on:
         required: false
         default: '2'
       tooling_ref:
-        description: 'Ref carrying the AlwaysGreen tooling (defaults to the dispatched ref)'
+        description: 'Ref carrying the AlwaysGreen tooling (defaults to main)'
         required: false
         default: ''
 
@@ -126,15 +134,23 @@ jobs:
       # context value for "the ref this workflow was loaded from": job_workflow_sha is
       # absent at runtime and workflow_sha is the caller's.
       #
-      # run_id tells the two entry paths apart. github.event_name cannot: inside a called
-      # workflow it reports the RUN's event, so a manually dispatched pipeline calling
-      # triage looks identical to triage being dispatched itself. run_id is required on
-      # triage's own workflow_dispatch and absent on workflow_call, so it is only set when
-      # github.ref_name really is this workflow's ref.
+      # `main` when tooling_ref is not given, rather than github.ref_name. run_id used to
+      # tell the two entry paths apart -- required on triage's own workflow_dispatch,
+      # absent on workflow_call, so its presence meant github.ref_name really was this
+      # workflow's ref. It is now settable on workflow_call too (for
+      # alwaysgreen-failure-watch.yml, a separate run watching a finished one), so it no
+      # longer distinguishes anything, and github.event_name cannot either: inside a
+      # called workflow it reports the RUN's event, so a manually dispatched pipeline
+      # calling triage is indistinguishable from triage being dispatched itself.
+      #
+      # Defaulting to the branch that actually carries the tooling is the safe direction:
+      # the cost is that a manual replay dispatched from a feature branch has to name
+      # tooling_ref to test that branch's tree, and the alternative is silently checking
+      # out a caller's tree that has none of it.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tooling_ref || (inputs.run_id && github.ref_name) || 'main' }}
+          ref: ${{ inputs.tooling_ref || 'main' }}
           sparse-checkout: .github
           persist-credentials: false
 

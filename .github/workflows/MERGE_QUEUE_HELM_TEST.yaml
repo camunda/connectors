@@ -188,102 +188,48 @@ jobs:
   # `.github/scripts/alwaysgreen/discover.py` reads, so gating on it puts the gate and
   # the classifier on the same evidence.
   #
-  # run-ai-agent-cpt IS in `needs` here, unlike in alwaysgreen-triage. The scan reads
-  # whatever has concluded at the moment it runs, so a job with no ordering edge to it
-  # contributes only if it happens to have finished first — and "it usually finishes
-  # early" is not a scheduling guarantee. The edge is what makes the answer
-  # deterministic.
-  #
-  # Backport note: that job exists on main and stable/8.10 only. Drop it from this list
-  # when carrying this change to stable/8.7-8.9, where naming it would make the whole
-  # workflow invalid. It is the one entry here that is not backport-safe.
+  # Scoped to the SM stage: since triage moved to alwaysgreen-failure-watch.yml, the
+  # only thing left that needs this answer inside the run is the SM feedback job below.
+  # The ref normalisation and supported-ref list moved with triage, so they exist in one
+  # place rather than two that can drift.
   detect-failures:
     name: AlwaysGreen failure detection
-    needs: [ build-image, trigger-sm-e2e, trigger-saas-e2e, run-ai-agent-cpt ]
+    needs: [ build-image, trigger-sm-e2e ]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       actions: read
     outputs:
-      any_failed: ${{ steps.scan.outputs.any_failed }}
       sm_failed: ${{ steps.scan.outputs.sm_failed }}
-      base_ref: ${{ steps.scan.outputs.base_ref }}
-      base_ref_supported: ${{ steps.scan.outputs.base_ref_supported }}
     steps:
       - name: Scan this run's job conclusions
         id: scan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
-          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
 
           # filter=latest is the default, stated so a re-run cannot pick up a previous
-          # attempt's failures and re-trigger triage for a failure that is already gone.
+          # attempt's failures and re-report a failure that is already gone.
           failed=$(gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
             --jq '.jobs[] | select(.conclusion == "failure") | .name')
 
-          # AlwaysGreen's own jobs are dropped rather than relied on to be unfinished:
-          # a Slack or Vault hiccup in the feedback job must not read as a pipeline
-          # failure, and on a re-run they may already carry a conclusion.
-          failed=$(printf '%s\n' "$failed" | grep -v '^AlwaysGreen ' || true)
-          failed=$(printf '%s\n' "$failed" | sed '/^[[:space:]]*$/d')
-
-          any_failed=false
+          # Nested jobs of the called SM workflow appear under
+          # `Trigger SM E2E tests / ...`, which is what makes a non-blocking Playwright
+          # leg visible here when `needs.trigger-sm-e2e.result` still says success.
           sm_failed=false
-          if [ -n "$failed" ]; then
-            any_failed=true
-            if printf '%s\n' "$failed" | grep -q '^Trigger SM E2E tests'; then
-              sm_failed=true
-            fi
-            printf 'Failing jobs:\n%s\n' "$failed"
+          if printf '%s\n' "$failed" | grep -q '^Trigger SM E2E tests'; then
+            sm_failed=true
+            printf 'Failing SM jobs:\n%s\n' \
+              "$(printf '%s\n' "$failed" | grep '^Trigger SM E2E tests')"
           else
-            echo "No failing jobs in this run."
+            echo "No failing SM jobs in this run."
           fi
 
-          # Normalised the same way as classify.normalise_base_ref, so the value this
-          # gate derives and the value discovery derives cannot disagree — triage
-          # validates it against the supported branches and errors on a queue ref.
-          base_ref="${REF_NAME#refs/heads/}"
-          case "$base_ref" in
-            gh-readonly-queue/*)
-              base_ref="${base_ref#gh-readonly-queue/}"
-              base_ref="${base_ref%/pr-*}"
-              ;;
-          esac
-
-          # Mirrors the list alwaysgreen-triage.yml's "Resolve target run" step accepts,
-          # and alwaysgreen-fix.yml's. workflow_dispatch can be started from ANY ref, so
-          # without this a failing manual run from a feature branch would hand triage a
-          # base_ref it rejects — turning every such run into a guaranteed triage
-          # failure that fixes nothing. Reported loudly rather than swallowed: the
-          # failure is still in the log, the annotation and the summary.
-          base_ref_supported=true
-          case "$base_ref" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
-            *) base_ref_supported=false ;;
-          esac
-          if [ "$base_ref_supported" != "true" ] && [ "$any_failed" = "true" ]; then
-            echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to alwaysgreen-triage.yml and alwaysgreen-fix.yml to enable it."
-            {
-              echo "## AlwaysGreen failure detection"
-              echo ""
-              echo "Failing jobs on ${base_ref}, a ref AlwaysGreen triage does not"
-              echo "accept — no classification or fix dispatch ran:"
-              echo ""
-              printf '%s\n' "$failed" | sed 's/^/- /'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          {
-            echo "any_failed=${any_failed}"
-            echo "sm_failed=${sm_failed}"
-            echo "base_ref=${base_ref}"
-            echo "base_ref_supported=${base_ref_supported}"
-          } | tee -a "$GITHUB_OUTPUT"
+          echo "sm_failed=${sm_failed}" | tee -a "$GITHUB_OUTPUT"
 
   sm-e2e-debug-summary:
     name: AlwaysGreen failure feedback (SM E2E)
@@ -750,60 +696,7 @@ jobs:
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
-  # Final job: hand a failed run to AlwaysGreen triage, which classifies the failure
-  # and dispatches the fix agent. github.run_id here is this run, so the SM Playwright
-  # report and the SaaS downstream-context artifact are both readable from it.
-  #
-  # tooling_ref pins the scripts to main. A reusable workflow's checkout follows the
-  # CALLER's ref, so without it a stable/8.x run would need the whole
-  # .github/scripts/alwaysgreen tree backported alongside this file.
-  #
-  # Every event this workflow runs on, not push only. merge_group failures were held
-  # back on the reasoning that they belong to the PR under test — but a merge-queue
-  # entry runs the same SM and SaaS suites against the same clusters, so a red one is
-  # the same e2e regression seen ~10 minutes earlier, and holding it back lost the
-  # majority of the signal. It is also safe to let through: this workflow is not a
-  # required check for the queue (no required_status_checks rule on main), which
-  # merge_group run 33178384934 demonstrates — it concluded `failure` and PR #8485
-  # merged anyway. Dedupe is unchanged: the queue ref normalises to its base branch,
-  # so a merge_group run and the push run that follows it derive the same dispatch
-  # key, and the second is suppressed by the in-flight / open-fix-PR layers.
-  alwaysgreen-triage:
-    name: AlwaysGreen triage and fix dispatch
-    # run-ai-agent-cpt is deliberately absent: it exists only on main, and a `needs`
-    # entry naming a job the stable branches do not have makes the whole workflow
-    # invalid there — so this list stays backport-safe. Nothing is lost, because that
-    # surface is classified but never dispatched, and the streak detector already
-    # pages its owner.
-    needs:
-      - build-image
-      - trigger-sm-e2e
-      - sm-e2e-debug-summary
-      - trigger-saas-e2e
-      - saas-e2e-debug-summary
-      - detect-failures
-    # detect-failures, not contains(needs.*.result, 'failure'): continue-on-error —
-    # here and on the non-blocking SM Playwright leg — keeps a real failure out of
-    # every `result` this job can see. See the comment on that job.
-    #
-    # base_ref_supported keeps a manual dispatch from an arbitrary ref out: triage
-    # hard-errors on a base_ref outside main|stable/8.7-8.9, so calling it for one
-    # would only add a red job. detect-failures annotates and summarises that case.
-    if: >-
-      always() && needs.detect-failures.outputs.any_failed == 'true' &&
-      needs.detect-failures.outputs.base_ref_supported == 'true'
-    permissions:
-      contents: read
-      actions: write
-      pull-requests: read
-    uses: ./.github/workflows/alwaysgreen-triage.yml
-    secrets: inherit
-    with:
-      # Normalised by detect-failures: on merge_group github.ref_name is the
-      # per-PR queue ref, which triage rejects as an unsupported base_ref.
-      base_ref: ${{ needs.detect-failures.outputs.base_ref }}
-      tooling_ref: main
-      # Reply in whichever feedback message was posted, so one failure stays one
-      # Slack thread. Empty when neither stage failed or Slack was unavailable.
-      parent_slack_ts: ${{ needs.sm-e2e-debug-summary.outputs.slack_ts || needs.saas-e2e-debug-summary.outputs.slack_ts }}
-      parent_slack_channel: ${{ needs.sm-e2e-debug-summary.outputs.slack_channel || needs.saas-e2e-debug-summary.outputs.slack_channel }}
+  # Triage is NOT a job here. It runs from alwaysgreen-failure-watch.yml, a workflow_run
+  # listener on the default branch, so one gate covers this branch and every stable/8.x
+  # instead of a per-branch `if:` that only this copy of the file ever received. Calling
+  # it from both places would dispatch twice per failing run.
