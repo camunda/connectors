@@ -113,7 +113,8 @@ class OutboundConnectorExceptionHandlerTest {
                     + " (io.camunda.client.api.command.ProblemException)"),
             job,
             null,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception())
         .hasMessageContaining("Activity_1")
@@ -133,7 +134,8 @@ class OutboundConnectorExceptionHandlerTest {
             new SecretAllowListUnavailableException("lookup failed"),
             job,
             modelBackoff,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
     assertThat(result.retries()).isEqualTo(2);
@@ -157,7 +159,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handlerWithThrowingProvider.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(30), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(30),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(30));
   }
@@ -173,7 +179,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, null, unreadableAllowList);
+            new RuntimeException("boom"), job, null, unreadableAllowList, List.of());
 
     assertThat(result.exception()).hasMessageContaining("Activity_1");
     assertThat(result.retries()).isEqualTo(2);
@@ -199,7 +205,8 @@ class OutboundConnectorExceptionHandlerTest {
                     new RuntimeException("boom"),
                     job,
                     Duration.ofSeconds(1),
-                    SecretFilter.allowAll()));
+                    SecretFilter.allowAll(),
+                    List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
@@ -220,7 +227,11 @@ class OutboundConnectorExceptionHandlerTest {
         logsOf(
             () ->
                 handler.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"), job, Duration.ofSeconds(1), unreadableAllowList));
+                    new RuntimeException("boom"),
+                    job,
+                    Duration.ofSeconds(1),
+                    unreadableAllowList,
+                    List.of()));
 
     assertThat(logged).anyMatch(message -> message.contains("Activity_1"));
   }
@@ -237,7 +248,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected xSUPERSECRET"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(requestedKeys).containsExactly("SHORT", "LONG");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
@@ -255,7 +267,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
   }
@@ -273,7 +286,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     verifyNoInteractions(secretProvider);
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
