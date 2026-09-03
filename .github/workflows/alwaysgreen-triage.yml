@@ -24,6 +24,16 @@ on:
         required: false
         type: string
         default: ''
+      run_attempt:
+        description: >
+          Attempt of run_id to classify. The watcher gates on one attempt's jobs, and a
+          bare run request answers with whatever attempt is newest at that moment, so
+          without this a re-run landing in between has discovery reading a different
+          attempt than the one that was judged. Empty means latest, which is right for a
+          replay.
+        required: false
+        type: string
+        default: ''
       chart_version:
         description: 'Chart directory the run deployed, e.g. camunda-platform-8.10'
         required: false
@@ -82,6 +92,10 @@ on:
         default: '2'
       tooling_ref:
         description: 'Ref carrying the AlwaysGreen tooling (defaults to main)'
+        required: false
+        default: ''
+      run_attempt:
+        description: 'Attempt of run_id to classify (default: latest)'
         required: false
         default: ''
 
@@ -270,6 +284,7 @@ jobs:
           # own, so without these two lines the dials the module docstrings advertise
           # cannot be turned: discover.py would always see its compiled-in defaults.
           # Empty when the variable is unset, which is what _ttl_hours falls back on.
+          ALWAYSGREEN_RUN_ATTEMPT: ${{ inputs.run_attempt }}
           ALWAYSGREEN_PR_LOCK_TTL_HOURS: ${{ vars.ALWAYSGREEN_PR_LOCK_TTL_HOURS }}
           ALWAYSGREEN_PATH_CLAIM_TTL_HOURS: ${{ vars.ALWAYSGREEN_PATH_CLAIM_TTL_HOURS }}
           # Explicit rather than relying on the script default, so a replay dispatched

@@ -415,3 +415,42 @@ def test_a_job_level_suppression_reports_no_specs():
     )
     payload = discover.serialise(result, classify.Blame(None, None, None, "none"), "1")
     assert payload["suppressed"][0]["specs"] == []
+
+
+# ---------------------------------------------------------------------------
+# Classifying the attempt the gate judged, not whatever is newest
+# ---------------------------------------------------------------------------
+
+
+def test_the_run_path_is_pinned_to_the_attempt(monkeypatch):
+    monkeypatch.setattr(discover, "RUN_ATTEMPT", "2")
+    assert discover.run_path("7") == "repos/camunda/connectors/actions/runs/7/attempts/2"
+    assert discover.run_path("7", "/jobs?per_page=100") == (
+        "repos/camunda/connectors/actions/runs/7/attempts/2/jobs?per_page=100"
+    )
+
+
+def test_without_an_attempt_the_run_path_is_the_run(monkeypatch):
+    # A replay has no attempt to be faithful to: latest is the right answer.
+    monkeypatch.setattr(discover, "RUN_ATTEMPT", "")
+    assert discover.run_path("7") == "repos/camunda/connectors/actions/runs/7"
+    assert discover.run_path("7", "/jobs?per_page=100") == (
+        "repos/camunda/connectors/actions/runs/7/jobs?per_page=100"
+    )
+
+
+def test_failing_jobs_asks_for_the_pinned_attempt(monkeypatch):
+    # The whole point: the gate judged one attempt's jobs, so discovery must read that
+    # attempt's jobs and that attempt's conclusion, not the newest ones.
+    monkeypatch.setattr(discover, "RUN_ATTEMPT", "3")
+    asked = []
+
+    def fake(args, default):
+        asked.append(args[-1])
+        if args[-1].endswith("/jobs?per_page=100"):
+            return ([{"jobs": [{"name": "x", "conclusion": "failure"}]}], "")
+        return ({"conclusion": "success"}, "")
+
+    monkeypatch.setattr(discover, "gh_json_ex", fake)
+    assert [j["name"] for j in discover.failing_jobs("7")] == ["x"]
+    assert all("/attempts/3" in path for path in asked), asked

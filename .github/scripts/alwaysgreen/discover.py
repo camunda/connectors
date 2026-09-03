@@ -78,6 +78,27 @@ PR_LOCK_TTL_HOURS = _ttl_hours(
 PATH_CLAIM_TTL_HOURS = _ttl_hours(
     "ALWAYSGREEN_PATH_CLAIM_TTL_HOURS", planning.PATH_CLAIM_TTL_HOURS
 )
+#: Which attempt of the run to classify. The watcher gates on one specific attempt's
+#: jobs, and a bare run request answers with whatever attempt is newest right now -- so
+#: without this, a re-run landing between the gate and here has discovery reading a
+#: different attempt than the one that was judged worth classifying, and dispatching on
+#: its evidence. Empty means "whatever is latest", which is right for a manual replay.
+RUN_ATTEMPT = (os.environ.get("ALWAYSGREEN_RUN_ATTEMPT") or "").strip()
+
+
+def run_path(run_id: str, suffix: str = "") -> str:
+    """API path for the run, pinned to RUN_ATTEMPT when one is set.
+
+    Note what this cannot pin: `gh run download` has no attempt selector, so evidence
+    artifacts always come from the latest attempt. That only diverges inside the narrow
+    window where a re-run starts mid-triage, and the alternative -- classifying an
+    attempt other than the one the gate judged -- is worse than reading artifacts from a
+    newer one.
+    """
+    base = f"repos/{REPO}/actions/runs/{run_id}"
+    if RUN_ATTEMPT:
+        base = f"{base}/attempts/{RUN_ATTEMPT}"
+    return f"{base}{suffix}"
 
 
 class DiscoveryError(RuntimeError):
@@ -179,7 +200,7 @@ def countable_conclusions(run_id: str) -> tuple[str, ...]:
     report a candidate it might not dispatch, while under-including drops a real failure
     silently, and only one of those is recoverable by looking at the summary.
     """
-    meta, _ = gh_json_ex(["api", f"repos/{REPO}/actions/runs/{run_id}"], None)
+    meta, _ = gh_json_ex(["api", run_path(run_id)], None)
     conclusion = meta.get("conclusion") if isinstance(meta, dict) else None
     if conclusion == "cancelled":
         return COUNTABLE_IN_CANCELLED_RUN
@@ -199,10 +220,7 @@ def failing_jobs(run_id: str) -> list[dict]:
     # while the gate that invoked it had counted the whole run. --slurp turns the
     # per-page documents into one array so json.loads sees valid JSON.
     data, err = gh_json_ex(
-        [
-            "api", "--paginate", "--slurp",
-            f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100",
-        ],
+        ["api", "--paginate", "--slurp", run_path(run_id, "/jobs?per_page=100")],
         None,
     )
     if not isinstance(data, list):

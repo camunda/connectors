@@ -688,6 +688,9 @@ jobs:
     secrets: inherit
     with:
       run_id: ${{ needs.scan-run.outputs.run_id }}
+      # The attempt this listener judged, so discovery classifies the same jobs the gate
+      # saw rather than whatever attempt is newest when it runs. Empty on a replay.
+      run_attempt: ${{ github.event.workflow_run.run_attempt }}
       base_ref: ${{ needs.scan-run.outputs.base_ref }}
       # This workflow's own ref, not a literal `main`. On a workflow_run event that IS
       # the default branch, so production behaviour is unchanged; on a manual replay
