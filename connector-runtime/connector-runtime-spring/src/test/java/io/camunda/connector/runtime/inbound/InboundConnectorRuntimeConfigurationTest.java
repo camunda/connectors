@@ -22,6 +22,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -102,10 +103,15 @@ class InboundConnectorRuntimeConfigurationTest {
         InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
   }
 
+  private static final ObjectMapper PROBE_MAPPER = new ObjectMapper();
+
   private static String resolveUndeclared(InboundConnectorContextImpl context) {
+    var probe = PROBE_MAPPER.createObjectNode().put("value", "secrets.UNDECLARED");
     return context
         .getSecretHandler()
-        .replaceSecrets("secrets.UNDECLARED", new SecretContext("t", "p"));
+        .replaceSecrets(probe, new SecretContext("t", "p"))
+        .get("value")
+        .asText();
   }
 
   private static SecretProvider alwaysResolvingProvider() {

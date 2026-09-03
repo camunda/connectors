@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
 import io.camunda.client.api.response.EvaluateExpressionResponse;
@@ -351,8 +352,20 @@ class InboundConnectorContextImplTest {
         true);
   }
 
-  private static String replace(InboundConnectorContextImpl context, String text) {
-    return context.getSecretHandler().replaceSecrets(text, new SecretContext("t", "p"));
+  private static final ObjectMapper PROBE_MAPPER = new ObjectMapper();
+
+  /**
+   * The declared-secret allow-list this feature builds is scoped by field path (see {@link
+   * InboundConnectorContextImpl#declaredSecretNames}), so the probe must sit under the same
+   * property name the secret was declared under for a match to be possible.
+   */
+  private static String replace(InboundConnectorContextImpl context, String field, String text) {
+    ObjectNode probe = PROBE_MAPPER.createObjectNode().put(field, text);
+    return context
+        .getSecretHandler()
+        .replaceSecrets(probe, new SecretContext("t", "p"))
+        .get(field)
+        .asText();
   }
 
   @Test
@@ -363,7 +376,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
 
-    assertThat(replace(context, "secrets.DECLARED")).isEqualTo("resolved");
+    assertThat(replace(context, "token", "secrets.DECLARED")).isEqualTo("resolved");
   }
 
   @Test
@@ -374,7 +387,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "{{ secrets.BRACED }}")), secretProvider);
 
-    assertThat(replace(context, "{{ secrets.BRACED }}")).isEqualTo("resolved");
+    assertThat(replace(context, "token", "{{ secrets.BRACED }}")).isEqualTo("resolved");
   }
 
   @Test
@@ -384,7 +397,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
 
-    assertThat(replace(context, "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
+    assertThat(replace(context, "token", "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
     verify(secretProvider, never()).getSecret(eq("INJECTED"), any());
   }
 
@@ -425,8 +438,8 @@ class InboundConnectorContextImplTest {
     when(secretProvider.getSecret(eq("ONLY_B"), any())).thenReturn("leaked-b-value");
     var context = filteringContext(detailsOf(scope, bound, sibling), secretProvider);
 
-    assertThat(replace(context, "secrets.OWN")).isEqualTo("own-value");
-    assertThat(replace(context, "secrets.ONLY_B")).isEqualTo("secrets.ONLY_B");
+    assertThat(replace(context, "token", "secrets.OWN")).isEqualTo("own-value");
+    assertThat(replace(context, "token", "secrets.ONLY_B")).isEqualTo("secrets.ONLY_B");
     verify(secretProvider, never()).getSecret(eq("ONLY_B"), any());
   }
 
@@ -440,8 +453,28 @@ class InboundConnectorContextImplTest {
             getInboundConnectorDefinition(Map.of("token", "{{secrets.CHAIN_ROOT}}")),
             secretProvider);
 
-    assertThat(replace(context, "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
+    assertThat(replace(context, "token", "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
     verify(secretProvider, never()).getSecret(eq("CHAINED"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_leavesASecretNamedOnlyByASiblingFieldsResolvedValue() {
+    // tokenA resolves to a piece of text that happens to name secrets.SIBLING_ONLY, a secret
+    // declared only under the unrelated tokenB field. Even though the chained text surfaces
+    // during tokenA's own replacement pass, it must not resolve a secret scoped to a different
+    // field path.
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("CHAIN_ROOT"), any())).thenReturn("secrets.SIBLING_ONLY");
+    when(secretProvider.getSecret(eq("SIBLING_ONLY"), any())).thenReturn("leaked-value");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(
+                Map.of("tokenA", "{{secrets.CHAIN_ROOT}}", "tokenB", "secrets.SIBLING_ONLY")),
+            secretProvider);
+
+    assertThat(replace(context, "tokenA", "{{secrets.CHAIN_ROOT}}"))
+        .isEqualTo("secrets.SIBLING_ONLY");
+    verify(secretProvider, never()).getSecret(eq("SIBLING_ONLY"), any());
   }
 
   @Test
@@ -453,7 +486,7 @@ class InboundConnectorContextImplTest {
             getInboundConnectorDefinition(Map.of("newForm", "=camunda.secrets.API_KEY")),
             secretProvider);
 
-    assertThat(replace(context, "secrets.API_KEY")).isEqualTo("secrets.API_KEY");
+    assertThat(replace(context, "newForm", "secrets.API_KEY")).isEqualTo("secrets.API_KEY");
     verify(secretProvider, never()).getSecret(eq("API_KEY"), any());
   }
 
