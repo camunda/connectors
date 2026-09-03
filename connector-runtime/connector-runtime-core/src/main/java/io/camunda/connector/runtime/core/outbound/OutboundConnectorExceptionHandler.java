@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -28,6 +29,7 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -220,23 +222,30 @@ public class OutboundConnectorExceptionHandler {
     }
     try {
       var keys =
-          allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter);
+          allowedKeys(
+              SecretUtil.retrieveSecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
+              secretFilter);
+      // Secret now carries fieldPath, so the same name occurring at several paths is several
+      // distinct Secret values -- dedup by name here, rather than relying on the Secret list
+      // itself being duplicate-free, so one provider lookup covers every occurrence of a name
+      // instead of one lookup per occurrence.
+      var names = keys.stream().map(Secret::secretName).distinct().toList();
       // A job that declares no secret has nothing to redact, so no provider is asked for anything:
       // a custom provider that refuses every lookup must not withhold such a job's error message.
-      if (keys.isEmpty()) {
+      if (names.isEmpty()) {
         return new MaskingSecrets(List.of(), null);
       }
-      var values = new ArrayList<String>(keys.size());
-      for (var key : keys) {
-        var value = secretProvider.getSecret(key);
+      var values = new ArrayList<String>(names.size());
+      for (var name : names) {
+        var value = secretProvider.getSecret(name);
         if (value != null) {
           values.add(value);
         }
       }
-      if (values.size() < keys.size() && !reportsAnUnavailableSecret(jobFailure)) {
+      if (values.size() < names.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
-            new MaskingSecretsIncompleteException(keys.size() - values.size(), keys.size()));
+            new MaskingSecretsIncompleteException(names.size() - values.size(), names.size()));
       }
       return new MaskingSecrets(List.copyOf(values), null);
     } catch (Exception ex) {
@@ -259,7 +268,7 @@ public class OutboundConnectorExceptionHandler {
     return union;
   }
 
-  private static List<String> allowedKeys(List<String> keys, SecretFilter secretFilter) {
+  private static List<Secret> allowedKeys(List<Secret> keys, SecretFilter secretFilter) {
     return keys.stream().filter(secretFilter::isAllowed).toList();
   }
 

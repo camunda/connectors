@@ -20,12 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 public class InboundConnectorContextBuilderTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static ObjectNode wrap(String value) {
+    return OBJECT_MAPPER.createObjectNode().put("value", value);
+  }
 
   @Test
   public void shouldProvidePropertiesAsString() {
@@ -79,15 +87,15 @@ public class InboundConnectorContextBuilderTest {
   public void shouldProvideSecret() {
     var context =
         InboundConnectorContextBuilder.create().properties("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo");
-    assertThat(replaced).isEqualTo("FOO");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("secrets.foo"));
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO");
   }
 
   @Test
   public void shouldThrowOnMissingSecret() {
     var context =
         InboundConnectorContextBuilder.create().properties("{}").secret("x", "FOO").build();
-    Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo");
+    Executable replacement = () -> context.getSecretHandler().replaceSecrets(wrap("secrets.foo"));
     assertThrows(
         ConnectorInputException.class, replacement, "Secret with name 'foo' is not available");
   }
@@ -100,16 +108,16 @@ public class InboundConnectorContextBuilderTest {
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo secrets.bar");
-    assertThat(replaced).isEqualTo("FOO BAR");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("secrets.foo secrets.bar"));
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO BAR");
   }
 
   @Test
   public void shouldProvideSecretWithParentheses() {
     var context =
         InboundConnectorContextBuilder.create().properties("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}}");
-    assertThat(replaced).isEqualTo("FOO");
+    var replaced = context.getSecretHandler().replaceSecrets(wrap("{{secrets.foo}}"));
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO");
   }
 
   @Test
@@ -120,8 +128,14 @@ public class InboundConnectorContextBuilderTest {
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
-    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}} {{secrets.bar}}");
-    assertThat(replaced).isEqualTo("FOO BAR");
+    var replaced =
+        context.getSecretHandler().replaceSecrets(wrap("{{secrets.foo}} {{secrets.bar}}"));
+    assertThat(replaced.get("value").asText()).isEqualTo("FOO BAR");
+  }
+
+  @Test
+  public void shouldDefaultPropertiesToAnEmptyObject() {
+    assertThat(InboundConnectorContextBuilder.create().build().getProperties()).isEmpty();
   }
 
   private record TestRecord(String foo) {}

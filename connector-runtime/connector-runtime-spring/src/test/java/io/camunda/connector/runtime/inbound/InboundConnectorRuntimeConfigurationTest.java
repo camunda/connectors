@@ -104,7 +104,8 @@ class InboundConnectorRuntimeConfigurationTest {
                 e -> {},
                 TestExecutable.class,
                 EvictingQueue.create(10));
-    return context.getSecretHandler().replaceSecrets("secrets.UNDECLARED");
+    var probe = new ObjectMapper().createObjectNode().put("token", "secrets.UNDECLARED");
+    return context.getSecretHandler().replaceSecrets(probe).get("token").asText();
   }
 
   private String resolveChainedViaElementContext(SecretFilterMode mode) {

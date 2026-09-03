@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -28,25 +29,30 @@ class LazyLoadingSecretFilterTest {
 
   @Test
   void isAllowed_withAllowList_permitsListedSecret() {
-    var filter = new LazyLoadingSecretFilter(() -> List.of("MY_SECRET", "OTHER_SECRET"));
+    var filter =
+        new LazyLoadingSecretFilter(
+            () -> List.of(secret("MY_SECRET", "foo"), secret("OTHER_SECRET", "bar")));
 
-    assertTrue(filter.isAllowed("MY_SECRET"));
-    assertTrue(filter.isAllowed("OTHER_SECRET"));
+    assertTrue(filter.isAllowed(secret("MY_SECRET", "foo")));
+    assertTrue(filter.isAllowed(secret("MY_SECRET", "foo", "nested")));
+    assertTrue(filter.isAllowed(secret("OTHER_SECRET", "bar")));
   }
 
   @Test
   void isAllowed_withAllowList_deniesUnlistedSecret() {
-    var filter = new LazyLoadingSecretFilter(() -> List.of("MY_SECRET"));
+    var filter = new LazyLoadingSecretFilter(() -> List.of(secret("MY_SECRET", "foo", "bar")));
 
-    assertFalse(filter.isAllowed("UNLISTED_SECRET"));
+    assertFalse(filter.isAllowed(secret("UNLISTED_SECRET", "foo", "bar")));
+    assertFalse(filter.isAllowed(secret("MY_SECRET", "foo")));
+    assertFalse(filter.isAllowed(secret("MY_SECRET", "baz")));
   }
 
   @Test
   void isAllowed_withNullSupplierResult_allowsAll() {
     var filter = new LazyLoadingSecretFilter(() -> null);
 
-    assertTrue(filter.isAllowed("ANY_SECRET"));
-    assertTrue(filter.isAllowed("ANOTHER_SECRET"));
+    assertTrue(filter.isAllowed(secret("ANY_SECRET")));
+    assertTrue(filter.isAllowed(secret("ANOTHER_SECRET")));
   }
 
   @Test
@@ -56,12 +62,12 @@ class LazyLoadingSecretFilterTest {
         new LazyLoadingSecretFilter(
             () -> {
               callCount.incrementAndGet();
-              return List.of("SECRET");
+              return List.of(secret("SECRET"));
             });
 
-    filter.isAllowed("SECRET");
-    filter.isAllowed("SECRET");
-    filter.isAllowed("OTHER");
+    filter.isAllowed(secret("SECRET"));
+    filter.isAllowed(secret("SECRET"));
+    filter.isAllowed(secret("OTHER"));
 
     assertTrue(callCount.get() == 1, "Supplier must be called exactly once");
   }
@@ -76,8 +82,8 @@ class LazyLoadingSecretFilterTest {
               return null;
             });
 
-    filter.isAllowed("ANY");
-    filter.isAllowed("ANY");
+    filter.isAllowed(secret("ANY"));
+    filter.isAllowed(secret("ANY"));
 
     assertTrue(callCount.get() == 1, "Supplier must be called exactly once even when null");
   }
@@ -92,8 +98,8 @@ class LazyLoadingSecretFilterTest {
               throw new IllegalArgumentException("lookup failed");
             });
 
-    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed("ANY"));
-    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed("ANY"));
+    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed(secret("ANY")));
+    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed(secret("ANY")));
 
     assertTrue(callCount.get() == 1, "Supplier must not be re-invoked after a cached failure");
   }
@@ -108,9 +114,14 @@ class LazyLoadingSecretFilterTest {
               throw new NoClassDefFoundError("some.missing.Class");
             });
 
-    assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed("UNDECLARED_SECRET"));
-    assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed("ANOTHER_UNDECLARED_SECRET"));
+    assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed(secret("UNDECLARED_SECRET")));
+    assertThrows(
+        NoClassDefFoundError.class, () -> filter.isAllowed(secret("ANOTHER_UNDECLARED_SECRET")));
 
     assertTrue(callCount.get() == 1, "Supplier must not be re-invoked after a cached failure");
+  }
+
+  private static Secret secret(String name, String... fieldPath) {
+    return new Secret(name, List.of(fieldPath));
   }
 }

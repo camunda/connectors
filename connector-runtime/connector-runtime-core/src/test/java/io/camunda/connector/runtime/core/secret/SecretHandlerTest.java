@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +37,9 @@ class SecretHandlerTest {
   @Test
   void replaceSecrets_allowedKey_resolvesFromProvider() {
     when(secretProvider.getSecret("ALLOWED")).thenReturn("VALUE");
-    var handler = new SecretHandler(secretProvider, SecretFilter.allowOnly(List.of("ALLOWED")));
+    var handler =
+        new SecretHandler(
+            secretProvider, SecretFilter.allowOnly(List.of(new Secret("ALLOWED", List.of()))));
 
     var result = handler.replaceSecrets("{{secrets.ALLOWED}}");
 
@@ -45,7 +48,9 @@ class SecretHandlerTest {
 
   @Test
   void replaceSecrets_notAllowedKey_leavesPlaceholderUnreplacedAndNeverCallsProvider() {
-    var handler = new SecretHandler(secretProvider, SecretFilter.allowOnly(List.of("ALLOWED")));
+    var handler =
+        new SecretHandler(
+            secretProvider, SecretFilter.allowOnly(List.of(new Secret("ALLOWED", List.of()))));
 
     var result = handler.replaceSecrets("{{secrets.NOT_ALLOWED}}");
 
