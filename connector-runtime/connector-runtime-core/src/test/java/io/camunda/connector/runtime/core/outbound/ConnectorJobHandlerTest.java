@@ -39,6 +39,7 @@ import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
@@ -48,6 +49,7 @@ import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandSte
 import io.camunda.zeebe.client.api.worker.JobClient;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1267,6 +1269,204 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+    }
+  }
+
+  /** The job's input declares {{secrets.FOO}}, and the called API echoes that value back. */
+  @Nested
+  class ErrorExpressionSecretMaskingTests {
+
+    private static final String ECHOED = FooBarSecretProvider.SECRET_VALUE;
+    private static final String INPUT_DECLARING_A_SECRET = "{ \"token\" : \"{{secrets.FOO}}\" }";
+
+    private ConnectorJobHandler echoingConnector() {
+      return newConnectorJobHandler(context -> Map.of("body", "rejected token " + ECHOED));
+    }
+
+    private ConnectorJobHandler echoingConnectorWithUnreadableSecrets() {
+      return new ConnectorJobHandler(
+          context -> Map.of("body", "rejected token " + ECHOED),
+          new FooBarSecretProvider() {
+            @Override
+            public List<String> fetchAll(List<String> keys, SecretContext context) {
+              throw new RuntimeException("Network error while fetching secrets");
+            }
+          },
+          e -> {},
+          null,
+          null,
+          SecretFilterFactory.disabled());
+    }
+
+    @Test
+    void jobErrorMessageCopyingAResponseIsRedacted() {
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader("jobError(\"Request failed: \" + response.body, {}, 0)")
+              .executeAndCaptureResult(echoingConnector(), false, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .startsWith("Request failed: rejected token ***")
+          .doesNotContain(ECHOED);
+    }
+
+    @Test
+    void jobErrorVariablesCopyingAResponseAreRedacted() {
+      // the incident carries the message as its only variable on this branch: the variables the
+      // expression chose are not published, so the message is where an echoed credential lands
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "jobError(\"failed: \" + response.body, {detail: response.body}, 0)")
+              .executeAndCaptureResult(echoingConnector(), false, false);
+
+      // then
+      assertThat(result.getVariables()).containsEntry("error", "failed: rejected token ***");
+      assertThat(result.getErrorMessage()).doesNotContain(ECHOED);
+    }
+
+    @Test
+    void jobErrorKeepsTheRetriesAndBackoffTheExpressionAsked() {
+      // given
+      var failCommand = mock(FailJobCommandStep1.class);
+      var failCommandStep2 = mock(FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
+      var jobClient = mock(JobClient.class);
+      when(jobClient.newFailCommand(any())).thenReturn(failCommand);
+      when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
+      when(failCommandStep2.errorMessage(any())).thenReturn(failCommandStep2);
+      when(failCommandStep2.retryBackoff(any())).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(any(Object.class))).thenReturn(failCommandStep2);
+
+      // when
+      JobBuilder.create()
+          .useJobClient(jobClient)
+          .withVariables(INPUT_DECLARING_A_SECRET)
+          .withErrorExpressionHeader(
+              "jobError(\"Request failed: \" + response.body, {}, 7, duration(\"PT5M\"))")
+          .execute(echoingConnector());
+
+      // then
+      var messageCaptor = ArgumentCaptor.forClass(String.class);
+      verify(failCommandStep2).errorMessage(messageCaptor.capture());
+      assertThat(messageCaptor.getValue()).doesNotContain(ECHOED);
+      verify(failCommand).retries(7);
+      verify(failCommandStep2).retryBackoff(Duration.ofMinutes(5));
+    }
+
+    @Test
+    void bpmnErrorMessageCopyingAResponseIsRedacted() {
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "bpmnError(\"AUTH_FAILED\", \"Request failed: \" + response.body)")
+              .executeAndCaptureResult(echoingConnector(), false, true);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("Request failed: rejected token ***")
+          .doesNotContain(ECHOED);
+    }
+
+    @Test
+    void bpmnErrorVariablesCopyingAResponseAreRedacted() {
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "bpmnError(\"AUTH_FAILED\", \"failed\", {detail: response.body})")
+              .executeAndCaptureResult(echoingConnector(), false, true);
+
+      // then
+      assertThat(result.getVariables()).containsEntry("detail", "rejected token ***");
+    }
+
+    @Test
+    void bpmnErrorCodeIsNotRedacted() {
+      // boundary events match on the code, so it keeps a value equal to the secret's
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "bpmnError(\"" + ECHOED + "\", \"Request failed: \" + response.body)")
+              .executeAndCaptureResult(echoingConnector(), false, true);
+
+      // then
+      assertThat(result.getErrorCode()).isEqualTo(ECHOED);
+      assertThat(result.getErrorMessage()).doesNotContain(ECHOED);
+    }
+
+    @Test
+    void bpmnErrorWithoutAMessageStaysWithoutOne() {
+      // throwError omits a null message but would set an empty one
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "{ errorType: \"bpmnError\", code: \"AUTH_FAILED\","
+                      + " variables: {detail: response.body} }")
+              .executeAndCaptureResult(echoingConnector(), false, true);
+
+      // then
+      assertThat(result.getErrorMessage()).isNull();
+      assertThat(result.getVariables()).containsEntry("detail", "rejected token ***");
+    }
+
+    @Test
+    void jobErrorIsWithheldWhenItCannotBeRedacted() {
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader("jobError(\"Request failed: \" + response.body, {}, 0)")
+              .executeAndCaptureResult(echoingConnectorWithUnreadableSecrets(), false, false);
+
+      // the fetch failure's own message is withheld too: a provider error can echo the store's body
+      assertThat(result.getErrorMessage())
+          .startsWith("Fetching secrets failed, so the original error cannot be displayed")
+          .contains("java.lang.RuntimeException")
+          .doesNotContain("Network error while fetching secrets")
+          .doesNotContain(ECHOED);
+      assertThat(result.getRetries()).isZero();
+    }
+
+    @Test
+    void bpmnErrorKeepsItsCodeWhenItCannotBeRedacted() {
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader(
+                  "bpmnError(\"AUTH_FAILED\", \"Request failed: \" + response.body,"
+                      + " {detail: response.body})")
+              .executeAndCaptureResult(echoingConnectorWithUnreadableSecrets(), false, true);
+
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("AUTH_FAILED");
+      assertThat(result.getErrorMessage())
+          .startsWith("Fetching secrets failed, so the original error cannot be displayed")
+          .doesNotContain(ECHOED);
+      assertThat(result.getVariables()).isEmpty();
+    }
+
+    @Test
+    void anErrorCarryingNothingToRedactIsLeftAlone() {
+      // no message and no variables, so the read is skipped and the unreadable store costs nothing
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .withErrorExpressionHeader("{ errorType: \"bpmnError\", code: \"AUTH_FAILED\" }")
+              .executeAndCaptureResult(echoingConnectorWithUnreadableSecrets(), false, true);
+
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("AUTH_FAILED");
+      assertThat(result.getErrorMessage()).isNull();
     }
   }
 }

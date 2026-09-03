@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
@@ -41,12 +42,25 @@ class OutboundConnectorExceptionHandlerTest {
       new OutboundConnectorExceptionHandler(new FooBarSecretProvider());
 
   private static ActivatedJob jobWithSecretReference() {
+    return jobNaming("{\"value\":\"{{secrets.FOO}}\"}");
+  }
+
+  private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
-    when(job.getVariables()).thenReturn("{\"value\":\"{{secrets.FOO}}\"}");
+    when(job.getVariables()).thenReturn(variables);
     when(job.getKey()).thenReturn(1L);
     when(job.getTenantId()).thenReturn("tenant");
     when(job.getRetries()).thenReturn(3);
     return job;
+  }
+
+  private static SecretProvider holdingOnly(Map<String, String> secrets) {
+    return new SecretProvider() {
+      @Override
+      public String getSecret(String name, SecretContext context) {
+        return secrets.get(name);
+      }
+    };
   }
 
   @Test
@@ -265,5 +279,66 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(result.exception()).hasMessageContaining("Activity_1");
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+  }
+
+  @Test
+  void masksALongerSecretThatStartsWithAShorterOne() {
+    // Replacing the shorter value first would leave the longer one unmatched and publish its
+    // remainder: "x" before "xSUPERSECRET" turns the message into "***SUPERSECRET".
+    var job = jobNaming("{\"a\": \"{{secrets.SHORT}}\", \"b\": \"{{secrets.LONG}}\"}");
+    var handlerHoldingBoth =
+        new OutboundConnectorExceptionHandler(
+            holdingOnly(Map.of("SHORT", "x", "LONG", "xSUPERSECRET")));
+
+    var result =
+        handlerHoldingBoth.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected xSUPERSECRET"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void anEmptySecretValueDoesNotCorruptTheMessage() {
+    // Replacing "" matches at every position, so a provider answering with one would rewrite the
+    // whole message into separators rather than redact anything.
+    var job = jobNaming("{\"a\": \"{{secrets.BLANK}}\"}");
+    var handlerHoldingABlank =
+        new OutboundConnectorExceptionHandler(holdingOnly(Map.of("BLANK", "")));
+
+    var result =
+        handlerHoldingABlank.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+  }
+
+  @Test
+  void aJobDeclaringNoSecretNeverReachesAProvider() {
+    // fetchAll is overridable, and one that refuses every batch would otherwise withhold the error
+    // message of a job that had nothing to redact in the first place.
+    var job = jobNaming("{\"a\": \"nothing to resolve here\"}");
+    SecretProvider providerThatMustNotBeCalled =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new AssertionError("a job declaring no secret has nothing to resolve");
+            });
+    var handlerWithGuard = new OutboundConnectorExceptionHandler(providerThatMustNotBeCalled);
+
+    var result =
+        handlerWithGuard.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+    assertThat(result.retries()).isEqualTo(2);
   }
 }
