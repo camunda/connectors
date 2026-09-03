@@ -29,7 +29,7 @@
     <version.zeebe-process-test>8.3.0</version.zeebe-process-test>
     <version.commons-text>1.11.0</version.commons-text>
     <version.commons-lang3>3.20.0</version.commons-lang3>
-    <version.spring-boot>3.5.13</version.spring-boot>
+    <version.spring-boot>3.5.16</version.spring-boot>
   </properties>
 
   <dependencyManagement>
@@ -88,12 +88,12 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>${version.bouncycastle}</version>
+      <version>${version.bouncycastle.bcpkix}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <version>${version.bouncycastle}</version>
+      <version>${version.bouncycastle.bcprov}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
