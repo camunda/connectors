@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -56,6 +57,9 @@ public class ConnectorJobHandler implements JobHandler {
   // Protects Zeebe from enormously large messages it cannot handle
   public static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
+
+  private static final Duration ALLOW_LIST_RETRY_BACKOFF = Duration.ofSeconds(5);
+
   protected final OutboundConnectorFunction call;
   protected SecretProvider secretProvider;
 
@@ -205,7 +209,9 @@ public class ConnectorJobHandler implements JobHandler {
       if (ex instanceof ConnectorException connectorException) {
         errorCode = connectorException.getErrorCode();
       }
-      result = handleSDKException(job, ex, job.getRetries() - 1, errorCode, retryBackoff);
+      result =
+          handleSDKException(
+              job, ex, job.getRetries() - 1, errorCode, retryBackoffFor(ex, retryBackoff));
     }
 
     try {
@@ -252,6 +258,20 @@ public class ConnectorJobHandler implements JobHandler {
               jobError.retries(),
               jobError.retryBackoff()));
     }
+  }
+
+  /**
+   * An allow-list that could not be read means no secret value ever reached the input, and the
+   * lookup behind it reads the process definition from secondary storage, which a just-deployed
+   * definition has yet to reach. That race resolves on the next attempt, so the read gets its own
+   * backoff rather than the model's: the model's paces calls to the target system, which this
+   * failure never reached, and it is zero in older element template versions -- which spent every
+   * remaining attempt within milliseconds.
+   */
+  private static Duration retryBackoffFor(Exception failure, Duration configured) {
+    return failure instanceof SecretAllowListUnavailableException
+        ? ALLOW_LIST_RETRY_BACKOFF
+        : configured;
   }
 
   private ConnectorResult handleSDKException(
