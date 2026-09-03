@@ -241,24 +241,40 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_laterChildOverwriteShadowsTheParentForAReferenceToThatChild()
-      throws IOException {
+  void getSecretKeys_laterChildWriteRevokesTheAncestorGrant() throws IOException {
     // authentication = secrets.WHOLE_SECRET is declared first; authentication.token is then
-    // overwritten with a plain, non-secret value. url references authentication.token
-    // specifically -- by then the nearest effective writer of that exact field is the plain
-    // overwrite, not the earlier secret-bearing parent, so WHOLE_SECRET must not reach url.
-    // wholeObjectRead references the whole authentication object instead, which still legitimately
-    // picks up WHOLE_SECRET.
+    // written by a later mapping. A grant is a path prefix, so a grant at [authentication] also
+    // authorizes a lookup at authentication.token -- the field the later mapping controls. If that
+    // mapping's source were process data rather than the fixture's literal, a placeholder in it
+    // would resolve WHOLE_SECRET, a secret that value never carried. The whole grant therefore
+    // goes, at the parent's own path and at wholeObjectRead, which copies the object afterwards.
+    // Nothing is lost here: the child write replaces the parent's scalar with an object, so the
+    // secret's text is not present at runtime under authentication at all.
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-child-overwrite.bpmn"));
 
     var keys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
 
-    assertThat(keys)
-        .contains(
-            new Secret("WHOLE_SECRET", List.of("authentication")),
-            new Secret("WHOLE_SECRET", List.of("wholeObjectRead")))
-        .doesNotContain(new Secret("WHOLE_SECRET", List.of("url")));
+    assertThat(keys).isEmpty();
+  }
+
+  @Test
+  void getSecretKeys_laterChildWriteRevokesAnAncestorGrantThatNestsItsSecretElsewhere()
+      throws IOException {
+    // The fail-closed half of the rule above, pinned deliberately. Here the parent's own FEEL
+    // object nests USER at authentication.user, which the later authentication.token write does
+    // not touch -- so the grant is legitimate for that one field and only over-broad for the
+    // shadowed sibling. A prefix cannot express "under authentication except .token", so the
+    // grant is dropped rather than narrowed, and USER stops resolving on this element. Accepted
+    // over-denial: the alternative is authorizing the secret at a field a later mapping fills
+    // from process data.
+    when(xmlRequest.execute())
+        .thenReturn(loadBpmn("outbound-with-nested-parent-and-child-overwrite.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys).isEmpty();
   }
 
   @Test

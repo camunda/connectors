@@ -203,6 +203,28 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
       effectiveTargets.put(ownPath, input);
     }
 
+    // A later mapping that writes a path *beneath* an earlier one replaces that part of what the
+    // earlier input produced -- and a grant is a path prefix, so it cannot say "everything under
+    // `path` except that subtree". Such a writer therefore grants nothing at its own path and
+    // propagates nothing to the inputs that read it: `authentication = secrets.WHOLE` followed by
+    // `authentication.token = someVariable` would otherwise authorize WHOLE at
+    // authentication.token, because the declared path is a prefix of it -- letting that later,
+    // potentially process-controlled value resolve a secret it never carried -- and equally at any
+    // field that copies the whole object afterwards. Any descendant still in effectiveTargets was
+    // necessarily written *after* this input, since this input's own write evicted the ones before
+    // it. This is the parent-overwrite rule above, applied in the other direction, and fails
+    // closed the same way: a parent whose expression nests a secret under a path a later mapping
+    // does not touch (`authentication = {user: "{{secrets.USER}}"}` alongside
+    // `authentication.token = ...`) loses its grant too, since a prefix cannot express the
+    // difference.
+    Set<ZeebeInput> shadowedWriters =
+        inputs.stream()
+            .filter(
+                candidate ->
+                    effectiveTargets.keySet().stream()
+                        .anyMatch(deeper -> isProperPrefix(pathByInput.get(candidate), deeper)))
+            .collect(Collectors.toSet());
+
     List<Secret> result = new ArrayList<>();
     for (ZeebeInput input : inputs) {
       List<String> path = pathByInput.get(input);
@@ -216,7 +238,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
       // gate the dependency walk below too, not just the own-grant: a dependency chain still
       // computes what *this* input's expression would have carried, which is moot once something
       // else, not this input, is what the runtime field actually holds.
-      if (effectiveTargets.get(path) != input) {
+      if (effectiveTargets.get(path) != input || shadowedWriters.contains(input)) {
         continue;
       }
       ownSecretNamesByInput.get(input).forEach(name -> result.add(new Secret(name, path)));
@@ -228,7 +250,9 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         if (!visited.add(dependency)) {
           continue;
         }
-        ownSecretNamesByInput.get(dependency).forEach(name -> result.add(new Secret(name, path)));
+        if (!shadowedWriters.contains(dependency)) {
+          ownSecretNamesByInput.get(dependency).forEach(name -> result.add(new Secret(name, path)));
+        }
         pending.addAll(directDependencies.getOrDefault(dependency, List.of()));
       }
     }
