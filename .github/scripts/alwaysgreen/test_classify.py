@@ -689,3 +689,70 @@ def test_a_mixed_report_stays_dispatchable_but_still_carries_its_setup_failures(
     assert [s.file for s in specs if not classify.is_setup_spec(s.file)] == [
         "tests/8.10/smoke-tests.spec.ts"
     ]
+
+
+def test_provisioning_is_dispatchable_now():
+    # It used to be report-only, on the assumption that a setup failure is always the
+    # environment. It is not: a setup spec can go stale against a changed Modeler UI
+    # exactly like any other spec, and only the screenshot tells the two apart.
+    assert classify.SURFACE_SAAS_PROVISIONING in classify.DISPATCHABLE_SURFACES
+    # These two stay report-only: no report, or nothing failed, means no evidence.
+    assert classify.SURFACE_SAAS_INFRA not in classify.DISPATCHABLE_SURFACES
+    assert classify.SURFACE_HELM_INSTALL not in classify.DISPATCHABLE_SURFACES
+
+
+def test_setup_only_report_is_provisioning_and_keeps_its_specs():
+    # Verbatim shape of connectors run 33520908181 -> downstream 33523909230: three
+    # users all failing to create a project folder, nothing else failing.
+    report = _nested_report(
+        [
+            {"file": "test-setup.spec.ts", "title": f"Create Project Folder for User {n}",
+             "ok": False,
+             "tests": [{"results": [{"status": "failed"}, {"status": "failed"}]}]}
+            for n in (1, 2, 3)
+        ]
+    )
+    counts = classify.count_specs(report)
+    assert (counts.failed, counts.setup_failed) == (3, 3)
+    assert (
+        classify.saas_surface_from_counts(counts, has_artifacts=True)
+        == classify.SURFACE_SAAS_PROVISIONING
+    )
+
+    specs = classify.failing_specs(report, suite="8.8")
+    assert len(specs) == 3
+    assert all(classify.is_setup_spec(s.file) for s in specs)
+    # Both attempts failed, so the agent is told this is deterministic, not flaky —
+    # which matters because the flaky remedy here would be a wait that hides a dead org.
+    assert all(s.deterministic for s in specs)
+
+
+def test_the_same_spec_from_two_generations_becomes_one_entry():
+    # 8.8 and 8.9 publish json-report-<v>-v1 and -v2, so a failure appears in both.
+    a = classify.FailingSpec(file="tests/8.8/test-setup.spec.ts", test_name="t",
+                             statuses=["failed", "failed"], attempts=2, error="boom")
+    b = classify.FailingSpec(file="tests/8.8/test-setup.spec.ts", test_name="t",
+                             statuses=["failed", "failed"], attempts=2)
+    merged = classify.merge_specs([a, b])
+    assert len(merged) == 1
+    assert merged[0].attempts == 4
+    assert merged[0].deterministic
+    assert merged[0].error == "boom"
+
+
+def test_a_spec_that_passed_in_one_generation_merges_as_flaky():
+    # The direction that matters: if either generation eventually passed, the agent must
+    # be told flaky, not deterministic — otherwise it makes a behavioural change to a
+    # test that already passes somewhere.
+    a = classify.FailingSpec(file="f", test_name="t", statuses=["failed", "failed"])
+    b = classify.FailingSpec(file="f", test_name="t", statuses=["failed", "passed"])
+    merged = classify.merge_specs([a, b])
+    assert len(merged) == 1
+    assert not merged[0].deterministic
+
+
+def test_distinct_specs_are_left_alone():
+    a = classify.FailingSpec(file="f", test_name="one", statuses=["failed"])
+    b = classify.FailingSpec(file="f", test_name="two", statuses=["failed"])
+    assert len(classify.merge_specs([a, b])) == 2
+    assert classify.merge_specs([]) == []
