@@ -98,12 +98,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.11</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.12</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.11</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.54.12</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.11</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.54.12</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -119,7 +119,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.72.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.68.0</version.google-genai>
+    <version.google-genai>1.70.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -190,7 +190,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
-    <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
+    <plugin.version.maven-surefire-plugin>3.6.0</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.10.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
   </properties>
