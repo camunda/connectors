@@ -62,7 +62,6 @@ public class SecretUtil {
     return output.append(input, lastIndex, input.length()).toString();
   }
 
-  // containsKey, not computeIfAbsent: a map reports a denied name's null as absent.
   private static @Nullable String resolve(
       String name,
       SecretContext context,
@@ -88,9 +87,11 @@ public class SecretUtil {
   }
 
   /**
-   * Every secret name the given text declares, in any of the three forms. Names are exactly those
-   * {@link #replaceSecrets} looks up, so an allow-list built from this can neither admit nor deny a
-   * name that method reads differently.
+   * Every secret name the given text declares, in any of the three forms, read by the same scan
+   * {@link #replaceSecrets} uses: a name that method asks a legacy provider for appears here
+   * spelled exactly as it asks for it, and no name appears that the scan never read. The {@code
+   * camunda.secrets.<name>} form is reported too, though the cluster resolves that one rather than
+   * this class.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return keysIn(input, "braced", "bare", "reference");

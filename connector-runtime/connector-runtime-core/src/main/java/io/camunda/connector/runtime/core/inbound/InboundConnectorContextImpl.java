@@ -175,8 +175,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   /**
    * Scoped to the very text it is about to filter, so a name that text does not declare in a legacy
-   * form is refused. Replacement feeds its own output through a second pattern pass, so a resolved
-   * value containing reference-shaped text would otherwise reach a secret no model declares.
+   * form is refused -- a name only a sibling element declares, or one a caller passes text of its
+   * own for, would otherwise reach a secret this element's model never names.
    *
    * <p>Only the legacy forms count as declared: {@link SecretHandler#replaceSecrets} never resolves
    * the new {@code camunda.secrets.<name>} form, so a name appearing only in that form is not one

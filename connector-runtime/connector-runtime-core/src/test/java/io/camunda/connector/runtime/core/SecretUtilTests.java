@@ -212,6 +212,15 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldAskForEveryDeniedNameAtMostOnce() {
+    var asked = new ArrayList<String>();
+    var input = "{{secrets.DENIED}} secrets.DENIED {{secrets.DENIED}}";
+
+    assertThat(SecretUtil.replaceSecrets(input, null, recording(asked, Map.of()))).isEqualTo(input);
+    assertThat(asked).containsExactly("DENIED");
+  }
+
+  @Test
   void shouldScanAPayloadOfDeniedReferencesOnce() {
     var asked = new ArrayList<String>();
     var payload =
