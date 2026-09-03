@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -140,6 +141,11 @@ public class JobHandlerContext extends AbstractConnectorContext
    * for small-magnitude values (e.g. {@code 0.00000001} -> {@code 1E-8}) even though the digits
    * themselves survived parsing. {@code WRITE_BIGDECIMAL_AS_PLAIN} keeps the plain-decimal form the
    * raw job JSON used.
+   *
+   * <p>Jackson refuses plain output for a {@code BigDecimal} whose scale falls outside ±9999 (e.g.
+   * {@code 1e-10000}, which parses fine into a {@code DecimalNode}). Such a document is written
+   * without the feature instead, i.e. in scientific notation — the same text the previous
+   * raw-string path returned — rather than failing the job.
    */
   private String writeJson(JsonNode node) {
     try {
@@ -147,6 +153,16 @@ public class JobHandlerContext extends AbstractConnectorContext
           .writer()
           .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
           .writeValueAsString(node);
+    } catch (JsonGenerationException e) {
+      return writeJsonWithoutPlainDecimals(node);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
+  }
+
+  private String writeJsonWithoutPlainDecimals(JsonNode node) {
+    try {
+      return objectMapper.writeValueAsString(node);
     } catch (JsonProcessingException e) {
       throw translateJsonException(e);
     }

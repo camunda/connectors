@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.test.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -242,12 +243,27 @@ public class OutboundConnectorContextBuilder {
           new TestJobContext(() -> headers, () -> writeVariablesAsJson(variablesWithSecrets));
     }
 
+    /**
+     * Mirrors {@code JobHandlerContext#writeJson}: plain-decimal output, falling back to scientific
+     * notation for a {@code BigDecimal} whose scale falls outside the ±9999 range Jackson accepts
+     * for plain output (e.g. {@code new BigDecimal("1e-10000")}).
+     */
     private String writeVariablesAsJson(JsonNode node) {
       try {
         return objectMapper
             .writer()
             .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
             .writeValueAsString(node);
+      } catch (JsonGenerationException e) {
+        return writeVariablesWithoutPlainDecimals(node);
+      } catch (JsonProcessingException e) {
+        throw new IllegalStateException("Failed to serialize variables: " + node, e);
+      }
+    }
+
+    private String writeVariablesWithoutPlainDecimals(JsonNode node) {
+      try {
+        return objectMapper.writeValueAsString(node);
       } catch (JsonProcessingException e) {
         throw new IllegalStateException("Failed to serialize variables: " + node, e);
       }

@@ -118,6 +118,17 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void getVariables_fallsBackToScientificNotationForOutOfRangeDecimalScale() {
+    // Jackson accepts plain output only for a BigDecimal scale within +-9999, and both of these
+    // parse into a DecimalNode outside it. Serializing must fall back to scientific notation, as
+    // the raw job JSON string did, rather than throwing.
+    stubVariables("{ \"tiny\": 1e-10000, \"huge\": 1e+10001 }");
+    assertThat(jobHandlerContext.getJobContext().getVariables())
+        .contains("1E-10000")
+        .contains("1E+10001");
+  }
+
+  @Test
   void getLeaseToken() {
     when(activatedJob.getLeaseToken()).thenReturn("lease-token-1");
     assertThat(jobHandlerContext.getJobContext().getLeaseToken()).isEqualTo("lease-token-1");

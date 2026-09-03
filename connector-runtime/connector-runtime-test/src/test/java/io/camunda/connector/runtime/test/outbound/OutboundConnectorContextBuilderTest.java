@@ -52,6 +52,16 @@ public class OutboundConnectorContextBuilderTest {
   }
 
   @Test
+  public void getVariables_fallsBackToScientificNotationForOutOfRangeDecimalScale() {
+    // Jackson accepts plain output only for a BigDecimal scale within +-9999.
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("decimal", new java.math.BigDecimal("1e-10000")))
+            .build();
+    assertThat(context.getJobContext().getVariables()).contains("1E-10000");
+  }
+
+  @Test
   public void shouldProvideVariablesAsMapAndReplaceSecrets() {
     var properties = Map.of("foo", "{{secrets.FOO}}");
     var context =
