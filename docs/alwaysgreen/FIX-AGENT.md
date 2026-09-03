@@ -103,42 +103,22 @@ Read PNG screenshots directly. For a trace: `unzip -l trace.zip`, then extract w
    `camunda-docs/versioned_docs/version-<X.Y>/` and cite it in the PR body. Match the
    version tree exactly. Skip this for pure selector drift.
 
-## A `saas-setup` dispatch
+## `saas-setup` — reported, not dispatched
+
+You will not be dispatched for this surface, and it is worth knowing why, because it is
+the shape a whole class of SaaS red turns out to be.
 
 The surface is `saas-setup` when **every** failing spec in the SaaS report is
-`test-setup.spec.ts` — the org or the cluster never came up, so no real test ever ran.
-It is dispatched, and it is the one dispatch where the fix is usually **not** in a spec
-body.
+`test-setup.spec.ts` — the org or the cluster never came up, so no real test ran. It is
+classified, summarised and routed to its medic, but no agent is sent.
 
-What the evidence looks like: one or a few failing setup specs, and an error naming an
-external call — an OAuth token endpoint, the QA organizations endpoint, a cluster that
-never reached ready. Read it before deciding anything.
-
-Where the fix goes, in order of likelihood:
-
-1. **A transient external failure** — a 5xx or a timeout from the token or organizations
-   endpoint. Harden the step that makes the call: retry with backoff and an explicit
-   per-attempt timeout, so a blip self-heals. Do **not** add `continue-on-error`, and do
-   not widen a timeout so far that a real outage looks green. A sustained outage must
-   still go red. The dispatch prompt widens your edit scope for this surface to cover
-   those workflow, action and script files; nothing outside the scope it states is
-   yours to change, whatever this section suggests.
-2. **The setup spec waits wrongly** — it proceeds before the org or cluster is actually
-   ready. Fix the waiting in `tests/<version>/test-setup.spec.ts` or the helper it calls.
-3. **The call is failing for a real reason** — a malformed request, a bad credential, a
-   quota. Retrying will not help; fix the cause.
-
-If it is genuinely a platform outage with nothing on our side to harden, that is a
-legitimate "no fix determined" — say so in `/tmp/fix-meta.json` with the evidence.
-
-What this dispatch must never become: a weakened setup assertion, a skipped setup step,
-or a test that proceeds without the org it needs. That converts an environment failure
-into a fleet of confusing downstream failures.
-
-Note the split. If a report has setup failures **and** a real spec failure, it is a
-`saas-smoke-e2e` dispatch and the setup specs are deliberately withheld from it — you
-will not be asked to fix both at once. The provisioning half comes back on its own as
-`saas-setup`.
+Not because it is unfixable: the fix is usually retry-with-backoff on the org-creation
+call, or better waiting in the setup spec. It is because that call lives in workflow and
+action files shared by every version, while every dedupe layer is keyed per base ref —
+the dispatch key, the in-flight check, and the spec-path claim, which only ever inspects
+a candidate's spec paths. A provisioning outage fails setup on main and every stable
+branch at once, so dispatching it would put several agents on one shared file with
+nothing serialising them. It needs a claim that spans base refs first.
 
 ## Regression, or an intended change the test has not caught up with?
 
@@ -235,7 +215,6 @@ behind them:
 | `saas-smoke-e2e` on `main`       | `tests/8.10/`, `pages/8.10/`       | `charts/camunda-platform-8.10/` |
 | `sm-smoke-e2e` on `stable/8.9`   | `tests/SM-8.9/`, `pages/SM-8.9/`   | `charts/camunda-platform-8.9/`  |
 | `saas-smoke-e2e` on `stable/8.9` | `tests/8.9/`, `pages/8.9/`         | `charts/camunda-platform-8.9/`  |
-| `saas-setup` on any branch       | `tests/<version>/`, `pages/<version>/`, **plus** the workflow/action files that provision the SaaS org and the scripts they call | — |
 
 `stable/8.8` and `stable/8.7` follow the same pattern.
 

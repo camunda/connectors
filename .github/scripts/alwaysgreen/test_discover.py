@@ -293,13 +293,19 @@ def test_a_mixed_report_dispatches_the_real_spec_without_the_setup_one(monkeypat
 # ---------------------------------------------------------------------------
 
 
-def _stub_run_and_jobs(monkeypatch, run_conclusion, jobs):
-    """Serve a run's metadata and its job list from one stubbed gh caller."""
+def _stub_run_and_jobs(monkeypatch, run_conclusion, jobs, *, pages=1):
+    """Serve a run's metadata and its job list from one stubbed gh caller.
+
+    The job listing comes back as a LIST of page objects, because failing_jobs asks for
+    it with `--paginate --slurp`. `pages` splits the jobs across that many pages, which
+    is the shape a run over 100 jobs actually produces.
+    """
 
     def fake(args, default):
         path = args[-1]
         if path.endswith("/jobs?per_page=100"):
-            return ({"jobs": jobs}, "")
+            per = max(1, -(-len(jobs) // pages))
+            return ([{"jobs": jobs[i : i + per]} for i in range(0, len(jobs), per)] or [{"jobs": []}], "")
         return ({"conclusion": run_conclusion}, "")
 
     monkeypatch.setattr(discover, "gh_json_ex", fake)
@@ -346,8 +352,17 @@ def test_an_unreadable_run_conclusion_keeps_the_wider_set(monkeypatch):
     def fake(args, default):
         path = args[-1]
         if path.endswith("/jobs?per_page=100"):
-            return ({"jobs": [{"name": "x", "conclusion": "timed_out"}]}, "")
+            return ([{"jobs": [{"name": "x", "conclusion": "timed_out"}]}], "")
         return (None, "boom")
 
     monkeypatch.setattr(discover, "gh_json_ex", fake)
     assert [j["name"] for j in discover.failing_jobs("1")] == ["x"]
+
+
+def test_jobs_beyond_the_first_page_are_still_classified(monkeypatch):
+    # A single-page request silently truncates the run, so the classifier would report a
+    # later-page failure as absent while the gate that invoked it had counted it.
+    jobs = [{"name": f"j{i}", "conclusion": "success"} for i in range(120)]
+    jobs[110] = {"name": "late-failure", "conclusion": "failure"}
+    _stub_run_and_jobs(monkeypatch, "success", jobs, pages=2)
+    assert [j["name"] for j in discover.failing_jobs("1")] == ["late-failure"]

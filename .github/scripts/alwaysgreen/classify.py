@@ -101,10 +101,14 @@ def normalise_base_ref(ref: str) -> str:
 SURFACE_SM_E2E = "sm-smoke-e2e"
 SURFACE_SAAS_E2E = "saas-smoke-e2e"
 #: The SaaS setup/provisioning stage: every failing spec in the report is
-#: test-setup.spec.ts, so the org or cluster never came up. Wire name kept short
-#: deliberately — it becomes part of the `ag-key:<source>:<base_ref>:<surface>` label and
-#: GitHub caps a label at 50 characters, which "saas-provisioning" overflows for the
-#: longest source in test_plan.py's matrix. A missing label silently disables dedupe.
+#: test-setup.spec.ts, so the org or cluster never came up.
+#:
+#: The wire name is short on purpose, and it matters the day this becomes dispatchable:
+#: the surface goes into the `ag-key:<source>:<base_ref>:<surface>` label, GitHub caps a
+#: label at 50 characters, and "saas-provisioning" overflows it for the longest source in
+#: test_plan.py's matrix. A label that is never created disables dedupe with no error.
+#: test_key_labels_fit_githubs_length_limit only walks DISPATCHABLE_SURFACES, so it will
+#: not catch the regression until then.
 SURFACE_SAAS_PROVISIONING = "saas-setup"
 SURFACE_SAAS_INFRA = "saas-infra"
 SURFACE_HELM_INSTALL = "helm-install"
@@ -117,14 +121,22 @@ SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 
 #: Surfaces handed to the fix agent. Everything else is recorded and reported only.
 #:
-#: SURFACE_SAAS_PROVISIONING is here because a provisioning failure IS actionable, just
-#: not in a spec body: the e2e repository owns the org-creation workflow steps and the
-#: setup spec's waiting, and hardening a flaky external call is the agent's documented
-#: job. What stays out is SURFACE_SAAS_INFRA, where the report is missing or has no
-#: failing spec at all — an agent handed no evidence has nothing to work from.
-DISPATCHABLE_SURFACES = frozenset(
-    {SURFACE_SM_E2E, SURFACE_SAAS_E2E, SURFACE_SAAS_PROVISIONING}
-)
+#: SURFACE_SAAS_PROVISIONING is a provisioning failure, and it IS actionable — but not
+#: inside a version directory. The fix lives in the org-creation workflow step or the
+#: setup spec's waiting, and the workflow and action files are shared across every
+#: version, while every dedupe layer here is keyed per base ref: the dispatch key, the
+#: in-flight check and the spec-path claim, which only ever looks at a candidate's spec
+#: paths. A provisioning outage fails setup on main AND every stable branch at once --
+#: that is the normal shape of an org-endpoint 5xx, not a corner case -- so dispatching
+#: it would put several agents on one shared file with nothing serialising them.
+#:
+#: It stays reported-only until a claim exists that spans base refs. Same root cause as
+#: stable/8.10's exclusion in connectors-streak-detector.yml: remits that overlap while
+#: keys do not.
+#:
+#: SURFACE_SAAS_INFRA stays out for a different reason: a missing report, or one with no
+#: failing spec, is no evidence at all.
+DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
 #: carries no independent signal.

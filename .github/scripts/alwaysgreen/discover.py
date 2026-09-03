@@ -194,17 +194,28 @@ def failing_jobs(run_id: str) -> list[dict]:
     triage. The caller turns this into a non-zero exit so the workflow reports a
     failed classification instead of a quiet all-clear.
     """
+    # --paginate --slurp, not a bare request: past 100 jobs a single page silently
+    # truncates the run, and the classifier would report a later-page failure as absent
+    # while the gate that invoked it had counted the whole run. --slurp turns the
+    # per-page documents into one array so json.loads sees valid JSON.
     data, err = gh_json_ex(
-        ["api", f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100"], None
+        [
+            "api", "--paginate", "--slurp",
+            f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100",
+        ],
+        None,
     )
-    if data is None or not isinstance(data, dict):
+    if not isinstance(data, list):
         raise DiscoveryError(f"could not list jobs for run {run_id}: {err.strip()[:200]}")
-    countable = countable_conclusions(run_id)
-    return [
+    jobs = [
         j
-        for j in (data.get("jobs") or [])
-        if isinstance(j, dict) and j.get("conclusion") in countable
+        for page in data
+        if isinstance(page, dict)
+        for j in (page.get("jobs") or [])
+        if isinstance(j, dict)
     ]
+    countable = countable_conclusions(run_id)
+    return [j for j in jobs if j.get("conclusion") in countable]
 
 
 # ---------------------------------------------------------------------------

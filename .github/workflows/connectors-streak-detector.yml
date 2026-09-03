@@ -341,8 +341,15 @@ jobs:
 
           # filter=latest so a re-run of the pipeline is judged on its newest attempt,
           # not on failures a later attempt has already cleared.
-          jobs_json=$(gh api --paginate \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100")
+          #
+          # --slurp, then flatten to one object. Without it `--paginate` emits one JSON
+          # document PER PAGE, so past 100 jobs every query below runs once per page: the
+          # `| length` tests then produce two numbers, and `[ "1\n0" -gt 0 ]` aborts the
+          # step under `set -e`. Verified. This pipeline is at ~20 jobs today, so it is a
+          # latent break rather than a live one -- but it breaks the gate, not a report.
+          jobs_json=$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
+            | jq '{jobs: [.[].jobs[]]}')
 
           # Fail loudly on anything that is not a job listing. The whole point of this
           # workflow is that a real failure must not read as a green run, so an
@@ -557,10 +564,21 @@ jobs:
             if [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ]; then
               # Top-level messages only: a thread reply carries thread_ts, and replying
               # under a reply would nest the agent's update out of sight.
-              ts=$(jq -r --arg url "$RUN_URL" '
+              #
+              # The run URL alone does not identify the feedback message -- the streak
+              # job in this same workflow embeds the very same URL as "Latest failing
+              # run", and on a run that crosses the threshold it can post or update that
+              # message before this lookup. Triage would then reply into the shared
+              # per-branch streak thread instead of the per-run feedback thread. The
+              # streak markers are the discriminator, and they are right here in `env`.
+              ts=$(jq -r --arg url "$RUN_URL" \
+                        --arg active "$STREAK_MARKER_ACTIVE" \
+                        --arg resolved "$STREAK_MARKER_RESOLVED" '
                 [ .messages[]
                   | select(has("thread_ts") | not)
-                  | select((.text // "") | contains($url)) ]
+                  | select((.text // "") | contains($url))
+                  | select((.text // "") | contains($active) | not)
+                  | select((.text // "") | contains($resolved) | not) ]
                 | first | .ts // ""
               ' <<<"$resp")
             else

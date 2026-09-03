@@ -55,13 +55,12 @@ def test_non_dispatchable_surface_is_recorded_not_dispatched():
     assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
 
 
-def test_saas_setup_is_dispatched():
-    # A provisioning failure is actionable — the org-creation step or the setup spec's
-    # waiting — so it is dispatched rather than reported only. Its evidence is the setup
-    # spec, which discover deliberately keeps for this surface alone.
+def test_saas_setup_is_reported_not_dispatched():
+    # Actionable, but the fix lives in workflow files shared across every version while
+    # every dedupe layer is keyed per base ref — so it waits for a cross-ref claim.
     result = _plan([_cand(surface=classify.SURFACE_SAAS_PROVISIONING)])
-    assert result.suppressed == []
-    assert [c.surface for c in result.dispatches] == [classify.SURFACE_SAAS_PROVISIONING]
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
 
 
 def test_saas_infra_is_still_not_dispatched():

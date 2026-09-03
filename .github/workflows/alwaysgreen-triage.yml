@@ -264,6 +264,12 @@ jobs:
           RUN_ID: ${{ steps.target.outputs.run_id }}
           BASE_REF: ${{ steps.target.outputs.base_ref }}
           MAX_DISPATCHES: ${{ inputs.max_dispatches || '2' }}
+          # Repository variables are not exported to the process environment on their
+          # own, so without these two lines the dials the module docstrings advertise
+          # cannot be turned: discover.py would always see its compiled-in defaults.
+          # Empty when the variable is unset, which is what _ttl_hours falls back on.
+          ALWAYSGREEN_PR_LOCK_TTL_HOURS: ${{ vars.ALWAYSGREEN_PR_LOCK_TTL_HOURS }}
+          ALWAYSGREEN_PATH_CLAIM_TTL_HOURS: ${{ vars.ALWAYSGREEN_PATH_CLAIM_TTL_HOURS }}
           # Explicit rather than relying on the script default, so a replay dispatched
           # from a fork or a rename still reads the repository it is actually running in.
           ALWAYSGREEN_REPO: ${{ github.repository }}
