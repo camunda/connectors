@@ -381,20 +381,39 @@ jobs:
           RUN_CONCLUSION: ${{ steps.run.outputs.conclusion }}
           HEAD_BRANCH: ${{ steps.run.outputs.head_branch }}
           IS_REPLAY: ${{ github.event_name == 'workflow_dispatch' }}
+          EVENT_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: |
           set -euo pipefail
 
-          # filter=latest so a re-run of the pipeline is judged on its newest attempt,
-          # not on failures a later attempt has already cleared.
+          # The attempt this listener was fired for, by its own endpoint, when there is
+          # one. `filter=latest` reads whatever the newest attempt happens to be AT THE
+          # MOMENT OF THE REQUEST, so the earlier stale check could only ever narrow the
+          # window, not close it: a re-run starting between that check and this request
+          # left this listener scanning the new attempt's partial job list, and the new
+          # attempt's own listener classifying it again afterwards. An attempt's job list
+          # is immutable, so asking for it by number removes the race instead of
+          # shrinking it.
           #
+          # A replay has no attempt to be faithful to -- a typed run id means "whatever
+          # that run looks like now" -- so it keeps `filter=latest`.
+          #
+          # Residual, deliberately: a re-run that starts after this point is classified
+          # by its own listener, not this one. Two attempts, two classifications, each
+          # complete and correct for what it judged; the dispatch dedupe covers the
+          # overlap between them. That is the honest outcome, unlike one listener
+          # reporting on half of somebody else's attempt.
+          if [ -n "${EVENT_RUN_ATTEMPT:-}" ]; then
+            jobs_path="repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/attempts/${EVENT_RUN_ATTEMPT}/jobs?per_page=100"
+          else
+            jobs_path="repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100"
+          fi
+
           # --slurp, then flatten to one object. Without it `--paginate` emits one JSON
           # document PER PAGE, so past 100 jobs every query below runs once per page: the
           # `| length` tests then produce two numbers, and `[ "1\n0" -gt 0 ]` aborts the
           # step under `set -e`. Verified. This pipeline is at ~20 jobs today, so it is a
           # latent break rather than a live one -- but it breaks the gate, not a report.
-          jobs_json=$(gh api --paginate --slurp \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
-            | jq '{jobs: [.[].jobs[]]}')
+          jobs_json=$(gh api --paginate --slurp "$jobs_path" | jq '{jobs: [.[].jobs[]]}')
 
           # Fail loudly on anything that is not a job listing. The whole point of this
           # workflow is that a real failure must not read as a green run, so an
