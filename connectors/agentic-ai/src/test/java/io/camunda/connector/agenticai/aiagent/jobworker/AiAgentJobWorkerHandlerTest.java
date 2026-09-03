@@ -23,11 +23,13 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
@@ -144,6 +146,10 @@ class AiAgentJobWorkerHandlerTest {
     when(job.getKey()).thenReturn(123456L);
     when(job.getType()).thenReturn(AiAgentJobWorker.JOB_WORKER_TYPE);
     when(job.getCustomHeaders()).thenReturn(jobHeaders);
+    lenient().when(job.getVariables()).thenReturn("{}");
+    lenient()
+        .when(job.getVariablesAsType(ObjectNode.class))
+        .thenAnswer(invocation -> OBJECT_MAPPER.readValue(job.getVariables(), ObjectNode.class));
 
     when(executionContextFactory.createExecutionContext(eq(camundaClient), eq(job), anyList()))
         .thenAnswer(

@@ -25,11 +25,14 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import java.time.Duration;
@@ -46,6 +49,8 @@ import org.slf4j.LoggerFactory;
 
 class OutboundConnectorExceptionHandlerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final OutboundConnectorExceptionHandler handler =
       new OutboundConnectorExceptionHandler(new FooBarSecretProvider());
 
@@ -61,10 +66,19 @@ class OutboundConnectorExceptionHandlerTest {
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getKey()).thenReturn(1L);
     when(job.getTenantId()).thenReturn("tenant");
     when(job.getRetries()).thenReturn(3);
     return job;
+  }
+
+  private static ObjectNode readTree(String json) {
+    try {
+      return (ObjectNode) OBJECT_MAPPER.readTree(json);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -334,7 +348,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handlerOverStore.manageConnectorJobHandlerException(
-            new SecretNotAvailableException("BAR"),
+            new SecretNotAvailableException(new Secret("BAR", List.of("b"))),
             job,
             Duration.ofSeconds(1),
             SecretFilter.allowAll(),
@@ -359,6 +373,30 @@ class OutboundConnectorExceptionHandlerTest {
             List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and ***");
+  }
+
+  @Test
+  void aSecretOccurringAtSeveralPathsIsLookedUpOnlyOnce() {
+    // Secret now carries fieldPath, so TOKEN at three different paths is three distinct Secret
+    // values; the re-read must still collapse them into a single provider lookup by name rather
+    // than fetching the same secret once per path it occurs at.
+    var job =
+        jobNaming(
+            "{\"a\": \"{{secrets.TOKEN}}\", \"b\": \"{{secrets.TOKEN}}\", \"c\":"
+                + " \"{{secrets.TOKEN}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("TOKEN", "token-value"));
+
+    var result =
+        handlerOverStore.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected token-value everywhere"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(requestedKeys).containsExactly("TOKEN");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** everywhere");
   }
 
   @Test

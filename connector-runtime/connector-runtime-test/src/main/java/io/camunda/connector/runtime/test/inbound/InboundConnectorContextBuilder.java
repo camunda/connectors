@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.test.inbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -245,7 +246,7 @@ public class InboundConnectorContextBuilder {
       implements InboundConnectorContext, InboundConnectorManagementContext {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
-    private final String propertiesWithSecrets;
+    private final JsonNode propertiesWithSecrets;
     private final CorrelationResult result;
     private final Long activationTimestamp;
     private Health health = Health.unknown();
@@ -257,12 +258,10 @@ public class InboundConnectorContextBuilder {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
       this.result = result;
       this.activationTimestamp = System.currentTimeMillis();
-      try {
-        propertiesWithSecrets =
-            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties), null);
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      propertiesWithSecrets =
+          getSecretHandler()
+              .replaceSecrets(
+                  objectMapper.valueToTree(properties != null ? properties : Map.of()), null);
     }
 
     protected void correlate(Object variables) {
@@ -301,7 +300,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public Map<String, Object> getProperties() {
       try {
-        return objectMapper.readValue(propertiesWithSecrets, new TypeReference<>() {});
+        return objectMapper.treeToValue(propertiesWithSecrets, new TypeReference<>() {});
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
@@ -310,7 +309,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public <T> T bindProperties(Class<T> cls) {
       try {
-        var mappedObject = objectMapper.readValue(propertiesWithSecrets, cls);
+        var mappedObject = objectMapper.treeToValue(propertiesWithSecrets, cls);
         if (validationProvider != null) {
           getValidationProvider().validate(mappedObject);
         }

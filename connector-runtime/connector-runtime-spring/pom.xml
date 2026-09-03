@@ -126,6 +126,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-feel</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.camunda.feel</groupId>
+      <artifactId>feel-engine</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.camunda</groupId>
