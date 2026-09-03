@@ -15,12 +15,6 @@ import java.util.function.Consumer;
 
 public interface JobWorkerAgentExecutionContextFactory {
 
-  /** Preserved for callers compiled against it, which have nowhere to keep the resolved values. */
-  default JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
-    return createExecutionContext(jobClient, job, secretFilter, values -> {});
-  }
-
   /**
    * Binds the job's input, reporting the secret values substituted into it to {@code
    * capturedSecrets} whether the binding succeeds or fails. A caller reporting an error has to

@@ -388,16 +388,6 @@ public class OutboundConnectorExceptionHandler {
         : configured;
   }
 
-  /**
-   * Preserves the four-argument overload for callers compiled against it, which have no bind-time
-   * captured values to contribute.
-   */
-  public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
-      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
-    return manageConnectorJobHandlerException(
-        e, job, retryBackoffDuration, secretFilter, List.of());
-  }
-
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e,
       ActivatedJob job,
@@ -604,14 +594,5 @@ public class OutboundConnectorExceptionHandler {
         newException.getMessage());
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
-  }
-
-  /**
-   * Preserves the three-argument overload for callers compiled against it, which have no bind-time
-   * captured values to contribute.
-   */
-  public ConnectorResult.ErrorResult handleFinalResultException(
-      Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    return handleFinalResultException(ex, job, secretFilter, List.of());
   }
 }
