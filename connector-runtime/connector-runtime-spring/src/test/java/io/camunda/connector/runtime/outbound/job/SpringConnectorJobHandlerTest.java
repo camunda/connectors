@@ -2389,6 +2389,67 @@ class SpringConnectorJobHandlerTest {
     }
   }
 
+  // the value bound at execution time can differ from what a later re-read returns if it rotated
+  @Nested
+  class RotationRaceSecretMaskingTests {
+
+    private record TokenHolder(String token) {}
+
+    private static final String INPUT_DECLARING_A_SECRET = "{ \"token\" : \"{{secrets.FOO}}\" }";
+
+    private SecretProviderAggregator rotatingSecretProvider(
+        String boundValue, String rotatedValue) {
+      return new SecretProviderAggregator(List.of()) {
+        @Override
+        public String getSecret(String secretName, SecretContext context) {
+          return boundValue;
+        }
+
+        @Override
+        public List<String> fetchAll(List<String> keys, SecretContext context) {
+          return keys.stream().map(key -> rotatedValue).toList();
+        }
+      };
+    }
+
+    private SpringConnectorJobHandler connectorThrowingTheBoundToken(
+        SecretProviderAggregator secretProviderAggregator) {
+      return newConnectorJobHandler(
+          context -> {
+            var bound = context.bindVariables(TokenHolder.class);
+            throw new RuntimeException("api rejected " + bound.token());
+          },
+          secretProviderAggregator);
+    }
+
+    @Test
+    void aSecretThatRotatedBetweenBindAndMaskingIsStillRedacted() throws Exception {
+      var jobHandler =
+          connectorThrowingTheBoundToken(rotatingSecretProvider("old-value", "new-value"));
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("old-value");
+    }
+
+    @Test
+    void aStableSecretIsStillRedactedTheOrdinaryWay() throws Exception {
+      // the union must not depend on rotation happening: an unrotated secret is redacted too
+      var jobHandler =
+          connectorThrowingTheBoundToken(rotatingSecretProvider("stable-value", "stable-value"));
+
+      var result =
+          JobBuilder.create()
+              .withVariables(INPUT_DECLARING_A_SECRET)
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      assertThat(result.getErrorMessage()).doesNotContain("stable-value");
+    }
+  }
+
   @Nested
   class ConnectorResponseTests {
 
