@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -115,7 +116,11 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job, secretFilter),
+          // the context that bound this job's input, and with it the values it substituted, is
+          // created and discarded inside the execution context factory, so masking here rests on
+          // the re-read alone
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              e, job, secretFilter, List.of()),
           counterMetricsContext);
     }
   }
@@ -133,7 +138,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter);
+              e, job, retryBackoff, secretFilter, List.of());
       return new AgentErrorResult(errorResult);
     }
   }
