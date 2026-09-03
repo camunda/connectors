@@ -652,9 +652,27 @@ public class CustomApacheHttpClientTest {
               () -> httpClient.execute(request, ResponseMappers.asString()));
       assertThat(e.getErrorCode()).isEqualTo(String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT));
       assertThat(e.getMessage())
-          .startsWith(
-              "An error occurred while executing the request, or the connection was aborted: ")
-          .doesNotEndWith(": null");
+          .isEqualTo(
+              "An error occurred while executing the request, or the connection was aborted: "
+                  + "Connection reset");
+      assertThat(e.getCause()).isInstanceOf(IOException.class);
+    }
+
+    @Test
+    public void shouldReturn408WithRootCause_whenStreamingConnectionIsResetByPeer(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      ConnectorException e =
+          assertThrows(ConnectorException.class, () -> httpClient.executeStreaming(request));
+      assertThat(e.getErrorCode()).isEqualTo(String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT));
+      assertThat(e.getMessage())
+          .isEqualTo(
+              "An error occurred while executing the request, or the connection was aborted: "
+                  + "Connection reset");
       assertThat(e.getCause()).isInstanceOf(IOException.class);
     }
   }
