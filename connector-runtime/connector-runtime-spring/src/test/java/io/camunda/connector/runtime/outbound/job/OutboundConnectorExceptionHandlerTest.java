@@ -338,6 +338,112 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
   }
 
+  @Test
+  void aFailedMaskingFetchIsNeverLoggedEither() {
+    // A provider writes its own message, and it can carry secret material: AbstractSecretProvider
+    // folds a Jackson failure into one, and a bundle that parses as a non-object puts the value it
+    // could not coerce into the coercion error.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new RuntimeException(
+                "Could not resolve secrets: MismatchedInputException: Cannot construct instance of"
+                    + " `java.util.LinkedHashMap` from String value ('super-secret')"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.manageConnectorJobHandlerException(
+                    new RuntimeException("boom"),
+                    job,
+                    Duration.ofSeconds(1),
+                    SecretFilter.allowAll()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
+  }
+
+  @Test
+  void aRefusalTheRuntimeWroteItselfKeepsItsMessageInTheLog() {
+    // Withholding arbitrary provider text is not a reason to withhold text written to be read: a
+    // refusal names the setting an operator has to change, and a type name alone does not.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new SecretLookupRefusedException("Legacy secret resolution is switched off"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.manageConnectorJobHandlerException(
+                    new RuntimeException("boom"),
+                    job,
+                    Duration.ofSeconds(1),
+                    SecretFilter.allowAll()));
+
+    assertThat(logged)
+        .anyMatch(message -> message.contains("Legacy secret resolution is switched off"));
+  }
+
+  @Test
+  void masksALongerSecretThatStartsWithAShorterOne() {
+    // Replacing the shorter value first would leave the longer one unmatched and publish its
+    // remainder: "x" before "xSUPERSECRET" turns the message into "***SUPERSECRET".
+    var job = jobNaming("{\"a\": \"{{secrets.SHORT}}\", \"b\": \"{{secrets.LONG}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("SHORT", "x", "LONG", "xSUPERSECRET"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected xSUPERSECRET"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(requestedKeys).containsExactly("SHORT", "LONG");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void anEmptySecretValueDoesNotCorruptTheMessage() {
+    // Replacing "" matches at every position, so a provider answering with one would rewrite the
+    // whole message into separators rather than redact anything.
+    var job = jobNaming("{\"a\": \"{{secrets.BLANK}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("BLANK", ""));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+  }
+
+  @Test
+  void aJobDeclaringNoSecretNeverReachesAProvider() {
+    // fetchAll is overridable, and one that refuses every batch would otherwise withhold the error
+    // message of a job that had nothing to redact in the first place.
+    var job = jobNaming("{\"a\": \"nothing to resolve here\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new RuntimeException("store unavailable"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    verifyNoInteractions(secretProvider);
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
   /**
    * Every message this handler logs while {@code action} runs, formatted as it would be written.
    */
