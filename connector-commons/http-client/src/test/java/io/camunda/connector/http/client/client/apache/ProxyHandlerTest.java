@@ -19,6 +19,7 @@ package io.camunda.connector.http.client.client.apache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.client.apache.proxy.ProxyHandler;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
@@ -145,6 +146,25 @@ public class ProxyHandlerTest {
             d -> {
               assertThat(d.host()).isEqualTo("standard-proxy.example.com");
               assertThat(d.port()).isEqualTo(8080);
+            });
+  }
+
+  @Test
+  public void shouldUseGivenProxyConfigurationInsteadOfEnvironmentDefaults() {
+    environmentVariables
+        .set("CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com")
+        .set("CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090");
+
+    ProxyHandler handler = new ProxyHandler(EnvironmentProxyConfiguration.withPlainProxySupport());
+
+    assertThat(handler.getProxyDetails("http"))
+        .isPresent()
+        .hasValueSatisfying(
+            d -> {
+              assertThat(d.host()).isEqualTo("plain-proxy.example.com");
+              assertThat(d.port()).isEqualTo(9090);
             });
   }
 
