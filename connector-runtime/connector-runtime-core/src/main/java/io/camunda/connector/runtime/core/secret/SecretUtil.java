@@ -96,7 +96,7 @@ public class SecretUtil {
    * the legacy form is not supported and has to be reported rather than silently left in place.
    */
   public static boolean containsLegacySecretReference(String input) {
-    return !retrieveLegacySecretKeysInInput(input).isEmpty();
+    return keysIn(input, "braced", "bare").findAny().isPresent();
   }
 
   /**
@@ -107,7 +107,7 @@ public class SecretUtil {
    * this class.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return keysIn(input, "braced", "bare", "reference");
+    return keysIn(input, "braced", "bare", "reference").toList();
   }
 
   /**
@@ -116,18 +116,17 @@ public class SecretUtil {
    * what the legacy providers were responsible for is not handed names they never held.
    */
   public static List<String> retrieveLegacySecretKeysInInput(String input) {
-    return keysIn(input, "braced", "bare");
+    return keysIn(input, "braced", "bare").toList();
   }
 
-  private static List<String> keysIn(String input, String... groups) {
+  private static Stream<String> keysIn(String input, String... groups) {
     return input == null
-        ? List.of()
+        ? Stream.of()
         : REFERENCE
             .matcher(input)
             .results()
             .flatMap(match -> Stream.of(groups).map(match::group))
             .filter(Objects::nonNull)
-            .distinct()
-            .toList();
+            .distinct();
   }
 }
