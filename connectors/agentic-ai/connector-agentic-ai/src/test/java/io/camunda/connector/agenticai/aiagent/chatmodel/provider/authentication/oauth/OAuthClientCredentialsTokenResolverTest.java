@@ -212,6 +212,48 @@ class OAuthClientCredentialsTokenResolverTest {
     verify(1, postRequestedFor(urlEqualTo("/oauth/token")));
   }
 
+  /**
+   * Deliberate, accepted behavior: {@link
+   * io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache} caches
+   * nothing when a response omits {@code expires_in}, so every consumer of this resolver -- the
+   * OpenAI/Anthropic {@code custom} backends and the MCP client's header supplier alike --
+   * refetches on every call for such a token endpoint. This is a tradeoff for uniform caching
+   * semantics across all three, rather than each consumer choosing its own fallback TTL.
+   */
+  @Test
+  void shouldNotCacheTokenWhenExpiresInIsMissing() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "uncached-token",
+                          "token_type": "Bearer"
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    final var token1 = resolver.resolveAccessToken(auth);
+    final var token2 = resolver.resolveAccessToken(auth);
+
+    assertThat(token1).isEqualTo("uncached-token");
+    assertThat(token2).isEqualTo("uncached-token");
+
+    verify(2, postRequestedFor(urlEqualTo("/oauth/token")));
+  }
+
   @Test
   void shouldThrowConnectorExceptionOnHttpFailure() {
     stubFor(
