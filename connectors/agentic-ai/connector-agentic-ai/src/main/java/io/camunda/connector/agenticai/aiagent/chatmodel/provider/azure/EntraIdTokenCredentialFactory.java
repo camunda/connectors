@@ -15,12 +15,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -35,10 +31,9 @@ import org.jspecify.annotations.Nullable;
  * credential <em>object</em> is cached here, never a token: azure-identity's credentials already
  * cache and auto-refresh their own tokens internally.
  *
- * <p>The cache key is a SHA-256 hash of the credential configuration (mirroring {@code
- * CaffeineOAuthTokenCache} in connector-commons/http-client), computed and consumed entirely inside
- * this class so that raw credential material such as a client secret is never stored in plain text
- * as a map key.
+ * <p>The cache key is derived via {@link HashedCacheKey} (shared with {@code
+ * CaffeineOAuthTokenCache} in connector-commons/http-client) so that raw credential material such
+ * as a client secret is never stored in plain text as a map key.
  *
  * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
  * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
@@ -47,9 +42,6 @@ import org.jspecify.annotations.Nullable;
  * #buildManagedIdentityCredential(String)}.
  */
 public class EntraIdTokenCredentialFactory {
-
-  private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
-      ThreadLocal.withInitial(EntraIdTokenCredentialFactory::createSha256Digest);
 
   private final Cache<String, TokenCredential> cache;
   private final AgenticAiHttpProxySupport httpProxySupport;
@@ -71,11 +63,9 @@ public class EntraIdTokenCredentialFactory {
    */
   public TokenCredential clientCredentials(
       String tenantId, String clientId, String clientSecret, @Nullable String authorityHost) {
-    final var key =
-        String.join(
-            "\0", tenantId, clientId, clientSecret, Objects.requireNonNullElse(authorityHost, ""));
+    final var key = HashedCacheKey.of(tenantId, clientId, clientSecret, authorityHost);
     return cache.get(
-        sha256Hex(key),
+        key,
         k ->
             buildClientSecretCredential(
                 httpProxySupport, tenantId, clientId, clientSecret, authorityHost));
@@ -87,8 +77,8 @@ public class EntraIdTokenCredentialFactory {
    * the system-assigned identity.
    */
   public TokenCredential managedIdentity(@Nullable String clientId) {
-    final var key = Objects.requireNonNullElse(clientId, "");
-    return cache.get(sha256Hex(key), k -> buildManagedIdentityCredential(clientId));
+    final var key = HashedCacheKey.of(clientId);
+    return cache.get(key, k -> buildManagedIdentityCredential(clientId));
   }
 
   private static TokenCredential buildClientSecretCredential(
@@ -127,21 +117,5 @@ public class EntraIdTokenCredentialFactory {
       managedIdentityCredentialBuilder.clientId(clientId);
     }
     return managedIdentityCredentialBuilder.build();
-  }
-
-  private static String sha256Hex(String raw) {
-    final MessageDigest digest = SHA_256_DIGEST.get();
-    digest.reset();
-    final byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-    return HexFormat.of().formatHex(hash);
-  }
-
-  private static MessageDigest createSha256Digest() {
-    try {
-      return MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      // SHA-256 is required by the Java spec, so this should never happen
-      throw new IllegalStateException("SHA-256 algorithm not available", e);
-    }
   }
 }
