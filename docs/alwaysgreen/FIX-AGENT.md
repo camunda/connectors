@@ -4,10 +4,11 @@ Read this in full before touching any file. It is the agent's contract; the disp
 prompt deliberately carries almost nothing so this stays the single source of truth.
 
 The pipeline is `.github/workflows/MERGE_QUEUE_HELM_TEST.yaml`, on `main` and
-`stable/8.7`–`8.9`. On every push it builds the connectors bundle images, deploys them to
+`stable/8.7`–`8.10`. Each run of it builds the connectors bundle images, deploys them to
 GKE via the Helm charts, runs a Self-Managed smoke suite, and separately triggers a SaaS
-smoke suite. `alwaysgreen-triage.yml` classifies a failure and dispatches you with the
-specs already extracted.
+smoke suite. A watcher in `connectors-streak-detector.yml` picks up every finished run,
+`alwaysgreen-triage.yml` classifies a failure and dispatches you with the specs already
+extracted.
 
 `camunda/camunda` runs its own AlwaysGreen agent against an equivalent pipeline, and both
 open fix PRs into the same e2e repository. That is why dispatch keys here are prefixed
@@ -73,7 +74,7 @@ nightly, both before you start. Never try to reach a cluster or run `kubectl`.
 |--------------------------------------|------------------|-----------------------------------------------------------|
 | `playwright-results-json*`           | `sm-smoke-e2e`   | the report, incl. `config.rootDir` and retry history      |
 | `playwright-traces*`                 | `sm-smoke-e2e`   | `trace.zip`, `test-failed-1.png`, screenshots per attempt |
-| `json-report*`, `Playwright Report*` | `saas-smoke-e2e` | downstream report and HTML report                         |
+| `json-report*`, `Playwright Report*` | SaaS surfaces    | downstream report and HTML report                         |
 | `diagnostics-e2e*`                   | `sm-smoke-e2e`   | **namespace dump: describe + logs for every pod**         |
 
 `diagnostics-e2e*` is the one that resolves the Keycloak class. It contains
@@ -101,6 +102,23 @@ Read PNG screenshots directly. For a trace: `unzip -l trace.zip`, then extract w
    whether a feature exists in this version, eventual-consistency timing — check
    `camunda-docs/versioned_docs/version-<X.Y>/` and cite it in the PR body. Match the
    version tree exactly. Skip this for pure selector drift.
+
+## `saas-setup` — reported, not dispatched
+
+You will not be dispatched for this surface, and it is worth knowing why, because it is
+the shape a whole class of SaaS red turns out to be.
+
+The surface is `saas-setup` when **every** failing spec in the SaaS report is
+`test-setup.spec.ts` — the org or the cluster never came up, so no real test ran. It is
+classified, summarised and routed to its medic, but no agent is sent.
+
+Not because it is unfixable: the fix is usually retry-with-backoff on the org-creation
+call, or better waiting in the setup spec. It is because that call lives in workflow and
+action files shared by every version, while every dedupe layer is keyed per base ref —
+the dispatch key, the in-flight check, and the spec-path claim, which only ever inspects
+a candidate's spec paths. A provisioning outage fails setup on main and every stable
+branch at once, so dispatching it would put several agents on one shared file with
+nothing serialising them. It needs a claim that spans base refs first.
 
 ## Regression, or an intended change the test has not caught up with?
 

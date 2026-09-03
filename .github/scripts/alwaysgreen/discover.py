@@ -48,23 +48,57 @@ KEY_LABEL_PREFIX = planning.KEY_LABEL_PREFIX
 #: two lookups below fail closed, a repository the token cannot reach would wedge every
 #: dispatch shut rather than merely returning nothing.
 FIX_PR_REPOS = [REPO, E2E_REPO]
+
+
+def _ttl_hours(env_var: str, default: int) -> int:
+    """An overridable TTL dial, read defensively.
+
+    Matches the degrade-don't-crash bias of everything else here: an unreadable
+    timestamp keeps the lock and a failed lookup suppresses, so a malformed dial must
+    not raise at import and take down every entry point in this module. Set to 0 to
+    restore the old never-expiring lock.
+    """
+    try:
+        return int(os.environ.get(env_var, "").strip() or default)
+    except ValueError:
+        print(
+            f"::warning::unparseable {env_var}; using the default ({default}h).",
+            file=sys.stderr,
+        )
+        return default
+
+
 #: How long an open fix PR keeps holding its dispatch key; see
-#: planning.PR_LOCK_TTL_HOURS. Set to 0 to restore the old never-expiring lock.
-#: Read defensively, matching the degrade-don't-crash bias of everything else here: an
-#: unreadable `createdAt` keeps the lock and a failed lookup suppresses, so a malformed
-#: dial must not raise at import and take down every entry point in this module.
-try:
-    PR_LOCK_TTL_HOURS = int(
-        os.environ.get("ALWAYSGREEN_PR_LOCK_TTL_HOURS", "").strip()
-        or planning.PR_LOCK_TTL_HOURS
-    )
-except ValueError:
-    print(
-        "::warning::unparseable ALWAYSGREEN_PR_LOCK_TTL_HOURS; using the default "
-        f"({planning.PR_LOCK_TTL_HOURS}h).",
-        file=sys.stderr,
-    )
-    PR_LOCK_TTL_HOURS = planning.PR_LOCK_TTL_HOURS
+#: planning.PR_LOCK_TTL_HOURS.
+PR_LOCK_TTL_HOURS = _ttl_hours(
+    "ALWAYSGREEN_PR_LOCK_TTL_HOURS", planning.PR_LOCK_TTL_HOURS
+)
+#: How long an open PR keeps blocking dispatches that would edit the spec files it
+#: touches; see planning.PATH_CLAIM_TTL_HOURS.
+PATH_CLAIM_TTL_HOURS = _ttl_hours(
+    "ALWAYSGREEN_PATH_CLAIM_TTL_HOURS", planning.PATH_CLAIM_TTL_HOURS
+)
+#: Which attempt of the run to classify. The watcher gates on one specific attempt's
+#: jobs, and a bare run request answers with whatever attempt is newest right now -- so
+#: without this, a re-run landing between the gate and here has discovery reading a
+#: different attempt than the one that was judged worth classifying, and dispatching on
+#: its evidence. Empty means "whatever is latest", which is right for a manual replay.
+RUN_ATTEMPT = (os.environ.get("ALWAYSGREEN_RUN_ATTEMPT") or "").strip()
+
+
+def run_path(run_id: str, suffix: str = "") -> str:
+    """API path for the run, pinned to RUN_ATTEMPT when one is set.
+
+    Note what this cannot pin: `gh run download` has no attempt selector, so evidence
+    artifacts always come from the latest attempt. That only diverges inside the narrow
+    window where a re-run starts mid-triage, and the alternative -- classifying an
+    attempt other than the one the gate judged -- is worse than reading artifacts from a
+    newer one.
+    """
+    base = f"repos/{REPO}/actions/runs/{run_id}"
+    if RUN_ATTEMPT:
+        base = f"{base}/attempts/{RUN_ATTEMPT}"
+    return f"{base}{suffix}"
 
 
 class DiscoveryError(RuntimeError):
@@ -144,6 +178,35 @@ def failure_annotations(check_run_url: str | None) -> list[str]:
     ]
 
 
+#: Job conclusions that count as a failure worth classifying.
+#:
+#: This MUST stay identical to the scan in connectors-streak-detector.yml, which decides
+#: whether triage runs at all. The two are separate implementations — one bash, one
+#: Python — and a conclusion the scan counts but this does not produces the worst
+#: outcome available: a triage run that finds no candidate and reports the failing run as
+#: having nothing to dispatch.
+COUNTABLE_JOB_CONCLUSIONS = ("failure", "cancelled", "timed_out")
+#: The subset that counts when the run ITSELF was cancelled. A `cancelled` job inside a
+#: run that completed is a job timeout -- how the SaaS stage dies when the downstream run
+#: outlives its watcher. A run that was cancelled as a whole is the merge queue or a human
+#: dropping it, and its cancelled jobs carry no failure.
+COUNTABLE_IN_CANCELLED_RUN = ("failure",)
+
+
+def countable_conclusions(run_id: str) -> tuple[str, ...]:
+    """Which job conclusions count for this run, mirroring the scan's two-level rule.
+
+    An unreadable run conclusion falls back to the full set: over-including makes triage
+    report a candidate it might not dispatch, while under-including drops a real failure
+    silently, and only one of those is recoverable by looking at the summary.
+    """
+    meta, _ = gh_json_ex(["api", run_path(run_id)], None)
+    conclusion = meta.get("conclusion") if isinstance(meta, dict) else None
+    if conclusion == "cancelled":
+        return COUNTABLE_IN_CANCELLED_RUN
+    return COUNTABLE_JOB_CONCLUSIONS
+
+
 def failing_jobs(run_id: str) -> list[dict]:
     """The run's failing jobs.
 
@@ -152,16 +215,25 @@ def failing_jobs(run_id: str) -> list[dict]:
     triage. The caller turns this into a non-zero exit so the workflow reports a
     failed classification instead of a quiet all-clear.
     """
+    # --paginate --slurp, not a bare request: past 100 jobs a single page silently
+    # truncates the run, and the classifier would report a later-page failure as absent
+    # while the gate that invoked it had counted the whole run. --slurp turns the
+    # per-page documents into one array so json.loads sees valid JSON.
     data, err = gh_json_ex(
-        ["api", f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100"], None
+        ["api", "--paginate", "--slurp", run_path(run_id, "/jobs?per_page=100")],
+        None,
     )
-    if data is None or not isinstance(data, dict):
+    if not isinstance(data, list):
         raise DiscoveryError(f"could not list jobs for run {run_id}: {err.strip()[:200]}")
-    return [
+    jobs = [
         j
-        for j in (data.get("jobs") or [])
-        if isinstance(j, dict) and j.get("conclusion") == "failure"
+        for page in data
+        if isinstance(page, dict)
+        for j in (page.get("jobs") or [])
+        if isinstance(j, dict)
     ]
+    countable = countable_conclusions(run_id)
+    return [j for j in jobs if j.get("conclusion") in countable]
 
 
 # ---------------------------------------------------------------------------
@@ -259,17 +331,29 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
         f"saas counts total={counts.total} failed={counts.failed} "
         f"flaky={counts.flaky} setup_failed={counts.setup_failed} -> {cand.surface}"
     )
-    if cand.surface != classify.SURFACE_SAAS_E2E:
-        # Only a genuine non-setup test failure is actionable in test code.
+    if cand.surface == classify.SURFACE_SAAS_INFRA:
+        # No report at all, or a report with no failing spec: there is nothing to hand an
+        # agent, so this surface is reported and routed rather than dispatched.
         cand.specs = []
         return cand
 
-    # A mixed report — org provisioning broke *and* a real spec failed — stays
-    # dispatchable for the real one, but the setup failures must not travel with it.
-    # The agent is told to fix every spec it is given, and test-setup.spec.ts failing
-    # is a cluster/org problem no test-code change can address. Dropping them here also
-    # keeps them out of the coverage block, so the provisioning failure stays
-    # unclaimed and is re-triaged rather than marked handled.
+    if cand.surface == classify.SURFACE_SAAS_PROVISIONING:
+        # Kept as report evidence, not as a dispatch payload -- this surface is not in
+        # DISPATCHABLE_SURFACES, so no agent ever receives it. Every failing spec here IS
+        # test-setup.spec.ts, and naming it is the whole value of the report: the reader
+        # learns which setup step gave way without opening the run. `serialise` carries
+        # these paths into the suppressed entry.
+        return cand
+
+    # A mixed report — org provisioning broke *and* a real spec failed — is a
+    # saas-smoke-e2e dispatch for the real one, and the setup failures must not travel
+    # with it: the agent would be told to fix a spec whose failure is a cluster problem,
+    # and mixing the two remits in one PR is how a provisioning fix gets buried. Dropping
+    # them here also keeps them out of the coverage block, so no fix PR claims the
+    # provisioning failure and a later run can still classify it. Note what this does NOT
+    # do: no second candidate is emitted for the discarded specs, so the provisioning
+    # half of a mixed report is not reported by THIS run at all. It surfaces on a run
+    # where setup is the only thing failing, which is when it classifies as saas-setup.
     dropped = [s for s in cand.specs if classify.is_setup_spec(s.file)]
     if dropped:
         log(
@@ -328,8 +412,12 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
     claims nothing, and a key any of whose active holders claims nothing stays out of
     the subset: the marker comment alone is not a statement of remit.
 
-    Coverage is collected from every open fix PR, expired or not: the specs a PR claims
-    stay claimed for as long as it is open, and only the coarse key lock is time-bound.
+    Coverage is collected from every open fix PR, expired or not, and is the one thing
+    here with no TTL at all: a fingerprint in a PR's coverage block is that PR's stated
+    remit, and it holds for as long as the PR is open. The two locks a PR takes
+    implicitly do expire — its dispatch key after PR_LOCK_TTL_HOURS from `createdAt`
+    (below), and the spec files it touches after PATH_CLAIM_TTL_HOURS from `updatedAt`
+    (`paths_claimed_by_open_prs`).
 
     As with `inflight_keys`, a failed lookup makes the caller suppress rather than risk
     a duplicate PR.
@@ -422,6 +510,9 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
     fix, and a bot PR all count. Filtering by author would reintroduce exactly the
     blindness this layer exists to close.
 
+    A PR idle for longer than PATH_CLAIM_TTL_HOURS stops claiming its files, so a
+    forgotten draft cannot hold a surface's spec files shut indefinitely.
+
     Returns (claims, ok). On any lookup failure `ok` is False and the caller
     suppresses: a missed dispatch retries on the next failing run, a duplicate PR
     editing the same lines does not un-happen.
@@ -433,7 +524,7 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
     prs, err = gh_json_ex(
         [
             "pr", "list", "--repo", E2E_REPO, "--state", "open",
-            "--limit", "100", "--json", "number,files",
+            "--limit", "100", "--json", "number,files,updatedAt",
         ],
         None,
     )
@@ -447,8 +538,20 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
         log("::warning::open PR listing hit the page limit; suppressing this run")
         return claims, False
 
+    now = datetime.now(timezone.utc)
     for pr in prs:
         number = pr.get("number")
+        # Before the truncation check below, so a stale PR large enough to truncate
+        # cannot suppress the run either — it claims nothing, so its file list does
+        # not need to be complete.
+        if planning.pr_lock_expired(
+            pr.get("updatedAt") or "", now, PATH_CLAIM_TTL_HOURS
+        ):
+            log(
+                f"path claim expired after {PATH_CLAIM_TTL_HOURS}h: {E2E_REPO}#{number} "
+                "no longer claims the spec files it touches"
+            )
+            continue
         files = pr.get("files") or []
         # gh caps the per-PR file list. A truncated list under-reports claims, which
         # would read as "nothing claimed" — the one wrong answer this layer must not
@@ -513,8 +616,13 @@ def build_candidates(run_id: str, base_ref: str, workdir: Path):
         if surface is None:
             continue
 
+        # The job's own conclusion, not a hardcoded "failure". noise_verdict only ever
+        # calls a `failure` noise, so a cancelled or timed-out job passed as "failure"
+        # is matched against the cancellation marker and discarded as NOISE_CANCELLED --
+        # which is precisely the job-timeout case failing_jobs now goes out of its way
+        # to keep.
         verdict = classify.noise_verdict(
-            conclusion="failure",
+            conclusion=job.get("conclusion") or "",
             step_count=len(job.get("steps") or []),
             failure_annotations=failure_annotations(job.get("check_run_url")),
         )
@@ -569,12 +677,18 @@ def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict
             }
             for c in result.dispatches
         ],
+        # `specs` matters for the surfaces that are classified but never dispatched --
+        # saas-setup above all, whose whole value as a report is naming the setup spec
+        # that failed. Without it the entry is a bare verdict and the reader has to go
+        # back to the run to learn anything. Empty for a job-level suppression, which has
+        # no spec to name.
         "suppressed": [
             {
                 "surface": s.candidate.surface,
                 "dispatch_key": s.candidate.key,
                 "reason": s.reason,
                 "detail": s.detail,
+                "specs": sorted({sp.file for sp in s.candidate.specs}),
             }
             for s in result.suppressed
         ],

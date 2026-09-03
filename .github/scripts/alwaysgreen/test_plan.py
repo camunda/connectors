@@ -55,6 +55,21 @@ def test_non_dispatchable_surface_is_recorded_not_dispatched():
     assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
 
 
+def test_saas_setup_is_reported_not_dispatched():
+    # Actionable, but the fix lives in workflow files shared across every version while
+    # every dedupe layer is keyed per base ref — so it waits for a cross-ref claim.
+    result = _plan([_cand(surface=classify.SURFACE_SAAS_PROVISIONING)])
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
+
+
+def test_saas_infra_is_still_not_dispatched():
+    # No report, or a report with no failing spec: nothing to hand an agent.
+    result = _plan([_cand(surface=classify.SURFACE_SAAS_INFRA)])
+    assert result.dispatches == []
+    assert result.suppressed[0].reason == plan.SUPPRESSED_NOT_DISPATCHABLE
+
+
 def test_in_flight_agent_blocks_the_same_surface():
     # The 2026-07-23 case: consecutive runs, same cause, agent still working.
     cand = _cand()
@@ -452,3 +467,83 @@ def test_path_claim_is_checked_after_evidence_so_the_reason_is_useful():
     cand = _cand(specs=[])
     result = _plan([cand], claimed_paths={"tests/8.10/smoke-tests.spec.ts": 1})
     assert result.suppressed[0].reason == plan.SUPPRESSED_NO_EVIDENCE
+
+
+# ---------------------------------------------------------------------------
+# One dispatch per key, within a single plan
+# ---------------------------------------------------------------------------
+
+
+def test_two_failing_jobs_on_one_surface_dispatch_once():
+    # build_candidates emits one candidate per failing job while the dispatch key is per
+    # surface, so a run with a red smoke leg AND a red full leg produced two candidates
+    # carrying the same key. Every dedupe layer is keyed on that key and none of them
+    # inspects the plan being built, so both were dispatched: two agents, one remit.
+    a = _cand(specs=[_spec(file="tests/SM-8.9/a.spec.ts")])
+    b = _cand(specs=[_spec(file="tests/SM-8.9/b.spec.ts")])
+    result = _plan([a, b])
+    assert len(result.dispatches) == 1
+    assert sorted(s.file for s in result.dispatches[0].specs) == [
+        "tests/SM-8.9/a.spec.ts",
+        "tests/SM-8.9/b.spec.ts",
+    ]
+
+
+def test_the_same_spec_seen_twice_is_not_duplicated():
+    # Both SM legs read the same Playwright report, so the duplicate evidence would
+    # otherwise be handed to the agent twice.
+    spec = _spec(file="tests/SM-8.9/a.spec.ts")
+    result = _plan([_cand(specs=[spec]), _cand(specs=[spec])])
+    assert [s.file for s in result.dispatches[0].specs] == ["tests/SM-8.9/a.spec.ts"]
+
+
+def test_different_surfaces_are_not_merged():
+    result = _plan(
+        [
+            _cand(surface=classify.SURFACE_SM_E2E),
+            _cand(surface=classify.SURFACE_SAAS_E2E),
+        ]
+    )
+    assert len(result.dispatches) == 2
+
+
+def test_a_job_level_part_does_not_make_the_merge_job_level():
+    # One part carrying specs means there is per-spec evidence to dispatch on.
+    result = _plan(
+        [
+            _cand(specs=[], job_level=True),
+            _cand(specs=[_spec(file="tests/SM-8.9/a.spec.ts")]),
+        ]
+    )
+    assert len(result.dispatches) == 1
+    assert result.dispatches[0].job_level is False
+
+
+def test_duplicates_inside_one_candidate_are_removed():
+    # sm_candidates accumulates specs from every downloaded report, so a candidate can
+    # arrive already carrying repeats when two reports cover the same spec.
+    spec = _spec(file="tests/SM-8.9/a.spec.ts")
+    result = _plan([_cand(specs=[spec, spec])])
+    assert [s.file for s in result.dispatches[0].specs] == ["tests/SM-8.9/a.spec.ts"]
+
+
+def test_duplicates_inside_a_later_candidate_are_removed():
+    spec = _spec(file="tests/SM-8.9/b.spec.ts")
+    result = _plan(
+        [
+            _cand(specs=[_spec(file="tests/SM-8.9/a.spec.ts")]),
+            _cand(specs=[spec, spec]),
+        ]
+    )
+    assert sorted(s.file for s in result.dispatches[0].specs) == [
+        "tests/SM-8.9/a.spec.ts",
+        "tests/SM-8.9/b.spec.ts",
+    ]
+
+
+def test_a_merged_candidate_claims_each_fingerprint_once():
+    # The coverage block is built from these, and a repeated fp is a repeated claim.
+    spec = _spec(file="tests/SM-8.9/a.spec.ts")
+    result = _plan([_cand(specs=[spec]), _cand(specs=[spec])])
+    fps = result.dispatches[0].fingerprints
+    assert len(fps) == len(set(fps)) == 1

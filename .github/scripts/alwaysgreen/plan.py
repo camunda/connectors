@@ -60,10 +60,30 @@ MAX_LABEL_LENGTH = 50
 PR_LOCK_TTL_HOURS = 2
 
 
+#: How long an open PR's touched spec files keep blocking a dispatch that would edit
+#: them.
+#:
+#: The claim exists so two agents do not rewrite the same spec at the same time, and it
+#: is author-agnostic for that reason — but nothing released it either, and a claim is
+#: coarser than the key lock: it holds every failure in every file the PR touches, for
+#: whatever the PR happens to be. A draft opened on 2026-08-26 touching ten spec files
+#: still held them on 2026-09-03, and run 33727363856 reported
+#: `spec-path-claimed-by-open-pr` and dispatched nothing.
+#:
+#: Measured from last activity, not from creation, and a day rather than the key lock's
+#: two hours: a PR being written, reviewed or rebased touches its own timestamp well
+#: inside a day, so an active one never loses its files, while one nobody has touched
+#: since yesterday is not work in progress that a second agent could collide with.
+PATH_CLAIM_TTL_HOURS = 24
+
+
 def pr_lock_expired(
     created_at: str | None, now: datetime, ttl_hours: int = PR_LOCK_TTL_HOURS
 ) -> bool:
-    """Whether an open fix PR is too old to keep holding its dispatch key.
+    """Whether an open PR is too old to keep holding a lock.
+
+    Used for both locks a PR can hold: its dispatch key, from `createdAt`, and the spec
+    files it touches, from `updatedAt`. Only the timestamp and the TTL differ.
 
     A missing or unparseable timestamp keeps the lock, and `ttl_hours <= 0` disables
     expiry altogether: the bias matches the `ok` flags in discover's key lookups,
@@ -158,6 +178,52 @@ class Plan:
     noise: list[tuple[str, str]] = field(default_factory=list)
 
 
+def merge_candidates_by_key(candidates: list[Candidate]) -> list[Candidate]:
+    """Collapse candidates that share a dispatch key into one.
+
+    `build_candidates` produces one candidate per failing job, but the dispatch key is
+    per surface — so a run with two failing jobs on the same surface yields two
+    candidates carrying the same key, and every dedupe layer downstream is keyed on
+    exactly that. None of them looks at the plan being built, so both would be
+    dispatched: two agents, same remit, same files, inside one pass.
+
+    Run 33179631020 is the shape — the SM `smoke` and `full` legs both failed, and both
+    candidates read the same Playwright report, so the merge also removes the duplicate
+    spec evidence that would otherwise be handed to the agent twice.
+
+    First-seen order is preserved so the plan stays stable across runs. The surviving
+    candidate keeps the first job's name and evidence pointers; a merged candidate is
+    job-level only if every part was, because one part carrying specs means there is
+    per-spec evidence to dispatch on.
+    """
+    merged: dict[str, Candidate] = {}
+    for cand in candidates:
+        first = merged.get(cand.key)
+        if first is None:
+            merged[cand.key] = cand
+        else:
+            first.specs.extend(cand.specs)
+            first.job_level = first.job_level and cand.job_level
+
+    # Deduplicate every accumulated list, not just the parts added above. Two sources of
+    # repeats: a candidate can arrive already carrying them, because `sm_candidates`
+    # accumulates specs from every downloaded report and two reports can cover the same
+    # spec; and a single later candidate can repeat one internally. A duplicate is not
+    # cosmetic -- it hands the agent the same spec twice and repeats its fingerprint in
+    # the coverage block.
+    for cand in merged.values():
+        seen: set[tuple[str, str]] = set()
+        unique = []
+        for spec in cand.specs:
+            ident = (spec.file, spec.test_name)
+            if ident in seen:
+                continue
+            seen.add(ident)
+            unique.append(spec)
+        cand.specs = unique
+    return list(merged.values())
+
+
 def plan_dispatches(
     candidates: list[Candidate],
     *,
@@ -184,7 +250,7 @@ def plan_dispatches(
     plan = Plan()
     pr_keys_with_coverage = open_pr_keys_with_coverage or set()
 
-    for cand in candidates:
+    for cand in merge_candidates_by_key(candidates):
         if cand.surface not in dispatchable_surfaces:
             plan.suppressed.append(
                 Suppression(cand, SUPPRESSED_NOT_DISPATCHABLE, cand.surface)
