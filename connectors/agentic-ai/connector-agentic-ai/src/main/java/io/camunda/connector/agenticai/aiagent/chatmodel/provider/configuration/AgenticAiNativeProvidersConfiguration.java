@@ -92,11 +92,20 @@ public class AgenticAiNativeProvidersConfiguration {
     return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
   }
 
+  /**
+   * The selected cache is explicitly re-registered in {@link OAuthTokenCacheHolder}: {@code
+   * ConnectorsAutoConfiguration}'s own {@code OAuthTokenCache} bean is
+   * {@code @ConditionalOnMissingBean}, so if a custom {@link OAuthTokenCache} bean is present
+   * anywhere in the context, that bean's registration is skipped, and without this call the holder
+   * would fall back to lazily creating a second, different default instance the first time
+   * non-Spring HTTP client code reaches it -- silently diverging from the cache this resolver uses.
+   */
   @Bean
   @ConditionalOnMissingBean
   public OAuthClientCredentialsTokenResolver aiAgentOAuthClientCredentialsTokenResolver(
       ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider) {
     final var oAuthTokenCache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
+    OAuthTokenCacheHolder.set(oAuthTokenCache);
     return new OAuthClientCredentialsTokenResolver(
         new OAuthService(), oAuthTokenCache, new CustomApacheHttpClient());
   }
