@@ -511,6 +511,16 @@ jobs:
             fi
           done
 
+          # Whether any agent actually started, as a step output rather than only as a
+          # file, so the marker step below can be gated on it. This step is
+          # continue-on-error, so neither its own conclusion nor the job's says anything
+          # about whether a dispatch landed.
+          if [ -s /tmp/agent-runs.tsv ]; then
+            echo "started=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "started=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # The Slack summary is posted before dispatch, because the fix agent needs its
       # ts to reply in-thread. So the agent links can only be added afterwards.
       - name: Add agent links to Slack
@@ -551,6 +561,27 @@ jobs:
             -d "$payload" || echo '{}')
           [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ] \
             || echo "::warning::Slack update failed: $(jq -r '.error // "unknown"' <<<"$resp")"
+
+      # A marker step, not a message: `Dispatch fix agents` is continue-on-error so a
+      # failed `gh workflow run` leaves this job successful, and a step's own conclusion
+      # is masked by continue-on-error too. `skipped` IS reported faithfully, so the
+      # watcher in connectors-streak-detector.yml reads this step's skipped state to tell
+      # "an agent was started" from "the dispatch produced nothing" -- without it, a
+      # dispatch that started no agent counted as a completed classification and
+      # suppressed the retry.
+      #
+      # Both shapes: the dispatch step failing outright, and it succeeding while
+      # resolving no agent run (the file the links step reads stays empty).
+      - name: Flag dispatch failure
+        if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outputs.count != '0' && (steps.dispatch.outcome == 'failure' || steps.dispatch.outputs.started != 'true') }}
+        run: |
+          echo "::warning::AlwaysGreen dispatch started no fix agent for this run."
+          {
+            echo "## AlwaysGreen Triage"
+            echo ""
+            echo ":warning: The dispatch produced no fix agent run. The failure stays"
+            echo "unclaimed and is re-triaged on the next run of this pipeline."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Flag discovery failure
         if: ${{ steps.mode.outputs.active == 'true' && steps.plan.outcome != 'success' }}

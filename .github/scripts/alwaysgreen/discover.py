@@ -349,8 +349,11 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
     # saas-smoke-e2e dispatch for the real one, and the setup failures must not travel
     # with it: the agent would be told to fix a spec whose failure is a cluster problem,
     # and mixing the two remits in one PR is how a provisioning fix gets buried. Dropping
-    # them here also keeps them out of the coverage block, so the provisioning half stays
-    # unclaimed and is re-triaged on its own as saas-setup.
+    # them here also keeps them out of the coverage block, so no fix PR claims the
+    # provisioning failure and a later run can still classify it. Note what this does NOT
+    # do: no second candidate is emitted for the discarded specs, so the provisioning
+    # half of a mixed report is not reported by THIS run at all. It surfaces on a run
+    # where setup is the only thing failing, which is when it classifies as saas-setup.
     dropped = [s for s in cand.specs if classify.is_setup_spec(s.file)]
     if dropped:
         log(

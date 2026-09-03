@@ -439,11 +439,15 @@ jobs:
           # in this API whatever happened to it. What IS reported faithfully is `skipped`,
           # so the two flag steps are read instead:
           #
-          #   Flag discovery failure  skipped -> discovery succeeded
+          #   Flag discovery failure   skipped -> discovery succeeded
           #   Report disabled and stop skipped -> the Vault flag was not `disabled`
+          #   Flag dispatch failure    skipped -> a dispatch, if due, started an agent
           #
-          # Both skipped, on a job that concluded success, is the only state that means a
-          # classification actually happened.
+          # All three skipped, on a job that concluded success, is the only state that
+          # means a classification actually happened AND left something behind. The third
+          # exists because `Dispatch fix agents` is continue-on-error as well, so a failed
+          # `gh workflow run` left the job successful with the other two still skipped --
+          # and the retry was suppressed for a run where no agent ever started.
           #
           # Automatic runs only. A manual replay names its target on purpose, and
           # refusing to re-classify a run someone explicitly asked about would make the
@@ -458,7 +462,8 @@ jobs:
                           | select(.conclusion == "success")
                           | select([.steps[]?
                               | select(.name == "Flag discovery failure" or
-                                       .name == "Report disabled and stop")
+                                       .name == "Report disabled and stop" or
+                                       .name == "Flag dispatch failure")
                               | select(.conclusion != "skipped")] | length == 0)]
                          | length' <<<"$jobs_json")" -gt 0 ]; then
             already_triaged=true
