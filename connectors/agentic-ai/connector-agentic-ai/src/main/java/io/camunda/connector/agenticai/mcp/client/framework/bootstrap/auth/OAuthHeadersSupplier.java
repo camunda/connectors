@@ -26,22 +26,18 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
   @Override
   public Map<String, String> get() {
     try {
-      final var accessToken = tokenResolver.resolveAccessToken(toHttpClientAuthentication(config));
+      final var accessToken =
+          tokenResolver.resolveAccessToken(
+              config.oauthTokenEndpoint(),
+              config.clientId(),
+              config.clientSecret(),
+              config.audience(),
+              config.clientAuthentication().oauthConstant(),
+              config.scopes());
       return Map.of("Authorization", "Bearer " + accessToken);
     } catch (ConnectorException e) {
       throw new ConnectorException(
           e.getErrorCode(), "MCP client authentication failed: " + e.getMessage(), e);
     }
-  }
-
-  private static io.camunda.connector.http.client.model.auth.OAuthAuthentication
-      toHttpClientAuthentication(OAuthAuthentication config) {
-    return new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
-        config.oauthTokenEndpoint(),
-        config.clientId(),
-        config.clientSecret(),
-        config.audience(),
-        config.clientAuthentication().oauthConstant(),
-        config.scopes());
   }
 }

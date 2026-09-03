@@ -43,7 +43,8 @@ class OAuthHeadersSupplierTest {
 
   @Test
   void returnsBearerAuthorizationHeaderFromResolvedToken() {
-    when(tokenResolver.resolveAccessToken(any())).thenReturn("resolved-access-token");
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenReturn("resolved-access-token");
 
     final var supplier = new OAuthHeadersSupplier(tokenResolver, config);
 
@@ -51,25 +52,25 @@ class OAuthHeadersSupplierTest {
   }
 
   @Test
-  void mapsConfigurationToHttpClientOAuthAuthenticationForTheResolver() {
-    when(tokenResolver.resolveAccessToken(any())).thenReturn("token");
+  void mapsConfigurationFieldsForTheResolver() {
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
+        .thenReturn("token");
 
     new OAuthHeadersSupplier(tokenResolver, config).get();
 
     verify(tokenResolver)
         .resolveAccessToken(
-            new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
-                "https://auth.example.com/oauth/token",
-                "my-client-id",
-                "my-client-secret",
-                "https://api.example.com",
-                io.camunda.connector.http.client.authentication.OAuthConstants.BASIC_AUTH_HEADER,
-                "openid my-scope"));
+            "https://auth.example.com/oauth/token",
+            "my-client-id",
+            "my-client-secret",
+            "https://api.example.com",
+            io.camunda.connector.http.client.authentication.OAuthConstants.BASIC_AUTH_HEADER,
+            "openid my-scope");
   }
 
   @Test
   void wrapsResolverFailureWithMcpContext() {
-    when(tokenResolver.resolveAccessToken(any()))
+    when(tokenResolver.resolveAccessToken(any(), any(), any(), any(), any(), any()))
         .thenThrow(new ConnectorException("OAUTH_TOKEN_ERROR", "token endpoint returned 401"));
 
     final var supplier = new OAuthHeadersSupplier(tokenResolver, config);
