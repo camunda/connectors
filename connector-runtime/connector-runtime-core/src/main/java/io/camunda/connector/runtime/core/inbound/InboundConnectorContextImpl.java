@@ -56,9 +56,12 @@ import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
@@ -82,7 +85,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private volatile ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
-  private volatile @Nullable List<String> redactionSecrets;
+  private volatile @Nullable List<String> reReadSecrets;
+  private final Set<String> capturedSecretValues = ConcurrentHashMap.newKeySet();
 
   private static final String REDACTION_UNAVAILABLE_MESSAGE =
       "Message withheld: could not verify it does not contain a secret value";
@@ -421,13 +425,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ValidInboundConnectorDetails details, Map<String, String> rawProperties, Class<T> cls) {
     try {
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+      var handler = secretHandler(rawProperties);
       var withSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              secretHandler(rawProperties),
+              handler,
               objectMapper,
               wrapped,
               new SecretContext(
                   details.tenantId(), details.processDefinitionId(), physicalTenantId()));
+      capturedSecretValues.addAll(handler.getResolvedValues());
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
@@ -536,27 +542,47 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             redact(builder.build())));
   }
 
-  // legacy names only, matching the scope of secretFilterEnabled's own allow-list (#7730 tracks
-  // the new camunda.secrets.<name> form for inbound)
-  private List<String> secretValuesForRedaction() {
-    var cached = redactionSecrets;
+  // every value a SecretHandler this context built ever substituted, immune to a later rotation
+  private @Nullable List<String> secretValuesForRedaction() {
+    var reRead = reReadSecretValues();
+    if (reRead == null) {
+      return capturedSecretValues.isEmpty() ? null : List.copyOf(capturedSecretValues);
+    }
+    if (capturedSecretValues.isEmpty()) {
+      return reRead;
+    }
+    var union = new ArrayList<>(reRead);
+    union.addAll(capturedSecretValues);
+    return union;
+  }
+
+  private @Nullable List<String> reReadSecretValues() {
+    var cached = reReadSecrets;
     if (cached != null) {
       return cached;
     }
     var values = fetchSecretValuesForRedaction();
     if (values != null) {
-      redactionSecrets = values;
+      reReadSecrets = values;
     }
     return values;
   }
 
+  // legacy names across every grouped element, not just this context's representative one
   private @Nullable List<String> fetchSecretValuesForRedaction() {
-    var names = declaredSecretNames(connectorDetails.rawPropertiesWithoutKeywords());
+    var names =
+        connectorDetails.connectorElements().stream()
+            .flatMap(element -> element.rawProperties().values().stream())
+            .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
+            .distinct()
+            .toList();
     if (names.isEmpty()) {
       return List.of();
     }
     try {
-      return secretProvider.fetchAll(names, redactionSecretContext());
+      var values = secretProvider.fetchAll(names, redactionSecretContext());
+      // fewer values than names means a partial read, treated the same as a failed one
+      return values.size() < names.size() ? null : values;
     } catch (Exception e) {
       LOG.warn("Could not fetch secret values to redact activity log: {}", e.getClass().getName());
       return null;
@@ -608,15 +634,17 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
+      var handler = getSecretHandler();
       propertiesWithSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(),
+              handler,
               objectMapper,
               properties,
               new SecretContext(
                   connectorDetails.tenantId(),
                   connectorDetails.processDefinitionId(),
                   physicalTenantId()));
+      capturedSecretValues.addAll(handler.getResolvedValues());
     }
     return propertiesWithSecrets;
   }

@@ -733,6 +733,104 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void log_masksASecretThatRotatedAfterItWasBound() {
+    // given a provider that resolves FOO to one value at bind time and a different one on re-read
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var rotatingProvider = mock(SecretProvider.class);
+    when(rotatingProvider.getSecret(eq("FOO"), any())).thenReturn("old-value");
+    when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
+    var context =
+        new InboundConnectorContextImpl(
+            rotatingProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the bound value is used, binding first so it is actually substituted and captured
+    context.getProperties();
+    context.log(
+        activity -> activity.withSeverity(Severity.ERROR).withMessage("token was old-value"));
+
+    // then the bound value is redacted even though a re-read would return a different one
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).last().satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  @Test
+  void log_withholdsMessageWhenTheReReadComesBackShort() {
+    // given a provider declaring two secrets but only resolving one of them on re-read
+    var definition = getInboundConnectorDefinition(Map.of("a", "secrets.FOO", "b", "secrets.BAR"));
+    var partialProvider = mock(SecretProvider.class);
+    when(partialProvider.fetchAll(any(), any())).thenReturn(List.of("only-one-value"));
+    var context =
+        new InboundConnectorContextImpl(
+            partialProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when nothing was ever bound, so only the (incomplete) re-read is available
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was leaked"));
+
+    // then the message is withheld rather than published with only one of the two values masked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).contains("withheld"));
+  }
+
+  @Test
+  void log_masksASecretDeclaredOnlyByAGroupedSiblingElement() {
+    // given a group where only the sibling element (not this context's representative one)
+    // declares a secret
+    var scope = List.of("shared");
+    var representative = elementWithProperties("a", Map.of("shared", "x"));
+    var sibling = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.FOO"));
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                sibling.element(), 1L, "<default>"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            mock(DocumentFactory.class),
+            detailsOf(scope, representative, sibling),
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the sibling is the one activated and bound
+    var success =
+        (CorrelationResult.Success)
+            context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+    success.bindProperties(TokenHolder.class);
+    context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
+
+    // then its secret is still redacted, even though it is absent from the representative
+    // element's own properties
+    var logs =
+        activityLogRegistry.getLogs(
+            ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId()));
+    assertThat(logs).last().satisfies(log -> assertThat(log.message()).isEqualTo("token was ***"));
+  }
+
+  private record TokenHolder(String token) {}
+
+  @Test
   void bindProperties_shouldForwardClusterVariableExpressionToCluster() {
     // given a property referencing a cluster-scoped variable (e.g. camunda.vars.env.*)
     var definition =
