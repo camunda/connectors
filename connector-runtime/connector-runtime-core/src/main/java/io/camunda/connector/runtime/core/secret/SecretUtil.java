@@ -102,11 +102,11 @@ public class SecretUtil {
   /**
    * Names are trimmed, because that is the name {@link #resolveSecretValue} looks up: the
    * parentheses pattern's capture reaches past the name to the closing braces, so {@code {{
-   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form denies a
-   * legitimately declared name at resolution time -- for a name outside the bare pattern's
-   * character class (e.g. {@code FOO:BAR}), there is no independent bare-pattern match to
-   * coincidentally supply the trimmed form, so the declared secret is silently left unresolved
-   * under STRICT.
+   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form also
+   * breaks consumers that do not normalize again. For example, exception redaction filters extracted
+   * names against the allow-list before fetching their values; a colon-bearing name has no independent
+   * bare-pattern match, so the untrimmed name is filtered out and its value cannot be redacted from an
+   * exception message.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
