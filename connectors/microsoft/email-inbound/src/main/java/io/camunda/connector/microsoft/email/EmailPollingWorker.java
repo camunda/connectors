@@ -30,7 +30,8 @@ public class EmailPollingWorker implements Runnable {
     this.context = context;
     MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
     var mailClient =
-        new MicrosoftMailClient(properties.authentication(), properties.pollingConfig().userId());
+        new MicrosoftMailClient(
+            properties.authentication(), properties.pollingConfig().userId(), context);
     messageProcessor = new MessageProcessor(properties.operation(), mailClient, context);
     // Doing this here to establish connection/access rights
     this.fetcher =
