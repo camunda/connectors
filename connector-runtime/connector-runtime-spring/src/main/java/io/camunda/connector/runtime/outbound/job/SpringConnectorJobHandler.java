@@ -140,22 +140,23 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
-    ConnectorResult result = getConnectorResult(job, secretFilter);
-    processFinalResult(client, job, result, secretFilter);
+    var context =
+        new JobHandlerContext(
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter);
+    ConnectorResult result = getConnectorResult(job, context, secretFilter);
+    processFinalResult(client, job, context, result, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job, SecretFilter secretFilter) {
+  private ConnectorResult getConnectorResult(
+      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-      var context =
-          new JobHandlerContext(
-              job,
-              getSecretProvider(),
-              validationProvider,
-              documentFactory,
-              objectMapper,
-              secretFilter);
       var response = call.execute(context);
       var responseVariables =
           connectorResultHandler.createOutputVariables(
@@ -168,12 +169,16 @@ public class SpringConnectorJobHandler implements JobHandler {
       return new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff, secretFilter);
+          e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues());
     }
   }
 
   private void processFinalResult(
-      JobClient client, ActivatedJob job, ConnectorResult finalResult, SecretFilter secretFilter) {
+      JobClient client,
+      ActivatedJob job,
+      JobHandlerContext context,
+      ConnectorResult finalResult,
+      SecretFilter secretFilter) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
@@ -182,7 +187,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error, secretFilter),
+          error -> handleBPMNError(client, job, context, error, secretFilter),
           () -> handleSuccessResult(client, job, finalResult));
     } catch (Exception ex) {
       if (Thread.currentThread().isInterrupted()) {
@@ -200,7 +205,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       failJob(
           client,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter));
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              ex, job, secretFilter, context.getSecretHandler().getResolvedValues()));
     }
   }
 
@@ -222,9 +228,15 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   private void handleBPMNError(
-      JobClient client, ActivatedJob job, ConnectorError rawError, SecretFilter secretFilter) {
+      JobClient client,
+      ActivatedJob job,
+      JobHandlerContext context,
+      ConnectorError rawError,
+      SecretFilter secretFilter) {
     // redacted before the Zeebe command is built from it
-    var error = outboundConnectorExceptionHandler.maskConnectorError(rawError, job, secretFilter);
+    var error =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, context.getSecretHandler().getResolvedValues());
     if (error instanceof BpmnError bpmnError) {
       checkVariablesSize(bpmnError.variables());
       // the code is not redacted, so it stays out of the log: unlike the command and the error

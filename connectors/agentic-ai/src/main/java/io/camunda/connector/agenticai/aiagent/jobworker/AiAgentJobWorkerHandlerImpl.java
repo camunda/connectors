@@ -38,6 +38,7 @@ import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -107,7 +108,9 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job, secretFilter));
+          // no captured values to add: the context that resolved them is not kept past binding
+          this.outboundConnectorExceptionHandler.handleFinalResultException(
+              e, job, secretFilter, List.of()));
     }
   }
 
@@ -125,7 +128,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter);
+              e, job, retryBackoff, secretFilter, List.of());
       return new AgentErrorResult(errorResult);
     }
   }
