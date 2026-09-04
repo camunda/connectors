@@ -1225,7 +1225,8 @@
       } ]
     },
     "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.custom.authentication.audience",
     "label" : "Audience",

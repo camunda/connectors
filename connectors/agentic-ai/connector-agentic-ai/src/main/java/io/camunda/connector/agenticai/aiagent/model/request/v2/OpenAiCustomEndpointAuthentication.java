@@ -91,7 +91,8 @@ public sealed interface OpenAiCustomEndpointAuthentication {
           @TemplateProperty(
               group = "provider",
               tooltip = "Your application's client secret from the OAuth client",
-              label = "Client secret")
+              label = "Client secret",
+              secret = true)
           String clientSecret,
       @FEEL
           @TemplateProperty(
