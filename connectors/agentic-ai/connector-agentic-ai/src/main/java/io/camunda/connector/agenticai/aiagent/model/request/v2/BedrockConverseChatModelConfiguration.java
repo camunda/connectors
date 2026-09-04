@@ -196,11 +196,13 @@ public record BedrockConverseChatModelConfiguration(
     public record BedrockConversePromptCaching(
         @TemplateProperty(
                 group = "model",
-                label = "Enable prompt caching",
+                label = "Prompt caching",
                 tooltip =
-                    "Enables AWS Bedrock automatic prompt caching. See the <a "
+                    "Can speed up responses and lower API costs by reusing text from recent requests. "
+                        + "Best for long conversations or large documents."
+                        + "<br><br>See the <a "
                         + "href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" "
-                        + "target=\"_blank\">documentation</a>.",
+                        + "target=\"_blank\">caching documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
                 defaultValue = "false",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
