@@ -69,94 +69,33 @@ static def moveAfter(List properties, List idsToMove, String afterId) {
     return remaining
 }
 
-// Adds the read-only prompt-caching states that the annotation generator cannot express and
-// places every provider's field directly after Model.
-static def readOnlyPromptCachingProperty(
-    String id,
-    String description,
-    String tooltip,
-    boolean enabled,
-    String bindingName,
-    String provider
-) {
-    return [
-        id: id,
-        label: "Prompt caching",
-        description: description,
-        tooltip: tooltip,
-        value: enabled,
-        editable: false,
-        group: "model",
-        binding: [name: bindingName, type: "property"],
-        condition: [property: "provider.type", equals: provider, type: "simple"],
-        type: "Boolean"
-    ]
-}
-
 static def configurePromptCaching(List properties) {
-    def cachingPropertyIds = [
-        "provider.anthropic.model.parameters.promptCaching.enabled",
-        "provider.bedrock.model.parameters.promptCaching.enabled",
-        "promptCaching.openai.status",
-        "promptCaching.googleGemini.status",
-        "promptCaching.custom.status"
+    def integrations = [
+        [modelId: "provider.anthropic.model.model", cachingId: "provider.anthropic.model.parameters.promptCaching.enabled"],
+        [modelId: "provider.bedrock.model.model", cachingId: "provider.bedrock.model.parameters.promptCaching.enabled"],
+        [modelId: "provider.openai.model.model", cachingId: "promptCaching.openai.status"],
+        [modelId: "provider.googleGemini.model.model", cachingId: "promptCaching.googleGemini.status"],
+        [modelId: "provider.model", cachingId: "promptCaching.custom.status"]
     ]
+    def cachingPropertyIds = integrations*.cachingId
     def cachingProperties = properties.findAll { it.id in cachingPropertyIds }
         .collectEntries { [(it.id): it] }
     def remaining = properties.findAll { !(it.id in cachingPropertyIds) }
 
-    def cachingTooltip = { String documentationUrl ->
-        "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents." +
-            "<br><br>See the <a href=\"${documentationUrl}\" target=\"_blank\">caching documentation</a>."
-    }
-    def integrations = [
-        [
-            modelId: "provider.anthropic.model.model",
-            cachingProperty: cachingProperties["provider.anthropic.model.parameters.promptCaching.enabled"]
-        ],
-        [
-            modelId: "provider.bedrock.model.model",
-            cachingProperty: cachingProperties["provider.bedrock.model.parameters.promptCaching.enabled"]
-        ],
-        [
-            modelId: "provider.openai.model.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.openai.status",
-                "Automatic.",
-                cachingTooltip("https://developers.openai.com/api/docs/guides/prompt-caching"),
-                true,
-                "modeler:promptCachingOpenAI",
-                "openai"
-            )
-        ],
-        [
-            modelId: "provider.googleGemini.model.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.googleGemini.status",
-                "Automatic.",
-                cachingTooltip("https://ai.google.dev/gemini-api/docs/caching"),
-                true,
-                "modeler:promptCachingGoogleGemini",
-                "google-gemini"
-            )
-        ],
-        [
-            modelId: "provider.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.custom.status",
-                "Not available.",
-                "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
-                false,
-                "modeler:promptCachingCustom",
-                "custom"
-            )
-        ]
-    ]
-
     integrations.each { integration ->
+        def cachingProperty = cachingProperties[integration.cachingId]
+        if (cachingProperty?.binding?.name?.startsWith("modeler.")) {
+            cachingProperty.binding = [
+                name: cachingProperty.binding.name.replaceFirst(/^modeler\./, "modeler:"),
+                type: "property"
+            ]
+            cachingProperty.editable = false
+            cachingProperty.remove("feel")
+            cachingProperty.remove("optional")
+        }
         def anchorIndex = remaining.findIndexOf { it.id == integration.modelId }
-        if (anchorIndex >= 0 && integration.cachingProperty) {
-            remaining.add(anchorIndex + 1, integration.cachingProperty)
+        if (anchorIndex >= 0 && cachingProperty) {
+            remaining.add(anchorIndex + 1, cachingProperty)
         }
     }
     return remaining

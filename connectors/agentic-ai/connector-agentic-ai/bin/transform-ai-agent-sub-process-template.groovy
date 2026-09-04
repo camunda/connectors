@@ -13,118 +13,6 @@ static def replaceDocumentationLinks(String text) {
     )
 }
 
-// Moves the given property ids to sit right after another property id. No-op if either side
-// isn't found. Duplicated in transform-ai-agent-task-template.groovy since this script's
-// execution runs before that one's, per the pom's execution order for the v2 task/sub-process
-// pair.
-static def moveAfter(List properties, List idsToMove, String afterId) {
-    def moving = properties.findAll { it.id in idsToMove }
-    if (moving.isEmpty()) {
-        return properties
-    }
-    def remaining = properties.findAll { !(it.id in idsToMove) }
-    def anchorIndex = remaining.findIndexOf { it.id == afterId }
-    if (anchorIndex < 0) {
-        return properties
-    }
-    remaining.addAll(anchorIndex + 1, moving)
-    return remaining
-}
-
-// Adds the read-only prompt-caching states that the annotation generator cannot express and
-// places every provider's field directly after Model. Duplicated in the task transform for the
-// execution-order reason above.
-static def readOnlyPromptCachingProperty(
-    String id,
-    String description,
-    String tooltip,
-    boolean enabled,
-    String bindingName,
-    String provider
-) {
-    return [
-        id: id,
-        label: "Prompt caching",
-        description: description,
-        tooltip: tooltip,
-        value: enabled,
-        editable: false,
-        group: "model",
-        binding: [name: bindingName, type: "property"],
-        condition: [property: "provider.type", equals: provider, type: "simple"],
-        type: "Boolean"
-    ]
-}
-
-static def configurePromptCaching(List properties) {
-    def cachingPropertyIds = [
-        "provider.anthropic.model.parameters.promptCaching.enabled",
-        "provider.bedrock.model.parameters.promptCaching.enabled",
-        "promptCaching.openai.status",
-        "promptCaching.googleGemini.status",
-        "promptCaching.custom.status"
-    ]
-    def cachingProperties = properties.findAll { it.id in cachingPropertyIds }
-        .collectEntries { [(it.id): it] }
-    def remaining = properties.findAll { !(it.id in cachingPropertyIds) }
-
-    def cachingTooltip = { String documentationUrl ->
-        "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents." +
-            "<br><br>See the <a href=\"${documentationUrl}\" target=\"_blank\">caching documentation</a>."
-    }
-    def integrations = [
-        [
-            modelId: "provider.anthropic.model.model",
-            cachingProperty: cachingProperties["provider.anthropic.model.parameters.promptCaching.enabled"]
-        ],
-        [
-            modelId: "provider.bedrock.model.model",
-            cachingProperty: cachingProperties["provider.bedrock.model.parameters.promptCaching.enabled"]
-        ],
-        [
-            modelId: "provider.openai.model.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.openai.status",
-                "Automatic.",
-                cachingTooltip("https://developers.openai.com/api/docs/guides/prompt-caching"),
-                true,
-                "modeler:promptCachingOpenAI",
-                "openai"
-            )
-        ],
-        [
-            modelId: "provider.googleGemini.model.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.googleGemini.status",
-                "Automatic.",
-                cachingTooltip("https://ai.google.dev/gemini-api/docs/caching"),
-                true,
-                "modeler:promptCachingGoogleGemini",
-                "google-gemini"
-            )
-        ],
-        [
-            modelId: "provider.model",
-            cachingProperty: readOnlyPromptCachingProperty(
-                "promptCaching.custom.status",
-                "Not available.",
-                "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
-                false,
-                "modeler:promptCachingCustom",
-                "custom"
-            )
-        ]
-    ]
-
-    integrations.each { integration ->
-        def anchorIndex = remaining.findIndexOf { it.id == integration.modelId }
-        if (anchorIndex >= 0 && integration.cachingProperty) {
-            remaining.add(anchorIndex + 1, integration.cachingProperty)
-        }
-    }
-    return remaining
-}
-
 def sourceFile = sourceFile
 if (!sourceFile) {
     System.err.println("Error: Source file path required as property")
@@ -399,17 +287,6 @@ updatedProperties.add([
     ],
     type: "Hidden"
 ])
-
-// OpenAI's Effort is declared per API family (a sibling of Model, like the other per-family
-// request parameters), so it's emitted before Model. Move it after, matching Anthropic/Bedrock.
-updatedProperties = moveAfter(
-    updatedProperties,
-    ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
-    "provider.openai.model.model"
-)
-if (file.name.contains("ai-agent-task.v2")) {
-    updatedProperties = configurePromptCaching(updatedProperties)
-}
 
 json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)

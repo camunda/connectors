@@ -2129,9 +2129,7 @@
     "id" : "promptCaching.openai.status",
     "label" : "Prompt caching",
     "description" : "Automatic.",
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
     "value" : true,
-    "editable" : false,
     "group" : "model",
     "binding" : {
       "name" : "modeler:promptCachingOpenAI",
@@ -2142,7 +2140,9 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "type" : "Boolean"
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
@@ -2258,9 +2258,7 @@
     "id" : "promptCaching.googleGemini.status",
     "label" : "Prompt caching",
     "description" : "Automatic.",
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
     "value" : true,
-    "editable" : false,
     "group" : "model",
     "binding" : {
       "name" : "modeler:promptCachingGoogleGemini",
@@ -2271,7 +2269,9 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
-    "type" : "Boolean"
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
     "label" : "Thinking budget (tokens)",
@@ -2352,9 +2352,7 @@
     "id" : "promptCaching.custom.status",
     "label" : "Prompt caching",
     "description" : "Not available.",
-    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
     "value" : false,
-    "editable" : false,
     "group" : "model",
     "binding" : {
       "name" : "modeler:promptCachingCustom",
@@ -2365,7 +2363,9 @@
       "equals" : "custom",
       "type" : "simple"
     },
-    "type" : "Boolean"
+    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",

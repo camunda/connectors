@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
@@ -62,6 +63,7 @@ class PromptCachingElementTemplateTest {
               "modeler:promptCachingGoogleGemini",
               "https://ai.google.dev/gemini-api/docs/caching"),
           new ExpectedPromptCachingProperty(
+              "unavailable custom",
               "custom",
               "provider.model",
               "promptCaching.custom.status",
@@ -73,9 +75,44 @@ class PromptCachingElementTemplateTest {
               "The prompt caching property does not control caching for custom implementations. "
                   + "Use a custom solution instead."));
 
+  @ParameterizedTest(name = "{0} + {1}")
+  @MethodSource("templateAndPromptCachingProperties")
+  void exposesPromptCachingForProvider(Path templatePath, ExpectedPromptCachingProperty expected)
+      throws IOException {
+    final var properties = properties(OBJECT_MAPPER.readTree(templatePath.toFile()));
+    final var cachingProperties =
+        properties.stream()
+            .filter(property -> "Prompt caching".equals(property.path("label").asText()))
+            .toList();
+    final var cachingProperty = property(cachingProperties, expected.id());
+    final var modelProperty = property(properties, expected.modelId());
+
+    assertThat(properties.indexOf(cachingProperty))
+        .isEqualTo(properties.indexOf(modelProperty) + 1);
+    assertThat(cachingProperty.path("group").asText()).isEqualTo("model");
+    assertThat(cachingProperty.path("type").asText()).isEqualTo("Boolean");
+    assertThat(cachingProperty.path("condition").path("property").asText())
+        .isEqualTo("provider.type");
+    assertThat(cachingProperty.path("condition").path("equals").asText())
+        .isEqualTo(expected.provider());
+    assertThat(cachingProperty.path("editable").asBoolean(true)).isEqualTo(expected.editable());
+    assertThat(cachingProperty.path("value").asBoolean()).isEqualTo(expected.enabled());
+    assertThat(cachingProperty.path("binding").path("type").asText())
+        .isEqualTo(expected.bindingType());
+    assertThat(cachingProperty.path("binding").path("name").asText())
+        .isEqualTo(expected.bindingName());
+    assertThat(cachingProperty.path("tooltip").asText()).isEqualTo(expected.tooltip());
+
+    if (expected.description() == null) {
+      assertThat(cachingProperty.has("description")).isFalse();
+    } else {
+      assertThat(cachingProperty.path("description").asText()).isEqualTo(expected.description());
+    }
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("templatePaths")
-  void exposesPromptCachingForEveryProvider(Path templatePath) throws IOException {
+  void exposesPromptCachingOnlyForSupportedProviders(Path templatePath) throws IOException {
     final var properties = properties(OBJECT_MAPPER.readTree(templatePath.toFile()));
     final var cachingProperties =
         properties.stream()
@@ -88,33 +125,13 @@ class PromptCachingElementTemplateTest {
             EXPECTED_PROPERTIES.stream()
                 .map(ExpectedPromptCachingProperty::provider)
                 .collect(java.util.stream.Collectors.toSet()));
+  }
 
-    for (final var expected : EXPECTED_PROPERTIES) {
-      final var cachingProperty = property(cachingProperties, expected.id());
-      final var modelProperty = property(properties, expected.modelId());
-
-      assertThat(properties.indexOf(cachingProperty))
-          .isEqualTo(properties.indexOf(modelProperty) + 1);
-      assertThat(cachingProperty.path("group").asText()).isEqualTo("model");
-      assertThat(cachingProperty.path("type").asText()).isEqualTo("Boolean");
-      assertThat(cachingProperty.path("condition").path("property").asText())
-          .isEqualTo("provider.type");
-      assertThat(cachingProperty.path("condition").path("equals").asText())
-          .isEqualTo(expected.provider());
-      assertThat(cachingProperty.path("editable").asBoolean(true)).isEqualTo(expected.editable());
-      assertThat(cachingProperty.path("value").asBoolean()).isEqualTo(expected.enabled());
-      assertThat(cachingProperty.path("binding").path("type").asText())
-          .isEqualTo(expected.bindingType());
-      assertThat(cachingProperty.path("binding").path("name").asText())
-          .isEqualTo(expected.bindingName());
-      assertThat(cachingProperty.path("tooltip").asText()).isEqualTo(expected.tooltip());
-
-      if (expected.description() == null) {
-        assertThat(cachingProperty.has("description")).isFalse();
-      } else {
-        assertThat(cachingProperty.path("description").asText()).isEqualTo(expected.description());
-      }
-    }
+  private static Stream<Arguments> templateAndPromptCachingProperties() {
+    return TEMPLATE_PATHS.stream()
+        .flatMap(
+            templatePath ->
+                EXPECTED_PROPERTIES.stream().map(expected -> Arguments.of(templatePath, expected)));
   }
 
   private static Stream<Path> templatePaths() {
@@ -145,12 +162,22 @@ class PromptCachingElementTemplateTest {
   private static ExpectedPromptCachingProperty optional(
       String provider, String modelId, String id, String documentationUrl) {
     return new ExpectedPromptCachingProperty(
-        provider, modelId, id, true, false, "zeebe:input", id, null, tooltip(documentationUrl));
+        "optional " + provider,
+        provider,
+        modelId,
+        id,
+        true,
+        false,
+        "zeebe:input",
+        id,
+        null,
+        tooltip(documentationUrl));
   }
 
   private static ExpectedPromptCachingProperty automatic(
       String provider, String modelId, String id, String bindingName, String documentationUrl) {
     return new ExpectedPromptCachingProperty(
+        "automatic " + provider,
         provider,
         modelId,
         id,
@@ -170,6 +197,7 @@ class PromptCachingElementTemplateTest {
   }
 
   private record ExpectedPromptCachingProperty(
+      String displayName,
       String provider,
       String modelId,
       String id,
@@ -178,5 +206,11 @@ class PromptCachingElementTemplateTest {
       String bindingType,
       String bindingName,
       String description,
-      String tooltip) {}
+      String tooltip) {
+
+    @Override
+    public String toString() {
+      return displayName;
+    }
+  }
 }
