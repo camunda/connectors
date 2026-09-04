@@ -1924,6 +1924,25 @@
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
+    "label" : "Prompt caching",
+    "description" : "Optional.",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
     "optional" : false,
@@ -2043,24 +2062,6 @@
       "value" : "omitted"
     } ]
   }, {
-    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
-    "label" : "Enable prompt caching",
-    "optional" : true,
-    "value" : false,
-    "feel" : "static",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
-    "type" : "Boolean"
-  }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
@@ -2083,7 +2084,8 @@
     "type" : "String"
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
-    "label" : "Enable prompt caching",
+    "label" : "Prompt caching",
+    "description" : "Optional.",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -2097,7 +2099,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">caching documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.openai.model.model",
@@ -2120,6 +2122,24 @@
     },
     "placeholder" : "gpt-5.5",
     "type" : "String"
+  }, {
+    "id" : "promptCaching.openai.status",
+    "label" : "Prompt caching",
+    "description" : "Automatic.",
+    "value" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingOpenAI",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
@@ -2232,6 +2252,24 @@
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
+    "id" : "promptCaching.googleGemini.status",
+    "label" : "Prompt caching",
+    "description" : "Automatic.",
+    "value" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingGoogleGemini",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
+  }, {
     "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
     "label" : "Thinking budget (tokens)",
     "optional" : true,
@@ -2307,6 +2345,24 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "promptCaching.custom.status",
+    "label" : "Prompt caching",
+    "description" : "Not available.",
+    "value" : false,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingCustom",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "custom",
+      "type" : "simple"
+    },
+    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",

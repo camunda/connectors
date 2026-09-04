@@ -426,9 +426,11 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     public record AnthropicPromptCaching(
         @TemplateProperty(
                 group = "model",
-                label = "Enable prompt caching",
+                label = "Prompt caching",
+                description = "Optional.",
                 tooltip =
-                    "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
+                    "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents."
+                        + "<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
                 defaultValue = "false",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,

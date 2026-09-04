@@ -69,6 +69,38 @@ static def moveAfter(List properties, List idsToMove, String afterId) {
     return remaining
 }
 
+static def configurePromptCaching(List properties) {
+    def integrations = [
+        [modelId: "provider.anthropic.model.model", cachingId: "provider.anthropic.model.parameters.promptCaching.enabled"],
+        [modelId: "provider.bedrock.model.model", cachingId: "provider.bedrock.model.parameters.promptCaching.enabled"],
+        [modelId: "provider.openai.model.model", cachingId: "promptCaching.openai.status"],
+        [modelId: "provider.googleGemini.model.model", cachingId: "promptCaching.googleGemini.status"],
+        [modelId: "provider.model", cachingId: "promptCaching.custom.status"]
+    ]
+    def cachingPropertyIds = integrations*.cachingId
+    def cachingProperties = properties.findAll { it.id in cachingPropertyIds }
+        .collectEntries { [(it.id): it] }
+    def remaining = properties.findAll { !(it.id in cachingPropertyIds) }
+
+    integrations.each { integration ->
+        def cachingProperty = cachingProperties[integration.cachingId]
+        if (cachingProperty?.binding?.name?.startsWith("modeler.")) {
+            cachingProperty.binding = [
+                name: cachingProperty.binding.name.replaceFirst(/^modeler\./, "modeler:"),
+                type: "property"
+            ]
+            cachingProperty.editable = false
+            cachingProperty.remove("feel")
+            cachingProperty.remove("optional")
+        }
+        def anchorIndex = remaining.findIndexOf { it.id == integration.modelId }
+        if (anchorIndex >= 0 && cachingProperty) {
+            remaining.add(anchorIndex + 1, cachingProperty)
+        }
+    }
+    return remaining
+}
+
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
@@ -100,6 +132,9 @@ updatedProperties = moveAfter(
     ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
     "provider.openai.model.model"
 )
+if (json.id?.toString()?.contains("ai-agent-task.v2")) {
+    updatedProperties = configurePromptCaching(updatedProperties)
+}
 
 json.put('properties', updatedProperties)
 mapper.writeValue(new File((String) outputFile), json)
