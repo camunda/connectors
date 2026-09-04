@@ -277,6 +277,49 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
   }
 
   /**
+   * A single-turn conversation whose usage carries explicit {@code cache_creation_input_tokens}
+   * and/or {@code cache_read_input_tokens} values - the shape a prompt-cache write or hit returns.
+   * The generic {@link TurnStub} API has no dial for these fields, so the other {@code
+   * stubConversation} overloads always render them as absent (mirroring real Anthropic behavior
+   * when a call has no cache activity); this dedicated single-turn stub exists purely so e2e
+   * coverage can exercise the non-zero case.
+   */
+  public record UsageDetailsTurnStub(
+      String text,
+      int inputTokens,
+      int outputTokens,
+      long cacheCreationInputTokens,
+      long cacheReadInputTokens) {}
+
+  public static void stubConversation(UsageDetailsTurnStub turn) {
+    stubScenario(List.of(usageDetailsSseBody(turn)));
+  }
+
+  private static String usageDetailsSseBody(UsageDetailsTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(
+        body,
+        "message_start",
+        messageStartEvent(
+            id, turn.inputTokens(), turn.cacheCreationInputTokens(), turn.cacheReadInputTokens()));
+    writeTextBlock(body, 0, turn.text());
+    writeEvent(
+        body,
+        "message_delta",
+        messageDeltaEvent(
+            StopReason.END_TURN,
+            turn.inputTokens(),
+            turn.outputTokens(),
+            turn.cacheCreationInputTokens(),
+            turn.cacheReadInputTokens()));
+    writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
+  /**
    * Wires a single-turn scenario whose response is delayed by {@code delay} via WireMock's {@code
    * withFixedDelay} - used by HTTP-transport-timeout e2e coverage to simulate a slow/hanging model
    * response on the native streaming endpoint.
@@ -346,6 +389,11 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
   }
 
   private static RawMessageStartEvent messageStartEvent(int id, int inputTokens) {
+    return messageStartEvent(id, inputTokens, null, null);
+  }
+
+  private static RawMessageStartEvent messageStartEvent(
+      int id, int inputTokens, Long cacheCreationInputTokens, Long cacheReadInputTokens) {
     final Message message =
         Message.builder()
             .id("msg-test-sse-%s".formatted(id))
@@ -360,8 +408,8 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
                     .inputTokens(inputTokens)
                     .outputTokens(0)
                     .cacheCreation((CacheCreation) null)
-                    .cacheCreationInputTokens((Long) null)
-                    .cacheReadInputTokens((Long) null)
+                    .cacheCreationInputTokens(cacheCreationInputTokens)
+                    .cacheReadInputTokens(cacheReadInputTokens)
                     .inferenceGeo((String) null)
                     .outputTokensDetails((OutputTokensDetails) null)
                     .serverToolUse((ServerToolUsage) null)
@@ -418,6 +466,15 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static RawMessageDeltaEvent messageDeltaEvent(
       StopReason stopReason, int inputTokens, int outputTokens) {
+    return messageDeltaEvent(stopReason, inputTokens, outputTokens, null, null);
+  }
+
+  private static RawMessageDeltaEvent messageDeltaEvent(
+      StopReason stopReason,
+      int inputTokens,
+      int outputTokens,
+      Long cacheCreationInputTokens,
+      Long cacheReadInputTokens) {
     return RawMessageDeltaEvent.builder()
         .delta(
             RawMessageDeltaEvent.Delta.builder()
@@ -428,8 +485,8 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
                 .build())
         .usage(
             MessageDeltaUsage.builder()
-                .cacheCreationInputTokens((Long) null)
-                .cacheReadInputTokens((Long) null)
+                .cacheCreationInputTokens(cacheCreationInputTokens)
+                .cacheReadInputTokens(cacheReadInputTokens)
                 .inputTokens(inputTokens)
                 .outputTokens(outputTokens)
                 .outputTokensDetails((OutputTokensDetails) null)

@@ -152,6 +152,34 @@ public final class OpenAiCompletionsChatModelStubs {
     stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(sseResponse(sseBody(turn))));
   }
 
+  /**
+   * Wires the scenario chain returning each {@link UsageDetailsTurnStub}'s response in order - the
+   * multi-turn counterpart of {@link #stubConversation(UsageDetailsTurnStub)}, letting e2e coverage
+   * dial distinct non-zero cache/reasoning counts per turn to exercise aggregation across turns
+   * (rather than a single pass-through value).
+   */
+  public static void stubConversation(UsageDetailsTurnStub... turns) {
+    if (turns.length == 0) {
+      throw new IllegalArgumentException("At least one conversation turn is required");
+    }
+
+    for (int i = 0; i < turns.length; i++) {
+      final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
+
+      ScenarioMappingBuilder mapping =
+          post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
+              .inScenario(SCENARIO_NAME)
+              .whenScenarioStateIs(fromState)
+              .willReturn(sseResponse(sseBody(turns[i])));
+
+      if (i < turns.length - 1) {
+        mapping = mapping.willSetStateTo(stateName(i + 1));
+      }
+
+      stubFor(mapping);
+    }
+  }
+
   private static String sseBody(UsageDetailsTurnStub turn) {
     final String id = "chatcmpl-test-" + TURN_COUNTER.getAndIncrement();
 

@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -21,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -161,5 +163,33 @@ class AgentInstanceHistoryMapperTest {
         .isInstanceOfSatisfying(
             AgentInstanceHistoryContent.ObjectContent.class,
             object -> assertThat(object.getObject()).isEqualTo(providerContent));
+  }
+
+  @Test
+  void historyMetricsMapsAllTokenCountsAndDuration() {
+    final var tokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(100)
+            .outputTokenCount(50)
+            .cacheReadTokenCount(200)
+            .cacheCreationTokenCount(30)
+            .reasoningTokenCount(20)
+            .build();
+    final var metrics =
+        AgentMetrics.builder()
+            .modelCalls(1)
+            .tokenUsage(tokenUsage)
+            .toolCalls(0)
+            .executionTime(Duration.ofMillis(1234))
+            .build();
+
+    final var result = mapper.historyMetrics(metrics);
+
+    assertThat(result.getInputTokens()).isEqualTo(100L);
+    assertThat(result.getOutputTokens()).isEqualTo(50L);
+    assertThat(result.getCacheReadTokenCount()).isEqualTo(200L);
+    assertThat(result.getCacheCreationTokenCount()).isEqualTo(30L);
+    assertThat(result.getReasoningTokenCount()).isEqualTo(20L);
+    assertThat(result.getDurationMs()).isEqualTo(1234L);
   }
 }
