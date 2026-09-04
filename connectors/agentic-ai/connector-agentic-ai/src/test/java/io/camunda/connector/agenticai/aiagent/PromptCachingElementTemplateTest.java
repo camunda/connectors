@@ -172,7 +172,7 @@ class PromptCachingElementTemplateTest {
         false,
         "zeebe:input",
         id,
-        null,
+        "Optional.",
         tooltip(documentationUrl));
   }
 

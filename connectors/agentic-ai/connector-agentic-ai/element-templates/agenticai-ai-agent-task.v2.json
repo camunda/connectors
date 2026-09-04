@@ -1898,6 +1898,7 @@
   }, {
     "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
     "label" : "Prompt caching",
+    "description" : "Optional.",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -2056,6 +2057,7 @@
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
     "label" : "Prompt caching",
+    "description" : "Optional.",
     "optional" : true,
     "value" : false,
     "feel" : "static",

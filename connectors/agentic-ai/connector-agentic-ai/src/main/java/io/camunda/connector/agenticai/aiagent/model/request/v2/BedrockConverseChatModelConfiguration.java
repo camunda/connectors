@@ -197,6 +197,7 @@ public record BedrockConverseChatModelConfiguration(
         @TemplateProperty(
                 group = "model",
                 label = "Prompt caching",
+                description = "Optional.",
                 tooltip =
                     "Can speed up responses and lower API costs by reusing text from recent requests. "
                         + "Best for long conversations or large documents."
