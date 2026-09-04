@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +33,7 @@ public class SecretHandler {
 
   protected final SecretProvider secretProvider;
 
-  protected Function<String, String> secretReplacer;
+  protected Function<Secret, String> secretReplacer;
 
   // values this instance substituted, so a caller can redact against a rotated re-read
   private final Set<String> resolvedValues = ConcurrentHashMap.newKeySet();
@@ -39,23 +41,29 @@ public class SecretHandler {
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;
     secretReplacer =
-        name -> {
-          if (secretFilter.isAllowed(name)) {
+        secret -> {
+          if (secretFilter.isAllowed(secret)) {
             var value =
-                Optional.ofNullable(secretProvider.getSecret(name))
-                    .orElseThrow(() -> new SecretNotAvailableException(name));
+                Optional.ofNullable(secretProvider.getSecret(secret.secretName()))
+                    .orElseThrow(() -> new SecretNotAvailableException(secret));
             resolvedValues.add(value);
-            // a message that re-serializes the input carries this form, not the raw value
+            // the serialized job JSON carries this form, not the raw value, when it differs
             resolvedValues.add(SecretUtil.jsonEscape(value));
             return value;
           }
-          LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
+          LOG.debug(
+              "Secret '{}' not in allow-list — placeholder left unreplaced", secret.secretName());
           return null;
         };
   }
 
-  public String replaceSecrets(String input) {
+  public JsonNode replaceSecrets(JsonNode input) {
     return SecretUtil.replaceSecrets(input, secretReplacer);
+  }
+
+  public String replaceSecrets(String input) {
+    return SecretUtil.replaceSecrets(
+        input, name -> secretReplacer.apply(new Secret(name, List.of())));
   }
 
   public List<String> getResolvedValues() {

@@ -21,11 +21,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.time.Duration;
@@ -37,6 +41,7 @@ import org.junit.jupiter.api.Test;
 class OutboundConnectorExceptionHandlerTest {
 
   private static final Duration NO_BACKOFF = null;
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final SecretProvider secretProvider = mock(SecretProvider.class);
   private final OutboundConnectorExceptionHandler handler =
@@ -46,6 +51,12 @@ class OutboundConnectorExceptionHandlerTest {
   private ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    try {
+      when(job.getVariablesAsType(ObjectNode.class))
+          .thenReturn((ObjectNode) OBJECT_MAPPER.readTree(variables));
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Invalid test variables", e);
+    }
     when(job.getRetries()).thenReturn(3);
     return job;
   }
@@ -127,11 +138,26 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected allowed-value and denied-value"),
             job,
             NO_BACKOFF,
-            SecretFilter.allowOnly(List.of("ALLOWED")),
+            SecretFilter.allowOnly(List.of(new Secret("ALLOWED", List.of("a")))),
             List.of());
 
     assertThat(requestedKeys).containsExactly("ALLOWED");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and denied-value");
+  }
+
+  @Test
+  void readsTheSameAllowedSecretNameOnlyOnceAcrossMultipleFieldPaths() {
+    var job = jobNaming("{\"a\": \"secrets.SHARED\", \"b\": \"secrets.SHARED\"}");
+    holdingOnly(Map.of("SHARED", "shared-value"));
+
+    handler.manageConnectorJobHandlerException(
+        new RuntimeException("api rejected shared-value"),
+        job,
+        NO_BACKOFF,
+        SecretFilter.allowAll(),
+        List.of());
+
+    assertThat(requestedKeys).containsExactly("SHARED");
   }
 
   @Test

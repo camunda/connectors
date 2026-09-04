@@ -17,40 +17,33 @@
 package io.camunda.connector.runtime.outbound.job;
 
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * A {@link SecretFilter} that resolves the allowed secret names on the first {@link
- * #isAllowed(String)} call rather than at construction time. This defers the BPMN process
- * definition lookup to the point where secrets are actually being replaced, so that any exception
- * thrown by the supplier propagates through the normal connector error-handling path and results in
- * a proper Zeebe {@code failJob} command.
- *
- * <p>The supplier is called exactly once per filter instance regardless of outcome. When the
- * supplier returns {@code null} (LAX mode: lookup failed, fall back to allow-all), all subsequent
- * calls to {@link #isAllowed(String)} return {@code true} without re-invoking the supplier.
+ * A {@link SecretFilter} that resolves the allowed secrets on the first {@link #isAllowed(Secret)}
+ * call rather than at construction time.
  */
 public class LazyLoadingSecretFilter implements SecretFilter {
-  private final Supplier<List<String>> secretNamesSupplier;
+  private final Supplier<List<Secret>> secretsSupplier;
 
-  private volatile boolean initialized = false;
-  private Set<String> secretNames;
+  private volatile boolean initialized;
+  private SecretFilter delegate;
   private Throwable initializationFailure;
 
-  public LazyLoadingSecretFilter(Supplier<List<String>> secretNamesSupplier) {
-    this.secretNamesSupplier = secretNamesSupplier;
+  public LazyLoadingSecretFilter(Supplier<List<Secret>> secretsSupplier) {
+    this.secretsSupplier = secretsSupplier;
   }
 
   @Override
-  public boolean isAllowed(String secretName) {
+  public boolean isAllowed(Secret secret) {
     if (!initialized) {
       synchronized (this) {
         if (!initialized) {
           try {
-            List<String> names = secretNamesSupplier.get();
-            secretNames = names != null ? Set.copyOf(names) : null;
+            List<Secret> secrets = secretsSupplier.get();
+            delegate = secrets != null ? SecretFilter.allowOnly(secrets) : SecretFilter.allowAll();
           } catch (Throwable e) {
             initializationFailure = e;
             initialized = true;
@@ -60,16 +53,12 @@ public class LazyLoadingSecretFilter implements SecretFilter {
         }
       }
     }
-    if (initializationFailure instanceof RuntimeException re) {
-      throw re;
+    if (initializationFailure instanceof RuntimeException runtimeException) {
+      throw runtimeException;
     }
-    if (initializationFailure instanceof Error err) {
-      throw err;
+    if (initializationFailure instanceof Error error) {
+      throw error;
     }
-    if (secretNames != null) {
-      return secretNames.contains(secretName);
-    } else {
-      return true;
-    }
+    return delegate.isAllowed(secret);
   }
 }

@@ -108,9 +108,9 @@ public class InboundPropertyHandler {
   public static Map<String, Object> getPropertiesWithSecrets(
       SecretHandler secretHandler, ObjectMapper objectMapper, Map<String, Object> properties) {
     try {
-      var propertiesAsJsonString = objectMapper.writeValueAsString(properties);
-      var propertiesWithSecretsJson = secretHandler.replaceSecrets(propertiesAsJsonString);
-      return objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
+      var propertiesAsJson = objectMapper.valueToTree(properties);
+      var propertiesWithSecretsJson = secretHandler.replaceSecrets(propertiesAsJson);
+      return objectMapper.treeToValue(propertiesWithSecretsJson, new TypeReference<>() {});
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }

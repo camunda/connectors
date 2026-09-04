@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -120,27 +121,15 @@ class InboundConnectorContextImplTest {
         .isInstanceOf(String.class);
   }
 
-  // #7730: inbound secret resolution is restricted to the names the element's own deployed
-  // zeebe:property text declares. The allow-list is a superset of what a correctly-authored model
-  // names, so what it actually stops is a second-order lookup: replaceSecrets runs the brace pass
-  // and then runs the bare pass over that pass's output, letting a resolved value that contains
-  // reference-shaped text reach a secret no model ever declared. Confirmed present on this branch
-  // before backporting: under the previous allow-all filter, a secret whose value is the literal
-  // "secrets.CHAINED" resolved CHAINED.
-  //
-  // Main's suite also covers a hot swap, a sibling element's names, and the new
-  // camunda.secrets.<name> form. None are representable on this branch: connectorDetails and
-  // properties are both final and there is no updateConnectorDetails at all, there is a single
-  // connector-level text rather than a per-element one, and the new form does not exist here.
-
   private InboundConnectorContextImpl filteringContext(
       ValidInboundConnectorDetails details, SecretProvider provider) {
     return new InboundConnectorContextImpl(
         provider, (e) -> {}, details, null, (e) -> {}, mapper, EvictingQueue.create(10), true);
   }
 
-  private static String replace(InboundConnectorContextImpl context, String input) {
-    return context.getSecretHandler().replaceSecrets(input);
+  private static String replace(InboundConnectorContextImpl context, String field, String input) {
+    ObjectNode probe = new ObjectMapper().createObjectNode().put(field, input);
+    return context.getSecretHandler().replaceSecrets(probe).get(field).asText();
   }
 
   @Test
@@ -151,7 +140,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), provider);
 
-    assertThat(replace(context, "secrets.DECLARED")).isEqualTo("resolved");
+    assertThat(replace(context, "token", "secrets.DECLARED")).isEqualTo("resolved");
   }
 
   @Test
@@ -162,7 +151,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "{{ secrets.BRACED }}")), provider);
 
-    assertThat(replace(context, "{{ secrets.BRACED }}")).isEqualTo("resolved");
+    assertThat(replace(context, "token", "{{ secrets.BRACED }}")).isEqualTo("resolved");
   }
 
   @Test
@@ -172,7 +161,7 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), provider);
 
-    assertThat(replace(context, "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
+    assertThat(replace(context, "token", "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
     verify(provider, never()).getSecret("INJECTED");
   }
 
@@ -185,8 +174,56 @@ class InboundConnectorContextImplTest {
         filteringContext(
             getInboundConnectorDefinition(Map.of("token", "{{secrets.CHAIN_ROOT}}")), provider);
 
-    assertThat(replace(context, "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
+    assertThat(replace(context, "token", "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
     verify(provider, never()).getSecret("CHAINED");
+  }
+
+  @Test
+  void secretFilterEnabled_leavesASecretDeclaredOnlyOnASiblingField() {
+    var provider = mock(SecretProvider.class);
+    when(provider.getSecret("SIBLING_ONLY")).thenReturn("leaked-value");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(
+                Map.of("tokenA", "plain", "tokenB", "secrets.SIBLING_ONLY")),
+            provider);
+
+    assertThat(replace(context, "tokenA", "secrets.SIBLING_ONLY"))
+        .isEqualTo("secrets.SIBLING_ONLY");
+    verify(provider, never()).getSecret("SIBLING_ONLY");
+  }
+
+  @Test
+  void processElementSecretFilterScopesDottedPropertiesToTheirDeclaredPath() {
+    var provider = mock(SecretProvider.class);
+    when(provider.getSecret("AUTH")).thenReturn("resolved");
+    var details = getInboundConnectorDefinition(Map.of("authentication.token", "secrets.AUTH"));
+    var context =
+        new DefaultProcessElementContext(
+            details.connectorElements().getFirst(), (e) -> {}, provider, mapper, true);
+    var matchingProbe =
+        mapper
+            .createObjectNode()
+            .set("authentication", mapper.createObjectNode().put("token", "secrets.AUTH"));
+    var siblingProbe =
+        mapper
+            .createObjectNode()
+            .set("authentication", mapper.createObjectNode().put("type", "secrets.AUTH"));
+
+    assertThat(
+            context
+                .getSecretHandler()
+                .replaceSecrets(matchingProbe)
+                .at("/authentication/token")
+                .asText())
+        .isEqualTo("resolved");
+    assertThat(
+            context
+                .getSecretHandler()
+                .replaceSecrets(siblingProbe)
+                .at("/authentication/type")
+                .asText())
+        .isEqualTo("secrets.AUTH");
   }
 
   @Test
@@ -203,7 +240,7 @@ class InboundConnectorContextImplTest {
             mapper,
             EvictingQueue.create(10));
 
-    assertThat(replace(context, "secrets.INJECTED")).isEqualTo("resolved");
+    assertThat(replace(context, "token", "secrets.INJECTED")).isEqualTo("resolved");
   }
 
   // Secret redaction of operator-visible output (#8643). The values are read back from the

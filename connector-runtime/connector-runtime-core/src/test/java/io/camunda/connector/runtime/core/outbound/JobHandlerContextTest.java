@@ -27,8 +27,10 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,10 @@ class JobHandlerContextTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private JobHandlerContext jobHandlerContext;
 
+  private void stubVariables(String json) {
+    when(activatedJob.getVariables()).thenReturn(json);
+  }
+
   @BeforeEach
   void setUp() {
     jobHandlerContext =
@@ -59,29 +65,64 @@ class JobHandlerContextTest {
 
   @Test
   void getVariables() {
-    when(activatedJob.getVariables()).thenReturn("{}");
+    stubVariables("{}");
     jobHandlerContext.getJobContext().getVariables();
     verify(activatedJob).getVariables();
   }
 
   @Test
+  void bindVariables_preservesFullDecimalPrecision() {
+    stubVariables("{ \"decimal\": 0.1234567890123456789012345 }");
+
+    BigDecimal bound = jobHandlerContext.bindVariables(TestClass.class).decimal;
+
+    assertThat(bound).isEqualByComparingTo(new BigDecimal("0.1234567890123456789012345"));
+  }
+
+  @Test
+  void bindVariables_preservesTrailingZeroScale() {
+    stubVariables("{ \"decimal\": 1.10 }");
+
+    BigDecimal bound = jobHandlerContext.bindVariables(TestClass.class).decimal;
+
+    assertThat(bound).isEqualTo(new BigDecimal("1.10"));
+  }
+
+  @Test
+  void getVariables_preservesDecimalText() {
+    stubVariables("{ \"a\": 0.00000001, \"b\": 1.10, \"c\": 0.1234567890123456789012345 }");
+
+    assertThat(jobHandlerContext.getJobContext().getVariables())
+        .contains("0.00000001", "1.10", "0.1234567890123456789012345");
+  }
+
+  @Test
+  void getVariables_fallsBackToScientificNotationForOutOfRangeDecimalScale() {
+    stubVariables("{ \"tiny\": 1e-10000, \"huge\": 1e+10001 }");
+
+    assertThat(jobHandlerContext.getJobContext().getVariables())
+        .contains("1E-10000")
+        .contains("1E+10001");
+  }
+
+  @Test
   void bindVariables_success() {
     String json = "{ \"integer\": 3}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(3);
   }
 
   @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(null);
   }
 
   @Test
   void bindVariables_invalidFormat() {
     String json = "{ \"integer\": \"hello\"}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -93,7 +134,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_invalidFormatNull() {
     String json = "{ \"invalid\": null }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -114,8 +155,8 @@ class JobHandlerContextTest {
 
   @Test
   void bindVariables_invalidFormatObject() {
-    String json = "{ \"integer\": \"{ \"hello\" : 3\"}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    String json = "{ \"integer\": \"{ \\\"hello\\\" : 3}\" }";
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -127,7 +168,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_emptyString() {
     String json = "";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -138,20 +179,18 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_emptyArray() {
     String json = "[]";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
-    assertThat(thrown.getMessage())
-        .isEqualTo(
-            "Cannot deserialize value of type `io.camunda.connector.runtime.core.testutil.classexample.TestClass` from Array value (token `JsonToken.START_ARRAY`)");
+    assertThat(thrown.getMessage()).isEqualTo("This is not a JSON object");
   }
 
   @Test
   void bindVariables_invalidFormatArray() {
     String json = "{ \"integer\": [\"hello\"] }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -172,9 +211,9 @@ class JobHandlerContextTest {
             secretProvider,
             validationProvider,
             objectMapper,
-            SecretFilter.allowOnly(List.of("AUTH")));
+            SecretFilter.allowOnly(List.of(new Secret("AUTH", List.of()))));
     String json = "{ \"value\": \"{{secrets.UNDECLARED}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
 
     var bound = restrictiveContext.bindVariables(SingleStringField.class);
 
@@ -184,5 +223,25 @@ class JobHandlerContextTest {
 
   public static class SingleStringField {
     public String value;
+  }
+
+  @Test
+  void bindVariables_resolvesAQuotedSecretWithoutDoubleEscaping() {
+    stubVariables("{ \"value\": \"{{secrets.FOO}}\" }");
+    when(secretProvider.getSecret("FOO")).thenReturn("Hello \"quoted\" \\\\ value");
+
+    var bound = jobHandlerContext.bindVariables(SingleStringField.class);
+
+    assertThat(bound.value).isEqualTo("Hello \"quoted\" \\\\ value");
+  }
+
+  @Test
+  void bindVariables_rejectsAnUnquotedSecretPlaceholder() {
+    stubVariables("{ \"integer\": {{secrets.FOO}} }");
+
+    assertThatThrownBy(() -> jobHandlerContext.bindVariables(TestClass.class))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage("This is not a JSON object");
+    verify(secretProvider, never()).getSecret("FOO");
   }
 }
