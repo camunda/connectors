@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -61,6 +62,7 @@ class OpenAiChatModelFactoryTest {
   private static final String MODEL_ID = "gpt-5.5";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
+  @Mock private OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -83,7 +85,8 @@ class OpenAiChatModelFactoryTest {
             new OpenAiFoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     httpProxySupport,
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+            oAuthClientCredentialsTokenResolver);
   }
 
   @Test

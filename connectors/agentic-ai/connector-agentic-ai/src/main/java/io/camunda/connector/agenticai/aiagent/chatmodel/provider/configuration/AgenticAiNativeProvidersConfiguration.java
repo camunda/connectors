@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
@@ -33,7 +34,12 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -86,11 +92,38 @@ public class AgenticAiNativeProvidersConfiguration {
     return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
   }
 
+  /**
+   * The selected cache is explicitly re-registered in {@link OAuthTokenCacheHolder}: {@code
+   * ConnectorsAutoConfiguration}'s own {@code OAuthTokenCache} bean is
+   * {@code @ConditionalOnMissingBean}, so if a custom {@link OAuthTokenCache} bean is present
+   * anywhere in the context, that bean's registration is skipped, and without this call the holder
+   * would fall back to lazily creating a second, different default instance the first time
+   * non-Spring HTTP client code reaches it -- silently diverging from the cache this resolver uses.
+   *
+   * <p>The token-fetch transport is built from {@link AgenticAiHttpProxySupport}'s proxy
+   * configuration rather than {@link CustomApacheHttpClient}'s own default, so OAuth token requests
+   * go through the same {@code CONNECTOR_HTTP(S)_PLAIN_PROXY_*}-configured proxy as the OpenAI/
+   * Anthropic API calls themselves, rather than silently bypassing it.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public OAuthClientCredentialsTokenResolver aiAgentOAuthClientCredentialsTokenResolver(
+      ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider,
+      AgenticAiHttpProxySupport httpProxySupport) {
+    final var oAuthTokenCache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
+    OAuthTokenCacheHolder.set(oAuthTokenCache);
+    return new OAuthClientCredentialsTokenResolver(
+        new OAuthService(),
+        oAuthTokenCache,
+        new CustomApacheHttpClient(httpProxySupport.getProxyConfiguration()));
+  }
+
   @Bean
   @ConditionalOnMissingBean
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
@@ -104,7 +137,11 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
-        httpProxySupport, completionsStrategy, responsesStrategy, openAiFoundryCredentialResolver);
+        httpProxySupport,
+        completionsStrategy,
+        responsesStrategy,
+        openAiFoundryCredentialResolver,
+        oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
