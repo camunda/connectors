@@ -20,37 +20,62 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Determines whether a named secret may be resolved within a connector's context.
+ * Determines whether a named secret may be resolved at a field path within a connector's context.
  *
  * <p>Use {@link #allowAll()} when no restriction applies and {@link #allowOnly(List)} to restrict
- * resolution to a declared set of names. An empty list passed to {@code allowOnly} denies all
- * secrets.
+ * resolution by both secret name and declared field path. An empty list passed to {@code allowOnly}
+ * denies all secrets.
  */
 @FunctionalInterface
 public interface SecretFilter {
 
-  /**
-   * Returns {@code true} if the secret with the given name may be resolved.
-   *
-   * @param secretName the secret name to check
-   * @return {@code true} to allow resolution, {@code false} to leave the reference as-is
-   */
-  boolean isAllowed(String secretName);
-
   /** Returns a filter that permits every secret name. */
   static SecretFilter allowAll() {
-    return name -> true;
+    return context -> true;
   }
 
   /**
-   * Returns a filter that permits only the secret names in {@code names}. An empty list denies all
-   * secrets.
+   * Returns a filter that permits a runtime secret context when its name matches and an allowed
+   * secret's declared field path is a prefix of its runtime field path. Exact paths match, and a
+   * declaration at a parent path authorizes nested fields but not sibling paths. An empty list
+   * denies all secrets.
    *
-   * @param names the permitted secret names
-   * @return a filter restricted to the given names
+   * @param secrets the permitted secret names and their declared field paths
+   * @return a filter restricted to the given secrets
    */
-  static SecretFilter allowOnly(List<String> names) {
-    var allowed = Set.copyOf(names);
-    return allowed::contains;
+  static SecretFilter allowOnly(List<Secret> secrets) {
+    var allowed = Set.copyOf(secrets);
+    return context ->
+        allowed.stream()
+            .filter(secret -> secret.secretName().equals(context.secretName()))
+            .filter(secret -> context.fieldPath().size() >= secret.fieldPath().size())
+            .anyMatch(
+                secret ->
+                    context
+                        .fieldPath()
+                        .subList(0, secret.fieldPath().size())
+                        .equals(secret.fieldPath()));
+  }
+
+  /**
+   * Returns {@code true} if the secret may be resolved at its runtime field path.
+   *
+   * @param context the secret filter context
+   * @return {@code true} to allow resolution, {@code false} to leave the reference as-is
+   */
+  boolean isAllowed(Secret context);
+
+  record Secret(String secretName, List<String> fieldPath) {
+
+    /**
+     * Defensively copies {@code fieldPath}: callers such as {@code Arrays.asList(...)} return a
+     * fixed-size but still mutable (via {@code set}) list, which would otherwise let anyone holding
+     * a cached {@code Secret} reach in and change which fields it authorizes for later, unrelated
+     * jobs.
+     */
+    public Secret(String secretName, List<String> fieldPath) {
+      this.secretName = secretName;
+      this.fieldPath = List.copyOf(fieldPath);
+    }
   }
 }

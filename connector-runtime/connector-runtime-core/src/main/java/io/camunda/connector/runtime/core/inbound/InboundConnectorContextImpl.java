@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
@@ -37,6 +38,7 @@ import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -334,8 +336,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return SecretFilter.allowAll();
     }
     return SecretFilter.allowOnly(
-        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
-            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+        connectorDetails.rawPropertiesWithoutKeywords().entrySet().stream()
+            .flatMap(
+                entry ->
+                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }
