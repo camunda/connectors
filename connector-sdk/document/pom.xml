@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-sdk-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.7.24</version>
+    <version>8.7.25-rc1</version>
   </parent>
 
   <name>connector-document</name>
