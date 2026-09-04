@@ -16,8 +16,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves an OAuth2 client-credentials access token for a {@code custom}/compatible LLM backend,
- * shared by the OpenAI and Anthropic native providers. Backed by the same {@link OAuthService} and
- * {@link OAuthTokenCache} the HTTP connector uses.
+ * shared by the OpenAI and Anthropic native providers and the MCP client. Backed by the same {@link
+ * OAuthService} and {@link OAuthTokenCache} the HTTP connector uses.
  */
 public class OAuthClientCredentialsTokenResolver {
 
