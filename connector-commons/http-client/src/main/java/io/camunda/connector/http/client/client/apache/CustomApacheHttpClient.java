@@ -46,25 +46,12 @@ public class CustomApacheHttpClient implements HttpClient {
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  /**
-   * {@code null} means the default {@link
-   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()}. Stored
-   * rather than a pre-built proxy handler: {@link #newClient} builds one fresh per request, same as
-   * before this override existed, so proxy env vars are still read live per request rather than
-   * captured once at construction.
-   */
   private final ProxyConfiguration proxyConfigurationOverride;
 
   public CustomApacheHttpClient() {
     this.proxyConfigurationOverride = null;
   }
 
-  /**
-   * Uses the given proxy configuration instead of the default {@link
-   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()} -- for
-   * callers whose proxy env-var convention differs (e.g. Agentic AI's {@code
-   * CONNECTOR_HTTP(S)_PLAIN_PROXY_*}).
-   */
   public CustomApacheHttpClient(ProxyConfiguration proxyConfiguration) {
     this.proxyConfigurationOverride = proxyConfiguration;
   }

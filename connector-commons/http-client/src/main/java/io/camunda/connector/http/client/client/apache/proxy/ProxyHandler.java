@@ -48,9 +48,8 @@ public class ProxyHandler {
 
   /**
    * Uses the given proxy configuration instead of the default {@link
-   * EnvironmentProxyConfiguration#withDefaults()} -- for callers whose proxy env-var convention
-   * differs (e.g. Agentic AI's {@code CONNECTOR_HTTP(S)_PLAIN_PROXY_*} via {@link
-   * EnvironmentProxyConfiguration#withPlainProxySupport()}).
+   * EnvironmentProxyConfiguration#withDefaults()}, for callers whose proxy env-var convention
+   * differs.
    */
   public ProxyHandler(ProxyConfiguration proxyConfiguration) {
     this.proxyConfiguration = proxyConfiguration;

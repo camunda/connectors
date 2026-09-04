@@ -27,7 +27,10 @@ import jakarta.validation.constraints.NotBlank;
       name = "none"),
   @JsonSubTypes.Type(
       value = AnthropicCustomEndpointAuthentication.ApiKeyAuthentication.class,
-      name = "apiKey")
+      name = "apiKey"),
+  @JsonSubTypes.Type(
+      value = OAuthClientCredentialsAuthentication.class,
+      name = OAuthClientCredentialsAuthentication.TYPE)
 })
 @TemplateDiscriminatorProperty(
     label = "Authentication",
@@ -35,7 +38,10 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "none",
     description = "Authentication for the compatible API.")
-public sealed interface AnthropicCustomEndpointAuthentication {
+public sealed interface AnthropicCustomEndpointAuthentication
+    permits AnthropicCustomEndpointAuthentication.NoAuthentication,
+        AnthropicCustomEndpointAuthentication.ApiKeyAuthentication,
+        OAuthClientCredentialsAuthentication {
 
   @TemplateSubType(id = "none", label = "None")
   record NoAuthentication() implements AnthropicCustomEndpointAuthentication {}

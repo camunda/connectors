@@ -51,11 +51,13 @@ public class AgenticAiNativeProvidersConfiguration {
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
-    return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new AnthropicChatModelFactory(
+        httpProxySupport, requestConverter, responseConverter, oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
@@ -92,19 +94,7 @@ public class AgenticAiNativeProvidersConfiguration {
     return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
   }
 
-  /**
-   * The selected cache is explicitly re-registered in {@link OAuthTokenCacheHolder}: {@code
-   * ConnectorsAutoConfiguration}'s own {@code OAuthTokenCache} bean is
-   * {@code @ConditionalOnMissingBean}, so if a custom {@link OAuthTokenCache} bean is present
-   * anywhere in the context, that bean's registration is skipped, and without this call the holder
-   * would fall back to lazily creating a second, different default instance the first time
-   * non-Spring HTTP client code reaches it -- silently diverging from the cache this resolver uses.
-   *
-   * <p>The token-fetch transport is built from {@link AgenticAiHttpProxySupport}'s proxy
-   * configuration rather than {@link CustomApacheHttpClient}'s own default, so OAuth token requests
-   * go through the same {@code CONNECTOR_HTTP(S)_PLAIN_PROXY_*}-configured proxy as the OpenAI/
-   * Anthropic API calls themselves, rather than silently bypassing it.
-   */
+  /** Re-registers the selected cache in {@link OAuthTokenCacheHolder} to keep it consistent. */
   @Bean
   @ConditionalOnMissingBean
   public OAuthClientCredentialsTokenResolver aiAgentOAuthClientCredentialsTokenResolver(

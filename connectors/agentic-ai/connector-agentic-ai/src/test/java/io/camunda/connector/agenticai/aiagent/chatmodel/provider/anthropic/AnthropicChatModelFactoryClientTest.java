@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -41,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -173,6 +175,44 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   @Test
+  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "oauth-access-token",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    executeAgainst(
+        new AnthropicCustomBackend(
+            new AnthropicCustomBackend.CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new OAuthClientCredentialsAuthentication(
+                    wireMock.getHttpBaseUrl() + "/oauth/token",
+                    "client-123",
+                    "secret-123",
+                    null,
+                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
+                        .BASIC_AUTH_HEADER,
+                    null))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer oauth-access-token"))
+            .withoutHeader("x-api-key"));
+  }
+
+  @Test
   void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
         wireMock,
@@ -257,6 +297,13 @@ class AnthropicChatModelFactoryClientTest {
     }
   }
 
+  private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return new OAuthClientCredentialsTokenResolver(
+        new io.camunda.connector.http.client.authentication.OAuthService(),
+        new io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache(),
+        new io.camunda.connector.http.client.client.apache.CustomApacheHttpClient());
+  }
+
   private void executeAgainst(AnthropicBackend backend) {
     executeAgainst(httpProxySupport, backend);
   }
@@ -267,7 +314,8 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicChatModelFactory(
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
-            new AnthropicMessageResponseConverter(objectMapper));
+            new AnthropicMessageResponseConverter(objectMapper),
+            oAuthClientCredentialsTokenResolver());
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
