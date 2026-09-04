@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.client.client.apache.proxy;
 
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.Closeable;
 import java.io.IOException;
 import javax.net.ssl.SSLContext;
@@ -65,25 +66,27 @@ public class ProxyAwareHttpClient implements Closeable {
       ProxyContext proxyContext,
       boolean followRedirects,
       SSLContext sslContext) {
-    this(timeoutConfiguration, proxyContext, followRedirects, sslContext, new ProxyHandler());
+    this(timeoutConfiguration, proxyContext, followRedirects, sslContext, null);
   }
 
   /**
-   * Uses the given {@link ProxyHandler} instead of the default one, for a caller whose proxy
-   * env-var convention differs from {@link
-   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()}.
+   * Uses the given {@link ProxyConfiguration} instead of the default {@link
+   * io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration#withDefaults()}, for a
+   * caller whose proxy env-var convention differs. A {@code null} proxyConfiguration falls back to
+   * the default.
    */
   public ProxyAwareHttpClient(
       TimeoutConfiguration timeoutConfiguration,
       ProxyContext proxyContext,
       boolean followRedirects,
       SSLContext sslContext,
-      ProxyHandler proxyHandler) {
+      ProxyConfiguration proxyConfiguration) {
     this.timeoutConfiguration = timeoutConfiguration;
     this.proxyContext = proxyContext;
     this.followRedirects = followRedirects;
     this.sslContext = sslContext;
-    this.proxyHandler = proxyHandler;
+    this.proxyHandler =
+        proxyConfiguration != null ? new ProxyHandler(proxyConfiguration) : new ProxyHandler();
     this.client = createClient();
   }
 
