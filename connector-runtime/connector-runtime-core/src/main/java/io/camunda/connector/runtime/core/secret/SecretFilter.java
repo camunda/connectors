@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Determines whether a named secret may be resolved within a connector's context.
+ * Determines whether a named secret may be resolved at a field path within a connector's context.
  *
  * <p>Use {@link #allowAll()} when no restriction applies and {@link #allowOnly(List)} to restrict
- * resolution to a declared set of secrets. An empty list passed to {@code allowOnly} denies all
- * secrets.
+ * resolution by both secret name and declared field path. An empty list passed to {@code allowOnly}
+ * denies all secrets.
  */
 @FunctionalInterface
 public interface SecretFilter {
@@ -35,10 +35,12 @@ public interface SecretFilter {
   }
 
   /**
-   * Returns a filter that permits only the secret names in {@code names}. An empty list denies all
-   * secrets.
+   * Returns a filter that permits a runtime secret context when its name matches and an allowed
+   * secret's declared field path is a prefix of its runtime field path. Exact paths match, and a
+   * declaration at a parent path authorizes nested fields but not sibling paths. An empty list
+   * denies all secrets.
    *
-   * @param secrets the permitted secret contexts
+   * @param secrets the permitted secret names and their declared field paths
    * @return a filter restricted to the given secrets
    */
   static SecretFilter allowOnly(List<Secret> secrets) {
@@ -56,7 +58,7 @@ public interface SecretFilter {
   }
 
   /**
-   * Returns {@code true} if the secret with the given name may be resolved.
+   * Returns {@code true} if the secret may be resolved at its runtime field path.
    *
    * @param context the secret filter context
    * @return {@code true} to allow resolution, {@code false} to leave the reference as-is
