@@ -29,6 +29,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
@@ -125,6 +126,7 @@ class AiAgentJobWorkerHandlerTest {
     when(job.getKey()).thenReturn(123456L);
     when(job.getType()).thenReturn(AiAgentJobWorker.JOB_WORKER_TYPE);
     when(job.getCustomHeaders()).thenReturn(jobHeaders);
+    stubVariables(OBJECT_MAPPER.createObjectNode());
 
     // lenient: a test covering the bind-time capture path replaces this stubbing
     Mockito.lenient()
@@ -654,8 +656,13 @@ class AiAgentJobWorkerHandlerTest {
 
   /** Makes the job's input name a secret the provider resolves to {@code value}. */
   private void namesSecret(String value) {
-    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    stubVariables(OBJECT_MAPPER.createObjectNode().put("token", "{{secrets.FOO}}"));
     when(secretProvider.fetchAll(any(), any())).thenReturn(List.of(value));
+  }
+
+  private void stubVariables(ObjectNode variables) {
+    Mockito.lenient().when(job.getVariables()).thenReturn(variables.toString());
+    Mockito.lenient().when(job.getVariablesAsType(ObjectNode.class)).thenReturn(variables);
   }
 
   private void respondsWith(String responseText) {

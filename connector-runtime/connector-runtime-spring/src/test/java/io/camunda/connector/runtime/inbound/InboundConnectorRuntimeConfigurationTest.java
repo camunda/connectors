@@ -91,8 +91,15 @@ class InboundConnectorRuntimeConfigurationTest {
         InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
   }
 
+  private static final ObjectMapper PROBE_MAPPER = new ObjectMapper();
+
   private static String resolveUndeclared(InboundConnectorContextImpl context) {
-    return context.getSecretHandler().replaceSecrets("secrets.UNDECLARED", new SecretContext("t"));
+    var probe = PROBE_MAPPER.createObjectNode().put("value", "secrets.UNDECLARED");
+    return context
+        .getSecretHandler()
+        .replaceSecrets(probe, new SecretContext("t"))
+        .get("value")
+        .asText();
   }
 
   private static SecretProvider alwaysResolvingProvider() {

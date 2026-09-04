@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
 import java.util.Map;
 
@@ -35,4 +36,4 @@ import java.util.Map;
  * Caffeine-provider auto-configuration class conditions and can silently replace the host's own
  * auto-configured {@code CacheManager}. Caffeine's {@code Cache} needs neither dependency.
  */
-record SecretKeyCacheHolder(Cache<Long, Map<String, List<String>>> cache) {}
+record SecretKeyCacheHolder(Cache<Long, Map<String, List<Secret>>> cache) {}

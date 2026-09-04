@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.secret.SecretContext;
@@ -75,9 +76,9 @@ class InboundSecretFilterDefaultModeWiringTest {
     var context =
         (InboundConnectorContextImpl)
             contextFactory.createContext(details, e -> {}, TestExecutable.class, entry -> {});
-    var result =
-        context.getSecretHandler().replaceSecrets("secrets.UNDECLARED", new SecretContext("t"));
+    var probe = new ObjectMapper().createObjectNode().put("value", "secrets.UNDECLARED");
+    var result = context.getSecretHandler().replaceSecrets(probe, new SecretContext("t"));
 
-    assertThat(result).isEqualTo("secrets.UNDECLARED");
+    assertThat(result.get("value").asText()).isEqualTo("secrets.UNDECLARED");
   }
 }

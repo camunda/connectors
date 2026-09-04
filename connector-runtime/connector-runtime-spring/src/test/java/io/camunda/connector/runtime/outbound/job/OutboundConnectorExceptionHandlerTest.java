@@ -25,6 +25,8 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -45,6 +47,8 @@ import org.slf4j.LoggerFactory;
 
 class OutboundConnectorExceptionHandlerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final OutboundConnectorExceptionHandler handler =
       new OutboundConnectorExceptionHandler(new FooBarSecretProvider());
 
@@ -55,11 +59,21 @@ class OutboundConnectorExceptionHandlerTest {
 
   private static ActivatedJob jobWithSecretReference() {
     var job = mock(ActivatedJob.class);
-    when(job.getVariables()).thenReturn("{\"value\":\"{{secrets.FOO}}\"}");
+    var variables = "{\"value\":\"{{secrets.FOO}}\"}";
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getKey()).thenReturn(1L);
     when(job.getTenantId()).thenReturn("tenant");
     when(job.getRetries()).thenReturn(3);
     return job;
+  }
+
+  private static ObjectNode readTree(String json) {
+    try {
+      return (ObjectNode) OBJECT_MAPPER.readTree(json);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -600,6 +614,27 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(errorPayload(result).get("variables").toString()).doesNotContain("bound-value");
   }
 
+  @Test
+  void aSecretOccurringAtSeveralPathsIsLookedUpOnlyOnce() {
+    var job =
+        jobNaming(
+            "{\"a\": \"{{secrets.TOKEN}}\", \"b\": \"{{secrets.TOKEN}}\", \"c\":"
+                + " \"{{secrets.TOKEN}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("TOKEN", "token-value"));
+
+    var result =
+        handlerOverMaskingStore.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected token-value everywhere"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(requestedKeys).containsExactly("TOKEN");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** everywhere");
+  }
+
   @SuppressWarnings("unchecked")
   private static Map<String, Object> errorPayload(
       io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult result) {
@@ -609,6 +644,7 @@ class OutboundConnectorExceptionHandlerTest {
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getKey()).thenReturn(1L);
     when(job.getTenantId()).thenReturn("tenant");
     return job;
