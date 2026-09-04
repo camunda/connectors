@@ -338,8 +338,62 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             createProcessInstance(
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
-    final var expectedMetrics =
-        new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20, 50, 0, 7), 0);
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(7)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
+  }
+
+  /**
+   * Two model calls, each with distinct non-zero cache-read and reasoning token counts, chained via
+   * the feedback loop (follow-up, then satisfied) so no tool call is needed to drive a second model
+   * call. A single-turn test cannot distinguish the engine summing these counts across history
+   * items from it merely keeping the latest turn's values; this asserts the summed totals on
+   * read-back, so only the former passes.
+   */
+  @Test
+  void shouldSumCacheAndReasoningTokenCountsAcrossMultipleTurns() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "A haiku about the sea.", 10, 20, 30, 5),
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "A haiku about the sea, with more feeling.", 15, 25, 40, 9));
+
+    enqueueUserFeedback(userFollowUpFeedback("Add more feeling"), userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(Map.of("userPrompt", "Write a haiku about the sea")));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(25)
+            .outputTokenCount(45)
+            .cacheReadTokenCount(70)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(14)
+            .build();
+    final var expectedMetrics = new AgentMetrics(2, expectedTokenUsage, 0);
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
