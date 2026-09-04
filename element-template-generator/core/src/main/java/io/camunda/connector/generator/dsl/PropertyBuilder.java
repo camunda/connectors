@@ -36,6 +36,7 @@ public abstract class PropertyBuilder {
   protected String placeholder;
   protected Object exampleValue;
   protected String language;
+  protected Boolean editable;
   protected Boolean secret;
 
   protected PropertyBuilder() {}
@@ -141,6 +142,11 @@ public abstract class PropertyBuilder {
     return this;
   }
 
+  public PropertyBuilder editable(Boolean editable) {
+    this.editable = editable;
+    return this;
+  }
+
   public PropertyBuilder secret(Boolean secret) {
     this.secret = secret;
     return this;
@@ -170,6 +176,7 @@ public abstract class PropertyBuilder {
     builder.placeholder = source.placeholder;
     builder.exampleValue = source.exampleValue;
     builder.language = source.language;
+    builder.editable = source.editable;
     builder.secret = source.secret;
     return builder;
   }
