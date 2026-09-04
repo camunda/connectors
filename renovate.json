@@ -163,6 +163,17 @@
         "connectors/google/pom.xml"
       ],
       "enabled": false
+    },
+    {
+      "description": "Disable minor/major updates for maven-surefire-plugin — 3.6.0 breaks the build in two ways. First, it removed the `hourly` RunOrder configured in parent/pom.xml, so every module fails at surefire:test before a single test runs. Second, once a supported runOrder is set, Byte Buddy can no longer self-attach its agent inside the forked JVM (\"Could not self-attach to current VM using external process\"), so System Stubs' EnvironmentVariableMocker and Mockito's inline MockMaker both fail to initialise — 390 errors in connector-runtime-core alone. Upgrading needs a real migration: a supported runOrder plus an explicit -javaagent (or surefire classloader settings) so the agent no longer relies on self-attach. Patch updates on the 3.5.x line are unaffected.",
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "matchPackageNames": [
+        "org.apache.maven.plugins:maven-surefire-plugin"
+      ]
+      "enabled": false
     }
   ],
   "baseBranchPatterns": [
