@@ -21,6 +21,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Authentication strategies for OpenAI's {@code custom}-backend endpoint. Unlike Anthropic, there
@@ -95,6 +96,7 @@ public sealed interface OpenAiCustomEndpointAuthentication {
               secret = true)
           String clientSecret,
       @FEEL
+          @Nullable
           @TemplateProperty(
               group = "provider",
               tooltip = "The unique identifier of the target API you want to access",
@@ -117,6 +119,7 @@ public sealed interface OpenAiCustomEndpointAuthentication {
                   "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
           ClientAuthenticationMethod clientAuthentication,
       @FEEL
+          @Nullable
           @TemplateProperty(
               group = "provider",
               tooltip =
