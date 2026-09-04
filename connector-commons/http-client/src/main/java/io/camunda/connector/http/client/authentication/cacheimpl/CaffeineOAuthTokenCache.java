@@ -20,14 +20,10 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
+import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -36,9 +32,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A Caffeine-backed, thread-safe implementation of {@link OAuthTokenCache}.
  *
- * <p>The cache key is derived by hashing the OAuth configuration fields (token endpoint, client ID,
- * client secret, audience, scopes, and client authentication method) using SHA-256 so that
- * sensitive credential material is never stored in plain text as a map key.
+ * <p>The cache key is derived via {@link HashedCacheKey}, hashing the OAuth configuration fields
+ * (token endpoint, client ID, client secret, audience, scopes, and client authentication method) so
+ * that sensitive credential material is never stored in plain text as a map key.
  *
  * <p>TTL strategy:
  *
@@ -55,8 +51,6 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   static final Duration DEFAULT_CLOCK_SKEW_BUFFER = Duration.ofSeconds(10);
 
   private static final Logger LOG = LoggerFactory.getLogger(CaffeineOAuthTokenCache.class);
-  private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
-      ThreadLocal.withInitial(CaffeineOAuthTokenCache::createSha256Digest);
 
   private final Duration clockSkewBuffer;
   private final Cache<String, CaffeineCacheToken> cache;
@@ -99,16 +93,13 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
    * that sensitive credential material is never stored in plain text.
    */
   static String computeCacheKey(OAuthAuthentication auth) {
-    String raw =
-        String.join(
-            "\0",
-            Objects.requireNonNullElse(auth.oauthTokenEndpoint(), ""),
-            Objects.requireNonNullElse(auth.clientId(), ""),
-            Objects.requireNonNullElse(auth.clientSecret(), ""),
-            Objects.requireNonNullElse(auth.audience(), ""),
-            Objects.requireNonNullElse(auth.scopes(), ""),
-            Objects.requireNonNullElse(auth.clientAuthentication(), ""));
-    return sha256Hex(raw);
+    return HashedCacheKey.of(
+        auth.oauthTokenEndpoint(),
+        auth.clientId(),
+        auth.clientSecret(),
+        auth.audience(),
+        auth.scopes(),
+        auth.clientAuthentication());
   }
 
   /**
@@ -116,31 +107,12 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
    * ensures that sensitive credential material is never stored in plain text.
    */
   static String computeCacheKey(OAuthRefreshTokenAuthentication auth) {
-    String raw =
-        String.join(
-            "\0",
-            Objects.requireNonNullElse(auth.oauthTokenEndpoint(), ""),
-            Objects.requireNonNullElse(auth.clientId(), ""),
-            Objects.requireNonNullElse(auth.clientSecret(), ""),
-            Objects.requireNonNullElse(auth.refreshToken(), ""),
-            Objects.requireNonNullElse(auth.scopes(), ""));
-    return sha256Hex(raw);
-  }
-
-  private static String sha256Hex(String raw) {
-    MessageDigest digest = SHA_256_DIGEST.get();
-    digest.reset();
-    byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-    return HexFormat.of().formatHex(hash);
-  }
-
-  private static MessageDigest createSha256Digest() {
-    try {
-      return MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      // SHA-256 is required by the Java spec, so this should never happen
-      throw new IllegalStateException("SHA-256 algorithm not available", e);
-    }
+    return HashedCacheKey.of(
+        auth.oauthTokenEndpoint(),
+        auth.clientId(),
+        auth.clientSecret(),
+        auth.refreshToken(),
+        auth.scopes());
   }
 
   @Override
