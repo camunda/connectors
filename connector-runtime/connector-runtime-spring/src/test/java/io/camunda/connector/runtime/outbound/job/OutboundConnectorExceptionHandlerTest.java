@@ -21,11 +21,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -33,6 +36,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
@@ -41,7 +45,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +60,8 @@ import org.slf4j.LoggerFactory;
  */
 class OutboundConnectorExceptionHandlerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final SecretProvider secretProvider = mock(SecretProvider.class);
   private final List<String> requestedKeys = new ArrayList<>();
   private final OutboundConnectorExceptionHandler handler =
@@ -60,11 +69,21 @@ class OutboundConnectorExceptionHandlerTest {
 
   private static ActivatedJob jobOnEngine(String physicalTenantId) {
     var job = mock(ActivatedJob.class);
-    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    var variables = "{\"token\": \"{{secrets.FOO}}\"}";
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn(physicalTenantId);
     return job;
+  }
+
+  private static ObjectNode readTree(String json) {
+    try {
+      return (ObjectNode) OBJECT_MAPPER.readTree(json);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private SecretContext captureSecretContext() {
@@ -83,7 +102,11 @@ class OutboundConnectorExceptionHandlerTest {
     when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("secret-value"));
 
     handler.manageConnectorJobHandlerException(
-        new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+        new RuntimeException("boom"),
+        job,
+        Duration.ofSeconds(1),
+        SecretFilter.allowAll(),
+        List.of());
 
     assertThat(captureSecretContext())
         .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
@@ -100,7 +123,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retries()).isZero();
   }
@@ -113,7 +140,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retries()).isEqualTo(2);
   }
@@ -131,7 +162,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retries()).isEqualTo(2);
   }
@@ -150,9 +185,93 @@ class OutboundConnectorExceptionHandlerTest {
             new ConnectorInputException("secret 'FOO' is not available"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheReasonTheAllowListCouldNotBeRead() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException(
+                "Error retrieving secret keys for element 'Activity_1' in process definition key 42"
+                    + " (io.camunda.client.api.command.ProblemException)"),
+            job,
+            null,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception())
+        .hasMessageContaining("Activity_1")
+        .hasMessageContaining("ProblemException");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+    verifyNoInteractions(secretProvider);
+  }
+
+  @ParameterizedTest
+  @MethodSource("modelBackoffs")
+  void manageConnectorJobHandlerException_backsOffTheAllowListReadWhateverTheModelAsksFor(
+      Duration modelBackoff) {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretAllowListUnavailableException("lookup failed"),
+            job,
+            modelBackoff,
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  private static Stream<Duration> modelBackoffs() {
+    return Stream.of(
+        null, Duration.ZERO, Duration.ofSeconds(-1), Duration.ofSeconds(30), Duration.ofMinutes(1));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_keepsTheModelsBackoffForOtherMaskingFailures() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(30),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(30));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_publishesTheAllowListFailureRaisedByTheMaskingRead() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    SecretFilter unreadableAllowList =
+        name -> {
+          throw new SecretAllowListUnavailableException(
+              "Error retrieving secret keys for element 'Activity_1'");
+        };
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, null, unreadableAllowList, List.of());
+
+    assertThat(result.exception()).hasMessageContaining("Activity_1");
+    assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofSeconds(5));
   }
 
   @Test
@@ -161,7 +280,8 @@ class OutboundConnectorExceptionHandlerTest {
     when(job.getRetries()).thenReturn(1);
     when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("secret-value"));
 
-    handler.handleFinalResultException(new RuntimeException("boom"), job, SecretFilter.allowAll());
+    handler.handleFinalResultException(
+        new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
 
     assertThat(captureSecretContext())
         .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
@@ -180,7 +300,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.handleFinalResultException(
-            new RuntimeException("boom"), job, SecretFilter.allowAll());
+            new RuntimeException("boom"), job, SecretFilter.allowAll(), List.of());
 
     assertThat(result).isNotNull();
     assertThat(result.retries()).isZero();
@@ -198,7 +318,8 @@ class OutboundConnectorExceptionHandlerTest {
         handler.handleFinalResultException(
             new RuntimeException("failed talking to https://api?key=super-secret"),
             job,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.responseValue().toString()).doesNotContain("super-secret");
   }
@@ -218,7 +339,8 @@ class OutboundConnectorExceptionHandlerTest {
                 handler.handleFinalResultException(
                     new RuntimeException("failed talking to https://api?key=super-secret"),
                     job,
-                    SecretFilter.allowAll()));
+                    SecretFilter.allowAll(),
+                    List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("***"));
@@ -236,10 +358,122 @@ class OutboundConnectorExceptionHandlerTest {
                 handler.handleFinalResultException(
                     new RuntimeException("failed talking to https://api?key=super-secret"),
                     job,
-                    SecretFilter.allowAll()));
+                    SecretFilter.allowAll(),
+                    List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
+  }
+
+  @Test
+  void aFailedMaskingFetchIsNeverLoggedEither() {
+    // A provider writes its own message, and it can carry secret material: AbstractSecretProvider
+    // folds a Jackson failure into one, and a bundle that parses as a non-object puts the value it
+    // could not coerce into the coercion error.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new RuntimeException(
+                "Could not resolve secrets: MismatchedInputException: Cannot construct instance of"
+                    + " `java.util.LinkedHashMap` from String value ('super-secret')"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.manageConnectorJobHandlerException(
+                    new RuntimeException("boom"),
+                    job,
+                    Duration.ofSeconds(1),
+                    SecretFilter.allowAll(),
+                    List.of()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
+  }
+
+  @Test
+  void aRefusalTheRuntimeWroteItselfKeepsItsMessageInTheLog() {
+    // Withholding arbitrary provider text is not a reason to withhold text written to be read: a
+    // refusal names the setting an operator has to change, and a type name alone does not.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new SecretLookupRefusedException("Legacy secret resolution is switched off"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.manageConnectorJobHandlerException(
+                    new RuntimeException("boom"),
+                    job,
+                    Duration.ofSeconds(1),
+                    SecretFilter.allowAll(),
+                    List.of()));
+
+    assertThat(logged)
+        .anyMatch(message -> message.contains("Legacy secret resolution is switched off"));
+  }
+
+  @Test
+  void masksALongerSecretThatStartsWithAShorterOne() {
+    // Replacing the shorter value first would leave the longer one unmatched and publish its
+    // remainder: "x" before "xSUPERSECRET" turns the message into "***SUPERSECRET".
+    var job = jobNaming("{\"a\": \"{{secrets.SHORT}}\", \"b\": \"{{secrets.LONG}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("SHORT", "x", "LONG", "xSUPERSECRET"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected xSUPERSECRET"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(requestedKeys).containsExactly("SHORT", "LONG");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void anEmptySecretValueDoesNotCorruptTheMessage() {
+    // Replacing "" matches at every position, so a provider answering with one would rewrite the
+    // whole message into separators rather than redact anything.
+    var job = jobNaming("{\"a\": \"{{secrets.BLANK}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("BLANK", ""));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+  }
+
+  @Test
+  void aJobDeclaringNoSecretNeverReachesAProvider() {
+    // fetchAll is overridable, and one that refuses every batch would otherwise withhold the error
+    // message of a job that had nothing to redact in the first place.
+    var job = jobNaming("{\"a\": \"nothing to resolve here\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new RuntimeException("store unavailable"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    verifyNoInteractions(secretProvider);
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+    assertThat(result.retries()).isEqualTo(2);
   }
 
   /**
@@ -275,7 +509,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected bar-value and foo-value"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.responseValue().toString()).doesNotContain("bar-value");
     assertThat(result.exception().getMessage()).doesNotContain("bar-value");
@@ -297,10 +532,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new SecretNotAvailableException("BAR"),
+            new SecretNotAvailableException(new Secret("BAR", List.of("b"))),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage())
         .isEqualTo("Secret with name 'BAR' is not available");
@@ -318,19 +554,44 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected bar-value and foo-value"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and ***");
   }
 
   @Test
+  void aSecretOccurringAtSeveralPathsIsLookedUpOnlyOnce() {
+    // Secret now carries fieldPath, so TOKEN at three different paths is three distinct Secret
+    // values; the re-read must still collapse them into a single provider lookup by name rather
+    // than fetching the same secret once per path it occurs at.
+    var job =
+        jobNaming(
+            "{\"a\": \"{{secrets.TOKEN}}\", \"b\": \"{{secrets.TOKEN}}\", \"c\":"
+                + " \"{{secrets.TOKEN}}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("TOKEN", "token-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected token-value everywhere"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
+
+    assertThat(requestedKeys).containsExactly("TOKEN");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** everywhere");
+  }
+
+  @Test
   void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
-    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so nothing here
-    // holds "DB" and it comes back short by construction. Requiring the new form back would
-    // withhold the error message of nearly every failed job that uses the new syntax. Do not delete
-    // this as redundant with the test above: it is the whole reason completeness is required only
-    // of
-    // the legacy names.
+    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so it must not be
+    // asked for here at all -- a name declared only in the new form must not authorize resolving
+    // that same name as a legacy secret, since the two are separate stores (this is also why
+    // requestedKeys must not contain "DB": if it were requested and this provider held a value
+    // under that name for an unrelated reason, it would leak into a message this filter never
+    // authorized it to redact into).
     var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
     when(job.getRetries()).thenReturn(3);
     holdingOnly(Map.of("FOO", "foo-value"));
@@ -340,8 +601,10 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected foo-value"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
+    assertThat(requestedKeys).containsExactly("FOO");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
   }
 
@@ -368,7 +631,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected foo-value"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
     assertThat(result.retries()).isEqualTo(2);
@@ -399,7 +663,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected the request"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
     assertThat(result.retries()).isEqualTo(2);
@@ -418,7 +683,8 @@ class OutboundConnectorExceptionHandlerTest {
             new RuntimeException("api rejected foo-value"),
             job,
             Duration.ofSeconds(1),
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(requestedKeys).containsExactly("FOO");
     assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
@@ -427,6 +693,7 @@ class OutboundConnectorExceptionHandlerTest {
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn("engine-1");
@@ -458,7 +725,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     // Both channels: the payload becomes process variables, and the message becomes the incident
     // message that prepareFailJobCommand sends to Zeebe.
@@ -484,7 +755,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.exception().getMessage())
         .contains("camunda.connector.secret-resolver.legacy.mode=OFF")
@@ -510,7 +785,11 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+            new RuntimeException("boom"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll(),
+            List.of());
 
     assertThat(result.responseValue().toString())
         .doesNotContain("super-secret")
@@ -538,7 +817,8 @@ class OutboundConnectorExceptionHandlerTest {
             .handleFinalResultException(
                 new RuntimeException("failed talking to https://api?key=super-secret"),
                 job,
-                SecretFilter.allowAll());
+                SecretFilter.allowAll(),
+                List.of());
 
     assertThat(result.responseValue().toString()).doesNotContain("super-secret");
   }
@@ -613,7 +893,7 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.handleFinalResultException(
-            new ConnectorException("401", "Unauthorized"), job, SecretFilter.allowAll());
+            new ConnectorException("401", "Unauthorized"), job, SecretFilter.allowAll(), List.of());
 
     assertThat(error(result)).containsEntry("code", "401");
   }
@@ -628,7 +908,8 @@ class OutboundConnectorExceptionHandlerTest {
         handler.handleFinalResultException(
             new ConnectorException("401", "Unauthorized", null, errorVariables),
             job,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            List.of());
 
     return (Map<String, Object>) error(result).get("variables");
   }

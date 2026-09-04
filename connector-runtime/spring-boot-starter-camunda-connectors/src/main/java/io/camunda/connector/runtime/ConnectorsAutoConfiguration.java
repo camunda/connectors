@@ -51,7 +51,6 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.metrics.MeteredSecretProviderAggregator;
-import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
@@ -233,56 +232,6 @@ public class ConnectorsAutoConfiguration {
                 name ->
                     new SecretReferenceResolver(
                         PhysicalTenantClients.resolveClient(registry, name, legacyCamundaClient))));
-  }
-
-  /**
-   * Refuses to start under {@link LegacySecretMode#FALLBACK} unless the outbound secret filter is
-   * strict.
-   *
-   * <p>The fallback lets the legacy syntax reach the cluster's secret stores, and on the outbound
-   * job path the only thing keeping a legacy reference that arrived in a <em>runtime value</em>
-   * from being resolved is that filter. Its allow-list comes from the element's input mappings in
-   * the deployed model, while replacement runs over the job's variables, and that asymmetry is the
-   * whole protection: a name a variable carries resolves only if the model declares it too. The
-   * filter ships disabled, and its lax setting resolves everything whenever the process-definition
-   * lookup fails. Pairing the two is a deployment invariant either way; refusing to start makes it
-   * one the runtime enforces rather than one a runbook describes.
-   *
-   * <p>Note what the filter does not do: it does not restrict which secrets a <em>model</em> may
-   * name. An input mapping that spells out {@code secrets.ANY_NAME} puts that name on the
-   * allow-list, so a deployed model reads it under {@code STRICT} exactly as it would without the
-   * filter. This is why the inbound path is not covered by this guard and needs nothing equivalent:
-   * legacy replacement there runs over the element's own {@code zeebe:property} text, read from the
-   * deployed model, and never over a runtime value (see {@code InboundConnectorContextImpl}), so
-   * there is no injected name for a filter to reject. Wiring a filter into the inbound path (#7730)
-   * would make that structural guarantee an enforced one; it would not narrow what a deployed model
-   * can reach.
-   */
-  @Bean
-  public Object legacyFallbackSecretFilterGuard(
-      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
-          SecretFilterMode secretFilterMode) {
-    return checkLegacyFallbackSecretFilter(
-        LegacySecretMode.parse(legacyModeProperty), secretFilterMode);
-  }
-
-  public Object checkLegacyFallbackSecretFilter(
-      LegacySecretMode legacyMode, SecretFilterMode secretFilterMode) {
-    if (legacyMode == LegacySecretMode.FALLBACK && secretFilterMode != SecretFilterMode.STRICT) {
-      throw new IllegalStateException(
-          LegacySecretMode.PROPERTY
-              + "="
-              + LegacySecretMode.FALLBACK
-              + " requires camunda.connector.secret-resolver.secret-filter.mode="
-              + SecretFilterMode.STRICT
-              + ", but it is "
-              + secretFilterMode
-              + ". The fallback lets a legacy secret reference read the cluster's secret stores,"
-              + " and the secret filter is what keeps a reference that arrived in a runtime value"
-              + " from being resolved.");
-    }
-    return new Object();
   }
 
   /**

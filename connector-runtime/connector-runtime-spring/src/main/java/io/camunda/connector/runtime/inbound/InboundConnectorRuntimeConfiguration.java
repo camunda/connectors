@@ -48,6 +48,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateManagerImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
@@ -96,7 +97,13 @@ public class InboundConnectorRuntimeConfiguration {
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
+          SecretFilterMode secretFilterMode) {
+    // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
+    // fail; the inbound allow-list is built from data already in memory, so it never fails and both
+    // modes behave identically here — only DISABLED turns this off.
+    boolean secretFilterEnabled = secretFilterMode != SecretFilterMode.DISABLED;
     Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
             registry, legacyCamundaClient, legacyDocumentFactory);
@@ -125,7 +132,8 @@ public class InboundConnectorRuntimeConfiguration {
                           validationProvider,
                           processInstanceClientsByPhysicalTenantId.get(physicalTenantId),
                           documentFactoriesByPhysicalTenantId.get(physicalTenantId),
-                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient));
+                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
+                          secretFilterEnabled);
                     }));
     return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
   }

@@ -16,9 +16,13 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,20 +34,35 @@ public class SecretHandler {
 
   protected SecretReplacer secretReplacer;
 
+  // values this instance substituted, so a caller can redact against a rotated re-read
+  private final Set<String> resolvedValues = ConcurrentHashMap.newKeySet();
+
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;
     secretReplacer =
-        (name, context) -> {
-          if (secretFilter.isAllowed(name)) {
-            return Optional.ofNullable(secretProvider.getSecret(name, context))
-                .orElseThrow(() -> new SecretNotAvailableException(name));
+        (secretFilterContext, context) -> {
+          if (secretFilter.isAllowed(secretFilterContext)) {
+            var value =
+                Optional.ofNullable(
+                        secretProvider.getSecret(secretFilterContext.secretName(), context))
+                    .orElseThrow(() -> new SecretNotAvailableException(secretFilterContext));
+            resolvedValues.add(value);
+            // the serialized job JSON carries this form, not the raw value, when it differs
+            resolvedValues.add(SecretUtil.jsonEscape(value));
+            return value;
           }
-          LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
+          LOG.debug(
+              "Secret '{}' not in allow-list — placeholder left unreplaced",
+              secretFilterContext.secretName());
           return null;
         };
   }
 
-  public String replaceSecrets(String input, SecretContext context) {
+  public JsonNode replaceSecrets(JsonNode input, SecretContext context) {
     return SecretUtil.replaceSecrets(input, context, secretReplacer);
+  }
+
+  public List<String> getResolvedValues() {
+    return List.copyOf(resolvedValues);
   }
 }

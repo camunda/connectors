@@ -113,10 +113,10 @@ public class InboundPropertyHandler {
       Map<String, Object> properties,
       SecretContext secretContext) {
     try {
-      var propertiesAsJsonString = objectMapper.writeValueAsString(properties);
+      var propertiesAsJsonString = objectMapper.valueToTree(properties);
       var propertiesWithSecretsJson =
           secretHandler.replaceSecrets(propertiesAsJsonString, secretContext);
-      return objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
+      return objectMapper.treeToValue(propertiesWithSecretsJson, new TypeReference<>() {});
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
