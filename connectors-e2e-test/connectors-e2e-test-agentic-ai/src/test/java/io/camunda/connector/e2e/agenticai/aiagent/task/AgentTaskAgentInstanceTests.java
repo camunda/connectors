@@ -207,8 +207,15 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
                 e -> e.property("provider.openai.model.model", "gpt-4o"),
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
-    final var expectedMetrics =
-        new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20, 50, 0, 7), 0);
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(7)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
