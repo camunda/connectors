@@ -75,6 +75,7 @@ class PromptCachingElementTemplateTest {
               "The prompt caching property does not control caching for custom implementations. "
                   + "Use a custom solution instead."));
 
+  // Verifies each provider's prompt-caching property shape and placement in every template.
   @ParameterizedTest(name = "{0} + {1}")
   @MethodSource("templateAndPromptCachingProperties")
   void exposesPromptCachingForProvider(Path templatePath, ExpectedPromptCachingProperty expected)
@@ -110,6 +111,7 @@ class PromptCachingElementTemplateTest {
     }
   }
 
+  // Verifies prompt-caching coverage stays aligned with the available providers.
   @ParameterizedTest(name = "{0}")
   @MethodSource("templatePaths")
   void exposesPromptCachingOnlyForSupportedProviders(Path templatePath) throws IOException {
