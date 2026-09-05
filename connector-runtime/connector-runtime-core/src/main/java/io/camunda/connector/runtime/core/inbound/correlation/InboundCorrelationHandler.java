@@ -122,22 +122,26 @@ public class InboundCorrelationHandler {
       InboundConnectorElement activatedElement, Object variables, String messageId) {
     var correlationPoint = activatedElement.correlationPoint();
 
-    return switch (correlationPoint) {
-      case StartEventCorrelationPoint corPoint ->
-          triggerStartEvent(activatedElement, corPoint, variables);
-      case MessageCorrelationPoint corPoint ->
-          triggerMessage(
-              activatedElement,
-              corPoint,
-              variables,
-              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
-      case MessageStartEventCorrelationPoint corPoint ->
-          triggerMessageStartEvent(
-              activatedElement,
-              corPoint,
-              variables,
-              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
-    };
+    try {
+      return switch (correlationPoint) {
+        case StartEventCorrelationPoint corPoint ->
+            triggerStartEvent(activatedElement, corPoint, variables);
+        case MessageCorrelationPoint corPoint ->
+            triggerMessage(
+                activatedElement,
+                corPoint,
+                variables,
+                resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
+        case MessageStartEventCorrelationPoint corPoint ->
+            triggerMessageStartEvent(
+                activatedElement,
+                corPoint,
+                variables,
+                resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
+      };
+    } catch (ConnectorInputException e) {
+      return new Failure.InvalidInput(e.getMessage(), e);
+    }
   }
 
   protected CorrelationResult triggerStartEvent(
@@ -410,12 +414,20 @@ public class InboundCorrelationHandler {
 
   private String resolveMessageId(String messageIdExpression, String messageId, Object context) {
     if (!Objects.isNull(messageIdExpression) && !messageIdExpression.isBlank()) {
+      String resolved;
       try {
-        return feelExpressionEvaluator.evaluate(messageIdExpression, String.class, context);
+        resolved = feelExpressionEvaluator.evaluate(messageIdExpression, String.class, context);
       } catch (Exception e) {
         throw new ConnectorInputException(
             "Message expression could not be evaluated: " + messageIdExpression, e);
       }
+      if (resolved == null) {
+        throw new ConnectorInputException(
+            "messageIdExpression '"
+                + messageIdExpression
+                + "' resolved to null, expected a non-null String value");
+      }
+      return resolved;
     } else if (!Objects.isNull(messageId)) {
       return messageId;
     } else {
