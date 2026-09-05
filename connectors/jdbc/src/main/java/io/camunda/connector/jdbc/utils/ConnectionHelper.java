@@ -21,24 +21,34 @@ public class ConnectionHelper {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectionHelper.class);
 
   public static Connection openConnection(JdbcRequest request) {
+    // A bound credential's database wins (see JdbcRequest#database()), matching driver to host.
     SupportedDatabase database = request.database();
-    String driverClassName = database.getDriverClassName();
     try {
       LOG.debug("Executing JDBC request: {}", request);
-      LOG.debug("Loading JDBC driver: {}", driverClassName);
-      Class.forName(driverClassName);
-      JdbcConnection connection = resolveConnection(request);
-      Connection conn =
-          DriverManager.getConnection(
-              ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-              connection.getProperties());
-      LOG.debug("Connection established for Database {}: {}", database, conn);
-      return conn;
+      return openConnection(database, resolveConnection(request));
     } catch (ClassNotFoundException e) {
-      throw new ConnectorException("Cannot find class: " + driverClassName);
+      throw new ConnectorException("Cannot find class: " + database.getDriverClassName());
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
+  }
+
+  /**
+   * Opens a connection for a caller with no job to execute — out-of-band credential validation.
+   * Driver failures propagate unwrapped so the caller can read the {@link
+   * SQLException#getSQLState() SQL state} that {@link ConnectorException} would discard.
+   */
+  public static Connection openConnection(SupportedDatabase database, JdbcConnection connection)
+      throws ClassNotFoundException, SQLException {
+    String driverClassName = database.getDriverClassName();
+    LOG.debug("Loading JDBC driver: {}", driverClassName);
+    Class.forName(driverClassName);
+    Connection conn =
+        DriverManager.getConnection(
+            ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
+            connection.getProperties());
+    LOG.debug("Connection established for Database {}: {}", database, conn);
+    return conn;
   }
 
   /**
