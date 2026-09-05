@@ -24,8 +24,8 @@
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.14.1</version.nullaway>
-    <version.anthropic-java>2.60.0</version.anthropic-java>
-    <version.openai-java>4.57.0</version.openai-java>
+    <version.anthropic-java>2.61.0</version.anthropic-java>
+    <version.openai-java>4.58.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
   </properties>
 
