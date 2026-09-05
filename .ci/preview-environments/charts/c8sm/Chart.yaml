@@ -16,4 +16,4 @@ dependencies:
   # @camunda-cloud references https://helm.camunda.io repository configured as camunda-cloud in Argo CD
   repository: https://helm.camunda.io
   # Alpha line matching connectors `main`
-  version: 15.0.0-alpha4
+  version: 15.0.0-alpha5
