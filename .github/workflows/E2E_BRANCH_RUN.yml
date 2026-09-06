@@ -25,15 +25,29 @@ jobs:
           ref: ${{ inputs.branch }}
 
       # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
-      # fall back to the system mvn (pre-installed on the runner image) so the build
-      # still runs there instead of failing with "No such file or directory".
+      # fall back to a pinned Maven install (below) so the build still runs there instead
+      # of failing with "No such file or directory". Not every runner in this workflow is
+      # guaranteed to have a system mvn pre-installed, so the fallback installs its own
+      # rather than assuming one exists.
       - name: Resolve Maven command
+        id: resolve-maven
         run: |
           if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
             echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
           else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
             echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
           fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
 
       - name: Import Secrets
         id: secrets
@@ -145,15 +159,29 @@ jobs:
           ref: ${{ inputs.branch }}
 
       # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
-      # fall back to the system mvn (pre-installed on the runner image) so the test run
-      # still runs there instead of failing with "No such file or directory".
+      # fall back to a pinned Maven install (below) so the test run still runs there instead
+      # of failing with "No such file or directory". This job's runner varies per matrix entry
+      # (e.g. gcp-core-8-default for connectors-e2e-test-agentic-ai), so the fallback installs
+      # its own Maven rather than assuming one is pre-installed on the image.
       - name: Resolve Maven command
+        id: resolve-maven
         run: |
           if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
             echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
           else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
             echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
           fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
 
       - name: Import Secrets
         id: secrets
