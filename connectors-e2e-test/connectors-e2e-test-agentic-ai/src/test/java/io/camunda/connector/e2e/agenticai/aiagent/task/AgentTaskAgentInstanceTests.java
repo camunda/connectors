@@ -187,4 +187,49 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
             AgentInstanceHistoryRole.ASSISTANT)
         .verify();
   }
+
+  /**
+   * Single model call whose usage carries non-zero cache-read and reasoning token counts, to verify
+   * the connector reports them to the Agent Instance API and the engine's aggregated metrics
+   * reflect them on read-back.
+   */
+  @Test
+  void shouldUpdateAgentInstanceMetricsWithCacheAndReasoningTokenCounts() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "The superflux calculation of 5 and 3 is complete.", 10, 20, 50, 7));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                e -> e.property("provider.openai.model.model", "gpt-4o"),
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(7)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
+  }
 }
