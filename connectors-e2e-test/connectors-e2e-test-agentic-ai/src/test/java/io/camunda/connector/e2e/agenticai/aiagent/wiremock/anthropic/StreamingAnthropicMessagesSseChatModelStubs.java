@@ -19,7 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -326,7 +326,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    */
   public static void stubConversation(Duration delay, TurnStub turn) {
     stubFor(
-        post(urlPathEqualTo(MESSAGES_PATH))
+        post(urlPathMatching(".*" + MESSAGES_PATH))
             .willReturn(sseResponse(sseBody(turn)).withFixedDelay((int) delay.toMillis())));
   }
 
@@ -336,7 +336,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
       final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
 
       ScenarioMappingBuilder mapping =
-          post(urlPathEqualTo(MESSAGES_PATH))
+          post(urlPathMatching(".*" + MESSAGES_PATH))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
               .willReturn(sseResponse(bodies.get(i)));
