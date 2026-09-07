@@ -6,16 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdFoundryScopeResolver.AZURE_PUBLIC_CLOUD_SCOPE;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdFoundryScopeResolver.resolveScope;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdFoundryScopeResolver.scopeFor;
+
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AuthenticationUtil;
-import com.azure.identity.AzureAuthorityHosts;
 import com.openai.azure.credential.AzureApiKeyCredential;
 import com.openai.credential.BearerTokenCredential;
 import com.openai.credential.Credential;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
-import java.util.Locale;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves the openai-java {@link Credential} for the {@code foundry} backend's {@link
@@ -27,24 +28,6 @@ import org.jspecify.annotations.Nullable;
  * from -- all of that lives in {@link EntraIdTokenCredentialFactory}.
  */
 public class OpenAiFoundryCredentialResolver {
-
-  /**
-   * Scope requested for tenants in the Azure Public Cloud, per the <a
-   * href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints">Microsoft
-   * Foundry endpoints documentation</a>: the unified OpenAI/v1 API surface -- which {@link
-   * OpenAiChatModelFactory} always targets, for both classic Azure OpenAI ({@code
-   * *.openai.azure.com}) and Foundry ({@code *.services.ai.azure.com}) resources alike -- uses this
-   * one scope regardless of host, within a given cloud.
-   */
-  private static final String AZURE_PUBLIC_CLOUD_SCOPE = "https://ai.azure.com/.default";
-
-  /**
-   * Scope for tenants in the Azure US Government Cloud, per <a
-   * href="https://learn.microsoft.com/en-us/azure/foundry/concepts/foundry-azure-government">Microsoft
-   * Foundry in Azure Government</a> (portal/endpoints under {@code *.azure.us}) -- the only other
-   * sovereign cloud Foundry supports today.
-   */
-  private static final String AZURE_GOVERNMENT_SCOPE = "https://ai.azure.us/.default";
 
   private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory;
 
@@ -74,31 +57,6 @@ public class OpenAiFoundryCredentialResolver {
               entraIdTokenCredentialFactory.managedIdentity(auth.clientId()),
               resolveScope(AZURE_PUBLIC_CLOUD_SCOPE, auth.entraIdScope()));
     };
-  }
-
-  /**
-   * Maps an (optional) Microsoft Entra ID {@code authorityHost} override to the matching Foundry
-   * scope: an unset/blank host, or one that doesn't match a known sovereign cloud, is Azure Public
-   * Cloud; {@link AzureAuthorityHosts#AZURE_GOVERNMENT} is the one other cloud Foundry ships in.
-   */
-  private static String scopeFor(@Nullable String authorityHost) {
-    if (authorityHost == null || authorityHost.isBlank()) {
-      return AZURE_PUBLIC_CLOUD_SCOPE;
-    }
-
-    final var isGovernmentCloud =
-        normalizeAuthorityHost(authorityHost)
-            .equals(normalizeAuthorityHost(AzureAuthorityHosts.AZURE_GOVERNMENT));
-    return isGovernmentCloud ? AZURE_GOVERNMENT_SCOPE : AZURE_PUBLIC_CLOUD_SCOPE;
-  }
-
-  private static String resolveScope(String derivedScope, @Nullable String scopeOverride) {
-    return scopeOverride != null && !scopeOverride.isBlank() ? scopeOverride : derivedScope;
-  }
-
-  private static String normalizeAuthorityHost(String authorityHost) {
-    final var lowerCased = authorityHost.strip().toLowerCase(Locale.ROOT);
-    return lowerCased.endsWith("/") ? lowerCased : lowerCased + "/";
   }
 
   /**
