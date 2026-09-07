@@ -13,17 +13,22 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -54,7 +59,11 @@ class AnthropicChatModelFactoryTest {
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
-            oAuthClientCredentialsTokenResolver);
+            oAuthClientCredentialsTokenResolver,
+            new AnthropicFoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    httpProxySupport,
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
   }
 
   @ParameterizedTest
@@ -87,7 +96,38 @@ class AnthropicChatModelFactoryTest {
         apiConfig(MODEL_ID),
         customConfig(MODEL_ID),
         bedrockConfig(
-            MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")));
+            MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")),
+        foundryConfig(
+            MODEL_ID, new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-key")));
+  }
+
+  @Test
+  void createBuildsWorkingApiForFoundryBackendWithClientCredentials() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            foundryConfig(
+                MODEL_ID,
+                new AnthropicFoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-id", "client-secret", "tenant-id", null, null)));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    api.close();
+  }
+
+  @Test
+  void createBuildsWorkingApiForFoundryBackendWithManagedIdentity() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            foundryConfig(
+                MODEL_ID,
+                new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null)));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    api.close();
   }
 
   @Test
@@ -141,6 +181,21 @@ class AnthropicChatModelFactoryTest {
             new AnthropicAwsBedrockMantleBackend(
                 new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
                     "eu-central-1", null, authentication, null, null, null)),
+            new AnthropicModel(modelId, null),
+            null));
+  }
+
+  private static AnthropicChatModelConfiguration foundryConfig(
+      String modelId, AnthropicFoundryAuthentication authentication) {
+    return new AnthropicChatModelConfiguration(
+        new AnthropicConnection(
+            new AnthropicFoundryBackend(
+                new AnthropicFoundryBackend.FoundryBackend(
+                    "https://your-resource.services.ai.azure.com",
+                    authentication,
+                    null,
+                    null,
+                    null)),
             new AnthropicModel(modelId, null),
             null));
   }

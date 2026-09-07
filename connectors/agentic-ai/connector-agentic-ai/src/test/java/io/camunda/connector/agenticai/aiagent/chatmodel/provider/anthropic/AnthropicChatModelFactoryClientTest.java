@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -36,12 +37,15 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -51,6 +55,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -213,6 +218,43 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   @Test
+  void foundryBackendUsesEndpointAndApiKeyHeader(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new AnthropicFoundryBackend(
+            new AnthropicFoundryBackend.FoundryBackend(
+                // FoundryBackend.baseUrl() appends "/anthropic" when the endpoint doesn't already
+                // end with it, then the SDK appends "/v1/messages" -- same suffix urlPathMatching
+                // in setUp() already matches for every other backend.
+                wireMock.getHttpBaseUrl(),
+                new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("x-api-key", equalTo("foundry-secret-key")));
+  }
+
+  @Test
+  void foundryBackendHiddenExtensionsAreMergedOntoTheRequest(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new AnthropicFoundryBackend(
+            new AnthropicFoundryBackend.FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                Map.of("X-Hidden-Header", "hidden-value"),
+                Map.of("hidden-param", "hidden-value"),
+                Map.of("hidden_field", "hidden_value"))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("X-Hidden-Header", equalTo("hidden-value"))
+            .withQueryParam("hidden-param", equalTo("hidden-value"))
+            .withRequestBody(matchingJsonPath("$.hidden_field", equalTo("hidden_value"))));
+  }
+
+  @Test
   void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
         wireMock,
@@ -315,7 +357,11 @@ class AnthropicChatModelFactoryClientTest {
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
-            oAuthClientCredentialsTokenResolver());
+            oAuthClientCredentialsTokenResolver(),
+            new AnthropicFoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    httpProxySupport,
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
