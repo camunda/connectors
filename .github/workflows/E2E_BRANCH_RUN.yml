@@ -143,6 +143,7 @@ jobs:
             pkg=$(grep -m1 -oP '(?<=<packaging>)[^<]+' "$p" || echo jar)
             [ "$pkg" = "pom" ] && continue
             case "$base" in *-base) continue;; esac
+            [ -d "$d/src/test" ] || continue
             module="${d#connectors-e2e-test/}"
             runner=$(printf '%s' "$E2E_RUNNER_OVERRIDES" | jq -r --arg m "$module" '.[$m] // "ubuntu-latest"')
             printf '{"module":"%s","runner":"%s"}\n' "$module" "$runner"
