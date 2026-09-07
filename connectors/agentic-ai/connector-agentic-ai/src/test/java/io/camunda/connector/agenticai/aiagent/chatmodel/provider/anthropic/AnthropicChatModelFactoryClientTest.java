@@ -17,6 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -255,6 +256,74 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   @Test
+  void foundryBackendWithClientCredentialsSendsBearerToken(WireMockRuntimeInfo wireMock) {
+    final var foundryCredentialResolver = mock(AnthropicFoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(AnthropicFoundryAuthentication.ClientCredentialsAuthentication.class)))
+        .thenReturn(() -> "client-credentials-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new AnthropicFoundryBackend(
+            new AnthropicFoundryBackend.FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                new AnthropicFoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-id", "client-secret", "tenant-id", null, null),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer client-credentials-token")));
+  }
+
+  @Test
+  void foundryBackendWithManagedIdentitySendsBearerToken(WireMockRuntimeInfo wireMock) {
+    final var foundryCredentialResolver = mock(AnthropicFoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(AnthropicFoundryAuthentication.ManagedIdentityAuthentication.class)))
+        .thenReturn(() -> "managed-identity-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new AnthropicFoundryBackend(
+            new AnthropicFoundryBackend.FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer managed-identity-token")));
+  }
+
+  @Test
+  void appliesConfiguredProxyToBuiltClientForFoundryBackend() throws Exception {
+    try (var fakeProxy = new FakeProxyServer(null, null)) {
+      final var realHttpProxySupport =
+          new AgenticAiHttpProxySupport(fakeProxy.toProxyConfiguration());
+
+      // the target host is a non-routable address (RFC 5737 TEST-NET-1): reaching it directly
+      // would hang/fail, so a successful response here proves the request actually went through
+      // the configured proxy rather than straight to the (unreachable) target.
+      executeAgainst(
+          realHttpProxySupport,
+          new AnthropicFoundryBackend(
+              new AnthropicFoundryBackend.FoundryBackend(
+                  "http://192.0.2.1:1",
+                  new AnthropicFoundryAuthentication.ApiKeyAuthentication("direct-secret-key"),
+                  null,
+                  null,
+                  null)));
+
+      assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
+    }
+  }
+
+  @Test
   void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
         wireMock,
@@ -352,16 +421,31 @@ class AnthropicChatModelFactoryClientTest {
 
   private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
+    executeAgainst(
+        httpProxySupport,
+        new AnthropicFoundryCredentialResolver(
+            new EntraIdTokenCredentialFactory(
+                httpProxySupport,
+                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+        backend);
+  }
+
+  private void executeAgainst(
+      AnthropicFoundryCredentialResolver foundryCredentialResolver, AnthropicBackend backend) {
+    executeAgainst(httpProxySupport, foundryCredentialResolver, backend);
+  }
+
+  private void executeAgainst(
+      AgenticAiHttpProxySupport httpProxySupport,
+      AnthropicFoundryCredentialResolver foundryCredentialResolver,
+      AnthropicBackend backend) {
     final var factory =
         new AnthropicChatModelFactory(
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
             oAuthClientCredentialsTokenResolver(),
-            new AnthropicFoundryCredentialResolver(
-                new EntraIdTokenCredentialFactory(
-                    httpProxySupport,
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+            foundryCredentialResolver);
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
