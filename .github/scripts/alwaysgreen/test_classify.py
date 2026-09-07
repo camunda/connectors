@@ -689,3 +689,28 @@ def test_a_mixed_report_stays_dispatchable_but_still_carries_its_setup_failures(
     assert [s.file for s in specs if not classify.is_setup_spec(s.file)] == [
         "tests/8.10/smoke-tests.spec.ts"
     ]
+
+
+def test_only_a_failure_can_be_noise():
+    # build_candidates passes the job's real conclusion. A cancelled job carries the
+    # cancellation annotation by definition, so passing "failure" for it would discard
+    # the job timeout that failing_jobs deliberately keeps.
+    annotations = ["The operation was canceled."]
+    assert (
+        classify.noise_verdict(
+            conclusion="failure", step_count=3, failure_annotations=annotations
+        )
+        == classify.NOISE_CANCELLED
+    )
+    assert (
+        classify.noise_verdict(
+            conclusion="cancelled", step_count=3, failure_annotations=annotations
+        )
+        is None
+    )
+    assert (
+        classify.noise_verdict(
+            conclusion="timed_out", step_count=3, failure_annotations=annotations
+        )
+        is None
+    )

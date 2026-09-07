@@ -1,10 +1,18 @@
-# description: Streak detector for the "Merge queue Helm test" pipeline. Reacts
-# to completion of that pipeline on a protected branch (main / stable/*) and
-# maintains ONE live Slack message per base branch in the connectors support
-# channel — same find-and-update pattern as camunda/camunda's
-# alwaysgreen-streak-detector.yml.
+# description: Everything AlwaysGreen does when a "Merge queue Helm test" run
+# finishes, for main and every stable/* branch from this one copy. Two independent
+# reactions, one per job below:
 #
-# Behaviour:
+#   triage  -- any run carrying a failed job is handed to AlwaysGreen triage, which
+#              classifies it and dispatches the fix agent. See the comment on that
+#              job for why this cannot be an `if:` inside the pipeline itself.
+#   streak  -- consecutive non-green runs on a base ref maintain ONE live Slack
+#              message per branch in the connectors support channel.
+#
+# The filename still says streak-detector: renaming it would create a new workflow
+# identity, and GitHub cannot dispatch a workflow file that is absent from the default
+# branch, which is exactly what makes the triage half replayable before it merges.
+#
+# Streak behaviour:
 #   - First failure that crosses STREAK_THRESHOLD on a base ref: chat.postMessage
 #     (medic notified once).
 #   - Subsequent failed runs while the streak is active: chat.update on the same
@@ -23,19 +31,31 @@
 # type: CI
 # owner: @camunda/connectors
 ---
-name: Merge Queue Helm Test Streak Detector
+name: AlwaysGreen Merge Queue Watch
 
 on:
   workflow_run:
     workflows: ["Merge queue Helm test"]
     types:
       - completed
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
+  # Manual replay for the triage half, mirroring alwaysgreen-triage.yml's own dispatch
+  # path. Re-runs the decision for a past pipeline run without re-running the pipeline,
+  # and is the only way to exercise a workflow_run workflow, which otherwise fires only
+  # for the copy on the default branch. The streak job stays out of it: its gate wants a
+  # push-triggered pipeline run, which a dispatch does not carry.
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Pipeline run to judge. Required: a replay always names its target.'
+        required: true
+      dry_run:
+        description: 'Classify and report, but dispatch no fix agent'
+        type: boolean
+        required: false
+        default: true
 
 env:
+  ALERT_CHANNEL_ID: 'C0AK0AVKRL0'
   STREAK_THRESHOLD: '3'
   LOOKBACK_RUNS: '10'
   PARENT_WORKFLOW_FILE: 'MERGE_QUEUE_HELM_TEST.yaml'
@@ -56,6 +76,15 @@ defaults:
 jobs:
   detect-streak:
     name: Detect failure streak
+    # Per branch, because this job maintains ONE live Slack message per base ref and two
+    # concurrent updates would fight over it. Job-scoped rather than workflow-scoped: at
+    # workflow level it also governed the triage jobs below, and on a manual replay
+    # `workflow_run.head_branch` is empty, so every replay collapsed into one bucket and
+    # GitHub cancelled all but one of them -- observed, three of five replays cancelled
+    # with no job run at all. The scan must never be dropped that way.
+    concurrency:
+      group: streak-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
     # Only protected-branch push runs accumulate streaks; success runs can
     # resolve an existing live message.
     if: >-
@@ -212,3 +241,470 @@ jobs:
               "text": ":white_check_mark: ${{ env.STREAK_MARKER_RESOLVED }} on ${{ steps.streak.outputs.base_ref }} — first green run after the streak.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}>\nFirst green run: ${{ github.event.workflow_run.html_url }}"
             }
 
+  # The triage half. Why the decision lives here and not as an `if:` inside the
+  # pipeline:
+  #
+  # It used to be a job in MERGE_QUEUE_HELM_TEST.yaml gated on
+  # `contains(needs.*.result, 'failure')`, which is blind to two of the ways a job in
+  # that pipeline fails:
+  #
+  #   * a nested job of a called workflow carrying continue-on-error -- the SM
+  #     Playwright matrix in camunda-platform-helm runs its `full` leg with
+  #     `continue-on-error: ${{ !matrix.blocking }}`, so a `full`-only failure leaves
+  #     `needs.trigger-sm-e2e.result == 'success'`;
+  #   * the pipeline's own `continue-on-error: ${{ github.event_name == 'merge_group' }}`,
+  #     one level up.
+  #
+  # It also could not be fixed centrally, because that file is per-branch: the jobs-API
+  # fix reached main only, and stable/8.7-8.10 kept reading `needs.*.result`. A reusable
+  # workflow cannot help either -- it cannot reach into its caller's `if:`, because it
+  # never runs. A workflow_run listener can, and covers every branch from this one copy.
+  #
+  # Measured over the 100 most recent completed runs (2026-09-03) -- 55 merge_group, 45
+  # push -- carrying 73 non-AlwaysGreen job failures:
+  #
+  #   main base    23 failures, all already covered by the jobs-API gate on that branch
+  #   stable bases 50 failures, of which its push-only + needs.*.result gate saw 6
+  #                (SM 0/23, SaaS 0/13, build 6/14)
+  #
+  # Every stable SaaS failure was invisible, and every one of them was on merge_group,
+  # which that gate excluded outright.
+  #
+  # This listener fires for both event types: over the same window, 104/104 merge_group
+  # and 88/88 push pipeline completions produced a run of it.
+  # Deliberately ungrouped: it is a read, it is cheap, and every finished run must get
+  # one. Serialisation belongs to triage, which declares its own per-base_ref group.
+  scan-run:
+    name: Scan the finished run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      run_id: ${{ steps.run.outputs.id }}
+      any_failed: ${{ steps.scan.outputs.any_failed }}
+      already_triaged: ${{ steps.scan.outputs.already_triaged }}
+      base_ref: ${{ steps.scan.outputs.base_ref }}
+      base_ref_supported: ${{ steps.scan.outputs.base_ref_supported }}
+      parent_slack_ts: ${{ steps.parent.outputs.slack_ts }}
+      parent_slack_channel: ${{ steps.parent.outputs.slack_channel }}
+    steps:
+      - name: Resolve the run to judge
+        id: run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          run_id="${INPUT_RUN_ID:-$EVENT_RUN_ID}"
+          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id must be numeric, got '${run_id}'"
+            exit 1
+          fi
+
+          # Conclusion, url and branch are read from the API rather than from
+          # github.event.workflow_run, so a manual replay and a triggered run take the
+          # same path and neither can be judged on a field the other does not have.
+          meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")
+          if [ "$(jq -r '.workflow_id // "" ' <<<"$meta")" = "" ]; then
+            echo "::error::run ${run_id} could not be read: $(head -c 300 <<<"$meta")"
+            exit 1
+          fi
+
+          # A replay of the wrong workflow would classify jobs the AlwaysGreen surfaces
+          # know nothing about, and report a clean triage for a pipeline that never ran.
+          name=$(jq -r '.name // ""' <<<"$meta")
+          if [ "$name" != "Merge queue Helm test" ]; then
+            echo "::error::run ${run_id} is '${name}', not a Merge queue Helm test run"
+            exit 1
+          fi
+
+          # A re-run reuses the run id and increments the attempt, and workflow_run fires
+          # once per attempt -- while the scan below asks for `filter=latest`. So a
+          # listener for attempt N that starts late reads attempt N+1's jobs: if N+1 has
+          # finished, both listeners classify the same attempt and post the same failure
+          # twice; if it is still running, N's listener reads partial state.
+          #
+          # The newest attempt is the one worth judging, so the stale listener stands
+          # down rather than the newer one -- which also keeps `filter=latest` honest for
+          # the replay path, where a typed run id means "whatever that run looks like
+          # now".
+          stale=false
+          current_attempt=$(jq -r '.run_attempt // 1' <<<"$meta")
+          if [ -n "${EVENT_RUN_ATTEMPT:-}" ] \
+             && [ "${EVENT_RUN_ATTEMPT}" -lt "${current_attempt}" ]; then
+            stale=true
+            echo "::notice::attempt ${EVENT_RUN_ATTEMPT} of run ${run_id} is superseded by attempt ${current_attempt}; standing down."
+            {
+              echo "## AlwaysGreen failure watch"
+              echo ""
+              echo "Attempt ${EVENT_RUN_ATTEMPT} of run ${run_id} was superseded by"
+              echo "attempt ${current_attempt}, whose own listener judges it. Nothing done here."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # An unfinished run has a partial job list, and reading it as final would
+          # either report a green pipeline that has not finished failing yet or invoke
+          # triage before the evidence artifacts are uploaded. The workflow_run event
+          # only fires on `completed`, so this mainly guards the replay path, where a run
+          # id is typed by hand and nothing else checks.
+          #
+          # After the stale check, and skipped for a stale listener. A re-run puts the
+          # shared run back to `in_progress`, so an ordinary re-run would otherwise turn
+          # every superseded listener into a failed watcher run instead of a quiet
+          # stand-down.
+          if [ "$stale" != "true" ]; then
+            status=$(jq -r '.status // ""' <<<"$meta")
+            if [ "$status" != "completed" ]; then
+              echo "::error::run ${run_id} is '${status}', not completed; there is nothing final to judge yet"
+              exit 1
+            fi
+          fi
+
+          {
+            echo "id=${run_id}"
+            echo "stale=${stale}"
+            echo "url=$(jq -r '.html_url' <<<"$meta")"
+            echo "conclusion=$(jq -r '.conclusion // "" ' <<<"$meta")"
+            echo "head_branch=$(jq -r '.head_branch // "" ' <<<"$meta")"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Scan the run's job conclusions
+        id: scan
+        if: steps.run.outputs.stale != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ steps.run.outputs.id }}
+          RUN_URL: ${{ steps.run.outputs.url }}
+          RUN_CONCLUSION: ${{ steps.run.outputs.conclusion }}
+          HEAD_BRANCH: ${{ steps.run.outputs.head_branch }}
+          IS_REPLAY: ${{ github.event_name == 'workflow_dispatch' }}
+          EVENT_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          # The attempt this listener was fired for, by its own endpoint, when there is
+          # one. `filter=latest` reads whatever the newest attempt happens to be AT THE
+          # MOMENT OF THE REQUEST, so the earlier stale check could only ever narrow the
+          # window, not close it: a re-run starting between that check and this request
+          # left this listener scanning the new attempt's partial job list, and the new
+          # attempt's own listener classifying it again afterwards. An attempt's job list
+          # is immutable, so asking for it by number removes the race instead of
+          # shrinking it.
+          #
+          # A replay has no attempt to be faithful to -- a typed run id means "whatever
+          # that run looks like now" -- so it keeps `filter=latest`.
+          #
+          # Residual, deliberately: a re-run that starts after this point is classified
+          # by its own listener, not this one. Two attempts, two classifications, each
+          # complete and correct for what it judged; the dispatch dedupe covers the
+          # overlap between them. That is the honest outcome, unlike one listener
+          # reporting on half of somebody else's attempt.
+          if [ -n "${EVENT_RUN_ATTEMPT:-}" ]; then
+            jobs_path="repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/attempts/${EVENT_RUN_ATTEMPT}/jobs?per_page=100"
+          else
+            jobs_path="repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100"
+          fi
+
+          # --slurp, then flatten to one object. Without it `--paginate` emits one JSON
+          # document PER PAGE, so past 100 jobs every query below runs once per page: the
+          # `| length` tests then produce two numbers, and `[ "1\n0" -gt 0 ]` aborts the
+          # step under `set -e`. Verified. This pipeline is at ~20 jobs today, so it is a
+          # latent break rather than a live one -- but it breaks the gate, not a report.
+          jobs_json=$(gh api --paginate --slurp "$jobs_path" | jq '{jobs: [.[].jobs[]]}')
+
+          # Fail loudly on anything that is not a job listing. The whole point of this
+          # workflow is that a real failure must not read as a green run, so an
+          # unreadable answer has to be a red job here rather than a quiet `any_failed=false`.
+          if ! jq -e 'has("jobs") and (.jobs | type == "array")' <<<"$jobs_json" >/dev/null; then
+            echo "::error::could not list jobs for run ${RUN_ID}; got: $(head -c 300 <<<"$jobs_json")"
+            exit 1
+          fi
+
+          # stable/8.7-8.10 still carry their own push-gated `alwaysgreen-triage` job,
+          # which classifies the run from inside it. When that job actually did the work,
+          # this listener must not classify the same run again: two classifications mean
+          # two Slack threads for one failure, and the only thing standing between them
+          # and two fix agents is triage's in-flight check winning a race. It is
+          # measurable -- 6 of the last 100 runs were stable pushes whose failure
+          # propagated far enough to satisfy that gate.
+          #
+          # "Did the work" cannot be read from the job's conclusion. Triage runs
+          # `Discover and plan` with continue-on-error, and `Flag discovery failure` only
+          # warns, so a run whose discovery blew up still concludes `success` -- and
+          # suppressing that would kill the retry this check is supposed to allow. Nor can
+          # the step's own conclusion be used: a continue-on-error step reports `success`
+          # in this API whatever happened to it. What IS reported faithfully is `skipped`,
+          # so the two flag steps are read instead:
+          #
+          #   Flag discovery failure   skipped -> discovery succeeded
+          #   Report disabled and stop skipped -> the Vault flag was not `disabled`
+          #   Flag dispatch failure    skipped -> a dispatch, if due, started an agent
+          #
+          # All three skipped, on a job that concluded success, is the only state that
+          # means a classification actually happened AND left something behind. The third
+          # exists because `Dispatch fix agents` is continue-on-error as well, so a failed
+          # `gh workflow run` left the job successful with the other two still skipped --
+          # and the retry was suppressed for a run where no agent ever started.
+          #
+          # Automatic runs only. A manual replay names its target on purpose, and
+          # refusing to re-classify a run someone explicitly asked about would make the
+          # replay path useless for every historical run -- which is most of them.
+          #
+          # Self-clearing: as each stable branch drops its in-pipeline job the check stops
+          # matching and the listener takes over.
+          already_triaged=false
+          if [ "${IS_REPLAY}" != "true" ] \
+             && [ "$(jq '[.jobs[]
+                          | select(.name | startswith("AlwaysGreen triage and fix dispatch"))
+                          | select(.conclusion == "success")
+                          | select([.steps[]?
+                              | select(.name == "Flag discovery failure" or
+                                       .name == "Report disabled and stop" or
+                                       .name == "Flag dispatch failure")
+                              | select(.conclusion != "skipped")] | length == 0)]
+                         | length' <<<"$jobs_json")" -gt 0 ]; then
+            already_triaged=true
+          fi
+
+          # Nested jobs of called workflows are in this list too, under
+          # `<caller job> / <called job>` names, so one scan covers the whole tree --
+          # including the SM Playwright legs three levels down in camunda-platform-helm.
+          #
+          # A `cancelled` job counts, but only when the run as a whole was not
+          # cancelled. That distinguishes a job hitting its own `timeout-minutes` -- how
+          # the SaaS stage dies when the downstream run outlives its 25-minute watcher,
+          # and a real failure nothing currently reports -- from the merge queue or a
+          # human dropping the whole run, which is not a test failure and must not page
+          # anyone.
+          #
+          # Step conclusions are deliberately NOT scanned. `steps[].conclusion` in this
+          # API is the outcome AFTER continue-on-error, so a masked step reports
+          # `success` (checked directly: the `Observe build status` step of job
+          # 100567857518 emitted `##[error]` and still reports `success`). Every step
+          # failure the API can express therefore already shows up as its job's
+          # `failure`, and scanning steps adds nothing -- 0 extra hits over the same 34
+          # runs. Catching a masked step would mean parsing logs or annotations, and
+          # those steps are non-fatal on purpose.
+          if [ "${RUN_CONCLUSION}" = "cancelled" ]; then
+            countable='["failure"]'
+          else
+            countable='["failure","cancelled","timed_out"]'
+          fi
+
+          # AlwaysGreen's own jobs are excluded: a Slack or Vault hiccup in the feedback
+          # job is not a pipeline failure, and treating it as one would have triage
+          # re-triaging its own noise.
+          failed=$(jq -r --argjson countable "$countable" '
+            .jobs[]
+            | select(.conclusion as $c | $countable | index($c))
+            | .name
+            | select(startswith("AlwaysGreen ") | not)
+          ' <<<"$jobs_json")
+
+          any_failed=false
+          [ -n "$failed" ] && any_failed=true
+
+          # Normalised the way classify.normalise_base_ref does, so the value this gate
+          # derives and the value discovery derives cannot disagree. On merge_group,
+          # head_branch is the per-PR queue ref, which triage rejects outright.
+          base_ref="${HEAD_BRANCH#refs/heads/}"
+          case "$base_ref" in
+            gh-readonly-queue/*)
+              base_ref="${base_ref#gh-readonly-queue/}"
+              base_ref="${base_ref%/pr-*}"
+              ;;
+          esac
+
+          # Mirrors the list alwaysgreen-triage.yml and alwaysgreen-fix.yml accept; all
+          # three are widened together or a dispatch hard-errors on arrival.
+          #
+          # stable/8.10 is deliberately absent, and it costs real coverage to leave it
+          # out: 10 runs and 15 failing jobs over the last 100, a fifth of all failures,
+          # every one reaching this listener via merge_group since its own copy of the
+          # pipeline still carries `push: branches: [main]`.
+          #
+          # It stays out because of a race the dedupe layers cannot see.
+          # alwaysgreen-fix.yml maps main to the 8.10 suite as well -- main is
+          # 8.11.0-SNAPSHOT and the e2e repository has no tests/8.11 -- so main and
+          # stable/8.10 resolve to the SAME spec paths while carrying DIFFERENT dispatch
+          # keys. The key lock and the in-flight check are both keyed by the dispatch
+          # key, and triage's concurrency group by base_ref, so none of them sees the
+          # collision; the spec-path claim only starts guarding once the first agent has
+          # opened its PR, which is 15-60 minutes after dispatch. Two failures inside
+          # that window put two agents on the same files.
+          #
+          # Closing it means keying the in-flight lock by the resolved suite rather than
+          # by the base ref, which is a change to the key format and belongs on its own.
+          # Until then an unsupported ref is reported rather than swallowed, so the gap
+          # is visible in the summary instead of looking like a green run.
+          base_ref_supported=true
+          case "$base_ref" in
+            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            *) base_ref_supported=false ;;
+          esac
+
+          {
+            echo "## AlwaysGreen failure watch"
+            echo ""
+            echo "Run: ${RUN_URL} (\`${RUN_CONCLUSION}\`) on \`${base_ref}\`"
+            echo ""
+            if [ "$any_failed" != "true" ]; then
+              echo "No failing jobs. Nothing to triage."
+            elif [ "$already_triaged" = "true" ]; then
+              echo "This branch still triages in-pipeline, and that job already"
+              echo "classified this run — not classifying it a second time."
+              echo "Replay it explicitly if you want a second classification."
+              echo ""
+              printf '%s\n' "$failed" | sed 's/^/- /'
+            elif [ "$base_ref_supported" = "true" ]; then
+              echo "Failing jobs, handed to triage:"
+              echo ""
+              printf '%s\n' "$failed" | sed 's/^/- /'
+            else
+              echo "Failing jobs on \`${base_ref}\`, a ref AlwaysGreen triage does not"
+              echo "accept -- reported here only, no classification or fix dispatch ran:"
+              echo ""
+              printf '%s\n' "$failed" | sed 's/^/- /'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$any_failed" = "true" ]; then
+            printf 'Failing jobs:\n%s\n' "$failed"
+            if [ "$already_triaged" = "true" ]; then
+              echo "In-pipeline triage already classified run ${RUN_ID}; skipping to avoid a duplicate."
+            fi
+            if [ "$base_ref_supported" != "true" ]; then
+              echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to alwaysgreen-triage.yml and alwaysgreen-fix.yml to enable it."
+            fi
+          else
+            echo "No failing jobs in run ${RUN_ID}."
+            # A red run with no failing job is a contradiction, and the one that would
+            # read as a clean triage. `startup_failure` is the usual cause -- an invalid
+            # workflow file produces no jobs at all -- and there is nothing for the fix
+            # agent to classify, so say so out loud instead of reporting nothing.
+            case "${RUN_CONCLUSION}" in
+              failure|startup_failure|timed_out)
+                echo "::warning::run ${RUN_ID} concluded '${RUN_CONCLUSION}' but exposes no failing job, so there is nothing to triage. A startup failure or a broken workflow file looks like this."
+                {
+                  echo ""
+                  echo "> Concluded \`${RUN_CONCLUSION}\` with no failing job to classify."
+                  echo "> Check the run itself — a startup failure produces no jobs."
+                } >> "$GITHUB_STEP_SUMMARY"
+                ;;
+            esac
+          fi
+
+          {
+            echo "any_failed=${any_failed}"
+            echo "already_triaged=${already_triaged}"
+            echo "base_ref=${base_ref}"
+            echo "base_ref_supported=${base_ref_supported}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      # In-pipeline triage used to receive the feedback job's message ts through
+      # `needs`, so one failure stayed one Slack thread. From a separate run there is no
+      # `needs` edge to read, so the message is looked up instead: post-failure-feedback
+      # puts the failing run's URL in its text as `<url|Run>`, which makes the run URL a
+      # unique handle on the parent. Same conversations.history technique
+      # connectors-streak-detector.yml uses to find its own messages.
+      #
+      # Entirely best-effort. No parent found -- because the feedback job was skipped by
+      # its own blind gate on a stable branch, because the token lacks history scope, or
+      # because Slack is down -- just means triage opens its own thread, which is what
+      # it does when called with an empty parent anyway.
+      - name: Find the feedback message to reply under
+        id: parent
+        if: steps.scan.outputs.any_failed == 'true'
+        env:
+          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          RUN_URL: ${{ steps.run.outputs.url }}
+        run: |
+          set -euo pipefail
+          ts=""
+          if [ -n "${SLACK_TOKEN:-}" ]; then
+            resp=$(curl -sS --max-time 20 -G \
+              "https://slack.com/api/conversations.history" \
+              -H "Authorization: Bearer ${SLACK_TOKEN}" \
+              --data-urlencode "channel=${ALERT_CHANNEL_ID}" \
+              --data-urlencode "limit=60" || echo '{}')
+            if [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ]; then
+              # Top-level messages only, but "top-level" is not "has no thread_ts": once
+              # a message has replies, Slack returns it with thread_ts EQUAL to its own
+              # ts. Testing for absence alone therefore drops the very parent being
+              # looked for on any run whose feedback message was already replied to --
+              # every replay of a threaded run -- and triage would open a second
+              # top-level message beside it. A reply is the case where the two differ.
+              #
+              # The run URL alone does not identify the feedback message -- the streak
+              # job in this same workflow embeds the very same URL as "Latest failing
+              # run", and on a run that crosses the threshold it can post or update that
+              # message before this lookup. Triage would then reply into the shared
+              # per-branch streak thread instead of the per-run feedback thread. The
+              # streak markers are the discriminator, and they are right here in `env`.
+              ts=$(jq -r --arg url "$RUN_URL" \
+                        --arg active "$STREAK_MARKER_ACTIVE" \
+                        --arg resolved "$STREAK_MARKER_RESOLVED" '
+                [ .messages[]
+                  | select((.thread_ts // .ts) == .ts)
+                  | select((.text // "") | contains($url))
+                  | select((.text // "") | contains($active) | not)
+                  | select((.text // "") | contains($resolved) | not) ]
+                | first | .ts // ""
+              ' <<<"$resp")
+            else
+              echo "::notice::Slack history lookup unavailable ($(jq -r '.error // "unknown"' <<<"$resp")); triage will open its own thread."
+            fi
+          fi
+          # Paired: triage treats a ts without a channel as no parent at all, so both
+          # are emitted together or neither is.
+          channel=""
+          if [ -n "$ts" ] && [ "$ts" != "null" ]; then
+            channel="${ALERT_CHANNEL_ID}"
+            echo "Replying under the feedback message at ts=${ts}"
+          else
+            ts=""
+            echo "No feedback message found for this run; triage will open its own thread."
+          fi
+          {
+            echo "slack_ts=${ts}"
+            echo "slack_channel=${channel}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  # github.run_id inside triage is this listener's run, not the failing one, so the
+  # failing run travels as an explicit input. Everything downstream of triage's
+  # "Resolve target run" step already handles that -- it reads
+  # `${INPUT_RUN_ID:-$CALLER_RUN_ID}` -- the input just was not declared on the
+  # workflow_call path.
+  triage:
+    name: AlwaysGreen triage and fix dispatch
+    needs: scan-run
+    if: >-
+      needs.scan-run.outputs.any_failed == 'true' &&
+      needs.scan-run.outputs.already_triaged != 'true' &&
+      needs.scan-run.outputs.base_ref_supported == 'true'
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    uses: ./.github/workflows/alwaysgreen-triage.yml
+    secrets: inherit
+    with:
+      run_id: ${{ needs.scan-run.outputs.run_id }}
+      # The attempt this listener judged, so discovery classifies the same jobs the gate
+      # saw rather than whatever attempt is newest when it runs. Empty on a replay.
+      run_attempt: ${{ github.event.workflow_run.run_attempt }}
+      base_ref: ${{ needs.scan-run.outputs.base_ref }}
+      # This workflow's own ref, not a literal `main`. On a workflow_run event that IS
+      # the default branch, so production behaviour is unchanged; on a manual replay
+      # from a branch it makes the replay test that branch's tooling rather than
+      # silently classifying with main's.
+      tooling_ref: ${{ github.ref_name }}
+      # A replay defaults to classifying without dispatching, so exercising this
+      # workflow cannot open a fix PR by accident. Absent on workflow_run, where the
+      # Vault flag alone decides.
+      dry_run: ${{ inputs.dry_run || false }}
+      parent_slack_ts: ${{ needs.scan-run.outputs.parent_slack_ts }}
+      parent_slack_channel: ${{ needs.scan-run.outputs.parent_slack_channel }}

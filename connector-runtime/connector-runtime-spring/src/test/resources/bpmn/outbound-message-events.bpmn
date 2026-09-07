@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_message_events"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="outbound-message-events" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="send-message-throw"/>
+    <bpmn:intermediateThrowEvent id="send-message-throw" name="Send Message">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.THROW_EVENT_SECRET}}" target="apiKey"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="send-message-throw" targetRef="send-message-end"/>
+    <bpmn:endEvent id="send-message-end" name="Send Message">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.END_EVENT_SECRET}}" target="apiKey"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition/>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

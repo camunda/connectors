@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_nested_embedded_subprocess"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="outbound-nested-embedded-subprocess" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="outer-subprocess"/>
+    <bpmn:subProcess id="outer-subprocess" name="Outer Sub-process">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.OUTER_SECRET}}" target="apiKey"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:startEvent id="InnerStart_1">
+        <bpmn:outgoing>InnerFlow_1</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="InnerFlow_1" sourceRef="InnerStart_1" targetRef="inner-subprocess"/>
+      <bpmn:subProcess id="inner-subprocess" name="Inner Sub-process">
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:input source="{{secrets.INNER_SECRET}}" target="apiKey"/>
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:incoming>InnerFlow_1</bpmn:incoming>
+        <bpmn:outgoing>InnerFlow_2</bpmn:outgoing>
+        <bpmn:serviceTask id="grandchild-task" name="Tool">
+          <bpmn:extensionElements>
+            <zeebe:ioMapping>
+              <zeebe:input source="{{secrets.GRANDCHILD_SECRET}}" target="token"/>
+            </zeebe:ioMapping>
+          </bpmn:extensionElements>
+        </bpmn:serviceTask>
+      </bpmn:subProcess>
+      <bpmn:sequenceFlow id="InnerFlow_2" sourceRef="inner-subprocess" targetRef="InnerEnd_1"/>
+      <bpmn:endEvent id="InnerEnd_1">
+        <bpmn:incoming>InnerFlow_2</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="outer-subprocess" targetRef="EndEvent_1"/>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

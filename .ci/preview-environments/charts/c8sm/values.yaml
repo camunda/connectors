@@ -11,56 +11,70 @@ global:
     camunda.cloud/managed-by: Helm
     camunda.cloud/source: argocd
     team: connectors
-  
+
   image:
     pullSecrets:
       - name: dockerhub-registry
-
-  # still required by some subcharts (e.g. elasticsearch)
-  imagePullSecrets:
-    - name: dockerhub-registry
+      - name: registry-camunda-cloud
 
   # Preview environment configurations
   preview:
     git:
       # GitHub references for annotating resources
       # Branch name will be dynamically set with PR branch name
-      branch: master
+      branch: main
       repoUrl: https://github.com/camunda/connectors
     ingress:
       # The domain name under which to expose the preview environment
       domain: connectors.camunda.cloud
+    secrets:
+      name: camunda-credentials
+
+  # Drives the chart's external URLs (Console links, Web Modeler websocket client).
+  # external=true keeps them derived while leaving routing to the Gateway API HTTPRoutes.
+  host: '{{ include "ingress.domain" . }}'
+  ingress:
+    enabled: true
+    external: true
+    tls:
+      enabled: true
 
   # Camunda 8 Self-Managed global configurations
-  elasticsearch:
-    # necessary due to name override bugs
-    url:
-      host: elasticsearch
   identity:
     auth:
       # Enable Camunda Identity-based authentication
       enabled: true
       # Token issuer (Keycloak) URL
       publicIssuerUrl: https://{{ include "ingress.domain" . }}/auth/realms/camunda-platform
-      connectors:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: connectors
-      operate:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: operate
-        redirectUrl: https://{{ include "ingress.domain" . }}/operate
+      admin:
+        enabled: true
+        secret:
+          existingSecret: camunda-credentials
+          existingSecretKey: identity-admin-client-token
       webModeler:
         redirectUrl: https://{{ include "ingress.domain" . }}/modeler
-      zeebe:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: zeebe
     keycloak:
+      contextPath: /auth
+      internal: true
+      url:
+        protocol: http
+        host: '{{ .Release.Name }}-kc-service.keycloak-operator'
+        port: "8080"
       auth:
-        # necessary due to name override bugs
         adminUser: admin
-        existingSecret: identity-keycloak
-        existingSecretKey: admin-password
+        secret:
+          existingSecret: camunda-credentials
+          existingSecretKey: identity-keycloak-admin-password
+
   zeebeClusterName: zeebe-cluster
+
+infra-preview-environments-gateway-api:
+  baseDomain: connectors.camunda.cloud
+  namePrefix: "connectors-"
+  gateway:
+    name: preview-gateway
+    tls:
+      secretName: connectors-wildcard-certificate-tls
 
 
 # Camunda 8 Self-Managed configurations
@@ -73,33 +87,79 @@ camunda-platform:
     enabled: true
     fullnameOverride: connectors
     contextPath: /connectors
-    inbound:
-      ## Use Identity-based authentication
-      mode: oauth
     image:
       registry: registry.camunda.cloud
       repository: team-connectors/connectors-bundle
       pullSecrets:
         - name: registry-camunda-cloud
         - name: dockerhub-registry
+    security:
+      authentication:
+        method: oidc
+        oidc:
+          secret:
+            existingSecret: camunda-credentials
+            existingSecretKey: identity-connectors-client-token
     env:
       - name: JAVA_OPTS
         value: "-Xms512m -Xmx512m"
-      - name: CAMUNDA_CLIENT_AUTH_CLIENT-ID
-        value: ${ZEEBE_CLIENT_ID}
-      - name: CAMUNDA_CLIENT_AUTH_CLIENT-SECRET
-        value: ${ZEEBE_CLIENT_SECRET}
-      - name: CAMUNDA_CLIENT_AUTH_AUDIENCE
-        value: ${ZEEBE_TOKEN_AUDIENCE}
+      # Required for inbound connectors
       - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
-        value: "false"
-      - name: CAMUNDA_CLIENT_REST-ADDRESS
-        value: http://zeebe-cluster-gateway:9600
-      - name: CAMUNDA_CLIENT_GRPC-ADDRESS
-        value: http://zeebe-cluster-gateway:26500
+        value: "true"
     resources:
       limits:
-        cpu: 1
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 50Mi
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
+    tolerations:
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+  orchestration:
+    enabled: true
+    fullnameOverride: orchestration
+    contextPath: /orchestration
+    clusterSize: "1"
+    partitionCount: "1"
+    replicationFactor: "1"
+    index:
+      replicas: 0
+    persistenceType: disk
+    pvcSize: 1Gi
+    javaOpts: >-
+      -Xms512m -Xmx512m
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath=/usr/local/zeebe/data
+      -XX:ErrorFile=/usr/local/zeebe/data/zeebe_error%p.log
+      -XX:+ExitOnOutOfMemoryError
+    security:
+      authentication:
+        method: oidc
+        oidc:
+          redirectUrl: https://{{ include "ingress.domain" . }}/orchestration
+          secret:
+            existingSecret: camunda-credentials
+            existingSecretKey: identity-orchestration-client-token
+    data:
+      disk:
+        freeSpace:
+          processing: 110MB
+          replication: 10MB
+      secondaryStorage:
+        type: elasticsearch
+        elasticsearch:
+          url: http://elasticsearch-es-http:9200
+    resources:
+      limits:
+        cpu: "1"
         memory: 1Gi
       requests:
         cpu: 500m
@@ -110,142 +170,28 @@ camunda-platform:
       - key: "previews"
         operator: "Exists"
         effect: "NoSchedule"
-
-  elasticsearch:
-    enabled: true
-    fullnameOverride: elasticsearch
-    # image:
-    #   repository: bitnami/elasticsearch
-    #   tag: latest
-    master:
-      fullnameOverride: elasticsearch-master
-      replicaCount: 1
-      heapSize: 512m
-      persistence:
-        enabled: true
-        size: 1Gi
-      resources:
-        limits:
-          cpu: 1
-          memory: 1Gi
-        requests:
-          cpu: 500m
-          memory: 512Mi
-      nodeSelector:
-        cloud.google.com/gke-nodepool: previews
-      tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
 
   identity:
     enabled: true
     fullnameOverride: identity
     contextPath: /identity
-    fullURL: https://{{ include "ingress.domain" . }}{{ .Values.contextPath }}
-    # image:
-    #     repository: camunda/identity
-    #     tag: latest
-    env:
-      # Pre-create an Identity test application to be used to access the Zeebe cluster endpoint
-      - name: KEYCLOAK_CLIENTS_2_ID
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_NAME
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_SECRET
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_REDIRECT_URIS_0
-        value: /callback
-      - name: KEYCLOAK_CLIENTS_2_ROOT_URL
-        value: http://test
-      - name: KEYCLOAK_CLIENTS_2_TYPE
-        value: CONFIDENTIAL
-      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_RESOURCE_SERVER_ID
-        value: zeebe-api
-      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_DEFINITION
-        value: "write:*"
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-
-  identityKeycloak:
-    enabled: true
-    fullnameOverride: identity-keycloak
-    auth:
-      adminUser: admin
-      adminPassword: admin
-    externalDatabase:
-      password: postgresql
-    extraEnvVars:
-      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
-        value: "true"
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-    postgresql:
-      fullnameOverride: identity-keycloak-postgresql
-      auth:
-        # fixed secret, to avoid generating a random password each time
-        password: postgresql
-      primary:
-        persistence:
-          enabled: true
-          size: 1Gi
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 250m
-            memory: 256Mi
-        nodeSelector:
-          cloud.google.com/gke-nodepool: previews
-        tolerations:
-          - key: "previews"
-            operator: "Exists"
-            effect: "NoSchedule"
-
-  operate:
-    enabled: true
-    fullnameOverride: operate
-    contextPath: /operate
-    # image:
-    #   repository: camunda/operate
-    #   tag: 8.3.4
-    env:
-      - name: JAVA_OPTS
-        value: "-Xms512m -Xmx512m"
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    livenessProbe:
+    fullURL: https://{{ include "ingress.domain" . }}{{ .Values.identity.contextPath }}
+    firstUser:
       enabled: true
-      # Force restart if not ready
-      probePath: /actuator/health/readiness
+      username: demo
+      secret:
+        existingSecret: camunda-credentials
+        existingSecretKey: identity-firstuser-password
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 50Mi
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
     tolerations:
@@ -256,47 +202,39 @@ camunda-platform:
   optimize:
     enabled: false
 
-  tasklist:
+  # Since 8.10 Console is an in-Modeler feature of the Web Modeler restapi pod
+  console:
+    enabled: true
+
+  camundaHub:
     enabled: false
 
   webModeler:
     enabled: true
     fullnameOverride: web-modeler
     contextPath: /modeler
-    image:
-      pullSecrets:
-        - name: dockerhub-registry
-        - name: registry-camunda-cloud
-      # tag: latest
+    security:
+      authentication:
+        method: oidc
     restapi:
-      # image:
-      #   repository: web-modeler-ee/modeler-restapi
+      externalDatabase:
+        host: web-modeler-postgresql-rw
+        port: 5432
+        database: web-modeler
+        username: web-modeler
+        secret:
+          existingSecret: web-modeler-postgresql-db
+          existingSecretKey: password
       mail:
         # This value is required, otherwise, the restapi pod won't start.
         fromAddress: noreply@example.com
       resources:
         limits:
-          cpu: 1
-          memory: 1Gi
+          cpu: "1"
+          memory: 2Gi
         requests:
           cpu: 500m
-          memory: 512Mi
-      nodeSelector:
-        cloud.google.com/gke-nodepool: previews
-      tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
-    webapp:
-      # image:
-      #   repository: web-modeler-ee/modeler-webapp
-      resources:
-        limits:
-          cpu: 100m
-          memory: 256Mi
-        requests:
-          cpu: 40m
-          memory: 256Mi
+          memory: 1Gi
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
@@ -304,8 +242,6 @@ camunda-platform:
           operator: "Exists"
           effect: "NoSchedule"
     websockets:
-      # image:
-      #   repository: web-modeler-ee/modeler-websockets
       resources:
         limits:
           cpu: 20m
@@ -319,87 +255,3 @@ camunda-platform:
         - key: "previews"
           operator: "Exists"
           effect: "NoSchedule"
-
-  # WebModeler PostgreSQL
-  postgresql:
-    enabled: true
-    fullnameOverride: web-modeler-postgresql
-    auth:
-      password: postgresql
-    primary:
-      persistence:
-        enabled: true
-        size: 1Gi
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 250m
-          memory: 256Mi
-      nodeSelector:
-        cloud.google.com/gke-nodepool: previews
-      tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
-
-  zeebe:
-    enabled: true
-    fullnameOverride: zeebe-cluster
-    # image:
-    #   repository: camunda/zeebe
-    #   tag: latest
-    clusterSize: 1
-    partitionCount: 1
-    replicationFactor: 1
-    persistenceType: disk
-    pvcSize: 1Gi
-    env:
-      ## Adjustement required due to PVC size
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_REPLICATION
-        value: "100MB"
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_PROCESSING
-        value: "150MB"
-    javaOpts: >-
-      -Xms512m -Xmx512m
-      -XX:+HeapDumpOnOutOfMemoryError
-      -XX:HeapDumpPath=/usr/local/zeebe/data
-      -XX:ErrorFile=/usr/local/zeebe/data/zeebe_error%p.log
-      -XX:+ExitOnOutOfMemoryError
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-
-  zeebeGateway:
-    fullnameOverride: zeebe-cluster-gateway
-    replicas: 1
-    # image:
-    #   repository: camunda/zeebe
-    #   tag: latest
-    javaOpts: >-
-      -Xms512m -Xmx512m
-      -XX:+ExitOnOutOfMemoryError
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"

@@ -1,7 +1,8 @@
 # description: Classifies a failed AlwaysGreen run and dispatches the fix agent.
-#              Called as the final job of MERGE_QUEUE_HELM_TEST.yaml, so
-#              github.run_id is the failing run and its artifacts are readable here.
-#              Also dispatchable with an explicit run_id to replay a past run.
+#              The run it classifies is `run_id` when given, and the calling run
+#              otherwise — so a caller that IS the failing run can omit it, while the
+#              watcher in connectors-streak-detector.yml and a manual replay both name
+#              their target. Artifacts are read from whichever run that resolves to.
 # type: CI
 # owner: @camunda/test-automation-team
 ---
@@ -14,6 +15,25 @@ on:
         description: 'Branch the failing run was on (main, stable/8.x)'
         required: true
         type: string
+      run_id:
+        description: >
+          AlwaysGreen run to classify. Optional: a caller that IS the failing run leaves
+          it unset and `github.run_id` is used. The watcher in
+          connectors-streak-detector.yml is a separate run judging a finished one, so it
+          has to name its target.
+        required: false
+        type: string
+        default: ''
+      run_attempt:
+        description: >
+          Attempt of run_id to classify. The watcher gates on one attempt's jobs, and a
+          bare run request answers with whatever attempt is newest at that moment, so
+          without this a re-run landing in between has discovery reading a different
+          attempt than the one that was judged. Empty means latest, which is right for a
+          replay.
+        required: false
+        type: string
+        default: ''
       chart_version:
         description: 'Chart directory the run deployed, e.g. camunda-platform-8.10'
         required: false
@@ -53,9 +73,9 @@ on:
     inputs:
       run_id:
         description: >
-          AlwaysGreen run to classify. Required: a manual replay always targets a
-          specific past run. The workflow_call path does not take this input and uses
-          the calling run instead.
+          AlwaysGreen run to classify. Required here: a manual replay always targets a
+          specific past run. On the workflow_call path it is optional, and a caller that
+          is itself the failing run leaves it unset.
         required: true
       base_ref:
         description: 'Branch the failing run was on'
@@ -71,7 +91,11 @@ on:
         required: false
         default: '2'
       tooling_ref:
-        description: 'Ref carrying the AlwaysGreen tooling (defaults to the dispatched ref)'
+        description: 'Ref carrying the AlwaysGreen tooling (defaults to main)'
+        required: false
+        default: ''
+      run_attempt:
+        description: 'Attempt of run_id to classify (default: latest)'
         required: false
         default: ''
 
@@ -126,15 +150,23 @@ jobs:
       # context value for "the ref this workflow was loaded from": job_workflow_sha is
       # absent at runtime and workflow_sha is the caller's.
       #
-      # run_id tells the two entry paths apart. github.event_name cannot: inside a called
-      # workflow it reports the RUN's event, so a manually dispatched pipeline calling
-      # triage looks identical to triage being dispatched itself. run_id is required on
-      # triage's own workflow_dispatch and absent on workflow_call, so it is only set when
-      # github.ref_name really is this workflow's ref.
+      # `main` when tooling_ref is not given, rather than github.ref_name. run_id used to
+      # tell the two entry paths apart -- required on triage's own workflow_dispatch,
+      # absent on workflow_call, so its presence meant github.ref_name really was this
+      # workflow's ref. It is now settable on workflow_call too (for the watcher in
+      # connectors-streak-detector.yml, a separate run judging a finished one), so it no
+      # longer distinguishes anything, and github.event_name cannot either: inside a
+      # called workflow it reports the RUN's event, so a manually dispatched pipeline
+      # calling triage is indistinguishable from triage being dispatched itself.
+      #
+      # Defaulting to the branch that actually carries the tooling is the safe direction:
+      # the cost is that a manual replay dispatched from a feature branch has to name
+      # tooling_ref to test that branch's tree, and the alternative is silently checking
+      # out a caller's tree that has none of it.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tooling_ref || (inputs.run_id && github.ref_name) || 'main' }}
+          ref: ${{ inputs.tooling_ref || 'main' }}
           sparse-checkout: .github
           persist-credentials: false
 
@@ -195,9 +227,10 @@ jobs:
           CALLER_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          # The fallback serves workflow_call, where run_id is not an input at all and
-          # github.run_id is the caller's run — exactly the run that failed. On
-          # workflow_dispatch run_id is required, so the fallback never applies there.
+          # The fallback serves a workflow_call that omits run_id, where github.run_id is
+          # the caller's own run — exactly the run that failed. It does not apply to
+          # workflow_dispatch, where run_id is required, nor to a workflow_call that
+          # names one, which is how the watcher targets a run it is not part of.
           run_id="${INPUT_RUN_ID:-$CALLER_RUN_ID}"
           if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
             echo "::error::run_id must be numeric, got '$run_id'"
@@ -247,6 +280,13 @@ jobs:
           RUN_ID: ${{ steps.target.outputs.run_id }}
           BASE_REF: ${{ steps.target.outputs.base_ref }}
           MAX_DISPATCHES: ${{ inputs.max_dispatches || '2' }}
+          # Repository variables are not exported to the process environment on their
+          # own, so without these two lines the dials the module docstrings advertise
+          # cannot be turned: discover.py would always see its compiled-in defaults.
+          # Empty when the variable is unset, which is what _ttl_hours falls back on.
+          ALWAYSGREEN_RUN_ATTEMPT: ${{ inputs.run_attempt }}
+          ALWAYSGREEN_PR_LOCK_TTL_HOURS: ${{ vars.ALWAYSGREEN_PR_LOCK_TTL_HOURS }}
+          ALWAYSGREEN_PATH_CLAIM_TTL_HOURS: ${{ vars.ALWAYSGREEN_PATH_CLAIM_TTL_HOURS }}
           # Explicit rather than relying on the script default, so a replay dispatched
           # from a fork or a rename still reads the repository it is actually running in.
           ALWAYSGREEN_REPO: ${{ github.repository }}
@@ -299,7 +339,7 @@ jobs:
             if [ "$(jq '.suppressed | length' /tmp/alwaysgreen-plan.json)" -gt 0 ]; then
               echo "### Suppressed"
               echo ""
-              jq -r '.suppressed[] | "- `\(.surface)`: \(.reason)\(if .detail != "" then " (\(.detail))" else "" end)"' \
+              jq -r '.suppressed[] | "- `\(.surface)`: \(.reason)\(if .detail != "" then " (\(.detail))" else "" end)\(if (.specs // []) | length > 0 then "\n  - " + ((.specs) | join("\n  - ")) else "" end)"' \
                 /tmp/alwaysgreen-plan.json
               echo ""
             fi
@@ -314,7 +354,17 @@ jobs:
         id: slack
         # The token is a repository secret rather than a Vault read, so there is no
         # import step to gate on — an absent secret makes the step a no-op instead.
-        if: ${{ steps.mode.outputs.active == 'true' && (steps.plan.outputs.count != '0' || inputs.parent_slack_ts != '') }}
+        #
+        # Every active triage posts, whatever it concluded. It used to also require a
+        # dispatch candidate or a parent thread, which silently dropped the one branch
+        # written for the remaining case: the ":information_source: nothing to dispatch"
+        # text below could never be sent. That was survivable while triage only ran from
+        # inside the pipeline, where a failing stage had already produced a feedback
+        # message to thread under. The watcher brings exactly the runs that have neither
+        # — a build or Helm failure, a stable-branch leg whose feedback gate was skipped,
+        # a surface that is classified but not dispatchable — so the old condition would
+        # have left the failures this workflow exists to surface in the job summary only.
+        if: ${{ steps.mode.outputs.active == 'true' }}
         continue-on-error: true
         env:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -324,15 +374,23 @@ jobs:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           DISPATCHED: ${{ steps.mode.outputs.dispatch }}
           BASE_REF: ${{ steps.target.outputs.base_ref }}
+          # The run being classified, from the resolved target rather than from the plan.
+          # The plan is missing in exactly the case that needs this most -- a discovery
+          # failure -- and now that every active triage posts, the two no-dispatch
+          # branches are the ones a medic actually receives for a watcher-only failure.
+          # Without it the alert links the listener's own run and the reader has to go
+          # hunting for the pipeline that broke.
+          TARGET_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.target.outputs.run_id }}
         run: |
           set -euo pipefail
           [ -f /tmp/alwaysgreen-plan.json ] || echo '{"dispatches":[],"suppressed":[],"noise":[],"blame":{}}' > /tmp/alwaysgreen-plan.json
           count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
           failing_url=$(jq -r '.run_url // ""' /tmp/alwaysgreen-plan.json)
+          [ -n "$failing_url" ] || failing_url="${TARGET_RUN_URL}"
           surfaces=$(jq -r '[.dispatches[].surface] | join(", ")' /tmp/alwaysgreen-plan.json)
 
           if [ "${PLAN_OUTCOME}" != "success" ]; then
-            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ] && [ "${DISPATCHED}" = "true" ]; then
             text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${BASE_REF}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ]; then
@@ -347,7 +405,7 @@ jobs:
               | if length == 0 then "no failing job mapped to a known surface"
                 else (group_by(.) | map("\(.[0]) x\(length)") | join(", ")) end' \
               /tmp/alwaysgreen-plan.json 2>/dev/null || echo "unknown")
-            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           fi
 
           # Kept so the post-dispatch step can append agent links via chat.update
@@ -453,6 +511,16 @@ jobs:
             fi
           done
 
+          # Whether any agent actually started, as a step output rather than only as a
+          # file, so the marker step below can be gated on it. This step is
+          # continue-on-error, so neither its own conclusion nor the job's says anything
+          # about whether a dispatch landed.
+          if [ -s /tmp/agent-runs.tsv ]; then
+            echo "started=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "started=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # The Slack summary is posted before dispatch, because the fix agent needs its
       # ts to reply in-thread. So the agent links can only be added afterwards.
       - name: Add agent links to Slack
@@ -493,6 +561,27 @@ jobs:
             -d "$payload" || echo '{}')
           [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ] \
             || echo "::warning::Slack update failed: $(jq -r '.error // "unknown"' <<<"$resp")"
+
+      # A marker step, not a message: `Dispatch fix agents` is continue-on-error so a
+      # failed `gh workflow run` leaves this job successful, and a step's own conclusion
+      # is masked by continue-on-error too. `skipped` IS reported faithfully, so the
+      # watcher in connectors-streak-detector.yml reads this step's skipped state to tell
+      # "an agent was started" from "the dispatch produced nothing" -- without it, a
+      # dispatch that started no agent counted as a completed classification and
+      # suppressed the retry.
+      #
+      # Both shapes: the dispatch step failing outright, and it succeeding while
+      # resolving no agent run (the file the links step reads stays empty).
+      - name: Flag dispatch failure
+        if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outputs.count != '0' && (steps.dispatch.outcome == 'failure' || steps.dispatch.outputs.started != 'true') }}
+        run: |
+          echo "::warning::AlwaysGreen dispatch started no fix agent for this run."
+          {
+            echo "## AlwaysGreen Triage"
+            echo ""
+            echo ":warning: The dispatch produced no fix agent run. The failure stays"
+            echo "unclaimed and is re-triaged on the next run of this pipeline."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Flag discovery failure
         if: ${{ steps.mode.outputs.active == 'true' && steps.plan.outcome != 'success' }}

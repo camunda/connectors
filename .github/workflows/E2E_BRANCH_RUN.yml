@@ -24,6 +24,31 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
+      # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
+      # fall back to a pinned Maven install (below) so the build still runs there instead
+      # of failing with "No such file or directory". Not every runner in this workflow is
+      # guaranteed to have a system mvn pre-installed, so the fallback installs its own
+      # rather than assuming one exists.
+      - name: Resolve Maven command
+        id: resolve-maven
+        run: |
+          if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
+          else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
+          fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v4.0.0
@@ -67,7 +92,7 @@ jobs:
       # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
       # here; connector tests run in the next step, e2e tests run isolated in the matrix.
       - name: Build connectors
-        run: ./mvnw --batch-mode -T1C -U clean install -PcheckFormat -DskipTests
+        run: $MVN_CMD --batch-mode -T1C -U clean install -PcheckFormat -DskipTests
 
       # Non-PR (nightly/manual): run unit/integration tests for the connector modules. The whole
       # connectors-e2e-test subtree is excluded by enumerating every e2e pom path: excluding only the
@@ -77,7 +102,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
-          ./mvnw --batch-mode verify -pl "$E2E_EXCLUDES"
+          $MVN_CMD --batch-mode verify -pl "$E2E_EXCLUDES"
 
       # Discover the e2e-test modules to run from this branch's checkout so the test matrix is
       # branch-accurate. Leaf poms with `jar` packaging are test modules; aggregators (`pom`
@@ -132,6 +157,31 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch }}
+
+      # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
+      # fall back to a pinned Maven install (below) so the test run still runs there instead
+      # of failing with "No such file or directory". This job's runner varies per matrix entry
+      # (e.g. gcp-core-8-default for connectors-e2e-test-agentic-ai), so the fallback installs
+      # its own Maven rather than assuming one is pre-installed on the image.
+      - name: Resolve Maven command
+        id: resolve-maven
+        run: |
+          if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
+          else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
+          fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
 
       - name: Import Secrets
         id: secrets
@@ -192,7 +242,7 @@ jobs:
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
       - name: Test e2e module
-        run: ./mvnw --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+        run: $MVN_CMD --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()

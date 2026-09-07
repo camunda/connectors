@@ -181,9 +181,11 @@ class InboundSecretReferenceBindingTest {
   void leavesLegacyReferenceTextThatArrivedAsData() {
     // Same provider, same fixture, name reaching this context as data instead — a correlated
     // payload, a plain JSON cluster variable. Legacy replacement runs over raw model text before
-    // evaluation, so this name is never one replacement gets to see. That is what makes the inbound
-    // path's allow-all filter safe: there is no injected name for a filter to reject, whereas
-    // outbound, where model text and runtime values do meet, the filter is what establishes it.
+    // evaluation, so this name is never one replacement gets to see. That holds because of where
+    // the call sites read from, independently of any filter, which is why it is unchanged by the
+    // secret filter #7730 wired in: this fixture builds a context with filtering off, and the
+    // outcome is the same either way. Outbound, where model text and runtime values do meet, the
+    // filter is what establishes it.
     evaluationOf("=camunda.vars.cluster.plainNote").returns("secrets.TOKEN").referencingNothing();
 
     var bound =

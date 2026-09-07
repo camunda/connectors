@@ -100,7 +100,16 @@ def normalise_base_ref(ref: str) -> str:
 
 SURFACE_SM_E2E = "sm-smoke-e2e"
 SURFACE_SAAS_E2E = "saas-smoke-e2e"
-SURFACE_SAAS_PROVISIONING = "saas-provisioning"
+#: The SaaS setup/provisioning stage: every failing spec in the report is
+#: test-setup.spec.ts, so the org or cluster never came up.
+#:
+#: The wire name is short on purpose, and it matters the day this becomes dispatchable:
+#: the surface goes into the `ag-key:<source>:<base_ref>:<surface>` label, GitHub caps a
+#: label at 50 characters, and "saas-provisioning" overflows it for the longest source in
+#: test_plan.py's matrix. A label that is never created disables dedupe with no error.
+#: test_key_labels_fit_githubs_length_limit only walks DISPATCHABLE_SURFACES, so it will
+#: not catch the regression until then.
+SURFACE_SAAS_PROVISIONING = "saas-setup"
 SURFACE_SAAS_INFRA = "saas-infra"
 SURFACE_HELM_INSTALL = "helm-install"
 SURFACE_HELM_CLEANUP = "helm-cleanup"
@@ -110,8 +119,23 @@ SURFACE_CI_INFRA = "ci-infra"
 #: is reported and routed, never dispatched — see DISPATCHABLE_SURFACES.
 SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 
-#: Surfaces the first increment dispatches. Everything else is recorded and
-#: reported but not handed to the agent yet.
+#: Surfaces handed to the fix agent. Everything else is recorded and reported only.
+#:
+#: SURFACE_SAAS_PROVISIONING is a provisioning failure, and it IS actionable — but not
+#: inside a version directory. The fix lives in the org-creation workflow step or the
+#: setup spec's waiting, and the workflow and action files are shared across every
+#: version, while every dedupe layer here is keyed per base ref: the dispatch key, the
+#: in-flight check and the spec-path claim, which only ever looks at a candidate's spec
+#: paths. A provisioning outage fails setup on main AND every stable branch at once --
+#: that is the normal shape of an org-endpoint 5xx, not a corner case -- so dispatching
+#: it would put several agents on one shared file with nothing serialising them.
+#:
+#: It stays reported-only until a claim exists that spans base refs. Same root cause as
+#: stable/8.10's exclusion in connectors-streak-detector.yml: remits that overlap while
+#: keys do not.
+#:
+#: SURFACE_SAAS_INFRA stays out for a different reason: a missing report, or one with no
+#: failing spec, is no evidence at all.
 DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
@@ -147,9 +171,15 @@ def job_leaf_name(job_name: str) -> str:
 def surface_for_job(job_name: str) -> str | None:
     """Map a *failing* job name to the surface that broke.
 
-    Callers must filter on `conclusion == "failure"` first: a skipped
-    `Playwright e2e after install …` job is present in most runs and would
-    otherwise be misread as an SM e2e failure.
+    Callers must filter on the countable conclusions first — see
+    `discover.COUNTABLE_JOB_CONCLUSIONS`, which is `failure`, `cancelled` and
+    `timed_out`, less `cancelled` when the run itself was cancelled. Filtering on
+    `failure` alone reintroduces timeout blindness: a job that hits its own
+    `timeout-minutes` is reported as `cancelled`, and the SaaS stage dies that way
+    whenever the downstream run outlives its watcher.
+
+    Some filter is required either way. A skipped `Playwright e2e after install …` job
+    is present in most runs and would otherwise be misread as an SM e2e failure.
     """
     leaf = job_leaf_name(job_name)
 
