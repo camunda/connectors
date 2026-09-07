@@ -10,6 +10,7 @@ import com.anthropic.bedrock.backends.BedrockMantleBackend;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.core.http.ProxyAuthenticator;
+import com.anthropic.foundry.backends.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
@@ -19,8 +20,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
@@ -39,16 +42,19 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
+  private final AnthropicFoundryCredentialResolver foundryCredentialResolver;
 
   public AnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
-      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
+      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
+    this.foundryCredentialResolver = foundryCredentialResolver;
   }
 
   @Override
@@ -64,7 +70,11 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
     final var client =
         buildClient(
-            connection.backend(), timeout, httpProxySupport, oAuthClientCredentialsTokenResolver);
+            connection.backend(),
+            timeout,
+            httpProxySupport,
+            oAuthClientCredentialsTokenResolver,
+            foundryCredentialResolver);
     return new AnthropicChatModel(client, model, requestConverter, responseConverter);
   }
 
@@ -72,13 +82,16 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       AnthropicBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
-      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
+      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
     final var builder = AnthropicOkHttpClient.builder();
 
     switch (backend) {
       case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           applyAwsBedrockMantleBackend(builder, awsBedrockMantleBackend);
+      case AnthropicFoundryBackend foundryBackend ->
+          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver);
       case AnthropicCustomBackend custom ->
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
@@ -161,16 +174,49 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * The base URL actually configured for this backend, if any: the {@code custom} backend's
-   * endpoint is always set, the {@code aws-bedrock-mantle} backend's endpoint override is optional
-   * (VPC/PrivateLink deployments only), and the {@code anthropic-api} backend's hidden endpoint
-   * override is usually unset (the SDK then defaults to the production Anthropic API).
+   * Applies the {@code foundry} backend by delegating to the Anthropic SDK's own {@link
+   * FoundryBackend} (same pattern as {@link #applyAwsBedrockMantleBackend}'s use of {@link
+   * BedrockMantleBackend}): it owns base-URL normalization (appending {@code /anthropic} if
+   * missing), the {@code anthropic-version} header, and authorizing each request with either the
+   * API key ({@code x-api-key} header, same as {@code anthropic-api}) or a bearer token pulled
+   * fresh from the supplier on every request. Entra ID token acquisition is delegated to {@link
+   * AnthropicFoundryCredentialResolver}; this method never sees a raw token or credential.
+   */
+  private static void applyFoundryBackend(
+      AnthropicOkHttpClient.Builder builder,
+      AnthropicFoundryBackend foundryBackend,
+      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
+    final var foundry = foundryBackend.foundry();
+    final var backendBuilder = FoundryBackend.builder().baseUrl(foundry.endpoint());
+
+    switch (foundry.authentication()) {
+      case AnthropicFoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
+          backendBuilder.apiKey(apiKeyAuth.apiKey());
+      case AnthropicFoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
+          backendBuilder.bearerTokenSupplier(
+              foundryCredentialResolver.bearerTokenSupplier(clientCredentials));
+      case AnthropicFoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
+          backendBuilder.bearerTokenSupplier(
+              foundryCredentialResolver.bearerTokenSupplier(managedIdentity));
+    }
+
+    builder.backend(backendBuilder.build());
+  }
+
+  /**
+   * The base URL actually configured for this backend, if any: the {@code custom} and {@code
+   * foundry} backends' endpoints are always set, the {@code aws-bedrock-mantle} backend's endpoint
+   * override is optional (VPC/PrivateLink deployments only), and the {@code anthropic-api}
+   * backend's hidden endpoint override is usually unset (the SDK then defaults to the production
+   * Anthropic API).
    */
   private static Optional<String> configuredEndpoint(AnthropicBackend backend) {
     return switch (backend) {
       case AnthropicApiBackend apiBackend -> Optional.ofNullable(apiBackend.anthropic().endpoint());
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           Optional.ofNullable(awsBedrockMantleBackend.awsBedrockMantle().endpoint());
+      case AnthropicFoundryBackend foundryBackend ->
+          Optional.of(foundryBackend.foundry().endpoint());
       case AnthropicCustomBackend custom -> Optional.of(custom.custom().endpoint());
     };
   }

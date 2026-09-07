@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
@@ -47,12 +48,17 @@ public class AgenticAiNativeProvidersConfiguration {
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
+      AnthropicFoundryCredentialResolver anthropicFoundryCredentialResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(
-        httpProxySupport, requestConverter, responseConverter, oAuthClientCredentialsTokenResolver);
+        httpProxySupport,
+        requestConverter,
+        responseConverter,
+        oAuthClientCredentialsTokenResolver,
+        anthropicFoundryCredentialResolver);
   }
 
   @Bean
@@ -87,6 +93,13 @@ public class AgenticAiNativeProvidersConfiguration {
   public OpenAiFoundryCredentialResolver aiAgentOpenAiFoundryCredentialResolver(
       EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
     return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AnthropicFoundryCredentialResolver aiAgentAnthropicFoundryCredentialResolver(
+      EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
+    return new AnthropicFoundryCredentialResolver(entraIdTokenCredentialFactory);
   }
 
   @Bean

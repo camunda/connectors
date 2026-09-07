@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AI Agent Task",
-  "id" : "io.camunda.connectors.agenticai.ai-agent-task.v2-hybrid",
+  "name" : "AI Agent Task",
+  "id" : "io.camunda.connectors.agenticai.ai-agent-task.v2",
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "provider",
     "label" : "Model provider",
     "openByDefault" : false
@@ -80,14 +77,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent:task:2",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "value" : "aiAgentTask",
     "binding" : {
@@ -709,9 +704,6 @@
     }, {
       "name" : "API key",
       "value" : "apiKey"
-    }, {
-      "name" : "OAuth 2.0",
-      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.apiKey",
@@ -741,192 +733,6 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The OAuth token endpoint",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientId",
-    "label" : "Client ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client ID from the OAuth client",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.audience",
-    "label" : "Audience",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.audience",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The unique identifier of the target API you want to access",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "optional" : false,
-    "value" : "BASIC_AUTH_HEADER",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send as Basic Auth header",
-      "value" : "BASIC_AUTH_HEADER"
-    }, {
-      "name" : "Send client credentials in body",
-      "value" : "CREDENTIALS_BODY"
-    } ]
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.scopes",
-    "label" : "Scopes",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
@@ -1581,9 +1387,6 @@
     "choices" : [ {
       "name" : "API key",
       "value" : "apiKey"
-    }, {
-      "name" : "OAuth 2.0",
-      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.openai.backend.custom.authentication.apiKey",
@@ -1613,192 +1416,6 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The OAuth token endpoint",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientId",
-    "label" : "Client ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client ID from the OAuth client",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.audience",
-    "label" : "Audience",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.audience",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The unique identifier of the target API you want to access",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "optional" : false,
-    "value" : "BASIC_AUTH_HEADER",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send as Basic Auth header",
-      "value" : "BASIC_AUTH_HEADER"
-    }, {
-      "name" : "Send client credentials in body",
-      "value" : "CREDENTIALS_BODY"
-    } ]
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.scopes",
-    "label" : "Scopes",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.openai.timeouts.timeout",
@@ -3847,7 +3464,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
