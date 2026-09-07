@@ -88,11 +88,6 @@ public class GenerateElementTemplate {
   // withoutAuthenticationConfigurationCondition() before the properties are carried over.
   private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
       "authenticationConfiguration";
-  // resultVariable/resultExpression are inherited from HTTP JSON as-is (unconditional, same as
-  // every other HTTP JSON-backed connector) rather than rebuilt -- Salesforce has no
-  // operation-specific behavior to layer onto response mapping.
-  private static final Set<String> KEPT_OUTPUT_PROPERTY_IDS =
-      Set.of("resultVariable", "resultExpression");
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();

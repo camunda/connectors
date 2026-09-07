@@ -5,7 +5,7 @@
   "description" : "Execute GraphQL query",
   "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -608,6 +608,13 @@
     "label" : "URL",
     "description" : "Overrides the URL carried by the selected credential. Required when the credential carries none, as an OAuth credential need not.",
     "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
     "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
@@ -714,7 +721,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "14",
+    "value" : "13",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
