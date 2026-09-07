@@ -18,10 +18,15 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.anthropic
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.client.api.search.enums.AgentInstanceStatus;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
+import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -65,5 +70,54 @@ class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicSubProcess
     assertThat(request.has("cache_control"))
         .as("top-level cache_control must not be present when prompt caching is not enabled")
         .isFalse();
+  }
+
+  /**
+   * Single model call whose usage carries non-zero cache-creation and cache-read token counts, to
+   * verify the connector reports them to the Agent Instance API and the engine's aggregated metrics
+   * reflect them on read-back. Anthropic is the only provider stub that can dial cache-creation,
+   * unlike the OpenAI-based coverage in {@code AgentSubProcessAgentInstanceTests}.
+   */
+  @Test
+  void enablePromptCachingSurfacesCacheTokenCountsInAgentInstanceMetrics() throws Exception {
+    final var userPrompt = "Write a haiku about the sea";
+
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(
+        new StreamingAnthropicMessagesSseChatModelStubs.UsageDetailsTurnStub(
+            "A haiku about the endless sea.", 10, 20, 30, 50));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
+        template ->
+            template.property("provider.anthropic.model.parameters.promptCaching.enabled", "true");
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(30)
+            .reasoningTokenCount(0)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
   }
 }
