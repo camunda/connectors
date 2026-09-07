@@ -24,12 +24,11 @@ package io.camunda.connector.api.validation;
  *   <li>{@code SUCCESS} — the configuration is usable.
  *   <li>{@code FAILURE} — the configuration is not usable; {@code code} and {@code message}
  *       describe why (e.g. {@code UNAUTHORIZED}).
- *   <li>{@code UNSUPPORTED} — no validator is registered for the requested configuration id.
- *       Produced by the runtime, not by connector authors.
+ *   <li>{@code UNSUPPORTED} — not checked; see {@link #unsupported()}.
  * </ul>
  *
- * <p>Connector authors return {@link #success()} or {@link #failure(ErrorCode, String)}, preferring
- * a shared {@link ErrorCode} over inventing a per-connector one.
+ * <p>Connector authors return {@link #success()}, {@link #failure(ErrorCode, String)}, or {@link
+ * #unsupported()}, preferring a shared {@link ErrorCode} over inventing a per-connector one.
  */
 public record ConfigurationValidationResult(Status status, String code, String message) {
 
@@ -75,6 +74,7 @@ public record ConfigurationValidationResult(Status status, String code, String m
     return new ConfigurationValidationResult(Status.FAILURE, code, message);
   }
 
+  /** No verdict: nothing was checked. A check that failed is {@link ErrorCode#ERROR} instead. */
   public static ConfigurationValidationResult unsupported() {
     return new ConfigurationValidationResult(Status.UNSUPPORTED, null, null);
   }
