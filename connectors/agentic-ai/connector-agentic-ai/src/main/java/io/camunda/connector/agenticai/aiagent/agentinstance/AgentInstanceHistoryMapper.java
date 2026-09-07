@@ -191,6 +191,9 @@ public class AgentInstanceHistoryMapper {
     return new AgentInstanceHistoryMetrics()
         .inputTokens(metrics.tokenUsage().inputTokenCount())
         .outputTokens(metrics.tokenUsage().outputTokenCount())
+        .reasoningTokenCount(metrics.tokenUsage().reasoningTokenCount())
+        .cacheCreationTokenCount(metrics.tokenUsage().cacheCreationTokenCount())
+        .cacheReadTokenCount(metrics.tokenUsage().cacheReadTokenCount())
         .durationMs(durationMs);
   }
 

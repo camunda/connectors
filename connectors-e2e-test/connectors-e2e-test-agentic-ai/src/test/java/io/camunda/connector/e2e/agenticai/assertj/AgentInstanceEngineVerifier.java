@@ -66,6 +66,15 @@ public class AgentInstanceEngineVerifier {
           assertThat(metrics.getOutputTokens())
               .as("outputTokens")
               .isEqualTo(expected.tokenUsage().outputTokenCount());
+          assertThat(metrics.getReasoningTokenCount())
+              .as("reasoningTokenCount")
+              .isEqualTo(expected.tokenUsage().reasoningTokenCount());
+          assertThat(metrics.getCacheCreationTokenCount())
+              .as("cacheCreationTokenCount")
+              .isEqualTo(expected.tokenUsage().cacheCreationTokenCount());
+          assertThat(metrics.getCacheReadTokenCount())
+              .as("cacheReadTokenCount")
+              .isEqualTo(expected.tokenUsage().cacheReadTokenCount());
           assertThat(metrics.getToolCalls()).as("toolCalls").isEqualTo(expected.toolCalls());
         });
     return this;
