@@ -25,7 +25,6 @@ class RestAuthenticationValidatorTest {
 
   private static final String SENSITIVE = "SENSITIVE-DETAIL";
 
-  /** Supplies a URL only where the record requires one; the validator never reads it. */
   private static RestAuthenticationConfiguration configuration(Authentication authentication) {
     String url =
         authentication != null && RestAuthenticationConfiguration.requiresUrl(authentication)
@@ -47,7 +46,6 @@ class RestAuthenticationValidatorTest {
   @Test
   @SuppressWarnings("rawtypes")
   void isDiscoverableViaTheServiceLoader() {
-    // A missing META-INF/services entry silently leaves the credential unvalidatable.
     assertThat(
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))
@@ -99,7 +97,6 @@ class RestAuthenticationValidatorTest {
     }
   }
 
-  /** Maps a failed token request to a result — a pure function, so no seam is needed. */
   @Nested
   class FailureClassification {
 
@@ -142,7 +139,6 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void errorOnAnUnrelatedOAuthError() {
-      // A malformed request is the client's fault, not the credential's.
       assertError(httpFailure(400, Map.of(OAuthConstants.ERROR, "invalid_request")));
     }
 
@@ -163,7 +159,6 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void errorWhenTheErrorVariablesDoNotCarryABody() {
-      // An unexpected error-variable shape must not turn a clean failure into a crash.
       assertError(
           new ConnectorExceptionBuilder()
               .errorCode("400")
@@ -192,7 +187,6 @@ class RestAuthenticationValidatorTest {
           .doesNotContain(SENSITIVE);
     }
 
-    /** A failure shaped exactly as the HTTP client raises it for a non-2xx token response. */
     private ConnectorException httpFailure(int status, Map<String, String> body) {
       return new ConnectorExceptionBuilder()
           .errorCode(String.valueOf(status))
@@ -209,7 +203,6 @@ class RestAuthenticationValidatorTest {
     }
   }
 
-  /** Real token request against a stub endpoint, so the mapping and HTTP wiring are covered. */
   @Nested
   @WireMockTest
   class AgainstARealTokenEndpoint {
@@ -288,7 +281,6 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void refreshTokenIsUnsupportedBecauseTheProviderMayRotateIt() {
-      // RFC 6749 §6: the grant may rotate the token, and this validator cannot persist it.
       var result = validator.validate(configuration(refreshToken("http://example.com/token")));
 
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
@@ -296,7 +288,6 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void errorWhenTheTokenEndpointIsUnreachable() {
-      // Port 1 is reserved and never listening, so this exercises the transport failure path.
       var result = validator.validate(configuration(clientCredentials("http://localhost:1/token")));
 
       assertThat(result.status()).isEqualTo(Status.FAILURE);

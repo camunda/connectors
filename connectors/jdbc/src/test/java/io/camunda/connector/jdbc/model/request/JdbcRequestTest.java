@@ -113,7 +113,6 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.connection()).isNull();
     assertThat(request.configuration()).isNotNull();
     assertThat(request.configuration().host()).isEqualTo("cred-host");
-    // The credential's mandatory database selection wins over the (hidden, ignored) inline value.
     assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
@@ -195,7 +194,6 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.configuration().host()).isEqualTo("cred-host");
   }
 
-  /** The shape Modeler writes when a credential is bound: no inline database at all. */
   @Test
   void bindVariablesUsesTheCredentialDatabaseWhenTheInlineFieldIsAbsent() {
     String variables =
@@ -219,7 +217,6 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
-  /** Mandatory from credential version 2 on: no silent fall-through to the hidden inline field. */
   @Test
   void bindVariablesFailsWhenTheBoundCredentialNamesNoDatabase() {
     String variables =
@@ -242,7 +239,6 @@ public class JdbcRequestTest extends BaseTest {
         .hasMessageContaining("configuration.database");
   }
 
-  /** Nothing names a database, so {@code isDatabaseSourceProvided()} reports it. */
   @Test
   void bindVariablesFailsWhenNoSourceNamesADatabase() {
     String variables =

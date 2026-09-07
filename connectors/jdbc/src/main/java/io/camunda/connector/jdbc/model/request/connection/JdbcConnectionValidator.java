@@ -17,16 +17,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Validates a {@link JdbcConnectionConfiguration} out-of-band by opening a connection and closing
- * it again: authentication happens during connect, and no query is ever run. Goes through {@link
- * ConnectionHelper}, the same path execution takes, so a credential that validates here cannot fail
- * there over a driver or a URL scheme.
- *
- * <p>Returned messages are static and value-free, and so is the {@code DEBUG} log: only the
- * database and the exception type are recorded, never the throwable, whose message can echo the
- * login (PostgreSQL names the user in its authentication failures).
- */
 public class JdbcConnectionValidator
     implements ConfigurationValidator<JdbcConnectionConfiguration> {
 
@@ -39,24 +29,19 @@ public class JdbcConnectionValidator
   static final String UNAUTHORIZED_MESSAGE = "The database rejected the login (unauthorized).";
   static final String GENERIC_MESSAGE = "The JDBC connection could not be validated.";
 
-  /** SQL state class 28, "invalid authorization specification" (SQL:2016). */
   private static final String INVALID_AUTHORIZATION_SQL_STATE_CLASS = "28";
-
-  /** Rejected logins not reported as SQL state 28: Oracle ORA-01017, SQL Server 18456. */
   private static final Set<Integer> UNAUTHORIZED_VENDOR_ERROR_CODES = Set.of(1017, 18456);
 
   @Override
   public ConfigurationValidationResult validate(JdbcConnectionConfiguration configuration) {
-    // Guarded here: this validator gets a deserialized credential, not a bean-validated one.
     SupportedDatabase database = configuration.database();
     if (database == null) {
       return ConfigurationValidationResult.failure(
           ErrorCode.INVALID_INPUT, MISSING_DATABASE_MESSAGE);
     }
-    // TODO: apply a finite login timeout so a black-holed host cannot block the endpoint.
     try (Connection ignored =
         ConnectionHelper.openConnection(database, configuration.toDetailedConnection())) {
-      return ConfigurationValidationResult.success(); // Opening it is the whole check.
+      return ConfigurationValidationResult.success();
     } catch (Exception e) {
       LOG.debug(
           "JDBC connection credential validation failed for {} ({})",
@@ -66,9 +51,7 @@ public class JdbcConnectionValidator
     }
   }
 
-  /** Maps a failed connection attempt to a result. Package-private so tests cover every shape. */
   static ConfigurationValidationResult classifyFailure(Exception e) {
-    // Oracle's driver is not redistributable, so it may be absent from a given runtime.
     if (e instanceof ClassNotFoundException) {
       return ConfigurationValidationResult.failure(ErrorCode.ERROR, DRIVER_MISSING_MESSAGE);
     }

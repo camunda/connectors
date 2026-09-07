@@ -18,19 +18,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Validates a {@link RestAuthenticationConfiguration} out-of-band; shared by REST, GraphQL and HTTP
- * polling. Only the OAuth client-credentials variant is really checked: it carries its own token
- * endpoint, so a token is actually requested. Everything else returns {@link
- * ConfigurationValidationResult#unsupported() unsupported} rather than an unverified success —
- * basic, bearer and API key carry a secret with nothing to present it to, and the refresh-token
- * grant is not read-only, since a provider that rotates refresh tokens would invalidate the very
- * token being checked.
- *
- * <p>Returned messages are static and value-free, and so is the {@code DEBUG} log: only the
- * exception type and error code are recorded, never the throwable, whose message or cause chain can
- * echo provider detail or credential material.
- */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
 
@@ -42,17 +29,14 @@ public class RestAuthenticationValidator
   static final String GENERIC_MESSAGE =
       "The REST authentication credential could not be validated.";
 
-  /** Codes meaning the credential was rejected, not that the endpoint was unreachable. */
   private static final Set<String> UNAUTHORIZED_ERROR_CODES =
       Set.of("401", "403", "OAUTH_REFRESH_TOKEN_EXPIRED", "OAUTH_INTERACTION_REQUIRED");
 
-  /** OAuth error identifiers (RFC 6749 §5.2) for a rejected credential, often sent as 400. */
   private static final Set<String> UNAUTHORIZED_OAUTH_ERRORS =
       Set.of("invalid_client", "invalid_grant", "unauthorized_client");
 
   @Override
   public ConfigurationValidationResult validate(RestAuthenticationConfiguration configuration) {
-    // The only guard: the record carries @Valid but no @NotNull on authentication.
     if (configuration.authentication() == null) {
       return ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
     }
@@ -62,13 +46,10 @@ public class RestAuthenticationValidator
       case BearerAuthentication ignored -> ConfigurationValidationResult.unsupported();
       case ApiKeyAuthentication ignored -> ConfigurationValidationResult.unsupported();
       case OAuthAuthentication oauth -> requestToken(oauth);
-      case OAuthRefreshTokenAuthentication ignored ->
-          ConfigurationValidationResult
-              .unsupported(); // Refresh-token rotation can invalidate the token just used
+      case OAuthRefreshTokenAuthentication ignored -> ConfigurationValidationResult.unsupported();
     };
   }
 
-  /** Requests a token as execution does, bypassing the shared cache so no cached token passes. */
   private static ConfigurationValidationResult requestToken(OAuthAuthentication authentication) {
     try {
       var oAuthService = new OAuthService();
@@ -90,7 +71,6 @@ public class RestAuthenticationValidator
     }
   }
 
-  /** Maps a failed token request to a result. Package-private so tests can cover every shape. */
   static ConfigurationValidationResult classifyFailure(Exception e) {
     return e instanceof ConnectorException connectorException
             && isCredentialRejected(connectorException)
@@ -105,7 +85,6 @@ public class RestAuthenticationValidator
         || (oauthError != null && UNAUTHORIZED_OAUTH_ERRORS.contains(oauthError));
   }
 
-  /** The OAuth {@code error} identifier from the token endpoint's response body, or null. */
   private static String oauthErrorOf(ConnectorException e) {
     Map<String, Object> variables = e.getErrorVariables();
     if (variables != null

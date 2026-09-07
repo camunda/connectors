@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/** A stored credential binds into every request, so an unreadable value fails the job. */
 class JdbcConnectionConfigurationTest {
 
   private static final String OTHER_FIELDS =
@@ -24,21 +23,18 @@ class JdbcConnectionConfigurationTest {
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  /** The dropdown choices are hand-written, so an unmatched one fails only once picked. */
   @ParameterizedTest
   @EnumSource(SupportedDatabase.class)
   void deserializesEverySupportedDatabase(SupportedDatabase database) throws Exception {
     assertThat(configurationWithDatabase(database.name()).database()).isEqualTo(database);
   }
 
-  /** The shared mapper matches enum names case-insensitively. */
   @Test
   void deserializesTheDatabaseCaseInsensitively() throws Exception {
     assertThat(configurationWithDatabase("postgresql").database())
         .isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
-  /** The credentials this record carries must never reach a log through {@code toString}. */
   @Test
   void toStringRedactsTheLogin() {
     var configuration =

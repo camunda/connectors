@@ -453,7 +453,6 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     }
   }
 
-  /** Only a real server reports the SQL states and vendor codes the classification relies on. */
   private static JdbcConnectionConfiguration credential(
       IntegrationTestConfig config, String password) {
     return new JdbcConnectionConfiguration(
@@ -465,21 +464,18 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         password);
   }
 
-  /** A credential carries no connection properties, which SQL Server needs to be reachable. */
   private static void assumeReachableWithoutConnectionProperties(IntegrationTestConfig config) {
     assumeTrue(
         config.properties() == null || config.properties().isEmpty(),
         "a stored credential cannot carry the connection properties this product needs");
   }
 
-  /** A product whose driver and URL scheme cannot reach {@code config}'s server. */
   private static SupportedDatabase aDifferentDatabaseFrom(IntegrationTestConfig config) {
     return config.database() == SupportedDatabase.POSTGRESQL
         ? SupportedDatabase.ORACLE
         : SupportedDatabase.POSTGRESQL;
   }
 
-  /** A bound credential's database must drive execution, not only validation. */
   @Nested
   class ConnectionCredentialPrecedenceTests {
 
@@ -504,7 +500,6 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldConnectWhenOnlyTheCredentialNamesADatabase(IntegrationTestConfig config)
         throws Exception {
-      // The shape a modeler produces when the credential supplies the whole connection.
       assumeReachableWithoutConnectionProperties(config);
       var request = new JdbcRequest(credential(config, config.password()), null, null, data);
 
@@ -513,7 +508,6 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
       }
     }
 
-    /** Negative control: the same mismatch really does fail with no credential to override it. */
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldFailWhenTheMismatchedDatabaseIsNotOverriddenByACredential(
@@ -557,7 +551,6 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldReportError_whenTheDatabaseIsUnreachable(IntegrationTestConfig config) {
-      // A closed port must not read as a rejected login.
       var unreachable =
           new JdbcConnectionConfiguration(
               config.database(),

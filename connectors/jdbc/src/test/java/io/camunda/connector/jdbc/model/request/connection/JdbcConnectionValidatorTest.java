@@ -40,7 +40,6 @@ class JdbcConnectionValidatorTest {
     assertThat(result.code()).isEqualTo("INVALID_INPUT");
   }
 
-  /** SQL state class 28 is "invalid authorization specification"; subclass varies. */
   @ParameterizedTest
   @ValueSource(strings = {"28000", "28P01", "28501"})
   void unauthorizedOnAnInvalidAuthorizationSqlState(String sqlState) {
@@ -51,7 +50,6 @@ class JdbcConnectionValidatorTest {
     assertThat(result.code()).isEqualTo("UNAUTHORIZED");
   }
 
-  /** Oracle ORA-01017 and SQL Server 18456: a rejected login under an unrelated SQL state. */
   @ParameterizedTest
   @ValueSource(ints = {1017, 18456})
   void unauthorizedOnAVendorLoginErrorCode(int vendorCode) {
@@ -64,7 +62,6 @@ class JdbcConnectionValidatorTest {
 
   @Test
   void errorWhenTheDatabaseIsUnreachable() {
-    // Class 08, "connection exception" — the host is wrong or down, the credential may be fine.
     var result =
         JdbcConnectionValidator.classifyFailure(new SQLException("connection refused", "08001"));
 
@@ -95,7 +92,6 @@ class JdbcConnectionValidatorTest {
     assertThat(result.code()).isEqualTo("ERROR");
   }
 
-  /** No returned message may carry a value from the credential or the driver. */
   @Test
   void neverSurfacesDetail() {
     assertThat(
@@ -108,7 +104,6 @@ class JdbcConnectionValidatorTest {
 
   @Test
   void keepsTheLoginOutOfToString() {
-    // The database is not a secret and stays visible; the login and password do not.
     assertThat(VALID.toString())
         .contains("POSTGRESQL", "db.example.com", "orders")
         .doesNotContain("the-login", "the-secret");
@@ -117,7 +112,6 @@ class JdbcConnectionValidatorTest {
   @Test
   @SuppressWarnings("rawtypes")
   void isDiscoverableViaTheServiceLoader() {
-    // A missing META-INF/services entry silently leaves the credential unvalidatable.
     assertThat(
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))
