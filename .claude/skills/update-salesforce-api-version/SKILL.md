@@ -45,11 +45,14 @@ does).
 Before regenerating, the *current* (pre-bump) template becomes historical. Add
 `connectors/salesforce/element-templates/versioned/salesforce-connector-<old-version>.json` as an
 **exact byte-for-byte copy of what's currently on `main`** — do NOT regenerate it locally and copy
-that output. The generator's presets use `java.util.Map.of(...)` for 2-key maps, whose iteration
-order is randomized per JVM process (JDK 9+ `SALT32L` salting) — a fresh `mvn exec:java` run can
-serialize semantically identical presets with different key order than the JVM run that produced
-main's actual committed bytes, which fails the CI `check-versioned-element-templates` job's
-byte-for-byte `cmp` despite the content being equivalent. Instead:
+that output. Older generator runs built presets with `java.util.Map.of(...)`, whose iteration order
+is randomized per JVM process (JDK 9+ `SALT32L` salting) — a fresh `mvn exec:java` run could
+serialize semantically identical presets with a different key order than the run that produced an
+already-committed versioned snapshot's bytes, failing the CI `check-versioned-element-templates`
+job's byte-for-byte `cmp` despite equivalent content. This has since been fixed by an `orderedMap(...)`
+helper that preserves key order deterministically, but keep copying the snapshot byte-for-byte from
+`main` regardless — the CI job still does an exact `cmp`, and a local regeneration risks incidental
+differences from JVM/library drift that a straight copy avoids. Instead:
 
 ```bash
 git fetch origin main --quiet
