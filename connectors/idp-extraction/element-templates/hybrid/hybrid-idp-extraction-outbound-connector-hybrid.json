@@ -4,7 +4,7 @@
   "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1-hybrid",
   "description" : "Execute IDP extraction requests",
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
-  "version" : 6,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -841,7 +841,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
