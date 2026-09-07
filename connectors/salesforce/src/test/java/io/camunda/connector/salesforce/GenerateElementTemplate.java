@@ -849,6 +849,9 @@ public class GenerateElementTemplate {
    * preserves the given key/value order deterministically across runs.
    */
   private static Map<String, String> orderedMap(String... keysAndValues) {
+    if (keysAndValues.length % 2 != 0) {
+      throw new IllegalArgumentException("keysAndValues must have an even number of elements");
+    }
     Map<String, String> map = new LinkedHashMap<>();
     for (int i = 0; i < keysAndValues.length; i += 2) {
       map.put(keysAndValues[i], keysAndValues[i + 1]);
