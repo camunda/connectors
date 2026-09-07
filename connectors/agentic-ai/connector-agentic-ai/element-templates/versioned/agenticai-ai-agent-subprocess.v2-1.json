@@ -5,7 +5,7 @@
   "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -732,9 +732,6 @@
     }, {
       "name" : "API key",
       "value" : "apiKey"
-    }, {
-      "name" : "OAuth 2.0",
-      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.apiKey",
@@ -764,192 +761,6 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The OAuth token endpoint",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientId",
-    "label" : "Client ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client ID from the OAuth client",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.audience",
-    "label" : "Audience",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.audience",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The unique identifier of the target API you want to access",
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "optional" : false,
-    "value" : "BASIC_AUTH_HEADER",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send as Basic Auth header",
-      "value" : "BASIC_AUTH_HEADER"
-    }, {
-      "name" : "Send client credentials in body",
-      "value" : "CREDENTIALS_BODY"
-    } ]
-  }, {
-    "id" : "provider.anthropic.backend.custom.authentication.scopes",
-    "label" : "Scopes",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
@@ -1583,7 +1394,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "none",
+    "value" : "apiKey",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -1602,14 +1413,8 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "None",
-      "value" : "none"
-    }, {
       "name" : "API key",
       "value" : "apiKey"
-    }, {
-      "name" : "OAuth 2.0",
-      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.openai.backend.custom.authentication.apiKey",
@@ -1639,192 +1444,6 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The OAuth token endpoint",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientId",
-    "label" : "Client ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client ID from the OAuth client",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.audience",
-    "label" : "Audience",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.audience",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The unique identifier of the target API you want to access",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "optional" : false,
-    "value" : "BASIC_AUTH_HEADER",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send as Basic Auth header",
-      "value" : "BASIC_AUTH_HEADER"
-    }, {
-      "name" : "Send client credentials in body",
-      "value" : "CREDENTIALS_BODY"
-    } ]
-  }, {
-    "id" : "provider.openai.backend.custom.authentication.scopes",
-    "label" : "Scopes",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.custom.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      }, {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.openai.timeouts.timeout",
@@ -2659,6 +2278,25 @@
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
+    "label" : "Prompt caching",
+    "description" : "Optional.",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
     "optional" : false,
@@ -2778,24 +2416,6 @@
       "value" : "omitted"
     } ]
   }, {
-    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
-    "label" : "Enable prompt caching",
-    "optional" : true,
-    "value" : false,
-    "feel" : "static",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
-    "type" : "Boolean"
-  }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
@@ -2818,7 +2438,8 @@
     "type" : "String"
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
-    "label" : "Enable prompt caching",
+    "label" : "Prompt caching",
+    "description" : "Optional.",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -2832,7 +2453,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">caching documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.openai.model.model",
@@ -2855,6 +2476,24 @@
     },
     "placeholder" : "gpt-5.5",
     "type" : "String"
+  }, {
+    "id" : "promptCaching.openai.status",
+    "label" : "Prompt caching",
+    "description" : "Automatic.",
+    "value" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingOpenAI",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
@@ -2967,6 +2606,24 @@
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
+    "id" : "promptCaching.googleGemini.status",
+    "label" : "Prompt caching",
+    "description" : "Automatic.",
+    "value" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingGoogleGemini",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
+    "type" : "Boolean",
+    "editable" : false
+  }, {
     "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
     "label" : "Thinking budget (tokens)",
     "optional" : true,
@@ -3042,6 +2699,24 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "promptCaching.custom.status",
+    "label" : "Prompt caching",
+    "description" : "Not available.",
+    "value" : false,
+    "group" : "model",
+    "binding" : {
+      "name" : "modeler:promptCachingCustom",
+      "type" : "property"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "custom",
+      "type" : "simple"
+    },
+    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
+    "type" : "Boolean",
+    "editable" : false
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",
@@ -3822,7 +3497,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
