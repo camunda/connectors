@@ -936,7 +936,7 @@ limitations under the License.</license.inlineheader>
                    (see version.parsson, version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.19\.0$</regex>
+                <regex>^1\.20\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
 If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property,
