@@ -7,11 +7,15 @@
 package io.camunda.connector.jdbc.model.request.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ServiceLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -107,6 +111,30 @@ class JdbcConnectionValidatorTest {
     assertThat(VALID.toString())
         .contains("POSTGRESQL", "db.example.com", "orders")
         .doesNotContain("the-login", "the-secret");
+  }
+
+  @Test
+  void givesUpOnAHostThatAcceptsTheConnectionAndNeverAnswers() throws Exception {
+    // Never accept()ed, so the TCP handshake completes and the driver then waits on a reply that
+    // never comes -- with no login timeout the validator would hang here for good.
+    try (ServerSocket blackHole = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      var configuration =
+          new JdbcConnectionConfiguration(
+              SupportedDatabase.POSTGRESQL,
+              blackHole.getInetAddress().getHostAddress(),
+              String.valueOf(blackHole.getLocalPort()),
+              "orders",
+              "the-login",
+              "the-secret");
+      var validator = new JdbcConnectionValidator(Duration.ofSeconds(1));
+
+      var result =
+          assertTimeoutPreemptively(
+              Duration.ofSeconds(30), () -> validator.validate(configuration));
+
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("ERROR");
+    }
   }
 
   @Test

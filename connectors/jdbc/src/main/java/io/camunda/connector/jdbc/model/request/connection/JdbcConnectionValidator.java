@@ -13,6 +13,7 @@ import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.utils.ConnectionHelper;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ public class JdbcConnectionValidator
     implements ConfigurationValidator<JdbcConnectionConfiguration> {
 
   private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectionValidator.class);
+
+  private static final Duration DEFAULT_LOGIN_TIMEOUT = Duration.ofSeconds(10);
 
   static final String MISSING_DATABASE_MESSAGE =
       "Select a supported database for this connection, so it can be validated.";
@@ -32,6 +35,16 @@ public class JdbcConnectionValidator
   private static final String INVALID_AUTHORIZATION_SQL_STATE_CLASS = "28";
   private static final Set<Integer> UNAUTHORIZED_VENDOR_ERROR_CODES = Set.of(1017, 18456);
 
+  private final Duration loginTimeout;
+
+  public JdbcConnectionValidator() {
+    this(DEFAULT_LOGIN_TIMEOUT);
+  }
+
+  JdbcConnectionValidator(Duration loginTimeout) {
+    this.loginTimeout = loginTimeout;
+  }
+
   @Override
   public ConfigurationValidationResult validate(JdbcConnectionConfiguration configuration) {
     SupportedDatabase database = configuration.database();
@@ -40,7 +53,8 @@ public class JdbcConnectionValidator
           ErrorCode.INVALID_INPUT, MISSING_DATABASE_MESSAGE);
     }
     try (Connection ignored =
-        ConnectionHelper.openConnection(database, configuration.toDetailedConnection())) {
+        ConnectionHelper.openConnection(
+            database, configuration.toDetailedConnection(), loginTimeout)) {
       return ConfigurationValidationResult.success();
     } catch (Exception e) {
       LOG.debug(

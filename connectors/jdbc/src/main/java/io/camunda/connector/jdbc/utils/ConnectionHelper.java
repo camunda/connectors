@@ -13,6 +13,8 @@ import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,8 @@ public class ConnectionHelper {
     SupportedDatabase database = request.database();
     try {
       LOG.debug("Executing JDBC request: {}", request);
-      return openConnection(database, resolveConnection(request));
+      JdbcConnection connection = resolveConnection(request);
+      return connect(database, connection, connection.getProperties());
     } catch (ClassNotFoundException e) {
       throw new ConnectorException("Cannot find class: " + database.getDriverClassName());
     } catch (SQLException e) {
@@ -36,7 +39,16 @@ public class ConnectionHelper {
    * Throws the driver's own exceptions rather than wrapping them in {@link ConnectorException}, so
    * that a caller can classify a failure on {@link SQLException#getSQLState()}.
    */
-  public static Connection openConnection(SupportedDatabase database, JdbcConnection connection)
+  public static Connection openConnection(
+      SupportedDatabase database, JdbcConnection connection, Duration loginTimeout)
+      throws ClassNotFoundException, SQLException {
+    Properties properties = connection.getProperties();
+    LoginTimeoutProperties.applyTo(properties, database, loginTimeout);
+    return connect(database, connection, properties);
+  }
+
+  private static Connection connect(
+      SupportedDatabase database, JdbcConnection connection, Properties properties)
       throws ClassNotFoundException, SQLException {
     String driverClassName = database.getDriverClassName();
     LOG.debug("Loading JDBC driver: {}", driverClassName);
@@ -44,7 +56,7 @@ public class ConnectionHelper {
     Connection conn =
         DriverManager.getConnection(
             ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-            connection.getProperties());
+            properties);
     LOG.debug("Connection established for Database {}: {}", database, conn);
     return conn;
   }
