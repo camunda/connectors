@@ -6,19 +6,38 @@ on:
       branch:
         type: string
         required: true
+      run-unit-tests:
+        description: 'Run unit and integration tests before the E2E matrix'
+        type: boolean
+        required: false
+        default: true
+      maven-cache-key:
+        description: 'Maven cache key supplied by a calling workflow'
+        type: string
+        required: false
+        default: ''
+      build-runner:
+        description: 'Runner used to build the artifacts consumed by the E2E matrix'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
+      runner-overrides:
+        description: 'JSON map from E2E module names to runner labels'
+        type: string
+        required: false
+        default: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
 
 jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.build-runner }}
     outputs:
       modules: ${{ steps.set-modules.outputs.modules }}
     env:
       # Runner overrides: JSON map from e2e module name → runner label.
-      # Modules absent from the map use ubuntu-latest.
-      # To redirect a new module to a different runner, add one key-value pair here.
-      E2E_RUNNER_OVERRIDES: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
+      # Modules absent from the map use ubuntu-latest; callers can provide their own map.
+      E2E_RUNNER_OVERRIDES: ${{ inputs.runner-overrides }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,11 +81,18 @@ jobs:
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
+      - name: Resolve Maven cache key
+        id: maven-cache-key
+        env:
+          PROVIDED_KEY: ${{ inputs.maven-cache-key }}
+          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
+
       - name: Restore cache
         uses: actions/cache@v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -99,7 +125,7 @@ jobs:
       # aggregator (-pl '!connectors-e2e-test') would NOT exclude its nested children, so they would
       # otherwise run their e2e tests here instead of isolated in the matrix.
       - name: Run unit/integration tests (non-PR)
-        if: github.event_name != 'pull_request'
+        if: inputs.run-unit-tests && github.event_name != 'pull_request'
         run: |
           E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
           $MVN_CMD --batch-mode verify -pl "$E2E_EXCLUDES"
@@ -144,7 +170,7 @@ jobs:
           overwrite: true
 
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
-  # Runner is baked into each entry by the build job (sourced from e2e-runner-overrides.json).
+  # Runner is baked into each entry by the build job from the runner-overrides input.
   test:
     name: ${{ matrix.entry.module }}
     needs: build
@@ -242,7 +268,7 @@ jobs:
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
       - name: Test e2e module
-        run: $MVN_CMD --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+        run: $MVN_CMD --batch-mode verify -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
