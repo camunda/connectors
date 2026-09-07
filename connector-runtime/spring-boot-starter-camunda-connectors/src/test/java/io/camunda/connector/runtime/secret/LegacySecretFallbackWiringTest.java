@@ -64,9 +64,50 @@ class LegacySecretFallbackWiringTest {
 
     @Test
     void startsBecauseTheSecretFilterDefaultsToStrict() {
-      // The guard bean and the outbound secret filter each read their own @Value default for
-      // camunda.connector.secret-resolver.secret-filter.mode independently; the app only starts
-      // here if both resolve to STRICT.
+      // The outbound secret filter reads its own @Value default for
+      // camunda.connector.secret-resolver.secret-filter.mode; this only asserts the fallback
+      // still wires in without an explicit filter mode set.
+      assertThat(secretProviderAggregator.getSecretProviders())
+          .hasAtLeastOneElementOfType(CentralStoreSecretProvider.class);
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class},
+      properties = {
+        "camunda.connector.secret-resolver.legacy.mode=FALLBACK",
+        "camunda.connector.secret-resolver.secret-filter.mode=LAX"
+      })
+  class WhenFallbackIsChosenWithALaxFilter {
+
+    @Autowired SecretProviderAggregator secretProviderAggregator;
+
+    @Test
+    void startsBecauseThePairingIsNoLongerGuarded() {
+      // Amendment 3 (ADR-0007): the runtime used to refuse to start on this combination. LAX
+      // still applies the same allow-list as STRICT when it loads, so this only confirms the
+      // pairing is no longer rejected outright, not that LAX bypasses the filter.
+      assertThat(secretProviderAggregator.getSecretProviders())
+          .hasAtLeastOneElementOfType(CentralStoreSecretProvider.class);
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class},
+      properties = {
+        "camunda.connector.secret-resolver.legacy.mode=FALLBACK",
+        "camunda.connector.secret-resolver.secret-filter.mode=DISABLED"
+      })
+  class WhenFallbackIsChosenWithTheFilterDisabled {
+
+    @Autowired SecretProviderAggregator secretProviderAggregator;
+
+    @Test
+    void startsBecauseThePairingIsNoLongerGuarded() {
+      // Amendment 3 (ADR-0007): DISABLED, not LAX, is the actual escape hatch this pairing
+      // now allows — it removes the allow-list check outright.
       assertThat(secretProviderAggregator.getSecretProviders())
           .hasAtLeastOneElementOfType(CentralStoreSecretProvider.class);
     }

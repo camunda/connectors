@@ -149,7 +149,7 @@ class AppIntegrationsConnectorWireMockTest {
         post(urlPathEqualTo(MESSAGE_PATH))
             .willReturn(
                 okJson(
-                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\"}],\"failures\":[]}")
+                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\",\"conversationKey\":\"teams:conv-1\"}],\"failures\":[]}")
                     .withStatus(201)));
   }
 
@@ -216,8 +216,10 @@ class AppIntegrationsConnectorWireMockTest {
             .willReturn(
                 okJson(
                         """
-                        {"deliveries":[{"platform":"slack","conversation":"D0123","messageId":"1712345678.000100"},
-                                       {"platform":"teams","conversation":"conv-2","messageId":"m-2"}],
+                        {"deliveries":[{"platform":"slack","conversation":"D0123","messageId":"1712345678.000100",
+                                        "conversationKey":"slack:D0123:1712345678.000100"},
+                                       {"platform":"teams","conversation":"conv-2","messageId":"m-2",
+                                        "conversationKey":"teams:conv-2"}],
                          "failures":[{"platform":"slack","conversation":"C0999","reason":"not_in_channel"}]}""")
                     .withStatus(201)));
 
@@ -235,6 +237,9 @@ class AppIntegrationsConnectorWireMockTest {
     assertThat(result.deliveries())
         .extracting(SendMessageResult.Delivery::conversation)
         .containsExactly("D0123", "conv-2");
+    assertThat(result.deliveries())
+        .extracting(SendMessageResult.Delivery::conversationKey)
+        .containsExactly("slack:D0123:1712345678.000100", "teams:conv-2");
     assertThat(result.failures())
         .singleElement()
         .satisfies(failure -> assertThat(failure.reason()).isEqualTo("not_in_channel"));
@@ -262,7 +267,7 @@ class AppIntegrationsConnectorWireMockTest {
         post(urlPathEqualTo(MESSAGE_PATH))
             .willReturn(
                 okJson(
-                        "{\"deliveries\":[{\"platform\":\"slack\",\"conversation\":\"C0123456789\",\"messageId\":\"1712345678.000200\"}],\"failures\":[]}")
+                        "{\"deliveries\":[{\"platform\":\"slack\",\"conversation\":\"C0123456789\",\"messageId\":\"1712345678.000200\",\"conversationKey\":\"slack:C0123456789:1712345678.000200\"}],\"failures\":[]}")
                     .withStatus(201)));
 
     var blocks =
@@ -304,7 +309,7 @@ class AppIntegrationsConnectorWireMockTest {
         post(urlPathEqualTo(MESSAGE_PATH))
             .willReturn(
                 okJson(
-                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"19:abc@thread.tacv2;messageid=17123456789\",\"messageId\":\"17123456790\"}],\"failures\":[]}")
+                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"19:abc@thread.tacv2;messageid=17123456789\",\"messageId\":\"17123456790\",\"conversationKey\":\"teams:19:abc@thread.tacv2;messageid=17123456789\"}],\"failures\":[]}")
                     .withStatus(201)));
 
     var request =

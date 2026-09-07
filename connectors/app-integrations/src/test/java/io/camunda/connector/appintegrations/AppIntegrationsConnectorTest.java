@@ -82,7 +82,7 @@ class AppIntegrationsConnectorTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static final String DELIVERED_BODY =
-      "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\"}],\"failures\":[]}";
+      "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\",\"conversationKey\":\"teams:conv-1\"}],\"failures\":[]}";
 
   private static final Validator VALIDATOR =
       Validation.byDefaultProvider()
@@ -755,6 +755,7 @@ class AppIntegrationsConnectorTest {
               assertThat(delivery.platform()).isEqualTo("teams");
               assertThat(delivery.conversation()).isEqualTo("conv-1");
               assertThat(delivery.messageId()).isEqualTo("m-1");
+              assertThat(delivery.conversationKey()).isEqualTo("teams:conv-1");
             });
     assertThat(result.failures()).isEmpty();
     var req = captureRequest();

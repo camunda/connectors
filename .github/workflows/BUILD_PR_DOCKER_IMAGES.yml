@@ -18,13 +18,16 @@ jobs:
     runs-on: gcp-core-2-default
     permissions:
       contents: read
-    # Run when the docker-images-required label is added, or on any push to a PR that already has it.
     # Skip fork PRs: pull_request runs from forks don't get repository secrets (Vault/registry creds).
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository && (
         github.event.label.name == 'docker-images-required' ||
-        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'docker-images-required'))
+        github.event.label.name == 'deploy-preview' ||
+        (github.event.action == 'synchronize' && (
+          contains(github.event.pull_request.labels.*.name, 'docker-images-required') ||
+          contains(github.event.pull_request.labels.*.name, 'deploy-preview')
+        ))
       )
     steps:
       - uses: actions/checkout@v7
@@ -145,7 +148,10 @@ jobs:
         with:
           context: apps/bundle/default-bundle/
           push: true
-          tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+          # Second tag only for previews (PREVIEW-ENV-DEPLOY.yml deploys it)
+          tags: |
+            registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+            ${{ (github.event.label.name == 'deploy-preview' || contains(github.event.pull_request.labels.*.name, 'deploy-preview')) && format('registry.camunda.cloud/team-connectors/connectors-bundle:pr-{0}', github.event.pull_request.head.sha) || '' }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 

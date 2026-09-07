@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.test.outbound;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -228,20 +230,43 @@ public class OutboundConnectorContextBuilder {
   public class TestConnectorContext extends AbstractConnectorContext
       implements OutboundConnectorContext {
 
-    private final String variablesWithSecrets;
+    private final JsonNode variablesWithSecrets;
 
     private final TestJobContext jobContext;
 
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
+      var asTree = objectMapper.valueToTree(variables != null ? variables : Map.of());
+      variablesWithSecrets = getSecretHandler().replaceSecrets(asTree, null);
+      this.jobContext =
+          new TestJobContext(() -> headers, () -> writeVariablesAsJson(variablesWithSecrets));
+    }
+
+    /**
+     * Mirrors {@code JobHandlerContext#writeJson}: plain-decimal output, falling back to scientific
+     * notation for a {@code BigDecimal} whose scale falls outside the ±9999 range Jackson accepts
+     * for plain output (e.g. {@code new BigDecimal("1e-10000")}).
+     */
+    private String writeVariablesAsJson(JsonNode node) {
       try {
-        var asString = objectMapper.writeValueAsString(variables);
-        variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
+        return objectMapper
+            .writer()
+            .with(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+            .writeValueAsString(node);
+      } catch (JsonGenerationException e) {
+        return writeVariablesWithoutPlainDecimals(node);
       } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException("Failed to serialize variables: " + node, e);
       }
-      this.jobContext = new TestJobContext(() -> headers, () -> variablesWithSecrets);
+    }
+
+    private String writeVariablesWithoutPlainDecimals(JsonNode node) {
+      try {
+        return objectMapper.writeValueAsString(node);
+      } catch (JsonProcessingException e) {
+        throw new IllegalStateException("Failed to serialize variables: " + node, e);
+      }
     }
 
     @Override
@@ -275,7 +300,7 @@ public class OutboundConnectorContextBuilder {
     @Override
     public <T> T bindVariables(Class<T> cls) {
       try {
-        var mappedObject = objectMapper.readValue(variablesWithSecrets, cls);
+        var mappedObject = objectMapper.treeToValue(variablesWithSecrets, cls);
         if (validationProvider != null) {
           getValidationProvider().validate(mappedObject);
         }

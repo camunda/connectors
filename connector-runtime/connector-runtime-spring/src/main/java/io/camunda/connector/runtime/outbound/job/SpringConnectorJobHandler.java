@@ -228,7 +228,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private record ResultWithDeadline(ConnectorResult result, long deadline) {}
 
   private ResultWithDeadline getConnectorResult(
-      ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
+      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     long deadline = job.getDeadline();
     try {
@@ -271,7 +271,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     } catch (Exception e) {
       return new ResultWithDeadline(
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff, secretFilter),
+              e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues()),
           deadline);
     }
   }
@@ -420,7 +420,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void processFinalResult(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
       SecretFilter secretFilter,
@@ -436,7 +436,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       optionalConnectorError.ifPresentOrElse(
           error ->
               handleConnectorError(
-                  client, job, context, finalResult, error, counterMetricsContext, deadline),
+                  client,
+                  job,
+                  context,
+                  finalResult,
+                  error,
+                  counterMetricsContext,
+                  secretFilter,
+                  deadline),
           () ->
               handleFinalResult(
                   client, job, context, finalResult, counterMetricsContext, deadline));
@@ -464,7 +471,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               client,
               job,
               this.outboundConnectorExceptionHandler.handleFinalResultException(
-                  ex, job, secretFilter),
+                  ex, job, secretFilter, context.getSecretHandler().getResolvedValues()),
               counterMetricsContext,
               deadline);
       notifyFailureOnCommandOutcome(
@@ -488,11 +495,11 @@ public class SpringConnectorJobHandler implements JobHandler {
     } else if (finalResult instanceof ConnectorResult.ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
+      // The wrapper message is redacted, but its cause is not, so do not log the throwable.
       LOGGER.error(
           "Exception while completing job: {}, message: {}",
           JobForLog.from(job),
-          errorResult.exception().getMessage(),
-          errorResult.exception());
+          errorResult.exception().getMessage());
 
       // pre-response failure path: function threw before returning a response, so notify with a
       // null response (subscribers to JobCompletionListener can still react)
@@ -509,18 +516,24 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleConnectorError(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
-      ConnectorError error,
+      ConnectorError rawError,
       CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter,
       long deadline) {
     var response = connectorResponseOrNull(finalResult);
+    // redacted before the Zeebe command and the listener payload are built from it
+    var error =
+        outboundConnectorExceptionHandler.maskConnectorError(
+            rawError, job, secretFilter, context.getSecretHandler().getResolvedValues());
 
     switch (error) {
       case BpmnError bpmnError -> {
         checkVariablesSize(bpmnError.variables());
-        LOGGER.debug(
-            "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
+        // the code is not redacted, so it stays out of the log: unlike the command and the error
+        // variables that carry it, pod logs are shipped to systems with their own access controls
+        LOGGER.debug("Throwing BPMN error for job {}", job.getKey());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
             throwBpmnError(client, job, bpmnError, counterMetricsContext, deadline);
         notifyFailureOnCommandOutcome(
@@ -567,6 +580,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               response,
               ignoreError,
               counterMetricsContext,
+              secretFilter,
               deadline);
     }
   }
@@ -574,11 +588,12 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleIgnoreError(
       JobClient client,
       ActivatedJob job,
-      OutboundConnectorContext context,
+      JobHandlerContext context,
       ConnectorResult finalResult,
       ConnectorResponse response,
       IgnoreError ignoreError,
       CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter,
       long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult
         && successResult.connectorResponse() instanceof AdHocSubProcessConnectorResponse) {
@@ -586,11 +601,20 @@ public class SpringConnectorJobHandler implements JobHandler {
           "IgnoreError not supported for AdHocSubProcessConnectorResponse, job {}", job.getKey());
       var cause =
           new UnsupportedOperationException("IgnoreError is not supported for this connector");
+      // this branch raises an incident rather than completing the job, so the variables the
+      // expression chose become diagnostic output and prepareFailJobCommand appends them to its
+      // message - redacted here, unlike on the completion branch below
+      var variables =
+          outboundConnectorExceptionHandler.maskDiagnosticVariables(
+              ignoreError.variables(),
+              job,
+              secretFilter,
+              context.getSecretHandler().getResolvedValues());
       CompletableFuture<CommandOutcome> failJobRequest =
           failJob(
               client,
               job,
-              new ConnectorResult.ErrorResult(ignoreError.variables(), cause, 0, null),
+              new ConnectorResult.ErrorResult(variables, cause, 0, null),
               counterMetricsContext,
               deadline);
 

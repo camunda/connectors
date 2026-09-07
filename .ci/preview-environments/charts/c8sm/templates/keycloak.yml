@@ -1,0 +1,114 @@
+---
+# Keycloak for the C8SM Connectors preview environment.
+#
+# Preview-only throwaway credentials (fixed).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-kc-db
+  namespace: keycloak-operator
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+type: kubernetes.io/basic-auth
+stringData:
+  username: keycloak
+  password: keycloak
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-kc-admin
+  namespace: keycloak-operator
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+type: kubernetes.io/basic-auth
+stringData:
+  username: admin
+  password: admin
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-kc-db
+  namespace: keycloak-operator
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+spec:
+  instances: 1
+  imageName: europe-west1-docker.pkg.dev/ci-30-162810/ghcr/cloudnative-pg/postgresql:17
+  storage:
+    size: 1Gi
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+      secret:
+        name: {{ .Release.Name }}-kc-db
+  affinity:
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
+    tolerations:
+    - key: previews
+      operator: Exists
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+---
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: {{ .Release.Name }}-kc
+  namespace: keycloak-operator
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+spec:
+  instances: 1
+  image: europe-west1-docker.pkg.dev/ci-30-162810/quay/keycloak/keycloak:26.6.3
+  startOptimized: false
+  bootstrapAdmin:
+    user:
+      secret: {{ .Release.Name }}-kc-admin
+  db:
+    vendor: postgres
+    host: {{ .Release.Name }}-kc-db-rw
+    database: keycloak
+    usernameSecret:
+      name: {{ .Release.Name }}-kc-db
+      key: username
+    passwordSecret:
+      name: {{ .Release.Name }}-kc-db
+      key: password
+  http:
+    httpEnabled: true
+  ingress:
+    enabled: false
+  hostname:
+    hostname: {{ include "ingress.domain" $ }}
+    strict: false
+  additionalOptions:
+    - name: http-relative-path
+      value: /auth
+    - name: proxy-headers
+      value: xforwarded
+---
+# Allows this preview's HTTPRoute (templates/httproute.yml) to reference 
+# operator-created Keycloak Service across namespaces
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: {{ .Release.Name }}-kc
+  namespace: keycloak-operator
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: {{ .Release.Namespace }}
+  to:
+  - group: ""
+    kind: Service
