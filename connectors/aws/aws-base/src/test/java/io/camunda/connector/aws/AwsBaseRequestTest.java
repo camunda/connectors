@@ -63,13 +63,8 @@ class AwsBaseRequestTest {
     assertFalse(request.isDefaultCredentialsChainUsedInSaaS());
   }
 
-  /**
-   * When both an inline authentication/region and a bound credential are set, the credential must
-   * win for authentication and region, while the inline endpoint (which the credential has no
-   * equivalent for) is preserved.
-   */
   @Test
-  void credentialTakesPrecedenceOverInlineWhilePreservingInlineEndpoint() {
+  void inlineRegionOverridesCredentialDefaultWhileCredentialAuthenticationWins() {
     AwsBaseRequest request = new AwsBaseRequest();
     request.setAuthentication(
         new AwsAuthentication.AwsStaticCredentialsAuthentication("inline-key", "inline-secret"));
@@ -84,8 +79,34 @@ class AwsBaseRequestTest {
         new AwsAuthentication.AwsStaticCredentialsAuthentication(
             "credential-key", "credential-secret"),
         request.getAuthentication());
+    assertEquals("eu-central-1", request.getConfiguration().region());
+    assertEquals("https://inline-endpoint", request.getConfiguration().endpoint());
+  }
+
+  @Test
+  void credentialDefaultRegionIsUsedWhenInlineRegionIsBlank() {
+    AwsBaseRequest request = new AwsBaseRequest();
+    request.setConfiguration(new AwsBaseConfiguration(" ", "https://inline-endpoint"));
+    request.setAwsCredential(
+        new AwsCredentialConfiguration(
+            new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                "credential-key", "credential-secret"),
+            "us-east-1"));
+
     assertEquals("us-east-1", request.getConfiguration().region());
     assertEquals("https://inline-endpoint", request.getConfiguration().endpoint());
+  }
+
+  @Test
+  void blankCredentialDefaultRegionIsNormalizedWhenNoOverrideExists() {
+    AwsBaseRequest request = new AwsBaseRequest();
+    request.setAwsCredential(
+        new AwsCredentialConfiguration(
+            new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                "credential-key", "credential-secret"),
+            " "));
+
+    assertNull(request.getConfiguration().region());
   }
 
   /**
@@ -104,6 +125,19 @@ class AwsBaseRequestTest {
                 "credential-key", "credential-secret"),
             "us-east-1"));
     request.setAuthentication(new AwsAuthentication.AwsStaticCredentialsAuthentication(null, null));
+
+    assertThatCode(() -> new DefaultValidationProvider().validate(request))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void validationSucceedsWhenCredentialRegionIsMissing() {
+    AwsBaseRequest request = new AwsBaseRequest();
+    request.setAwsCredential(
+        new AwsCredentialConfiguration(
+            new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                "credential-key", "credential-secret"),
+            null));
 
     assertThatCode(() -> new DefaultValidationProvider().validate(request))
         .doesNotThrowAnyException();
