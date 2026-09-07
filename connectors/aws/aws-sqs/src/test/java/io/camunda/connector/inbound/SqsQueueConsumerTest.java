@@ -139,8 +139,14 @@ public class SqsQueueConsumerTest {
             () -> {
               consumer.run();
             });
-    thread.start();
+    // Deactivate before starting the poller thread, not after, so the do-while loop's condition
+    // is already false on its first check and the thread deterministically stops after exactly
+    // one receiveMessage() call. Starting the thread first (as this test previously did) races
+    // setQueueConsumerActive(false) against the poller loop, which can run several extra
+    // iterations first (observed flaking between 1 and 4 actual invocations below). Matches the
+    // already-fixed ordering used for this same test on main.
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
