@@ -32,6 +32,10 @@ public class ConnectionHelper {
     }
   }
 
+  /**
+   * Throws the driver's own exceptions rather than wrapping them in {@link ConnectorException}, so
+   * that a caller can classify a failure on {@link SQLException#getSQLState()}.
+   */
   public static Connection openConnection(SupportedDatabase database, JdbcConnection connection)
       throws ClassNotFoundException, SQLException {
     String driverClassName = database.getDriverClassName();

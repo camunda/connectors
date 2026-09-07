@@ -18,6 +18,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Only the OAuth client-credentials variant can be checked out-of-band: it carries its own token
+ * endpoint, so a token is actually requested. Basic, bearer and API key hold a secret with nothing
+ * to present it to, and checking the refresh-token grant would consume a token the provider may
+ * rotate — both return {@link ConfigurationValidationResult#unsupported() unsupported} rather than
+ * an unverified success.
+ */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
 
