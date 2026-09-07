@@ -139,8 +139,8 @@ public class SqsQueueConsumerTest {
             () -> {
               consumer.run();
             });
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
