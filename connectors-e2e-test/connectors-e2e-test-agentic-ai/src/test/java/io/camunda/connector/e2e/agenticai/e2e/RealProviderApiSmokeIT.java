@@ -257,6 +257,31 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // Foundry uses Anthropic's own Messages API (the same wire format as anthropic-api), hosted on
+  // an Azure resource: the SDK's FoundryBackend signs requests with an API key or Entra ID bearer
+  // token and normalizes the base URL, but performs no body/path/response translation.
+  static ProviderConfig anthropicFoundryV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new ProviderConfig(
+        "anthropic-foundry-v2/" + model,
+        List.of("ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_ENDPOINT"),
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "foundry",
+            "provider.anthropic.backend.foundry.endpoint",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_ENDPOINT"),
+            "provider.anthropic.backend.foundry.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.foundry.authentication.apiKey",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_API_KEY"),
+            "provider.anthropic.model.model",
+            model),
+        capabilityProperties,
+        true);
+  }
+
   static ProviderConfig bedrockConverseV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -432,6 +457,19 @@ class RealProviderApiSmokeIT {
             anthropicBedrockMantleV2(
                 "claude-sonnet-5",
                 Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.anthropic.model.parameters.thinking.mode", "adaptive",
+                            "provider.anthropic.model.parameters.effort", "high"))),
+            // Same model/full capability matrix as the anthropic-api claude-sonnet-5 row above:
+            // Foundry carries the exact same Messages wire format, just auth/endpoint differ.
+            anthropicFoundryV2(
+                "claude-sonnet-5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
