@@ -38,7 +38,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     inputDataClass = ComprehendRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 7,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
