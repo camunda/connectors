@@ -1100,7 +1100,7 @@ limitations under the License.</license.inlineheader>
                    check whether the dd-plist override can be removed (see version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.19\.0$</regex>
+                <regex>^1\.20\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
 If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
