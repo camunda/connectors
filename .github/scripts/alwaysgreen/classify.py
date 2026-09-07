@@ -115,9 +115,6 @@ SURFACE_HELM_INSTALL = "helm-install"
 SURFACE_HELM_CLEANUP = "helm-cleanup"
 SURFACE_BUILD = "build"
 SURFACE_CI_INFRA = "ci-infra"
-#: connectors only: a Maven integration test driving a real LLM. Classified so it
-#: is reported and routed, never dispatched — see DISPATCHABLE_SURFACES.
-SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 
 #: Surfaces handed to the fix agent. Everything else is recorded and reported only.
 #:
@@ -139,8 +136,15 @@ SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
-#: carries no independent signal.
-IGNORED_JOB_PREFIXES = ("Observe Helm chart Integration Tests status",)
+#: carries no independent signal. "AI Agent E2E Tests" is a connectors-only Maven
+#: integration test driving a real LLM — its own flakiness, not a signal AlwaysGreen
+#: can act on (it is `continue-on-error` on merge_group already, and no fix agent
+#: would ever be dispatched for it), so it is dropped before classification instead
+#: of being reported as a suppressed non-dispatchable surface.
+IGNORED_JOB_PREFIXES = (
+    "Observe Helm chart Integration Tests status",
+    "AI Agent E2E Tests",
+)
 
 #: Literal prefixes, deliberately stopping before the first `${{`, matched
 #: against the trailing segment of a (possibly nested) job name. An entry may
@@ -158,7 +162,6 @@ _SURFACE_PREFIXES: tuple[tuple[str | re.Pattern[str], str], ...] = (
     ("Generate test matrix", SURFACE_CI_INFRA),
     ("Trigger SaaS E2E tests", SURFACE_SAAS_E2E),
     ("Build and Publish Connectors Docker Image", SURFACE_BUILD),
-    ("AI Agent E2E Tests", SURFACE_CONNECTORS_AI),
     ("Prepare inputs", SURFACE_CI_INFRA),
 )
 

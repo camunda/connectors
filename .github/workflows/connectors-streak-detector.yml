@@ -497,11 +497,20 @@ jobs:
           # AlwaysGreen's own jobs are excluded: a Slack or Vault hiccup in the feedback
           # job is not a pipeline failure, and treating it as one would have triage
           # re-triaging its own noise.
+          #
+          # "AI Agent E2E Tests" is excluded here too, mirroring classify.py's
+          # IGNORED_JOB_PREFIXES. This gate reads raw job conclusions and knows nothing
+          # about that list, so without this a run whose only failure is that job still
+          # sets any_failed=true, still gets handed to triage, and triage's "Post Slack
+          # summary" step is unconditional -- it would post an empty-plan "nothing to
+          # dispatch" message for a job nobody wants triage to look at in the first
+          # place.
           failed=$(jq -r --argjson countable "$countable" '
             .jobs[]
             | select(.conclusion as $c | $countable | index($c))
             | .name
             | select(startswith("AlwaysGreen ") | not)
+            | select(startswith("AI Agent E2E Tests") | not)
           ' <<<"$jobs_json")
 
           any_failed=false
