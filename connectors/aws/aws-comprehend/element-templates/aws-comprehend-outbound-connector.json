@@ -5,7 +5,7 @@
   "description" : "Execute Comprehend models",
   "keywords" : [ "analyze document", "detect document text", "text analysis", "NLP", "natural language processing", "machine learning" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -68,7 +68,7 @@
   }, {
     "id" : "awsCredential",
     "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential, or configure one-time authentication parameters below.",
+    "description" : "Select a saved AWS credential with an optional default region, or enter authentication details and a region below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -189,6 +189,23 @@
       "type" : "simple"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "regionOverride",
+    "label" : "Region",
+    "description" : "Overrides the default region in the selected credential. Required when the credential has no default region.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : false,
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "input.text",
     "label" : "Text",
@@ -581,7 +598,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -691,7 +708,7 @@
   "configurationTemplates" : [ {
     "id" : "io.camunda:aws-credential:1",
     "kind" : "CREDENTIAL",
-    "version" : 1,
+    "version" : 2,
     "name" : "AWS Credential",
     "properties" : [ {
       "id" : "authentication.type",
@@ -751,10 +768,8 @@
       "secret" : true
     }, {
       "id" : "region",
-      "label" : "Region",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      "label" : "Default region",
+      "description" : "Used when a connector does not specify a region override.",
       "group" : "configuration",
       "binding" : {
         "name" : "region",

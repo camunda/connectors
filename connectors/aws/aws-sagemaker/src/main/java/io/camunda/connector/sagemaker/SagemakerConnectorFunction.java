@@ -44,7 +44,7 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
     },
     inputDataClass = SageMakerRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
