@@ -551,10 +551,8 @@ def test_connectors_image_build_is_classified_as_build():
     )
 
 
-def test_ai_agent_cpt_is_classified_but_not_dispatchable():
-    surface = classify.surface_for_job("AI Agent E2E Tests (CPT)")
-    assert surface == classify.SURFACE_CONNECTORS_AI
-    assert surface not in classify.DISPATCHABLE_SURFACES
+def test_ai_agent_cpt_is_ignored():
+    assert classify.surface_for_job("AI Agent E2E Tests (CPT)") is None
 
 
 def test_connectors_saas_trigger_reuses_the_existing_prefix():
