@@ -265,7 +265,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   placeholder = "https://your-resource.services.ai.azure.com",
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
               String endpoint,
-          @Valid @NotNull AnthropicFoundryAuthentication authentication,
+          @Valid @NotNull FoundryAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
