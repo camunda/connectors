@@ -85,6 +85,9 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
 
       - uses: actions/setup-java@v5
         if: steps.changes.outputs.ai == 'true'
@@ -198,6 +201,9 @@ jobs:
           AWS_BEDROCK_ACCESS_KEY: ${{ steps.secrets.outputs.IDP_AWS_ACCESSKEY }}
           AWS_BEDROCK_SECRET_KEY: ${{ steps.secrets.outputs.IDP_AWS_SECRETKEY }}
           AWS_BEDROCK_REGION: ${{ steps.secrets.outputs.IDP_AWS_REGION }}
+          AWS_BEDROCK_API_KEY: ${{ steps.secrets.outputs.AI_AGENT_AWS_KEY }}
+          ANTHROPIC_BEDROCK_API_KEY: ${{ steps.secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY }}
+          ANTHROPIC_BEDROCK_REGION: ${{ steps.secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION }}
           GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON: ${{ steps.secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
           GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
           GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
