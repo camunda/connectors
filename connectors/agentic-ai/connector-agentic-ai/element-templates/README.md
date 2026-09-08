@@ -30,7 +30,7 @@ Camunda 8.10, AI Agent Task (v1) is deprecated in favor of (v2).
 
 | Connector                      | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Task (v2)             | 8.10 | 2  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
+| AI Agent Task (v2)             | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
 | AI Agent Task (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | AI Agent Task (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
 | AI Agent Task (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
@@ -44,7 +44,7 @@ deprecated in favor of (v2).
 
 | Connector                             | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Sub-process (v2)             | 8.10 | 2  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
+| AI Agent Sub-process (v2)             | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
 | AI Agent Sub-process (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | AI Agent Sub-process (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
