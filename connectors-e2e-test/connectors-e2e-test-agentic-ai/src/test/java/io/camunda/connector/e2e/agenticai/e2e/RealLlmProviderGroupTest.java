@@ -27,12 +27,15 @@ class RealLlmProviderGroupTest {
   void shouldSelectAllGroupsWhenNoGroupIsConfigured() {
     assertThat(RealLlmProviderGroup.OPENAI.isSelected(null)).isTrue();
     assertThat(RealLlmProviderGroup.VERTEX.isSelected("")).isTrue();
+    assertThat(RealLlmProviderGroup.isShardedRun(null)).isFalse();
+    assertThat(RealLlmProviderGroup.isShardedRun(" ")).isFalse();
   }
 
   @Test
   void shouldSelectOnlyTheConfiguredGroup() {
     assertThat(RealLlmProviderGroup.OPENAI.isSelected(" OpenAi ")).isTrue();
     assertThat(RealLlmProviderGroup.VERTEX.isSelected("openai")).isFalse();
+    assertThat(RealLlmProviderGroup.isShardedRun("openai")).isTrue();
   }
 
   @Test
