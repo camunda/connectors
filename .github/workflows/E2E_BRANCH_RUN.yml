@@ -80,6 +80,8 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - name: Resolve Maven cache key
         id: maven-cache-key
@@ -108,11 +110,16 @@ jobs:
           githubServer: false
           servers: |
             [{
-               "id": "camunda-nexus",
+               "id": "nexus-mirror",
                "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
                "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
 
       # Build + install the entire reactor (incl. the connectors-e2e-test subtree, so the e2e parent
       # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
@@ -222,6 +229,8 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - uses: actions/setup-java@v6
         with:
@@ -234,11 +243,16 @@ jobs:
           githubServer: false
           servers: |
             [{
-               "id": "camunda-nexus",
+               "id": "nexus-mirror",
                "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
                "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
 
       - uses: actions/setup-node@v7.0.0
         with:
