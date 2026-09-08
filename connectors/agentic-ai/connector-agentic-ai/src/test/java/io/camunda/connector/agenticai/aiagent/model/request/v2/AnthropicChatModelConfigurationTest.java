@@ -647,7 +647,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(foundryBackend.foundry().endpoint())
         .isEqualTo("https://your-resource.services.ai.azure.com");
     assertThat(foundryBackend.foundry().authentication())
-        .isEqualTo(new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"));
+        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -684,7 +684,7 @@ class AnthropicChatModelConfigurationTest {
         (AnthropicFoundryBackend) parsed.anthropic().backend();
     assertThat(foundryBackend.foundry().authentication())
         .isEqualTo(
-            new AnthropicFoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
                 "client-id", "client-secret", "tenant-id", null, null));
 
     final String reserialised = mapper.writeValueAsString(parsed);
@@ -699,7 +699,7 @@ class AnthropicChatModelConfigurationTest {
                 new AnthropicFoundryBackend(
                     new AnthropicFoundryBackend.FoundryBackend(
                         "",
-                        new AnthropicFoundryAuthentication.ApiKeyAuthentication("  "),
+                        new FoundryAuthentication.ApiKeyAuthentication("  "),
                         null,
                         null,
                         null)),
@@ -727,7 +727,7 @@ class AnthropicChatModelConfigurationTest {
   void foundryManagedIdentityRejectedOnSaaS() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
     final var config =
-        foundryConfig(new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null));
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(validator.validate(config))
         .extracting(ConstraintViolation::getMessage)
@@ -737,13 +737,13 @@ class AnthropicChatModelConfigurationTest {
   @Test
   void foundryManagedIdentityAllowedWhenNotSaaS() {
     final var config =
-        foundryConfig(new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null));
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(validator.validate(config)).isEmpty();
   }
 
   private static AnthropicChatModelConfiguration foundryConfig(
-      AnthropicFoundryAuthentication authentication) {
+      FoundryAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicFoundryBackend(

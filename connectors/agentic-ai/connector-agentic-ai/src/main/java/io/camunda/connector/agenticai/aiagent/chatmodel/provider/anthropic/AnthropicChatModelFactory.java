@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthBearerTokenInterceptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -23,8 +24,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -42,14 +43,14 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
-  private final AnthropicFoundryCredentialResolver foundryCredentialResolver;
+  private final FoundryCredentialResolver foundryCredentialResolver;
 
   public AnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver) {
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -83,7 +84,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver) {
     final var builder = AnthropicOkHttpClient.builder();
 
     switch (backend) {
@@ -176,23 +177,23 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   /**
    * Delegates to the Anthropic SDK's own {@link FoundryBackend}, which owns base-URL normalization
    * (appending {@code /anthropic} if missing) and per-request authorization. Entra ID token
-   * acquisition is delegated to {@link AnthropicFoundryCredentialResolver}; this method never sees
-   * a raw token or credential.
+   * acquisition is delegated to {@link FoundryCredentialResolver}; this method never sees a raw
+   * token or credential.
    */
   private static void applyFoundryBackend(
       AnthropicOkHttpClient.Builder builder,
       AnthropicFoundryBackend foundryBackend,
-      AnthropicFoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver) {
     final var foundry = foundryBackend.foundry();
     final var backendBuilder = FoundryBackend.builder().baseUrl(foundry.endpoint());
 
     switch (foundry.authentication()) {
-      case AnthropicFoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
+      case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
           backendBuilder.apiKey(apiKeyAuth.apiKey());
-      case AnthropicFoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
+      case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           backendBuilder.bearerTokenSupplier(
               foundryCredentialResolver.bearerTokenSupplier(clientCredentials));
-      case AnthropicFoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
+      case FoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
           backendBuilder.bearerTokenSupplier(
               foundryCredentialResolver.bearerTokenSupplier(managedIdentity));
     }
