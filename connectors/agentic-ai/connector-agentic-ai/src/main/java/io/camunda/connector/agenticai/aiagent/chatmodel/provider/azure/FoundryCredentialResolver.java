@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdFoundryScopeResolver.AZURE_PUBLIC_CLOUD_SCOPE;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdFoundryScopeResolver.resolveScope;
@@ -12,23 +12,21 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.En
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AuthenticationUtil;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication.ClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication.ManagedIdentityAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
 import java.util.function.Supplier;
 
 /**
- * Resolves the bearer-token {@link Supplier} the Anthropic SDK's {@code FoundryBackend} wants for
- * Microsoft Entra ID authentication, by wrapping the {@link TokenCredential} resolved by the
- * shared, provider-agnostic {@link EntraIdTokenCredentialFactory}. No token is cached here; the
- * wrapped {@code TokenCredential} already caches and auto-refreshes its own tokens.
+ * Resolves the bearer-token {@link Supplier} for the Microsoft Entra ID {@code foundry}
+ * authentication variants, shared between the Anthropic and OpenAI providers, by wrapping the
+ * {@link TokenCredential} resolved by {@link EntraIdTokenCredentialFactory}. No token is cached
+ * here; the wrapped {@code TokenCredential} already caches and auto-refreshes its own tokens.
  */
-public class AnthropicFoundryCredentialResolver {
+public class FoundryCredentialResolver {
 
   private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory;
 
-  public AnthropicFoundryCredentialResolver(
-      EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
+  public FoundryCredentialResolver(EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
     this.entraIdTokenCredentialFactory = entraIdTokenCredentialFactory;
   }
 

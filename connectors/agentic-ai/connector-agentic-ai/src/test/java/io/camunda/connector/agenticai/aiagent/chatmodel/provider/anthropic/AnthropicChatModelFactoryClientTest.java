@@ -28,6 +28,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -43,8 +44,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
@@ -234,7 +235,7 @@ class AnthropicChatModelFactoryClientTest {
                 // end with it, then the SDK appends "/v1/messages" -- same suffix urlPathMatching
                 // in setUp() already matches for every other backend.
                 wireMock.getHttpBaseUrl(),
-                new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
                 null,
                 null,
                 null)));
@@ -250,7 +251,7 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
-                new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
                 Map.of("X-Hidden-Header", "hidden-value"),
                 Map.of("hidden-param", "hidden-value"),
                 Map.of("hidden_field", "hidden_value"))));
@@ -264,9 +265,9 @@ class AnthropicChatModelFactoryClientTest {
 
   @Test
   void foundryBackendWithClientCredentialsSendsBearerToken(WireMockRuntimeInfo wireMock) {
-    final var foundryCredentialResolver = mock(AnthropicFoundryCredentialResolver.class);
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(AnthropicFoundryAuthentication.ClientCredentialsAuthentication.class)))
+            any(FoundryAuthentication.ClientCredentialsAuthentication.class)))
         .thenReturn(() -> "client-credentials-token");
 
     executeAgainst(
@@ -274,7 +275,7 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
-                new AnthropicFoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryAuthentication.ClientCredentialsAuthentication(
                     "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
@@ -287,9 +288,9 @@ class AnthropicChatModelFactoryClientTest {
 
   @Test
   void foundryBackendWithManagedIdentitySendsBearerToken(WireMockRuntimeInfo wireMock) {
-    final var foundryCredentialResolver = mock(AnthropicFoundryCredentialResolver.class);
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(AnthropicFoundryAuthentication.ManagedIdentityAuthentication.class)))
+            any(FoundryAuthentication.ManagedIdentityAuthentication.class)))
         .thenReturn(() -> "managed-identity-token");
 
     executeAgainst(
@@ -297,7 +298,7 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
-                new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null),
+                new FoundryAuthentication.ManagedIdentityAuthentication(null, null),
                 null,
                 null,
                 null)));
@@ -321,7 +322,7 @@ class AnthropicChatModelFactoryClientTest {
           new AnthropicFoundryBackend(
               new AnthropicFoundryBackend.FoundryBackend(
                   "http://192.0.2.1:1",
-                  new AnthropicFoundryAuthentication.ApiKeyAuthentication("direct-secret-key"),
+                  new FoundryAuthentication.ApiKeyAuthentication("direct-secret-key"),
                   null,
                   null,
                   null)));
@@ -430,7 +431,7 @@ class AnthropicChatModelFactoryClientTest {
       AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
     executeAgainst(
         httpProxySupport,
-        new AnthropicFoundryCredentialResolver(
+        new FoundryCredentialResolver(
             new EntraIdTokenCredentialFactory(
                 httpProxySupport,
                 new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
@@ -438,13 +439,13 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   private void executeAgainst(
-      AnthropicFoundryCredentialResolver foundryCredentialResolver, AnthropicBackend backend) {
+      FoundryCredentialResolver foundryCredentialResolver, AnthropicBackend backend) {
     executeAgainst(httpProxySupport, foundryCredentialResolver, backend);
   }
 
   private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport,
-      AnthropicFoundryCredentialResolver foundryCredentialResolver,
+      FoundryCredentialResolver foundryCredentialResolver,
       AnthropicBackend backend) {
     final var factory =
         new AnthropicChatModelFactory(

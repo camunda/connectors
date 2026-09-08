@@ -19,20 +19,17 @@ import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Authentication strategies for Anthropic's {@code foundry} backend. Mirrors {@code
- * OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication} but is kept as its own type so
- * the two providers' Foundry auth surfaces can diverge independently.
+ * Authentication strategies for the {@code foundry} backend, shared between the Anthropic and
+ * OpenAI providers: both target the same Microsoft Entra ID surface.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
+  @JsonSubTypes.Type(value = FoundryAuthentication.ApiKeyAuthentication.class, name = "apiKey"),
   @JsonSubTypes.Type(
-      value = AnthropicFoundryAuthentication.ApiKeyAuthentication.class,
-      name = "apiKey"),
-  @JsonSubTypes.Type(
-      value = AnthropicFoundryAuthentication.ClientCredentialsAuthentication.class,
+      value = FoundryAuthentication.ClientCredentialsAuthentication.class,
       name = "clientCredentials"),
   @JsonSubTypes.Type(
-      value = AnthropicFoundryAuthentication.ManagedIdentityAuthentication.class,
+      value = FoundryAuthentication.ManagedIdentityAuthentication.class,
       name = "managedIdentity")
 })
 @TemplateDiscriminatorProperty(
@@ -41,7 +38,7 @@ import org.jspecify.annotations.Nullable;
     name = "type",
     defaultValue = "apiKey",
     description = "Specify the Microsoft Foundry authentication strategy.")
-public sealed interface AnthropicFoundryAuthentication {
+public sealed interface FoundryAuthentication {
 
   @TemplateSubType(id = "apiKey", label = "API key")
   record ApiKeyAuthentication(
@@ -53,7 +50,7 @@ public sealed interface AnthropicFoundryAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
-      implements AnthropicFoundryAuthentication {
+      implements FoundryAuthentication {
 
     @Override
     public String toString() {
@@ -111,7 +108,7 @@ public sealed interface AnthropicFoundryAuthentication {
               feel = FeelMode.disabled,
               optional = true)
           @Nullable String entraIdScope)
-      implements AnthropicFoundryAuthentication {
+      implements FoundryAuthentication {
 
     @Override
     public String toString() {
@@ -154,7 +151,7 @@ public sealed interface AnthropicFoundryAuthentication {
               feel = FeelMode.disabled,
               optional = true)
           @Nullable String entraIdScope)
-      implements AnthropicFoundryAuthentication {
+      implements FoundryAuthentication {
 
     @JsonIgnore
     @AssertFalse(message = "Managed identity authentication is not supported on SaaS")
