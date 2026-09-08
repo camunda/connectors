@@ -251,7 +251,7 @@ jobs:
       run-unit-tests: false
       maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
       build-runner: gcp-core-8-release
-      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-http":"gcp-core-8-release"}'
     secrets: inherit
 
   version-bump-docs-links:
