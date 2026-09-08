@@ -72,17 +72,18 @@ public class CustomApacheHttpClient implements HttpClient {
           e);
     } catch (SSLException e) {
       throw new ConnectorException(
-          "SSL_HANDSHAKE_FAILED",
-          "TLS handshake failed: "
+          "SSL_ERROR",
+          "A TLS/SSL error occurred: "
               + rootMessage(e)
-              + ". The server certificate may not be trusted — provide the server's CA "
-              + "certificate via 'clientTls.trustedCertificate', or check the client certificate "
-              + "configuration.",
+              + ". If this happened during the handshake, the server certificate may not be "
+              + "trusted — provide the server's CA certificate via 'clientTls.trustedCertificate', "
+              + "or check the client certificate configuration.",
           e);
     } catch (IOException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
-          "An error occurred while executing the request, or the connection was aborted",
+          "An error occurred while executing the request, or the connection was aborted: "
+              + rootMessage(e),
           e);
     }
   }
@@ -93,7 +94,8 @@ public class CustomApacheHttpClient implements HttpClient {
     while (cause.getCause() != null && cause.getCause() != cause) {
       cause = cause.getCause();
     }
-    return cause.getMessage();
+    var message = cause.getMessage();
+    return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
   }
 
   @Override
@@ -124,18 +126,19 @@ public class CustomApacheHttpClient implements HttpClient {
     } catch (SSLException e) {
       closeQuietly(client);
       throw new ConnectorException(
-          "SSL_HANDSHAKE_FAILED",
-          "TLS handshake failed: "
+          "SSL_ERROR",
+          "A TLS/SSL error occurred: "
               + rootMessage(e)
-              + ". The server certificate may not be trusted — provide the server's CA "
-              + "certificate via 'clientTls.trustedCertificate', or check the client certificate "
-              + "configuration.",
+              + ". If this happened during the handshake, the server certificate may not be "
+              + "trusted — provide the server's CA certificate via 'clientTls.trustedCertificate', "
+              + "or check the client certificate configuration.",
           e);
     } catch (IOException e) {
       closeQuietly(client);
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
-          "An error occurred while executing the request, or the connection was aborted",
+          "An error occurred while executing the request, or the connection was aborted: "
+              + rootMessage(e),
           e);
     } catch (RuntimeException e) {
       closeQuietly(client);
