@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
@@ -22,9 +23,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicFoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -60,7 +61,7 @@ class AnthropicChatModelFactoryTest {
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
             oAuthClientCredentialsTokenResolver,
-            new AnthropicFoundryCredentialResolver(
+            new FoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     httpProxySupport,
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
@@ -97,8 +98,7 @@ class AnthropicChatModelFactoryTest {
         customConfig(MODEL_ID),
         bedrockConfig(
             MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")),
-        foundryConfig(
-            MODEL_ID, new AnthropicFoundryAuthentication.ApiKeyAuthentication("foundry-key")));
+        foundryConfig(MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication("foundry-key")));
   }
 
   @Test
@@ -109,7 +109,7 @@ class AnthropicChatModelFactoryTest {
         factory.create(
             foundryConfig(
                 MODEL_ID,
-                new AnthropicFoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryAuthentication.ClientCredentialsAuthentication(
                     "client-id", "client-secret", "tenant-id", null, null)));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
@@ -123,8 +123,7 @@ class AnthropicChatModelFactoryTest {
     final ChatModel api =
         factory.create(
             foundryConfig(
-                MODEL_ID,
-                new AnthropicFoundryAuthentication.ManagedIdentityAuthentication(null, null)));
+                MODEL_ID, new FoundryAuthentication.ManagedIdentityAuthentication(null, null)));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -186,7 +185,7 @@ class AnthropicChatModelFactoryTest {
   }
 
   private static AnthropicChatModelConfiguration foundryConfig(
-      String modelId, AnthropicFoundryAuthentication authentication) {
+      String modelId, FoundryAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicFoundryBackend(
