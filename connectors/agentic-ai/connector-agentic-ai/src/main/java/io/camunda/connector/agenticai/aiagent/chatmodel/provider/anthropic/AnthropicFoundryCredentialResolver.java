@@ -19,15 +19,9 @@ import java.util.function.Supplier;
 
 /**
  * Resolves the bearer-token {@link Supplier} the Anthropic SDK's {@code FoundryBackend} wants for
- * Microsoft Entra ID authentication (client-credentials and managed-identity flows), by wrapping
- * the {@link TokenCredential} resolved by the shared, provider-agnostic {@link
- * EntraIdTokenCredentialFactory}. {@code FoundryBackend} calls the supplier fresh on every request,
- * so no token is cached here -- only the underlying {@code TokenCredential} object is (inside
- * {@link EntraIdTokenCredentialFactory}), which already caches and auto-refreshes its own tokens.
- *
- * <p>Structurally mirrors {@code OpenAiFoundryCredentialResolver}, but returns a plain {@code
- * Supplier<String>} rather than an SDK {@code Credential} object: the Anthropic Foundry backend's
- * bearer-token hook is a bare supplier, unlike openai-java's {@code Credential} abstraction.
+ * Microsoft Entra ID authentication, by wrapping the {@link TokenCredential} resolved by the
+ * shared, provider-agnostic {@link EntraIdTokenCredentialFactory}. No token is cached here; the
+ * wrapped {@code TokenCredential} already caches and auto-refreshes its own tokens.
  */
 public class AnthropicFoundryCredentialResolver {
 
@@ -39,9 +33,8 @@ public class AnthropicFoundryCredentialResolver {
   }
 
   /**
-   * Resolves the bearer-token supplier for a client-credentials (app registration + secret) flow.
-   * The authentication's own {@code entraIdScope} escape hatch, when set, wins over the scope this
-   * class would otherwise derive from {@code authorityHost}.
+   * The authentication's own {@code entraIdScope}, when set, wins over the scope derived from
+   * {@code authorityHost}.
    */
   public Supplier<String> bearerTokenSupplier(ClientCredentialsAuthentication authentication) {
     final var tokenCredential =
@@ -56,8 +49,8 @@ public class AnthropicFoundryCredentialResolver {
   }
 
   /**
-   * Resolves the bearer-token supplier for a managed-identity flow. No {@code authorityHost} field
-   * to key off here -- Azure Public Cloud only, unless {@code entraIdScope} steps in.
+   * No {@code authorityHost} field here: always Azure Public Cloud, unless {@code entraIdScope}
+   * overrides it.
    */
   public Supplier<String> bearerTokenSupplier(ManagedIdentityAuthentication authentication) {
     final var tokenCredential =
@@ -66,13 +59,6 @@ public class AnthropicFoundryCredentialResolver {
     return bearerTokenSupplier(tokenCredential, scope);
   }
 
-  /**
-   * {@link AuthenticationUtil#getBearerTokenSupplier} builds a supplier that fetches a token fresh
-   * on every call, exactly what the Anthropic SDK's {@code FoundryBackend} requires ("Call
-   * bearerTokenSupplier.get() each time to allow the implementation of the supplier to refresh the
-   * token as necessary") -- so this never caches a token itself, relying entirely on the wrapped
-   * credential's own token cache and refresh logic.
-   */
   private static Supplier<String> bearerTokenSupplier(
       TokenCredential tokenCredential, String scope) {
     return AuthenticationUtil.getBearerTokenSupplier(tokenCredential, scope);

@@ -174,13 +174,10 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * Applies the {@code foundry} backend by delegating to the Anthropic SDK's own {@link
-   * FoundryBackend} (same pattern as {@link #applyAwsBedrockMantleBackend}'s use of {@link
-   * BedrockMantleBackend}): it owns base-URL normalization (appending {@code /anthropic} if
-   * missing), the {@code anthropic-version} header, and authorizing each request with either the
-   * API key ({@code x-api-key} header, same as {@code anthropic-api}) or a bearer token pulled
-   * fresh from the supplier on every request. Entra ID token acquisition is delegated to {@link
-   * AnthropicFoundryCredentialResolver}; this method never sees a raw token or credential.
+   * Delegates to the Anthropic SDK's own {@link FoundryBackend}, which owns base-URL normalization
+   * (appending {@code /anthropic} if missing) and per-request authorization. Entra ID token
+   * acquisition is delegated to {@link AnthropicFoundryCredentialResolver}; this method never sees
+   * a raw token or credential.
    */
   private static void applyFoundryBackend(
       AnthropicOkHttpClient.Builder builder,
@@ -204,11 +201,9 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * The base URL actually configured for this backend, if any: the {@code custom} and {@code
-   * foundry} backends' endpoints are always set, the {@code aws-bedrock-mantle} backend's endpoint
-   * override is optional (VPC/PrivateLink deployments only), and the {@code anthropic-api}
-   * backend's hidden endpoint override is usually unset (the SDK then defaults to the production
-   * Anthropic API).
+   * The base URL actually configured for this backend, if any: {@code custom} and {@code foundry}
+   * always set one, {@code aws-bedrock-mantle}'s is optional, and {@code anthropic-api}'s hidden
+   * override is usually unset (the SDK then defaults to the production Anthropic API).
    */
   private static Optional<String> configuredEndpoint(AnthropicBackend backend) {
     return switch (backend) {

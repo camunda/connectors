@@ -11,10 +11,8 @@ import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Derives the Microsoft Entra ID token scope for Foundry backends, shared between the OpenAI and
- * Anthropic Foundry credential resolvers: this is pure scope-derivation logic with no dependency on
- * either vendor's SDK, unlike the two providers' {@code FoundryAuthentication} DTOs, which are
- * deliberately kept separate so each provider's auth surface can diverge independently.
+ * Derives the Microsoft Entra ID token scope for Foundry backends. Shared between the OpenAI and
+ * Anthropic Foundry credential resolvers; has no dependency on either vendor's SDK.
  */
 public final class EntraIdFoundryScopeResolver {
 
@@ -35,9 +33,8 @@ public final class EntraIdFoundryScopeResolver {
   private EntraIdFoundryScopeResolver() {}
 
   /**
-   * Maps an (optional) Microsoft Entra ID {@code authorityHost} override to the matching Foundry
-   * scope: an unset/blank host, or one that doesn't match a known sovereign cloud, is Azure Public
-   * Cloud; {@link AzureAuthorityHosts#AZURE_GOVERNMENT} is the one other cloud Foundry ships in.
+   * An unset/blank host, or one that isn't {@link AzureAuthorityHosts#AZURE_GOVERNMENT}, resolves
+   * to Azure Public Cloud.
    */
   public static String scopeFor(@Nullable String authorityHost) {
     if (authorityHost == null || authorityHost.isBlank()) {

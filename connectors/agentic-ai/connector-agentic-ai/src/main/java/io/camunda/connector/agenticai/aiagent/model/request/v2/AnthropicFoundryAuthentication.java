@@ -19,10 +19,9 @@ import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Authentication strategies for Anthropic's {@code foundry} backend. Structurally identical to
- * {@code OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication}, but kept as its own
- * type rather than shared: this backend is a new, Anthropic-only addition, and the two providers'
- * Foundry auth surfaces are free to diverge independently as each SDK evolves.
+ * Authentication strategies for Anthropic's {@code foundry} backend. Mirrors {@code
+ * OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication} but is kept as its own type so
+ * the two providers' Foundry auth surfaces can diverge independently.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
