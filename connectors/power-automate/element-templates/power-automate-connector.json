@@ -161,7 +161,7 @@
     {
       "group": "authentication",
       "label": "OAuth token endpoint",
-      "tooltip": "URL to obtain the OAuth access token. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">Power Automate OAuth token endpoint</a>.",
+      "tooltip": "URL to obtain the OAuth access token.",
       "type": "String",
       "value": "",
       "feel": "optional",
