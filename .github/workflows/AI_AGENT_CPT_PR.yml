@@ -1,6 +1,6 @@
 name: AI Agent CPT Tests (PR)
 
-# Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI, see #8234) on a PR before it
+# Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI + AWS Bedrock, see #8234) on a PR before it
 # reaches the merge queue, gated by the `ai-agent-cpt` label so it isn't triggered accidentally.
 #
 # Deliberately a standalone workflow rather than adding `pull_request` to MERGE_QUEUE_HELM_TEST.yaml:
@@ -82,6 +82,9 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION;
 
       - uses: actions/setup-java@v5
         if: steps.changes.outputs.ai == 'true'
@@ -190,7 +193,12 @@ jobs:
         env:
           CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
           CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
+          RUN_NATIVE_LLM_E2E: "true"
           OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
+          AWS_BEDROCK_ACCESS_KEY: ${{ steps.secrets.outputs.IDP_AWS_ACCESSKEY }}
+          AWS_BEDROCK_SECRET_KEY: ${{ steps.secrets.outputs.IDP_AWS_SECRETKEY }}
+          AWS_BEDROCK_REGION: ${{ steps.secrets.outputs.IDP_AWS_REGION }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON: ${{ steps.secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
           GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
           GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
           GOOGLE_VERTEX_AI_REGION: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_REGION }}
