@@ -21,6 +21,7 @@ import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWOR
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -75,6 +76,7 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -750,6 +752,28 @@ class SpringConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).startsWith("expected");
+    }
+
+    @Test
+    void shouldPropagateExceptionOutsideConnectorErrorHandling() {
+      var failure = new IllegalStateException("expected");
+      var secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(any())).thenThrow(failure);
+      var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
+      var jobHandler =
+          new SpringConnectorJobHandler(
+              metricsRecorder,
+              new JobCallbackCommandWrapperFactory(
+                  BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
+              new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+              new DefaultValidationProvider(),
+              mock(DocumentFactory.class),
+              TestObjectMapperSupplier.INSTANCE,
+              context -> null,
+              secretFilterFactory,
+              mock(CamundaClient.class, RETURNS_DEEP_STUBS));
+
+      assertThatThrownBy(() -> JobBuilder.create().execute(jobHandler)).isSameAs(failure);
     }
 
     @Test
