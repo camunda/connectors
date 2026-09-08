@@ -159,8 +159,10 @@ class RealProviderApiSmokeIT {
    */
   record ProviderConfig(
       String label,
+      RealLlmProviderGroup providerGroup,
       List<String> requiredEnvVars,
       boolean enabled,
+      boolean enabledInShardedRun,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
@@ -169,13 +171,16 @@ class RealProviderApiSmokeIT {
 
     ProviderConfig(
         String label,
+        RealLlmProviderGroup providerGroup,
         List<String> requiredEnvVars,
         Map<String, String> properties,
         Map<Capability, Map<String, String>> capabilityProperties,
         boolean reportsCacheCreationTokens) {
       this(
           label,
+          providerGroup,
           requiredEnvVars,
+          true,
           true,
           properties,
           capabilityProperties,
@@ -185,7 +190,21 @@ class RealProviderApiSmokeIT {
     ProviderConfig disabled() {
       return new ProviderConfig(
           label,
+          providerGroup,
           requiredEnvVars,
+          false,
+          enabledInShardedRun,
+          properties,
+          capabilityProperties,
+          reportsCacheCreationTokens);
+    }
+
+    ProviderConfig disabledInShardedRun() {
+      return new ProviderConfig(
+          label,
+          providerGroup,
+          requiredEnvVars,
+          enabled,
           false,
           properties,
           capabilityProperties,
@@ -195,8 +214,9 @@ class RealProviderApiSmokeIT {
     boolean isEnabled() {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
       return enabled
-          && (requiredEnvVars.isEmpty()
-              || requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null));
+          && (enabledInShardedRun || !RealLlmProviderGroup.isShardedRun())
+          && providerGroup.isSelected()
+          && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
 
     boolean supports(Capability capability) {
@@ -217,6 +237,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "anthropic-v2/" + model,
+        RealLlmProviderGroup.ANTHROPIC,
         List.of("ANTHROPIC_API_KEY"),
         Map.of(
             "provider.type",
@@ -239,6 +260,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "anthropic-bedrock-mantle-v2/" + model,
+        RealLlmProviderGroup.BEDROCK,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -261,6 +283,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "bedrock-converse-v2/" + model,
+        RealLlmProviderGroup.BEDROCK,
         List.of("AWS_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -292,6 +315,7 @@ class RealProviderApiSmokeIT {
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "openai-" + family + "-v2/" + model,
+        RealLlmProviderGroup.OPENAI,
         List.of("OPENAI_API_KEY"),
         Map.of(
             "provider.type",
@@ -329,6 +353,7 @@ class RealProviderApiSmokeIT {
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "openai-foundry-" + family + "-v2/" + model,
+        RealLlmProviderGroup.OPENAI,
         List.of("OPENAI_FOUNDRY_API_KEY", "OPENAI_FOUNDRY_ENDPOINT"),
         Map.of(
             "provider.type",
@@ -355,6 +380,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "google-gemini-v2/" + model,
+        RealLlmProviderGroup.VERTEX,
         List.of("GOOGLE_GEMINI_API_KEY"),
         Map.of(
             "provider.type",
@@ -373,6 +399,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "google-gemini-vertex-ai-v2/" + model,
+        RealLlmProviderGroup.VERTEX,
         List.of(
             "GOOGLE_VERTEX_AI_PROJECT_ID",
             "GOOGLE_VERTEX_AI_REGION",
@@ -556,16 +583,19 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                     Map.of(
                         "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+            // The configured regional endpoint returns 404 for Gemini 3.7. Keep the row visible but
+            // out of CI until its use of Vertex's global endpoint is validated.
             googleGeminiVertexAiV2(
-                "gemini-3.7-flash",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of(),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.googleGemini.model.parameters.thinking.thinkingLevel",
-                            "high"))),
+                    "gemini-3.7-flash",
+                    Map.of(
+                        Capability.STRUCTURED_OUTPUT, Map.of(),
+                        Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                        Capability.PROMPT_CACHING, Map.of(),
+                        Capability.REASONING,
+                            Map.of(
+                                "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+                                "high")))
+                .disabledInShardedRun(),
             // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
             // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
             googleGeminiV2(
@@ -598,7 +628,14 @@ class RealProviderApiSmokeIT {
   }
 
   static Stream<ProviderConfig> providersWithPromptCaching() {
-    return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
+    return providers()
+        .filter(p -> p.supports(Capability.PROMPT_CACHING))
+        // OpenAI cache placement is opportunistic, so preserve manual coverage without making a
+        // positive cache-hit assertion block the PR workflow.
+        .filter(
+            p ->
+                p.providerGroup() != RealLlmProviderGroup.OPENAI
+                    || !RealLlmProviderGroup.isShardedRun());
   }
 
   static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
@@ -606,11 +643,11 @@ class RealProviderApiSmokeIT {
   }
 
   private static String envOrPlaceholder(String envVar) {
-    return System.getenv().getOrDefault(envVar, "NOT_SET");
+    return RealLlmTestEnvironment.getOrDefault(envVar, "NOT_SET");
   }
 
   private static String envOrDefault(String envVar, String defaultValue) {
-    return System.getenv().getOrDefault(envVar, defaultValue);
+    return RealLlmTestEnvironment.getOrDefault(envVar, defaultValue);
   }
 
   @BeforeEach
@@ -948,7 +985,7 @@ class RealProviderApiSmokeIT {
    * feedback-loop iteration already completed an earlier task on the same instance.
    */
   private void completeUserFeedback(ProcessInstanceEvent instance, Map<String, Object> variables) {
-    assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).hasActiveElements("User_Feedback");
+    awaitActiveElementOrIncident(instance, "User_Feedback");
 
     final var tasks =
         camundaClient
@@ -963,6 +1000,25 @@ class RealProviderApiSmokeIT {
             .getUserTaskKey();
 
     camundaClient.newCompleteUserTaskCommand(taskKey).variables(variables).send().join();
+  }
+
+  private void awaitActiveElementOrIncident(ProcessInstanceEvent instance, String elementId) {
+    final var deadline = Instant.now().plus(PROCESS_TIMEOUT);
+    while (Instant.now().isBefore(deadline)) {
+      if (hasActiveIncident(instance)) {
+        throw new AssertionError(
+            ("Process instance %d raised an incident before reaching element '%s' - failing fast "
+                    + "instead of waiting out the remaining timeout")
+                .formatted(instance.getProcessInstanceKey(), elementId));
+      }
+      if (hasActiveElement(instance, elementId)) {
+        return;
+      }
+    }
+
+    throw new AssertionError(
+        "Timed out waiting for process instance %d to reach element '%s'"
+            .formatted(instance.getProcessInstanceKey(), elementId));
   }
 
   /**
@@ -1052,6 +1108,15 @@ class RealProviderApiSmokeIT {
   private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
     try {
       assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
+  }
+
+  private static boolean hasActiveElement(ProcessInstanceEvent instance, String elementId) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveElements(elementId);
       return true;
     } catch (AssertionError e) {
       return false;
