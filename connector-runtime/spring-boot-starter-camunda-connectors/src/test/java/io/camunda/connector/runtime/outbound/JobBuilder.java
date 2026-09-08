@@ -18,17 +18,22 @@ package io.camunda.connector.runtime.outbound;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.command.InternalClientException;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
@@ -76,6 +81,10 @@ public class JobBuilder {
       when(throwCommandStep2.variables(any(Map.class))).thenReturn(throwCommandStep2_2);
       when(job.getKey()).thenReturn(-1L);
       when(job.getType()).thenReturn("some-type");
+      // A real Zeebe job's variables are never absent — worst case "{}" — so default to that
+      // here too, rather than leaving getVariablesAsType() to return null for any test that
+      // doesn't care about variables and never calls withVariables(...).
+      withVariables("{}");
     }
 
     public JobBuilderStep useJobClient(JobClient client) {
@@ -85,7 +94,29 @@ public class JobBuilder {
 
     public JobBuilderStep withVariables(String variables) {
       when(job.getVariables()).thenReturn(variables);
+      // Mirrors the real ActivatedJob: getVariablesAsType(cls) parses `variables` with Jackson and
+      // wraps any failure in an InternalClientException, regardless of which node type the caller
+      // asked for (JsonNode vs ObjectNode) — production code asks for both, depending on the path.
+      lenient()
+          .doAnswer(
+              invocation -> {
+                Class<?> cls = invocation.getArgument(0);
+                JsonNode node = parseLikeClient(variables);
+                return cls.cast(node);
+              })
+          .when(job)
+          .getVariablesAsType(any());
       return this;
+    }
+
+    private static JsonNode parseLikeClient(String json) {
+      try {
+        return new ObjectMapper().readValue(json, JsonNode.class);
+      } catch (IOException e) {
+        throw new InternalClientException(
+            String.format("Failed to deserialize json '%s' to class '%s'", json, JsonNode.class),
+            e);
+      }
     }
 
     public JobBuilderStep withHeaders(Map<String, String> headers) {

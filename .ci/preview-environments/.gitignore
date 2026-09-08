@@ -1,0 +1,4 @@
+# Helm dependency build artifacts (resolved by Argo CD at sync time).
+*.tgz
+Chart.lock
+charts/*/charts/

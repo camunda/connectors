@@ -194,7 +194,8 @@ class AppIntegrationsRequestDeserializationTest {
             """
             {"deliveries":[{"platform":"teams",
                             "conversation":"19:abc@thread.tacv2;messageid=17123456789",
-                            "messageId":"17123456789"}],
+                            "messageId":"17123456789",
+                            "conversationKey":"teams:19:abc@thread.tacv2;messageid=17123456789"}],
              "failures":[{"platform":"slack","conversation":"C0123","reason":"not_in_channel"}]}""",
             SendMessageResult.class);
 
@@ -206,6 +207,8 @@ class AppIntegrationsRequestDeserializationTest {
               assertThat(delivery.conversation())
                   .isEqualTo("19:abc@thread.tacv2;messageid=17123456789");
               assertThat(delivery.messageId()).isEqualTo("17123456789");
+              assertThat(delivery.conversationKey())
+                  .isEqualTo("teams:19:abc@thread.tacv2;messageid=17123456789");
             });
     assertThat(result.failures())
         .singleElement()
