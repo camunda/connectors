@@ -27,32 +27,19 @@ each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolve
 the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
 (`provider/authentication/oauth/`).
 
-`AnthropicFoundryBackend` (Microsoft Foundry, issue #8060) delegates entirely to the Anthropic Java
-SDK's own `com.anthropic.foundry.backends.FoundryBackend` (`anthropic-java-foundry`), the same pattern
-`AnthropicAwsBedrockMantleBackend` already uses for `BedrockMantleBackend`: `AnthropicChatModelFactory`
-builds a `FoundryBackend` and calls `builder.backend(...)` rather than hand-rolling base-URL/header
-logic. `FoundryBackend` owns base-URL normalization (appending `/anthropic` to the configured `endpoint`
-if missing), the `anthropic-version` header, and per-request authorization: API-key auth sends the
-native `x-api-key` header (not the generic Azure `api-key` header OpenAI's Foundry backend uses —
-Foundry hosts Anthropic's own Messages API verbatim, header convention included), while either Entra ID
-variant supplies `Authorization: Bearer <token>` via a `bearerTokenSupplier` the SDK calls fresh on
-every request. `model` stays a body field exactly as it does for `anthropic-api`; Microsoft's own docs
-describe it as "the Magma deployment name," but that's a naming convention on Microsoft's side, not a
-wire-format difference this connector needs to handle.
+`AnthropicFoundryBackend` (Microsoft Foundry, issue #8060) delegates to the Anthropic Java SDK's own
+`com.anthropic.foundry.backends.FoundryBackend`, which normalizes the base URL (appending `/anthropic`
+to the configured `endpoint` if missing) and authorizes each request: API-key auth sends the native
+`x-api-key` header (not the generic Azure `api-key` header OpenAI's Foundry backend uses), while either
+Entra ID variant supplies `Authorization: Bearer <token>` via a `bearerTokenSupplier` the SDK calls
+fresh on every request — no local token caching.
 
 `AnthropicFoundryAuthentication` (`ApiKeyAuthentication` | `ClientCredentialsAuthentication` |
-`ManagedIdentityAuthentication`) is structurally identical to OpenAI's `FoundryAuthentication` but
-deliberately its own type rather than shared, keeping the two providers' Foundry auth surfaces free to
-diverge independently. `ManagedIdentityAuthentication` is blocked on SaaS
-(`ConnectorUtils.isSaaS()`), same as `AnthropicAwsBedrockMantleBackend`'s default-credentials-chain
-block. Resolving an Entra ID variant into the `Supplier<String>` `FoundryBackend.bearerTokenSupplier`
-wants is encapsulated in `AnthropicFoundryCredentialResolver`, which calls the same provider-agnostic
-`EntraIdTokenCredentialFactory` (credential caching, proxy behavior, Entra ID scopes) documented under
-[OpenAI's Foundry backend](#openai) below — `AnthropicChatModelFactory` never sees a raw
-`TokenCredential` or secret material. Unlike openai-java's `Credential` interface, the Anthropic SDK's
-`FoundryBackend.Builder` takes a bare `Supplier<String>` rather than an SDK-specific credential type,
-but the effect is the same: the supplier is invoked fresh per request, so token refresh is genuinely
-lazy, not a build-time snapshot.
+`ManagedIdentityAuthentication`) mirrors OpenAI's `FoundryAuthentication` but is its own type.
+`ManagedIdentityAuthentication` is blocked on SaaS (`ConnectorUtils.isSaaS()`). Resolving an Entra ID
+variant into the `bearerTokenSupplier` is encapsulated in `AnthropicFoundryCredentialResolver`, which
+calls the same provider-agnostic `EntraIdTokenCredentialFactory` (credential caching, proxy behavior,
+Entra ID scopes) documented under [OpenAI's Foundry backend](#openai) below.
 
 ### Reasoning
 
@@ -253,9 +240,8 @@ the credential configuration — never the raw secret material itself, mirroring
 azure-identity's credentials already cache and auto-refresh their own tokens internally, so rebuilding
 the `OpenAIClient` each turn never forces a fresh Entra ID token request as long as the credential
 object is reused. `EntraIdTokenCredentialFactory` is deliberately provider-agnostic (it returns a plain
-`TokenCredential`, no vendor SDK type), which is exactly why the Anthropic Foundry backend (issue
-#8060, see [Anthropic](#anthropic) above) reuses it directly via its own
-`AnthropicFoundryCredentialResolver`, instead of re-implementing the same azure-identity plumbing.
+`TokenCredential`, no vendor SDK type), which the Anthropic Foundry backend (issue #8060, see
+[Anthropic](#anthropic) above) reuses directly via its own `AnthropicFoundryCredentialResolver`.
 
 `EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
 .azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
