@@ -24,7 +24,7 @@
     "process monitoring",
     "workflow status"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
   "category": {
     "id": "connectors",
     "name": "Connectors"

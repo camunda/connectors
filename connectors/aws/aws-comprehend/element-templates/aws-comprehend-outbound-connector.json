@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.AWSCOMPREHEND.v1",
   "description" : "Execute Comprehend models",
   "keywords" : [ "analyze document", "detect document text", "text analysis", "NLP", "natural language processing", "machine learning" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
   "version" : 6,
   "category" : {
     "id" : "connectors",
