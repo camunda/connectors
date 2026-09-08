@@ -16,30 +16,20 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
-import java.util.Locale;
+import java.util.List;
 
-enum RealLlmProviderGroup {
-  OPENAI,
-  VERTEX,
-  BEDROCK,
-  ANTHROPIC,
-  LOCAL;
+final class RealLlmTestEnvironment {
 
-  boolean isSelected() {
-    return isSelected(System.getenv("REAL_LLM_PROVIDER_GROUP"));
+  private RealLlmTestEnvironment() {}
+
+  static boolean hasNonBlankValues(List<String> variableNames) {
+    return variableNames.stream()
+        .map(System::getenv)
+        .allMatch(value -> value != null && !value.isBlank());
   }
 
-  boolean isSelected(String configuredGroup) {
-    return configuredGroup == null
-        || configuredGroup.isBlank()
-        || this == valueOf(configuredGroup.trim().toUpperCase(Locale.ROOT));
-  }
-
-  static boolean isShardedRun() {
-    return isShardedRun(System.getenv("REAL_LLM_PROVIDER_GROUP"));
-  }
-
-  static boolean isShardedRun(String configuredGroup) {
-    return configuredGroup != null && !configuredGroup.isBlank();
+  static String getOrDefault(String variableName, String defaultValue) {
+    final var value = System.getenv(variableName);
+    return value == null || value.isBlank() ? defaultValue : value;
   }
 }

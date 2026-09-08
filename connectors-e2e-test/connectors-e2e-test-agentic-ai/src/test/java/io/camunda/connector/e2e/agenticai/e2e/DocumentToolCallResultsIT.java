@@ -569,11 +569,11 @@ class DocumentToolCallResultsIT {
   }
 
   private static String envOrPlaceholder(String envVar) {
-    return System.getenv().getOrDefault(envVar, "NOT_SET");
+    return RealLlmTestEnvironment.getOrDefault(envVar, "NOT_SET");
   }
 
   private static String envOrDefault(String envVar, String defaultValue) {
-    return System.getenv().getOrDefault(envVar, defaultValue);
+    return RealLlmTestEnvironment.getOrDefault(envVar, defaultValue);
   }
 
   // ---------------------------------------------------------------------------
@@ -606,7 +606,7 @@ class DocumentToolCallResultsIT {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
       return enabled
           && providerGroup.isSelected()
-          && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
+          && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
 
     @Override

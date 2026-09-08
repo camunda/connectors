@@ -162,6 +162,7 @@ class RealProviderApiSmokeIT {
       RealLlmProviderGroup providerGroup,
       List<String> requiredEnvVars,
       boolean enabled,
+      boolean enabledInShardedRun,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
@@ -180,6 +181,7 @@ class RealProviderApiSmokeIT {
           providerGroup,
           requiredEnvVars,
           true,
+          true,
           properties,
           capabilityProperties,
           reportsCacheCreationTokens);
@@ -191,6 +193,19 @@ class RealProviderApiSmokeIT {
           providerGroup,
           requiredEnvVars,
           false,
+          enabledInShardedRun,
+          properties,
+          capabilityProperties,
+          reportsCacheCreationTokens);
+    }
+
+    ProviderConfig disabledInShardedRun() {
+      return new ProviderConfig(
+          label,
+          providerGroup,
+          requiredEnvVars,
+          enabled,
+          false,
           properties,
           capabilityProperties,
           reportsCacheCreationTokens);
@@ -199,9 +214,9 @@ class RealProviderApiSmokeIT {
     boolean isEnabled() {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
       return enabled
+          && (enabledInShardedRun || !RealLlmProviderGroup.isShardedRun())
           && providerGroup.isSelected()
-          && (requiredEnvVars.isEmpty()
-              || requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null));
+          && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
 
     boolean supports(Capability capability) {
@@ -508,46 +523,54 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
             // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
             openAiCompletionsV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             // An older model, on both API families, for completeness.
             openAiResponsesV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             openAiCompletionsV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             // Same models/capabilities as the openai-api rows above, via the foundry backend.
             openAiFoundryResponsesV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
             openAiFoundryCompletionsV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             openAiFoundryResponsesV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             openAiFoundryCompletionsV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
             googleGeminiV2(
                 "gemini-3.7-flash",
                 Map.of(
@@ -572,7 +595,7 @@ class RealProviderApiSmokeIT {
                             Map.of(
                                 "provider.googleGemini.model.parameters.thinking.thinkingLevel",
                                 "high")))
-                .disabled(),
+                .disabledInShardedRun(),
             // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
             // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
             googleGeminiV2(
@@ -605,7 +628,14 @@ class RealProviderApiSmokeIT {
   }
 
   static Stream<ProviderConfig> providersWithPromptCaching() {
-    return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
+    return providers()
+        .filter(p -> p.supports(Capability.PROMPT_CACHING))
+        // OpenAI cache placement is opportunistic, so preserve manual coverage without making a
+        // positive cache-hit assertion block the PR workflow.
+        .filter(
+            p ->
+                p.providerGroup() != RealLlmProviderGroup.OPENAI
+                    || !RealLlmProviderGroup.isShardedRun());
   }
 
   static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
@@ -613,11 +643,11 @@ class RealProviderApiSmokeIT {
   }
 
   private static String envOrPlaceholder(String envVar) {
-    return System.getenv().getOrDefault(envVar, "NOT_SET");
+    return RealLlmTestEnvironment.getOrDefault(envVar, "NOT_SET");
   }
 
   private static String envOrDefault(String envVar, String defaultValue) {
-    return System.getenv().getOrDefault(envVar, defaultValue);
+    return RealLlmTestEnvironment.getOrDefault(envVar, defaultValue);
   }
 
   @BeforeEach
