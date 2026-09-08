@@ -29,7 +29,7 @@ public record JdbcRequestData(
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             tooltip =
-                "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
+                "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
         String query,
     @TemplateProperty(
             id = "variables",
@@ -38,7 +38,7 @@ public record JdbcRequestData(
             optional = true,
             feel = FeelMode.required,
             tooltip =
-                "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
+                "The <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
         @FEEL
         Object variables) {
   public JdbcRequestData(boolean returnResults, String query) {

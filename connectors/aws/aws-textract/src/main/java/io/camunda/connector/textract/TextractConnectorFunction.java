@@ -65,7 +65,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
       @ElementTemplate.PropertyGroup(id = "advanced", label = "Advanced configuration")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/",
     icon = "icon.svg")
 public class TextractConnectorFunction implements OutboundConnectorFunction {
 
