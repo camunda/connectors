@@ -641,9 +641,9 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
-            secret/data/products/qa/ci/s3 access_key_id | IDP_AWS_ACCESSKEY;
-            secret/data/products/qa/ci/s3 secret_access_key | IDP_AWS_SECRETKEY;
-            secret/data/products/qa/ci/s3 bucket_region | IDP_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION;
 
       - uses: actions/setup-java@v6
         if: steps.changes.outputs.ai == 'true'
