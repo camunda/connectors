@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import javax.net.ssl.SSLException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -118,9 +119,10 @@ public class CustomApacheHttpClientMtlsTest {
 
     assertThatThrownBy(() -> httpClient.execute(request, ResponseMappers.asString()))
         .isInstanceOf(ConnectorException.class)
-        .hasFieldOrPropertyWithValue("errorCode", "SSL_HANDSHAKE_FAILED")
-        .hasMessageContaining("TLS handshake failed")
-        .hasMessageContaining("certification path");
+        .hasFieldOrPropertyWithValue("errorCode", "SSL_ERROR")
+        .hasMessageContaining("TLS/SSL error")
+        .hasMessageContaining("certification path")
+        .hasCauseInstanceOf(SSLException.class);
   }
 
   private static String readResource(String name) throws Exception {
