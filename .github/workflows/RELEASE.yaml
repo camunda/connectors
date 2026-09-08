@@ -213,7 +213,7 @@ jobs:
       run-unit-tests: false
       maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
       build-runner: gcp-core-8-release
-      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+      runner-overrides: '{"connectors-e2e-test-http":"gcp-core-8-release","connectors-e2e-test-automation-anywhere":"gcp-core-8-release"}'
     secrets: inherit
 
   version-bump-docs-links:
@@ -369,7 +369,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -379,7 +379,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
