@@ -82,7 +82,7 @@ public class ConfigurationValidationService {
 
   // A camunda.secrets.<name> reference in a JSON value position; the lookahead skips keys.
   private static final Pattern QUOTED_SECRET_REFERENCE =
-      Pattern.compile("\"(camunda\\.secrets\\.[\\p{Alnum}_-]+)\"(?!\\s*:)");
+      Pattern.compile("\"(camunda\\.secrets\\.`?[\\p{Alnum}_-]+`?)\"(?!\\s*:)");
 
   private final ConfigurationValidationRegistry registry;
   private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
