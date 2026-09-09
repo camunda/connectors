@@ -282,6 +282,42 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // Same backend as anthropicFoundryV2, but authenticating with a Microsoft Entra ID app
+  // registration instead of an API key. This is the only row that exercises the Entra ID token
+  // scope the connector derives (https://ai.azure.com/.default for the public cloud): a wrong
+  // audience fails every request with 401, and no mocked test can catch that. Capabilities are
+  // deliberately empty - the always-on tool-call and follow-up scenarios already drive real
+  // request/response round trips, and re-running the capability matrix here would only re-test
+  // what the API-key row above covers.
+  static ProviderConfig anthropicFoundryClientCredentialsV2(String model) {
+    return new ProviderConfig(
+        "anthropic-foundry-client-credentials-v2/" + model,
+        List.of(
+            "ANTHROPIC_FOUNDRY_ENDPOINT",
+            "ANTHROPIC_FOUNDRY_TENANT_ID",
+            "ANTHROPIC_FOUNDRY_CLIENT_ID",
+            "ANTHROPIC_FOUNDRY_CLIENT_SECRET"),
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "foundry",
+            "provider.anthropic.backend.foundry.endpoint",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_ENDPOINT"),
+            "provider.anthropic.backend.foundry.authentication.type",
+            "clientCredentials",
+            "provider.anthropic.backend.foundry.authentication.tenantId",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_TENANT_ID"),
+            "provider.anthropic.backend.foundry.authentication.clientId",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_CLIENT_ID"),
+            "provider.anthropic.backend.foundry.authentication.clientSecret",
+            envOrPlaceholder("ANTHROPIC_FOUNDRY_CLIENT_SECRET"),
+            "provider.anthropic.model.model",
+            model),
+        Map.of(),
+        true);
+  }
+
   static ProviderConfig bedrockConverseV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -477,6 +513,7 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
+            anthropicFoundryClientCredentialsV2("claude-sonnet-5"),
             // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
             // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
             // for this model ("This model doesn't support the outputConfig field"), matching its
