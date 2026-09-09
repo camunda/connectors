@@ -13,6 +13,7 @@ import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.ImapConfig;
+import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.Smtp;
 import io.camunda.connector.email.outbound.protocols.actions.ContentType;
@@ -258,6 +259,39 @@ class EmailRequestTest {
         .isEqualTo(new ImapConfig("localhost", 993, CryptographicProtocol.TLS));
     assertThat(configuration.toImapConfig())
         .isEqualTo(new ImapConfig("localhost", 993, CryptographicProtocol.TLS));
+  }
+
+  /**
+   * The POP3 arm of the protocol switch was the one never reached through binding, so a copy/paste
+   * slip there - handing a POP3 task the account's IMAP or SMTP block - would have gone unnoticed.
+   */
+  @Test
+  void readsTheAccountsPop3ServerForAPop3Task() {
+    var request =
+        bind(
+            """
+            {
+              "protocol": "pop3",
+              "emailAccountConfiguration": {
+                "username": "account-user",
+                "password": "account-pass",
+                "smtpHost": "localhost",
+                "smtpPort": 2525,
+                "imapHost": "localhost",
+                "imapPort": 1993,
+                "pop3Host": "localhost",
+                "pop3Port": 1995,
+                "pop3CryptographicProtocol": "SSL"
+              },
+              "data": {
+                "pop3ActionDiscriminator": "listEmailsPop3",
+                "pop3Action": { "maxToBeRead": 10, "sortField": "SENT_DATE", "sortOrder": "ASC" }
+              }
+            }
+            """);
+
+    assertThat(request.getProtocolConfiguration())
+        .isEqualTo(new Pop3Config("localhost", 1995, CryptographicProtocol.SSL));
   }
 
   /** SMTP without authentication stays available on the inline path, where no account is bound. */

@@ -221,20 +221,31 @@ class JakartaUtilsTest {
         Arguments.of(new Pop3Config("pop.example.com", 110, CryptographicProtocol.NONE), "pop3"));
   }
 
-  /** The no-timeout overload must keep its previous behaviour: no timeout properties at all. */
+  /**
+   * Job execution keeps its previous behaviour on the plain overload: no connect and no write
+   * timeout. Not "no timeouts at all" - IMAP has always carried a 10s read timeout, asserted here
+   * so the overload cannot start or stop setting it unnoticed.
+   */
   @Test
-  void testCreateSessionWithoutTimeoutLeavesConnectTimeoutsUnset() {
+  void testCreateSessionWithoutTimeoutLeavesConnectAndWriteTimeoutsUnset() {
     // Given
     Authentication auth = mock(SimpleAuthentication.class);
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session =
+    Session smtpSession =
         factory.createSession(
             new SmtpConfig("smtp.example.com", 587, CryptographicProtocol.TLS), auth);
+    Session imapSession =
+        factory.createSession(
+            new ImapConfig("imap.example.com", 993, CryptographicProtocol.TLS), auth);
 
     // Then
-    assertNull(session.getProperties().get("mail.smtp.connectiontimeout"));
-    assertNull(session.getProperties().get("mail.smtp.writetimeout"));
+    assertNull(smtpSession.getProperties().get("mail.smtp.connectiontimeout"));
+    assertNull(smtpSession.getProperties().get("mail.smtp.writetimeout"));
+    assertNull(smtpSession.getProperties().get("mail.smtp.timeout"));
+    assertNull(imapSession.getProperties().get("mail.imaps.connectiontimeout"));
+    assertNull(imapSession.getProperties().get("mail.imaps.writetimeout"));
+    assertEquals("10000", imapSession.getProperties().get("mail.imaps.timeout"));
   }
 }
