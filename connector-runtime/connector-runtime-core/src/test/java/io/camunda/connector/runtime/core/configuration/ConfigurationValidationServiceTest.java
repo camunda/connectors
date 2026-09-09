@@ -154,6 +154,33 @@ class ConfigurationValidationServiceTest {
     };
   }
 
+  /** Captures the expression the service actually handed to the evaluator. */
+  private FeelExpressionEvaluator feelCapturing(String json, List<String> expressions) {
+    var delegate = feelReturning(json);
+    return new FeelExpressionEvaluator() {
+      @Override
+      public <T> T evaluate(String expression, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T evaluate(String expression, Class<T> targetType, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T evaluate(String expression, JavaType targetType, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String evaluateToJson(String expression, Object... variables) {
+        expressions.add(expression);
+        return delegate.evaluateToJson(expression, variables);
+      }
+    };
+  }
+
   private ConfigurationValidationService serviceWith(String resolvedJson) {
     return serviceWith(Map.of("engine-a", feelReturning(resolvedJson)));
   }
@@ -401,5 +428,49 @@ class ConfigurationValidationServiceTest {
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("INVALID_INPUT");
     assertThat(result.message()).doesNotContain("supersecretvalue");
+  }
+
+  @Test
+  void unquotesSecretReferencesSoTheClusterParsesThemAsReferences() {
+    // Callers send the configuration as JSON, where a reference can only be written as a quoted
+    // string. Left quoted it is a FEEL string literal: the cluster reports no referenced secret
+    // for it, and validation runs against the reference text instead of the credential.
+    var expressions = new ArrayList<String>();
+    var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
+
+    service.validate(
+        new ConfigurationValidationRequest(
+            "ok",
+            "={\"token\":\"camunda.secrets.MY-TOKEN_1\",\"user\":\"alice\"}",
+            "tenant",
+            "engine-a"));
+
+    assertThat(expressions)
+        .containsExactly("={\"token\":camunda.secrets.MY-TOKEN_1,\"user\":\"alice\"}");
+  }
+
+  @Test
+  void leavesAReferenceShapedJsonKeyQuoted() {
+    // Unquoting a key would produce invalid FEEL rather than a reference.
+    var expressions = new ArrayList<String>();
+    var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
+
+    service.validate(
+        new ConfigurationValidationRequest(
+            "ok", "={\"camunda.secrets.TOKEN\" : \"literal\"}", "tenant", "engine-a"));
+
+    assertThat(expressions).containsExactly("={\"camunda.secrets.TOKEN\" : \"literal\"}");
+  }
+
+  @Test
+  void leavesAPlainReferenceExpressionUntouched() {
+    var expressions = new ArrayList<String>();
+    var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
+
+    service.validate(
+        new ConfigurationValidationRequest(
+            "ok", "=camunda.vars.env.awsProd", "tenant", "engine-a"));
+
+    assertThat(expressions).containsExactly("=camunda.vars.env.awsProd");
   }
 }

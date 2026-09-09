@@ -26,6 +26,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor.LegacySecretSyntaxException;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,15 +41,17 @@ import org.slf4j.LoggerFactory;
  * does); then call the validator. A missing registration yields {@code UNSUPPORTED}; anything else
  * that goes wrong yields {@code FAILURE}.
  *
- * <p><b>Secrets.</b> Configurations support {@code camunda.secrets.<name>} only. Such a reference
- * survives evaluation as placeholder text and is substituted by the evaluator's result processor,
- * restricted to the references the cluster reports for that evaluation. The legacy {@code
- * {{secrets.X}}} and bare {@code secrets.X} forms are not resolved here at all: they would have to
- * be replaced over the evaluation <em>result</em>, where nothing distinguishes a name a
- * configuration declared from one that arrived as data, and out-of-band validation has no process
- * or element scope to derive an allow-list from. A configuration still carrying that syntax is
- * rejected rather than passed through, so the problem is reported here rather than as an
- * unexplained failure at the target.
+ * <p><b>Secrets.</b> Configurations support {@code camunda.secrets.<name>} only. A reference
+ * arrives quoted, since the caller writes the configuration as JSON, and is unquoted before
+ * evaluation so the cluster parses it as a reference rather than a string literal (see {@link
+ * #unquoteSecretReferences}). It then survives evaluation as placeholder text and is substituted by
+ * the evaluator's result processor, restricted to the references the cluster reports for that
+ * evaluation. The legacy {@code {{secrets.X}}} and bare {@code secrets.X} forms are not resolved
+ * here at all: they would have to be replaced over the evaluation <em>result</em>, where nothing
+ * distinguishes a name a configuration declared from one that arrived as data, and out-of-band
+ * validation has no process or element scope to derive an allow-list from. A configuration still
+ * carrying that syntax is rejected rather than passed through, so the problem is reported here
+ * rather than as an unexplained failure at the target.
  *
  * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so the
  * reference must be evaluated against the engine that holds it — each engine has its own {@code
@@ -78,6 +81,14 @@ public class ConfigurationValidationService {
   private static final String LEGACY_SECRET_SYNTAX_MESSAGE =
       "The configuration uses an unsupported secret syntax. Reference secrets as"
           + " camunda.secrets.<name>.";
+
+  /**
+   * A {@code camunda.secrets.<name>} reference sitting in a JSON value position, quoted as a
+   * string. The lookahead keeps a key of that name — {@code "camunda.secrets.X":} — quoted, since
+   * unquoting it would produce invalid FEEL rather than a reference.
+   */
+  private static final Pattern QUOTED_SECRET_REFERENCE =
+      Pattern.compile("\"(camunda\\.secrets\\.[\\p{Alnum}_-]+)\"(?!\\s*:)");
 
   private final ConfigurationValidationRegistry registry;
   private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
@@ -211,7 +222,24 @@ public class ConfigurationValidationService {
       throws Exception {
     // The legacy-syntax check runs inside the evaluator's result processor, before any secret
     // value is substituted, so it never inspects resolved secret material.
-    String resolvedJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
+    String resolvedJson =
+        feelExpressionEvaluator.evaluateToJson(unquoteSecretReferences(request.credentialRef()));
     return objectMapper.readValue(resolvedJson, configurationClass);
+  }
+
+  /**
+   * Strips the quotes around every {@code camunda.secrets.<name>} value in the reference, turning
+   * each one from a FEEL string literal into a path expression.
+   *
+   * <p>Callers hand over the configuration as JSON, where a secret reference can only be written as
+   * a quoted string. Evaluated as-is the cluster sees a literal, reports no referenced secret for
+   * it, and the value comes back as the reference text itself — so validation runs against a
+   * placeholder instead of the credential. Unquoted, the cluster parses it as a reference, reports
+   * it, and the result processor substitutes the value under that same allow-list.
+   */
+  static String unquoteSecretReferences(String credentialRef) {
+    return credentialRef == null
+        ? null
+        : QUOTED_SECRET_REFERENCE.matcher(credentialRef).replaceAll("$1");
   }
 }
