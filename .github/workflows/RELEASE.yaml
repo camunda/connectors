@@ -64,7 +64,7 @@ jobs:
   setup:
     needs: create-release
     name: Prepare the repository
-    runs-on: gcp-core-2-release
+    runs-on: gcp-core-8-release
     permissions:
       contents: write
       checks: write
@@ -72,6 +72,7 @@ jobs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
+      mavenCacheKey: ${{ steps.maven-cache-key.outputs.value }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -102,11 +103,17 @@ jobs:
           distribution: 'temurin'
           java-version: '21.0.9'
 
+      - name: Determine Maven cache key
+        id: maven-cache-key
+        env:
+          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+
       - name: Restore cache
         uses: actions/cache@v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -171,7 +178,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: ./mvnw -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
+        run: ./mvnw -B -U package source:jar javadoc:jar -Pe2eExcluded
 
       - name: Publish Test Report
         if: always()
@@ -237,93 +244,17 @@ jobs:
     needs: setup
     name: Run E2E tests
     if: ${{ !inputs.skip-e2e-tests }}
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       checks: write
-    steps:
-      - name: Download repository
-        uses: actions/download-artifact@v8
-        with:
-          name: repository
-
-      - name: Ensure Maven wrapper is executable
-        run: chmod +x ./mvnw
-
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '21.0.9'
-
-      - name: Restore cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
-            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
-
-      - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
-        with:
-          githubServer: false
-          # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
-          # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
-          # - camunda-nexus: Nexus creds for resolving artifacts
-          servers: |
-            [{
-              "id": "nexus-mirror",
-              "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
-              "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
-             },
-             {
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
-               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
-             }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
-
-      - name: Install artifacts
-        run: ./mvnw -B install -DskipTests -DskipChecks -Pe2eExcluded
-
-      - name: Install Node.js
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: '24'
-
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
-
-      - name: Run E2E tests
-        run: ./mvnw -B verify -f connectors-e2e-test/pom.xml
-
-      - name: Publish Test Report
-        if: always()
-        uses: ScalableCapital/action-surefire-report@v2
-        with:
-          report_paths: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
-          report_mode: check-run
-
-      - name: Upload detailed surefire reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: e2e-surefire-reports
-          path: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
+    uses: ./.github/workflows/E2E_BRANCH_RUN.yml
+    with:
+      branch: ${{ inputs.version }}
+      run-unit-tests: false
+      maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
+      build-runner: gcp-core-8-release
+      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+    secrets: inherit
 
 
   version-bump-docs-links:
@@ -477,7 +408,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
