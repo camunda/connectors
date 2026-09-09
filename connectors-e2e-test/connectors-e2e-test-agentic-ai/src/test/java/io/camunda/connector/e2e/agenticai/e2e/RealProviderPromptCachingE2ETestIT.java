@@ -93,5 +93,4 @@ class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
                   text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });
   }
-
 }

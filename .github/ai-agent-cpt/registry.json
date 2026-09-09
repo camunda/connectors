@@ -115,7 +115,7 @@
     {
       "id": "openai-prompt-caching",
       "name": "OpenAI prompt-caching capability CPT",
-      "providerGroup": "openai",
+      "providerGroup": "",
       "groups": "prompt-caching",
       "testClasses": "",
       "buildBundle": false,
@@ -126,7 +126,7 @@
     {
       "id": "vertex-prompt-caching",
       "name": "Vertex prompt-caching capability CPT",
-      "providerGroup": "vertex",
+      "providerGroup": "",
       "groups": "prompt-caching",
       "testClasses": "",
       "buildBundle": false,
@@ -137,7 +137,7 @@
     {
       "id": "bedrock-prompt-caching",
       "name": "Bedrock prompt-caching capability CPT",
-      "providerGroup": "bedrock",
+      "providerGroup": "",
       "groups": "prompt-caching",
       "testClasses": "",
       "buildBundle": false,
