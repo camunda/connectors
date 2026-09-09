@@ -75,6 +75,41 @@ class EmailAccountValidatorTest extends BaseEmailTest {
     assertThat(result.message()).contains("IMAP");
   }
 
+  /**
+   * SMTP logs in through {@code Transport}, a different code path from the {@code Store} the other
+   * two protocols use, so its failure branches need their own coverage.
+   */
+  @Test
+  void reportsUnauthorizedForAWrongSmtpPassword() {
+    var result = validator.validate(smtp("wrong-password"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo(ErrorCode.UNAUTHORIZED.name());
+    assertThat(result.message()).contains("SMTP");
+  }
+
+  @Test
+  void reportsAnErrorForAnUnreachableSmtpServer() {
+    var result =
+        validator.validate(
+            new EmailAccountConfiguration(
+                USERNAME,
+                PASSWORD,
+                LOCALHOST,
+                1,
+                CryptographicProtocol.NONE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo(ErrorCode.ERROR.name());
+    assertThat(result.message()).contains("SMTP");
+  }
+
   @Test
   void reportsUnauthorizedForAWrongPop3Password() {
     var result = validator.validate(pop3("wrong-password"));
