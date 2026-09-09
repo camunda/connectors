@@ -113,7 +113,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   # docs-link check; the script writes connectors-element-template-links.txt, which is not
   # gitignored — delete it afterwards so it isn't committed by accident
   ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
-  grep "/next/" connectors-element-template-links.txt && echo "FAIL: /next/ link"
+  if grep -q "/next/" connectors-element-template-links.txt; then echo "FAIL: forbidden /next/ link"; fi
   rm -f connectors-element-template-links.txt
   ```
 
