@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.model.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -32,6 +33,7 @@ public class AwsBaseRequest {
       description =
           "Select a saved AWS credential with an optional default region, or enter authentication"
               + " details and a region below.")
+  @FEEL
   @Valid
   private AwsCredentialConfiguration awsCredential;
 

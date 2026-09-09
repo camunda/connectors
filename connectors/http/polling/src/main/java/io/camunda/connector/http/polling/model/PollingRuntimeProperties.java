@@ -35,6 +35,7 @@ public class PollingRuntimeProperties {
       description =
           "Choose a reusable authentication credential, or configure one-time authentication"
               + " parameters below.")
+  @FEEL
   @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
