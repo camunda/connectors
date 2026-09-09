@@ -5,7 +5,7 @@
   "description" : "Execute email requests",
   "keywords" : [ "send emails", "list emails", "search emails", "delete emails", "read emails", "move emails", "send email", "delete email", "read email", "move email", "IMAP", "SMTP", "POP3", "inbox" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -175,6 +175,18 @@
       "value" : "sendEmailSmtp"
     } ]
   }, {
+    "id" : "emailAccountConfiguration",
+    "label" : "Email account credential",
+    "description" : "Choose a reusable email account credential, or configure one-time email parameters below.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:email-account:1"
+  }, {
     "id" : "authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Email authentication strategy. None is only supported for SMTP.",
@@ -183,6 +195,11 @@
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "emailAccountConfiguration",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -206,9 +223,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "simple",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "simple",
+        "type" : "simple"
+      }, {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
     "type" : "String"
@@ -226,9 +249,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "simple",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "simple",
+        "type" : "simple"
+      }, {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
     "type" : "String"
@@ -1289,9 +1318,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
     "type" : "String"
@@ -1310,9 +1345,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
     "type" : "Number"
@@ -1330,9 +1371,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
@@ -1360,9 +1407,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
     "type" : "String"
@@ -1381,9 +1434,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
     "type" : "Number"
@@ -1401,9 +1460,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
@@ -1431,9 +1496,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
     "type" : "String"
@@ -1452,9 +1523,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
     "type" : "Number"
@@ -1472,9 +1549,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "emailAccountConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
@@ -1492,7 +1575,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "8",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1700,6 +1783,164 @@
       "protocol" : "smtp",
       "data.smtpActionDiscriminator" : "sendEmailSmtp"
     }
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda.connectors:email-account:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Email Account",
+    "properties" : [ {
+      "id" : "username",
+      "label" : "Username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "username",
+        "type" : "property"
+      },
+      "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service.",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "password",
+      "label" : "Email password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "tooltip" : "Enter the password associated with your email account.",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "smtpHost",
+      "label" : "SMTP host",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "smtpHost",
+        "type" : "property"
+      },
+      "tooltip" : "Address of the SMTP server used for sending emails (e.g., smtp.example.com). Leave empty if this account is not used to send emails.",
+      "type" : "String"
+    }, {
+      "id" : "smtpPort",
+      "label" : "SMTP port",
+      "value" : 587,
+      "group" : "protocol",
+      "binding" : {
+        "name" : "smtpPort",
+        "type" : "property"
+      },
+      "tooltip" : "Typically 587 for secure connections with STARTTLS, 465 for SSL/TLS, and 25 for non-secure connections.",
+      "type" : "Number"
+    }, {
+      "id" : "smtpCryptographicProtocol",
+      "label" : "SMTP encryption protocol",
+      "value" : "TLS",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "smtpCryptographicProtocol",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "TLS",
+        "value" : "TLS"
+      }, {
+        "name" : "SSL",
+        "value" : "SSL"
+      }, {
+        "name" : "None",
+        "value" : "NONE"
+      } ]
+    }, {
+      "id" : "imapHost",
+      "label" : "IMAP host",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "imapHost",
+        "type" : "property"
+      },
+      "tooltip" : "Address of the IMAP server used to retrieve your emails (e.g., imap.example.com). Leave empty if this account is not read over IMAP.",
+      "type" : "String"
+    }, {
+      "id" : "imapPort",
+      "label" : "IMAP port",
+      "value" : 993,
+      "group" : "protocol",
+      "binding" : {
+        "name" : "imapPort",
+        "type" : "property"
+      },
+      "tooltip" : "Typically 993 for SSL/TLS, or 143 for non-secure connections.",
+      "type" : "Number"
+    }, {
+      "id" : "imapCryptographicProtocol",
+      "label" : "IMAP encryption protocol",
+      "value" : "TLS",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "imapCryptographicProtocol",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "TLS",
+        "value" : "TLS"
+      }, {
+        "name" : "SSL",
+        "value" : "SSL"
+      }, {
+        "name" : "None",
+        "value" : "NONE"
+      } ]
+    }, {
+      "id" : "pop3Host",
+      "label" : "POP3 host",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "pop3Host",
+        "type" : "property"
+      },
+      "tooltip" : "Address of the POP3 server used to download your emails (e.g., pop.example.com). Leave empty if this account is not read over POP3.",
+      "type" : "String"
+    }, {
+      "id" : "pop3Port",
+      "label" : "POP3 port",
+      "value" : 995,
+      "group" : "protocol",
+      "binding" : {
+        "name" : "pop3Port",
+        "type" : "property"
+      },
+      "tooltip" : "Typically 995 for SSL/TLS, or 110 for non-secure connections.",
+      "type" : "Number"
+    }, {
+      "id" : "pop3CryptographicProtocol",
+      "label" : "POP3 encryption protocol",
+      "value" : "TLS",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "pop3CryptographicProtocol",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "TLS",
+        "value" : "TLS"
+      }, {
+        "name" : "SSL",
+        "value" : "SSL"
+      }, {
+        "name" : "None",
+        "value" : "NONE"
+      } ]
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="

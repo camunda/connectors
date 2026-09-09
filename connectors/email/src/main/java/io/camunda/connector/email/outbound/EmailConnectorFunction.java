@@ -12,13 +12,14 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.email.client.EmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
+import io.camunda.connector.email.outbound.model.EmailAccountConfiguration;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 @OutboundConnector(
     name = "Email",
-    inputVariables = {"authentication", "protocol", "data"},
+    inputVariables = {"authentication", "protocol", "data", "configuration"},
     type = "io.camunda:email:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -42,7 +43,8 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
       "inbox"
     },
     inputDataClass = EmailRequest.class,
-    version = 7,
+    configurations = {EmailAccountConfiguration.class},
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

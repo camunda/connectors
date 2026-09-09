@@ -5,7 +5,7 @@
   "description" : "Consume emails",
   "keywords" : [ "email received", "receive email", "incoming email", "poll emails", "new email", "email notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ReceiveTask"
   },
   "engines" : {
-    "camunda" : "^8.6"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "connectorType",
