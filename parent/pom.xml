@@ -118,6 +118,14 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.9.2</version.kafka-clients>
 
+    <!-- Explicit overrides: the Spring Boot BOM / kafka-clients versions used on this branch
+         are below the fixed versions for known CVEs. Remove once spring-boot-dependencies manages
+         netty >= 4.2.17.Final and rabbit-amqp-client >= 5.33.1, and kafka-clients ships
+         lz4-java >= 1.11.1. -->
+    <version.netty>4.2.17.Final</version.netty>
+    <version.amqp-client>5.35.0</version.amqp-client>
+    <version.lz4-java>1.11.2</version.lz4-java>
+
     <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
 
@@ -167,6 +175,15 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${version.jackson-datatype-jsr310}</version>
+      </dependency>
+
+      <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
       </dependency>
 
       <!-- Spring Boot BOM -->
@@ -470,6 +487,22 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${version.kafka-clients}</version>
+      </dependency>
+
+      <!-- Override lz4-java transitive version brought in by kafka-clients.
+           Remove once kafka-clients ships lz4-java >= 1.11.1. -->
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${version.lz4-java}</version>
+      </dependency>
+
+      <!-- Override amqp-client transitive version brought in by spring-boot-dependencies.
+           Remove once spring-boot-dependencies manages com.rabbitmq:amqp-client >= 5.33.1. -->
+      <dependency>
+        <groupId>com.rabbitmq</groupId>
+        <artifactId>amqp-client</artifactId>
+        <version>${version.amqp-client}</version>
       </dependency>
 
       <dependency>
