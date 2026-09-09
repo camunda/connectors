@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -34,6 +36,7 @@ import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +64,10 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final List<Class<? extends BaseElement>> OUTBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
 
+  private static final int XML_FETCH_MAX_RETRIES = 10;
+
+  private static final Duration XML_FETCH_INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
+
   static {
     OUTBOUND_ELIGIBLE_TYPES.add(ServiceTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(SendTask.class);
@@ -74,6 +81,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private final String physicalTenantId;
   private final CamundaClient camundaClient;
   private final Cache cache;
+  private final RetryPolicy<String> xmlFetchRetryPolicy;
 
   /**
    * Source/binary-compatibility overload for existing callers compiled against the original
@@ -92,9 +100,32 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    */
   public ProcessDefinitionSecretKeyCache(
       String physicalTenantId, CamundaClient camundaClient, Cache cache) {
+    this(physicalTenantId, camundaClient, cache, XML_FETCH_INITIAL_RETRY_DELAY);
+  }
+
+  /** Test-only seam: lets retry tests use a near-zero delay instead of the real one. */
+  ProcessDefinitionSecretKeyCache(
+      String physicalTenantId,
+      CamundaClient camundaClient,
+      Cache cache,
+      Duration xmlFetchInitialRetryDelay) {
     this.physicalTenantId = physicalTenantId;
     this.camundaClient = camundaClient;
     this.cache = cache;
+    this.xmlFetchRetryPolicy =
+        RetryPolicy.<String>builder()
+            .withBackoff(
+                xmlFetchInitialRetryDelay,
+                xmlFetchInitialRetryDelay.multipliedBy(1L << (XML_FETCH_MAX_RETRIES - 1)))
+            .withMaxRetries(XML_FETCH_MAX_RETRIES)
+            .onFailedAttempt(
+                event ->
+                    LOG.warn(
+                        "Attempt {}/{} to fetch BPMN XML failed: {}",
+                        event.getAttemptCount(),
+                        XML_FETCH_MAX_RETRIES + 1,
+                        event.getLastException().getMessage()))
+            .build();
   }
 
   private record CachedProcessDefinitionKey(String physicalTenantId, long processDefinitionKey) {}
@@ -109,8 +140,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   private Map<String, List<Secret>> fetchSecretKeysByElementIds(long processDefinitionKey) {
-    String bpmnXml =
-        camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute();
+    String bpmnXml = fetchBpmnXmlWithRetry(processDefinitionKey);
 
     BpmnModelInstance modelInstance =
         Bpmn.readModelFromStream(new ByteArrayInputStream(bpmnXml.getBytes()));
@@ -120,6 +150,11 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return processes.stream()
         .flatMap(process -> inspectBpmnProcess(process, processDefinitionKey).entrySet().stream())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  private String fetchBpmnXmlWithRetry(long processDefinitionKey) {
+    return Failsafe.with(xmlFetchRetryPolicy)
+        .get(() -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
   }
 
   private Map<String, List<Secret>> inspectBpmnProcess(Process process, long processDefinitionKey) {

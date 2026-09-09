@@ -17,10 +17,12 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +32,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.BeforeEach;
@@ -418,6 +421,41 @@ class ProcessDefinitionSecretKeyCacheTest {
     // entry despite the identical processDefinitionKey
     verify(clientA).newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY);
     verify(clientB).newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY);
+  }
+
+  @Test
+  void getSecretKeys_xmlFetchTransientlyFails_retriesAndSucceeds() throws IOException {
+    // simulates the get-XML endpoint's eventual-consistency window right after deployment: the
+    // first two attempts 404 before the definition becomes visible, the third succeeds
+    var retryingCache =
+        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(1));
+    when(xmlRequest.execute())
+        .thenThrow(new RuntimeException("not found (yet)"))
+        .thenThrow(new RuntimeException("not found (yet)"))
+        .thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
+
+    var keys = retryingCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .extracting(Secret::secretName)
+        .containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
+    verify(xmlRequest, times(3)).execute();
+  }
+
+  @Test
+  void getSecretKeys_xmlFetchFailsPastMaxRetries_throwsLastFailure() {
+    var retryingCache =
+        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(1));
+    when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
+
+    assertThatThrownBy(
+            () ->
+                retryingCache.getSecretKeys(
+                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1")))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("still not found");
+    // 1 initial attempt + 10 retries
+    verify(xmlRequest, times(11)).execute();
   }
 
   private String loadBpmn(String fileName) throws IOException {
