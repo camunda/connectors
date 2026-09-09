@@ -21,10 +21,8 @@ One wire format (the Messages API), so a single backend axis covers everything: 
 additively per-key onto the SDK request builder (`AnthropicMessageRequestConverter
 .applyRequestCustomizations`), never a wholesale replace.
 
-Unlike openai-java, the anthropic-java SDK's client builder has no public dynamic-credential hook
-(its `AccessTokenProvider`/`credentials()` path is Kotlin-`internal`). `AnthropicChatModelFactory`
-instead adds an `OAuthBearerTokenInterceptor` (`com.anthropic.core.http.Interceptor`, a supported
-public hook) via `builder.addInterceptor(...)`: it wraps the transport `HttpClient` and rewrites
+`AnthropicChatModelFactory` adds an `OAuthBearerTokenInterceptor` (`com.anthropic.core.http.Interceptor`,
+a supported public hook) via `builder.addInterceptor(...)`: it wraps the transport `HttpClient` and rewrites
 each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolved per request from
 the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
 (`provider/authentication/oauth/`).
