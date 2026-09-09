@@ -154,7 +154,7 @@ class ConfigurationValidationServiceTest {
     };
   }
 
-  /** Captures the expression the service actually handed to the evaluator. */
+  /** Records the expression the service handed to the evaluator. */
   private FeelExpressionEvaluator feelCapturing(String json, List<String> expressions) {
     var delegate = feelReturning(json);
     return new FeelExpressionEvaluator() {
@@ -432,9 +432,6 @@ class ConfigurationValidationServiceTest {
 
   @Test
   void unquotesSecretReferencesSoTheClusterParsesThemAsReferences() {
-    // Callers send the configuration as JSON, where a reference can only be written as a quoted
-    // string. Left quoted it is a FEEL string literal: the cluster reports no referenced secret
-    // for it, and validation runs against the reference text instead of the credential.
     var expressions = new ArrayList<String>();
     var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
 
@@ -451,7 +448,6 @@ class ConfigurationValidationServiceTest {
 
   @Test
   void leavesAReferenceShapedJsonKeyQuoted() {
-    // Unquoting a key would produce invalid FEEL rather than a reference.
     var expressions = new ArrayList<String>();
     var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
 

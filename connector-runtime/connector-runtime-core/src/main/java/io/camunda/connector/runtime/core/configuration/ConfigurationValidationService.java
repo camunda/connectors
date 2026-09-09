@@ -41,17 +41,15 @@ import org.slf4j.LoggerFactory;
  * does); then call the validator. A missing registration yields {@code UNSUPPORTED}; anything else
  * that goes wrong yields {@code FAILURE}.
  *
- * <p><b>Secrets.</b> Configurations support {@code camunda.secrets.<name>} only. A reference
- * arrives quoted, since the caller writes the configuration as JSON, and is unquoted before
- * evaluation so the cluster parses it as a reference rather than a string literal (see {@link
- * #unquoteSecretReferences}). It then survives evaluation as placeholder text and is substituted by
- * the evaluator's result processor, restricted to the references the cluster reports for that
- * evaluation. The legacy {@code {{secrets.X}}} and bare {@code secrets.X} forms are not resolved
- * here at all: they would have to be replaced over the evaluation <em>result</em>, where nothing
- * distinguishes a name a configuration declared from one that arrived as data, and out-of-band
- * validation has no process or element scope to derive an allow-list from. A configuration still
- * carrying that syntax is rejected rather than passed through, so the problem is reported here
- * rather than as an unexplained failure at the target.
+ * <p><b>Secrets.</b> Configurations support {@code camunda.secrets.<name>} only. Such a reference
+ * survives evaluation as placeholder text and is substituted by the evaluator's result processor,
+ * restricted to the references the cluster reports for that evaluation. The legacy {@code
+ * {{secrets.X}}} and bare {@code secrets.X} forms are not resolved here at all: they would have to
+ * be replaced over the evaluation <em>result</em>, where nothing distinguishes a name a
+ * configuration declared from one that arrived as data, and out-of-band validation has no process
+ * or element scope to derive an allow-list from. A configuration still carrying that syntax is
+ * rejected rather than passed through, so the problem is reported here rather than as an
+ * unexplained failure at the target.
  *
  * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so the
  * reference must be evaluated against the engine that holds it — each engine has its own {@code
@@ -82,11 +80,7 @@ public class ConfigurationValidationService {
       "The configuration uses an unsupported secret syntax. Reference secrets as"
           + " camunda.secrets.<name>.";
 
-  /**
-   * A {@code camunda.secrets.<name>} reference sitting in a JSON value position, quoted as a
-   * string. The lookahead keeps a key of that name — {@code "camunda.secrets.X":} — quoted, since
-   * unquoting it would produce invalid FEEL rather than a reference.
-   */
+  // A camunda.secrets.<name> reference in a JSON value position; the lookahead skips keys.
   private static final Pattern QUOTED_SECRET_REFERENCE =
       Pattern.compile("\"(camunda\\.secrets\\.[\\p{Alnum}_-]+)\"(?!\\s*:)");
 
@@ -228,14 +222,8 @@ public class ConfigurationValidationService {
   }
 
   /**
-   * Strips the quotes around every {@code camunda.secrets.<name>} value in the reference, turning
-   * each one from a FEEL string literal into a path expression.
-   *
-   * <p>Callers hand over the configuration as JSON, where a secret reference can only be written as
-   * a quoted string. Evaluated as-is the cluster sees a literal, reports no referenced secret for
-   * it, and the value comes back as the reference text itself — so validation runs against a
-   * placeholder instead of the credential. Unquoted, the cluster parses it as a reference, reports
-   * it, and the result processor substitutes the value under that same allow-list.
+   * Unquotes every {@code camunda.secrets.<name>} value, so the cluster parses it as a reference
+   * instead of a string literal and reports it as a referenced secret.
    */
   static String unquoteSecretReferences(String credentialRef) {
     return credentialRef == null
