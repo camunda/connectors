@@ -46,7 +46,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "input", label = "Data Configuration and Processing")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
     icon = "icon.svg")
 public class ComprehendConnectorFunction implements OutboundConnectorFunction {
 
