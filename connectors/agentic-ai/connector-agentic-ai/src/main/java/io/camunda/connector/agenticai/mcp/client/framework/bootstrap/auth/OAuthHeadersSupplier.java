@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;

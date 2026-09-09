@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.bootstrap;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientHttpTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BasicAuthHeadersSupplier;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BearerAuthHeadersSupplier;
@@ -14,6 +13,7 @@ import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.OAuthH
 import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

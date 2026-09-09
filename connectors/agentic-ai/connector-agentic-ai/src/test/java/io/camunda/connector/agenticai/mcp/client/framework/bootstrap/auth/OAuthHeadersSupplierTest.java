@@ -12,10 +12,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication.ClientAuthenticationMethod;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

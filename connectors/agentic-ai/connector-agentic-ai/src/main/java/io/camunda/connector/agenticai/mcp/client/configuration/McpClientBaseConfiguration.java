@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
