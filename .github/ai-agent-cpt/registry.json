@@ -11,7 +11,6 @@
         "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION"
       ],
       "environment": [
-        "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT",
         "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON",
         "GOOGLE_VERTEX_AI_PROJECT_ID",
         "GOOGLE_VERTEX_AI_REGION"
