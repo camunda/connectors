@@ -1,22 +1,22 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Slack Webhook Intermediate Catch Event Connector",
-  "id" : "io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1",
+  "name" : "Slack Webhook Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
   "description" : "Receive events from Slack",
   "keywords" : [ "message received", "event received", "channel event", "webhook", "messaging", "new message" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
-  "version" : 9,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
+    "value" : "bpmn:StartEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "endpoint",
@@ -58,18 +58,6 @@
     "tooltip" : "The webhook ID is a part of the URL endpoint",
     "type" : "String"
   }, {
-    "id" : "inbound.slackCredential",
-    "label" : "Slack credential",
-    "description" : "Choose a reusable Slack signing secret credential, or configure a one-time signing secret below.",
-    "optional" : true,
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "inbound.slackCredential",
-      "type" : "zeebe:property"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:slack-signing-secret:1"
-  }, {
     "id" : "inbound.slackSigningSecret",
     "label" : "Slack signing secret",
     "optional" : false,
@@ -80,11 +68,6 @@
     "binding" : {
       "name" : "inbound.slackSigningSecret",
       "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.slackCredential",
-      "isEmpty" : true,
-      "type" : "simple"
     },
     "tooltip" : "Used to verify that incoming requests originate from Slack. See <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Verifying requests from Slack</a>",
     "type" : "String"
@@ -123,6 +106,24 @@
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
   }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -134,6 +135,11 @@
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -148,6 +154,11 @@
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -277,26 +288,6 @@
       "type" : "zeebe:property"
     },
     "type" : "Text"
-  } ],
-  "configurationTemplates" : [ {
-    "id" : "io.camunda.connectors:slack-signing-secret:1",
-    "kind" : "CREDENTIAL",
-    "version" : 1,
-    "name" : "Slack Signing Secret",
-    "properties" : [ {
-      "id" : "signingSecret",
-      "label" : "Slack signing secret",
-      "description" : "Used to verify that incoming requests originate from Slack. See <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Verifying requests from Slack</a>",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "endpoint",
-      "binding" : {
-        "name" : "signingSecret",
-        "type" : "property"
-      },
-      "type" : "String"
-    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI3IiBoZWlnaHQ9IjEyNyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMjcuMiA4MGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjJDNi43IDkzLjIuOCA4Ny4zLjggODBjMC03LjMgNS45LTEzLjIgMTMuMi0xMy4yaDEzLjJWODB6bTYuNiAwYzAtNy4zIDUuOS0xMy4yIDEzLjItMTMuMiA3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzNjMCA3LjMtNS45IDEzLjItMTMuMiAxMy4yLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMlY4MHoiIGZpbGw9IiNFMDFFNUEiLz4KICA8cGF0aCBkPSJNNDcgMjdjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMkMzMy44IDYuNSAzOS43LjYgNDcgLjZjNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yVjI3SDQ3em0wIDYuN2M3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDEzLjlDNi42IDYwLjEuNyA1NC4yLjcgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJINDd6IiBmaWxsPSIjMzZDNUYwIi8+CiAgPHBhdGggZD0iTTk5LjkgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjIgNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yIDAgNy4zLTUuOSAxMy4yLTEzLjIgMTMuMkg5OS45VjQ2Ljl6bS02LjYgMGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjEzLjhDNjYuOSA2LjUgNzIuOC42IDgwLjEuNmM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzMuMXoiIGZpbGw9IiMyRUI2N0QiLz4KICA8cGF0aCBkPSJNODAuMSA5OS44YzcuMyAwIDEzLjIgNS45IDEzLjIgMTMuMiAwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjk5LjhoMTMuMnptMC02LjZjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMiAwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJoMzMuMWM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDgwLjF6IiBmaWxsPSIjRUNCMjJFIi8+Cjwvc3ZnPgo="
