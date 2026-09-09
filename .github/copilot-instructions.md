@@ -85,33 +85,23 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
 
 - **Never hand-edit a generated template.** If the module's `pom.xml` declares
   `element-template-generator-maven-plugin` with a `<connectorClass>`, its `element-templates/*.json`
-  are build output: edit the `@ElementTemplate` / `@TemplateProperty` annotations in the Java source
-  and regenerate. Editing the JSON alone is silently reverted by the next build, and CI fails on the
-  resulting drift. Only modules without that plugin (e.g. `connectors/operate/`,
-  `connectors/power-automate/`) have hand-maintained JSON.
-- **Hybrid templates are generated too** (`<generateHybridTemplates>`), including their
-  `documentationRef` — never edit `element-templates/hybrid/*.json` by hand either.
+  are build output — including `hybrid/` — so edit the `@ElementTemplate` / `@TemplateProperty`
+  annotations in the Java source and regenerate. JSON-only edits are reverted by the next build, and
+  CI fails on the drift. Modules without that plugin (e.g. `connectors/operate/`,
+  `connectors/power-automate/`) are hand-maintained.
 - **Field hints: `tooltip` > `placeholder` > `description`.** Help text belongs in `tooltip` (shown on
   hover); example values belong in `placeholder`; keep the always-visible `description` only for
-  value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance. See #7470 and the
-  per-vendor migration PRs (e.g. #7651).
+  value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance.
 - **Documentation links must pin the current released minor**, e.g.
-  `https://docs.camunda.io/docs/8.9/components/connectors/...`. Never unversioned, never `/next/`:
-  - unversioned pages are dynamic, while versioned URLs published via element templates are kept
-    resolving (at least by redirect) by the docs team;
-  - the release bumper only rewrites links matching a version segment, so an unversioned link is
-    never picked up and is stranded permanently;
-  - CI rejects a literal `/next/`. To reference a page that exists only in unreleased docs, use its
-    numbered form (e.g. `/docs/8.10/...`), which resolves now and stabilises at release.
-
-  Links are bumped on the first minor release by `version-bump-docs-links` in `RELEASE.yaml` (see
-  [docs/new-minor-version.md](../docs/new-minor-version.md)). Note that
-  `BUMP_ELEMENT_TEMPLATE_DOCS_LINKS.yml` is *not* that bumper despite the name — it only exports a
-  link manifest to `camunda-docs`.
+  `https://docs.camunda.io/docs/8.9/components/connectors/...` — never unversioned, never `/next/`.
+  Versioned URLs are kept resolving by the docs team, and the release bumper
+  (`version-bump-docs-links` in `RELEASE.yaml`) only rewrites links that already carry a version, so
+  an unversioned one is stranded permanently. For a page that exists only in unreleased docs, use its
+  numbered form (e.g. `/docs/8.10/...`).
 - **A `version` bump is not needed for content that doesn't change how a template applies** (e.g.
   correcting a URL). `CurrentVersionBumpRule` requires the current template's `version` to equal the
-  highest `versioned/` snapshot plus one — bumping without also archiving a snapshot *breaks* that
-  invariant. See [docs/connector-template-versioning.md](../docs/connector-template-versioning.md).
+  highest `versioned/` snapshot plus one, so bumping without archiving a snapshot *breaks* it. See
+  [docs/connector-template-versioning.md](../docs/connector-template-versioning.md).
 - **Verify locally before pushing** — these are all enforced by CI:
 
   ```bash
