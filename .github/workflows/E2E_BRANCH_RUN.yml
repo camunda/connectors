@@ -1,0 +1,407 @@
+name: E2E branch run
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        required: true
+      run-unit-tests:
+        description: 'Run unit and integration tests before the E2E matrix'
+        type: boolean
+        required: false
+        default: true
+      maven-cache-key:
+        description: 'Maven cache key supplied by a calling workflow'
+        type: string
+        required: false
+        default: ''
+      build-runner:
+        description: 'Runner used to build the artifacts consumed by the E2E matrix'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
+      runner-overrides:
+        description: 'JSON map from E2E module names to runner labels'
+        type: string
+        required: false
+        default: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ${{ inputs.build-runner }}
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
+    env:
+      # Runner overrides: JSON map from e2e module name → runner label.
+      # Modules absent from the map use ubuntu-latest; callers can provide their own map.
+      E2E_RUNNER_OVERRIDES: ${{ inputs.runner-overrides }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+
+      # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
+      # fall back to a pinned Maven install (below) so the build still runs there instead
+      # of failing with "No such file or directory". Not every runner in this workflow is
+      # guaranteed to have a system mvn pre-installed, so the fallback installs its own
+      # rather than assuming one exists.
+      - name: Resolve Maven command
+        id: resolve-maven
+        run: |
+          if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
+          else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
+          fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+
+      - name: Resolve Maven cache key
+        id: maven-cache-key
+        env:
+          PROVIDED_KEY: ${{ inputs.maven-cache-key }}
+          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache-key.outputs.value }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: Create settings.xml
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "nexus-mirror",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
+
+      # Build + install the entire reactor (incl. the connectors-e2e-test subtree, so the e2e parent
+      # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
+      # here; connector tests run in the next step, e2e tests run isolated in the matrix.
+      - name: Build connectors
+        run: $MVN_CMD --batch-mode -T1C -U clean install -PcheckFormat -DskipTests
+
+      # Non-PR (nightly/manual): run unit/integration tests for the connector modules. The whole
+      # connectors-e2e-test subtree is excluded by enumerating every e2e pom path: excluding only the
+      # aggregator (-pl '!connectors-e2e-test') would NOT exclude its nested children, so they would
+      # otherwise run their e2e tests here instead of isolated in the matrix.
+      - name: Run unit/integration tests (non-PR)
+        if: inputs.run-unit-tests && github.event_name != 'pull_request'
+        run: |
+          E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
+          $MVN_CMD --batch-mode verify -pl "$E2E_EXCLUDES"
+
+      # Discover the e2e-test modules to run from this branch's checkout so the test matrix is
+      # branch-accurate. Leaf poms with `jar` packaging are test modules; aggregators (`pom`
+      # packaging) and `*-base` shared libraries are excluded. Each entry is a
+      # {"module": "...", "runner": "..."} object; runner comes from E2E_RUNNER_OVERRIDES
+      # (defaults to ubuntu-latest for modules not listed there).
+      - name: Discover e2e-test modules
+        id: set-modules
+        run: |
+          modules=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' | while read -r p; do
+            d=$(dirname "$p"); base=$(basename "$d")
+            pkg=$(grep -m1 -oP '(?<=<packaging>)[^<]+' "$p" || echo jar)
+            [ "$pkg" = "pom" ] && continue
+            case "$base" in *-base) continue;; esac
+            [ -d "$d/src/test" ] || continue
+            module="${d#connectors-e2e-test/}"
+            runner=$(printf '%s' "$E2E_RUNNER_OVERRIDES" | jq -r --arg m "$module" '.[$m] // "ubuntu-latest"')
+            printf '{"module":"%s","runner":"%s"}\n' "$module" "$runner"
+          done | jq -sc '.')
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+
+      - name: Sanitize branch name for artifact
+        id: sanitize
+        run: echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ inputs.branch }}
+
+      # Hand the fully-populated local Maven repo (first-party SNAPSHOTs + all third-party
+      # dependencies resolved during the build) to the test matrix, so test jobs resolve
+      # everything from the artifact instead of re-downloading their dependency tree from
+      # Nexus. Maven stays online in the test jobs, so anything missing still falls back to
+      # Nexus - the artifact just eliminates the bulk of the per-job resolution.
+      - name: Upload Maven repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository
+          retention-days: 1
+          include-hidden-files: true
+          overwrite: true
+
+  # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
+  # Runner is baked into each entry by the build job from the runner-overrides input.
+  test:
+    name: ${{ matrix.entry.module }}
+    needs: build
+    runs-on: ${{ matrix.entry.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        entry: ${{ fromJson(needs.build.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+
+      # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
+      # fall back to a pinned Maven install (below) so the test run still runs there instead
+      # of failing with "No such file or directory". This job's runner varies per matrix entry
+      # (e.g. gcp-core-8-default for connectors-e2e-test-agentic-ai), so the fallback installs
+      # its own Maven rather than assuming one is pre-installed on the image.
+      - name: Resolve Maven command
+        id: resolve-maven
+        run: |
+          if [ -x ./mvnw ]; then
+            echo "has-wrapper=true" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=./mvnw" >> "$GITHUB_ENV"
+          else
+            echo "has-wrapper=false" >> "$GITHUB_OUTPUT"
+            echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
+          fi
+
+      # Only runs on wrapper-less branches (see above). Pinned to the same Maven version as
+      # .mvn/wrapper/maven-wrapper.properties on main, so both fallback paths resolve the
+      # same Maven regardless of what the runner image happens to provide.
+      - name: Install Maven (wrapper-less branches)
+        if: steps.resolve-maven.outputs.has-wrapper != 'true'
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Create settings.xml
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "nexus-mirror",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Sanitize names for artifact
+        id: sanitize
+        run: |
+          echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
+          echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ inputs.branch }}
+          MODULE: ${{ matrix.entry.module }}
+
+      # Restore the fully-populated Maven repo built by the build job (first-party SNAPSHOTs +
+      # third-party dependencies). This lets the test run resolve its dependency tree locally
+      # instead of re-downloading it from Nexus on every matrix job. Maven stays online, so any
+      # artifact not present still falls back to Nexus.
+      - name: Download Maven repository
+        uses: actions/download-artifact@v8
+        with:
+          name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository
+
+      # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
+      # artifact, so nothing upstream is rebuilt.
+      - name: Test e2e module
+        run: $MVN_CMD --batch-mode verify -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+
+      - name: Publish Test Report
+        if: always()
+        uses: ScalableCapital/action-surefire-report@v2
+        with:
+          check_name: Tests (${{ inputs.branch }} / ${{ matrix.entry.module }})
+          report_mode: check-run
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ steps.sanitize.outputs.module }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # *-output.txt holds the redirected test stdout (parent pom sets redirectTestOutputToFile=true);
+          # the XML <system-out> is empty, so upload the txt files to retain test logs from CI runs.
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/surefire-reports/*-output.txt
+
+  # Slack notification on build OR test failure (a build failure skips the test job, so
+  # both results are checked). main/stable only, not PR runs.
+  notify:
+    name: Notify
+    needs: [ build, test ]
+    if: |
+      always()
+      && (needs.build.result == 'failure' || needs.test.result == 'failure')
+      && (inputs.branch == 'main' || startsWith(inputs.branch, 'stable/'))
+    runs-on: ubuntu-latest
+    steps:
+      # checkout brings CODEOWNERS + the local action
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Compose headline
+        # no module list on a build failure, so name the phase that failed
+        id: phase
+        run: |
+          if [ "${{ needs.build.result }}" == "failure" ]; then
+            echo "headline=E2E build failed" >> "$GITHUB_OUTPUT"
+          else
+            echo "headline=E2E tests failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Matrix sub-jobs are named "($BRANCH) / <module>"; list the failed ones as both a
+      # human bullet list and the repo paths used for ownership resolution.
+      - name: Fetch failed modules
+        id: modules
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          prefix="(${BRANCH}) / "
+          modules=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
+            --paginate | \
+            jq -rs --arg p "$prefix" \
+            '[.[].jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))]' \
+          )
+          # escaped "\n" (not a real newline): survives interpolation into the Slack JSON payload
+          failed_modules=$(jq -r 'if length == 0 then "(see run for details)" else map("• " + .) | join("\\n") end' <<<"$modules")
+          module_paths=$(jq -r 'map("connectors-e2e-test/" + .) | join("\n")' <<<"$modules")
+          {
+            echo "failed_modules<<EOF_MODULES"
+            echo "$failed_modules"
+            echo "EOF_MODULES"
+            echo "module_paths<<EOF_PATHS"
+            echo "$module_paths"
+            echo "EOF_PATHS"
+          } >> "$GITHUB_OUTPUT"
+
+      # Resolve owning teams to Slack groups; medic is always included as the fallback.
+      # Map is built from secrets (full-mention format); an unset secret falls back to medic.
+      # Pinned to @main (not a local ./ path): the checkout above is at inputs.branch (e.g. a
+      # stable/* branch) for CODEOWNERS, but this workflow file itself only lives on main, so the
+      # action must too - a local ref would 404 on branches that never had this action backported.
+      - name: Derive Slack mentions from CODEOWNERS
+        id: mentions
+        continue-on-error: true
+        uses: camunda/connectors/.github/actions/codeowners-slack-mentions@main
+        with:
+          paths: ${{ steps.modules.outputs.module_paths }}
+          team-slack-map: |
+            {
+              "@camunda/connectors-core": "${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}",
+              "@camunda/connectors-experience": "${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}",
+              "@camunda/connectors-agentic-ai": "${{ secrets.AGENTIC_ORCHESTRATION_MEDIC_SLACK_GROUP_ID }}",
+              "@camunda/connectors-idp": "${{ secrets.IDP_MEDIC_SLACK_GROUP_ID }}"
+            }
+          always-include: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
+
+      # If CODEOWNERS mention resolution fails (e.g. npm ci failure), fall back to the medic mention
+      # and add a warning asking for manual notification of the affected teams.
+      - name: Prepare Slack mentions and resolution note
+        id: mention_status
+        env:
+          MENTIONS_OUTCOME: ${{ steps.mentions.outcome }}
+          MENTIONS_OUTPUT: ${{ steps.mentions.outputs.mentions }}
+          MEDIC_MENTION: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
+        run: |
+          if [ "$MENTIONS_OUTCOME" = "success" ] && [ -n "$MENTIONS_OUTPUT" ]; then
+            echo "mentions=$MENTIONS_OUTPUT" >> "$GITHUB_OUTPUT"
+            echo "resolution_note=" >> "$GITHUB_OUTPUT"
+          else
+            echo "mentions=$MEDIC_MENTION" >> "$GITHUB_OUTPUT"
+            echo "resolution_note=\\n:warning: CODEOWNERS mention resolution failed; defaulted to medic mention, please notify the affected teams manually." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post failure summary to Slack
+        # `always()` keeps this post from being skipped by earlier failures in this notify job;
+        # the job-level `if` above still limits the whole notify job to failed build/test runs.
+        if: always()
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
+              "text": ":alarm: ${{ steps.mention_status.outputs.mentions }} ${{ steps.phase.outputs.headline }} on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}${{ steps.mention_status.outputs.resolution_note }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
