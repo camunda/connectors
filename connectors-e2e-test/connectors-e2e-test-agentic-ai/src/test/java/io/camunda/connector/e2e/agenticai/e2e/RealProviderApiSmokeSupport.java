@@ -572,27 +572,43 @@ abstract class RealProviderApiSmokeSupport {
   }
 
   static Stream<ProviderConfig> providers() {
-    return providerCatalog().filter(ProviderConfig::isEnabled);
+    return requireProviderSelection(providerCatalog().filter(ProviderConfig::isEnabled), "any");
   }
 
   static Stream<ProviderConfig> providersWithStructuredOutput() {
-    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
+    return requireProviderSelection(
+        providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT)), "structured-output");
   }
 
   static Stream<ProviderConfig> providersWithReasoning() {
-    return providers().filter(p -> p.supports(Capability.REASONING));
+    return requireProviderSelection(
+        providers().filter(p -> p.supports(Capability.REASONING)), "reasoning");
   }
 
   static Stream<ProviderConfig> providersWithPromptCaching() {
-    return providers()
-        .filter(p -> p.supports(Capability.PROMPT_CACHING))
-        // Cache placement is opportunistic across providers, so preserve manual coverage without
-        // making a positive cache-hit assertion block the provider-sharded PR workflow.
-        .filter(p -> !RealLlmProviderGroup.isShardedRun());
+    return requireProviderSelection(
+        providers()
+            .filter(p -> p.supports(Capability.PROMPT_CACHING))
+            // Cache placement is opportunistic across providers, so preserve manual coverage
+            // without making a positive cache-hit assertion block the provider-sharded PR
+            // workflow.
+            .filter(p -> !RealLlmProviderGroup.isShardedRun()),
+        "prompt-caching");
   }
 
   static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
-    return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
+    return requireProviderSelection(
+        providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE)), "multimodal");
+  }
+
+  private static Stream<ProviderConfig> requireProviderSelection(
+      Stream<ProviderConfig> providers, String capability) {
+    final var selectedProviders = providers.toList();
+    if (RealLlmTestEnvironment.isProviderRequired() && selectedProviders.isEmpty()) {
+      throw new IllegalStateException(
+          "No enabled real provider supports the " + capability + " capability");
+    }
+    return selectedProviders.stream();
   }
 
   protected static String envOrPlaceholder(String envVar) {

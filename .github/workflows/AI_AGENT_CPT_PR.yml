@@ -279,6 +279,7 @@ jobs:
           CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
           CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
           RUN_NATIVE_LLM_E2E: "true"
+          REQUIRE_NATIVE_LLM_PROVIDER: "true"
           REAL_LLM_PROVIDER_GROUP: ${{ matrix.provider-group }}
           TEST_CLASSES: ${{ matrix.test-classes }}
           TEST_GROUPS: ${{ matrix.groups }}

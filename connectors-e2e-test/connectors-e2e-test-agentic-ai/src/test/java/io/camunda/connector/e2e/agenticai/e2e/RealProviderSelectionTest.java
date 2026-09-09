@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -52,6 +53,17 @@ class RealProviderSelectionTest {
     environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
 
     assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching()).isEmpty();
+  }
+
+  @Test
+  void shouldFailStrictModeWhenASelectedCapabilityHasNoProviders() {
+    environment.set("OPENAI_API_KEY", "key");
+    environment.set("REAL_LLM_PROVIDER_GROUP", "openai");
+    environment.set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+
+    assertThatThrownBy(() -> RealProviderApiSmokeSupport.providersWithPromptCaching().toList())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No enabled real provider supports the prompt-caching capability");
   }
 
   @Test
