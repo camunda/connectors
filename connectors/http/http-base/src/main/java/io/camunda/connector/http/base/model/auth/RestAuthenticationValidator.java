@@ -13,26 +13,29 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpMethod;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Only the OAuth client-credentials variant can be checked out-of-band: it carries its own token
- * endpoint, so a token is actually requested. Basic, bearer and API key hold a secret with nothing
- * to present it to, and checking the refresh-token grant would consume a token the provider may
- * rotate — both return {@link ConfigurationValidationResult#unsupported() unsupported} rather than
- * an unverified success.
+ * Presents the credential to an endpoint and reports whether it was refused. A static secret
+ * (basic, bearer, API key) goes to {@link RestAuthenticationConfiguration#url()}, which the
+ * configuration makes mandatory for exactly those types; an OAuth client-credentials grant asks its
+ * own token endpoint for a token. Only the refresh-token grant is left unchecked, since a check
+ * would consume a token the provider may rotate (RFC 6749 §6).
  */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
 
   private static final Logger LOG = LoggerFactory.getLogger(RestAuthenticationValidator.class);
 
-  static final String MISSING_AUTH_MESSAGE = "Authentication is required.";
-  static final String UNAUTHORIZED_MESSAGE =
-      "The token endpoint rejected the credential (unauthorized).";
+  static final String MISSING_AUTH_MESSAGE =
+      "A credential must specify an authentication mechanism other than 'None'.";
+  static final String UNAUTHORIZED_MESSAGE = "The endpoint rejected the credential (unauthorized).";
   static final String GENERIC_MESSAGE =
       "The REST authentication credential could not be validated.";
 
@@ -44,32 +47,47 @@ public class RestAuthenticationValidator
 
   @Override
   public ConfigurationValidationResult validate(RestAuthenticationConfiguration configuration) {
-    if (configuration.authentication() == null) {
-      return ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
-    }
+    // Fully enumerated rather than defaulted: the exhaustiveness check then turns a newly added
+    // authentication variant into a build error instead of a silently unvalidated credential.
     return switch (configuration.authentication()) {
-      case NoAuthentication ignored -> ConfigurationValidationResult.success();
-      case BasicAuthentication ignored -> ConfigurationValidationResult.unsupported();
-      case BearerAuthentication ignored -> ConfigurationValidationResult.unsupported();
-      case ApiKeyAuthentication ignored -> ConfigurationValidationResult.unsupported();
+      case null ->
+          ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
+      case NoAuthentication ignored ->
+          ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
+      case BasicAuthentication ignored -> callEndpoint(configuration);
+      case BearerAuthentication ignored -> callEndpoint(configuration);
+      case ApiKeyAuthentication ignored -> callEndpoint(configuration);
       case OAuthAuthentication oauth -> requestToken(oauth);
       case OAuthRefreshTokenAuthentication ignored -> ConfigurationValidationResult.unsupported();
     };
   }
 
+  private static ConfigurationValidationResult callEndpoint(
+      RestAuthenticationConfiguration configuration) {
+    var request = new HttpClientRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setUrl(configuration.url());
+    request.setAuthentication(AuthenticationMapper.map(configuration.authentication()));
+    return attempt(request, response -> null);
+  }
+
   private static ConfigurationValidationResult requestToken(OAuthAuthentication authentication) {
+    var oAuthService = new OAuthService();
+    var mapped =
+        (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
+            AuthenticationMapper.map(authentication);
+    return attempt(
+        oAuthService.createOAuthRequestFrom(mapped), oAuthService::extractTokenFromResponse);
+  }
+
+  private static <T> ConfigurationValidationResult attempt(
+      HttpClientRequest request, ResponseMapper<T> responseMapper) {
     try {
-      var oAuthService = new OAuthService();
-      var mapped =
-          (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
-              AuthenticationMapper.map(authentication);
-      new CustomApacheHttpClient()
-          .execute(
-              oAuthService.createOAuthRequestFrom(mapped), oAuthService::extractTokenFromResponse);
+      new CustomApacheHttpClient().execute(request, responseMapper);
       return ConfigurationValidationResult.success();
     } catch (Exception e) {
       LOG.debug(
-          "Token request failed for a REST authentication credential (type {}, code {})",
+          "Validation request failed for a REST authentication credential (type {}, code {})",
           e.getClass().getName(),
           e instanceof ConnectorException connectorException
               ? connectorException.getErrorCode()
