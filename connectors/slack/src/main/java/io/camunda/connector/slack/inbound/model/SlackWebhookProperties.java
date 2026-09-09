@@ -8,6 +8,7 @@ package io.camunda.connector.slack.inbound.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.slack.api.app_backend.SlackSignature;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -32,7 +33,16 @@ public record SlackWebhookProperties(
     // Declared before the inline signing secret it gates below - required both for UX (pick a
     // credential before falling back to the inline secret) and by ConditionPropertyOrderRule (a
     // condition's referenced property must appear earlier).
-    @TemplateProperty(
+    //
+    // @FEEL is what makes the chooser work on the inbound path at all. An outbound chooser needs
+    // none: the engine evaluates the zeebe:input and the connector receives a resolved object. An
+    // inbound property arrives as the raw string the model carries
+    // ("=camunda.vars.env.myCredential"), and the runtime's FeelAnnotationIntrospector installs
+    // the evaluating deserializer only for @FEEL-annotated fields - without it Jackson tries to
+    // build the configuration record straight from that string and fails with "no
+    // String-argument constructor/factory method to deserialize from String value".
+    @FEEL
+        @TemplateProperty(
             id = "slackCredential",
             label = "Slack credential",
             group = "endpoint",
