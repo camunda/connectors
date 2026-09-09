@@ -74,6 +74,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.grpc.StatusRuntimeException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -201,7 +202,10 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getTenantId());
     var secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     var context =
         new JobHandlerContext(
             job,

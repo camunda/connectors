@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -33,6 +34,7 @@ import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyCont
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +49,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCache;
 class ProcessDefinitionSecretKeyCacheTest {
 
   private static final long PROCESS_DEF_KEY = 1L;
+  private static final Instant DEADLINE = Instant.now().plusSeconds(3600);
 
   @Mock private CamundaClient camundaClient;
   @Mock private ProcessDefinitionGetXmlRequest xmlRequest;
@@ -76,7 +79,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .extracting(Secret::secretName)
@@ -92,7 +96,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-dotted-target.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys).containsExactly(new Secret("API_KEY", List.of("auth", "token")));
   }
@@ -107,7 +112,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-referenced-variable.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .contains(
@@ -123,7 +129,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-chained-references.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .containsExactlyInAnyOrder(
@@ -141,7 +148,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-referenced-variable.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .doesNotContain(
@@ -160,7 +168,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-sibling-fields.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .contains(
@@ -181,7 +190,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-reverse-order-reference.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .contains(new Secret("API_KEY", List.of("baseUrl")))
@@ -200,7 +210,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-parent-overwrite.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     // Nothing in this BPMN ever reads authentication.token from a path that's still effective, so
     // TOKEN isn't just absent from the two paths above -- it's not granted anywhere at all. This
@@ -218,7 +229,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-same-path-overwrite.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys).isEmpty();
   }
@@ -236,7 +248,8 @@ class ProcessDefinitionSecretKeyCacheTest {
         .thenReturn(loadBpmn("outbound-with-overwritten-propagation-target.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .containsExactly(new Secret("TOKEN", List.of("baseUrl")))
@@ -256,7 +269,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-child-overwrite.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys).isEmpty();
   }
@@ -275,7 +289,8 @@ class ProcessDefinitionSecretKeyCacheTest {
         .thenReturn(loadBpmn("outbound-with-nested-parent-and-child-overwrite.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys).isEmpty();
   }
@@ -292,7 +307,8 @@ class ProcessDefinitionSecretKeyCacheTest {
         .thenReturn(loadBpmn("outbound-with-shadowed-input-as-dependency.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys).containsExactly(new Secret("T", List.of("baseUrl")));
   }
@@ -303,8 +319,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));
 
     var alphaKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-alpha"));
-    var betaKeys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-beta"));
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-alpha", DEADLINE));
+    var betaKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-beta", DEADLINE));
 
     assertThat(alphaKeys).extracting(Secret::secretName).containsExactly("SECRET_ALPHA");
     assertThat(betaKeys)
@@ -317,7 +334,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-no-secrets.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task", DEADLINE));
 
     assertThat(keys).isEmpty();
   }
@@ -329,7 +347,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     // built by applying an element template in Modeler.
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-no-template.bpmn"));
 
-    var keys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "plain-task"));
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "plain-task", DEADLINE));
 
     assertThat(keys).extracting(Secret::secretName).containsExactly("SECRET_X");
   }
@@ -339,9 +358,10 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-adhoc-subprocess.bpmn"));
 
     var subProcessKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "agent-subprocess"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "agent-subprocess", DEADLINE));
     var childKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "child-task"));
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "child-task", DEADLINE));
 
     assertThat(subProcessKeys).extracting(Secret::secretName).containsExactly("ADHOC_SECRET");
     assertThat(childKeys).extracting(Secret::secretName).containsExactly("CHILD_SECRET");
@@ -355,11 +375,14 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-nested-embedded-subprocess.bpmn"));
 
     var outerKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "outer-subprocess"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "outer-subprocess", DEADLINE));
     var innerKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "inner-subprocess"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "inner-subprocess", DEADLINE));
     var grandchildKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task", DEADLINE));
 
     assertThat(outerKeys).extracting(Secret::secretName).containsExactly("OUTER_SECRET");
     assertThat(innerKeys).extracting(Secret::secretName).containsExactly("INNER_SECRET");
@@ -372,9 +395,11 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-message-events.bpmn"));
 
     var throwEventKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-throw"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "send-message-throw", DEADLINE));
     var endEventKeys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end", DEADLINE));
 
     assertThat(throwEventKeys).extracting(Secret::secretName).containsExactly("THROW_EVENT_SECRET");
     assertThat(endEventKeys).extracting(Secret::secretName).containsExactly("END_EVENT_SECRET");
@@ -385,7 +410,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
     var keys =
-        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "nonexistent-task"));
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "nonexistent-task", DEADLINE));
 
     assertThat(keys).isEmpty();
   }
@@ -409,9 +435,11 @@ class ProcessDefinitionSecretKeyCacheTest {
     var cacheForTenantB = new ProcessDefinitionSecretKeyCache("tenant-b", clientB, sharedCache);
 
     var keysA =
-        cacheForTenantA.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+        cacheForTenantA.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
     var keysB =
-        cacheForTenantB.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task"));
+        cacheForTenantB.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task", DEADLINE));
 
     assertThat(keysA)
         .extracting(Secret::secretName)
@@ -434,7 +462,9 @@ class ProcessDefinitionSecretKeyCacheTest {
         .thenThrow(new RuntimeException("not found (yet)"))
         .thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
-    var keys = retryingCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+    var keys =
+        retryingCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE));
 
     assertThat(keys)
         .extracting(Secret::secretName)
@@ -451,11 +481,43 @@ class ProcessDefinitionSecretKeyCacheTest {
     assertThatThrownBy(
             () ->
                 retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1")))
+                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("still not found");
     // 1 initial attempt + 3 retries
     verify(xmlRequest, times(4)).execute();
+  }
+
+  @Test
+  void getSecretKeys_deadlineWithinSafetyMargin_attemptsOnceWithoutRetrying() {
+    when(xmlRequest.execute()).thenThrow(new RuntimeException("job lease about to expire"));
+
+    assertThatThrownBy(
+            () ->
+                secretKeyCache.getSecretKeys(
+                    new SecretKeyContext(
+                        PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("job lease about to expire");
+    verify(xmlRequest, times(1)).execute();
+  }
+
+  @Test
+  void getSecretKeys_deadlineLeavesOnlyAPartialRetryWindow_stopsRetryingBeforeMaxRetries() {
+    var retryingCache =
+        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(50));
+    when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
+
+    assertThatThrownBy(
+            () ->
+                retryingCache.getSecretKeys(
+                    new SecretKeyContext(
+                        PROCESS_DEF_KEY,
+                        "service-task-1",
+                        Instant.now().plusSeconds(5).plusMillis(150))))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("still not found");
+    verify(xmlRequest, atMost(3)).execute();
   }
 
   private String loadBpmn(String fileName) throws IOException {
