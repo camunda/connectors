@@ -160,7 +160,7 @@ requires a credential source to build at all. Overrides merge additively per-key
 `OpenAiCustomEndpointAuthentication` sealed interface supports `apiKey` (static) and
 `OAuthClientCredentialsAuthentication` (OAuth 2.0 client-credentials flow, for OpenAI-compatible API
 gateways that require it): `OpenAiChatModelFactory.applyCustomBackend` wraps the shared
-`OAuthClientCredentialsTokenResolver` (`provider/authentication/oauth/`, backed by the same
+`OAuthClientCredentialsTokenResolver` (`connector-commons/http-client`, backed by the same
 `OAuthService`/`OAuthTokenCache` the HTTP connector uses) as a `com.openai.credential.BearerTokenCredential`
 supplier via `builder.credential(...)`, invoked fresh on every request — the same mechanism
 `OpenAiFoundryCredentialResolver` uses for Entra ID. The MCP client's `OAuthHeadersSupplier` is
