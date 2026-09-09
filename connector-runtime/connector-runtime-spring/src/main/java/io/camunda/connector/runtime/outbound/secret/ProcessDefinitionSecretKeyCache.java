@@ -104,7 +104,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   /** Test-only seam: lets retry tests use a near-zero delay instead of the real one. */
-  ProcessDefinitionSecretKeyCache(
+  public ProcessDefinitionSecretKeyCache(
       String physicalTenantId,
       CamundaClient camundaClient,
       Cache cache,
