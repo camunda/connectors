@@ -16,6 +16,8 @@ import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.junit.jupiter.api.Nested;
@@ -50,6 +52,38 @@ class RestAuthenticationValidatorTest {
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))
         .contains(RestAuthenticationValidator.class);
+  }
+
+  @Test
+  void refreshTokenCredentialPayloadUsesFlatRuntimeFields() throws Exception {
+    var configuration =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(
+                """
+                {
+                  "authentication": {
+                    "type": "oauth-refresh-token",
+                    "oauthTokenEndpoint": "https://example.com/oauth/token",
+                    "clientId": "client-id",
+                    "clientSecret": "client-secret",
+                    "refreshToken": "refresh-token",
+                    "scopes": "openid offline_access"
+                  }
+                }
+                """,
+                RestAuthenticationConfiguration.class);
+
+    ValidationUtil.discoverDefaultValidationProviderImplementation().validate(configuration);
+
+    assertThat(configuration.authentication())
+        .isEqualTo(
+            new OAuthRefreshTokenAuthentication(
+                "https://example.com/oauth/token",
+                "client-id",
+                "client-secret",
+                "refresh-token",
+                "openid offline_access"));
+    assertThat(configuration.url()).isNull();
   }
 
   @Nested

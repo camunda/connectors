@@ -1190,7 +1190,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
+        "name" : "authentication.oauthTokenEndpoint",
         "type" : "property"
       },
       "condition" : {
@@ -1207,7 +1207,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.clientId",
+        "name" : "authentication.clientId",
         "type" : "property"
       },
       "condition" : {
@@ -1222,7 +1222,7 @@
       "label" : "Client secret",
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.clientSecret",
+        "name" : "authentication.clientSecret",
         "type" : "property"
       },
       "condition" : {
@@ -1241,7 +1241,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.refreshToken",
+        "name" : "authentication.refreshToken",
         "type" : "property"
       },
       "condition" : {
@@ -1257,7 +1257,7 @@
       "label" : "Scopes",
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.scopes",
+        "name" : "authentication.scopes",
         "type" : "property"
       },
       "condition" : {
