@@ -181,7 +181,7 @@
     "optional" : true,
     "group" : "authentication",
     "binding" : {
-      "name" : "configuration",
+      "name" : "emailAccountConfiguration",
       "type" : "zeebe:input"
     },
     "type" : "Configuration",

@@ -19,7 +19,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 @OutboundConnector(
     name = "Email",
-    inputVariables = {"authentication", "protocol", "data", "configuration"},
+    inputVariables = {"authentication", "protocol", "data", "emailAccountConfiguration"},
     type = "io.camunda:email:1")
 @ElementTemplate(
     engineVersion = "^8.10",

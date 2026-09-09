@@ -47,7 +47,7 @@ class EmailRequestTest {
             """
             {
               "protocol": "smtp",
-              "configuration": {
+              "emailAccountConfiguration": {
                 "username": "account-user",
                 "password": "account-pass",
                 "smtpHost": "localhost",
@@ -89,7 +89,7 @@ class EmailRequestTest {
             """
                 .formatted(SEND_EMAIL_ACTION));
 
-    assertThat(request.configuration()).isNull();
+    assertThat(request.emailAccountConfiguration()).isNull();
     assertThat(request.authentication())
         .isEqualTo(new SimpleAuthentication("inline-user", "inline-pass"));
     assertThat(request.getProtocolConfiguration())
@@ -109,7 +109,7 @@ class EmailRequestTest {
             {
               "protocol": "smtp",
               "authentication": { "type": "simple", "username": "", "password": "" },
-              "configuration": {
+              "emailAccountConfiguration": {
                 "username": "account-user",
                 "password": "account-pass",
                 "smtpHost": "localhost",
@@ -189,7 +189,7 @@ class EmailRequestTest {
                     """
                     {
                       "protocol": "imap",
-                      "configuration": {
+                      "emailAccountConfiguration": {
                         "username": "account-user",
                         "password": "account-pass",
                         "smtpHost": "localhost"
@@ -212,7 +212,7 @@ class EmailRequestTest {
                     """
                     {
                       "protocol": "smtp",
-                      "configuration": { "username": "account-user", "password": "account-pass" },
+                      "emailAccountConfiguration": { "username": "account-user", "password": "account-pass" },
                       "data": { %s }
                     }
                     """
@@ -241,7 +241,7 @@ class EmailRequestTest {
             """
             {
               "protocol": "imap",
-              "configuration": {
+              "emailAccountConfiguration": {
                 "username": "u",
                 "password": "p",
                 "smtpHost": "localhost",
@@ -306,7 +306,7 @@ class EmailRequestTest {
 
     var request = new EmailRequest(authentication, protocol);
 
-    assertThat(request.configuration()).isNull();
+    assertThat(request.emailAccountConfiguration()).isNull();
     assertThat(request.authentication()).isEqualTo(authentication);
     assertThat(request.getProtocolConfiguration()).isEqualTo(smtpConfig);
   }

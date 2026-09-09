@@ -41,7 +41,7 @@ public class EmailAccountValidator implements ConfigurationValidator<EmailAccoun
   static final String MISSING_SERVER_MESSAGE =
       "Configure at least one of the SMTP, IMAP or POP3 servers, so this email account can be validated.";
   static final String UNAUTHORIZED_MESSAGE = "The %s server rejected the username or password.";
-  static final String GENERIC_MESSAGE = "The %s server could not be reached with this account.";
+  static final String GENERIC_MESSAGE = "Could not validate this account against the %s server.";
 
   private final JakartaUtils jakartaUtils = new JakartaUtils();
 

@@ -33,12 +33,12 @@ public record EmailRequest(
             group = "authentication",
             type = TemplateProperty.PropertyType.Configuration,
             optional = true,
-            binding = @TemplateProperty.PropertyBinding(name = "configuration"),
+            binding = @TemplateProperty.PropertyBinding(name = "emailAccountConfiguration"),
             description =
                 "Choose a reusable email account credential, or configure one-time email"
                     + " parameters below.")
         @Valid
-        EmailAccountConfiguration configuration,
+        EmailAccountConfiguration emailAccountConfiguration,
     // Neither @NotNull nor @Valid any more: a bound account supplies the login instead (see
     // authentication() below), and the losing inline value is a leftover discriminator Modeler
     // emits unconditionally - validated only when it wins, via
@@ -76,7 +76,9 @@ public record EmailRequest(
    * synthetic {@code effectiveAuthentication()} so every existing caller gets the effective value.
    */
   public OutboundAuthentication authentication() {
-    return configuration != null ? configuration.toAuthentication() : authentication;
+    return emailAccountConfiguration != null
+        ? emailAccountConfiguration.toAuthentication()
+        : authentication;
   }
 
   /**
@@ -90,13 +92,13 @@ public record EmailRequest(
     if (data == null) {
       return null;
     }
-    if (configuration == null) {
+    if (emailAccountConfiguration == null) {
       return data.getConfiguration();
     }
     return switch (data) {
-      case Smtp ignored -> configuration.toSmtpConfig();
-      case Imap ignored -> configuration.toImapConfig();
-      case Pop3 ignored -> configuration.toPop3Config();
+      case Smtp ignored -> emailAccountConfiguration.toSmtpConfig();
+      case Imap ignored -> emailAccountConfiguration.toImapConfig();
+      case Pop3 ignored -> emailAccountConfiguration.toPop3Config();
     };
   }
 
@@ -132,7 +134,7 @@ public record EmailRequest(
   @Valid
   @JsonIgnore
   public OutboundAuthentication getInlineAuthenticationWhenNoAccountBound() {
-    return configuration != null ? null : authentication;
+    return emailAccountConfiguration != null ? null : authentication;
   }
 
   /**
@@ -143,6 +145,6 @@ public record EmailRequest(
   @Valid
   @JsonIgnore
   public Configuration getInlineProtocolConfigurationWhenNoAccountBound() {
-    return configuration != null || data == null ? null : data.getConfiguration();
+    return emailAccountConfiguration != null || data == null ? null : data.getConfiguration();
   }
 }
