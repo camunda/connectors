@@ -24,13 +24,12 @@ import java.util.Map;
 import org.assertj.core.api.Assertions;
 
 /**
- * Shared wire-format plumbing for Anthropic's Messages API, common to both the v1 ({@link
- * AnthropicMessagesV1WireFormatFixture}) and v2 ({@link AnthropicMessagesV2WireFormatFixture})
- * fixtures. The v1 provider config is rewritten onto the native v2 provider at the connector
- * boundary, so both fixtures drive the exact same native streaming wire format and share this same
- * streaming stub ({@link #stubConversation}); they only differ in which element template drives the
- * connector and how it is pointed at the WireMock server (see {@code apiName()}/{@code
- * configureProvider(...)} on each subclass).
+ * Shared wire-format plumbing for Anthropic's Messages API. Every subclass drives the exact same
+ * native streaming wire format and shares this same streaming stub ({@link #stubConversation}) —
+ * the v1 provider config is rewritten onto the native v2 provider at the connector boundary, and
+ * the {@code foundry} backend differs only in auth and base URL, not in request or response shape.
+ * Subclasses therefore vary only in which element template drives the connector and how it is
+ * pointed at the WireMock server (see {@code apiName()}/{@code configureProvider(...)} on each).
  *
  * <p>Notable wire-level differences from OpenAI's Chat Completions format:
  *
