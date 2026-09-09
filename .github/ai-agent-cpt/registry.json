@@ -54,7 +54,13 @@
       "testClasses": "AiAgentE2ETestIT",
       "buildBundle": true,
       "mavenProjects": "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai",
-      "credentialProfiles": ["bundle"],
+      "credentialProfiles": [
+        "bundle",
+        "openai",
+        "vertex",
+        "bedrock-provider",
+        "bedrock-judge"
+      ],
       "ci": true
     },
     {
@@ -72,7 +78,7 @@
       "id": "vertex-native",
       "name": "Vertex native capability CPT",
       "providerGroup": "vertex",
-      "groups": "core-smoke | structured-output | reasoning",
+      "groups": "core-smoke | reasoning",
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
@@ -83,7 +89,7 @@
       "id": "bedrock-native",
       "name": "Bedrock native capability CPT",
       "providerGroup": "bedrock",
-      "groups": "core-smoke | structured-output | reasoning",
+      "groups": "core-smoke | reasoning",
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",

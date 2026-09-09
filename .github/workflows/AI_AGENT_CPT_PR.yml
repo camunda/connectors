@@ -118,7 +118,7 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Import OpenAI secret
-        if: needs.setup.outputs.ai == 'true' && (matrix.build-bundle || contains(matrix.credential-profiles, 'openai'))
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'openai')
         id: openai-secret
         uses: hashicorp/vault-action@v4.0.0
         with:
@@ -131,7 +131,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
 
       - name: Import Vertex secrets
-        if: needs.setup.outputs.ai == 'true' && (matrix.build-bundle || contains(matrix.credential-profiles, 'vertex'))
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'vertex')
         id: vertex-secrets
         uses: hashicorp/vault-action@v4.0.0
         with:
@@ -161,7 +161,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
 
       - name: Import Bedrock provider secrets
-        if: needs.setup.outputs.ai == 'true' && (matrix.build-bundle || contains(matrix.credential-profiles, 'bedrock-provider'))
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-provider')
         id: bedrock-provider-secrets
         uses: hashicorp/vault-action@v4.0.0
         with:
