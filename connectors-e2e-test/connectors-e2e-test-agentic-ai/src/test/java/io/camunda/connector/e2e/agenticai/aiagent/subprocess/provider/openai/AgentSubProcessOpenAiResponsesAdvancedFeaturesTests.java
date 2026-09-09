@@ -22,16 +22,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.responses.ResponseOutputItem;
+import io.camunda.client.api.search.enums.AgentInstanceStatus;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2RecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.ReasoningTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.UsageDetailsTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -155,6 +160,45 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(finalMessage));
+  }
+
+  @Test
+  void cacheAndReasoningTokensReachResponseAndAgentInstanceMetrics() throws Exception {
+    final var responseText = "A haiku about the endless sea.";
+    OpenAiResponsesV2SseChatModelStubs.stubConversation(
+        new UsageDetailsTurnStub(responseText, 10, 20, 50, 7));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(Map.of("userPrompt", "Write a haiku about the sea")));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(7)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasResponseText(responseText)
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
   }
 
   // ---------------------------------------------------------------------------
