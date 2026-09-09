@@ -166,6 +166,40 @@ class OAuthClientCredentialsTokenResolverTest {
   }
 
   @Test
+  void shouldNotCacheTokenWhenExpiresInIsMissing() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "uncached-token",
+                          "token_type": "Bearer"
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    final var token1 = resolver.resolveAccessToken(auth);
+    final var token2 = resolver.resolveAccessToken(auth);
+
+    assertThat(token1).isEqualTo("uncached-token");
+    assertThat(token2).isEqualTo("uncached-token");
+
+    verify(2, postRequestedFor(urlEqualTo("/oauth/token")));
+  }
+
+  @Test
   void shouldThrowConnectorExceptionOnHttpFailure() {
     stubFor(
         post(urlEqualTo("/oauth/token"))
