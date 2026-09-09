@@ -23,8 +23,8 @@ import org.mockito.MockedStatic;
 
 /**
  * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
- * this class only verifies the bearer-token-supplier resolution per authentication variant, shared
- * between the Anthropic and OpenAI providers.
+ * this class only verifies the bearer-token-supplier and scope resolution per authentication
+ * variant.
  */
 class FoundryCredentialResolverTest {
 

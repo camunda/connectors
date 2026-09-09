@@ -18,10 +18,7 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Authentication strategies for the {@code foundry} backend, shared between the Anthropic and
- * OpenAI providers: both target the same Microsoft Entra ID surface.
- */
+/** Authentication strategies for a Microsoft Foundry ({@code foundry}) backend. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = FoundryAuthentication.ApiKeyAuthentication.class, name = "apiKey"),
