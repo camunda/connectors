@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip-e2e-tests:
+        description: 'Skip E2E tests'
+        required: false
+        type: boolean
+        default: false
       latest:
         description: 'Mark this release as latest (push latest docker tags & mark GitHub release latest)'
         required: false
@@ -59,7 +64,7 @@ jobs:
   setup:
     needs: create-release
     name: Prepare the repository
-    runs-on: gcp-core-2-release
+    runs-on: gcp-core-8-release
     permissions:
       contents: write
       checks: write
@@ -67,6 +72,7 @@ jobs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
+      mavenCacheKey: ${{ steps.maven-cache-key.outputs.value }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -96,11 +102,17 @@ jobs:
           distribution: 'temurin'
           java-version: '21.0.9'
 
+      - name: Determine Maven cache key
+        id: maven-cache-key
+        env:
+          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -139,7 +151,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B package generate-sources source:jar javadoc:jar
+        run: mvn -B package source:jar javadoc:jar -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -188,9 +200,29 @@ jobs:
           include-hidden-files: 'true'
 
 
-  version-bump-docs-links:
+  e2e-tests:
     needs: setup
+    name: Run E2E tests
+    if: ${{ !inputs.skip-e2e-tests }}
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/E2E_BRANCH_RUN.yml
+    with:
+      branch: ${{ inputs.version }}
+      run-unit-tests: false
+      maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
+      build-runner: gcp-core-8-release
+      runner-overrides: '{"connectors-e2e-test-http":"gcp-core-8-release","connectors-e2e-test-automation-anywhere":"gcp-core-8-release"}'
+    secrets: inherit
+
+  version-bump-docs-links:
+    needs: [setup, e2e-tests]
     name: Version bump documentation links, if this is the first minor release
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -251,10 +283,14 @@ jobs:
             This bumps docs version of latest's element templates of a connector to latest minor version.
 
   maven-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Create a maven release
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip-maven-release }}
+    if: |
+      always() &&
+      !inputs.skip-maven-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     permissions:
       contents: read
     steps:
@@ -319,7 +355,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -333,7 +369,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -343,7 +379,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -352,10 +388,14 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
   docker-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
     name: Perform the docker release
-    if: ${{ !inputs.skip-docker-release }}
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     permissions:
       contents: read
     steps:
@@ -501,8 +541,12 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -543,8 +587,13 @@ jobs:
             connectors-bundle-templates-${{ inputs.version }}.zip
 
   helm-deploy:
-    needs: [ setup, docker-release ]
-    if: ${{ !inputs.skip-docker-release }}
+    needs: [setup, e2e-tests, docker-release]
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
+      needs.docker-release.result == 'success'
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
