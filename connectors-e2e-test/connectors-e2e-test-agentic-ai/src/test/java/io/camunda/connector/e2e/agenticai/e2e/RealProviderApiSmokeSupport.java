@@ -16,29 +16,19 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
-import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.process.test.api.CamundaProcessTestContext;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
@@ -52,36 +42,12 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ResourceLoader;
 
-/**
- * Cross-provider real-API acceptance safety net for the native (v2) provider path. Local-only: runs
- * only when RUN_NATIVE_LLM_E2E=true and the row's API key is present. Asserts on observable output
- * (nonce facts, JSON schema, token metrics) so scenarios port across providers.
- */
-@SpringBootTest(
-    classes = {TestConnectorRuntimeApplication.class},
-    properties = {
-      "spring.main.allow-bean-definition-overriding=true",
-      "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
-      "logging.level.io.camunda.connector.agenticai=TRACE"
-    },
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@CamundaSpringProcessTest
-@Import(CamundaDocumentTestConfiguration.class)
-@EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
-@WireMockTest
-class RealProviderApiSmokeIT {
+/** Shared native real-provider catalog and execution support for capability suites. */
+abstract class RealProviderApiSmokeSupport {
 
   static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
   static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
@@ -105,7 +71,7 @@ class RealProviderApiSmokeIT {
       "You are a precise assistant. When the user asks for a classified or internal code name, "
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim.";
 
-  private static final String RESPONSE_SCHEMA =
+  protected static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
           + "\"required\":[\"codeName\",\"clearanceLevel\"]}";
@@ -113,7 +79,7 @@ class RealProviderApiSmokeIT {
   // Repeated to clear the largest minimum cacheable-prefix size among providers under test:
   // Anthropic needs ~1024 tokens (Sonnet-class models), Gemini needs ~4096. Each repeat is ~65
   // tokens, so 80 repeats (~5200 tokens) gives comfortable margin over both.
-  private static final String LONG_SYSTEM_PROMPT =
+  protected static final String LONG_SYSTEM_PROMPT =
       """
       You are an assistant operating under a detailed classified-information handling protocol. \
       Always be precise, never fabricate facts, and when the user asks for an internal \
@@ -122,16 +88,6 @@ class RealProviderApiSmokeIT {
       carefully and consistently across the whole conversation. \
       """
           .repeat(80);
-
-  private static final String DOC_DIR = "document-tool-call-results/";
-  private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
-  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
-  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
-  private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
-  private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
-  private static final String DOCUMENT_SYSTEM_PROMPT =
-      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
-          + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
@@ -423,91 +379,56 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  static Stream<ProviderConfig> providers() {
+  static Stream<ProviderConfig> providerCatalog() {
     return Stream.of(
-            // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
-            // always emits a thinking block regardless of prompt difficulty.
-            anthropicV2(
-                "claude-sonnet-4-6",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING,
-                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.anthropic.model.parameters.thinking.mode", "enabled",
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))),
-            // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
-            // decides whether to think). At effort "high" it reliably thinks on a genuinely
-            // multi-step prompt, but this is model choice, not an API-level guarantee.
-            anthropicV2(
-                "claude-sonnet-5",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING,
-                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high"))),
-            // Same model/capability config as the anthropic-api claude-sonnet-5 row above, minus
-            // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
-            // confirm this endpoint doesn't support it:
-            // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
-            anthropicBedrockMantleV2(
-                "claude-sonnet-5",
-                Map.of(
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING,
-                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high"))),
-            // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
-            // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
-            // for this model ("This model doesn't support the outputConfig field"), matching its
-            // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
-            // to misspelling nonce words in its output.
-            bedrockConverseV2(
-                    "us.amazon.nova-2-lite-v1:0",
+        // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
+        // always emits a thinking block regardless of prompt difficulty.
+        anthropicV2(
+            "claude-sonnet-4-6",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING,
+                    Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                Capability.REASONING,
                     Map.of(
-                        Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                        Capability.PROMPT_CACHING,
-                            Map.of(
-                                "provider.bedrock.model.parameters.promptCaching.enabled", "true"),
-                        Capability.REASONING,
-                            Map.of(
-                                "provider.bedrock.bodyProperties",
-                                "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}")))
-                .disabled(),
-            // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
-            // modalities, and neither structured output nor explicit prompt caching is documented
-            // for it, so those capabilities are left undeclared. Its reasoning uses a
-            // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
-            // reasoning request shape works through the same provider-agnostic scenario.
-            bedrockConverseV2(
-                "openai.gpt-oss-120b-1:0",
-                Map.of(
-                    Capability.REASONING,
-                    Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
-            // Claude via the native Converse path: a permanent cross-check that the generic
-            // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
-            // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5
-            // only
-            // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
-            // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
-            // SDK's
-            // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
-            // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
-            // not yet include claude-sonnet-5 — the model itself rejects it with a 400
-            // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
-            // API
-            // call.
-            bedrockConverseV2(
-                "global.anthropic.claude-sonnet-5",
+                        "provider.anthropic.model.parameters.thinking.mode", "enabled",
+                        "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))),
+        // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
+        // decides whether to think). At effort "high" it reliably thinks on a genuinely
+        // multi-step prompt, but this is model choice, not an API-level guarantee.
+        anthropicV2(
+            "claude-sonnet-5",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING,
+                    Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                Capability.REASONING,
+                    Map.of(
+                        "provider.anthropic.model.parameters.thinking.mode", "adaptive",
+                        "provider.anthropic.model.parameters.effort", "high"))),
+        // Same model/capability config as the anthropic-api claude-sonnet-5 row above, minus
+        // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
+        // confirm this endpoint doesn't support it:
+        // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
+        anthropicBedrockMantleV2(
+            "claude-sonnet-5",
+            Map.of(
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING,
+                    Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                Capability.REASONING,
+                    Map.of(
+                        "provider.anthropic.model.parameters.thinking.mode", "adaptive",
+                        "provider.anthropic.model.parameters.effort", "high"))),
+        // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
+        // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
+        // for this model ("This model doesn't support the outputConfig field"), matching its
+        // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
+        // to misspelling nonce words in its output.
+        bedrockConverseV2(
+                "us.amazon.nova-2-lite-v1:0",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING,
@@ -515,108 +436,143 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.bedrock.bodyProperties",
-                            "={thinking: {type: \"adaptive\"}}"))),
-            // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
-            // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
-            openAiResponsesV2(
-                "gpt-5.5",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of(),
-                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
-            // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
-            openAiCompletionsV2(
-                "gpt-5.5",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            // An older model, on both API families, for completeness.
-            openAiResponsesV2(
-                "gpt-4.1",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            openAiCompletionsV2(
-                "gpt-4.1",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            // Same models/capabilities as the openai-api rows above, via the foundry backend.
-            openAiFoundryResponsesV2(
-                "gpt-5.5",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of(),
-                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
-            openAiFoundryCompletionsV2(
-                "gpt-5.5",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            openAiFoundryResponsesV2(
-                "gpt-4.1",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            openAiFoundryCompletionsV2(
-                "gpt-4.1",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())),
-            googleGeminiV2(
+                            "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}")))
+            .disabled(),
+        // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
+        // modalities, and neither structured output nor explicit prompt caching is documented
+        // for it, so those capabilities are left undeclared. Its reasoning uses a
+        // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
+        // reasoning request shape works through the same provider-agnostic scenario.
+        bedrockConverseV2(
+            "openai.gpt-oss-120b-1:0",
+            Map.of(
+                Capability.REASONING,
+                Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
+        // Claude via the native Converse path: a permanent cross-check that the generic
+        // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
+        // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5
+        // only
+        // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
+        // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
+        // SDK's
+        // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
+        // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
+        // not yet include claude-sonnet-5 — the model itself rejects it with a 400
+        // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
+        // API
+        // call.
+        bedrockConverseV2(
+            "global.anthropic.claude-sonnet-5",
+            Map.of(
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING,
+                    Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                Capability.REASONING,
+                    Map.of(
+                        "provider.bedrock.bodyProperties", "={thinking: {type: \"adaptive\"}}"))),
+        // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
+        // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
+        openAiResponsesV2(
+            "gpt-5.5",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of(),
+                Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+        // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
+        openAiCompletionsV2(
+            "gpt-5.5",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        // An older model, on both API families, for completeness.
+        openAiResponsesV2(
+            "gpt-4.1",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        openAiCompletionsV2(
+            "gpt-4.1",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        // Same models/capabilities as the openai-api rows above, via the foundry backend.
+        openAiFoundryResponsesV2(
+            "gpt-5.5",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of(),
+                Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+        openAiFoundryCompletionsV2(
+            "gpt-5.5",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        openAiFoundryResponsesV2(
+            "gpt-4.1",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        openAiFoundryCompletionsV2(
+            "gpt-4.1",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of())),
+        googleGeminiV2(
+            "gemini-3.7-flash",
+            Map.of(
+                Capability.STRUCTURED_OUTPUT,
+                Map.of(),
+                Capability.MULTIMODAL_USER_MESSAGE,
+                Map.of(),
+                Capability.PROMPT_CACHING,
+                Map.of(),
+                Capability.REASONING,
+                Map.of("provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+        // The configured regional endpoint returns 404 for Gemini 3.7. Keep the row visible but
+        // out of CI until its use of Vertex's global endpoint is validated.
+        googleGeminiVertexAiV2(
                 "gemini-3.7-flash",
                 Map.of(
-                    Capability.STRUCTURED_OUTPUT,
-                    Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE,
-                    Map.of(),
-                    Capability.PROMPT_CACHING,
-                    Map.of(),
-                    Capability.REASONING,
-                    Map.of(
-                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
-            // The configured regional endpoint returns 404 for Gemini 3.7. Keep the row visible but
-            // out of CI until its use of Vertex's global endpoint is validated.
-            googleGeminiVertexAiV2(
-                    "gemini-3.7-flash",
-                    Map.of(
-                        Capability.STRUCTURED_OUTPUT, Map.of(),
-                        Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                        Capability.PROMPT_CACHING, Map.of(),
-                        Capability.REASONING,
-                            Map.of(
-                                "provider.googleGemini.model.parameters.thinking.thinkingLevel",
-                                "high")))
-                .disabledInShardedRun(),
-            // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
-            // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
-            googleGeminiV2(
-                "gemini-2.5-pro",
-                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING,
                         Map.of(
-                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                            "24576"))),
-            googleGeminiVertexAiV2(
-                "gemini-2.5-pro",
-                Map.of(
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of(),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                            "24576"))))
-        .filter(ProviderConfig::isEnabled);
+                            "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+                            "high")))
+            .disabledInShardedRun(),
+        // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
+        // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
+        googleGeminiV2(
+            "gemini-2.5-pro",
+            Map.of(
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of(),
+                Capability.REASONING,
+                    Map.of(
+                        "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                        "24576"))),
+        googleGeminiVertexAiV2(
+            "gemini-2.5-pro",
+            Map.of(
+                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                Capability.PROMPT_CACHING, Map.of(),
+                Capability.REASONING,
+                    Map.of(
+                        "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                        "24576"))));
+  }
+
+  static Stream<ProviderConfig> providers() {
+    return providerCatalog().filter(ProviderConfig::isEnabled);
   }
 
   static Stream<ProviderConfig> providersWithStructuredOutput() {
@@ -630,23 +586,20 @@ class RealProviderApiSmokeIT {
   static Stream<ProviderConfig> providersWithPromptCaching() {
     return providers()
         .filter(p -> p.supports(Capability.PROMPT_CACHING))
-        // OpenAI cache placement is opportunistic, so preserve manual coverage without making a
-        // positive cache-hit assertion block the PR workflow.
-        .filter(
-            p ->
-                p.providerGroup() != RealLlmProviderGroup.OPENAI
-                    || !RealLlmProviderGroup.isShardedRun());
+        // Cache placement is opportunistic across providers, so preserve manual coverage without
+        // making a positive cache-hit assertion block the provider-sharded PR workflow.
+        .filter(p -> !RealLlmProviderGroup.isShardedRun());
   }
 
   static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
   }
 
-  private static String envOrPlaceholder(String envVar) {
+  protected static String envOrPlaceholder(String envVar) {
     return RealLlmTestEnvironment.getOrDefault(envVar, "NOT_SET");
   }
 
-  private static String envOrDefault(String envVar, String defaultValue) {
+  protected static String envOrDefault(String envVar, String defaultValue) {
     return RealLlmTestEnvironment.getOrDefault(envVar, defaultValue);
   }
 
@@ -663,274 +616,10 @@ class RealProviderApiSmokeIT {
                     .join());
   }
 
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providers")
-  void toolCallLoopSurfacesPlantedFact(ProviderConfig provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
-            template -> {});
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
-            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
-    completeUserFeedback(instance, Map.of("userSatisfied", true));
-
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasResponseTextSatisfying(
-                    text ->
-                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME)));
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithStructuredOutput")
-  void structuredOutputReturnsSchemaConformingJson(ProviderConfig provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
-            template ->
-                template
-                    .property("data.response.format.type", "json")
-                    .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
-                    .property("data.response.format.schemaName", "ClassifiedFact"));
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
-            Map.of(
-                "userPrompt",
-                "Look up the internal project code name and clearance level and return them."));
-    completeUserFeedback(instance, Map.of("userSatisfied", true));
-
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasResponseJsonSatisfying(
-                    json -> {
-                      @SuppressWarnings("unchecked")
-                      var map = (Map<String, Object>) json;
-                      Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
-                          .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(
-                              normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
-                          .contains(NONCE_CLEARANCE);
-                    }));
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithReasoning")
-  void reasoningEnabledProducesReasoningContent(ProviderConfig provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
-            template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
-            Map.of(
-                "userPrompt",
-                "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
-                    + "many chickens are there? Reply with just the number."));
-    completeUserFeedback(instance, Map.of("userSatisfied", true));
-
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasReasoningContent()
-                .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithPromptCaching")
-  void promptCachingReportsCacheReadAndWriteTokens(ProviderConfig provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
-            template -> {
-              provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
-              template.property("data.systemPrompt.prompt", "=longSystemPrompt");
-            });
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
-            Map.of(
-                "userPrompt",
-                "What is the internal project code name? Use your lookup tool.",
-                "longSystemPrompt",
-                LONG_SYSTEM_PROMPT));
-    completeUserFeedback(instance, Map.of("userSatisfied", true));
-
-    // The tool call forces a second model call: turn 1 writes the cache, turn 2 reads it.
-    assertAgentResponse(
-        instance,
-        response -> {
-          var agentAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
-          if (provider.reportsCacheCreationTokens()) {
-            agentAssert.metricsSatisfy(
-                metrics ->
-                    Assertions.assertThat(metrics.tokenUsage().cacheCreationTokenCount())
-                        .as("cache creation token count")
-                        .isPositive());
-          }
-          agentAssert
-              .metricsSatisfy(
-                  metrics ->
-                      Assertions.assertThat(metrics.tokenUsage().cacheReadTokenCount())
-                          .as("cache read token count")
-                          .isPositive())
-              .hasResponseTextSatisfying(
-                  text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
-        });
-  }
-
-  /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  void userFeedbackLoopReplaysAssistantTextOnFollowUp(ProviderConfig provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
-            template ->
-                template.property(
-                    "data.userPrompt.prompt",
-                    "=if (is defined(followUpInput)) then followUpInput else userPrompt"));
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
-            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
-
-    // Turn 1 completes with a plain text answer - no follow-up tool call.
-    completeUserFeedback(
-        instance,
-        Map.of(
-            "userSatisfied",
-            false,
-            "followUpInput",
-            "Also tell me the clearance level you just found, in one short sentence."));
-
-    // Turn 2's request replays turn 1's completed assistant text message from history.
-    completeUserFeedback(instance, Map.of("userSatisfied", true));
-
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasResponseTextSatisfying(
-                    text ->
-                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithMultimodalUserMessage")
-  void documentInUserMessageIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    stubPdfDownloads();
-
-    final var systemPrompt =
-        "You are a document analyst. A document is attached directly to the user's message. "
-            + "Answer using only that attached document and do not call any tools. Always "
-            + "quote specific facts, numbers, dates, and names found in the document.";
-
-    // Reuses the document BPMN (which downloads downloadUrls into `downloadedFiles` before the
-    // agent) but routes the single downloaded PDF into the user message instead of a tool result,
-    // so this exercises the user-message multimodal path rather than the tool-result path.
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            DOCUMENT_BPMN_RESOURCE,
-            systemPrompt,
-            template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
-
-    var instance =
-        startAgent(
-            model,
-            DOCUMENT_PROCESS_ID,
-            systemPrompt,
-            Map.of(
-                "userPrompt",
-                "What is the internal project code name mentioned in the attached document? "
-                    + "Quote it exactly.",
-                "downloadUrls",
-                List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
-
-    assertResponseTextContains(instance, "Zypherion");
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithMultimodalUserMessage")
-  void documentInToolResultIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    stubPdfDownloads();
-
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            DOCUMENT_BPMN_RESOURCE,
-            DOCUMENT_SYSTEM_PROMPT,
-            template -> {});
-
-    var instance =
-        startAgent(
-            model,
-            DOCUMENT_PROCESS_ID,
-            DOCUMENT_SYSTEM_PROMPT,
-            Map.of(
-                "userPrompt",
-                "Use the Fetch_Report tool to get the full report and describe the content of "
-                    + "every document in it, including attachments and the cover page.",
-                "downloadUrls",
-                List.of(
-                    wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
-
-    assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
-  }
-
-  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private BpmnModelInstance buildModel(
+  protected BpmnModelInstance buildModel(
       ProviderConfig provider,
       String templatePath,
       String bpmnResource,
@@ -960,7 +649,7 @@ class RealProviderApiSmokeIT {
     }
   }
 
-  private ProcessInstanceEvent startAgent(
+  protected ProcessInstanceEvent startAgent(
       BpmnModelInstance model,
       String processId,
       String systemPrompt,
@@ -984,7 +673,8 @@ class RealProviderApiSmokeIT {
    * the most recently created (and only still-active) one for the instance, even after a prior
    * feedback-loop iteration already completed an earlier task on the same instance.
    */
-  private void completeUserFeedback(ProcessInstanceEvent instance, Map<String, Object> variables) {
+  protected void completeUserFeedback(
+      ProcessInstanceEvent instance, Map<String, Object> variables) {
     awaitActiveElementOrIncident(instance, "User_Feedback");
 
     final var tasks =
@@ -1002,7 +692,7 @@ class RealProviderApiSmokeIT {
     camundaClient.newCompleteUserTaskCommand(taskKey).variables(variables).send().join();
   }
 
-  private void awaitActiveElementOrIncident(ProcessInstanceEvent instance, String elementId) {
+  protected void awaitActiveElementOrIncident(ProcessInstanceEvent instance, String elementId) {
     final var deadline = Instant.now().plus(PROCESS_TIMEOUT);
     while (Instant.now().isBefore(deadline)) {
       if (hasActiveIncident(instance)) {
@@ -1029,7 +719,7 @@ class RealProviderApiSmokeIT {
    * variable is fixed -- retrying can't change either. The {@code hasVariableSatisfies} lambda here
    * only captures the deserialized response; {@code assertions} runs once it returns.
    */
-  private void assertAgentResponse(
+  protected void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
     awaitCompletionOrIncident(instance);
 
@@ -1052,7 +742,7 @@ class RealProviderApiSmokeIT {
    * registered) cannot reconstruct, so going through {@link AgentSubProcessResponseAssert} here
    * isn't an option.
    */
-  private void assertResponseTextContains(
+  protected void assertResponseTextContains(
       ProcessInstanceEvent instance, String... expectedSubstrings) {
     awaitCompletionOrIncident(instance);
 
@@ -1071,7 +761,7 @@ class RealProviderApiSmokeIT {
    * sometimes substitute for a plain ASCII '-' when markdown-formatting a nonce fact) to a plain
    * '-', so a model's typographic choice doesn't break a literal {@code contains} check.
    */
-  private static String normalizeDashes(String text) {
+  protected static String normalizeDashes(String text) {
     // U+2010 hyphen, U+2011 non-breaking hyphen, U+2012 figure dash, U+2013 en dash,
     // U+2014 em dash, U+2212 minus sign.
     return text.replaceAll("[\u2010\u2011\u2012\u2013\u2014\u2212]", "-");
@@ -1086,7 +776,7 @@ class RealProviderApiSmokeIT {
    * data source is bound to the test thread, so checking off a background thread (e.g. racing two
    * {@code CompletableFuture}s) fails with "No data source is set".
    */
-  private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
+  protected void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
     final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
     while (Instant.now().isBefore(deadline)) {
       if (hasActiveIncident(instance)) {
@@ -1129,15 +819,6 @@ class RealProviderApiSmokeIT {
       return true;
     } catch (AssertionError e) {
       return false;
-    }
-  }
-
-  private void stubPdfDownloads() {
-    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
-      stubFor(
-          get(urlPathEqualTo("/" + doc))
-              .willReturn(
-                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
     }
   }
 }
