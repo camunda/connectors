@@ -120,8 +120,10 @@ limitations under the License.</license.inlineheader>
 
     <!-- Explicit overrides: the Spring Boot BOM / kafka-clients versions used on this branch
          are below the fixed versions for known CVEs. Remove once spring-boot-dependencies manages
-         netty >= 4.1.137.Final and rabbit-amqp-client >= 5.33.1, and kafka-clients ships
-         lz4-java >= 1.11.1.
+         netty >= 4.1.137.Final and rabbit-amqp-client >= 5.34.0 (5.34.0, not 5.33.1: CVE-2026-69219/
+         CVE-2026-69220 only need 5.33.1, but this override is also the fix for the pre-existing
+         CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx, which needs 5.34.0 — use the higher threshold so a
+         future removal can't reintroduce that one), and kafka-clients ships lz4-java >= 1.11.1.
          Netty is pinned to 4.1.137.Final (not the 4.2.x line used on stable/8.7+) because this
          branch's reactor-netty (1.2.18, via spring-boot 3.5.16's reactor-bom 2024.0.18) is compiled
          against netty 4.1.x; jumping to netty 4.2 here without also bumping reactor-netty (as
@@ -505,7 +507,8 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <!-- Override amqp-client transitive version brought in by spring-boot-dependencies.
-           Remove once spring-boot-dependencies manages com.rabbitmq:amqp-client >= 5.33.1. -->
+           Remove once spring-boot-dependencies manages com.rabbitmq:amqp-client >= 5.34.0 (see
+           the property comment above for why 5.34.0, not 5.33.1). -->
       <dependency>
         <groupId>com.rabbitmq</groupId>
         <artifactId>amqp-client</artifactId>
@@ -849,16 +852,20 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                        removed (see version.amqp-client). spring-boot-dependencies manages
                        com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
                        Confirmed still needed as of spring-boot 3.5.16: its BOM ships
-                       rabbit-amqp-client.version 5.25.0, still short of the 5.33.1 fix. -->
+                       rabbit-amqp-client.version 5.25.0, still short of the 5.34.0 fix. The
+                       threshold is 5.34.0, not the 5.33.1 that CVE-2026-69219/CVE-2026-69220 alone
+                       would need, because this same override also covers the pre-existing
+                       CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx, which is only fixed at >= 5.34.0. -->
                   <requireProperty>
                     <property>version.spring-boot</property>
                     <regex>^3\.5\.16$</regex>
                     <regexMessage>
-version.spring-boot was changed! Check if the amqp-client CVE-2026-69219/CVE-2026-69220 override can
-be removed. If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.33.1
-(confirm with `mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property),
-remove the version.amqp-client property, the amqp-client dependencyManagement entry, and this
-enforcer rule from parent/pom.xml.
+version.spring-boot was changed! Check if the amqp-client CVE-2026-69219/CVE-2026-69220 (and
+CVE-2026-63337) override can be removed. If the new spring-boot-dependencies BOM ships
+com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with
+`mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property), remove the
+version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
+from parent/pom.xml.
 See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories
                     </regexMessage>
                   </requireProperty>
