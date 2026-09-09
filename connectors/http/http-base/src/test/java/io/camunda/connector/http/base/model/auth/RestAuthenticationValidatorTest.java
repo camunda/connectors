@@ -280,7 +280,6 @@ class RestAuthenticationValidatorTest {
           authentication, "http://localhost:" + wireMock.getHttpPort() + "/api");
     }
 
-    /** The stub only answers when the credential arrived, so a success proves it was presented. */
     @Test
     void basicSucceedsWhenTheEndpointAcceptsIt(WireMockRuntimeInfo wireMock) {
       WireMock.stubFor(
@@ -321,7 +320,6 @@ class RestAuthenticationValidatorTest {
       assertThat(result.message()).doesNotContain(SENSITIVE);
     }
 
-    /** A token scoped to another path, or a WAF in front of the endpoint — not a bad secret. */
     @Test
     void noVerdictWhenTheEndpointForbidsTheRequest(WireMockRuntimeInfo wireMock) {
       WireMock.stubFor(
@@ -332,7 +330,6 @@ class RestAuthenticationValidatorTest {
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
     }
 
-    /** The configuration carries no method, so the bare GET is the validator's own choice. */
     @Test
     void noVerdictWhenTheEndpointDoesNotAllowGet(WireMockRuntimeInfo wireMock) {
       WireMock.stubFor(WireMock.get("/api").willReturn(WireMock.aResponse().withStatus(405)));
