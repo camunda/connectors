@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -505,19 +504,20 @@ class ProcessDefinitionSecretKeyCacheTest {
   @Test
   void getSecretKeys_deadlineLeavesOnlyAPartialRetryWindow_stopsRetryingBeforeMaxRetries() {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(50));
+        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(200));
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
+    Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
+    long start = System.nanoTime();
     assertThatThrownBy(
             () ->
                 retryingCache.getSecretKeys(
-                    new SecretKeyContext(
-                        PROCESS_DEF_KEY,
-                        "service-task-1",
-                        Instant.now().plusSeconds(5).plusMillis(150))))
+                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("still not found");
-    verify(xmlRequest, atMost(3)).execute();
+    long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+    assertThat(elapsedMillis).isLessThan(700);
   }
 
   private String loadBpmn(String fileName) throws IOException {
