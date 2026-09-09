@@ -7,6 +7,7 @@
 package io.camunda.connector.aws;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import jakarta.validation.ValidationException;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -75,6 +77,24 @@ class AwsClientSupportTest {
     AwsClientSupport.configureClient(builder, requestWith(null, null));
 
     verify(builder, never()).region(any());
+  }
+
+  @Test
+  void configureClientOmitsRegionWhenBlank() {
+    TestBuilder builder = mock(TestBuilder.class);
+
+    AwsClientSupport.configureClient(builder, requestWith(" ", null));
+
+    verify(builder, never()).region(any());
+  }
+
+  @Test
+  void createClientRejectsMissingEffectiveRegion() {
+    TestBuilder builder = mock(TestBuilder.class);
+
+    assertThatThrownBy(() -> AwsClientSupport.createClient(builder, requestWith(null, null)))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("configuration.region");
   }
 
   @Test
