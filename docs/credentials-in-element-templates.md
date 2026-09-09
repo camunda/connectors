@@ -5,7 +5,7 @@ connector's element template — for humans and agents alike. It complements
 [ADR-0004](adr/ADR-0004-configuration-templates-in-element-templates.md), which records *why* the
 feature is shaped this way; this document is *how* to build on it correctly, distilled from
 migrating REST, GraphQL, Polling, the AWS connector family (~14 connectors + idp-extraction +
-aws-sqs), and JDBC.
+aws-sqs), JDBC, and Slack.
 
 If you're adding a credential chooser to a connector that doesn't have one yet, read this end to
 end before writing code — most of the mistakes below are easy to make and easy to avoid once you
@@ -104,6 +104,57 @@ Rule of thumb: only add an override for a field the credential doesn't actually 
 where varying it can't produce a broken or unsafe combination. A field that's part of what makes
 the credential's secret valid (a host-bound URL, a database engine tied to a specific connection)
 should be hidden and immutable once a credential is bound, not offered as an override.
+
+## An inbound chooser needs `@FEEL`
+
+An **outbound** chooser needs no annotation beyond `@TemplateProperty`: the engine evaluates the
+`zeebe:input` expression the Modeler writes (`=camunda.vars.env.myCredential`) and the connector
+receives an already-resolved object.
+
+An **inbound** chooser does not get that. A `zeebe:property` arrives at the connector as the raw
+string the model carries, and the runtime's `FeelAnnotationIntrospector` installs the evaluating
+deserializer only for fields annotated `@FEEL`. Without it, Jackson tries to build the
+configuration record straight from the expression string and activation fails with:
+
+```
+Cannot construct instance of `…SigningSecretConfiguration` (although at least one Creator exists):
+no String-argument constructor/factory method to deserialize from String value
+('=camunda.vars.env.myCredential')
+```
+
+So annotate an inbound chooser field with `@FEEL`:
+
+```java
+@FEEL
+@TemplateProperty(id = "slackCredential", type = PropertyType.Configuration, optional = true, ...)
+@Valid
+SlackSigningSecretConfiguration slackCredential
+```
+
+Unit tests do not catch this. `InboundConnectorContextBuilder` binds a properties JSON in which the
+credential is already an object, so the raw-expression path only appears against a real cluster —
+deploy the model and check the connector actually activates.
+
+## Two credential types vs. one, when inbound and outbound differ
+
+Every family migrated before Slack shares **one** configuration type across both directions,
+because both directions use the same secret: `AwsCredentialConfiguration` covers the AWS outbound
+functions and SQS inbound; `RestAuthenticationConfiguration` covers REST, GraphQL and Polling.
+Where a consumer needs less than the whole type, the type is narrowed in place — a conditionally
+required field (`RestAuthenticationConfiguration#url`) or `excludeSubTypes` on the chooser.
+
+Slack is the first case where the two directions need **different** secrets: the outbound connector
+calls the Slack API with an OAuth token, the inbound connector verifies requests with the app's
+signing secret. Neither is a variant of the other, so neither narrowing mechanism applies, and it
+ships as two types (`io.camunda.connectors:slack-token:1`,
+`io.camunda.connectors:slack-signing-secret:1`).
+
+Prefer two types when the secrets genuinely differ. Modeler filters the chooser by configuration
+id, so separate types mean the inbound picker offers only signing-secret instances and the outbound
+picker only token instances. One type carrying both fields would offer every instance in both
+pickers, and a token-only instance selected on an inbound element surfaces as a failed activation
+rather than a modelling-time error — with both fields shown on every instance in the credential
+editor besides.
 
 ## Validation pitfalls
 
