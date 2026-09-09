@@ -43,7 +43,7 @@ public class JakartaUtils {
       List.of("smtp", "smtps", "imap", "imaps", "pop3", "pop3s");
 
   public Session createSession(Configuration configuration, Authentication authentication) {
-    return Session.getInstance(createProperties(configuration, authentication));
+    return Session.getInstance(sessionPropertiesFor(configuration, authentication));
   }
 
   /**
@@ -53,7 +53,7 @@ public class JakartaUtils {
    */
   public Session createSession(
       Configuration configuration, Authentication authentication, Duration timeout) {
-    Properties properties = createProperties(configuration, authentication);
+    Properties properties = sessionPropertiesFor(configuration, authentication);
     String millis = String.valueOf(timeout.toMillis());
     for (String protocol : TIMEOUT_PROTOCOL_PREFIXES) {
       properties.put("mail." + protocol + ".connectiontimeout", millis);
@@ -63,7 +63,8 @@ public class JakartaUtils {
     return Session.getInstance(properties);
   }
 
-  private Properties createProperties(Configuration configuration, Authentication authentication) {
+  private Properties sessionPropertiesFor(
+      Configuration configuration, Authentication authentication) {
     return switch (configuration) {
       case ImapConfig imap -> createProperties(imap);
       case Pop3Config pop3 -> createProperties(pop3);
