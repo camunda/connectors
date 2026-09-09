@@ -13,7 +13,6 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import java.util.Map;
@@ -27,6 +26,13 @@ import org.slf4j.LoggerFactory;
  * configuration makes mandatory for exactly those types; an OAuth client-credentials grant asks its
  * own token endpoint for a token. Only the refresh-token grant is left unchecked, since a check
  * would consume a token the provider may rotate (RFC 6749 §6).
+ *
+ * <p>What counts as a refusal differs between the two, because the evidence does: a token endpoint
+ * refuses under a defined contract, while an arbitrary resource URL is answering a request derived
+ * from the credential rather than one a task makes — see {@code callEndpoint} below. Anything short
+ * of a stated refusal is {@link ConfigurationValidationResult#unsupported() unsupported} rather
+ * than a failure, so a credential that works is never condemned by a check that could not reach a
+ * verdict.
  */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
@@ -62,45 +68,69 @@ public class RestAuthenticationValidator
     };
   }
 
+  /**
+   * A bare {@code GET} on the bound URL, which is the only request that can be derived from the
+   * credential: the configuration carries no method, and the URL is a default a task may override
+   * ({@code HttpCommonRequest#url}). So the endpoint is answering a request no task necessarily
+   * makes, and only a 401 — the status RFC 9110 reserves for a missing or invalid credential — is
+   * it stating that this credential was refused. Every other answer is reported as no verdict — a
+   * 403 (a token scoped elsewhere, or a WAF), a 404 or 405 (the bare GET, not the secret), a
+   * redirect, an unreachable host: reporting any of them as a failure would condemn a credential
+   * that works.
+   */
   private static ConfigurationValidationResult callEndpoint(
       RestAuthenticationConfiguration configuration) {
     var request = new HttpClientRequest();
     request.setMethod(HttpMethod.GET);
     request.setUrl(configuration.url());
     request.setAuthentication(AuthenticationMapper.map(configuration.authentication()));
-    return attempt(request, response -> null);
+    try {
+      // Only 4xx and above are thrown, and redirects are not followed, so a 3xx lands here.
+      var response = new CustomApacheHttpClient().execute(request, ignored -> null);
+      return response.status() < 300
+          ? ConfigurationValidationResult.success()
+          : ConfigurationValidationResult.unsupported();
+    } catch (Exception e) {
+      logFailure(e);
+      return e instanceof ConnectorException connectorException
+              && "401".equals(connectorException.getErrorCode())
+          ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
+          : ConfigurationValidationResult.unsupported();
+    }
   }
 
+  /**
+   * Unlike an arbitrary resource URL, a token endpoint has a contract (RFC 6749 §5.2) under which
+   * its refusals do speak about the credential, so {@link #classifyFailure(Exception)} keeps its
+   * verdict on all of them.
+   */
   private static ConfigurationValidationResult requestToken(OAuthAuthentication authentication) {
     var oAuthService = new OAuthService();
     var mapped =
         (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
             AuthenticationMapper.map(authentication);
-    return attempt(
-        oAuthService.createOAuthRequestFrom(mapped), oAuthService::extractTokenFromResponse);
-  }
-
-  private static <T> ConfigurationValidationResult attempt(
-      HttpClientRequest request, ResponseMapper<T> responseMapper) {
     try {
-      var response = new CustomApacheHttpClient().execute(request, responseMapper);
-      // Only 4xx and above are thrown, and redirects are not followed, so a 3xx lands here: an
-      // endpoint that answers an unaccepted credential by redirecting to a login page has not
-      // accepted it.
-      if (response.status() >= 300) {
-        LOG.debug("A REST authentication credential was answered with {}", response.status());
-        return ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
-      }
-      return ConfigurationValidationResult.success();
+      var response =
+          new CustomApacheHttpClient()
+              .execute(
+                  oAuthService.createOAuthRequestFrom(mapped),
+                  oAuthService::extractTokenFromResponse);
+      return response.status() < 300
+          ? ConfigurationValidationResult.success()
+          : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
     } catch (Exception e) {
-      LOG.debug(
-          "Validation request failed for a REST authentication credential (type {}, code {})",
-          e.getClass().getName(),
-          e instanceof ConnectorException connectorException
-              ? connectorException.getErrorCode()
-              : "n/a");
+      logFailure(e);
       return classifyFailure(e);
     }
+  }
+
+  private static void logFailure(Exception e) {
+    LOG.debug(
+        "Validation request failed for a REST authentication credential (type {}, code {})",
+        e.getClass().getName(),
+        e instanceof ConnectorException connectorException
+            ? connectorException.getErrorCode()
+            : "n/a");
   }
 
   static ConfigurationValidationResult classifyFailure(Exception e) {

@@ -321,27 +321,46 @@ class RestAuthenticationValidatorTest {
       assertThat(result.message()).doesNotContain(SENSITIVE);
     }
 
+    /** A token scoped to another path, or a WAF in front of the endpoint — not a bad secret. */
     @Test
-    void errorWhenTheEndpointRedirectsToALoginPage(WireMockRuntimeInfo wireMock) {
+    void noVerdictWhenTheEndpointForbidsTheRequest(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api").willReturn(WireMock.forbidden().withBody("denied " + SENSITIVE)));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+    }
+
+    /** The configuration carries no method, so the bare GET is the validator's own choice. */
+    @Test
+    void noVerdictWhenTheEndpointDoesNotAllowGet(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(WireMock.get("/api").willReturn(WireMock.aResponse().withStatus(405)));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+    }
+
+    @Test
+    void noVerdictWhenTheEndpointRedirects(WireMockRuntimeInfo wireMock) {
       WireMock.stubFor(
           WireMock.get("/api")
               .willReturn(WireMock.aResponse().withStatus(302).withHeader("Location", "/login")));
 
       var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
 
-      assertThat(result.status()).isEqualTo(Status.FAILURE);
-      assertThat(result.code()).isEqualTo("ERROR");
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
     }
 
     @Test
-    void errorWhenTheEndpointIsUnreachable() {
+    void noVerdictWhenTheEndpointIsUnreachable() {
       var result =
           validator.validate(
               new RestAuthenticationConfiguration(
                   new BearerAuthentication("token"), "http://localhost:1/api"));
 
-      assertThat(result.status()).isEqualTo(Status.FAILURE);
-      assertThat(result.code()).isEqualTo("ERROR");
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
     }
   }
 }
