@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.7.24</version>
+    <version>8.7.25</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -75,7 +75,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>io.github.classgraph</groupId>
       <artifactId>classgraph</artifactId>
-      <version>4.8.194</version>
+      <version>4.8.195</version>
     </dependency>
 
     <dependency>

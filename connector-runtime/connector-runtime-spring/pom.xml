@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.7.24</version>
+    <version>8.7.25</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -51,6 +51,10 @@
     <dependency>
       <groupId>io.camunda.spring</groupId>
       <artifactId>java-client-operate</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.camunda.feel</groupId>
+      <artifactId>feel-engine</artifactId>
     </dependency>
 
     <dependency>

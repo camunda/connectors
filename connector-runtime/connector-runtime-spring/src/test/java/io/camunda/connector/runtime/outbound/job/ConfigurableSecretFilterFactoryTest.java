@@ -25,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
@@ -57,21 +59,22 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("ANY_SECRET")).isTrue();
-    assertThat(filter.isAllowed("ANOTHER_SECRET")).isTrue();
+    assertThat(filter.isAllowed(secret("ANY_SECRET"))).isTrue();
+    assertThat(filter.isAllowed(secret("ANOTHER_SECRET"))).isTrue();
     verifyNoInteractions(secretKeyCache);
   }
 
   @Test
   void create_lax_withSecretKeys_restrictsFilterToList() {
-    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY", "TOKEN"));
+    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT))
+        .thenReturn(List.of(secret("API_KEY"), secret("TOKEN")));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.LAX, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("API_KEY")).isTrue();
-    assertThat(filter.isAllowed("TOKEN")).isTrue();
-    assertThat(filter.isAllowed("UNLISTED_SECRET")).isFalse();
+    assertThat(filter.isAllowed(secret("API_KEY"))).isTrue();
+    assertThat(filter.isAllowed(secret("TOKEN"))).isTrue();
+    assertThat(filter.isAllowed(secret("UNLISTED_SECRET"))).isFalse();
   }
 
   @Test
@@ -81,29 +84,29 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("ANY_SECRET")).isTrue();
+    assertThat(filter.isAllowed(secret("ANY_SECRET"))).isTrue();
   }
 
   @Test
   void create_strict_withSecretKeys_restrictsFilterToList() {
-    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY"));
+    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of(secret("API_KEY")));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("API_KEY")).isTrue();
-    assertThat(filter.isAllowed("UNLISTED_SECRET")).isFalse();
+    assertThat(filter.isAllowed(secret("API_KEY"))).isTrue();
+    assertThat(filter.isAllowed(secret("UNLISTED_SECRET"))).isFalse();
   }
 
   @Test
-  void create_strict_whenCacheThrows_throwsIllegalArgumentException() {
+  void create_strict_whenCacheThrows_throwsSecretAllowListUnavailableException() {
     when(secretKeyCache.getSecretKeys(any())).thenThrow(new RuntimeException("fetch failed"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class)
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
+        .isInstanceOf(SecretAllowListUnavailableException.class)
         .hasMessageContaining("Error retrieving secret keys");
   }
 
@@ -118,7 +121,7 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
         .hasMessageContaining(ELEMENT_ID)
         .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
         .hasMessageContaining(RuntimeException.class.getName())
@@ -157,7 +160,7 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("No CamundaOperateClient available");
   }
@@ -177,7 +180,7 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
         .hasMessageContaining(java.net.ConnectException.class.getName())
         .hasMessageNotContaining("Connection refused");
   }
@@ -195,12 +198,12 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
+        .isInstanceOf(SecretAllowListUnavailableException.class);
   }
 
   private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
-      Cache<Long, Map<String, List<String>>> cache) throws Exception {
+      Cache<Long, Map<String, List<Secret>>> cache) throws Exception {
     var operateClient = mock(CamundaOperateClient.class);
     when(operateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("Operate returned 404 for process definition 42"));
@@ -209,11 +212,15 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+    assertThatThrownBy(() -> filter.isAllowed(secret("ANY_SECRET")))
         .hasMessageContaining(ELEMENT_ID)
         .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
         .hasMessageContaining(OperateException.class.getName())
         .hasMessageNotContaining("could not be loaded using")
         .hasMessageNotContaining("Operate returned 404 for process definition 42");
+  }
+
+  private static Secret secret(String name) {
+    return new Secret(name, List.of());
   }
 }

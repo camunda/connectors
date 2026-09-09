@@ -124,11 +124,14 @@ public class ConnectorJobHandlerTests {
 
     // then
     assertThat(resultForMissingSecret.getErrorMessage())
-        .isEqualTo(
-            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
+        .startsWith("Fetching secrets failed, so the original error cannot be displayed")
+        .contains(RuntimeException.class.getName())
+        .doesNotContain("Network error while fetching secrets");
     assertThat(resultForRaisingException.getErrorMessage())
-        .isEqualTo(
-            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
+        .startsWith("Fetching secrets failed, so the original error cannot be displayed")
+        .contains(RuntimeException.class.getName())
+        .doesNotContain("Network error while fetching secrets")
+        .doesNotContain("Crazy error something with bar");
   }
 
   @Test

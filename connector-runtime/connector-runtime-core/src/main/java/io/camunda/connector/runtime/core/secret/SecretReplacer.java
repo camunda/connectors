@@ -17,7 +17,8 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 
 public interface SecretReplacer {
-  String replaceSecrets(String name, SecretContext secretContext);
+  String replaceSecrets(Secret secret, SecretContext secretContext);
 }

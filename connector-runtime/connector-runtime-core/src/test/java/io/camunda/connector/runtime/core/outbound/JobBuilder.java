@@ -18,10 +18,14 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
@@ -74,6 +78,7 @@ class JobBuilder {
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
       when(throwCommandStep2.variables(any(Map.class))).thenReturn(throwCommandStep2_2);
       when(job.getKey()).thenReturn(-1L);
+      withVariables("{}");
     }
 
     public JobBuilderStep useJobClient(JobClient client) {
@@ -83,7 +88,23 @@ class JobBuilder {
 
     public JobBuilderStep withVariables(String variables) {
       when(job.getVariables()).thenReturn(variables);
+      lenient()
+          .doAnswer(
+              invocation -> {
+                Class<?> cls = invocation.getArgument(0);
+                return cls.cast(parseVariables(variables));
+              })
+          .when(job)
+          .getVariablesAsType(any());
       return this;
+    }
+
+    private static JsonNode parseVariables(String variables) {
+      try {
+        return new ObjectMapper().readTree(variables);
+      } catch (JsonProcessingException e) {
+        throw new IllegalArgumentException("Failed to deserialize job variables", e);
+      }
     }
 
     public JobBuilderStep withHeaders(Map<String, String> headers) {

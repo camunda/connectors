@@ -16,72 +16,165 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
 
-  private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
+  private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
-  private static final Pattern SECRET_PATTERN_PARENTHESES =
-      Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
+  // One pattern, so that one scan consumes each reference whole: scanning per form or per caller
+  // lets a narrower alternative re-read the inside of a wider match, as a name never declared.
+  private static final Pattern REFERENCE =
+      Pattern.compile(
+          "\\{\\{\\s*secrets\\.(?<braced>\\S+?)\\s*}}"
+              + "|secrets\\.(?<bare>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
-  public static String replaceSecrets(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
+  /**
+   * Substitutes every legacy secret reference in the tree, in place, and returns the same node.
+   *
+   * <p>One walk, one scan per string: a second pass over already-substituted text is what let a
+   * narrower form re-read the inside of a reference the first pass had consumed (and, when the walk
+   * renames a property, made the second pass iterate a reordered snapshot of the object).
+   */
+  public static JsonNode replaceSecrets(
+      JsonNode input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
-    return input;
-  }
-
-  private static String replaceSecretsWithParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
+    if (!input.isObject()) {
+      throw new IllegalStateException("input must be an ObjectNode.");
     }
+    Map<Secret, String> resolutions = new HashMap<>();
+    walkJsonNode(
+        input,
+        (stringValue, fieldPath) ->
+            replaceTokens(
+                stringValue,
+                REFERENCE,
+                matcher -> {
+                  var value =
+                      resolve(name(matcher), fieldPath, context, secretReplacer, resolutions);
+                  return value == null ? matcher.group() : value;
+                }),
+        new ArrayList<>());
     return input;
   }
 
-  private static String replaceSecretsWithoutParentheses(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
+  /**
+   * Asks the replacer at most once per secret <em>and field path</em>: the same name is a separate
+   * question at a different path, since that is the granularity the allow-list authorizes at.
+   */
+  private static String resolve(
+      String name,
+      List<String> fieldPath,
+      SecretContext context,
+      SecretReplacer secretReplacer,
+      Map<Secret, String> resolutions) {
+    var secret = new Secret(name, fieldPath);
+    if (!resolutions.containsKey(secret)) {
+      resolutions.put(secret, secretReplacer.replaceSecrets(secret, context));
     }
-    return input;
+    return resolutions.get(secret);
   }
 
-  private static String resolveSecretValue(
-      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
-    var secretName = matcher.group("secret").trim();
-    if (!secretName.isBlank()) {
-      var result = secretReplacer.replaceSecrets(secretName, context);
-      if (result != null) {
-        return result;
+  /** The name a legacy provider is asked for. */
+  private static String name(MatchResult match) {
+    var braced = match.group("braced");
+    return braced != null ? braced : match.group("bare");
+  }
+
+  private static void walkJsonNode(
+      JsonNode input, BiFunction<String, List<String>, String> converter, List<String> fieldPath) {
+    switch (input.getNodeType()) {
+      case ARRAY -> walkArray((ArrayNode) input, converter, fieldPath);
+      case OBJECT -> walkObject((ObjectNode) input, converter, fieldPath);
+      default -> {}
+    }
+  }
+
+  /**
+   * Substitutes property names as well as values: the raw-text pass this replaced matched anywhere
+   * in the document, key or value, so a placeholder written as a property name (e.g. {@code
+   * {"{{secrets.KEY}}": "value"}}) resolved just as one written as a value did. Renaming is
+   * deferred until after the entry is otherwise processed, and runs over a snapshot of the original
+   * entries, since renaming a key while iterating the node's live property view would throw.
+   */
+  private static void walkObject(
+      ObjectNode input,
+      BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    // Map.entry(...) reads each key/value pair eagerly, decoupling the snapshot from the live
+    // map: input.properties() entries are backed by the same map nodes ObjectNode#set/remove
+    // mutate, so a snapshot that merely copies the entry objects (e.g. List.copyOf(...)) would
+    // still observe later renames through entries for keys processed earlier in this same loop.
+    for (Entry<String, JsonNode> entry :
+        input.properties().stream().map(e -> Map.entry(e.getKey(), e.getValue())).toList()) {
+      String key = entry.getKey();
+      JsonNode value = entry.getValue();
+      List<String> extendedFieldPath = new ArrayList<>(fieldPath);
+      extendedFieldPath.add(key);
+
+      if (value instanceof TextNode stringValue) {
+        input.set(key, new TextNode(converter.apply(stringValue.asText(), extendedFieldPath)));
       } else {
-        return matcher.group();
+        walkJsonNode(value, converter, extendedFieldPath);
+        // Reinserts this entry's own (possibly object/array-mutated-in-place, otherwise
+        // untouched) value at its own original key, in snapshot order. Without this, a key
+        // rename earlier in this same loop that happens to collide with this entry's still
+        // unprocessed key would silently overwrite this entry before its own turn came, and this
+        // entry's non-text value — having no put/set of its own — would never overwrite it back.
+        input.set(key, value);
       }
-    } else {
-      return null;
+
+      String newKey = converter.apply(key, extendedFieldPath);
+      if (!newKey.equals(key)) {
+        input.set(newKey, input.get(key));
+        input.remove(key);
+      }
     }
+  }
+
+  /** Recurses into array elements at arbitrary depth, mirroring {@link #walkJsonNode}. */
+  private static void walkArray(
+      ArrayNode arrayNode,
+      BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    for (int i = 0; i < arrayNode.size(); i++) {
+      JsonNode item = arrayNode.get(i);
+      if (item instanceof TextNode stringValue) {
+        arrayNode.set(i, new TextNode(converter.apply(stringValue.asText(), fieldPath)));
+      } else {
+        walkJsonNode(item, converter, fieldPath);
+      }
+    }
+  }
+
+  /**
+   * The form a resolved value takes once the substituted tree is serialized back to JSON. The walk
+   * writes the raw value into a {@code TextNode} and lets Jackson escape it on output, so this is
+   * not applied during substitution — but a caller redacting a message that quotes the serialized
+   * JSON has to match this form as well as the raw one.
+   */
+  public static String jsonEscape(String value) {
+    return new String(encoder.quoteAsString(value));
   }
 
   public static String replaceTokens(
@@ -99,23 +192,45 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /** Every secret the given tree declares, each scoped to the field path it occupies. */
+  public static List<Secret> retrieveSecretKeysInInput(ObjectNode input) {
+    List<Secret> result = new ArrayList<>();
+    walkJsonNode(
+        input,
+        (stringValue, fieldPath) -> {
+          REFERENCE
+              .matcher(stringValue)
+              .results()
+              .map(SecretUtil::name)
+              .distinct()
+              .map(name -> new Secret(name, fieldPath))
+              .forEach(result::add);
+          return stringValue;
+        },
+        new ArrayList<>());
+    return result;
+  }
+
   /**
-   * Names are trimmed, because that is the name {@link #resolveSecretValue} looks up: the
-   * parentheses pattern's capture reaches past the name to the closing braces, so {@code {{
-   * secrets.FOO }}} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form also
-   * breaks consumers that do not normalize again. For example, exception redaction filters
-   * extracted names against the allow-list before fetching their values; a colon-bearing name has
-   * no independent bare-pattern match, so the untrimmed name is filtered out and its value cannot
-   * be redacted from an exception message.
+   * Every secret name the given text declares, in either form, read by the same scan {@link
+   * #replaceSecrets} uses: a name that method asks a provider for appears here spelled exactly as
+   * it asks for it, and no name appears that the scan never read.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
-    return Objects.isNull(input)
+    return input == null
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret").trim())
-            .distinct()
-            .toList();
+        : REFERENCE.matcher(input).results().map(SecretUtil::name).distinct().toList();
+  }
+
+  // Longest secret first: masking a shorter secret that prefixes a longer one would destroy the
+  // longer match and publish its remainder, e.g. "x" before "xSUPERSECRET" leaves "***SUPERSECRET".
+  public static String hideSecretsFromMessage(String message, List<String> secrets) {
+    if (message == null) {
+      return "";
+    }
+    return secrets.stream()
+        .filter(secret -> !secret.isEmpty())
+        .sorted(Comparator.comparingInt(String::length).reversed())
+        .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
   }
 }

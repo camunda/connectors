@@ -26,19 +26,29 @@ public class DefaultProcessElementContextFactory implements ProcessElementContex
   private final SecretProvider secretProvider;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
+  private final boolean secretFilterEnabled;
 
   public DefaultProcessElementContextFactory(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper) {
+    this(secretProvider, validationProvider, objectMapper, false);
+  }
+
+  public DefaultProcessElementContextFactory(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      ObjectMapper objectMapper,
+      boolean secretFilterEnabled) {
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
+    this.secretFilterEnabled = secretFilterEnabled;
   }
 
   @Override
   public ProcessElementContext createContext(InboundConnectorElement connectorElement) {
     return new DefaultProcessElementContext(
-        connectorElement, validationProvider, secretProvider, objectMapper);
+        connectorElement, validationProvider, secretProvider, objectMapper, secretFilterEnabled);
   }
 }

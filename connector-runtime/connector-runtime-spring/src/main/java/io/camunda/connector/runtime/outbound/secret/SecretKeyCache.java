@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.List;
 
 public interface SecretKeyCache {
-  List<String> getSecretKeys(SecretKeyContext secretKeyContext);
+  List<Secret> getSecretKeys(SecretKeyContext secretKeyContext);
 
   record SecretKeyContext(long processDefinitionKey, String elementId) {}
 }
