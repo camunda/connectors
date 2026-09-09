@@ -13,11 +13,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Resolves the {@code Authorization} header for the MCP client via the shared {@link
- * OAuthClientCredentialsTokenResolver}. Note: a response without {@code expires_in} is never
- * cached, so {@link #get()} refetches a token on every call in that case.
- */
 public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   private final OAuthClientCredentialsTokenResolver tokenResolver;
