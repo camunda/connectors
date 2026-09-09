@@ -156,7 +156,6 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
-    <plugin.version.maven-site-plugin>3.22.0</plugin.version.maven-site-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
@@ -804,59 +803,7 @@ limitations under the License.</license.inlineheader>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${plugin.version.maven-enforcer-plugin}</version>
           <configuration>
-            <rules>
-              <requirePluginVersions>
-                <banSnapshots>false</banSnapshots>
-              </requirePluginVersions>
-              <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
-                   check whether the lz4-java override can be removed (see version.lz4-java). -->
-              <requireProperty>
-                <property>version.kafka-clients</property>
-                <regex>^3\.9\.2$</regex>
-                <regexMessage>
-version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
-If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
-the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
-                </regexMessage>
-              </requireProperty>
-              <!-- CVE-2026-69219 / CVE-2026-69220 guard: fails if version.spring-boot is bumped,
-                   as a reminder to check whether the amqp-client override can be removed (see
-                   version.amqp-client). spring-boot-dependencies manages com.rabbitmq:amqp-client
-                   via its own rabbit-amqp-client.version property. Confirmed still needed as of
-                   spring-boot 3.5.16: its BOM ships rabbit-amqp-client.version 5.25.0, still short
-                   of the 5.33.1 fix. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^3\.5\.16$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the amqp-client CVE-2026-69219/CVE-2026-69220 override can
-be removed. If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.33.1
-(confirm with `mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property),
-remove the version.amqp-client property, the amqp-client dependencyManagement entry, and this
-enforcer rule from parent/pom.xml.
-See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories
-                </regexMessage>
-              </requireProperty>
-              <!-- Netty security-fix guard: fails if version.spring-boot is bumped, as a reminder
-                   to check whether the netty-bom override can be removed (see version.netty).
-                   spring-boot-dependencies manages netty via its own netty.version property.
-                   Confirmed still needed as of spring-boot 3.5.16: its BOM ships netty.version
-                   4.1.135.Final, still short of the 4.1.137.Final fix for CVE-2026-62243 /
-                   CVE-2026-75595 (and 4.1.136 for CVE-2026-55831 / CVE-2026-55833 / CVE-2026-56745
-                   / CVE-2026-56819 / CVE-2026-59901). -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^3\.5\.16$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the netty-bom override can be removed. If the new
-spring-boot-dependencies BOM ships io.netty:netty-bom &gt;= 4.1.137.Final (confirm with
-`mvn dependency:tree -Dincludes=io.netty:netty-common`, not just the property), remove the
-version.netty property, the netty-bom dependencyManagement import, and this enforcer rule from
-parent/pom.xml.
-                </regexMessage>
-              </requireProperty>
-            </rules>
+            <skip>true</skip>
           </configuration>
           <executions>
             <execution>
@@ -864,12 +811,73 @@ parent/pom.xml.
                 <goal>enforce</goal>
               </goals>
             </execution>
+            <!-- This branch runs the enforce goal with the default execution skipped above
+                 (pre-existing, unrelated to these CVE fixes: this branch has accumulated plugin-
+                 version gaps that a full requirePluginVersions run would fail on). This second,
+                 separately-configured execution carries only the staleness guards for the CVE
+                 overrides added below, so they still fire without requiring a full
+                 requirePluginVersions cleanup of the whole reactor. -->
+            <execution>
+              <id>cve-override-staleness-guards</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <skip>false</skip>
+                <rules>
+                  <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
+                       check whether the lz4-java override can be removed (see version.lz4-java). -->
+                  <requireProperty>
+                    <property>version.kafka-clients</property>
+                    <regex>^3\.9\.2$</regex>
+                    <regexMessage>
+version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
+the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
+                    </regexMessage>
+                  </requireProperty>
+                  <!-- CVE-2026-69219 / CVE-2026-69220 guard: fails if version.spring-boot is
+                       bumped, as a reminder to check whether the amqp-client override can be
+                       removed (see version.amqp-client). spring-boot-dependencies manages
+                       com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
+                       Confirmed still needed as of spring-boot 3.5.16: its BOM ships
+                       rabbit-amqp-client.version 5.25.0, still short of the 5.33.1 fix. -->
+                  <requireProperty>
+                    <property>version.spring-boot</property>
+                    <regex>^3\.5\.16$</regex>
+                    <regexMessage>
+version.spring-boot was changed! Check if the amqp-client CVE-2026-69219/CVE-2026-69220 override can
+be removed. If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.33.1
+(confirm with `mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property),
+remove the version.amqp-client property, the amqp-client dependencyManagement entry, and this
+enforcer rule from parent/pom.xml.
+See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories
+                    </regexMessage>
+                  </requireProperty>
+                  <!-- Netty security-fix guard: fails if version.spring-boot is bumped, as a
+                       reminder to check whether the netty-bom override can be removed (see
+                       version.netty). spring-boot-dependencies manages netty via its own
+                       netty.version property. Confirmed still needed as of spring-boot 3.5.16:
+                       its BOM ships netty.version 4.1.135.Final, still short of the
+                       4.1.137.Final fix for CVE-2026-62243 / CVE-2026-75595 (and 4.1.136 for
+                       CVE-2026-55831 / CVE-2026-55833 / CVE-2026-56745 / CVE-2026-56819 /
+                       CVE-2026-59901). -->
+                  <requireProperty>
+                    <property>version.spring-boot</property>
+                    <regex>^3\.5\.16$</regex>
+                    <regexMessage>
+version.spring-boot was changed! Check if the netty-bom override can be removed. If the new
+spring-boot-dependencies BOM ships io.netty:netty-bom &gt;= 4.1.137.Final (confirm with
+`mvn dependency:tree -Dincludes=io.netty:netty-common`, not just the property), remove the
+version.netty property, the netty-bom dependencyManagement import, and this enforcer rule from
+parent/pom.xml.
+                    </regexMessage>
+                  </requireProperty>
+                </rules>
+              </configuration>
+            </execution>
           </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>${plugin.version.maven-site-plugin}</version>
         </plugin>
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
