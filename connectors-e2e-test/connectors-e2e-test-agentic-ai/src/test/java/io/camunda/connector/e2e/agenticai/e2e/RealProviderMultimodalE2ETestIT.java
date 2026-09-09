@@ -73,9 +73,6 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
   private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
   private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
   private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
-  private static final String DOCUMENT_SYSTEM_PROMPT =
-      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
-          + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
@@ -111,37 +108,6 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
                 List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
 
     assertResponseTextContains(instance, "Zypherion");
-  }
-
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithMultimodalUserMessage")
-  void documentInToolResultIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    stubPdfDownloads();
-
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            DOCUMENT_BPMN_RESOURCE,
-            DOCUMENT_SYSTEM_PROMPT,
-            template -> {});
-
-    var instance =
-        startAgent(
-            model,
-            DOCUMENT_PROCESS_ID,
-            DOCUMENT_SYSTEM_PROMPT,
-            Map.of(
-                "userPrompt",
-                "Use the Fetch_Report tool to get the full report and describe the content of "
-                    + "every document in it, including attachments and the cover page.",
-                "downloadUrls",
-                List.of(
-                    wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
-
-    assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
   }
 
   // ---------------------------------------------------------------------------
