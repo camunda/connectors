@@ -124,7 +124,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                         "Attempt {}/{} to fetch BPMN XML failed: {}",
                         event.getAttemptCount(),
                         XML_FETCH_MAX_RETRIES + 1,
-                        event.getLastException().getMessage()))
+                        event.getLastException().getClass().getName()))
             .build();
   }
 
