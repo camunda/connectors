@@ -83,7 +83,14 @@ public class RestAuthenticationValidator
   private static <T> ConfigurationValidationResult attempt(
       HttpClientRequest request, ResponseMapper<T> responseMapper) {
     try {
-      new CustomApacheHttpClient().execute(request, responseMapper);
+      var response = new CustomApacheHttpClient().execute(request, responseMapper);
+      // Only 4xx and above are thrown, and redirects are not followed, so a 3xx lands here: an
+      // endpoint that answers an unaccepted credential by redirecting to a login page has not
+      // accepted it.
+      if (response.status() >= 300) {
+        LOG.debug("A REST authentication credential was answered with {}", response.status());
+        return ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
+      }
       return ConfigurationValidationResult.success();
     } catch (Exception e) {
       LOG.debug(

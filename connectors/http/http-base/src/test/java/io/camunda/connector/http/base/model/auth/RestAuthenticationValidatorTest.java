@@ -322,6 +322,18 @@ class RestAuthenticationValidatorTest {
     }
 
     @Test
+    void errorWhenTheEndpointRedirectsToALoginPage(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api")
+              .willReturn(WireMock.aResponse().withStatus(302).withHeader("Location", "/login")));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("ERROR");
+    }
+
+    @Test
     void errorWhenTheEndpointIsUnreachable() {
       var result =
           validator.validate(
