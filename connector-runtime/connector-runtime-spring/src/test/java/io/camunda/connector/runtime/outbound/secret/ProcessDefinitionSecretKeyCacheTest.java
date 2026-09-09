@@ -454,8 +454,8 @@ class ProcessDefinitionSecretKeyCacheTest {
                     new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1")))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("still not found");
-    // 1 initial attempt + 10 retries
-    verify(xmlRequest, times(11)).execute();
+    // 1 initial attempt + 3 retries
+    verify(xmlRequest, times(4)).execute();
   }
 
   private String loadBpmn(String fileName) throws IOException {

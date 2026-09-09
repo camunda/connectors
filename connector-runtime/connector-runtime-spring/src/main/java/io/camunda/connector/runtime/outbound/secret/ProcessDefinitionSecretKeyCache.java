@@ -64,7 +64,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final List<Class<? extends BaseElement>> OUTBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
 
-  private static final int XML_FETCH_MAX_RETRIES = 10;
+  private static final int XML_FETCH_MAX_RETRIES = 3;
 
   private static final Duration XML_FETCH_INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
 
