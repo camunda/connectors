@@ -94,5 +94,4 @@ class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
         });
   }
 
-  /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
 }

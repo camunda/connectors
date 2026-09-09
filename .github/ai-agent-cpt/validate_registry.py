@@ -52,6 +52,20 @@ def validate(registry, rows):
     profiles = set(registry["credentialProfiles"])
     ids = set()
     for row in rows:
+        required_fields = {
+            "id": str,
+            "name": str,
+            "providerGroup": str,
+            "groups": str,
+            "testClasses": str,
+            "buildBundle": bool,
+            "mavenProjects": str,
+            "credentialProfiles": list,
+            "ci": bool,
+        }
+        for field, expected_type in required_fields.items():
+            if field not in row or not isinstance(row[field], expected_type):
+                fail(f"registry row has invalid {field}: {row.get(field)!r}")
         row_id = row.get("id")
         if not row_id or row_id in ids:
             fail(f"duplicate or missing row id: {row_id!r}")

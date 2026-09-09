@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.setup.outputs.matrix) }}
+        include: ${{ fromJSON(needs.setup.outputs.matrix || '[]') }}
     # Fork PRs get no secrets from `pull_request` by design (never widen this to
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
     # account to unvetted fork code before review). Mirrors BUILD_PR_DOCKER_IMAGES.yml's gate,
