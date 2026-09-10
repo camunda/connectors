@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.failsafe.TimeoutExceededException;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
@@ -488,17 +489,14 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_deadlineWithinSafetyMargin_attemptsOnceWithoutRetrying() {
-    when(xmlRequest.execute()).thenThrow(new RuntimeException("job lease about to expire"));
-
+  void getSecretKeys_deadlineWithinSafetyMargin_failsWithoutAttemptingFetch() {
     assertThatThrownBy(
             () ->
                 secretKeyCache.getSecretKeys(
                     new SecretKeyContext(
                         PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessage("job lease about to expire");
-    verify(xmlRequest, times(1)).execute();
+        .isInstanceOf(IllegalStateException.class);
+    verify(xmlRequest, times(0)).execute();
   }
 
   @Test
@@ -518,6 +516,33 @@ class ProcessDefinitionSecretKeyCacheTest {
     long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
     assertThat(elapsedMillis).isLessThan(700);
+  }
+
+  @Test
+  void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails()
+      throws IOException {
+    var retryingCache =
+        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(200));
+    String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
+    when(xmlRequest.execute())
+        .thenAnswer(
+            invocation -> {
+              long until = System.nanoTime() + Duration.ofMillis(80).toNanos();
+              while (System.nanoTime() < until) {
+                try {
+                  Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+              }
+              return bpmnXml;
+            });
+    Instant deadline = Instant.now().plusSeconds(5).plusMillis(30);
+
+    assertThatThrownBy(
+            () ->
+                retryingCache.getSecretKeys(
+                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+        .isInstanceOf(TimeoutExceededException.class);
   }
 
   private String loadBpmn(String fileName) throws IOException {

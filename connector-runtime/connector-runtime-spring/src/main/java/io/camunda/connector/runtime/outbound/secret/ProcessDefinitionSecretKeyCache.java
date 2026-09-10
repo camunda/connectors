@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.secret;
 
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
+import dev.failsafe.Timeout;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -156,8 +157,17 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private String fetchBpmnXmlWithRetry(long processDefinitionKey, Instant deadline) {
     Duration remaining =
         Duration.between(Instant.now(), deadline).minus(XML_FETCH_DEADLINE_SAFETY_MARGIN);
+    if (remaining.isNegative() || remaining.isZero()) {
+      throw new IllegalStateException(
+          "BPMN XML fetch deadline already elapsed for process definition key "
+              + processDefinitionKey);
+    }
+    Timeout<String> xmlFetchTimeout = Timeout.<String>builder(remaining).withInterrupt().build();
     if (remaining.compareTo(xmlFetchInitialRetryDelay) <= 0) {
-      return camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute();
+      return Failsafe.with(xmlFetchTimeout)
+          .get(
+              () ->
+                  camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
     }
     RetryPolicy<String> xmlFetchRetryPolicy =
         RetryPolicy.<String>builder()
@@ -174,7 +184,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                         XML_FETCH_MAX_RETRIES + 1,
                         event.getLastException().getClass().getName()))
             .build();
-    return Failsafe.with(xmlFetchRetryPolicy)
+    return Failsafe.with(xmlFetchRetryPolicy, xmlFetchTimeout)
         .get(() -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
   }
 
