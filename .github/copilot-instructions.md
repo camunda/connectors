@@ -87,8 +87,10 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `element-template-generator-maven-plugin` with a `<connectorClass>`, its `element-templates/*.json`
   are build output — including `hybrid/` — so edit the `@ElementTemplate` / `@TemplateProperty`
   annotations in the Java source and regenerate. JSON-only edits are reverted by the next build, and
-  CI fails on the drift. Modules without that plugin (e.g. `connectors/operate/`,
-  `connectors/power-automate/`) are hand-maintained.
+  CI fails on the drift. Absence of the plugin does not by itself mean hand-maintained —
+  `connectors/salesforce/` generates its template from a `GenerateElementTemplate` class run
+  manually, with a test guarding against drift — so check for a generator before editing JSON.
+  `connectors/operate/` and `connectors/power-automate/` are genuinely hand-maintained.
 - **Field hints: `tooltip` > `placeholder` > `description`.** Help text belongs in `tooltip` (shown on
   hover); example values belong in `placeholder`; keep the always-visible `description` only for
   value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance.
