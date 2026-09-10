@@ -11,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.idp.extraction.client.ai.AzureAiFoundryClient;
 import io.camunda.connector.idp.extraction.client.ai.AzureOpenAiClient;
 import io.camunda.connector.idp.extraction.client.ai.BedrockAiClient;
@@ -24,6 +26,8 @@ import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionCli
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ConverseData;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
 import io.camunda.connector.idp.extraction.request.common.ai.AzureAiRequest;
 import io.camunda.connector.idp.extraction.request.common.ai.BedrockAiRequest;
@@ -33,6 +37,7 @@ import io.camunda.connector.idp.extraction.request.common.extraction.DocumentAiE
 import io.camunda.connector.idp.extraction.request.common.extraction.DocumentIntelligenceExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider;
 import io.camunda.connector.idp.extraction.request.common.extraction.TextractExtractorRequest;
+import jakarta.validation.ValidationException;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,6 +46,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ProviderUtilTest {
+
+  @SuppressWarnings("deprecation")
+  @Test
+  void legacyAwsProviderRejectsMissingEffectiveRegion() {
+    AwsProvider aws = mock(AwsProvider.class);
+    when(aws.getAuthentication())
+        .thenReturn(new AwsStaticCredentialsAuthentication("accessKey", "secretKey"));
+    when(aws.getConfiguration()).thenReturn(new AwsBaseConfiguration(null, null));
+    ProviderConfig provider = aws;
+
+    assertThatThrownBy(() -> ProviderUtil.getTextExtractor(provider))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("configuration.region");
+  }
 
   @Nested
   class GetMlExtractorFromExtractionProviderTests {

@@ -9,6 +9,8 @@ package io.camunda.connector.http.base.model.auth;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -31,16 +33,16 @@ import jakarta.validation.constraints.Pattern;
  * @param authentication the reusable authentication. Never {@link NoAuthentication}.
  * @param url the endpoint this credential is bound to. Mandatory for the authentication types that
  *     are meaningless without one — a static secret: basic, bearer or API key (see {@link
- *     #requiresUrl(Authentication)}). The OAuth variants already carry their own token endpoint and
- *     are routinely reused across resource URLs, so for them it is optional. Whichever type is
- *     chosen, the consuming connector's inline URL — when the process author sets one — wins over
- *     this value: binding a credential and pointing a task at a URL are both decisions of the same
- *     process author, so an override is a modelling choice rather than an escalation, and there is
- *     no attempt to constrain it here.
+ *     #requiresUrl(Authentication)}) — and, to keep the field's required-ness honest in Modeler,
+ *     hidden entirely for the OAuth variants, which already carry their own token endpoint and are
+ *     routinely reused across resource URLs. Whichever type is chosen, the consuming connector's
+ *     inline URL — when the process author sets one — wins over this value: binding a credential
+ *     and pointing a task at a URL are both decisions of the same process author, so an override is
+ *     a modelling choice rather than an escalation, and there is no attempt to constrain it here.
  */
 @Configuration(
     id = "io.camunda.connectors:rest-authentication:1",
-    version = 1,
+    version = 2,
     name = "REST Authentication")
 public record RestAuthenticationConfiguration(
     @Valid
@@ -58,10 +60,19 @@ public record RestAuthenticationConfiguration(
         @TemplateProperty(
             group = "endpoint",
             label = "URL",
-            optional = true,
             description =
                 "The endpoint this credential is bound to. Required for basic, bearer and API key"
-                    + " authentication; optional for OAuth, which carries its own token endpoint.")
+                    + " authentication; not shown for OAuth, which carries its own token"
+                    + " endpoint.",
+            condition =
+                @PropertyCondition(
+                    property = "authentication.type",
+                    oneOf = {
+                      ApiKeyAuthentication.TYPE,
+                      BasicAuthentication.TYPE,
+                      BearerAuthentication.TYPE
+                    }),
+            constraints = @PropertyConstraints(notEmpty = true))
         String url) {
 
   /**
@@ -97,10 +108,11 @@ public record RestAuthenticationConfiguration(
   }
 
   /**
-   * The URL is mandatory exactly when the chosen authentication type requires one. Enforced on the
-   * record (not as a {@code @NotBlank} on the component) because the requirement is conditional —
-   * an OAuth credential legitimately has no URL — and the element template cannot express a
-   * per-authentication-type constraint on a single field.
+   * The URL is mandatory exactly when the chosen authentication type requires one. The element
+   * template above enforces this in Modeler: the field is shown, and required, only for the
+   * authentication types {@link #requiresUrl(Authentication)} names. This method remains the
+   * backstop for paths that bypass Modeler entirely — a hand-edited BPMN file or a credential
+   * constructed directly against the API.
    */
   @AssertTrue(message = "URL is required for this authentication type")
   @JsonIgnore

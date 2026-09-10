@@ -18,10 +18,24 @@ package io.camunda.connector.generator.java.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.generator.dsl.PropertyBinding.ConfigurationTemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 public class TemplatePropertiesUtilTest {
+
+  @io.camunda.connector.api.annotation.Configuration(
+      id = "io.camunda:test-credential:1",
+      version = 1,
+      name = "Test Credential")
+  record TestCredential(
+      @TemplateProperty(
+              id = "nested.clientId",
+              binding = @TemplateProperty.PropertyBinding(name = "clientId"))
+          String clientId) {}
 
   @ParameterizedTest
   @CsvSource({
@@ -36,5 +50,37 @@ public class TemplatePropertiesUtilTest {
 
     // then
     assertThat(actual).isEqualTo(expected);
+  }
+
+  @Test
+  void configurationPropertyKeepsUiIdAndUsesOutboundRuntimeBinding() {
+    var properties =
+        TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
+            TestCredential.class, new TemplateGenerationContext.Outbound("test", Set.of()));
+
+    assertThat(properties)
+        .singleElement()
+        .satisfies(
+            property -> {
+              assertThat(property.getId()).isEqualTo("nested.clientId");
+              assertThat(property.getBinding())
+                  .isEqualTo(new ConfigurationTemplateProperty("clientId"));
+            });
+  }
+
+  @Test
+  void configurationPropertyKeepsUiIdAndUsesInboundRuntimeBinding() {
+    var properties =
+        TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
+            TestCredential.class, new TemplateGenerationContext.Inbound("test", Set.of()));
+
+    assertThat(properties)
+        .singleElement()
+        .satisfies(
+            property -> {
+              assertThat(property.getId()).isEqualTo("nested.clientId");
+              assertThat(property.getBinding())
+                  .isEqualTo(new ConfigurationTemplateProperty("clientId"));
+            });
   }
 }
