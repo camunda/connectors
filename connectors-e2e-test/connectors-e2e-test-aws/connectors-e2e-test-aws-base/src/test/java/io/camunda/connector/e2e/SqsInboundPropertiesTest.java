@@ -62,4 +62,37 @@ class SqsInboundPropertiesTest {
         .isEqualTo("cred-ak");
     assertThat(properties.getConfiguration().region()).isEqualTo("eu-west-1");
   }
+
+  @Test
+  void bindsRegionOverrideExpressionThroughFeelReader() throws Exception {
+    String credentialExpression = "=camunda.vars.env.sqsCredential";
+    String regionExpression = "=regionVariable";
+    var credential =
+        Map.of(
+            "authentication",
+            Map.of("type", "credentials", "accessKey", "cred-ak", "secretKey", "cred-sk"),
+            "region",
+            "eu-west-1");
+    var evaluator = mock(FeelExpressionEvaluator.class);
+    when(evaluator.evaluate(eq(credentialExpression), any(Object[].class))).thenReturn(credential);
+    when(evaluator.evaluate(eq(regionExpression), any(Object[].class))).thenReturn("eu-central-1");
+    var objectMapper =
+        ObjectMapperSupplier.getMapperInstance()
+            .copy()
+            .registerModule(new JacksonModuleFeelFunction());
+    JsonNode propertiesJson =
+        objectMapper.valueToTree(
+            Map.of(
+                "awsCredential",
+                credentialExpression,
+                "configuration",
+                Map.of("region", regionExpression)));
+
+    var properties =
+        FeelContextAwareObjectReader.of(objectMapper)
+            .withEvaluator(evaluator)
+            .readValue(propertiesJson, SqsInboundProperties.class);
+
+    assertThat(properties.getConfiguration().region()).isEqualTo("eu-central-1");
+  }
 }
