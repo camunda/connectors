@@ -17,6 +17,9 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.Timeout;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -35,6 +38,8 @@ import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +66,18 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final List<Class<? extends BaseElement>> OUTBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
 
+  private static final int XML_FETCH_MAX_RETRIES = 3;
+
+  private static final Duration XML_FETCH_INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
+
+  /**
+   * Retries stop this far ahead of the activated job's deadline, leaving room for the connector
+   * function itself to run before the job's lease expires -- a fetch that only succeeds after the
+   * lease is gone risks the job being reassigned while this worker keeps executing, per the
+   * duplicate-side-effect concern in {@code SpringConnectorJobHandler}.
+   */
+  private static final Duration XML_FETCH_DEADLINE_SAFETY_MARGIN = Duration.ofSeconds(5);
+
   static {
     OUTBOUND_ELIGIBLE_TYPES.add(ServiceTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(SendTask.class);
@@ -73,11 +90,21 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
 
   private final CamundaClient camundaClient;
   private final Cache<Long, Map<String, List<Secret>>> cache;
+  private final Duration xmlFetchInitialRetryDelay;
 
   public ProcessDefinitionSecretKeyCache(
       CamundaClient camundaClient, Cache<Long, Map<String, List<Secret>>> cache) {
+    this(camundaClient, cache, XML_FETCH_INITIAL_RETRY_DELAY);
+  }
+
+  /** Test-only seam: lets retry tests use a near-zero delay instead of the real one. */
+  public ProcessDefinitionSecretKeyCache(
+      CamundaClient camundaClient,
+      Cache<Long, Map<String, List<Secret>>> cache,
+      Duration xmlFetchInitialRetryDelay) {
     this.camundaClient = camundaClient;
     this.cache = cache;
+    this.xmlFetchInitialRetryDelay = xmlFetchInitialRetryDelay;
   }
 
   @Override
@@ -85,13 +112,15 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return cache
         .get(
             secretKeyContext.processDefinitionKey(),
-            key -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
+            key ->
+                fetchSecretKeysByElementIds(
+                    secretKeyContext.processDefinitionKey(), secretKeyContext.deadline()))
         .getOrDefault(secretKeyContext.elementId(), Collections.emptyList());
   }
 
-  private Map<String, List<Secret>> fetchSecretKeysByElementIds(long processDefinitionKey) {
-    String bpmnXml =
-        camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute();
+  private Map<String, List<Secret>> fetchSecretKeysByElementIds(
+      long processDefinitionKey, Instant deadline) {
+    String bpmnXml = fetchBpmnXmlWithRetry(processDefinitionKey, deadline);
 
     BpmnModelInstance modelInstance =
         Bpmn.readModelFromStream(new ByteArrayInputStream(bpmnXml.getBytes()));
@@ -101,6 +130,40 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return processes.stream()
         .flatMap(process -> inspectBpmnProcess(process, processDefinitionKey).entrySet().stream())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  private String fetchBpmnXmlWithRetry(long processDefinitionKey, Instant deadline) {
+    Duration remaining =
+        Duration.between(Instant.now(), deadline).minus(XML_FETCH_DEADLINE_SAFETY_MARGIN);
+    if (remaining.isNegative() || remaining.isZero()) {
+      throw new IllegalStateException(
+          "BPMN XML fetch deadline already elapsed for process definition key "
+              + processDefinitionKey);
+    }
+    Timeout<String> xmlFetchTimeout = Timeout.<String>builder(remaining).withInterrupt().build();
+    if (remaining.compareTo(xmlFetchInitialRetryDelay) <= 0) {
+      return Failsafe.with(xmlFetchTimeout)
+          .get(
+              () ->
+                  camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
+    }
+    RetryPolicy<String> xmlFetchRetryPolicy =
+        RetryPolicy.<String>builder()
+            .withBackoff(
+                xmlFetchInitialRetryDelay,
+                xmlFetchInitialRetryDelay.multipliedBy(1L << (XML_FETCH_MAX_RETRIES - 1)))
+            .withMaxRetries(XML_FETCH_MAX_RETRIES)
+            .withMaxDuration(remaining)
+            .onFailedAttempt(
+                event ->
+                    LOG.warn(
+                        "Attempt {}/{} to fetch BPMN XML failed: {}",
+                        event.getAttemptCount(),
+                        XML_FETCH_MAX_RETRIES + 1,
+                        event.getLastException().getClass().getName()))
+            .build();
+    return Failsafe.with(xmlFetchTimeout, xmlFetchRetryPolicy)
+        .get(() -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
   }
 
   private Map<String, List<Secret>> inspectBpmnProcess(Process process, long processDefinitionKey) {

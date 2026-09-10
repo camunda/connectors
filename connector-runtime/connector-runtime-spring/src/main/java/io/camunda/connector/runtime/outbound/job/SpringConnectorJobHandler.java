@@ -47,6 +47,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
@@ -125,7 +126,10 @@ public class SpringConnectorJobHandler implements JobHandler {
     try {
       SecretFilter secretFilter =
           secretFilterFactory.create(
-              new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+              new SecretFilterContext(
+                  job.getProcessDefinitionKey(),
+                  job.getElementId(),
+                  Instant.ofEpochMilli(job.getDeadline())));
       internalHandle(client, job, secretFilter);
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailure(job);

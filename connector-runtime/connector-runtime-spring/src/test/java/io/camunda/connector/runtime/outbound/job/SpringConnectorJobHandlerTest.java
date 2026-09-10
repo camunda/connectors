@@ -52,13 +52,16 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -724,6 +727,43 @@ class SpringConnectorJobHandlerTest {
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
+    }
+  }
+
+  @Nested
+  class SecretFilterDeadlineTests {
+
+    @Test
+    void secretFilterContext_receivesJobDeadlineAsInstant() {
+      // given -- the secret filter factory needs the job's deadline to bound the BPMN XML
+      // fetch retry (ProcessDefinitionSecretKeyCache), so it must be threaded through from the
+      // activated job into the SecretFilterContext used to build the filter.
+      var secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(any())).thenReturn(SecretFilter.allowAll());
+      var jobHandler =
+          new SpringConnectorJobHandler(
+              new ConnectorsOutboundMetrics(new SimpleMeterRegistry()),
+              new DefaultCommandExceptionHandlingStrategy(
+                  BackoffSupplier.newBackoffBuilder().build(),
+                  Executors.newSingleThreadScheduledExecutor()),
+              new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+              new DefaultValidationProvider(),
+              mock(DocumentFactory.class),
+              TestObjectMapperSupplier.INSTANCE,
+              (context) -> "ok",
+              new DefaultNoopMetricsRecorder(),
+              secretFilterFactory);
+      long deadline = System.currentTimeMillis() + Duration.ofMinutes(5).toMillis();
+      var jobBuilder = JobBuilder.create().withDeadline(deadline);
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then
+      ArgumentCaptor<SecretFilterContext> contextCaptor =
+          ArgumentCaptor.forClass(SecretFilterContext.class);
+      verify(secretFilterFactory).create(contextCaptor.capture());
+      assertThat(contextCaptor.getValue().deadline()).isEqualTo(Instant.ofEpochMilli(deadline));
     }
   }
 
