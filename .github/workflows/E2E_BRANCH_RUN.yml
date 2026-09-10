@@ -158,6 +158,10 @@ jobs:
 
       - name: Archive Maven repository
         run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq zstd
+          fi
           set -o pipefail
           tar -cf - -C "$HOME/.m2" repository |
             zstd -T0 -3 -q -o "$RUNNER_TEMP/m2-repository.tar.zst"
@@ -274,6 +278,10 @@ jobs:
 
       - name: Extract Maven repository
         run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq zstd
+          fi
           set -o pipefail
           mkdir -p "$HOME/.m2"
           zstd -dc "$RUNNER_TEMP/m2-repository/m2-repository.tar.zst" |
