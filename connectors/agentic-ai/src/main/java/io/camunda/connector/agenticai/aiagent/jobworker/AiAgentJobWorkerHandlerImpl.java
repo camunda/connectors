@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilter
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +86,10 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private void executeJob(final JobClient jobClient, final ActivatedJob job) {
     final SecretFilter secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     // kept for the error paths: a secret rotated since the input was bound no longer reads back,
     // and the value an error message carries is the one substituted then
     final List<String> capturedSecrets = new ArrayList<>();
