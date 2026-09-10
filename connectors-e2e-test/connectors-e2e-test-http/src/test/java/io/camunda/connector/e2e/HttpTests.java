@@ -536,7 +536,9 @@ public class HttpTests {
         .until(() -> webhookConnectorRegistry.getActiveWebhook("testId").isPresent());
 
     var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
-    Awaitility.await()
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
         .atMost(Duration.ofSeconds(10))
         .pollDelay(Duration.ZERO)
         .untilAsserted(
