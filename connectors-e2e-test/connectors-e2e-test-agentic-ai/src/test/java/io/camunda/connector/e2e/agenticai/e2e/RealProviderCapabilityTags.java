@@ -16,24 +16,13 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
-import java.util.List;
+final class RealProviderCapabilityTags {
+  static final String CORE = "core-smoke";
+  static final String STRUCTURED_OUTPUT = "structured-output";
+  static final String REASONING = "reasoning";
+  static final String PROMPT_CACHING = "prompt-caching";
+  static final String MULTIMODAL = "multimodal-documents";
+  static final String DOCUMENT_TOOL_CALL_RESULTS = "document-tool-results";
 
-final class RealLlmTestEnvironment {
-
-  private RealLlmTestEnvironment() {}
-
-  static boolean hasNonBlankValues(List<String> variableNames) {
-    return variableNames.stream()
-        .map(System::getenv)
-        .allMatch(value -> value != null && !value.isBlank());
-  }
-
-  static String getOrDefault(String variableName, String defaultValue) {
-    final var value = System.getenv(variableName);
-    return value == null || value.isBlank() ? defaultValue : value;
-  }
-
-  static boolean isProviderRequired() {
-    return "true".equalsIgnoreCase(System.getenv("REQUIRE_NATIVE_LLM_PROVIDER"));
-  }
+  private RealProviderCapabilityTags() {}
 }
