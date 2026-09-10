@@ -66,7 +66,11 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
     BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
 
     // Authentication is exercised on the first attempt; retries only repeat the client timeout.
-    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcp"))
+    serviceTasksByType(
+            bpmnModel,
+            type ->
+                type.equals("io.camunda.agenticai:mcpclient:1")
+                    || type.equals("io.camunda.agenticai:mcpremoteclient:1"))
         .forEach(
             serviceTask ->
                 serviceTask.getSingleExtensionElement(ZeebeTaskDefinition.class).setRetries("1"));
