@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.aws.model.AwsConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 
 public record AwsBaseConfiguration(
-    @TemplateProperty(group = "configuration", constraints = @PropertyConstraints(notEmpty = true))
+    @FEEL
+        @TemplateProperty(
+            group = "configuration",
+            constraints = @PropertyConstraints(notEmpty = true))
         String region,
     @TemplateProperty(
             group = "configuration",
