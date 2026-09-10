@@ -637,6 +637,16 @@ public class CustomApacheHttpClientTest {
                   + "Connection reset");
       assertThat(e.getCause()).isInstanceOf(IOException.class);
     }
+
+    @Test
+    public void shouldFallBackToClassName_whenRootCauseMessageIsNullOrBlank() throws Exception {
+      var method = CustomApacheHttpClient.class.getDeclaredMethod("rootMessage", Throwable.class);
+      method.setAccessible(true);
+
+      assertThat(method.invoke(null, new IOException((String) null))).isEqualTo("IOException");
+      assertThat(method.invoke(null, new IOException("  ", new IOException("   "))))
+          .isEqualTo("IOException");
+    }
   }
 
   @Nested
