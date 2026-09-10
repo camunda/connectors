@@ -48,19 +48,22 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningContent(ProviderConfig provider) {
+    final var systemPrompt =
+        "You are a careful reasoner. Think step by step before answering. Before providing your "
+            + "final answer, break down your reasoning step-by-step.";
     var model =
         buildModel(
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
+            systemPrompt,
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
-            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
+            systemPrompt,
             Map.of(
                 "userPrompt",
                 "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "

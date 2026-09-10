@@ -604,7 +604,8 @@ abstract class RealProviderApiSmokeSupport {
 
   static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
     return requireProviderSelection(
-        providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE)), "multimodal");
+        providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE)),
+        RealProviderCapabilityTags.MULTIMODAL);
   }
 
   private static Stream<ProviderConfig> requireProviderSelection(

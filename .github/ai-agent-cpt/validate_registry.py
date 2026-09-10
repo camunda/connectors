@@ -22,18 +22,25 @@ def fail(message):
 
 
 def load_registry(path):
-    with pathlib.Path(path).open(encoding="utf-8") as registry_file:
-        registry = json.load(registry_file)
+    try:
+        with pathlib.Path(path).open(encoding="utf-8") as registry_file:
+            registry = json.load(registry_file)
+    except json.JSONDecodeError as error:
+        fail(f"registry is not valid JSON: {error}")
+    if not isinstance(registry, dict):
+        fail("registry must be an object")
     profiles = registry.get("credentialProfiles")
     if not isinstance(profiles, dict):
         fail("credentialProfiles must be an object")
     for profile_name, profile in profiles.items():
         if not isinstance(profile, dict):
             fail(f"{profile_name}: credential profile must be an object")
-        if not isinstance(profile.get("vaultSecrets"), list):
-            fail(f"{profile_name}: vaultSecrets must be an array")
-        if not isinstance(profile.get("environment"), list):
-            fail(f"{profile_name}: environment must be an array")
+        for field in ("vaultSecrets", "environment"):
+            values = profile.get(field)
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) for value in values
+            ):
+                fail(f"{profile_name}: {field} must be an array of strings")
     rows = registry.get("rows")
     if not isinstance(rows, list) or not rows:
         fail("rows must be a non-empty array")
@@ -52,6 +59,8 @@ def validate(registry, rows):
     profiles = set(registry["credentialProfiles"])
     ids = set()
     for row in rows:
+        if not isinstance(row, dict):
+            fail(f"registry row must be an object: {row!r}")
         required_fields = {
             "id": str,
             "name": str,
@@ -76,6 +85,8 @@ def validate(registry, rows):
         row_profiles = row.get("credentialProfiles")
         if not isinstance(row_profiles, list) or not row_profiles:
             fail(f"{row_id}: credentialProfiles must be non-empty")
+        if not all(isinstance(profile, str) for profile in row_profiles):
+            fail(f"{row_id}: credentialProfiles must contain only strings")
         unknown_profiles = set(row_profiles) - profiles
         if unknown_profiles:
             fail(f"{row_id}: unknown credential profile(s): {sorted(unknown_profiles)}")
