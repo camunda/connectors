@@ -67,6 +67,18 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldFailStrictModeWhenNoProviderIsEnabled() {
+    environment.set("REAL_LLM_PROVIDER_GROUP", "");
+    environment.set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+
+    assertThatThrownBy(() -> RealProviderApiSmokeSupport.providers().toList())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(
+            "No enabled real providers were selected; check provider credentials and "
+                + "REAL_LLM_PROVIDER_GROUP");
+  }
+
+  @Test
   void shouldDisableVertexGemini37OnlyInShardedRuns() {
     environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
     environment.set("GOOGLE_VERTEX_AI_REGION", "region");

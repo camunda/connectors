@@ -572,7 +572,13 @@ abstract class RealProviderApiSmokeSupport {
   }
 
   static Stream<ProviderConfig> providers() {
-    return requireProviderSelection(providerCatalog().filter(ProviderConfig::isEnabled), "any");
+    final var selectedProviders = providerCatalog().filter(ProviderConfig::isEnabled).toList();
+    if (RealLlmTestEnvironment.isProviderRequired() && selectedProviders.isEmpty()) {
+      throw new IllegalStateException(
+          "No enabled real providers were selected; check provider credentials and "
+              + "REAL_LLM_PROVIDER_GROUP");
+    }
+    return selectedProviders.stream();
   }
 
   static Stream<ProviderConfig> providersWithStructuredOutput() {
