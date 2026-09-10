@@ -155,7 +155,7 @@ jobs:
             [ -f "$module/pom.xml" ] || return 0
 
             mkdir -p "$RUNNER_TEMP/$repository/repository"
-            $MVN_CMD --batch-mode \
+            ./mvnw --batch-mode \
               --settings "$RUNNER_TEMP/local-maven-mirror-settings.xml" \
               -Dmaven.repo.local="$RUNNER_TEMP/$repository/repository" \
               -DskipTests \
