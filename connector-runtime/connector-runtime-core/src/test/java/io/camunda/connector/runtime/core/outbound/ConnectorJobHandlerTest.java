@@ -43,11 +43,14 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableException;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -1468,6 +1471,33 @@ class ConnectorJobHandlerTest {
       // discovery runs before anything is bound, so the failure carries no secret and is reported
       // as it is; letting it escape would leave the job for its activation timeout instead
       assertThat(result.getErrorMessage()).isEqualTo("no secret provider could be discovered");
+    }
+  }
+
+  // the deadline handed to the secret filter factory bounds the allow-list XML fetch retry: a
+  // wrong unit or value here would silently defeat that retry's safety margin
+  @Nested
+  class SecretFilterContextDeadlineTests {
+
+    @Test
+    void theActivatedJobsDeadlineIsPassedThroughAsAnInstant() {
+      var contextCaptor = ArgumentCaptor.forClass(SecretFilterContext.class);
+      SecretFilterFactory secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(contextCaptor.capture())).thenReturn(SecretFilter.allowAll());
+      var jobHandler =
+          new ConnectorJobHandler(context -> "ok", null, e -> {}, null, secretFilterFactory);
+      long deadlineEpochMilli = 1_726_000_000_000L;
+
+      JobBuilder.create()
+          .withProcessDefinitionKey(42L)
+          .withElementId("Activity_1")
+          .withDeadline(deadlineEpochMilli)
+          .executeAndCaptureResult(jobHandler);
+
+      assertThat(contextCaptor.getValue().processDefinitionKey()).isEqualTo(42L);
+      assertThat(contextCaptor.getValue().elementId()).isEqualTo("Activity_1");
+      assertThat(contextCaptor.getValue().deadline())
+          .isEqualTo(Instant.ofEpochMilli(deadlineEpochMilli));
     }
   }
 }
