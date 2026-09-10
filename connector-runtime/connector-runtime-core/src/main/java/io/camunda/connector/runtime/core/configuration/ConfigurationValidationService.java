@@ -26,6 +26,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor.LegacySecretSyntaxException;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +79,10 @@ public class ConfigurationValidationService {
   private static final String LEGACY_SECRET_SYNTAX_MESSAGE =
       "The configuration uses an unsupported secret syntax. Reference secrets as"
           + " camunda.secrets.<name>.";
+
+  // A camunda.secrets.<name> reference in a JSON value position; the lookahead skips keys.
+  private static final Pattern QUOTED_SECRET_REFERENCE =
+      Pattern.compile("\"(camunda\\.secrets\\.`?[\\p{Alnum}_-]+`?)\"(?!\\s*:)");
 
   private final ConfigurationValidationRegistry registry;
   private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
@@ -211,7 +216,18 @@ public class ConfigurationValidationService {
       throws Exception {
     // The legacy-syntax check runs inside the evaluator's result processor, before any secret
     // value is substituted, so it never inspects resolved secret material.
-    String resolvedJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
+    String resolvedJson =
+        feelExpressionEvaluator.evaluateToJson(unquoteSecretReferences(request.credentialRef()));
     return objectMapper.readValue(resolvedJson, configurationClass);
+  }
+
+  /**
+   * Unquotes every {@code camunda.secrets.<name>} value, so the cluster parses it as a reference
+   * instead of a string literal and reports it as a referenced secret.
+   */
+  static String unquoteSecretReferences(String credentialRef) {
+    return credentialRef == null
+        ? null
+        : QUOTED_SECRET_REFERENCE.matcher(credentialRef).replaceAll("$1");
   }
 }
