@@ -9,20 +9,19 @@ package io.camunda.connector.aws.model.impl;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 
 /**
  * Configuration (credential) template for reusable AWS credentials, shared by AWS connectors.
  * Reuses the existing sealed {@link AwsAuthentication} (a discriminated union of static credentials
- * vs. the default credentials chain) plus the region, demonstrating that a discriminated auth model
- * maps onto the configuration-template format (a discriminator dropdown with conditional fields).
+ * vs. the default credentials chain) plus an optional default region, demonstrating that a
+ * discriminated auth model maps onto the configuration-template format (a discriminator dropdown
+ * with conditional fields).
  */
-@Configuration(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
+@Configuration(id = "io.camunda:aws-credential:1", version = 2, name = "AWS Credential")
 public record AwsCredentialConfiguration(
     @Valid @TemplateProperty(group = "authentication") AwsAuthentication authentication,
-    @NotBlank
-        @TemplateProperty(
+    @TemplateProperty(
             group = "configuration",
-            label = "Region",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            label = "Default region",
+            description = "Used when a connector does not specify a region override.")
         String region) {}

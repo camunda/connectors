@@ -86,24 +86,22 @@ Not every fallback field needs an "override the credential's value" companion fi
 on whether the property is **independent of the rest of the credential's data**, or **structurally
 tied to it**:
 
-- **REST auth's `url`** gets an inline `urlOverride` field, shown once a credential is bound — but
-  it's only ever *usable* for an OAuth credential, which carries no URL of its own (a token
-  endpoint is inherently reused across many resource URLs, so the inline value is simply the only
-  source). For a Basic/Bearer/API-key credential, whose URL is a static secret's home, any inline
-  value at all is rejected outright (`RestAuthenticationConfiguration#carriesUrl` gates the
-  `@AssertTrue` in each consuming connector): a static secret must never risk being sent to a
-  different host than the one it was created for, and there's no way to let a task vary the path on
-  the *same* host without also opening the door to a different one, so the simpler and safer rule
-  is no override at all.
+- **REST auth's `url`** gets an inline `urlOverride` field, shown once a credential is bound. The
+  credential URL is the default endpoint for Basic/Bearer/API-key credentials and may be absent
+  for OAuth credentials, which carry their own token endpoint. When the process author supplies an
+  inline URL, it takes precedence for every authentication type. This is an explicit trust-model
+  decision: choosing the reusable credential and configuring the task destination are both under
+  the process author's control, so a reusable credential provides secret storage and reuse rather
+  than restricting where that author may send it. The credential and inline URLs remain subject to
+  their normal URL and host validation.
 - **JDBC's `database` (engine)** gets *no* override once a credential is bound — it's simply
   hidden. The database engine dictates the JDBC driver and URL scheme paired with that specific
   host/port/credentials; overriding just the engine while keeping the credential's connection
   details would produce a connection string for the wrong driver against the wrong server.
 
-Rule of thumb: only add an override for a field the credential doesn't actually constrain — one
-where varying it can't produce a broken or unsafe combination. A field that's part of what makes
-the credential's secret valid (a host-bound URL, a database engine tied to a specific connection)
-should be hidden and immutable once a credential is bound, not offered as an override.
+Rule of thumb: add an override only when the connector's trust model intentionally lets the process
+author choose that value per use, and document which source wins. Keep structurally coupled values
+such as JDBC's database engine hidden and immutable once a credential is bound.
 
 ## Validation pitfalls
 
@@ -208,16 +206,13 @@ For every property that can come from a credential or an inline field, cover:
 
 - [ ] Credential bound, no inline value — the credential's value is used.
 - [ ] No credential, inline value present — the inline value is used.
-- [ ] Both present — the credential wins (verify via the actual accessor, not just via
-      `ConnectionHelper`-style resolution helpers if the connector has both), *unless* the field is
-      a genuine chooser + inline **override** (see "Chooser-only field vs. chooser + inline
-      override" above) whose credential value can legitimately be `null` (e.g. an OAuth credential
-      has no URL of its own) — there the inline value is the only source and "both present" can't
-      occur.
-- [ ] For a field with a genuine inline **override** that's distinguishable from "untouched" (a
-      host-bound URL left blank by default), both present must be **rejected**, not silently
-      resolved either way — e.g. REST auth's `urlOverride` against a Basic/Bearer/API-key
-      credential.
+- [ ] Both present — the credential wins for an inline fallback, while the inline value wins for a
+      genuine chooser + inline **override** (see "Chooser-only field vs. chooser + inline override"
+      above). Verify precedence through the connector's effective-value accessor, not just through
+      `ConnectionHelper`-style resolution helpers if the connector has both.
+- [ ] For a genuine inline **override**, cover credentials both with and without their own default
+      value. Include a secret-bearing credential and document the trust-model decision that permits
+      overriding its default.
 - [ ] For a **chooser-only** field that's simply hidden once a credential is bound (JDBC's
       `database` engine), a hidden default doesn't count as "both present" and must be ignored,
       not rejected — `JdbcRequest#database()` intentionally lets the credential win over the
