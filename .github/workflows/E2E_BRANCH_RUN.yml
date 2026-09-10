@@ -131,18 +131,96 @@ jobs:
         env:
           BRANCH: ${{ inputs.branch }}
 
+      # Resolve only the dependencies and plugins needed by modules assigned to slower custom
+      # runners. The source is the repository populated by the reactor build, so this adds no
+      # network traffic and retains branch-local SNAPSHOT artifacts. Guard each module because
+      # older stable branches may predate it.
+      - name: Prepare module-specific Maven repositories
+        run: |
+          cat > "$RUNNER_TEMP/local-maven-mirror-settings.xml" <<EOF
+          <settings>
+            <mirrors>
+              <mirror>
+                <id>camunda-nexus</id>
+                <url>file://$HOME/.m2/repository</url>
+                <mirrorOf>*</mirrorOf>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
+
+          prepare_repository() {
+            module="$1"
+            repository="$2"
+            [ -f "$module/pom.xml" ] || return 0
+
+            mkdir -p "$RUNNER_TEMP/$repository/repository"
+            ./mvnw --batch-mode \
+              --settings "$RUNNER_TEMP/local-maven-mirror-settings.xml" \
+              -Dmaven.repo.local="$RUNNER_TEMP/$repository/repository" \
+              -DskipTests \
+              -DskipChecks \
+              verify \
+              -pl "$module"
+          }
+
+          prepare_repository \
+            connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            m2-agentic
+          prepare_repository \
+            connectors-e2e-test/connectors-e2e-test-inbound-runtime \
+            m2-inbound-runtime
+
+      - name: Archive Maven repository
+        run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq zstd
+          fi
+          set -o pipefail
+          tar -cf - -C "$HOME/.m2" repository |
+            zstd -T0 -3 -q -o "$RUNNER_TEMP/m2-repository.tar.zst"
+          if [ -d "$RUNNER_TEMP/m2-agentic/repository" ]; then
+            tar -cf - -C "$RUNNER_TEMP/m2-agentic" repository |
+              zstd -T0 -3 -q -o "$RUNNER_TEMP/m2-agentic-repository.tar.zst"
+          fi
+          if [ -d "$RUNNER_TEMP/m2-inbound-runtime/repository" ]; then
+            tar -cf - -C "$RUNNER_TEMP/m2-inbound-runtime" repository |
+              zstd -T0 -3 -q -o "$RUNNER_TEMP/m2-inbound-runtime-repository.tar.zst"
+          fi
+
       # Hand the fully-populated local Maven repo (first-party SNAPSHOTs + all third-party
       # dependencies resolved during the build) to the test matrix, so test jobs resolve
       # everything from the artifact instead of re-downloading their dependency tree from
-      # Nexus. Maven stays online in the test jobs, so anything missing still falls back to
-      # Nexus - the artifact just eliminates the bulk of the per-job resolution.
+      # Nexus. Pre-archive it so the artifact action transfers one file instead of separately
+      # compressing and extracting hundreds of thousands of Maven repository files.
       - name: Upload Maven repository
         uses: actions/upload-artifact@v7
         with:
           name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository
+          path: ${{ runner.temp }}/m2-repository.tar.zst
           retention-days: 1
-          include-hidden-files: true
+          compression-level: 0
+          overwrite: true
+
+      - name: Upload Agentic AI Maven repository
+        if: hashFiles('connectors-e2e-test/connectors-e2e-test-agentic-ai/pom.xml') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: m2-repo-agentic-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/m2-agentic-repository.tar.zst
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
+
+      - name: Upload inbound-runtime Maven repository
+        if: hashFiles('connectors-e2e-test/connectors-e2e-test-inbound-runtime/pom.xml') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: m2-repo-inbound-runtime-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/m2-inbound-runtime-repository.tar.zst
+          retention-days: 1
+          compression-level: 0
           overwrite: true
 
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
@@ -202,6 +280,18 @@ jobs:
         run: |
           echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
           echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
+          case "$MODULE" in
+            connectors-e2e-test-agentic-ai)
+              repository_artifact=m2-repo-agentic
+              ;;
+            connectors-e2e-test-inbound-runtime)
+              repository_artifact=m2-repo-inbound-runtime
+              ;;
+            *)
+              repository_artifact=m2-repo
+              ;;
+          esac
+          echo "repository-artifact=$repository_artifact" >> "$GITHUB_OUTPUT"
         env:
           BRANCH: ${{ inputs.branch }}
           MODULE: ${{ matrix.entry.module }}
@@ -213,8 +303,19 @@ jobs:
       - name: Download Maven repository
         uses: actions/download-artifact@v8
         with:
-          name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository
+          name: ${{ steps.sanitize.outputs.repository-artifact }}-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/m2-repository
+
+      - name: Extract Maven repository
+        run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq zstd
+          fi
+          set -o pipefail
+          mkdir -p "$HOME/.m2"
+          zstd -dc "$RUNNER_TEMP/m2-repository/"*.tar.zst |
+            tar -xf - -C "$HOME/.m2"
 
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
