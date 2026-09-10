@@ -64,7 +64,7 @@ import org.springframework.test.context.TestPropertySource;
     properties = {
       "camunda.connector.polling.enabled=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.interval=2000"
+      "camunda.connector.polling.interval=500"
     })
 @Import(InboundConnectorTestConfiguration.class)
 @WireMockTest
