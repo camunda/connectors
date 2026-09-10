@@ -156,18 +156,24 @@ jobs:
         env:
           BRANCH: ${{ inputs.branch }}
 
+      - name: Archive Maven repository
+        run: |
+          set -o pipefail
+          tar -cf - -C "$HOME/.m2" repository |
+            zstd -T0 -3 -q -o "$RUNNER_TEMP/m2-repository.tar.zst"
+
       # Hand the fully-populated local Maven repo (first-party SNAPSHOTs + all third-party
       # dependencies resolved during the build) to the test matrix, so test jobs resolve
       # everything from the artifact instead of re-downloading their dependency tree from
-      # Nexus. Maven stays online in the test jobs, so anything missing still falls back to
-      # Nexus - the artifact just eliminates the bulk of the per-job resolution.
+      # Nexus. Pre-archive it so the artifact action transfers one file instead of separately
+      # compressing and extracting hundreds of thousands of Maven repository files.
       - name: Upload Maven repository
         uses: actions/upload-artifact@v7
         with:
           name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository
+          path: ${{ runner.temp }}/m2-repository.tar.zst
           retention-days: 1
-          include-hidden-files: true
+          compression-level: 0
           overwrite: true
 
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
@@ -264,7 +270,14 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository
+          path: ${{ runner.temp }}/m2-repository
+
+      - name: Extract Maven repository
+        run: |
+          set -o pipefail
+          mkdir -p "$HOME/.m2"
+          zstd -dc "$RUNNER_TEMP/m2-repository/m2-repository.tar.zst" |
+            tar -xf - -C "$HOME/.m2"
 
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
