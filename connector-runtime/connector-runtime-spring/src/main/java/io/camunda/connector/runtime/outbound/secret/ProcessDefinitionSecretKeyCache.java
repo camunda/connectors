@@ -74,7 +74,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    * Retries stop this far ahead of the activated job's deadline, leaving room for the connector
    * function itself to run before the job's lease expires -- a fetch that only succeeds after the
    * lease is gone risks the job being reassigned while this worker keeps executing, per the
-   * duplicate-side-effect concern in {@code SpringConnectorJobHandler}.
+   * duplicate-side-effect concern in {@code ConnectorJobHandler}.
    */
   private static final Duration XML_FETCH_DEADLINE_SAFETY_MARGIN = Duration.ofSeconds(5);
 
