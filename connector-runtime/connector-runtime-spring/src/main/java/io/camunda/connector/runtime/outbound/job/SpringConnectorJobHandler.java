@@ -178,13 +178,15 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   private void executeJob(
-      JobClient client, ActivatedJob job, CounterMetricsContext counterMetricsContext) {
+      JobClient client, ActivatedJob job, CounterMetricsContext counterMetricsContext)
+      throws Exception {
     try {
       internalHandle(client, job, counterMetricsContext);
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailed(counterMetricsContext);
       connectorsOutboundMetrics.recordFailed(job.getType());
       LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
+      throw e;
     }
   }
 
