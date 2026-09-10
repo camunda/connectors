@@ -104,6 +104,16 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.1.1</version.spring-boot>
+    <!-- SEC-3498 (CVE-2026-65905, CVE-2026-68763, CVE-2026-65182, CVE-2026-65637,
+         CVE-2026-68525, CVE-2026-68569, CVE-2026-66422, CVE-2026-65183): tomcat-embed-*
+         transitive override. Setting tomcat.version alone does NOT override Spring Boot's
+         dependency-management import, since spring-boot-dependencies defines its own internal
+         tomcat.version property - the four artifacts below have to be pinned explicitly.
+         Remove only once spring-boot-dependencies itself ships tomcat.version >= 11.0.25.
+         An earlier override was removed once the BOM caught up to a previous, lower threshold,
+         which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
+         against 11.0.25, not against whatever the BOM happens to ship. -->
+    <tomcat.version>11.0.25</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
@@ -732,6 +742,34 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
+      <!-- SEC-3498: tomcat.version alone does not override Spring Boot's dependency-management
+           import, since spring-boot-dependencies defines its own internal tomcat.version
+           property. These four artifacts ship in lockstep from the same Tomcat release and must
+           be pinned together to avoid a version skew. -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-annotations-api</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -1159,6 +1197,25 @@ If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.
 the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry, and this
 enforcer rule from parent/pom.xml.
 See: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7
+                </regexMessage>
+              </requireProperty>
+              <!-- SEC-3498 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
+                   spring-boot-dependencies manages Tomcat via its own internal tomcat.version
+                   property, so bumping Spring Boot can move Tomcat without touching this file.
+                   IMPORTANT: only remove the overrides if the new BOM ships tomcat.version
+                   >= 11.0.25. A previous override was dropped because the BOM had caught up to an
+                   older, lower fix version, which downgraded Tomcat back into a vulnerable range. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.1$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the tomcat-embed-* SEC-3498 overrides can be removed.
+Only remove them if the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.25
+(confirm with `mvn dependency:tree -Dincludes=org.apache.tomcat.embed:tomcat-embed-core`, not just
+the property). If it ships anything lower, keep the overrides - removing them would downgrade
+Tomcat into a vulnerable range. To remove: drop the tomcat.version property, the four
+tomcat-embed-*/tomcat-annotations-api dependencyManagement entries, and this enforcer rule.
                 </regexMessage>
               </requireProperty>
             </rules>
