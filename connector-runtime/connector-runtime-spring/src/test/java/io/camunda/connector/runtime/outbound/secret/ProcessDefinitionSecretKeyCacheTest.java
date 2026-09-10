@@ -449,7 +449,8 @@ class ProcessDefinitionSecretKeyCacheTest {
 
     assertThatThrownBy(
             () ->
-                secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
+                secretKeyCache.getSecretKeys(
+                    new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
         .isInstanceOf(SecretKeyLookupException.class)
         .hasCauseInstanceOf(OperateException.class);
   }
@@ -536,8 +537,7 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails()
-      throws Exception {
+  void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails() throws Exception {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
             camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(200));
