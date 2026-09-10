@@ -811,6 +811,28 @@ public class InboundCorrelationHandlerTest {
       // then
       verify(dummyCommand).messageId("");
     }
+
+    @Test
+    void messageIdExpressionResolvesToNull_returnsInvalidInputFailure() {
+      // given
+      var point =
+          new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", "=missingKey", null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      // when
+      var result =
+          handler.correlate(
+              List.of(element), Collections.singletonMap("correlationKey", "testkey"));
+
+      // then the failure is returned as a value (not thrown), so the caller's normal result
+      // path logs it instead of silently dropping it via an exception handler
+      assertThat(result).isInstanceOf(Failure.InvalidInput.class);
+      var message = ((Failure.InvalidInput) result).message();
+      assertThat(message).contains("=missingKey").contains("resolved to null");
+    }
   }
 
   @Nested
