@@ -48,7 +48,8 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
         () -> {
           try {
             return secretKeyCache.getSecretKeys(
-                new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
+                new SecretKeyContext(
+                    context.processDefinitionKey(), context.elementId(), context.deadline()));
           } catch (RuntimeException e) {
             // realCause walks to the root of the chain, not just one level: e is usually a
             // Cache.ValueRetrievalException (Spring's Cache#get(key, loader) wraps whatever the
