@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -517,6 +518,7 @@ class ProcessDefinitionSecretKeyCacheTest {
     long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
     assertThat(elapsedMillis).isLessThan(700);
+    verify(xmlRequest, atLeast(2)).execute();
   }
 
   @Test
@@ -528,7 +530,7 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(xmlRequest.execute())
         .thenAnswer(
             invocation -> {
-              long until = System.nanoTime() + Duration.ofMillis(80).toNanos();
+              long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
               while (System.nanoTime() < until) {
                 try {
                   Thread.sleep(10);
@@ -537,7 +539,7 @@ class ProcessDefinitionSecretKeyCacheTest {
               }
               return bpmnXml;
             });
-    Instant deadline = Instant.now().plusSeconds(5).plusMillis(30);
+    Instant deadline = Instant.now().plusSeconds(5).plusMillis(150);
 
     assertThatThrownBy(
             () ->
