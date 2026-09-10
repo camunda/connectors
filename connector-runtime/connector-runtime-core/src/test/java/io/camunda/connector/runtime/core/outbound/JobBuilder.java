@@ -117,6 +117,21 @@ class JobBuilder {
       return this;
     }
 
+    public JobBuilderStep withDeadline(long deadline) {
+      when(job.getDeadline()).thenReturn(deadline);
+      return this;
+    }
+
+    public JobBuilderStep withProcessDefinitionKey(long processDefinitionKey) {
+      when(job.getProcessDefinitionKey()).thenReturn(processDefinitionKey);
+      return this;
+    }
+
+    public JobBuilderStep withElementId(String elementId) {
+      when(job.getElementId()).thenReturn(elementId);
+      return this;
+    }
+
     public JobBuilderStep withResultVariableHeader(final String value) {
       return withHeader(Keywords.RESULT_VARIABLE_KEYWORD, value);
     }

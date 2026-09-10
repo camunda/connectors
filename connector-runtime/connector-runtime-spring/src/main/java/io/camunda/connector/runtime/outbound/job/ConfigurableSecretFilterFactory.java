@@ -54,7 +54,8 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
         () -> {
           try {
             return secretKeyCache.getSecretKeys(
-                new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
+                new SecretKeyContext(
+                    context.processDefinitionKey(), context.elementId(), context.deadline()));
           } catch (SecretFilterUnavailableException e) {
             // Self-authored operator guidance, never derived from a client or parser response --
             // unlike every other failure below, its message is safe to surface as-is.
