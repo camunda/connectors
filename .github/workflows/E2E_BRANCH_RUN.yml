@@ -166,7 +166,7 @@ jobs:
           <settings>
             <mirrors>
               <mirror>
-                <id>populated-local-repository</id>
+                <id>camunda-nexus</id>
                 <url>file://$HOME/.m2/repository</url>
                 <mirrorOf>*</mirrorOf>
               </mirror>
