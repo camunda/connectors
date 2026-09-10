@@ -162,7 +162,7 @@ class MessageProcessorTest {
   class ActivationCheckScenarios {
 
     @Test
-    void handleMessage_NoMatchingElement_discardUnmatchedTrue_doesNotPostprocess() {
+    void handleMessage_NoMatchingElement_discardUnmatchedTrue_doesPostprocess() {
       // Given
       var operation = new EmailProcessingOperation.MarkAsReadOperation();
       var message = createTestMessage();
@@ -175,14 +175,12 @@ class MessageProcessorTest {
       // When
       processor.handleMessage(message);
 
-      // Then - no postprocessing should occur
-      verify(spyMailClient, never()).markMessageRead(any());
-      verify(spyMailClient, never()).deleteMessage(any(), anyBoolean());
-      verify(spyMailClient, never()).moveMessage(any(), any());
+      // Then - postprocessing should occur
+      verify(spyMailClient, times(1)).markMessageRead(message);
     }
 
     @Test
-    void handleMessage_NoMatchingElement_discardUnmatchedFalse_doesPostprocess() {
+    void handleMessage_NoMatchingElement_discardUnmatchedFalse_doesNotPostprocess() {
       // Given
       var operation = new EmailProcessingOperation.MarkAsReadOperation();
       var message = createTestMessage();
@@ -195,8 +193,10 @@ class MessageProcessorTest {
       // When
       processor.handleMessage(message);
 
-      // Then - postprocessing should occur
-      verify(spyMailClient, times(1)).markMessageRead(message);
+      // Then - no postprocessing should occur
+      verify(spyMailClient, never()).markMessageRead(any());
+      verify(spyMailClient, never()).deleteMessage(any(), anyBoolean());
+      verify(spyMailClient, never()).moveMessage(any(), any());
     }
 
     @Test
