@@ -42,6 +42,7 @@ import io.camunda.zeebe.client.api.response.FailJobResponse;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
@@ -169,7 +170,10 @@ public class ConnectorJobHandler implements JobHandler {
 
     SecretFilter secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
 
     ConnectorResult result;
 

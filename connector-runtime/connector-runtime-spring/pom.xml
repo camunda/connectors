@@ -66,6 +66,10 @@
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
     </dependency>
+    <dependency>
+      <groupId>dev.failsafe</groupId>
+      <artifactId>failsafe</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
