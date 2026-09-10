@@ -74,6 +74,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.grpc.StatusRuntimeException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -197,9 +198,34 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
+
+    Duration retryBackoff = null;
+    long deadline = job.getDeadline();
+    Exception deadlineResolutionFailure = null;
+    try {
+      retryBackoff = getBackoffDuration(job);
+      Long updatedDeadline = updateJobTimeoutIfPresent(job);
+      if (updatedDeadline != null) {
+        deadline = updatedDeadline;
+        if (deadline <= System.currentTimeMillis()) {
+          // A short but valid jobTimeout can already have elapsed by the time the synchronous
+          // update command returns (network latency). The broker may already consider this
+          // worker's lease gone, so the connector must not run — doing so risks duplicating side
+          // effects if the job gets reassigned. Propagate rather than continue, mirroring the
+          // definitive-rejection case above.
+          throw new IllegalStateException(
+              "Job timeout deadline already elapsed by the time the update was applied for job: "
+                  + job.getKey());
+        }
+      }
+    } catch (Exception e) {
+      deadlineResolutionFailure = e;
+    }
+
     var secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(), job.getElementId(), Instant.ofEpochMilli(deadline)));
     var context =
         new JobHandlerContext(
             job,
@@ -208,7 +234,18 @@ public class SpringConnectorJobHandler implements JobHandler {
             documentFactory,
             objectMapper,
             secretFilter);
-    ResultWithDeadline resultWithDeadline = getConnectorResult(job, context, secretFilter);
+
+    ResultWithDeadline resultWithDeadline =
+        deadlineResolutionFailure != null
+            ? new ResultWithDeadline(
+                outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
+                    deadlineResolutionFailure,
+                    job,
+                    retryBackoff,
+                    secretFilter,
+                    context.getSecretHandler().getResolvedValues()),
+                deadline)
+            : getConnectorResult(job, context, secretFilter, deadline, retryBackoff);
     processFinalResult(
         client,
         job,
@@ -228,26 +265,12 @@ public class SpringConnectorJobHandler implements JobHandler {
   private record ResultWithDeadline(ConnectorResult result, long deadline) {}
 
   private ResultWithDeadline getConnectorResult(
-      ActivatedJob job, JobHandlerContext context, SecretFilter secretFilter) {
-    Duration retryBackoff = null;
-    long deadline = job.getDeadline();
+      ActivatedJob job,
+      JobHandlerContext context,
+      SecretFilter secretFilter,
+      long deadline,
+      Duration retryBackoff) {
     try {
-      retryBackoff = getBackoffDuration(job);
-      Long updatedDeadline = updateJobTimeoutIfPresent(job);
-      if (updatedDeadline != null) {
-        deadline = updatedDeadline;
-        if (deadline <= System.currentTimeMillis()) {
-          // A short but valid jobTimeout can already have elapsed by the time the synchronous
-          // update command returns (network latency). The broker may already consider this
-          // worker's lease gone, so the connector must not run — doing so risks duplicating side
-          // effects if the job gets reassigned. Propagate rather than continue, mirroring the
-          // definitive-rejection case above.
-          throw new IllegalStateException(
-              "Job timeout deadline already elapsed by the time the update was applied for job: "
-                  + job.getKey());
-        }
-      }
-
       var connectorResponse = getConnectorResponse(context);
 
       if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {

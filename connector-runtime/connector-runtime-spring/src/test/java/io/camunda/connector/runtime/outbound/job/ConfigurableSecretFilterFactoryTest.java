@@ -32,6 +32,8 @@ import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,10 +48,11 @@ class ConfigurableSecretFilterFactoryTest {
 
   private static final long PROCESS_DEF_KEY = 42L;
   private static final String ELEMENT_ID = "service-task-1";
+  private static final Instant DEADLINE = Instant.now().plusSeconds(3600);
   private static final SecretFilterContext CONTEXT =
-      new SecretFilterContext(PROCESS_DEF_KEY, ELEMENT_ID);
+      new SecretFilterContext(PROCESS_DEF_KEY, ELEMENT_ID, DEADLINE);
   private static final SecretKeyContext SECRET_KEY_CONTEXT =
-      new SecretKeyContext(PROCESS_DEF_KEY, ELEMENT_ID);
+      new SecretKeyContext(PROCESS_DEF_KEY, ELEMENT_ID, DEADLINE);
 
   @Mock private SecretKeyCache secretKeyCache;
 
@@ -194,7 +197,8 @@ class ConfigurableSecretFilterFactoryTest {
     var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY).execute())
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
-    SecretKeyCache realSecretKeyCache = new ProcessDefinitionSecretKeyCache(camundaClient, cache);
+    SecretKeyCache realSecretKeyCache =
+        new ProcessDefinitionSecretKeyCache("default", camundaClient, cache, Duration.ofMillis(1));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
 
     var filter = factory.create(CONTEXT);

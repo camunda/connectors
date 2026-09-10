@@ -75,6 +75,8 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -83,6 +85,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -211,6 +214,25 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll(),
+        camundaClient);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call,
+      CamundaClient camundaClient,
+      SecretFilterFactory secretFilterFactory) {
+    return new SpringConnectorJobHandler(
+        new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
+        new JobCallbackCommandWrapperFactory(
+            BackoffSupplier.newBackoffBuilder().build(),
+            commandScheduler,
+            new MicrometerMetricsRecorder(new SimpleMeterRegistry())),
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        secretFilterFactory,
         camundaClient);
   }
 
@@ -1195,6 +1217,57 @@ class SpringConnectorJobHandlerTest {
 
       assertThat(capturedDeadline).isLessThan(staleDeadline);
       assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
+    }
+
+    @Test
+    void shouldUseUpdatedDeadline_ForSecretFilter_WhenHeaderPresent() throws Exception {
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      var secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(any())).thenReturn(SecretFilter.allowAll());
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient, secretFilterFactory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      ArgumentCaptor<SecretFilterContext> contextCaptor =
+          ArgumentCaptor.forClass(SecretFilterContext.class);
+      verify(secretFilterFactory).create(contextCaptor.capture());
+      Instant capturedDeadline = contextCaptor.getValue().deadline();
+      Instant expectedDeadline = Instant.now().plus(Duration.ofMinutes(10));
+
+      assertThat(capturedDeadline).isNotEqualTo(Instant.ofEpochMilli(staleDeadline));
+      assertThat(Duration.between(capturedDeadline, expectedDeadline).abs())
+          .isLessThan(Duration.ofSeconds(5));
+    }
+
+    @Test
+    void shouldUseEarlierDeadline_ForSecretFilter_WhenUpdateCommandFailsAmbiguously()
+        throws Exception {
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
+      var secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(any())).thenReturn(SecretFilter.allowAll());
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient, secretFilterFactory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT1M"));
+
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      ArgumentCaptor<SecretFilterContext> contextCaptor =
+          ArgumentCaptor.forClass(SecretFilterContext.class);
+      verify(secretFilterFactory).create(contextCaptor.capture());
+      Instant capturedDeadline = contextCaptor.getValue().deadline();
+      Instant expectedDeadline = Instant.now().plus(Duration.ofMinutes(1));
+
+      assertThat(capturedDeadline).isBefore(Instant.ofEpochMilli(staleDeadline));
+      assertThat(Duration.between(capturedDeadline, expectedDeadline).abs())
+          .isLessThan(Duration.ofSeconds(5));
     }
   }
 
