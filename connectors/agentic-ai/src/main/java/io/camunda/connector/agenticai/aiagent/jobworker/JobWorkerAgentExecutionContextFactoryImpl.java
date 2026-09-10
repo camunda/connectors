@@ -18,6 +18,7 @@ import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
+import java.time.Instant;
 import java.util.List;
 
 public class JobWorkerAgentExecutionContextFactoryImpl
@@ -46,7 +47,10 @@ public class JobWorkerAgentExecutionContextFactoryImpl
       final JobClient jobClient, final ActivatedJob job, final List<String> capturedSecretValues) {
     final SecretFilter secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     final JobHandlerContext context =
         new JobHandlerContext(
             job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
