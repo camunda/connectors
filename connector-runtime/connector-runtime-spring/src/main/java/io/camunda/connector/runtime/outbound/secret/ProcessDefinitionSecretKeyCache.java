@@ -184,7 +184,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                         XML_FETCH_MAX_RETRIES + 1,
                         event.getLastException().getClass().getName()))
             .build();
-    return Failsafe.with(xmlFetchRetryPolicy, xmlFetchTimeout)
+    return Failsafe.with(xmlFetchTimeout, xmlFetchRetryPolicy)
         .get(() -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute());
   }
 

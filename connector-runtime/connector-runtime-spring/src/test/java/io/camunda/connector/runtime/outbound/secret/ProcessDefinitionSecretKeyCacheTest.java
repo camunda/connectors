@@ -511,8 +511,9 @@ class ProcessDefinitionSecretKeyCacheTest {
             () ->
                 retryingCache.getSecretKeys(
                     new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessage("still not found");
+        .satisfiesAnyOf(
+            e -> assertThat(e).isInstanceOf(TimeoutExceededException.class),
+            e -> assertThat(e).hasMessage("still not found"));
     long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
     assertThat(elapsedMillis).isLessThan(700);
