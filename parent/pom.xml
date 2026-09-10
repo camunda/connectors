@@ -88,6 +88,15 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.2</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.2</version.jackson-datatype-jsr310>
+    <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7: Jackson 3.x line (tools.jackson:*), separate from the
+         legacy com.fasterxml.jackson:jackson-bom above and not covered by it. Jackson 3.x reaches the
+         runtime transitively via spring-boot-starter-webmvc -> spring-boot-starter-jackson ->
+         spring-boot-jackson, and spring-boot-dependencies manages it through its own
+         jackson-bom.version property, which does not track the same fix cadence as the legacy line,
+         so it must be pinned independently. Remove once spring-boot-dependencies ships
+         tools.jackson:jackson-bom >= 3.1.6.
+         Ref: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7 -->
+    <version.jackson3-bom>3.1.6</version.jackson3-bom>
     <version.hibernate-validator>9.1.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
@@ -95,6 +104,16 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.1.1</version.spring-boot>
+    <!-- SEC-3498 (CVE-2026-65905, CVE-2026-68763, CVE-2026-65182, CVE-2026-65637,
+         CVE-2026-68525, CVE-2026-68569, CVE-2026-66422, CVE-2026-65183): tomcat-embed-*
+         transitive override. Setting tomcat.version alone does NOT override Spring Boot's
+         dependency-management import, since spring-boot-dependencies defines its own internal
+         tomcat.version property - the four artifacts below have to be pinned explicitly.
+         Remove only once spring-boot-dependencies itself ships tomcat.version >= 11.0.25.
+         An earlier override was removed once the BOM caught up to a previous, lower threshold,
+         which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
+         against 11.0.25, not against whatever the BOM happens to ship. -->
+    <tomcat.version>11.0.25</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
@@ -121,6 +140,11 @@ limitations under the License.</license.inlineheader>
          ships a Tika version whose tika-parser-apple-module pulls dd-plist >= 1.30.
          Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
     <version.ddplist>1.30</version.ddplist>
+    <!-- GHSA-h9h9-2rmf-rvhp: junrar transitive override — remove once the Tika version pinned in
+         connectors/embeddings-vector-database/pom.xml (version.apache-tika) ships a
+         tika-parser-pkg-module that pulls junrar >= 7.6.1.
+         Ref: https://github.com/junrar/junrar/security/advisories/GHSA-h9h9-2rmf-rvhp -->
+    <version.junrar>7.6.1</version.junrar>
 
     <version.google-api-client>2.9.1</version.google-api-client>
 
@@ -237,6 +261,15 @@ limitations under the License.</license.inlineheader>
         <version>${version.jackson-datatype-jsr310}</version>
       </dependency>
 
+      <!-- Jackson 3.x BOM, imported before Spring Boot so its version takes precedence -->
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${version.jackson3-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!--
         OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now
         an empty shell (classes ship in `okhttp-jvm`). Maven cannot read Gradle module
@@ -264,6 +297,15 @@ limitations under the License.</license.inlineheader>
         <groupId>com.googlecode.plist</groupId>
         <artifactId>dd-plist</artifactId>
         <version>${version.ddplist}</version>
+      </dependency>
+
+      <!-- GHSA-h9h9-2rmf-rvhp: override junrar transitive version brought in via
+           tika-parsers-standard-package -> tika-parser-pkg-module. Remove once that chain ships
+           junrar >= 7.6.1. -->
+      <dependency>
+        <groupId>com.github.junrar</groupId>
+        <artifactId>junrar</artifactId>
+        <version>${version.junrar}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -757,6 +799,34 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
+      <!-- SEC-3498: tomcat.version alone does not override Spring Boot's dependency-management
+           import, since spring-boot-dependencies defines its own internal tomcat.version
+           property. These four artifacts ship in lockstep from the same Tomcat release and must
+           be pinned together to avoid a version skew. -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-annotations-api</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -1108,6 +1178,25 @@ pulls dd-plist &gt;= 1.30, remove the version.ddplist property and the dd-plist 
 See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
                 </regexMessage>
               </requireProperty>
+              <!-- GHSA-h9h9-2rmf-rvhp guard: fails if langchain4j is bumped, as a reminder to
+                   check whether the junrar override can be removed (see version.junrar). Note that
+                   junrar's version is actually governed by version.apache-tika in
+                   connectors/embeddings-vector-database/pom.xml, which excludes langchain4j's Tika
+                   and re-declares it - so also re-check this override whenever that property moves,
+                   not only on a langchain4j bump. -->
+              <requireProperty>
+                <property>version.langchain4j</property>
+                <regex>^1\.20\.0$</regex>
+                <regexMessage>
+version.langchain4j was changed! Check if the junrar GHSA-h9h9-2rmf-rvhp override can be removed.
+If the Tika version pinned in connectors/embeddings-vector-database/pom.xml ships a
+tika-parser-pkg-module that pulls junrar &gt;= 7.6.1 (confirm with
+`mvn dependency:tree -Dincludes=com.github.junrar:junrar`, not just the property), remove the
+version.junrar property, the junrar dependencyManagement entry, and this enforcer rule from
+parent/pom.xml.
+See: https://github.com/junrar/junrar/security/advisories/GHSA-h9h9-2rmf-rvhp
+                </regexMessage>
+              </requireProperty>
               <!-- CVE-2026-9563 guard: fails if opensearch-java is bumped, as a reminder to
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
@@ -1148,6 +1237,44 @@ If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.3
 version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
 from parent/pom.xml.
 See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7 guard: fails if version.spring-boot is
+                   bumped, as a reminder to check whether the jackson3-bom override can be removed
+                   (see version.jackson3-bom). spring-boot-dependencies manages
+                   tools.jackson:jackson-bom via its own jackson-bom.version property, separate from
+                   the legacy com.fasterxml.jackson:jackson-bom line already overridden above - it is
+                   not covered by that override. Confirmed still needed as of spring-boot 4.1.1: its
+                   BOM ships jackson-bom.version 3.1.5, still short of the 3.1.6 fix. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.1$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the jackson3-bom CVE-2026-68497 override can be removed.
+If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.6 (confirm with
+`mvn dependency:tree -Dincludes=tools.jackson.core:jackson-databind`, not just the property), remove
+the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry, and this
+enforcer rule from parent/pom.xml.
+See: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7
+                </regexMessage>
+              </requireProperty>
+              <!-- SEC-3498 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
+                   spring-boot-dependencies manages Tomcat via its own internal tomcat.version
+                   property, so bumping Spring Boot can move Tomcat without touching this file.
+                   IMPORTANT: only remove the overrides if the new BOM ships tomcat.version
+                   >= 11.0.25. A previous override was dropped because the BOM had caught up to an
+                   older, lower fix version, which downgraded Tomcat back into a vulnerable range. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.1$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the tomcat-embed-* SEC-3498 overrides can be removed.
+Only remove them if the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.25
+(confirm with `mvn dependency:tree -Dincludes=org.apache.tomcat.embed:tomcat-embed-core`, not just
+the property). If it ships anything lower, keep the overrides - removing them would downgrade
+Tomcat into a vulnerable range. To remove: drop the tomcat.version property, the four
+tomcat-embed-*/tomcat-annotations-api dependencyManagement entries, and this enforcer rule.
                 </regexMessage>
               </requireProperty>
             </rules>
