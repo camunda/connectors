@@ -45,11 +45,14 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1469,6 +1472,36 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isEqualTo("AUTH_FAILED");
       assertThat(result.getErrorMessage()).isNull();
+    }
+  }
+
+  @Nested
+  class SecretFilterContextTests {
+
+    @Test
+    void shouldPassJobDeadlineToSecretFilterFactory() {
+      // given
+      long deadlineEpochMilli = 1_700_000_000_000L;
+      SecretFilterFactory secretFilterFactory = mock(SecretFilterFactory.class);
+      when(secretFilterFactory.create(any())).thenReturn(SecretFilter.allowAll());
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> Map.of("hello", "world"),
+              new FooBarSecretProvider(),
+              e -> {},
+              null,
+              null,
+              secretFilterFactory);
+
+      // when
+      JobBuilder.create().withDeadline(deadlineEpochMilli).executeAndCaptureResult(jobHandler);
+
+      // then
+      ArgumentCaptor<SecretFilterContext> contextCaptor =
+          ArgumentCaptor.forClass(SecretFilterContext.class);
+      verify(secretFilterFactory).create(contextCaptor.capture());
+      assertThat(contextCaptor.getValue().deadline())
+          .isEqualTo(Instant.ofEpochMilli(deadlineEpochMilli));
     }
   }
 

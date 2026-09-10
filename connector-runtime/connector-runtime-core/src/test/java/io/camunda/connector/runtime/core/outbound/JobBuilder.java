@@ -117,6 +117,11 @@ class JobBuilder {
       return this;
     }
 
+    public JobBuilderStep withDeadline(long deadlineEpochMilli) {
+      when(job.getDeadline()).thenReturn(deadlineEpochMilli);
+      return this;
+    }
+
     public JobBuilderStep withResultVariableHeader(final String value) {
       return withHeader(Keywords.RESULT_VARIABLE_KEYWORD, value);
     }

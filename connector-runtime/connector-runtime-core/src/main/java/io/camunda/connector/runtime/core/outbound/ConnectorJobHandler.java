@@ -47,6 +47,7 @@ import io.camunda.zeebe.client.api.response.FailJobResponse;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
@@ -129,7 +130,10 @@ public class ConnectorJobHandler implements JobHandler {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
     SecretFilter secretFilter =
         secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     // built here rather than inside the call, so the values it substituted are still available to
     // redact with afterwards: a secret rotated in the store since then no longer re-reads to what
     // this job actually sent, and the error it provoked would publish the value it did send
