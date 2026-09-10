@@ -18,7 +18,7 @@
     "oauth m2m",
     "service principal"
   ],
-  "documentationRef" : "https://docs.databricks.com/api/workspace/introduction",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/databricks/",
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -652,7 +652,7 @@
           }
         ]
       },
-      "tooltip" : "Full request body for a custom model endpoint, using exactly one of dataframe_split, dataframe_records, inputs, or instances. Prefer dataframe_split, because dataframe_records does not guarantee column ordering. See <a href=\"https://docs.databricks.com/api/workspace/servingendpoints/query\">Model Serving query API</a>.",
+      "tooltip" : "Full request body for a custom model endpoint, using exactly one of dataframe_split, dataframe_records, inputs, or instances. Prefer dataframe_split, because dataframe_records does not guarantee column ordering. See <a href=\"https://docs.databricks.com/api/model-serving-query/v1/query\">Model Serving query API</a>.",
       "type" : "Text"
     },
     {
