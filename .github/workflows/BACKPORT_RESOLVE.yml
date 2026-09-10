@@ -1,0 +1,248 @@
+name: Resolve backport conflicts
+run-name: Resolve backport conflicts
+
+# Dispatched by BACKPORT_PR.yml for every backport PR the action opened as a draft,
+# i.e. every one whose cherry-pick hit a conflict and had that conflict committed.
+# Runs the Claude Code CLI over the checkout, replays the cherry-pick cleanly, and
+# force-pushes the resolution only if it builds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      backport_pr:
+        description: >
+          Number of the draft backport PR to resolve.
+        required: true
+        type: string
+
+# Everything this workflow writes goes through the App token, not the workflow token, as App token will trigger CI.
+permissions:
+  contents: read
+
+concurrency:
+  group: backport-resolve-${{ inputs.backport_pr }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve conflicts
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Import Vault secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/common CLAUDE_API_KEY | ANTHROPIC_API_KEY;
+            secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
+            secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
+
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      # Runs before the checkout on purpose: this decides *which* branch gets checked
+      # out and force-pushed, so it has to be able to refuse before the repo is there.
+      - name: Resolve and validate context
+        id: ctx
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          BACKPORT_PR: ${{ inputs.backport_pr }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${BACKPORT_PR}" =~ ^[0-9]+$ ]]; then
+            echo "::error::backport_pr must be a PR number, got '${BACKPORT_PR}'"
+            exit 1
+          fi
+
+          gh pr view "${BACKPORT_PR}" --repo "${REPO}" \
+            --json number,state,isDraft,headRefName,baseRefName,author,url \
+            > /tmp/backport-pr.json
+
+          state=$(jq -r '.state' /tmp/backport-pr.json)
+          draft=$(jq -r '.isDraft' /tmp/backport-pr.json)
+          head=$(jq -r '.headRefName' /tmp/backport-pr.json)
+          base=$(jq -r '.baseRefName' /tmp/backport-pr.json)
+          author=$(jq -r '.author.login' /tmp/backport-pr.json)
+
+          fail=0
+          if [ "${state}" != "OPEN" ]; then
+            echo "::error::#${BACKPORT_PR} is ${state}, not OPEN"
+            fail=1
+          fi
+          if [ "${draft}" != "true" ]; then
+            echo "::error::#${BACKPORT_PR} is not a draft — it either cherry-picked cleanly or has already been resolved"
+            fail=1
+          fi
+          if [[ "${author}" != *"[bot]" && "${author}" != app/* ]]; then
+            echo "::error::#${BACKPORT_PR} was opened by ${author}, not the backport bot"
+            fail=1
+          fi
+          if [[ "${head}" =~ ^backport-([0-9]+)-to-(.+)$ ]]; then
+            source_pr="${BASH_REMATCH[1]}"
+          else
+            echo "::error::head branch '${head}' is not a backport-<pr>-to-<target> branch"
+            fail=1
+          fi
+          [ "${fail}" -eq 0 ] || exit 1
+
+          gh pr view "${source_pr}" --repo "${REPO}" \
+            --json number,title,body,url,author,mergeCommit,commits \
+            > /tmp/source-pr.json
+
+          gh api "repos/${REPO}/issues/${BACKPORT_PR}/comments" --paginate \
+            --jq '.[] | select(.body | test("cherry-pick the changes locally")) | .body' \
+            > /tmp/conflict-instructions.txt
+
+          if [ ! -s /tmp/conflict-instructions.txt ]; then
+            source_commits=$(jq '.commits | length' /tmp/source-pr.json)
+            if [ "${source_commits}" -gt 1 ]; then
+              echo "::error::no cherry-pick instruction comment found on #${BACKPORT_PR}, and source PR #${source_pr} has ${source_commits} commits — cannot tell which shas to replay. Check whether korthout/backport-action reworded the comment this step filters on."
+              exit 1
+            fi
+            echo "::warning::no cherry-pick instruction comment on #${BACKPORT_PR}; proceeding on merge_sha alone, since source PR #${source_pr} is a single commit"
+          fi
+
+          jq -n \
+            --argjson backport_pr "$(cat /tmp/backport-pr.json)" \
+            --argjson source_pr "$(cat /tmp/source-pr.json)" \
+            --rawfile conflict_instructions /tmp/conflict-instructions.txt \
+            '{backport_pr: $backport_pr, source_pr: $source_pr, conflict_instructions: $conflict_instructions}' \
+            > /tmp/backport-context.json
+
+          {
+            echo "head=${head}"
+            echo "base=${base}"
+            echo "source_pr=${source_pr}"
+            echo "source_author=$(jq -r '.author.login' /tmp/source-pr.json)"
+            echo "merge_sha=$(jq -r '.mergeCommit.oid // ""' /tmp/source-pr.json)"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "resolving #${BACKPORT_PR} (${head} -> ${base}) from source PR #${source_pr}"
+
+      - name: Check out the backport branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ctx.outputs.head }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Fetch the target branch and the source commit
+        id: pre
+        env:
+          BASE: ${{ steps.ctx.outputs.base }}
+          MERGE_SHA: ${{ steps.ctx.outputs.merge_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin "${BASE}"
+          if [ -n "${MERGE_SHA}" ]; then
+            git fetch origin "${MERGE_SHA}"
+          fi
+          # The tip as it stands before the agent touches anything. The outcome step
+          # compares the remote against this to decide whether a resolution was pushed,
+          # rather than asking the agent whether it succeeded. The checkout just fetched
+          # this branch, so local HEAD is the remote tip.
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Maven cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Update Maven settings.xml
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+                "id": "camunda-nexus",
+                "username": "${{ steps.secrets.outputs.NEXUS_USER }}",
+                "password": "${{ steps.secrets.outputs.NEXUS_PASSWORD }}"
+            }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Configure git
+        run: |
+          git config user.name "team-connectors-int-automation[bot]"
+          git config user.email "team-connectors-int-automation[bot]@users.noreply.github.com"
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.156
+          claude --version
+
+      - name: Fetch the agent manual
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:.github/workflows/BACKPORT_RESOLVE_AGENT.md > /tmp/BACKPORT_RESOLVE_AGENT.md
+          wc -l /tmp/BACKPORT_RESOLVE_AGENT.md
+
+      - name: Run the backport resolution agent
+        id: agent
+        env:
+          ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          # Input for the agent is in /tmp/backport-context.json, written by the
+          # validation step. 
+          claude -p "You are the Camunda connectors backport resolution agent. Read /tmp/BACKPORT_RESOLVE_AGENT.md in full. It is your operating manual: follow it exactly; do not skip it." \
+            --dangerously-skip-permissions
+
+      # Gated on the validation having passed, not just always(): a refusal in that step
+      # means no checkout, no branch to inspect, and a PR this workflow was never meant
+      # to touch. It fails with its own error and this step stays out of it.
+      - name: Apply the outcome
+        if: always() && steps.ctx.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          BACKPORT_PR: ${{ inputs.backport_pr }}
+          HEAD: ${{ steps.ctx.outputs.head }}
+          PRE_SHA: ${{ steps.pre.outputs.head_sha }}
+          SOURCE_AUTHOR: ${{ steps.ctx.outputs.source_author }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          comment() {
+            gh pr comment "${BACKPORT_PR}" --repo "${REPO}" --body "$1"
+          }
+
+          notes="_The agent left no notes._"
+          if [ -s /tmp/backport-notes.txt ]; then
+            notes=$(cat /tmp/backport-notes.txt)
+          fi
+          remote_sha=$(git ls-remote origin "refs/heads/${HEAD}" | cut -f1)
+          if [ "${remote_sha}" = "${PRE_SHA}" ]; then
+            comment ":warning: The backport resolution agent pushed nothing (agent step: \`${AGENT_OUTCOME}\`), so this PR is unchanged and stays a draft. Resolve it locally with the instructions above. ${notes} [Run](${run_url})"
+            exit 0
+          fi
+
+          gh pr ready "${BACKPORT_PR}" --repo "${REPO}"
+          comment ":robot: Conflict resolved by the backport resolution agent — a machine merge, so please read the diff rather than only the checks. ${notes} [Run](${run_url})"
