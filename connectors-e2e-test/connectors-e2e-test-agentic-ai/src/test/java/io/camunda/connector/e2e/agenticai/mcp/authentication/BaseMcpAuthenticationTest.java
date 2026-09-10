@@ -32,6 +32,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +64,16 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
   @Test
   void shouldRaiseIncidentWhenAuthenticationFails() throws IOException {
     BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+
+    // Authentication is exercised on the first attempt; retries only repeat the client timeout.
+    serviceTasksByType(
+            bpmnModel,
+            type ->
+                type.equals("io.camunda.agenticai:mcpclient:1")
+                    || type.equals("io.camunda.agenticai:mcpremoteclient:1"))
+        .forEach(
+            serviceTask ->
+                serviceTask.getSingleExtensionElement(ZeebeTaskDefinition.class).setRetries("1"));
 
     // MCP Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpclient"))
