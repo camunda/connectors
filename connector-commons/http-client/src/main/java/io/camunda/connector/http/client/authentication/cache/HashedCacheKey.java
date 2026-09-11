@@ -37,9 +37,10 @@ public final class HashedCacheKey {
   public static String of(String... parts) {
     try {
       final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      final MessageDigest partDigest = MessageDigest.getInstance("SHA-256");
       for (final String part : parts) {
         final byte[] bytes = Objects.requireNonNullElse(part, "").getBytes(StandardCharsets.UTF_8);
-        digest.update(MessageDigest.getInstance("SHA-256").digest(bytes));
+        digest.update(partDigest.digest(bytes));
       }
       return HexFormat.of().formatHex(digest.digest());
     } catch (NoSuchAlgorithmException e) {
