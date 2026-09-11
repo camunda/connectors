@@ -144,7 +144,7 @@ limitations under the License.</license.inlineheader>
          connectors/embeddings-vector-database/pom.xml (version.apache-tika) ships a
          tika-parser-pkg-module that pulls junrar >= 7.6.1.
          Ref: https://github.com/junrar/junrar/security/advisories/GHSA-h9h9-2rmf-rvhp -->
-    <version.junrar>7.6.1</version.junrar>
+    <version.junrar>8.1.1</version.junrar>
 
     <version.google-api-client>2.9.1</version.google-api-client>
 
