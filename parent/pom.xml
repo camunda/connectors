@@ -108,12 +108,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.15</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.16</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.15</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.54.16</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.15</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.54.16</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -165,7 +165,7 @@ limitations under the License.</license.inlineheader>
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
+    <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
