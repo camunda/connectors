@@ -40,8 +40,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -49,6 +51,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseMultiInstancesTest {
   final InboundExecutableRegistry executableRegistry1 =
       Mockito.mock(InboundExecutableRegistry.class);
@@ -106,14 +109,14 @@ abstract class BaseMultiInstancesTest {
   ConfigurableApplicationContext context1;
   ConfigurableApplicationContext context2;
 
-  @AfterEach
+  @AfterAll
   void tearDown() {
     if (context1 != null) context1.close();
     if (context2 != null) context2.close();
   }
 
-  @BeforeEach
-  public void init() {
+  @BeforeAll
+  void startApplications() {
     context1 =
         new SpringApplicationBuilder(TestConnectorRuntimeApplication.class)
             .properties(
@@ -159,7 +162,11 @@ abstract class BaseMultiInstancesTest {
                                   instanceForwardingHttpClient, "instance2"));
                 })
             .run();
+  }
 
+  @BeforeEach
+  public void init() {
+    Mockito.reset(executableRegistry1, executableRegistry2);
     when(executableRegistry1.getConnectorName(TYPE_1)).thenReturn("Webhook");
     when(executableRegistry1.getConnectorName(TYPE_2)).thenReturn("AnotherType");
     when(executableRegistry2.getConnectorName(TYPE_1)).thenReturn("Webhook");
