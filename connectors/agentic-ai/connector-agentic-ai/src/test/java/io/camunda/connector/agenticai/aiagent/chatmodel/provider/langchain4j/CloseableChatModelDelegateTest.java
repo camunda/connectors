@@ -13,6 +13,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
@@ -27,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class CloseableChatModelDelegateTest {
@@ -94,7 +99,30 @@ class CloseableChatModelDelegateTest {
   void swallowsExceptionFromResourceClose() throws Exception {
     doThrow(new RuntimeException("close failed")).when(resource).close();
 
-    assertThatNoException().isThrownBy(() -> subject.close());
+    var events = logsOf(() -> assertThatNoException().isThrownBy(() -> subject.close()));
+
     verify(resource).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close chat model resource");
+            });
+  }
+
+  private static List<ILoggingEvent> logsOf(Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(CloseableChatModelDelegate.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return appender.list;
   }
 }

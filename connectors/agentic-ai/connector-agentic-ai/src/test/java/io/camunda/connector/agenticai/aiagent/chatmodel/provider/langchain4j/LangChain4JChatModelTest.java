@@ -20,6 +20,10 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
@@ -60,6 +64,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class LangChain4JChatModelTest {
@@ -346,6 +351,37 @@ class LangChain4JChatModelTest {
   void closeClosesTheUnderlyingChatModel() {
     api.close();
     verify(chatModel).close();
+  }
+
+  @Test
+  void closeLogsErrorInsteadOfThrowingWhenChatModelCloseFails() {
+    doThrow(new RuntimeException("boom")).when(chatModel).close();
+
+    var events = logsOf(api::close);
+
+    verify(chatModel).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close CloseableChatModel");
+            });
+  }
+
+  private static List<ILoggingEvent> logsOf(Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(LangChain4JChatModel.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return appender.list;
   }
 
   private AgentExecutionContext createExecutionContext() {
