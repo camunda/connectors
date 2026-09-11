@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.doThrow;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
@@ -94,7 +96,19 @@ class CloseableChatModelDelegateTest {
   void swallowsExceptionFromResourceClose() throws Exception {
     doThrow(new RuntimeException("close failed")).when(resource).close();
 
-    assertThatNoException().isThrownBy(() -> subject.close());
+    var events =
+        logsOf(
+            CloseableChatModelDelegate.class,
+            () -> assertThatNoException().isThrownBy(() -> subject.close()));
+
     verify(resource).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close chat model resource");
+            });
   }
 }

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
@@ -346,6 +348,23 @@ class LangChain4JChatModelTest {
   void closeClosesTheUnderlyingChatModel() {
     api.close();
     verify(chatModel).close();
+  }
+
+  @Test
+  void closeLogsErrorInsteadOfThrowingWhenChatModelCloseFails() {
+    doThrow(new RuntimeException("boom")).when(chatModel).close();
+
+    var events = logsOf(LangChain4JChatModel.class, api::close);
+
+    verify(chatModel).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close CloseableChatModel");
+            });
   }
 
   private AgentExecutionContext createExecutionContext() {

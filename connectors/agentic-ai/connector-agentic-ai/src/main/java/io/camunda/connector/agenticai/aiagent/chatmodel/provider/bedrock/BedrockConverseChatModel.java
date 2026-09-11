@@ -140,7 +140,7 @@ public class BedrockConverseChatModel implements ChatModel {
     try {
       client.close();
     } catch (Exception e) {
-      LOG.warn("Failed to close BedrockRuntimeAsyncClient", e);
+      LOG.error("Failed to close BedrockRuntimeAsyncClient", e);
     }
   }
 }

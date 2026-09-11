@@ -168,7 +168,7 @@ public class LangChain4JChatModel implements ChatModel {
     try {
       chatModel.close();
     } catch (Exception e) {
-      LOG.warn("Failed to close CloseableChatModel", e);
+      LOG.error("Failed to close CloseableChatModel", e);
     }
   }
 }
