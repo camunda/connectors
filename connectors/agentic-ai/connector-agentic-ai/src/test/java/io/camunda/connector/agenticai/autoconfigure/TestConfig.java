@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,11 @@ class TestConfig {
   @ConnectorsObjectMapper
   public ObjectMapper objectMapper() {
     return new ObjectMapper();
+  }
+
+  @Bean
+  public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return mock(OAuthClientCredentialsTokenResolver.class);
   }
 
   @Bean

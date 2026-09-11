@@ -1,0 +1,237 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.http.client.authentication;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.github.tomakehurst.wiremock.client.BasicCredentials;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.test.utils.annotation.SlowTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+@SlowTest
+@WireMockTest
+class OAuthClientCredentialsTokenResolverTest {
+
+  private OAuthClientCredentialsTokenResolver resolver;
+  private String tokenEndpoint;
+
+  @BeforeEach
+  void setUp(WireMockRuntimeInfo wmRuntimeInfo) {
+    OAuthService oAuthService = new OAuthService();
+    HttpClient httpClient = new CustomApacheHttpClient();
+    resolver =
+        new OAuthClientCredentialsTokenResolver(
+            oAuthService, new CaffeineOAuthTokenCache(), httpClient);
+    tokenEndpoint = wmRuntimeInfo.getHttpBaseUrl() + "/oauth/token";
+  }
+
+  @Test
+  void shouldFetchAccessTokenUsingBasicAuthHeader() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "test-access-token",
+                          "token_type": "Bearer",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            "https://api.example.com",
+            OAuthConstants.BASIC_AUTH_HEADER,
+            "openid my-scope");
+
+    final var token = resolver.resolveAccessToken(auth);
+
+    assertThat(token).isEqualTo("test-access-token");
+
+    verify(
+        postRequestedFor(urlEqualTo("/oauth/token"))
+            .withBasicAuth(new BasicCredentials("my-client-id", "my-client-secret"))
+            .withFormParam("grant_type", equalTo("client_credentials"))
+            .withFormParam("scope", equalTo("openid my-scope"))
+            .withFormParam("audience", equalTo("https://api.example.com")));
+  }
+
+  @Test
+  void shouldFetchAccessTokenUsingCredentialsBody() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "body-credentials-token",
+                          "token_type": "Bearer",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.CREDENTIALS_BODY,
+            null);
+
+    final var token = resolver.resolveAccessToken(auth);
+
+    assertThat(token).isEqualTo("body-credentials-token");
+
+    verify(
+        postRequestedFor(urlEqualTo("/oauth/token"))
+            .withFormParam("grant_type", equalTo("client_credentials"))
+            .withFormParam("client_id", equalTo("my-client-id"))
+            .withFormParam("client_secret", equalTo("my-client-secret")));
+  }
+
+  @Test
+  void shouldCacheTokenAndReuseIt() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "cached-token",
+                          "token_type": "Bearer",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    final var token1 = resolver.resolveAccessToken(auth);
+    final var token2 = resolver.resolveAccessToken(auth);
+
+    assertThat(token1).isEqualTo("cached-token");
+    assertThat(token2).isEqualTo(token1);
+
+    verify(1, postRequestedFor(urlEqualTo("/oauth/token")));
+  }
+
+  @Test
+  void shouldThrowConnectorExceptionOnHttpFailure() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(401)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "error": "invalid_client",
+                          "error_description": "Invalid client credentials"
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "bad-client",
+            "bad-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    assertThatThrownBy(() -> resolver.resolveAccessToken(auth))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            e -> {
+              @SuppressWarnings("unchecked")
+              final var response =
+                  (java.util.Map<String, Object>)
+                      ((ConnectorException) e).getErrorVariables().get("response");
+              @SuppressWarnings("unchecked")
+              final var body = (java.util.Map<String, Object>) response.get("body");
+              assertThat(body).containsEntry("error", "invalid_client");
+            });
+  }
+
+  @Test
+  void shouldThrowConnectorExceptionOnBlankAccessToken() {
+    stubFor(
+        post(urlEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "",
+                          "token_type": "Bearer",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    final var auth =
+        new OAuthAuthentication(
+            tokenEndpoint,
+            "my-client-id",
+            "my-client-secret",
+            null,
+            OAuthConstants.BASIC_AUTH_HEADER,
+            null);
+
+    assertThatThrownBy(() -> resolver.resolveAccessToken(auth))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("blank access_token");
+  }
+}
