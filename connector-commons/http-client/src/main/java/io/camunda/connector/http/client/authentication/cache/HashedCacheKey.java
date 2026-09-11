@@ -28,35 +28,20 @@ import java.util.Objects;
  */
 public final class HashedCacheKey {
 
-  private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
-      ThreadLocal.withInitial(HashedCacheKey::createSha256Digest);
-
   private HashedCacheKey() {}
 
   /**
-   * Hashes the given parts; {@code null} parts count as empty. Each part is length-prefixed before
-   * hashing, so parts can never be split differently to collide on the same digest.
+   * Hashes the given parts; {@code null} parts count as empty. Each part is hashed on its own
+   * first, so parts can never be split differently to collide on the same digest.
    */
   public static String of(String... parts) {
-    final MessageDigest digest = SHA_256_DIGEST.get();
-    digest.reset();
-    for (final String part : parts) {
-      final byte[] bytes = Objects.requireNonNullElse(part, "").getBytes(StandardCharsets.UTF_8);
-      digest.update(
-          new byte[] {
-            (byte) (bytes.length >>> 24),
-            (byte) (bytes.length >>> 16),
-            (byte) (bytes.length >>> 8),
-            (byte) bytes.length
-          });
-      digest.update(bytes);
-    }
-    return HexFormat.of().formatHex(digest.digest());
-  }
-
-  private static MessageDigest createSha256Digest() {
     try {
-      return MessageDigest.getInstance("SHA-256");
+      final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      for (final String part : parts) {
+        final byte[] bytes = Objects.requireNonNullElse(part, "").getBytes(StandardCharsets.UTF_8);
+        digest.update(MessageDigest.getInstance("SHA-256").digest(bytes));
+      }
+      return HexFormat.of().formatHex(digest.digest());
     } catch (NoSuchAlgorithmException e) {
       // SHA-256 is required by the Java spec, so this should never happen
       throw new IllegalStateException("SHA-256 algorithm not available", e);

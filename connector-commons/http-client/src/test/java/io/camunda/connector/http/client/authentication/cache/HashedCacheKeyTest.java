@@ -52,10 +52,9 @@ class HashedCacheKeyTest {
 
   @Test
   void matchesKnownSha256TestVector() {
-    // Independently computed: SHA-256 of the 4-byte big-endian length of "some-client-id" (14),
-    // followed by its UTF-8 bytes.
+    // Independently computed: SHA-256 of the SHA-256 digest of "some-client-id".
     assertThat(HashedCacheKey.of("some-client-id"))
-        .isEqualTo("2b6a0d97721c0e3cfd435f609664e1a7b1092e724e7cb62f3b755f3eaceb635f");
+        .isEqualTo("ab6fc92adbffc55056e521d0ff3ef5e50bf8beb83e98e2d3ff792bfdc01b620e");
   }
 
   @Test
