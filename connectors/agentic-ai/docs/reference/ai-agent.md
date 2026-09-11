@@ -1099,9 +1099,10 @@ Spring auto-wires all `SystemPromptContributor` beans into the composer.
 
 ### Known Implementations
 
-| Implementation               | Order | Activation Condition                                  |
-|------------------------------|-------|-------------------------------------------------------|
-| `A2aSystemPromptContributor` | 100   | `agentContext.properties["a2aClients"]` is non-empty  |
+| Implementation                                       | Order | Activation Condition                                                                                                                            |
+|-------------------------------------------------------|-------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `A2aSystemPromptContributor`                         | 100   | `agentContext.properties["a2aClients"]` is non-empty                                                                                            |
+| `SchemaOnlyJsonResponseFormatSystemPromptContributor` | 0     | JSON response format requested without a schema, on a provider whose native structured output is schema-only (Anthropic, Bedrock Converse)     |
 
 The architecture supports adding more contributors by creating a Spring bean implementing the interface — the composer picks them up automatically.
 
