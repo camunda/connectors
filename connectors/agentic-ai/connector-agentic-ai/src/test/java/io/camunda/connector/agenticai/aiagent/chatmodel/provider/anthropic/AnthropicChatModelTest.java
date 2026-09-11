@@ -212,6 +212,21 @@ class AnthropicChatModelTest {
   }
 
   @Test
+  void propagatesConnectorExceptionFromFailedTokenExchangeUnwrapped() {
+    final var tokenExchangeFailure =
+        new ConnectorException("OAUTH_TOKEN_EXCHANGE_FAILED", "invalid_client");
+
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages()).thenThrow(tokenExchangeFailure);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten the OAuth interceptor's
+    // ConnectorException (with its own error code and response variables) into a generic
+    // FAILED_MODEL_CALL, losing the token-exchange diagnostics.
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(tokenExchangeFailure);
+  }
+
+  @Test
   void closesUnderlyingClient() {
     api.close();
 
