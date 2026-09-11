@@ -161,8 +161,8 @@ limitations under the License.</license.inlineheader>
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
-    <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
+    <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
+    <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
     <version.box-sdk>5.16.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
