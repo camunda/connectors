@@ -39,6 +39,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
@@ -75,12 +79,18 @@ class GeminiChatModelFactoryTest {
   @Captor private ArgumentCaptor<HttpOptions> httpOptionsCaptor;
   @Captor private ArgumentCaptor<ClientOptions> clientOptionsCaptor;
 
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
+
   private GeminiChatModelFactory factory;
 
   @BeforeEach
   void setUp() {
     factory =
         new GeminiChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new GeminiContentRequestConverter(new GeminiContentConverter(new ObjectMapper())),
             new GeminiContentResponseConverter());
@@ -110,7 +120,7 @@ class GeminiChatModelFactoryTest {
     final HttpOptions httpOptions = httpOptionsOf(model);
     // the SDK fills in its production default base URL when no override is configured
     assertThat(httpOptions.baseUrl()).contains("https://generativelanguage.googleapis.com");
-    assertThat(httpOptions.timeout()).isEmpty();
+    assertThat(httpOptions.timeout()).contains(180_000);
     assertThat(clientOf(model).apiKey()).isEqualTo(API_KEY);
 
     verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
@@ -189,17 +199,17 @@ class GeminiChatModelFactoryTest {
   }
 
   @Test
-  void createIgnoresNonPositiveConfiguredTimeout() {
+  void createFallsBackToConfiguredDefaultForNonPositiveConfiguredTimeout() {
     noProxyConfigured();
 
     final ChatModel zeroTimeoutModel = factory.create(apiConfig(null, Duration.ZERO));
-    assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).isEmpty();
-    assertThat(callTimeoutMillisOf(zeroTimeoutModel)).isZero();
+    assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).contains(180_000);
+    assertThat(callTimeoutMillisOf(zeroTimeoutModel)).isEqualTo(180_000);
     zeroTimeoutModel.close();
 
     final ChatModel negativeTimeoutModel = factory.create(apiConfig(null, Duration.ofSeconds(-1)));
-    assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).isEmpty();
-    assertThat(callTimeoutMillisOf(negativeTimeoutModel)).isZero();
+    assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).contains(180_000);
+    assertThat(callTimeoutMillisOf(negativeTimeoutModel)).isEqualTo(180_000);
     negativeTimeoutModel.close();
   }
 
@@ -252,8 +262,6 @@ class GeminiChatModelFactoryTest {
   void createSetsConnectTimeoutIndependentlyOfOverallTimeout() {
     noProxyConfigured();
 
-    // The overall (callTimeout) timeout is deliberately left unset here: connect timeout must be
-    // wired even when no overall timeout is configured at all.
     final ChatModel model = factory.create(apiConfig(null, null));
 
     final Optional<ClientOptions> clientOptions = clientOptionsOf(model);

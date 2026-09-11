@@ -45,6 +45,7 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
@@ -52,7 +53,11 @@ public class AgenticAiNativeProvidersConfiguration {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(
-        httpProxySupport, requestConverter, responseConverter, oAuthClientCredentialsTokenResolver);
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        requestConverter,
+        responseConverter,
+        oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
@@ -92,6 +97,7 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
@@ -108,6 +114,7 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
+        configuration.aiagent().chatModel(),
         httpProxySupport,
         completionsStrategy,
         responsesStrategy,
@@ -118,11 +125,13 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public GeminiChatModelFactory aiAgentGeminiChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new GeminiContentConverter(objectMapper);
     final var requestConverter = new GeminiContentRequestConverter(contentConverter);
     final var responseConverter = new GeminiContentResponseConverter();
-    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new GeminiChatModelFactory(
+        configuration.aiagent().chatModel(), httpProxySupport, requestConverter, responseConverter);
   }
 }
