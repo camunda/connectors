@@ -9,9 +9,13 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
@@ -23,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
@@ -38,6 +43,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -53,7 +61,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,6 +76,11 @@ class OpenAiChatModelFactoryTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
+
   private OpenAiChatModelFactory factory;
 
   @BeforeEach
@@ -73,6 +88,7 @@ class OpenAiChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new OpenAiChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
@@ -119,14 +135,43 @@ class OpenAiChatModelFactoryTest {
         foundryManagedIdentityConfig(MODEL_ID));
   }
 
+  @ParameterizedTest
+  @MethodSource("timeoutConfigurations")
+  void appliesDerivedTimeoutToClient(TimeoutConfiguration timeouts, Duration expectedTimeout) {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final var clientBuilder = spy(OpenAIOkHttpClient.builder());
+    try (MockedStatic<OpenAIOkHttpClient> clientMock =
+        mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
+
+      final ChatModel api = factory.create(responsesApiConfig(MODEL_ID, timeouts));
+      verify(clientBuilder).timeout(expectedTimeout);
+      api.close();
+    }
+  }
+
+  static Stream<Arguments> timeoutConfigurations() {
+    return Stream.of(
+        Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),
+        Arguments.of(null, Duration.ofMinutes(3)),
+        Arguments.of(new TimeoutConfiguration(null), Duration.ofMinutes(3)),
+        Arguments.of(new TimeoutConfiguration(Duration.ZERO), Duration.ofMinutes(3)));
+  }
+
   private static OpenAiChatModelConfiguration responsesApiConfig(String modelId) {
+    return responsesApiConfig(modelId, null);
+  }
+
+  private static OpenAiChatModelConfiguration responsesApiConfig(
+      String modelId, TimeoutConfiguration timeouts) {
     return new OpenAiChatModelConfiguration(
         new OpenAiChatModelConfiguration.OpenAiConnection(
             new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
             new OpenAiApiBackend(
                 new OpenAiApiConnection("sk-openai-test", null, null, null, null, null, null)),
             new OpenAiModel(modelId),
-            null));
+            timeouts));
   }
 
   private static OpenAiChatModelConfiguration completionsApiConfig(String modelId) {
