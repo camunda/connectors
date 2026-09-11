@@ -49,6 +49,7 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -138,7 +139,7 @@ public class HttpTests {
 
   @LocalServerPort int serverPort;
 
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   void basicAuth() {
