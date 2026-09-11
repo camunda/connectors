@@ -10,7 +10,7 @@ on:
 
 jobs:
   run-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
