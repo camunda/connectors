@@ -84,12 +84,30 @@ jobs:
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
+      # docker/login-action has no retry, and Harbor's LDAP-backed token service
+      # intermittently answers a valid credential with a bare `unauthorized:` under
+      # concurrent merge-queue load. Because build-image is continue-on-error on
+      # merge_group, that single 401 empties connectors-version and silently skips
+      # both E2E jobs while the run still reports success -- so retry the login
+      # rather than lose the coverage this gate exists to provide.
       - name: Login to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: registry.camunda.cloud
-          username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
-          password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+        env:
+          HARBOR_USER: ${{ steps.secrets.outputs.CI_LDAP_USER }}
+          HARBOR_PASSWORD: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+        run: |
+          set -uo pipefail
+          for attempt in 1 2 3 4 5; do
+            if printf '%s' "$HARBOR_PASSWORD" \
+              | docker login registry.camunda.cloud -u "$HARBOR_USER" --password-stdin; then
+              exit 0
+            fi
+            if [[ $attempt -lt 5 ]]; then
+              echo "::warning::Harbor login attempt ${attempt}/5 failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            fi
+          done
+          echo "::error::Harbor login to registry.camunda.cloud failed after 5 attempts"
+          exit 1
 
       - name: Set connectors version
         id: connectors-version
