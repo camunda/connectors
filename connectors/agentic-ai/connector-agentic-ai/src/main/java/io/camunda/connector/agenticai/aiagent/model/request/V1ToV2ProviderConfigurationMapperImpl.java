@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
@@ -221,7 +222,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
             new BedrockConverseModel(model.model(), v2Parameters)));
   }
 
-  private AwsAuthentication mapAwsAuthentication(
+  private BedrockAuthentication mapAwsAuthentication(
       BedrockProviderConfiguration.AwsAuthentication authentication) {
     return switch (authentication) {
       case BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication

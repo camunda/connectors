@@ -11,8 +11,16 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AiGatewayCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AnthropicApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.BedrockApiKeyCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.GoogleGeminiApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.MicrosoftFoundryCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.OpenAiApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.VertexAiCredential;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
@@ -32,7 +40,17 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.10",
-    version = 1,
+    version = 2,
+    configurations = {
+      AnthropicApiCredential.class,
+      OpenAiApiCredential.class,
+      MicrosoftFoundryCredential.class,
+      AiGatewayCredential.class,
+      BedrockApiKeyCredential.class,
+      GoogleGeminiApiCredential.class,
+      VertexAiCredential.class,
+      AwsCredentialConfiguration.class
+    },
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,

@@ -46,15 +46,16 @@ public record BedrockConverseChatModelConfiguration(
 
   /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
   public record BedrockConverseConnection(
-      @NotBlank
-          @TemplateProperty(
+      @TemplateProperty(
               group = "provider",
-              label = "AWS region",
-              description = "Specify the AWS region (example: <code>eu-west-1</code>).",
+              label = "AWS region override",
+              tooltip =
+                  "Overrides the credential's region. Required if the AWS credential has no default region.",
+              placeholder = "eu-west-1",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String region,
+              optional = true)
+          @Nullable String region,
       @HttpUrl
           @TemplateProperty(
               group = "provider",
@@ -67,7 +68,7 @@ public record BedrockConverseChatModelConfiguration(
               feel = FeelMode.optional,
               optional = true)
           @Nullable String endpoint,
-      @Valid @NotNull AwsAuthentication authentication,
+      @Valid @NotNull BedrockAuthentication authentication,
       @TemplateProperty(
               group = "advanced-provider-options",
               label = "HTTP headers",
@@ -93,11 +94,39 @@ public record BedrockConverseChatModelConfiguration(
       @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull BedrockConverseModel model) {
 
+    public @Nullable String region() {
+      if (region != null && !region.isBlank()) {
+        return region;
+      }
+      return switch (authentication) {
+        case AwsAuthentication.AwsCredentialConfigurationAuthentication credential ->
+            credential.awsCredential().region();
+        case AwsAuthentication.BedrockApiKeyCredentialAuthentication credential ->
+            credential.bedrockApiKeyCredential().region();
+        default -> {
+          if (authentication.awsCredentialConfiguration() != null) {
+            yield authentication.awsCredentialConfiguration().region();
+          }
+          if (authentication instanceof BedrockApiKeyAuthentication apiKey
+              && apiKey.bedrockApiKeyCredential() != null) {
+            yield apiKey.bedrockApiKeyCredential().region();
+          }
+          yield region;
+        }
+      };
+    }
+
+    @JsonIgnore
+    @jakarta.validation.constraints.AssertTrue(
+        message = "An AWS region is required from the credential or element template")
+    public boolean isRegionPresent() {
+      return region() != null && !region().isBlank();
+    }
+
     @JsonIgnore
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
-      return ConnectorUtils.isSaaS()
-          && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+      return ConnectorUtils.isSaaS() && authentication.usesDefaultCredentialsChain();
     }
 
     @Override

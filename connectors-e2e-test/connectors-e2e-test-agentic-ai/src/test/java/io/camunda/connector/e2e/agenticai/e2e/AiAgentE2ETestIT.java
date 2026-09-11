@@ -429,7 +429,8 @@ public class AiAgentE2ETestIT {
         Map.of(
             "provider.type", "openai",
             "provider.openai.backend.type", "openai-api",
-            "provider.openai.backend.openai.apiKey", "{{secrets.OPENAI_API_KEY}}",
+            "provider.openai.backend.openai.credential",
+                "={apiKey: \"{{secrets.OPENAI_API_KEY}}\"}",
             "provider.openai.api.type", apiFamily,
             "provider.openai.model.model", model));
   }
@@ -455,7 +456,8 @@ public class AiAgentE2ETestIT {
         Map.of(
             "provider.type", "anthropic",
             "provider.anthropic.backend.type", "anthropic-api",
-            "provider.anthropic.backend.anthropic.apiKey", "{{secrets.ANTHROPIC_API_KEY}}",
+            "provider.anthropic.backend.anthropic.credential",
+                "={apiKey: \"{{secrets.ANTHROPIC_API_KEY}}\"}",
             "provider.anthropic.model.model", model));
   }
 
@@ -475,12 +477,12 @@ public class AiAgentE2ETestIT {
             "anthropic",
             "provider.anthropic.backend.type",
             "aws-bedrock-mantle",
-            "provider.anthropic.backend.awsBedrockMantle.region",
-            env("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
             "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-            "apiKey",
-            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-            "{{secrets.ANTHROPIC_BEDROCK_API_KEY}}",
+            "bedrockApiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+            "={region: \""
+                + env("ANTHROPIC_BEDROCK_REGION", "us-east-1")
+                + "\", apiKey: \"{{secrets.ANTHROPIC_BEDROCK_API_KEY}}\"}",
             "provider.anthropic.model.model",
             "anthropic." + model));
   }
@@ -530,11 +532,16 @@ public class AiAgentE2ETestIT {
         List.of("AWS_BEDROCK_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
-            "provider.type", "bedrock",
-            "provider.bedrock.region", env("AWS_BEDROCK_REGION", "us-east-1"),
-            "provider.bedrock.authentication.type", "apiKey",
-            "provider.bedrock.authentication.apiKey", "{{secrets.AWS_BEDROCK_API_KEY}}",
-            "provider.bedrock.model.model", model));
+            "provider.type",
+            "bedrock",
+            "provider.bedrock.authentication.type",
+            "bedrockApiKey",
+            "provider.bedrock.authentication.bedrockApiKeyCredential",
+            "={region: \""
+                + env("AWS_BEDROCK_REGION", "us-east-1")
+                + "\", apiKey: \"{{secrets.AWS_BEDROCK_API_KEY}}\"}",
+            "provider.bedrock.model.model",
+            model));
   }
 
   /** Google Gemini, v2, on the {@code google-gemini-api} backend. */
@@ -546,8 +553,8 @@ public class AiAgentE2ETestIT {
         Map.of(
             "provider.type", "google-gemini",
             "provider.googleGemini.backend.type", "google-gemini-api",
-            "provider.googleGemini.backend.googleGeminiApi.apiKey",
-                "{{secrets.GOOGLE_GEMINI_API_KEY}}",
+            "provider.googleGemini.backend.googleGeminiApi.credential",
+                "={apiKey: \"{{secrets.GOOGLE_GEMINI_API_KEY}}\"}",
             "provider.googleGemini.model.model", model));
   }
 
@@ -585,14 +592,10 @@ public class AiAgentE2ETestIT {
             "google-gemini",
             "provider.googleGemini.backend.type",
             "google-vertex-ai",
-            "provider.googleGemini.backend.googleVertexAi.projectId",
-            "{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}",
-            "provider.googleGemini.backend.googleVertexAi.region",
-            region,
-            "provider.googleGemini.backend.googleVertexAi.authentication.type",
-            "serviceAccountCredentials",
-            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
-            "{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}",
+            "provider.googleGemini.backend.googleVertexAi.credential",
+            "={projectId: \"{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}\", region: \""
+                + region
+                + "\", authentication: {type: \"serviceAccountCredentials\", jsonKey: \"{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}\"}}",
             "provider.googleGemini.model.model",
             model));
   }

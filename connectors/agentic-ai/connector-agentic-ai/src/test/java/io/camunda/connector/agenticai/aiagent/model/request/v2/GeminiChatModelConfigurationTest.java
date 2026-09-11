@@ -119,8 +119,10 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Gemini API key is required from the credential or element template");
             });
   }
 
@@ -368,14 +370,18 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.projectId");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.projectIdPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Vertex AI project ID is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.regionPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Vertex AI region is required from the credential or element template");
             });
   }
 
@@ -390,8 +396,9 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authenticationValid");
+              assertThat(v.getMessage())
+                  .isEqualTo("Vertex AI service account JSON key must not be blank");
             });
   }
 
@@ -411,8 +418,10 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication");
-              assertThat(v.getMessage()).isEqualTo("must not be null");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authenticationPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Vertex AI authentication is required from the credential or element template");
             });
   }
 

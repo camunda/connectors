@@ -40,10 +40,8 @@ import java.util.function.Function;
  *
  * <p>Drives the v2 element template ({@link
  * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}). Unlike Anthropic's v1/v2
- * split, Bedrock's v2 template reuses the exact same {@code provider.bedrock.*} property ids as v1
- * - there is no nested backend-selection schema to switch to here - so {@link
- * #configureProvider(WireMockRuntimeInfo)} is identical to {@link
- * BedrockConverseV1WireFormatFixture}'s.
+ * split, Bedrock's v2 template selects the {@code awsIam} authentication family and supplies its
+ * credentials through the shared AWS credential configuration.
  */
 public final class BedrockConverseV2WireFormatFixture
     extends AbstractBedrockConverseWireFormatFixture {
@@ -66,9 +64,10 @@ public final class BedrockConverseV2WireFormatFixture
             .property("provider.type", "bedrock")
             .property("provider.bedrock.region", "us-east-1")
             .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.bedrock.authentication.type", "credentials")
-            .property("provider.bedrock.authentication.accessKey", "dummy")
-            .property("provider.bedrock.authentication.secretKey", "dummy")
+            .property("provider.bedrock.authentication.type", "awsIam")
+            .property(
+                "provider.bedrock.authentication.awsCredential",
+                "={authentication: {type: \"credentials\", accessKey: \"dummy\", secretKey: \"dummy\"}}")
             .property("provider.bedrock.model.model", "test-model");
   }
 

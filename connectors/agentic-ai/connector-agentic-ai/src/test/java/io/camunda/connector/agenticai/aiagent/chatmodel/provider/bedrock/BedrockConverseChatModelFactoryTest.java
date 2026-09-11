@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
@@ -307,7 +308,7 @@ class BedrockConverseChatModelFactoryTest {
   }
 
   private static BedrockConverseChatModelConfiguration bedrockConfig(
-      AwsAuthentication authentication, String endpoint) {
+      BedrockAuthentication authentication, String endpoint) {
     return new BedrockConverseChatModelConfiguration(
         new BedrockConverseConnection(
             REGION, endpoint, authentication, null, null, null, null, model()));

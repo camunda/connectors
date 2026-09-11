@@ -204,9 +204,9 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("retryCount", "1")
             .property("provider.type", "anthropic")
             .property("provider.anthropic.backend.type", "custom")
-            .property("provider.anthropic.backend.custom.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.anthropic.backend.custom.authentication.type", "apiKey")
-            .property("provider.anthropic.backend.custom.authentication.apiKey", "dummy")
+            .property(
+                "provider.anthropic.backend.custom.credential",
+                "={endpoint: \"" + wireMock.getHttpBaseUrl() + "\", apiKey: \"dummy\"}")
             .property("provider.anthropic.model.model", "claude-3-5-sonnet")
             .property("provider.anthropic.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
@@ -219,7 +219,7 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.openai.api.type", "completions")
             .property("provider.openai.backend.type", "openai-api")
             .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.openai.backend.openai.apiKey", "dummy")
+            .property("provider.openai.backend.openai.credential", "={apiKey: \"dummy\"}")
             .property("provider.openai.model.model", "test-model")
             .property("provider.openai.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
@@ -231,9 +231,10 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.type", "bedrock")
             .property("provider.bedrock.region", "us-east-1")
             .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.bedrock.authentication.type", "credentials")
-            .property("provider.bedrock.authentication.accessKey", "dummy")
-            .property("provider.bedrock.authentication.secretKey", "dummy")
+            .property("provider.bedrock.authentication.type", "awsIam")
+            .property(
+                "provider.bedrock.authentication.awsCredential",
+                "={authentication: {type: \"credentials\", accessKey: \"dummy\", secretKey: \"dummy\"}}")
             .property("provider.bedrock.model.model", "test-model")
             .property("provider.bedrock.timeouts.timeout", MODEL_TIMEOUT.toString());
   }

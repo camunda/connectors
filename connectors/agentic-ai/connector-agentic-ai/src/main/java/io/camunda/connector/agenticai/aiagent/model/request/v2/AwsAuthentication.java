@@ -8,11 +8,13 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -20,6 +22,12 @@ import jakarta.validation.constraints.NotBlank;
       value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
       name = "credentials"),
   @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey"),
+  @JsonSubTypes.Type(
+      value = AwsAuthentication.AwsCredentialConfigurationAuthentication.class,
+      name = "awsCredential"),
+  @JsonSubTypes.Type(
+      value = AwsAuthentication.BedrockApiKeyCredentialAuthentication.class,
+      name = "bedrockApiKeyCredential"),
   @JsonSubTypes.Type(
       value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
       name = "defaultCredentialsChain")
@@ -30,9 +38,14 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "credentials",
     description = "Specify the AWS authentication strategy.")
-public sealed interface AwsAuthentication {
+public sealed interface AwsAuthentication
+    permits AwsAuthentication.AwsStaticCredentialsAuthentication,
+        AwsAuthentication.AwsApiKeyAuthentication,
+        AwsAuthentication.AwsCredentialConfigurationAuthentication,
+        AwsAuthentication.BedrockApiKeyCredentialAuthentication,
+        AwsAuthentication.AwsDefaultCredentialsChainAuthentication {
 
-  @TemplateSubType(id = "credentials", label = "Credentials")
+  @TemplateSubType(id = "credentials", label = "Credentials", ignore = true)
   record AwsStaticCredentialsAuthentication(
       @NotBlank
           @TemplateProperty(
@@ -52,7 +65,7 @@ public sealed interface AwsAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String secretKey)
-      implements AwsAuthentication {
+      implements AwsAuthentication, BedrockAuthentication {
 
     @Override
     public String toString() {
@@ -60,7 +73,7 @@ public sealed interface AwsAuthentication {
     }
   }
 
-  @TemplateSubType(id = "apiKey", label = "API key")
+  @TemplateSubType(id = "apiKey", label = "API key", ignore = true)
   record AwsApiKeyAuthentication(
       @NotBlank
           @TemplateProperty(
@@ -71,7 +84,7 @@ public sealed interface AwsAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
-      implements AwsAuthentication {
+      implements AwsAuthentication, BedrockAuthentication {
 
     @Override
     public String toString() {
@@ -79,8 +92,39 @@ public sealed interface AwsAuthentication {
     }
   }
 
+  @TemplateSubType(id = "awsCredential", label = "AWS credential", ignore = true)
+  record AwsCredentialConfigurationAuthentication(
+      @TemplateProperty(
+              group = "provider",
+              label = "AWS credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              feel = FeelMode.optional,
+              description = "Choose a reusable AWS credential with an optional default region.")
+          @jakarta.validation.Valid
+          @NotNull
+          AwsCredentialConfiguration awsCredential)
+      implements AwsAuthentication, BedrockAuthentication {}
+
+  @TemplateSubType(
+      id = "bedrockApiKeyCredential",
+      label = "Amazon Bedrock API key credential",
+      ignore = true)
+  record BedrockApiKeyCredentialAuthentication(
+      @TemplateProperty(
+              group = "provider",
+              label = "Amazon Bedrock API key credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              feel = FeelMode.optional,
+              description = "Choose a reusable Amazon Bedrock API key credential.")
+          @jakarta.validation.Valid
+          @NotNull
+          AgenticAiCredentialConfigurations.BedrockApiKeyCredential bedrockApiKeyCredential)
+      implements AwsAuthentication, BedrockAuthentication {}
+
   @TemplateSubType(
       id = "defaultCredentialsChain",
-      label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-  record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
+      label = "Default Credentials Chain (Hybrid/Self-Managed only)",
+      ignore = true)
+  record AwsDefaultCredentialsChainAuthentication()
+      implements AwsAuthentication, BedrockAuthentication {}
 }

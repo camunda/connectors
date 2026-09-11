@@ -232,8 +232,10 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.anthropic.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.anthropic.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "An Anthropic API key is required from the credential or element template");
             });
   }
 
@@ -336,14 +338,17 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.custom.endpointPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "An AI Gateway endpoint is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.custom.authenticationValid");
+              assertThat(v.getMessage())
+                  .isEqualTo("AI Gateway API-key authentication must not be blank");
             });
   }
 
@@ -456,8 +461,9 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.awsBedrockMantle.regionPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("An AWS region is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
@@ -511,7 +517,8 @@ class AnthropicChatModelConfigurationTest {
     assertThat(validator.validate(config)).isEmpty();
   }
 
-  private static AnthropicChatModelConfiguration bedrockConfig(AwsAuthentication authentication) {
+  private static AnthropicChatModelConfiguration bedrockConfig(
+      BedrockAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicAwsBedrockMantleBackend(

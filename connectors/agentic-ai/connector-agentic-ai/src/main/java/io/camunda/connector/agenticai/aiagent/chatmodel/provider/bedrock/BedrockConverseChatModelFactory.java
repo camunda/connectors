@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -132,22 +133,53 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
    * it (the SDK falls back to it solely when no credentials provider was set at all).
    */
   private static void applyAuthentication(
-      AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
-    switch (authentication) {
+      BedrockAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
+    if (authentication.awsCredentialConfiguration() != null) {
+      applyAwsCredential(authentication.awsCredentialConfiguration(), builder);
+      return;
+    }
+    if (authentication.effectiveApiKey() != null) {
+      builder
+          .tokenProvider(StaticTokenProvider.create(authentication::effectiveApiKey))
+          .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
+      return;
+    }
+
+    switch (authentication.effectiveIamAuthentication()) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
           builder
               .credentialsProvider(
                   StaticCredentialsProvider.create(
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          // Native "Bedrock API keys" support: a bearer token, not sigv4 credentials. Without the
-          // pin, sigv4 stays ahead of httpBearerAuth (the SDK's default order) and the token would
-          // never be sent.
-          builder
-              .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
-              .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
       case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+          builder
+              .credentialsProvider(DefaultCredentialsProvider.builder().build())
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
+      case AwsAuthentication.AwsApiKeyAuthentication ignored ->
+          throw new IllegalArgumentException("No AWS IAM authentication configured");
+      case AwsAuthentication.AwsCredentialConfigurationAuthentication ignored ->
+          throw new IllegalArgumentException("No AWS IAM authentication configured");
+      case AwsAuthentication.BedrockApiKeyCredentialAuthentication ignored ->
+          throw new IllegalArgumentException("No AWS IAM authentication configured");
+      case null -> throw new IllegalArgumentException("No AWS IAM authentication configured");
+    }
+  }
+
+  private static void applyAwsCredential(
+      io.camunda.connector.aws.model.impl.AwsCredentialConfiguration credential,
+      BedrockRuntimeAsyncClientBuilder builder) {
+    switch (credential.authentication()) {
+      case io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication
+              staticAuth ->
+          builder
+              .credentialsProvider(
+                  StaticCredentialsProvider.create(
+                      AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
+      case io.camunda.connector.aws.model.impl.AwsAuthentication
+                  .AwsDefaultCredentialsChainAuthentication
+              ignored ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));

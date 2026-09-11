@@ -22,6 +22,12 @@ if you are on Camunda 8.10, use version `11`.
 See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
 
+The current v2 templates require reusable credentials for model connections and do not expose inline
+authentication fallbacks. Provider, backend, API, and model settings remain local to the task.
+Gateway endpoints and Bedrock endpoints/regions can still be overridden per task. Older templates
+and existing inline configurations remain supported by the runtime; v1 templates are unchanged.
+Custom provider beans and conversation-memory connections are outside this credential migration.
+
 ### AI Agent Task
 
 AI Agent Task (v2) is a new, independently versioned connector type (`io.camunda.agenticai:aiagent:task:2`)
@@ -30,7 +36,7 @@ Camunda 8.10, AI Agent Task (v1) is deprecated in favor of (v2).
 
 | Connector                      | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Task (v2)             | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
+| AI Agent Task (v2)             | 8.10 | 2  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
 | AI Agent Task (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | AI Agent Task (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
 | AI Agent Task (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
@@ -44,7 +50,7 @@ deprecated in favor of (v2).
 
 | Connector                             | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Sub-process (v2)             | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
+| AI Agent Sub-process (v2)             | 8.10 | 2  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
 | AI Agent Sub-process (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | AI Agent Sub-process (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |

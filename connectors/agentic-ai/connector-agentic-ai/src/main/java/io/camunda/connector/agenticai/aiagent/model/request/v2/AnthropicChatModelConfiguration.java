@@ -18,11 +18,14 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AiGatewayCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AnthropicApiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -33,6 +36,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
@@ -89,14 +93,16 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record AnthropicApi(
-          @NotBlank
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "Anthropic API key",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  label = "Anthropic API credential",
+                  type = PropertyType.Configuration,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip = "Choose a reusable Anthropic API credential.")
+              @Valid
+              @Nullable AnthropicApiCredential credential,
+          @TemplateProperty(ignore = true) @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -131,6 +137,26 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        public AnthropicApi(
+            String apiKey,
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties) {
+          this(null, apiKey, endpoint, headers, queryParameters, bodyProperties);
+        }
+
+        @JsonIgnore
+        @AssertTrue(
+            message = "An Anthropic API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          return apiKey() != null && !apiKey().isBlank();
+        }
+
+        public @Nullable String apiKey() {
+          return credential != null ? credential.apiKey() : apiKey;
+        }
+
         @Override
         public String toString() {
           return "AnthropicApi{apiKey=[REDACTED], endpoint="
@@ -159,15 +185,16 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record AwsBedrockMantleBackend(
-          @NotBlank
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "AWS region",
-                  description = "Specify the AWS region (example: <code>eu-west-1</code>).",
+                  label = "AWS region override",
+                  tooltip =
+                      "Overrides the credential's region. Required if the AWS credential has no default region.",
+                  placeholder = "eu-west-1",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String region,
+                  optional = true)
+              @Nullable String region,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -182,7 +209,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.optional,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull AwsAuthentication authentication,
+          @Valid @NotNull BedrockAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -209,12 +236,36 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        @Override
+        public @Nullable String region() {
+          if (authentication.awsCredentialConfiguration() != null) {
+            String credentialRegion = authentication.awsCredentialConfiguration().region();
+            if ((region == null || region.isBlank())
+                && credentialRegion != null
+                && !credentialRegion.isBlank()) {
+              return credentialRegion;
+            }
+          }
+          if (authentication instanceof BedrockApiKeyAuthentication credential
+              && credential.bedrockApiKeyCredential() != null) {
+            if (region == null || region.isBlank()) {
+              return credential.bedrockApiKeyCredential().region();
+            }
+          }
+          return region;
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "An AWS region is required from the credential or element template")
+        public boolean isRegionPresent() {
+          return region() != null && !region().isBlank();
+        }
+
         @JsonIgnore
         @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
         public boolean isDefaultCredentialsChainUsedInSaaS() {
-          return ConnectorUtils.isSaaS()
-              && authentication
-                  instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+          return ConnectorUtils.isSaaS() && authentication.usesDefaultCredentialsChain();
         }
 
         @Override
@@ -249,18 +300,27 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record CustomBackend(
-          @NotBlank
-              @HttpUrl
-              @TemplateProperty(
+          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+              @Nullable AnthropicCustomEndpointAuthentication authentication,
+          @TemplateProperty(
                   group = "provider",
-                  label = "API endpoint",
-                  description = "Base URL of the Anthropic-compatible API.",
-                  tooltip = "<code>/v1/messages</code> is appended automatically.",
+                  label = "AI Gateway credential",
+                  type = PropertyType.Configuration,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip = "Choose a reusable AI Gateway credential.")
+              @Valid
+              @Nullable AiGatewayCredential credential,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint override",
+                  tooltip =
+                      "Overrides the credential's gateway endpoint. <code>/v1/messages</code> is appended automatically.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.anthropic.com",
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String endpoint,
+                  optional = true)
+              @Nullable String endpoint,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -282,8 +342,60 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   description = "Map of additional properties to include in the request body.",
                   feel = FeelMode.required,
                   optional = true)
-              @Nullable Map<String, Object> bodyProperties,
-          @Valid @NotNull AnthropicCustomEndpointAuthentication authentication) {
+              @Nullable Map<String, Object> bodyProperties) {
+
+        public CustomBackend(
+            String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties,
+            AnthropicCustomEndpointAuthentication authentication) {
+          this(authentication, null, endpoint, headers, queryParameters, bodyProperties);
+        }
+
+        public @Nullable String endpoint() {
+          return endpoint != null && !endpoint.isBlank()
+              ? endpoint
+              : credential != null ? credential.endpoint() : endpoint;
+        }
+
+        public AnthropicCustomEndpointAuthentication authentication() {
+          return Objects.requireNonNull(
+              credential != null
+                  ? new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(
+                      credential.apiKey())
+                  : authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "An AI Gateway endpoint is required from the credential or element template")
+        public boolean isEndpointPresent() {
+          return endpoint() != null && !endpoint().isBlank();
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "Must be an HTTP or HTTPS URL")
+        public boolean isEndpointHttpUrl() {
+          return endpoint() == null || endpoint().isBlank() || endpoint().matches("^https?://.+");
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "AI Gateway API-key authentication must not be blank")
+        public boolean isAuthenticationValid() {
+          AnthropicCustomEndpointAuthentication effectiveAuthentication =
+              credential != null
+                  ? new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(
+                      credential.apiKey())
+                  : authentication;
+          return effectiveAuthentication
+                  instanceof AnthropicCustomEndpointAuthentication.NoAuthentication
+              || effectiveAuthentication
+                      instanceof AnthropicCustomEndpointAuthentication.ApiKeyAuthentication apiKey
+                  && apiKey.apiKey() != null
+                  && !apiKey.apiKey().isBlank();
+        }
 
         @Override
         public String toString() {

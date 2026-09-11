@@ -16,11 +16,14 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.GoogleGeminiApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.VertexAiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -29,6 +32,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = GOOGLE_GEMINI_ID, label = "Google Gemini")
@@ -85,14 +89,16 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
       }
 
       public record GoogleGeminiApi(
-          @NotBlank
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "Gemini API key",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  label = "Google Gemini API credential",
+                  type = PropertyType.Configuration,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip = "Choose a reusable Google Gemini API credential.")
+              @Valid
+              @Nullable GoogleGeminiApiCredential credential,
+          @TemplateProperty(ignore = true) @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -101,6 +107,21 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable String endpoint) {
+
+        public GoogleGeminiApi(String apiKey, @Nullable String endpoint) {
+          this(null, apiKey, endpoint);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "A Gemini API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          return apiKey() != null && !apiKey().isBlank();
+        }
+
+        public @Nullable String apiKey() {
+          return credential != null ? credential.apiKey() : apiKey;
+        }
 
         @Override
         public String toString() {
@@ -122,24 +143,17 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
       }
 
       public record GoogleVertexAi(
-          @NotBlank
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "Project ID",
-                  description = "Specify Google Cloud project ID",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String projectId,
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Region",
-                  description = "Specify the region where AI inference should take place",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String region,
+                  label = "Vertex AI credential",
+                  type = PropertyType.Configuration,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip = "Choose a reusable Vertex AI credential.")
+              @Valid
+              @Nullable VertexAiCredential credential,
+          @TemplateProperty(ignore = true) @Nullable String projectId,
+          @TemplateProperty(ignore = true) @Nullable String region,
           // Hidden: never shown in the modeler. Exists solely so e2e tests can point the client
           // at a local WireMock server via HttpOptions.baseUrl(); real deployments never set it.
           // Mirrors GoogleGeminiApi's own hidden endpoint field 1:1 (same rationale).
@@ -151,7 +165,67 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull GoogleVertexAiAuthentication authentication) {
+          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+              @Nullable GoogleVertexAiAuthentication authentication) {
+
+        public GoogleVertexAi(
+            String projectId,
+            String region,
+            @Nullable String endpoint,
+            GoogleVertexAiAuthentication authentication) {
+          this(null, projectId, region, endpoint, authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "A Vertex AI project ID is required from the credential or element template")
+        public boolean isProjectIdPresent() {
+          String effectiveProjectId = credential != null ? credential.projectId() : projectId;
+          return effectiveProjectId != null && !effectiveProjectId.isBlank();
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "A Vertex AI region is required from the credential or element template")
+        public boolean isRegionPresent() {
+          String effectiveRegion = credential != null ? credential.region() : region;
+          return effectiveRegion != null && !effectiveRegion.isBlank();
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message =
+                "Vertex AI authentication is required from the credential or element template")
+        public boolean isAuthenticationPresent() {
+          return credential != null ? credential.authentication() != null : authentication != null;
+        }
+
+        public String projectId() {
+          return Objects.requireNonNull(credential != null ? credential.projectId() : projectId);
+        }
+
+        public String region() {
+          return Objects.requireNonNull(credential != null ? credential.region() : region);
+        }
+
+        public GoogleVertexAiAuthentication authentication() {
+          return Objects.requireNonNull(
+              credential != null ? credential.authentication() : authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "Vertex AI service account JSON key must not be blank")
+        public boolean isAuthenticationValid() {
+          GoogleVertexAiAuthentication effectiveAuthentication =
+              credential != null ? credential.authentication() : authentication;
+          return effectiveAuthentication != null
+              && (!(effectiveAuthentication
+                      instanceof
+                      GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication
+                          serviceAccount)
+                  || serviceAccount.jsonKey() != null && !serviceAccount.jsonKey().isBlank());
+        }
 
         @JsonIgnore
         @AssertFalse(
@@ -159,7 +233,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                 "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS")
         public boolean isApplicationDefaultCredentialsUsedInSaaS() {
           return ConnectorUtils.isSaaS()
-              && authentication
+              && (credential != null ? credential.authentication() : authentication)
                   instanceof
                   GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
         }
@@ -188,6 +262,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
               @TemplateProperty(
                   group = "provider",
                   label = "JSON key of the service account",
+                  secret = true,
                   description = "This is the key of the service account in JSON format.",
                   feel = FeelMode.optional,
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

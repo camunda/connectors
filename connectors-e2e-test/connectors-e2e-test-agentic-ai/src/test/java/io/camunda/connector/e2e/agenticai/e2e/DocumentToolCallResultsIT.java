@@ -305,8 +305,8 @@ class DocumentToolCallResultsIT {
             "openai",
             "provider.openai.backend.type",
             "openai-api",
-            "provider.openai.backend.openai.apiKey",
-            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.backend.openai.credential",
+            FeelContext.of(Map.of("apiKey", envOrPlaceholder("OPENAI_API_KEY"))),
             "provider.openai.api.type",
             "responses",
             "provider.openai.model.model",
@@ -324,8 +324,8 @@ class DocumentToolCallResultsIT {
             "openai",
             "provider.openai.backend.type",
             "openai-api",
-            "provider.openai.backend.openai.apiKey",
-            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.backend.openai.credential",
+            FeelContext.of(Map.of("apiKey", envOrPlaceholder("OPENAI_API_KEY"))),
             "provider.openai.api.type",
             "completions",
             "provider.openai.model.model",
@@ -358,8 +358,8 @@ class DocumentToolCallResultsIT {
             "anthropic",
             "provider.anthropic.backend.type",
             "anthropic-api",
-            "provider.anthropic.backend.anthropic.apiKey",
-            envOrPlaceholder("ANTHROPIC_API_KEY"),
+            "provider.anthropic.backend.anthropic.credential",
+            FeelContext.of(Map.of("apiKey", envOrPlaceholder("ANTHROPIC_API_KEY"))),
             "provider.anthropic.model.model",
             model));
   }
@@ -379,12 +379,15 @@ class DocumentToolCallResultsIT {
             "anthropic",
             "provider.anthropic.backend.type",
             "aws-bedrock-mantle",
-            "provider.anthropic.backend.awsBedrockMantle.region",
-            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
             "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-            "apiKey",
-            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-            envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
+            "bedrockApiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+            FeelContext.of(
+                Map.of(
+                    "region",
+                    envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+                    "apiKey",
+                    envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"))),
             "provider.anthropic.model.model",
             "anthropic." + model));
   }
@@ -420,13 +423,20 @@ class DocumentToolCallResultsIT {
             "provider.type",
             "bedrock",
             "provider.bedrock.authentication.type",
-            "credentials",
-            "provider.bedrock.authentication.accessKey",
-            envOrPlaceholder("AWS_BEDROCK_ACCESS_KEY"),
-            "provider.bedrock.authentication.secretKey",
-            envOrPlaceholder("AWS_BEDROCK_SECRET_KEY"),
-            "provider.bedrock.region",
-            "eu-central-1",
+            "awsIam",
+            "provider.bedrock.authentication.awsCredential",
+            FeelContext.of(
+                Map.of(
+                    "region",
+                    "eu-central-1",
+                    "authentication",
+                    Map.of(
+                        "type",
+                        "credentials",
+                        "accessKey",
+                        envOrPlaceholder("AWS_BEDROCK_ACCESS_KEY"),
+                        "secretKey",
+                        envOrPlaceholder("AWS_BEDROCK_SECRET_KEY")))),
             "provider.bedrock.model.model",
             model));
   }
