@@ -89,11 +89,12 @@ public class CustomApacheHttpClient implements HttpClient {
           e);
     } catch (SSLException e) {
       throw new ConnectorException(
-          "SSL_HANDSHAKE_FAILED",
-          "TLS handshake failed: "
+          "SSL_ERROR",
+          "A TLS/SSL error occurred: "
               + rootMessage(e)
-              + ". Verify that the server's certificate is trusted by this runtime, and that no "
-              + "proxy or firewall is interfering with the TLS handshake.",
+              + ". If this happened during the handshake, verify that the server's certificate is "
+              + "trusted by this runtime, and that no proxy or firewall is interfering with the "
+              + "TLS handshake.",
           e);
     } catch (IOException e) {
       throw new ConnectorException(
@@ -110,6 +111,7 @@ public class CustomApacheHttpClient implements HttpClient {
     while (cause.getCause() != null && cause.getCause() != cause) {
       cause = cause.getCause();
     }
-    return cause.getMessage();
+    var message = cause.getMessage();
+    return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
   }
 }
