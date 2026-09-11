@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.GitHub.v1",
   "version": 14,
   "engines": {
-    "camunda": "^8.10"
+    "camunda": "^8.7"
   },
   "description": "Manage GitHub issues, branches, releases, and more",
   "keywords": [
