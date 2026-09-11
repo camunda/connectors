@@ -186,6 +186,10 @@ limitations under the License.</license.inlineheader>
 
     <version.bouncycastle>1.85</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
+    <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
+         override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
+         Ref: https://github.com/luben/zstd-jni/security/advisories -->
+    <version.zstd-jni>1.5.7-16</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -926,6 +930,15 @@ limitations under the License.</license.inlineheader>
         <version>${version.box-sdk}</version>
       </dependency>
 
+      <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: override zstd-jni
+           transitive version brought in by box-java-sdk. Remove once box-java-sdk ships
+           zstd-jni >= 1.5.7-14. -->
+      <dependency>
+        <groupId>com.github.luben</groupId>
+        <artifactId>zstd-jni</artifactId>
+        <version>${version.zstd-jni}</version>
+      </dependency>
+
       <!-- test dependencies -->
       <dependency>
         <groupId>io.camunda</groupId>
@@ -1162,6 +1175,20 @@ version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override
 If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
 the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-87823/87824/87825/87877 guard: fails if version.box-sdk is bumped,
+                   as a reminder to check whether the zstd-jni override can be removed
+                   (see version.zstd-jni). -->
+              <requireProperty>
+                <property>version.box-sdk</property>
+                <regex>^4\.16\.4$</regex>
+                <regexMessage>
+version.box-sdk was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override can
+be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remove the
+version.zstd-jni property, the zstd-jni dependencyManagement entry, and this enforcer rule
+from parent/pom.xml.
+See: https://github.com/luben/zstd-jni/security/advisories
                 </regexMessage>
               </requireProperty>
               <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
