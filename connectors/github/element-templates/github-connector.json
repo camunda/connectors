@@ -478,17 +478,6 @@
       }
     },
     {
-      "type": "Hidden",
-      "label": "Type",
-      "id": "authenticationType",
-      "group": "authentication",
-      "value": "bearer",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.type"
-      }
-    },
-    {
       "label": "Authentication type",
       "id": "authentication.authType",
       "group": "authentication",
@@ -591,6 +580,17 @@
       "condition": {
         "property": "authentication.authType",
         "equals": "github_app"
+      }
+    },
+    {
+      "type": "Hidden",
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "value": "bearer",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
       }
     },
     {
