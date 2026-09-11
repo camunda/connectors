@@ -27,6 +27,7 @@ import jakarta.validation.constraints.NotNull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -38,14 +39,37 @@ public class JakartaUtils {
   public static final String HTML_CHARSET = "text/html; charset=utf-8";
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
   private static final String REGEX_PATH_SPLITTER = "[./]";
+  private static final List<String> TIMEOUT_PROTOCOL_PREFIXES =
+      List.of("smtp", "smtps", "imap", "imaps", "pop3", "pop3s");
 
   public Session createSession(Configuration configuration, Authentication authentication) {
-    return Session.getInstance(
-        switch (configuration) {
-          case ImapConfig imap -> createProperties(imap);
-          case Pop3Config pop3 -> createProperties(pop3);
-          case SmtpConfig smtp -> createProperties(smtp, authentication);
-        });
+    return Session.getInstance(sessionPropertiesFor(configuration, authentication));
+  }
+
+  /**
+   * A session that gives up after {@code timeout} instead of waiting indefinitely. Used to validate
+   * a stored credential out-of-band, where a host that completes the TCP handshake and then never
+   * answers would otherwise park the request thread for good.
+   */
+  public Session createSession(
+      Configuration configuration, Authentication authentication, Duration timeout) {
+    Properties properties = sessionPropertiesFor(configuration, authentication);
+    String millis = String.valueOf(timeout.toMillis());
+    for (String protocol : TIMEOUT_PROTOCOL_PREFIXES) {
+      properties.put("mail." + protocol + ".connectiontimeout", millis);
+      properties.put("mail." + protocol + ".timeout", millis);
+      properties.put("mail." + protocol + ".writetimeout", millis);
+    }
+    return Session.getInstance(properties);
+  }
+
+  private Properties sessionPropertiesFor(
+      Configuration configuration, Authentication authentication) {
+    return switch (configuration) {
+      case ImapConfig imap -> createProperties(imap);
+      case Pop3Config pop3 -> createProperties(pop3);
+      case SmtpConfig smtp -> createProperties(smtp, authentication);
+    };
   }
 
   public void connectStore(Store store, Authentication authentication) throws MessagingException {
