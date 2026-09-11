@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -19,9 +20,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.google.genai.Client;
 import com.google.genai.Models;
 import com.google.genai.ResponseStream;
@@ -51,7 +49,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -230,7 +227,7 @@ class GeminiChatModelTest {
   void closeLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
-    var events = logsOf(api::close);
+    var events = logsOf(GeminiChatModel.class, api::close);
 
     verify(client).close();
     assertThat(events)
@@ -240,19 +237,5 @@ class GeminiChatModelTest {
               assertThat(event.getLevel()).isEqualTo(Level.ERROR);
               assertThat(event.getFormattedMessage()).isEqualTo("Failed to close Gemini Client");
             });
-  }
-
-  private static List<ILoggingEvent> logsOf(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(GeminiChatModel.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    try {
-      action.run();
-    } finally {
-      logger.detachAppender(appender);
-      appender.stop();
-    }
-    return appender.list;
   }
 }

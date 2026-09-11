@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,9 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
@@ -64,7 +62,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class LangChain4JChatModelTest {
@@ -357,7 +354,7 @@ class LangChain4JChatModelTest {
   void closeLogsErrorInsteadOfThrowingWhenChatModelCloseFails() {
     doThrow(new RuntimeException("boom")).when(chatModel).close();
 
-    var events = logsOf(api::close);
+    var events = logsOf(LangChain4JChatModel.class, api::close);
 
     verify(chatModel).close();
     assertThat(events)
@@ -368,20 +365,6 @@ class LangChain4JChatModelTest {
               assertThat(event.getFormattedMessage())
                   .isEqualTo("Failed to close CloseableChatModel");
             });
-  }
-
-  private static List<ILoggingEvent> logsOf(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(LangChain4JChatModel.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    try {
-      action.run();
-    } finally {
-      logger.detachAppender(appender);
-      appender.stop();
-    }
-    return appender.list;
   }
 
   private AgentExecutionContext createExecutionContext() {

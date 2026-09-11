@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,9 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.http.Headers;
@@ -50,7 +48,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class AnthropicChatModelTest {
@@ -242,7 +239,7 @@ class AnthropicChatModelTest {
   void closeLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
-    var events = logsOf(api::close);
+    var events = logsOf(AnthropicChatModel.class, api::close);
 
     verify(client).close();
     assertThat(events)
@@ -252,19 +249,5 @@ class AnthropicChatModelTest {
               assertThat(event.getLevel()).isEqualTo(Level.ERROR);
               assertThat(event.getFormattedMessage()).isEqualTo("Failed to close AnthropicClient");
             });
-  }
-
-  private static List<ILoggingEvent> logsOf(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(AnthropicChatModel.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    try {
-      action.run();
-    } finally {
-      logger.detachAppender(appender);
-      appender.stop();
-    }
-    return appender.list;
   }
 }
