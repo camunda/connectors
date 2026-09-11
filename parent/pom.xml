@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.15</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.16</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-drive>v3-rev20260901-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260901-2.0.0</version.google-api-services-docs>
+    <version.google-api-services-docs>v1-rev20260902-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
     <version.gson-extras>1.3.0</version.gson-extras>
@@ -131,15 +131,15 @@ limitations under the License.</license.inlineheader>
          which is not guaranteed binary compatible. 4.1.137.Final stays on the already-resolved
          4.1.x line and covers all 7 netty CVEs (4.1.136 fixes CVE-2026-55831/55833/56745/56819/
          59901; 4.1.137.Final additionally fixes CVE-2026-62243/75595). -->
-    <version.netty>4.1.137.Final</version.netty>
+    <version.netty>4.2.18.Final</version.netty>
     <version.amqp-client>5.35.0</version.amqp-client>
     <version.lz4-java>1.11.2</version.lz4-java>
 
     <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
 
-    <version.bouncycastle.bcpkix>1.85</version.bouncycastle.bcpkix>
-    <version.bouncycastle.bcprov>1.85.2</version.bouncycastle.bcprov>
+    <version.bouncycastle.bcpkix>1.86</version.bouncycastle.bcpkix>
+    <version.bouncycastle.bcprov>1.86</version.bouncycastle.bcprov>
     <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.51.0</version.slack>
