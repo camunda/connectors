@@ -44,6 +44,11 @@ import org.springframework.test.web.servlet.MockMvc;
       SaaSConnectorRuntimeApplication.class,
     },
     properties = {
+      // Set here rather than relied on from the bundle's main application.properties: this module
+      // has its own src/test/resources/application.properties, and Spring Boot loads a single
+      // classpath:/application.properties, so the test copy shadows the main one. Without this the
+      // route is absent and the assertions below would pass on a 404 instead of the filter chain.
+      "camunda.connector.configuration-validation.enabled=true",
       "camunda.saas.secrets.projectId=42",
       "camunda.client.enabled=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
