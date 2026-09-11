@@ -59,7 +59,7 @@ public record CloseableChatModelDelegate(ChatModel delegate, AutoCloseable resou
     try {
       resource.close();
     } catch (Exception e) {
-      LOGGER.warn("Failed to close chat model resource", e);
+      LOGGER.error("Failed to close chat model resource", e);
     }
   }
 }

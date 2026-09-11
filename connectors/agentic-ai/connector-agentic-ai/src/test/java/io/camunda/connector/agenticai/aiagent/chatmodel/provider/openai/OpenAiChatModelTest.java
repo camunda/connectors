@@ -212,7 +212,7 @@ class OpenAiChatModelTest {
   }
 
   @Test
-  void closeLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+  void closeLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
     api.close();

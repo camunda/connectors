@@ -230,7 +230,7 @@ class BedrockConverseChatModelTest {
   }
 
   @Test
-  void closeIsIdempotentAndLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+  void closeIsIdempotentAndLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
     api.close();
