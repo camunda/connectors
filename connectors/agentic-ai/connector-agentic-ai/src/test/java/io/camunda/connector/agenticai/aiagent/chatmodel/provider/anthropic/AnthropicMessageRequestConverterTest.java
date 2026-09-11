@@ -500,6 +500,20 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
+  void jsonResponseFormatWithEmptySchemaEmitsNoOutputConfig() {
+    // An empty schema (FEEL ={}) constrains nothing, same as no schema at all -- must not be sent
+    // to Anthropic as a literal empty object schema.
+    final var response =
+        new AgentTaskResponseConfiguration(
+            new JsonResponseFormatConfiguration(Map.of(), null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toMessageCreateParams(model(null), response, snapshot);
+
+    assertThat(params.outputConfig()).isEmpty();
+  }
+
+  @Test
   void defaultsMaxTokensToTheDefaultConstantWhenConfigNull() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
@@ -693,6 +707,23 @@ class AnthropicMessageRequestConverterTest {
     assertThat(outputConfigNode.path("format").path("type").asText()).isEqualTo("json_schema");
     assertThat(params.outputConfig().orElseThrow().format()).isPresent();
     assertThat(params.outputConfig().orElseThrow().effort()).isPresent();
+  }
+
+  @Test
+  void emptySchemaWithEffortEmitsOutputConfigWithoutFormat() {
+    // Regression guard for the hasSchema() fix: an empty schema must still let the effort-only
+    // path through -- output_config is emitted with effort but no format.
+    final var response =
+        new AgentTaskResponseConfiguration(
+            new JsonResponseFormatConfiguration(Map.of(), null), null);
+    final var parameters = effortParams(AnthropicEffort.HIGH);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toMessageCreateParams(model(parameters), response, snapshot);
+
+    assertThat(params.outputConfig()).isPresent();
+    assertThat(params.outputConfig().orElseThrow().effort()).isPresent();
+    assertThat(params.outputConfig().orElseThrow().format()).isEmpty();
   }
 
   // --- Prompt caching ---------------------------------------------------------------------------
