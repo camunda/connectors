@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   run-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -71,7 +71,7 @@ jobs:
 
       # Build and test (format check runs in a parallel job)
       - name: Build Connectors
-        run: ./mvnw --batch-mode clean test -Dquickly -T 1C
+        run: ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
 
       - name: Publish Test Report
         if: success() || failure()
@@ -100,7 +100,7 @@ jobs:
           dockerfile: bundle/default-bundle/Dockerfile
 
   check-format:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -143,7 +143,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
       - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
 
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
