@@ -52,6 +52,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     return openai.model().model();
   }
 
+  @Override
+  public String descriptiveProvider() {
+    return "%s/%s/%s".formatted(provider(), openai.api().type(), openai.backend().type());
+  }
+
   /** All OpenAI-specific configuration, nested under the {@code openai} wire key. */
   public record OpenAiConnection(
       @Valid @NotNull OpenAiApi api,

@@ -48,6 +48,11 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
     return googleGemini.model().model();
   }
 
+  @Override
+  public String descriptiveProvider() {
+    return "%s/%s".formatted(provider(), googleGemini.backend().type());
+  }
+
   /** All Gemini-specific configuration, nested under the {@code googleGemini} wire key. */
   public record GeminiConnection(
       @Valid @NotNull GeminiBackend backend,

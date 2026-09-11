@@ -74,6 +74,7 @@ class AnthropicChatModelConfigurationTest {
 
     assertThat(parsed).isInstanceOf(AnthropicChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("anthropic");
+    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/anthropic-api");
     assertThat(parsed.model()).isEqualTo("claude-sonnet-4-6");
 
     final AnthropicChatModelConfiguration anthropic = (AnthropicChatModelConfiguration) parsed;
@@ -467,6 +468,7 @@ class AnthropicChatModelConfigurationTest {
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicAwsBedrockMantleBackend.class);
+    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/aws-bedrock-mantle");
     final AnthropicAwsBedrockMantleBackend bedrockBackend =
         (AnthropicAwsBedrockMantleBackend) parsed.anthropic().backend();
     assertThat(bedrockBackend.awsBedrockMantle().region()).isEqualTo("eu-central-1");

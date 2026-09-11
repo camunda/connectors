@@ -83,7 +83,7 @@ public record AgentConfiguration(
         String.join(
             " ",
             chatModel.model(),
-            chatModel.provider(),
+            chatModel.descriptiveProvider(),
             systemPrompt.prompt(),
             String.valueOf(limits != null ? limits.maxModelCalls() : null),
             String.valueOf(toolDefinitions));

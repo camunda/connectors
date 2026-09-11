@@ -10,7 +10,8 @@ per-provider "here's what's special" detail that would otherwise bloat that sect
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
-(`anthropic-api` | `aws-bedrock-mantle` | `custom`).
+(`anthropic-api` | `aws-bedrock-mantle` | `custom`). `descriptiveProvider()` reports this backend
+too, e.g. `anthropic/aws-bedrock-mantle`.
 
 ### Backends
 
@@ -157,6 +158,7 @@ Two orthogonal sealed axes: `OpenAiApi` (`completions` | `responses`, default `r
 backend can serve either wire format. The wire format is a sealed discriminator rather than a flat enum
 so each family gets its own namespace for family-specific knobs — e.g. the differing max-token field
 name (`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating or collisions.
+`descriptiveProvider()` reports both axes too, e.g. `openai/completions/custom`.
 
 ### Backends
 
@@ -290,7 +292,8 @@ branch and shares every converter described below unchanged.
 
 `GeminiChatModelFactory.buildClient` builds the SDK's `Client` directly from the API key; there is no
 custom-backend variant (no user-configurable headers/query params, unlike Anthropic/OpenAI's
-`*CustomBackend`).
+`*CustomBackend`). `descriptiveProvider()` reports this backend too, e.g.
+`google-gemini/google-vertex-ai`.
 
 ### Reasoning
 

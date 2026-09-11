@@ -37,6 +37,7 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -51,6 +52,14 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -196,6 +205,41 @@ class CamundaAgentInstanceClientTest {
                 assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10);
                 assertThat(item.getLimits().getMaxTokens()).isEqualTo(-1);
                 assertThat(item.getLimits().getMaxToolCalls()).isEqualTo(-1);
+              });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldReportDescriptiveProviderIncludingBackendAndApiFamily() {
+      givenCreateCommand();
+      when(createCommandStep5.execute()).thenReturn(response);
+      when(response.getAgentInstanceKey()).thenReturn(12345L);
+
+      final var chatModel =
+          new OpenAiChatModelConfiguration(
+              new OpenAiChatModelConfiguration.OpenAiConnection(
+                  new OpenAiCompletionsApi(null),
+                  new OpenAiCustomBackend(
+                      new CustomBackend(
+                          "https://custom.example.com/v1",
+                          null,
+                          null,
+                          null,
+                          new ApiKeyAuthentication("sk-test"))),
+                  new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                  null));
+
+      client.create(TestAgentExecutionContext.withChatModel(chatModel));
+
+      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(createCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              item -> {
+                assertThat(item.getModel()).isEqualTo("gpt-5.5");
+                assertThat(item.getProvider()).isEqualTo("openai/completions/custom");
               });
     }
 
@@ -522,6 +566,22 @@ class CamundaAgentInstanceClientTest {
           .withToolDefinitions(tools);
     }
 
+    private AgentConfiguration openAiConfiguration(OpenAiBackend backend) {
+      return new AgentConfiguration(
+          new OpenAiChatModelConfiguration(
+              new OpenAiChatModelConfiguration.OpenAiConnection(
+                  new OpenAiCompletionsApi(null),
+                  backend,
+                  new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                  null)),
+          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
+          null,
+          null,
+          null,
+          null,
+          null);
+    }
+
     private AgentConversationTurn userTurn(String text, String configurationFingerprint) {
       return new AgentConversationTurn(
           1,
@@ -667,9 +727,8 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
-      // model/provider are fixed at create time only, not re-pushed by turn-start items
       assertThat(configurationItem.getModel()).isNull();
-      assertThat(configurationItem.getProvider()).isNull();
+      assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
           .isInstanceOfSatisfying(
@@ -747,6 +806,38 @@ class CamundaAgentInstanceClientTest {
       final var configurationItem = historyCaptor.getValue().get(0);
       assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
       assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(20);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWithUpdatedProviderWhenBackendChanged() {
+      givenUpdateCommand();
+      final var apiBackend =
+          new OpenAiApiBackend(
+              new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+      final var customBackend =
+          new OpenAiCustomBackend(
+              new CustomBackend(
+                  "https://custom.example.com/v1",
+                  null,
+                  null,
+                  null,
+                  new ApiKeyAuthentication("sk-test")));
+      final var previousConfiguration = openAiConfiguration(apiBackend);
+      final var configuration = openAiConfiguration(customBackend);
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      final var configurationItem = historyCaptor.getValue().get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      assertThat(configurationItem.getProvider()).isEqualTo("openai/completions/custom");
     }
 
     @Test
@@ -1232,9 +1323,21 @@ class CamundaAgentInstanceClientTest {
       return new TestAgentExecutionContext(new LimitsConfiguration(10), null);
     }
 
+    public static TestAgentExecutionContext withChatModel(ChatModelConfiguration chatModel) {
+      return new TestAgentExecutionContext(
+          new LimitsConfiguration(10), DEFAULT_LEASE_TOKEN, chatModel);
+    }
+
+    private static final ChatModelConfiguration DEFAULT_CHAT_MODEL =
+        new OpenAiProviderConfiguration(
+            new OpenAiProviderConfiguration.OpenAiConnection(
+                null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null)));
+
     private final TestJobContext jobContext;
 
     private final LimitsConfiguration limitsConfiguration;
+
+    private final ChatModelConfiguration chatModel;
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
       this(limitsConfiguration, DEFAULT_LEASE_TOKEN);
@@ -1242,6 +1345,13 @@ class CamundaAgentInstanceClientTest {
 
     private TestAgentExecutionContext(
         LimitsConfiguration limitsConfiguration, @Nullable String leaseToken) {
+      this(limitsConfiguration, leaseToken, DEFAULT_CHAT_MODEL);
+    }
+
+    private TestAgentExecutionContext(
+        LimitsConfiguration limitsConfiguration,
+        @Nullable String leaseToken,
+        ChatModelConfiguration chatModel) {
       this.jobContext = new TestJobContext(Map::of, () -> "");
       jobContext.setElementInstanceKey(ELEMENT_INSTANCE_KEY);
       jobContext.setJobKey(JOB_KEY);
@@ -1250,6 +1360,7 @@ class CamundaAgentInstanceClientTest {
       }
 
       this.limitsConfiguration = limitsConfiguration;
+      this.chatModel = chatModel;
     }
 
     @Override
@@ -1280,9 +1391,7 @@ class CamundaAgentInstanceClientTest {
     @Override
     public AgentConfiguration configuration() {
       return new AgentConfiguration(
-          new OpenAiProviderConfiguration(
-              new OpenAiProviderConfiguration.OpenAiConnection(
-                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          chatModel,
           new PromptConfiguration.SystemPromptConfiguration("system prompt"),
           null,
           null,

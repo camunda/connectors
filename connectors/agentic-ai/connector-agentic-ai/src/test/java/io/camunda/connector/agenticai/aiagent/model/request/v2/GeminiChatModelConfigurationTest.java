@@ -75,6 +75,7 @@ class GeminiChatModelConfigurationTest {
 
     assertThat(parsed).isInstanceOf(GeminiChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("google-gemini");
+    assertThat(parsed.descriptiveProvider()).isEqualTo("google-gemini/google-gemini-api");
     assertThat(parsed.model()).isEqualTo("gemini-3-pro-preview");
 
     final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
@@ -290,6 +291,7 @@ class GeminiChatModelConfigurationTest {
 
     assertThat(parsed).isInstanceOf(GeminiChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("google-gemini");
+    assertThat(parsed.descriptiveProvider()).isEqualTo("google-gemini/google-vertex-ai");
     assertThat(parsed.model()).isEqualTo("gemini-3-pro-preview");
 
     final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;

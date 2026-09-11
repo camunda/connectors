@@ -13,6 +13,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +51,22 @@ class AgentConfigurationTest {
             null,
             null)
         .withToolDefinitions(tools);
+  }
+
+  private static AgentConfiguration configurationWithOpenAiBackend(OpenAiBackend backend) {
+    return new AgentConfiguration(
+        new OpenAiChatModelConfiguration(
+            new OpenAiChatModelConfiguration.OpenAiConnection(
+                new OpenAiCompletionsApi(null),
+                backend,
+                new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                null)),
+        new SystemPromptConfiguration("Be nice."),
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   @Nested
@@ -114,6 +138,27 @@ class AgentConfigurationTest {
       final var second = configuration("gpt-4o", "Be nice.", null, toolsB).fingerprint();
 
       assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void changedBackendYieldsDifferentFingerprintEvenWithSameProviderModelAndPrompt() {
+      final var apiBackend =
+          new OpenAiApiBackend(
+              new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+      final var customBackend =
+          new OpenAiCustomBackend(
+              new CustomBackend(
+                  "https://custom.example.com/v1",
+                  null,
+                  null,
+                  null,
+                  new ApiKeyAuthentication("sk-test")));
+
+      final var first = configurationWithOpenAiBackend(apiBackend);
+      final var second = configurationWithOpenAiBackend(customBackend);
+
+      assertThat(first.chatModel().provider()).isEqualTo(second.chatModel().provider());
+      assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
     }
 
     @Test
