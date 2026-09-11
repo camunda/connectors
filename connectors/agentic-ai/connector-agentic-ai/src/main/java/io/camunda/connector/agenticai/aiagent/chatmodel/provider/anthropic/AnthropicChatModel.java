@@ -111,8 +111,9 @@ public class AnthropicChatModel implements ChatModel {
           "Model call failed with HTTP %d (%s): %s"
               .formatted(e.statusCode(), errorType, e.getMessage()),
           e);
-    } catch (ChatModelRejectedException e) {
-      // thrown directly by the response converter when it recognizes a known rejection - let it
+    } catch (ConnectorException | ChatModelRejectedException e) {
+      // already coded -- a ConnectorException thrown by e.g. the OAuth token resolver, or a
+      // ChatModelRejectedException thrown by the response converter for a known rejection. Let it
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {

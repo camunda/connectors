@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEn
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -40,6 +41,7 @@ class AnthropicChatModelFactoryTest {
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
+  @Mock private OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,7 +53,8 @@ class AnthropicChatModelFactoryTest {
         new AnthropicChatModelFactory(
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
-            new AnthropicMessageResponseConverter(objectMapper));
+            new AnthropicMessageResponseConverter(objectMapper),
+            oAuthClientCredentialsTokenResolver);
   }
 
   @ParameterizedTest

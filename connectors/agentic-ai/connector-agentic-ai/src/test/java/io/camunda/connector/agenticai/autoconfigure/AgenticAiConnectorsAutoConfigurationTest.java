@@ -759,7 +759,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           super(
               mock(AgenticAiHttpProxySupport.class),
               mock(AnthropicMessageRequestConverter.class),
-              mock(AnthropicMessageResponseConverter.class));
+              mock(AnthropicMessageResponseConverter.class),
+              mock(OAuthClientCredentialsTokenResolver.class));
         }
 
         @Override
