@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -315,6 +316,105 @@ class OpenAiChatModelConfigurationTest {
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesCustomBackendWithOAuthClientCredentialsAuthAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://custom.example.com/v1",
+                "authentication": {
+                  "type": "oauth-client-credentials-flow",
+                  "oauthTokenEndpoint": "https://auth.example.com/oauth/token",
+                  "clientId": "client-123",
+                  "clientSecret": "secret-123",
+                  "scopes": "read:llm"
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final OpenAiCustomBackend custom = (OpenAiCustomBackend) parsed.openai().backend();
+    assertThat(custom.custom().authentication())
+        .isEqualTo(
+            new OAuthClientCredentialsAuthentication(
+                "https://auth.example.com/oauth/token",
+                "client-123",
+                "secret-123",
+                null,
+                OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                "read:llm"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void oAuthClientCredentialsAuthenticationRedactsSecretsInToString() {
+    final var auth =
+        new OAuthClientCredentialsAuthentication(
+            "https://auth.example.com/oauth/token",
+            "client-123",
+            "super-secret-value",
+            null,
+            OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+            null);
+
+    assertThat(auth.toString())
+        .contains("clientId=[REDACTED]", "clientSecret=[REDACTED]")
+        .doesNotContain("client-123", "super-secret-value");
+  }
+
+  @Test
+  void requiredOAuthClientCredentialsFieldsAreEnforced() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                completionsApi(),
+                new OpenAiCustomBackend(
+                    new CustomBackend(
+                        "https://custom.example.com",
+                        null,
+                        null,
+                        null,
+                        new OAuthClientCredentialsAuthentication("", "", "", null, null, null))),
+                new OpenAiModel("gpt-5.5"),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.oauthTokenEndpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.clientId");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.clientSecret");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            });
   }
 
   @Test
