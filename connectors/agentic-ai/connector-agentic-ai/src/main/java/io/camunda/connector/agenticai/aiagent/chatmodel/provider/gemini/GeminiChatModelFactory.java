@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
@@ -20,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
@@ -33,8 +36,12 @@ import java.util.Optional;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GeminiChatModelFactory implements ChatModelFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(GeminiChatModelFactory.class);
 
   /**
    * {@code HttpOptions.timeout} only accepts an {@code Integer} millisecond value, while the
@@ -71,14 +78,17 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   private static final String DEFAULT_GEMINI_API_BASE_URL =
       "https://generativelanguage.googleapis.com";
 
+  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final GeminiContentRequestConverter requestConverter;
   private final GeminiContentResponseConverter responseConverter;
 
   public GeminiChatModelFactory(
+      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       GeminiContentRequestConverter requestConverter,
       GeminiContentResponseConverter responseConverter) {
+    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -93,31 +103,22 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (GeminiChatModelConfiguration) configuration;
     final var connection = model.googleGemini();
-    final var configuredTimeout =
-        connection.timeouts() != null ? connection.timeouts().timeout() : null;
-    // a non-positive configured timeout (e.g. PT0S, or a negative FEEL result) falls back to
-    // the SDK default rather than being passed through - see toGeminiTimeoutMillis, which
-    // would otherwise clamp it to an unusable 1ms call timeout
     final var timeout =
-        configuredTimeout != null && configuredTimeout.isPositive() ? configuredTimeout : null;
+        deriveTimeoutSetting("Gemini model call", config, connection.timeouts(), LOGGER);
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
     return new GeminiChatModel(client, model, requestConverter, responseConverter);
   }
 
   private static Client buildClient(
-      GeminiBackend backend,
-      @Nullable Duration timeout,
-      AgenticAiHttpProxySupport httpProxySupport) {
+      GeminiBackend backend, Duration timeout, AgenticAiHttpProxySupport httpProxySupport) {
     final String endpointOverride = configuredEndpoint(backend);
 
     final var httpOptionsBuilder = HttpOptions.builder();
     if (endpointOverride != null) {
       httpOptionsBuilder.baseUrl(endpointOverride);
     }
-    if (timeout != null) {
-      httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
-    }
+    httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
 
     final var clientBuilder = Client.builder().httpOptions(httpOptionsBuilder.build());
 
@@ -133,9 +134,7 @@ public class GeminiChatModelFactory implements ChatModelFactory {
             .connectTimeout(CONNECT_TIMEOUT)
             .readTimeout(Duration.ZERO)
             .writeTimeout(Duration.ZERO);
-    if (timeout != null) {
-      okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
-    }
+    okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
 
     final String scheme =
         Optional.ofNullable(endpointOverride).map(url -> URI.create(url).getScheme()).orElse(null);

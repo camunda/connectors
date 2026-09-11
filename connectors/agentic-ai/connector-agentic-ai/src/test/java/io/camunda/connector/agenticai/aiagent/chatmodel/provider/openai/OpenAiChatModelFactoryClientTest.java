@@ -55,6 +55,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -123,6 +126,10 @@ class OpenAiChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -428,6 +435,7 @@ class OpenAiChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
