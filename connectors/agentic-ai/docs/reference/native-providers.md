@@ -10,7 +10,7 @@ per-provider "here's what's special" detail that would otherwise bloat that sect
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
-(`anthropic-api` | `aws-bedrock-mantle` | `custom`).
+(`anthropic-api` | `aws-bedrock-mantle` | `foundry` | `custom`).
 
 ### Backends
 
@@ -26,6 +26,14 @@ a supported public hook) via `builder.addInterceptor(...)`: it wraps the transpo
 each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolved per request from
 the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
 (`provider/authentication/oauth/`).
+
+`AnthropicFoundryBackend` (Microsoft Foundry, issue #8060) delegates to the Anthropic Java SDK's own
+`com.anthropic.foundry.backends.FoundryBackend`, which normalizes the base URL (appending `/anthropic`
+to the configured `endpoint` if missing) and authorizes each request: API-key auth sends the native
+`x-api-key` header (not the generic Azure `api-key` header OpenAI's Foundry backend uses), while either
+Entra ID variant supplies `Authorization: Bearer <token>` from a `Supplier<String>` the SDK calls per
+request. Authentication config and Entra ID token handling are shared with the OpenAI provider — see
+[Microsoft Foundry authentication](#microsoft-foundry-authentication).
 
 ### Reasoning
 
@@ -177,17 +185,13 @@ fetching in this module eventually shares one cache.
 `OpenAiFoundryBackend` (Microsoft Foundry / Azure OpenAI) exposes the same request customizations as
 `headers`/`queryParameters`/`bodyProperties`, but hidden, matching
 `AnthropicAwsBedrockMantleBackend`'s pattern rather than the fully-visible `custom` backend. Its
-`FoundryAuthentication` sealed interface supports an Azure API key
-(`com.openai.azure.credential.AzureApiKeyCredential`, sent as the dedicated `api-key` header rather than
-`Authorization: Bearer`) or Microsoft Entra ID via `ClientCredentialsAuthentication` /
-`ManagedIdentityAuthentication`, both wrapped as `BearerTokenCredential` suppliers over an
-azure-identity `TokenCredential`. `ManagedIdentityAuthentication` is blocked on SaaS
-(`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure tenant.
-Resolving a `FoundryAuthentication` into the openai-java `Credential` the SDK builder needs — which
-credential type each variant maps to and the Entra ID token scope — is encapsulated in
-`OpenAiFoundryCredentialResolver`; `OpenAiChatModelFactory` only calls `resolver.credential(authentication)`
-and never sees a raw `TokenCredential` or any secret material. The credential caching itself (see
-below) lives one layer further down, in the provider-agnostic `EntraIdTokenCredentialFactory`.
+`OpenAiChatModelFactory.applyFoundryBackend` maps each `FoundryAuthentication` variant onto the
+openai-java `Credential` the SDK builder needs: an Azure API key becomes an
+`com.openai.azure.credential.AzureApiKeyCredential` (sent as the dedicated `api-key` header rather than
+`Authorization: Bearer`), and either Microsoft Entra ID variant becomes a `BearerTokenCredential` over
+the token supplier `FoundryCredentialResolver` returns — so the factory never sees a raw
+`TokenCredential` or any secret material. The authentication model itself is shared with the Anthropic
+provider: see [Microsoft Foundry authentication](#microsoft-foundry-authentication).
 
 `OpenAiChatModelFactory` normalizes the configured `endpoint` onto the unified `/openai/v1` API surface
 (appending it if missing) for both classic Azure OpenAI (`*.openai.azure.com`) and Foundry
@@ -196,45 +200,13 @@ below) lives one layer further down, in the provider-agnostic `EntraIdTokenCrede
 This isn't optional: the openai-java SDK's own Azure-surface detection (`AzureUrlPathMode.AUTO`) only
 classifies a base URL as unified if its *path* already ends in `/openai/v1` — a bare resource endpoint,
 which is exactly what this backend's own `endpoint` field asks for, would otherwise be routed as the
-legacy, deployments-based API regardless of host. Since every request now targets the unified surface,
-the Entra ID token scope is fixed per Azure cloud rather than derived per endpoint: `https://ai.azure.com/.default`
-for Azure Public Cloud, `https://ai.azure.us/.default` for Azure US Government — the only other
-sovereign cloud Foundry supports today. `ClientCredentialsAuthentication`'s `authorityHost` field
-selects between them (matched against `com.azure.identity.AzureAuthorityHosts.AZURE_GOVERNMENT`;
-anything else, including an unset host, is Azure Public Cloud); `ManagedIdentityAuthentication` has no
-such field — its derived scope is always Azure Public Cloud, since IMDS-based managed identity is
-inherently tied to the cloud the identity already runs in and there's currently no field to signal
-otherwise. Each Entra ID variant carries its own hidden `entraIdScope` escape hatch for a wrong guess:
-a custom `authorityHost` this resolver doesn't recognize, or a managed identity that does need a
-non-default scope. `ManagedIdentityAuthentication.clientId` (the identity's own client ID field) and
-`entraIdScope` share their field names with `ClientCredentialsAuthentication`'s fields of the same
-name rather than being disambiguated in Java, since the generator only requires distinct *template
-property IDs*, not distinct field names or binding paths — sibling sealed variants never coexist in
-one config, so both variants safely reusing the same runtime binding path is fine. Only
-`ManagedIdentityAuthentication`'s two fields set an explicit, path-relative `@TemplateProperty(id =
-...)` (e.g. `"managedIdentity.clientId"`) to break the tie; giving both sides an explicit id isn't
-needed once one side diverges from its default. This mirrors `apiVersion`, which exists only as a
-hidden, optional escape hatch for pinning a specific version, wired through the SDK's dedicated
-`azureServiceVersion(...)` builder method; the unified surface otherwise uses implicit versioning.
+legacy, deployments-based API regardless of host. Every request therefore targets the unified surface,
+which is also why the Entra ID token scope is fixed per Azure cloud rather than derived per endpoint
+(see [Microsoft Foundry authentication](#microsoft-foundry-authentication)).
 
-Since a `ChatModel` (and the underlying `OpenAIClient`) is rebuilt on every agent turn, azure-identity
-`TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and
-reused across turns by `EntraIdTokenCredentialFactory`, a bounded Caffeine cache
-(`camunda.connector.agenticai.aiagent.chat-model.azure.credential-cache.*`) keyed by a SHA-256 hash of
-the credential configuration — never the raw secret material itself, mirroring
-`CaffeineOAuthTokenCache` in connector-commons/http-client. Only the credential *object* is cached;
-azure-identity's credentials already cache and auto-refresh their own tokens internally, so rebuilding
-the `OpenAIClient` each turn never forces a fresh Entra ID token request as long as the credential
-object is reused. `EntraIdTokenCredentialFactory` is deliberately provider-agnostic (it returns a plain
-`TokenCredential`, no vendor SDK type) so a future Anthropic-on-Foundry backend (issue #8060) can reuse
-it directly instead of re-implementing the same azure-identity plumbing.
-
-`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
-.azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
-exchange with `login.microsoftonline.com` goes through the same proxy as the OpenAI API calls rather
-than bypassing it. Managed identity is deliberately excluded: its token request targets the
-link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via
-an internet-facing egress proxy.
+`apiVersion` exists only as a hidden, optional escape hatch for pinning a specific version, wired
+through the SDK's dedicated `azureServiceVersion(...)` builder method; the unified surface otherwise
+uses implicit versioning.
 
 ### Reasoning effort
 
@@ -358,3 +330,66 @@ Retry needs no equivalent fix: the SDK unconditionally wraps every call in a `Re
 (decompiled defaults: 5 attempts, exponential backoff with full jitter, retrying on
 408/429/500/502/503/504) whether or not `HttpOptions.retryOptions()` is configured, matching
 Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything explicitly either).
+
+## Microsoft Foundry authentication
+
+Shared by the [Anthropic](#anthropic) and [OpenAI](#openai) `foundry` backends: both target the same
+Microsoft Entra ID surface, so the authentication model and all azure-identity plumbing live in one
+place rather than once per provider — the same split `AwsAuthentication` already uses across Bedrock
+Converse and Anthropic's `aws-bedrock-mantle` backend. Each provider's factory still does its own
+final wrapping into its vendor SDK's credential type, since those types are vendor-specific.
+
+### Authentication model
+
+`FoundryAuthentication` (`ApiKeyAuthentication` | `ClientCredentialsAuthentication` |
+`ManagedIdentityAuthentication`) is one sealed interface in `model.request.v2`, bound per provider at
+`provider.<provider>.backend.foundry.authentication.*`. `ManagedIdentityAuthentication` is blocked on
+SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
+tenant.
+
+`ManagedIdentityAuthentication.clientId` (the identity's own client ID field) and `entraIdScope` share
+their field names with `ClientCredentialsAuthentication`'s fields of the same name rather than being
+disambiguated in Java, since the generator only requires distinct *template property IDs*, not distinct
+field names or binding paths — sibling sealed variants never coexist in one config, so both variants
+safely reusing the same runtime binding path is fine. Only `ManagedIdentityAuthentication`'s two fields
+set an explicit, path-relative `@TemplateProperty(id = ...)` (e.g. `"managedIdentity.clientId"`) to
+break the tie; giving both sides an explicit id isn't needed once one side diverges from its default.
+Because the ids are path-relative, the shared type still generates per-provider template property ids
+(`provider.anthropic.…` and `provider.openai.…`) with no collision.
+
+### Entra ID token scope
+
+The scope is fixed per Azure cloud rather than derived per endpoint: `https://ai.azure.com/.default`
+for Azure Public Cloud, `https://ai.azure.us/.default` for Azure US Government — the only other
+sovereign cloud Foundry supports today. `ClientCredentialsAuthentication`'s `authorityHost` field
+selects between them (matched against `com.azure.identity.AzureAuthorityHosts.AZURE_GOVERNMENT`;
+anything else, including an unset host, is Azure Public Cloud); `ManagedIdentityAuthentication` has no
+such field — its scope is always Azure Public Cloud, since IMDS-based managed identity is inherently
+tied to the cloud the identity already runs in and there's currently no field to signal otherwise.
+Each Entra ID variant carries its own hidden `entraIdScope` escape hatch for a wrong guess: a custom
+`authorityHost` `FoundryCredentialResolver` doesn't recognize, or a managed identity that does need a
+non-default scope.
+
+`FoundryCredentialResolver` resolves an Entra ID variant into a plain `Supplier<String>` (no vendor SDK
+type), pairing the `TokenCredential` from `EntraIdTokenCredentialFactory` with the scope above. It
+caches no token itself: the supplier is invoked per request and relies on the credential's own cache.
+
+### Credential caching and proxy behavior
+
+Since a `ChatModel` (and its underlying client) is rebuilt on every agent turn, azure-identity
+`TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and
+reused across turns by `EntraIdTokenCredentialFactory`, a bounded Caffeine cache
+(`camunda.connector.agenticai.aiagent.chat-model.azure.credential-cache.*`) keyed by a SHA-256 hash of
+the credential configuration — never the raw secret material itself, mirroring
+`CaffeineOAuthTokenCache` in connector-commons/http-client. Only the credential *object* is cached;
+azure-identity's credentials already cache and auto-refresh their own tokens internally, so rebuilding
+the client each turn never forces a fresh Entra ID token request as long as the credential object is
+reused. The scope is deliberately not part of the cache key: azure-identity caches tokens per
+requested scope on the credential itself.
+
+`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
+.azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
+exchange with `login.microsoftonline.com` goes through the same proxy as the model API calls rather
+than bypassing it. Managed identity is deliberately excluded: its token request targets the
+link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via
+an internet-facing egress proxy.
