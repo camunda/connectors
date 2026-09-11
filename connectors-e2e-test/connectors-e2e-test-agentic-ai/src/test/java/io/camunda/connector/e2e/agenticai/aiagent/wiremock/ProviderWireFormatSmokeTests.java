@@ -283,12 +283,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
     }
   }
 
-  /**
-   * Providers whose native structured-output mechanism is schema-only (see {@code
-   * SchemaOnlyJsonResponseFormatSystemPromptContributor}): with no response JSON schema configured,
-   * these get a JSON-emission instruction appended to the system prompt instead of a native
-   * schema-less JSON mode.
-   */
+  /** APIs with no native schema-less JSON mode: they get a system-prompt instruction instead. */
   private static final Set<String> SCHEMA_ONLY_JSON_MODE_APIS =
       Set.of(
           "AnthropicMessagesV1", "AnthropicMessagesV2", "BedrockConverseV1", "BedrockConverseV2");

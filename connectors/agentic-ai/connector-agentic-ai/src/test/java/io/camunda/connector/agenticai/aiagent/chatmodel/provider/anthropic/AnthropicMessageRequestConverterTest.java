@@ -501,8 +501,7 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void jsonResponseFormatWithEmptySchemaEmitsNoOutputConfig() {
-    // An empty schema (FEEL ={}) constrains nothing, same as no schema at all -- must not be sent
-    // to Anthropic as a literal empty object schema.
+    // Empty schema (FEEL ={}) counts as no schema.
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(Map.of(), null), null);
@@ -711,8 +710,7 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void emptySchemaWithEffortEmitsOutputConfigWithoutFormat() {
-    // Regression guard for the hasSchema() fix: an empty schema must still let the effort-only
-    // path through -- output_config is emitted with effort but no format.
+    // Empty schema must not block the effort-only output_config path.
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(Map.of(), null), null);

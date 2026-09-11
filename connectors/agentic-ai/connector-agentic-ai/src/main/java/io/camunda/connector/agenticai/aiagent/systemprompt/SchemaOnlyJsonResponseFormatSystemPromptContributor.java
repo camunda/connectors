@@ -14,10 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import org.jspecify.annotations.Nullable;
 
 /**
- * Contributes a JSON-emission instruction to the system prompt when the JSON response format is
- * requested without a schema on a provider whose native structured-output mechanism is schema-only
- * (Anthropic, Bedrock Converse). Neither provider has a native schema-less JSON mode, so without
- * this nudge the model is left neither constrained nor instructed to emit JSON.
+ * Adds a JSON instruction to the system prompt when JSON response format is requested without a
+ * schema on a provider with no native schema-less JSON mode (Anthropic, Bedrock Converse).
  */
 public class SchemaOnlyJsonResponseFormatSystemPromptContributor
     implements SystemPromptContributor {
