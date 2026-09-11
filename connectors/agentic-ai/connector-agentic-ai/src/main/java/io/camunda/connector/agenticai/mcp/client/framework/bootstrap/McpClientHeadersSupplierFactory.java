@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.bootstrap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientHttpTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BasicAuthHeadersSupplier;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BearerAuthHeadersSupplier;
@@ -14,8 +13,7 @@ import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.OAuthH
 import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,15 +23,11 @@ import org.jspecify.annotations.NonNull;
 
 public class McpClientHeadersSupplierFactory {
 
-  private final OAuthService oAuthService;
-  private final HttpClient httpClient;
-  private final ObjectMapper objectMapper;
+  private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public McpClientHeadersSupplierFactory(
-      OAuthService oAuthService, HttpClient httpClient, ObjectMapper objectMapper) {
-    this.oAuthService = oAuthService;
-    this.httpClient = httpClient;
-    this.objectMapper = objectMapper;
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+    this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
   }
 
   public Supplier<Map<String, String>> createHttpHeadersSupplier(
@@ -52,8 +46,7 @@ public class McpClientHeadersSupplierFactory {
 
       case OAuthAuthentication oAuthAuthentication ->
           headerSuppliers.add(
-              new OAuthHeadersSupplier(
-                  oAuthService, httpClient, objectMapper, oAuthAuthentication));
+              new OAuthHeadersSupplier(oAuthClientCredentialsTokenResolver, oAuthAuthentication));
 
       default -> {
         // no authentication to apply
