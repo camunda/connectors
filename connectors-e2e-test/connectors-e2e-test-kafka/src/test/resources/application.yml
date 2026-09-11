@@ -1,3 +1,0 @@
-camunda:
-  process-test:
-    runtime-mode: shared
