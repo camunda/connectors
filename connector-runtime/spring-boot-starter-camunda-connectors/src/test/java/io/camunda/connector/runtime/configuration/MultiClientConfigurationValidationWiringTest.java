@@ -50,6 +50,8 @@ import org.springframework.context.ApplicationContext;
       "camunda.clients.engine-b.mode=self-managed",
       "camunda.clients.engine-b.grpc-address=http://engine-b.internal:26500",
       "camunda.clients.engine-b.physical-tenant-id=tenantb",
+      // the validation beans are opt-in; without this the context has none to assert on
+      "camunda.connector.configuration-validation.enabled=true",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.webhook.enabled=false"
     })

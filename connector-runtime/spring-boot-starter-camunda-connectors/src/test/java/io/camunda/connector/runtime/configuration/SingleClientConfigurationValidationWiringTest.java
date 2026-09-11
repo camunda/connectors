@@ -47,6 +47,8 @@ import org.springframework.context.annotation.Primary;
       SingleClientConfigurationValidationWiringTest.LocalEvaluatorOverride.class
     },
     properties = {
+      // the validation beans are opt-in; without this the context has none to assert on
+      "camunda.connector.configuration-validation.enabled=true",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.webhook.enabled=false"
     })

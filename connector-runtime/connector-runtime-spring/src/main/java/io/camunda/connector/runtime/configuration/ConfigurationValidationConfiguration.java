@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -48,12 +49,28 @@ import org.springframework.context.annotation.Import;
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
  *
- * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
- * value can reach the response (see the message-safety policy on {@code
- * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
- * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
+ * <p><b>Opt-in, and why.</b> {@code POST /configurations/validate} resolves stored secrets to run a
+ * validator, and the validator then presents the resolved credential to the endpoint the resolved
+ * configuration names. No resolved value can reach the response (see the message-safety policy on
+ * {@code ConfigurationValidationService}), but the credential does leave the runtime on that
+ * outbound request, so the route is only as trustworthy as the callers that can reach it. The
+ * runtime ships no authentication of its own, so the route is gated on {@code
+ * camunda.connector.configuration-validation.enabled} and is <b>absent unless that is set</b>: a
+ * deployment that does not use credential validation does not serve it at all.
+ *
+ * <p><b>Enabling it is a decision about authentication, not only a feature toggle.</b> The SaaS
+ * bundle enables it and covers it with the Console JWT {@code SecurityFilterChain}. A self-managed
+ * runtime has no {@code SecurityFilterChain} on the classpath at all — Spring Security is a
+ * dependency of the SaaS bundle alone — so once enabled there, the route answers anonymously on the
+ * runtime's HTTP port, which also serves the deliberately public {@code /inbound/**} webhook paths.
+ * Restricting it to trusted callers therefore cannot be done by fencing the port, and has to be a
+ * path-level rule in front of the runtime (ingress rule, network policy, or an authenticating
+ * proxy) put in place before it is turned on.
  */
 @Configuration
+@ConditionalOnProperty(
+    name = "camunda.connector.configuration-validation.enabled",
+    havingValue = "true")
 @Import(ConfigurationValidationRestController.class)
 public class ConfigurationValidationConfiguration {
 
