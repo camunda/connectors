@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
@@ -27,19 +29,28 @@ public class SchemaOnlyJsonResponseFormatSystemPromptContributor
   @Override
   public @Nullable String contribute(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    final var response = executionContext.configuration().response();
-    if (response == null
-        || !(response.format() instanceof JsonResponseFormatConfiguration json)
-        || json.hasSchema()) {
+    final var configuration = executionContext.configuration();
+    if (!requestsSchemaLessJson(configuration.response())
+        || !isSchemaOnlyProvider(configuration.chatModel())) {
       return null;
     }
-
-    final var chatModel = executionContext.configuration().chatModel();
-    if (!(chatModel instanceof AnthropicChatModelConfiguration
-        || chatModel instanceof BedrockConverseChatModelConfiguration)) {
-      return null;
-    }
-
     return INSTRUCTION;
+  }
+
+  private static boolean requestsSchemaLessJson(@Nullable ResponseConfiguration response) {
+    return response != null
+        && response.format() instanceof JsonResponseFormatConfiguration json
+        && !json.hasSchema();
+  }
+
+  private static boolean isSchemaOnlyProvider(ChatModelConfiguration chatModel) {
+    return chatModel instanceof AnthropicChatModelConfiguration
+        || chatModel instanceof BedrockConverseChatModelConfiguration;
+  }
+
+  /** Runs after every other contributor, so its instruction always closes the system prompt. */
+  @Override
+  public int getOrder() {
+    return Integer.MAX_VALUE;
   }
 }

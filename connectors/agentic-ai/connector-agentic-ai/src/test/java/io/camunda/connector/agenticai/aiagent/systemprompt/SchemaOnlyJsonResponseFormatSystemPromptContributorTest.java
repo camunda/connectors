@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -185,5 +186,10 @@ class SchemaOnlyJsonResponseFormatSystemPromptContributorTest {
     var result = contributor.contribute(executionContext, CTX);
 
     assertThat(result).isNull();
+  }
+
+  @Test
+  void runsLastAmongContributors() {
+    assertThat(contributor.getOrder()).isEqualTo(Integer.MAX_VALUE);
   }
 }
