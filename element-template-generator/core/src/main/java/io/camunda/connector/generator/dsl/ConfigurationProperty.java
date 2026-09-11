@@ -44,6 +44,7 @@ public final class ConfigurationProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
+      Boolean editable,
       String configurationTemplate) {
     super(
         name,
@@ -62,6 +63,7 @@ public final class ConfigurationProperty extends Property {
         null,
         null,
         TYPE,
+        editable,
         null);
     this.configurationTemplate = configurationTemplate;
   }
@@ -109,6 +111,7 @@ public final class ConfigurationProperty extends Property {
           binding,
           condition,
           tooltip,
+          editable,
           configurationTemplate);
     }
   }

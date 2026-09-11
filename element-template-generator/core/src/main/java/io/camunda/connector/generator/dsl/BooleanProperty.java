@@ -36,6 +36,7 @@ public final class BooleanProperty extends Property {
       PropertyCondition condition,
       String tooltip,
       Object exampleValue,
+      Boolean editable,
       Boolean secret) {
     super(
         name,
@@ -54,6 +55,7 @@ public final class BooleanProperty extends Property {
         exampleValue,
         null,
         TYPE,
+        editable,
         secret);
   }
 
@@ -90,6 +92,7 @@ public final class BooleanProperty extends Property {
           condition,
           tooltip,
           exampleValue,
+          editable,
           secret);
     }
   }

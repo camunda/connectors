@@ -40,6 +40,7 @@ public final class DropdownProperty extends Property {
       String tooltip,
       List<DropdownChoice> choices,
       Object exampleValue,
+      Boolean editable,
       Boolean secret) {
     super(
         name,
@@ -58,6 +59,7 @@ public final class DropdownProperty extends Property {
         exampleValue,
         null,
         TYPE,
+        editable,
         secret);
     this.choices = choices;
   }
@@ -107,6 +109,7 @@ public final class DropdownProperty extends Property {
           tooltip,
           choices,
           exampleValue,
+          editable,
           secret);
     }
   }
