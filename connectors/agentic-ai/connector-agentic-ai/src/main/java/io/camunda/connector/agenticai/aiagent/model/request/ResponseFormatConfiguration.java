@@ -29,6 +29,10 @@ import java.util.Map;
     label = "Response format",
     name = "type",
     description = "Specify the response format. Support for JSON mode varies by provider.",
+    tooltip =
+        "For providers without native schema-less JSON support (e.g. Anthropic, Bedrock "
+            + "Converse), a JSON instruction is added to the system prompt as a best-effort "
+            + "attempt when no schema is supplied.",
     defaultValue = "text")
 public sealed interface ResponseFormatConfiguration {
   @TemplateSubType(id = "text", label = "Text")

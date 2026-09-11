@@ -348,7 +348,9 @@ public class AnthropicMessageRequestConverter {
     final AnthropicEffort rawEffort = params == null ? null : params.effort();
     final AnthropicEffort effort = rawEffort == AnthropicEffort.MODEL_DEFAULT ? null : rawEffort;
     final Map<String, Object> jsonSchema =
-        response != null && response.format() instanceof JsonResponseFormatConfiguration json
+        response != null
+                && response.format() instanceof JsonResponseFormatConfiguration json
+                && json.hasSchema()
             ? json.schema()
             : null;
 
