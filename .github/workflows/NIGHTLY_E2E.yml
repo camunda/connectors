@@ -8,6 +8,7 @@ on:
     types: [ labeled, synchronize ]
 
 permissions:
+  actions: read
   contents: read
   checks: write
 
