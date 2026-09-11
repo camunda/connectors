@@ -113,7 +113,7 @@ public class OpenAiChatModel implements ChatModel {
     try {
       client.close();
     } catch (Exception e) {
-      LOG.warn("Failed to close OpenAIClient", e);
+      LOG.error("Failed to close OpenAIClient", e);
     }
   }
 }
