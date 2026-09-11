@@ -122,7 +122,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "anthropic",
+    "value" : "openai",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
@@ -136,14 +136,14 @@
       "name" : "AWS Bedrock Converse",
       "value" : "bedrock"
     }, {
-      "name" : "OpenAI",
-      "value" : "openai"
+      "name" : "Custom Implementation (Self-Managed/Hybrid only)",
+      "value" : "custom"
     }, {
       "name" : "Google Gemini",
       "value" : "google-gemini"
     }, {
-      "name" : "Custom Implementation (Self-Managed/Hybrid only)",
-      "value" : "custom"
+      "name" : "OpenAI",
+      "value" : "openai"
     } ]
   }, {
     "id" : "provider.anthropic.backend.type",
@@ -575,7 +575,7 @@
     "id" : "provider.openai.backend.type",
     "label" : "Backend",
     "description" : "Specify how the OpenAI API is reached.",
-    "value" : "openai-api",
+    "value" : "custom",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.type",
