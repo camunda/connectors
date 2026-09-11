@@ -1759,10 +1759,10 @@ list — never a separate create-history command:
 Once a batch is attached to an `update()` command, the engine only allows `status` at the request
 level — `model`/`provider`/`systemPrompt`/`limits`/`tools` can only change through a `CONFIGURATION`
 history item. Of those, `systemPrompt`, `tools`, `limits`, and `provider` are re-pushed on every
-`CONFIGURATION` item; `model` stays fixed at `create` time (see the ADR's Deferred section). The
-reported `provider` is a more specific identifier than the plain `provider()` constant — it also
-covers backend and, for OpenAI, API family (e.g. `openai/completions/custom`,
-`anthropic/aws-bedrock-mantle`) — so a configuration change limited to that no longer goes unnoticed.
+`CONFIGURATION` item; `model` stays fixed at `create` time. The reported `provider` is a more
+specific identifier than the plain `provider()` constant — it also covers backend and, for OpenAI,
+API family (e.g. `openai/completions/custom`, `anthropic/aws-bedrock-mantle`) — so a configuration
+change limited to that no longer goes unnoticed.
 
 There is no more deferred, completion-listener-driven agent instance update: `applyTurnStart` and
 `applyTurnCompletion` both fire synchronously inline, so a job that never completes (crash, timeout)
