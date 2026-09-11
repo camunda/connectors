@@ -189,8 +189,8 @@ limitations under the License.</license.inlineheader>
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
-    <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
+    <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
+    <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
     <version.box-sdk>5.16.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
