@@ -29,31 +29,43 @@ import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.util.StreamUtils.copyToByteArray;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,9 +73,14 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @SpringBootTest(
@@ -76,7 +93,11 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc
 public class HttpTests {
+
+  private static final String TEXT_FILE = "text.txt";
+  private static final String PNG_FILE = "camunda1.png";
 
   @RegisterExtension
   static WireMockExtension wm =
@@ -87,11 +108,19 @@ public class HttpTests {
 
   @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
+  @Autowired MockMvc mockMvc;
+
+  @Autowired DocumentFactory documentFactory;
+
   @Autowired ProcessStateStore stateStore;
+
+  @Autowired WebhookConnectorRegistry webhookConnectorRegistry;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
+
+  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @BeforeEach
   void beforeAll() {
@@ -414,6 +443,104 @@ public class HttpTests {
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("webhookExecuted", true);
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("queryParam", "test");
+  }
+
+  @Test
+  void shouldCreateDocumentsAndReturnResponse_whenMultipartRequest() throws Exception {
+    var mockUrl = "http://localhost:" + serverPort + "/inbound/testId";
+    var model =
+        replace(
+            "webhook_document.bpmn",
+            BpmnFile.Replace.replace(
+                "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;THEVALUE&#34;"));
+
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
+    when(processDef.getTenantId())
+        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getProcessDefinitionId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+
+    stateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollDelay(Duration.ZERO)
+        .pollInterval(Duration.ofMillis(100))
+        .until(() -> webhookConnectorRegistry.getActiveWebhook("testId").isPresent());
+
+    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(Duration.ofSeconds(10))
+        .pollDelay(Duration.ZERO)
+        .untilAsserted(
+            () ->
+                assertThat(bpmnTest.getProcessInstanceEvent()).hasActiveElements("Event_13sti90"));
+
+    ClassPathResource textFile = new ClassPathResource("files/text.txt");
+    ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");
+    byte[] textFileContent = copyToByteArray(textFile.getInputStream());
+    byte[] imageFileContent = copyToByteArray(imageFile.getInputStream());
+    var response =
+        mockMvc
+            .perform(
+                multipart(mockUrl)
+                    .part(new MockPart("param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
+                    .part(new MockPart("param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
+                    .header("THEHEADER", "THEVALUE"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    bpmnTest.waitForProcessCompletion();
+    String jsonResponse = response.getResponse().getContentAsString();
+    Map<String, Object> actualResponse = mapper.readValue(jsonResponse, Map.class);
+    List<Map> documents = (List<Map>) actualResponse.get("documents");
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .isCompleted()
+        .hasVariable("body", Map.of())
+        .hasVariable("documents", documents);
+    Assertions.assertThat(documents).hasSize(2);
+
+    Map<String, Object> pngDocument = documents.get(0);
+    Assertions.assertThat(pngDocument).containsKeys("storeId", "documentId");
+    Map<String, Object> pngMetadata = (Map<String, Object>) pngDocument.get("metadata");
+    Assertions.assertThat(pngMetadata.get("fileName")).isEqualTo(PNG_FILE);
+    Assertions.assertThat(pngMetadata.get("contentType")).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+
+    Map<String, Object> textDocument = documents.get(1);
+    Assertions.assertThat(textDocument).containsKeys("storeId", "documentId");
+    Map<String, Object> textMetadata = (Map<String, Object>) textDocument.get("metadata");
+    Assertions.assertThat(textMetadata.get("fileName")).isEqualTo(TEXT_FILE);
+    Assertions.assertThat(textMetadata.get("contentType")).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
+
+    var pngStoredDocument =
+        documentFactory.resolve(
+            new CamundaDocumentReferenceImpl(
+                pngDocument.get("storeId").toString(),
+                pngDocument.get("documentId").toString(),
+                pngDocument.get("contentHash").toString(),
+                null));
+    Assertions.assertThat(pngStoredDocument.asByteArray()).isEqualTo(imageFileContent);
+
+    var textStoredDocument =
+        documentFactory.resolve(
+            new CamundaDocumentReferenceImpl(
+                textDocument.get("storeId").toString(),
+                textDocument.get("documentId").toString(),
+                textDocument.get("contentHash").toString(),
+                null));
+    Assertions.assertThat(new String(textStoredDocument.asByteArray(), StandardCharsets.UTF_8))
+        .isEqualTo("Hello from\n" + "the Camunda Connectors!");
   }
 
   @Test
