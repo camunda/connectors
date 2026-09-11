@@ -3407,7 +3407,7 @@
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",
-    "description" : "Specify the response format. Support for JSON mode varies by provider.",
+    "description" : "Specify the response format. Support for JSON mode varies by provider. On providers without native schema-less JSON support (Anthropic, Bedrock Converse), a JSON instruction is added automatically to the system prompt when no schema is supplied.",
     "value" : "text",
     "group" : "response",
     "binding" : {
