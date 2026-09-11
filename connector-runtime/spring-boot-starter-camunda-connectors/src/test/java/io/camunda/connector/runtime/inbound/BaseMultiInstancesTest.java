@@ -39,8 +39,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -52,6 +54,7 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import tools.jackson.databind.json.JsonMapper;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseMultiInstancesTest {
   final InboundExecutableRegistry executableRegistry1 =
       Mockito.mock(InboundExecutableRegistry.class);
@@ -135,21 +138,23 @@ abstract class BaseMultiInstancesTest {
   ConfigurableApplicationContext context1;
   ConfigurableApplicationContext context2;
 
-  @AfterEach
+  @AfterAll
   void tearDown() {
     if (context1 != null) context1.close();
     if (context2 != null) context2.close();
   }
 
-  @BeforeEach
-  public void init() {
+  @BeforeAll
+  void startApplications() {
     context1 =
         new SpringApplicationBuilder(TestConnectorRuntimeApplication.class)
             .properties(
                 "server.port=" + port1,
                 "spring.application.name=instance1",
                 "camunda.connector.hostname=instance1",
-                "camunda.connector.headless.serviceurl=http://whatever:8080")
+                "camunda.connector.headless.serviceurl=http://whatever:8080",
+                "camunda.connector.polling.enabled=false",
+                "camunda.connector.webhook.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)
@@ -172,7 +177,9 @@ abstract class BaseMultiInstancesTest {
                 "server.port=" + port2,
                 "spring.application.name=instance2",
                 "camunda.connector.hostname=instance2",
-                "camunda.connector.headless.serviceurl=http://whatever:8080")
+                "camunda.connector.headless.serviceurl=http://whatever:8080",
+                "camunda.connector.polling.enabled=false",
+                "camunda.connector.webhook.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)
@@ -188,7 +195,11 @@ abstract class BaseMultiInstancesTest {
                                   instanceForwardingHttpClient, "instance2"));
                 })
             .run();
+  }
 
+  @BeforeEach
+  public void init() {
+    Mockito.reset(executableRegistry1, executableRegistry2);
     when(executableRegistry1.getConnectorName(TYPE_1)).thenReturn("Webhook");
     when(executableRegistry1.getConnectorName(TYPE_2)).thenReturn("AnotherType");
     when(executableRegistry2.getConnectorName(TYPE_1)).thenReturn("Webhook");

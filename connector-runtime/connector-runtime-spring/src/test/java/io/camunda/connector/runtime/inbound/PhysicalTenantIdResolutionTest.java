@@ -154,7 +154,7 @@ class PhysicalTenantIdResolutionTest {
 
   @Test
   void buildDocumentFactoriesByPhysicalTenantId_usesManuallySuppliedOverrideForASingleClient() {
-    // simulates the @Primary DocumentFactory test-spy pattern used by WebhookActivatedDocumentTests
+    // Simulates an application supplying its own primary DocumentFactory.
     var registry = mock(CamundaClientRegistry.class);
     var client = clientWithPhysicalTenantId("tenant");
     when(registry.clientNames()).thenReturn(Set.of("default"));
