@@ -166,12 +166,12 @@ jobs:
     if: github.ref != 'refs/heads/main' && !contains(github.event.pull_request.labels.*.name, 'skip-helm-deploy')
     needs: prepare-inputs
     name: Helm chart Integration Tests
-    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@177bee5d9f794950b7b6f47f731f6b9a64432d3f
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
       identifier: connectors-int-${{ github.run_id }}
       camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
-      camunda-helm-git-ref: 56633ff6aa8c6896d780292701dde07391d99f84
+      camunda-helm-git-ref: main
       # test-enabled enables testing generally, both IT and E2E tests.
       test-enabled: true
       # e2e-enabled is our way to disable E2E tests if needed.
