@@ -119,11 +119,11 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.35.0</version.amqp-client>
     <version.netty>4.2.18.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.1.1</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.2.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.16</version.aws-sdk2>
+    <version.aws-sdk2>2.54.17</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -158,7 +158,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.70.0</version.google-genai>
+    <version.google-genai>1.71.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -176,7 +176,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.3.1</version.kafka-clients>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
-    <version.lz4-java>1.11.2</version.lz4-java>
+    <version.lz4-java>1.11.3</version.lz4-java>
 
     <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
@@ -230,7 +230,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
