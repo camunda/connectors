@@ -133,7 +133,7 @@ limitations under the License.</license.inlineheader>
          59901; 4.1.137.Final additionally fixes CVE-2026-62243/75595). -->
     <version.netty>4.2.18.Final</version.netty>
     <version.amqp-client>5.35.0</version.amqp-client>
-    <version.lz4-java>1.11.2</version.lz4-java>
+    <version.lz4-java>1.11.3</version.lz4-java>
 
     <version.microsoft-graph>6.69.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
