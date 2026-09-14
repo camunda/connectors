@@ -51,7 +51,11 @@ import org.springframework.context.annotation.Import;
  * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
  * value can reach the response (see the message-safety policy on {@code
  * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
- * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
+ * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}, and the
+ * self-managed bundle covers it with its own opt-in, fail-closed {@code SecurityFilterChain} (see
+ * {@code apps/connector-runtime-application}'s {@code SelfManagedApiSecurityConfiguration}). A
+ * custom Spring Boot application built directly on this starter, bypassing both bundles, does not
+ * get either and must add its own equivalent protection.
  */
 @Configuration
 @Import(ConfigurationValidationRestController.class)
