@@ -49,25 +49,12 @@ import org.springframework.context.annotation.Import;
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
  *
- * <p><b>Opt-in, and why.</b> {@code POST /configurations/validate} resolves stored secrets to run a
- * validator, and the validator then presents the resolved credential to the endpoint the resolved
- * configuration names. No resolved value can reach the response (see the message-safety policy on
- * {@code ConfigurationValidationService}), but the credential does leave the runtime on that
- * outbound request, so the route is only as trustworthy as the callers that can reach it. The
- * runtime ships no authentication of its own, so the route is gated on {@code
- * camunda.connector.configuration-validation.enabled} and is <b>absent unless that is set</b>: a
- * deployment that does not use credential validation does not serve it at all.
- *
- * <p><b>Enabling it is a decision about authentication, not only a feature toggle.</b> The SaaS
- * bundle enables it and covers it with the Console JWT {@code SecurityFilterChain}. A self-managed
- * runtime has no {@code SecurityFilterChain} on the classpath at all — Spring Security is a
- * dependency of the SaaS bundle alone — so once enabled there, the route answers anonymously on the
- * runtime's HTTP port, which also serves the deliberately public {@code /inbound/**} webhook paths.
- * Restricting it to trusted callers therefore cannot be done by fencing the port, and needs an
- * HTTP-aware rule in front of the runtime that matches the path — an ingress or reverse proxy
- * authenticating {@code /configurations/**} — put in place before it is turned on. A Kubernetes
- * {@code NetworkPolicy} cannot express this: it filters by address and port, so any source allowed
- * to reach the webhook paths reaches this one too.
+ * <p>{@code POST /configurations/validate} presents a resolved credential to the endpoint the
+ * configuration names, and the runtime ships no authentication, so it is absent unless {@code
+ * camunda.connector.configuration-validation.enabled} is set. The SaaS bundle sets it and covers
+ * the path with the Console JWT chain; enabling it elsewhere needs an HTTP-aware rule in front of
+ * the runtime, since the port also serves the public {@code /inbound/**} webhooks. See the starter
+ * README.
  */
 @Configuration
 @ConditionalOnProperty(

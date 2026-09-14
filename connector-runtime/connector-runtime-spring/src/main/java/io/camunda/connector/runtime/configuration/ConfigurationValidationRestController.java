@@ -39,13 +39,9 @@ import org.springframework.web.bind.annotation.RestController;
  * may be omitted against a single-engine runtime; in a multi-engine runtime it is required, since
  * the reference has to be evaluated against the engine that actually holds it.
  *
- * <p>The opt-in condition is repeated here and not left to {@code
- * ConfigurationValidationConfiguration}, which imports this controller and carries the same one:
- * the SaaS application component-scans all of {@code io.camunda.connector} ({@code
- * SaaSConnectorRuntimeApplication}), so the scan discovers this {@code @RestController} on its own,
- * independently of that import. Without the condition here, disabling the property there would
- * leave the controller scanned while removing the {@code ConfigurationValidationService} it
- * requires, and the application would fail to start rather than simply not serve the route.
+ * <p>The condition is repeated here, not left to the importing configuration: the SaaS application
+ * component-scans all of {@code io.camunda.connector}, so the scan finds this controller on its
+ * own.
  */
 @RestController
 @ConditionalOnProperty(
