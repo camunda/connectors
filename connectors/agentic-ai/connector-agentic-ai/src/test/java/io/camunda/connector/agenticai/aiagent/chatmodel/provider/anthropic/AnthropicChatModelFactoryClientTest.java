@@ -224,9 +224,7 @@ class AnthropicChatModelFactoryClientTest {
     executeAgainst(
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
-                // FoundryBackend.baseUrl() appends "/anthropic" when the endpoint doesn't already
-                // end with it, then the SDK appends "/v1/messages" -- same suffix urlPathMatching
-                // in setUp() already matches for every other backend.
+                // FoundryBackend appends "/anthropic/v1/messages", matched by setUp()'s pattern.
                 wireMock.getHttpBaseUrl(),
                 new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
                 null,
@@ -307,9 +305,7 @@ class AnthropicChatModelFactoryClientTest {
       final var realHttpProxySupport =
           new AgenticAiHttpProxySupport(fakeProxy.toProxyConfiguration());
 
-      // the target host is a non-routable address (RFC 5737 TEST-NET-1): reaching it directly
-      // would hang/fail, so a successful response here proves the request actually went through
-      // the configured proxy rather than straight to the (unreachable) target.
+      // 192.0.2.1 is non-routable (RFC 5737): a response proves the proxy was actually used.
       executeAgainst(
           realHttpProxySupport,
           new AnthropicFoundryBackend(

@@ -257,9 +257,7 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // Foundry uses Anthropic's own Messages API (the same wire format as anthropic-api), hosted on
-  // an Azure resource: the SDK's FoundryBackend signs requests with an API key or Entra ID bearer
-  // token and normalizes the base URL, but performs no body/path/response translation.
+  // Same wire format as anthropic-api, just signed and routed through an Azure Foundry resource.
   static ProviderConfig anthropicFoundryV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -282,13 +280,8 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // Same backend as anthropicFoundryV2, but authenticating with a Microsoft Entra ID app
-  // registration instead of an API key. This is the only row that exercises the Entra ID token
-  // scope the connector derives (https://ai.azure.com/.default for the public cloud): a wrong
-  // audience fails every request with 401, and no mocked test can catch that. Capabilities are
-  // deliberately empty - the always-on tool-call and follow-up scenarios already drive real
-  // request/response round trips, and re-running the capability matrix here would only re-test
-  // what the API-key row above covers.
+  // Same backend as anthropicFoundryV2, authenticated via Entra ID client credentials instead.
+  // No capability matrix: the always-on scenarios already exercise the same request/response path.
   static ProviderConfig anthropicFoundryClientCredentialsV2(String model) {
     return new ProviderConfig(
         "anthropic-foundry-client-credentials-v2/" + model,
