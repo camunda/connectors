@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.configuration;
 
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRequest;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,8 +38,19 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>{@code physicalTenantId} identifies the orchestration cluster holding the configuration. It
  * may be omitted against a single-engine runtime; in a multi-engine runtime it is required, since
  * the reference has to be evaluated against the engine that actually holds it.
+ *
+ * <p>The opt-in condition is repeated here and not left to {@code
+ * ConfigurationValidationConfiguration}, which imports this controller and carries the same one:
+ * the SaaS application component-scans all of {@code io.camunda.connector} ({@code
+ * SaaSConnectorRuntimeApplication}), so the scan discovers this {@code @RestController} on its own,
+ * independently of that import. Without the condition here, disabling the property there would
+ * leave the controller scanned while removing the {@code ConfigurationValidationService} it
+ * requires, and the application would fail to start rather than simply not serve the route.
  */
 @RestController
+@ConditionalOnProperty(
+    name = "camunda.connector.configuration-validation.enabled",
+    havingValue = "true")
 @RequestMapping("/configurations")
 public class ConfigurationValidationRestController {
 

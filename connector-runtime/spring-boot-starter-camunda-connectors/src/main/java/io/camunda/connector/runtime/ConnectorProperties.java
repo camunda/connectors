@@ -29,8 +29,7 @@ public record ConnectorProperties(
     VirtualThreads virtualThreads,
     Inbound inbound,
     OAuth oauth,
-    Validation validation,
-    ConfigurationValidation configurationValidation) {
+    Validation validation) {
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
@@ -114,15 +113,4 @@ public record ConnectorProperties(
         boolean unsafeAllowPrivateRanges,
         boolean unsafeAllowLoopback) {}
   }
-
-  /**
-   * Configuration for credential validation ({@code POST /configurations/validate}).
-   *
-   * @param enabled Whether the route is served. Off unless set: the route resolves stored secrets
-   *     and the validator presents them to the endpoint the resolved configuration names, while the
-   *     runtime ships no authentication of its own. See {@code
-   *     io.camunda.connector.runtime.configuration.ConfigurationValidationConfiguration} before
-   *     enabling it.
-   */
-  public record ConfigurationValidation(boolean enabled) {}
 }
