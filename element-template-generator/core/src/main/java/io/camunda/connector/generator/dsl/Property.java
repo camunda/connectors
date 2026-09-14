@@ -47,6 +47,7 @@ public abstract sealed class Property
   protected final Object exampleValue;
   protected final String language;
   protected final String type;
+  protected final Boolean editable;
   protected final Boolean secret;
 
   public record GeneratedValue(String type) {}
@@ -68,6 +69,7 @@ public abstract sealed class Property
       Object exampleValue,
       String language,
       String type,
+      Boolean editable,
       Boolean secret) {
     this.id = id;
     this.label = label;
@@ -84,6 +86,7 @@ public abstract sealed class Property
     this.placeholder = placeholder;
     this.language = language;
     this.type = type;
+    this.editable = editable;
     this.exampleValue = exampleValue;
     this.secret = secret;
   }
@@ -133,6 +136,10 @@ public abstract sealed class Property
 
   public String getType() {
     return type;
+  }
+
+  public Boolean getEditable() {
+    return editable;
   }
 
   public PropertyCondition getCondition() {
@@ -192,7 +199,8 @@ public abstract sealed class Property
         && Objects.equals(group, property.group)
         && Objects.equals(binding, property.binding)
         && Objects.equals(language, property.language)
-        && Objects.equals(type, property.type);
+        && Objects.equals(type, property.type)
+        && Objects.equals(editable, property.editable);
   }
 
   @Override
@@ -210,6 +218,7 @@ public abstract sealed class Property
         binding,
         language,
         type,
+        editable,
         tooltip);
   }
 
@@ -245,6 +254,8 @@ public abstract sealed class Property
         + ", type='"
         + type
         + '\''
+        + ", editable="
+        + editable
         + ", condition='"
         + condition
         + '\''
