@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
 import com.openai.client.OpenAIClient;
 import com.openai.core.http.Headers;
 import com.openai.errors.BadRequestException;
@@ -212,11 +214,18 @@ class OpenAiChatModelTest {
   }
 
   @Test
-  void closeLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+  void closeLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
-    api.close();
+    var events = logsOf(OpenAiChatModel.class, api::close);
 
     verify(client).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage()).isEqualTo("Failed to close OpenAIClient");
+            });
   }
 }

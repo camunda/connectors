@@ -153,7 +153,7 @@ public class AnthropicChatModel implements ChatModel {
     try {
       client.close();
     } catch (Exception e) {
-      LOG.warn("Failed to close AnthropicClient", e);
+      LOG.error("Failed to close AnthropicClient", e);
     }
   }
 }
