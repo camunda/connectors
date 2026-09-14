@@ -1,29 +1,24 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Microsoft O365 Email Boundary Event Connector",
-  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailBoundary.v1-hybrid",
+  "name" : "Microsoft O365 Email Intermediate Catch Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailIntermediate.v1",
   "description" : "Poll M365 Outlook emails",
-  "metadata" : {
-    "keywords" : [ "email", "Office365", "Outlook" ]
-  },
+  "keywords" : [ "email", "Office365", "Outlook", "email received", "receive email", "new email", "incoming email", "email notification", "inbox", "poll email" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
   "elementType" : {
-    "value" : "bpmn:BoundaryEvent",
+    "value" : "bpmn:IntermediateCatchEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.9"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -40,22 +35,16 @@
     "label" : "Correlation",
     "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
   }, {
-    "id" : "deduplication",
-    "label" : "Deduplication",
-    "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
-  }, {
     "id" : "output",
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:connector-o365-email-inbound:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Type",
@@ -98,7 +87,6 @@
   }, {
     "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -118,7 +106,6 @@
   }, {
     "id" : "authentication.credentials.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -138,7 +125,6 @@
   }, {
     "id" : "authentication.credentials.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -154,6 +140,7 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
     "type" : "String"
   }, {
     "id" : "authentication.refresh.token",
@@ -177,7 +164,6 @@
   }, {
     "id" : "authentication.refresh.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -197,7 +183,6 @@
   }, {
     "id" : "authentication.refresh.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -217,7 +202,6 @@
   }, {
     "id" : "authentication.refresh.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application; optional, depends on whether the client is public or private",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -230,6 +214,7 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
     "type" : "String"
   }, {
     "id" : "pollingConfig.userId",
@@ -244,12 +229,13 @@
       "name" : "pollingConfig.userId",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>",
+    "tooltip" : "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#mailbox-configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>",
+    "placeholder" : "user@example.com",
     "type" : "String"
   }, {
     "id" : "pollingConfig.folder.folderSpecification",
     "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "value" : "byId",
     "group" : "pollingConfig",
     "binding" : {
@@ -316,7 +302,7 @@
       "name" : "pollingConfig.pollingInterval",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
     "id" : "pollingConfig.filterCriteria.filterSpecification",
@@ -447,7 +433,7 @@
   }, {
     "id" : "operation.targetFolder.folderSpecification",
     "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "value" : "byId",
     "group" : "postprocessing",
     "binding" : {
@@ -533,17 +519,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "consumeUnmatchedEvents",
-    "label" : "Consume unmatched events",
-    "value" : true,
-    "group" : "activation",
-    "binding" : {
-      "name" : "consumeUnmatchedEvents",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
-    "type" : "Boolean"
-  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -604,79 +579,22 @@
     "type" : "String"
   }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "deduplicationModeManualFlag",
-    "label" : "Manual mode",
-    "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
-    "value" : false,
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationModeManualFlag",
-      "type" : "zeebe:property"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "deduplicationId",
-    "label" : "Deduplication ID",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^[a-zA-Z0-9_-]+$",
-        "message" : "can only contain alphanumeric characters, dashes, and underscores"
-      }
-    },
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationId",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationModeManualFlag",
-      "equals" : true,
-      "type" : "simple"
-    },
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
     "type" : "String"
-  }, {
-    "id" : "deduplicationModeManual",
-    "value" : "MANUAL",
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : true,
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "deduplicationModeAuto",
-    "value" : "AUTO",
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : false,
-      "type" : "simple"
-    },
-    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "name" : "resultVariable",
@@ -686,7 +604,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
