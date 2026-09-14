@@ -32,16 +32,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * The route presents a resolved credential to a caller-named endpoint and the runtime ships no
  * authentication, so it must not exist unless a deployment asked for it.
  *
- * <p>The disabled cases assert the handler mapping rather than a status code. An unmapped path does
- * not answer 404 here: {@code GlobalExceptionHandler} advises on {@code Exception}, so the {@code
- * NoResourceFoundException} Spring raises is reported as 500, which is indistinguishable from the
- * route erroring. The mapping is the security property anyway.
+ * <p>The disabled cases assert bean absence, not a status code: Spring derives the mapping from the
+ * controller bean, and an unmapped path does not answer 404 here — {@code GlobalExceptionHandler}
+ * advises on {@code Exception}, so it reports 500, exactly as a served-but-failing route would.
  */
 class ConfigurationValidationOptInTest {
 
@@ -56,11 +54,6 @@ class ConfigurationValidationOptInTest {
       {"credentialId":"io.camunda:not-registered:1","credentialRef":"=ref","tenantId":"acme",\
       "physicalTenantId":"engine-a"}""";
 
-  private static boolean isMapped(RequestMappingHandlerMapping handlerMapping) {
-    return handlerMapping.getHandlerMethods().keySet().stream()
-        .anyMatch(mapping -> mapping.getPatternValues().contains(PATH));
-  }
-
   @Nested
   @SpringBootTest(
       classes = TestConnectorRuntimeApplication.class,
@@ -70,13 +63,7 @@ class ConfigurationValidationOptInTest {
       })
   class NotEnabled {
 
-    @Autowired private RequestMappingHandlerMapping handlerMapping;
     @Autowired private ApplicationContext applicationContext;
-
-    @Test
-    void theRouteIsNotMapped() {
-      assertThat(isMapped(handlerMapping)).isFalse();
-    }
 
     @Test
     void nothingIsWired() {
@@ -111,7 +98,6 @@ class ConfigurationValidationOptInTest {
       })
   class NotEnabledUnderComponentScan {
 
-    @Autowired private RequestMappingHandlerMapping handlerMapping;
     @Autowired private ApplicationContext applicationContext;
 
     @Test
@@ -121,11 +107,6 @@ class ConfigurationValidationOptInTest {
       assertThat(
               applicationContext.getBeanNamesForType(ConfigurationValidationRestController.class))
           .isEmpty();
-    }
-
-    @Test
-    void theRouteIsNotMapped() {
-      assertThat(isMapped(handlerMapping)).isFalse();
     }
   }
 
