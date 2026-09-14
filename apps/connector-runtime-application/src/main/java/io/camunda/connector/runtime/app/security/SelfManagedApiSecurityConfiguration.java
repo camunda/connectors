@@ -53,6 +53,12 @@ import org.springframework.util.StringUtils;
  * degradation the Hub adapter already applies to a {@code BASIC}-auth cluster or a too-old runtime
  * (see {@code SelfManagedConnectorCredentialValidationAdapter#validate}).
  *
+ * <p>CSRF is exempted for this route only, exactly as {@code camunda-saas-bundle} already exempts
+ * it (and {@code /inbound-instances/**}, {@code /outbound/**}) in {@code
+ * ConnectorInstancesSecurityConfiguration}: the caller is a server-side machine client presenting a
+ * bearer token, with no cookie or session for a browser to replay, so a CSRF token would have
+ * nothing to protect and would simply reject every legitimate Hub call.
+ *
  * <p>Does not touch {@code /actuator/**}: that is addressed by giving self-managed its own {@code
  * management.server.port} (see {@code application.properties}), the same network-isolation approach
  * the SaaS bundle already uses, rather than authentication.
@@ -90,7 +96,7 @@ public class SelfManagedApiSecurityConfiguration {
   @ConditionalOnProperty(prefix = "camunda.connector.auth.self-managed", name = "issuer")
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
-    http.csrf(csrf -> csrf.disable())
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
         .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(selfManagedJwtDecoder())));
@@ -110,7 +116,7 @@ public class SelfManagedApiSecurityConfiguration {
   @ConditionalOnMissingBean(name = "selfManagedConfigurationValidationFilterChain")
   public SecurityFilterChain selfManagedConfigurationValidationDenyAllFilterChain(HttpSecurity http)
       throws Exception {
-    http.csrf(csrf -> csrf.disable())
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
         .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES))
         .authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
         .exceptionHandling(

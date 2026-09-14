@@ -35,7 +35,10 @@ class AudienceValidator implements OAuth2TokenValidator<Jwt> {
 
   @Override
   public OAuth2TokenValidatorResult validate(Jwt jwt) {
-    if (jwt.getAudience().contains(audience)) {
+    // aud is optional in a JWT, and Jwt#getAudience is null when the claim is absent rather than
+    // an empty list — a token minted without it must be rejected, not blow up mid-filter.
+    var tokenAudience = jwt.getAudience();
+    if (tokenAudience != null && tokenAudience.contains(audience)) {
       return OAuth2TokenValidatorResult.success();
     }
     return OAuth2TokenValidatorResult.failure(
