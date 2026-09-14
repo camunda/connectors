@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -133,10 +134,11 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void reasoningContentMapsToAnObjectHistoryBlockOfTheReasoningContentItself() {
+  void reasoningContentMapsToTheOperateThinkingObject() {
+    final Map<String, Object> payload = Map.of("signature", "abc123");
+    final Map<String, Object> metadata = Map.of("foo", "bar");
     final var reasoningContent =
-        new ReasoningContent(
-            "anthropic", Map.of("signature", "abc123"), null, Map.of("foo", "bar"));
+        new ReasoningContent("anthropic", payload, "some reasoning", metadata);
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
@@ -146,7 +148,62 @@ class AgentInstanceHistoryMapperTest {
         .singleElement()
         .isInstanceOfSatisfying(
             AgentInstanceHistoryContent.ObjectContent.class,
-            object -> assertThat(object.getObject()).isEqualTo(reasoningContent));
+            object ->
+                assertThat(object.getObject())
+                    .isEqualTo(
+                        Map.of(
+                            "@type",
+                            "camunda.aiagent.model.thinking",
+                            "provider",
+                            "anthropic",
+                            "text",
+                            "some reasoning",
+                            "payload",
+                            payload,
+                            "metadata",
+                            metadata)));
+  }
+
+  @Test
+  void reasoningContentOmitsNullTextFromTheOperateThinkingObject() {
+    final var reasoningContent =
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, Map.of());
+    final var assistantMessage =
+        AssistantMessage.builder().content(List.of(reasoningContent)).build();
+
+    final var content = mapper.assistantContent(assistantMessage);
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .isEqualTo(
+                        Map.of(
+                            "@type",
+                            "camunda.aiagent.model.thinking",
+                            "provider",
+                            "anthropic",
+                            "payload",
+                            Map.of("signature", "abc123"))));
+  }
+
+  @Test
+  void objectContentMapsToItsObjectValue() {
+    final var objectValue = Map.of("key", "value");
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(new ObjectContent(objectValue, Map.of("ignored", true))))
+            .build();
+
+    final var content = mapper.assistantContent(assistantMessage);
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(objectValue));
   }
 
   @Test
