@@ -26,30 +26,24 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * {@code POST /configurations/validate} resolves stored secrets and presents the resolved
- * credential to the endpoint the configuration names, while the runtime itself ships no
- * authentication, so the route must not exist unless a deployment asked for it.
- *
- * <p>The route, not the bean, is what carries the exposure, so that is what is asserted: gating the
- * {@code @Configuration} could stop publishing {@link ConfigurationValidationService} while
- * something else still mapped the handler. The bean assertions are there to guard the premise —
- * without them, a context that failed to wire validation for some unrelated reason would produce
- * the same 404, and the disabled case would pass while proving nothing.
+ * The route presents a resolved credential to a caller-named endpoint and the runtime ships no
+ * authentication, so it must not exist unless a deployment asked for it. Asserted on the route,
+ * with bean assertions guarding the premise: a context that failed to wire validation for an
+ * unrelated reason would 404 too, and the disabled case would then prove nothing.
  */
 class ConfigurationValidationOptInTest {
 
   /**
-   * Names a {@code credentialId} that is deliberately not registered, so {@code
-   * ConfigurationValidationService.validate} short-circuits to {@code UNSUPPORTED} before it
-   * evaluates anything. That keeps these tests off the FEEL/cluster path entirely — no request
-   * reaches the {@code CamundaClient}, which points at no broker here — while still exercising the
-   * real handler mapping.
+   * An unregistered {@code credentialId}, so validation short-circuits to {@code UNSUPPORTED}
+   * before evaluating and nothing reaches the {@code CamundaClient}, which has no broker here.
    */
   private static final String BODY =
       """
@@ -86,6 +80,53 @@ class ConfigurationValidationOptInTest {
       assertThat(
               applicationContext.getBeanNamesForType(ConfigurationValidationRestController.class))
           .isEmpty();
+    }
+  }
+
+  /**
+   * Puts the controller's own package in a component scan, as {@code
+   * SaaSConnectorRuntimeApplication} does for all of {@code io.camunda.connector}, so the
+   * controller is discoverable without the importing configuration.
+   */
+  @TestConfiguration
+  @ComponentScan(basePackages = "io.camunda.connector.runtime.configuration")
+  static class BroadComponentScan {}
+
+  /**
+   * The condition on the importing configuration cannot gate a controller the scan finds directly,
+   * so this is what protects the condition on the controller itself; {@link NotEnabled} passes
+   * either way.
+   */
+  @Nested
+  @SpringBootTest(
+      classes = {TestConnectorRuntimeApplication.class, BroadComponentScan.class},
+      properties = {
+        "camunda.connector.polling.enabled=false",
+        "camunda.connector.webhook.enabled=false"
+      })
+  @AutoConfigureMockMvc
+  class NotEnabledUnderComponentScan {
+
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ApplicationContext applicationContext;
+
+    @Test
+    void theScannedControllerIsNotRegistered() {
+      // Context startup is itself an assertion: a registered controller would have no
+      // ConfigurationValidationService to inject and would fail the context instead.
+      assertThat(
+              applicationContext.getBeanNamesForType(ConfigurationValidationRestController.class))
+          .isEmpty();
+    }
+
+    @Test
+    void theRouteIsNotServed() throws Exception {
+      mockMvc
+          .perform(
+              post("/configurations/validate")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(BODY))
+          .andExpect(status().isNotFound());
     }
   }
 
