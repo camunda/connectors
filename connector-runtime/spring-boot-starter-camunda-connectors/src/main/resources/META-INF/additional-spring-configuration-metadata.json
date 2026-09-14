@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "camunda.connector.configuration-validation.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether credential validation (POST /configurations/validate) is served. The route resolves stored secrets and the validator presents them to the endpoint the resolved configuration names, while the runtime ships no authentication of its own, so it must be restricted by an HTTP-aware rule in front of the runtime before being enabled.",
+      "defaultValue": false
+    }
+  ]
+}
