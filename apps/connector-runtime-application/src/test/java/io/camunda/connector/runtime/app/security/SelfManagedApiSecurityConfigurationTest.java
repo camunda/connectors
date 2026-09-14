@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
+import java.time.Duration;
+import java.time.Instant;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,17 +35,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
 
 class SelfManagedApiSecurityConfigurationTest {
 
   private static final String BODY =
       "{\"credentialId\":\"unknown\",\"credentialRef\":\"=x\",\"tenantId\":\"t\"}";
+
+  private static RequestBuilder validateRequest(String bearerToken) {
+    return post("/configurations/validate")
+        .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(BODY);
+  }
 
   /**
    * Default self-managed configuration: no {@code camunda.connector.auth.self-managed.issuer} is
@@ -72,13 +83,22 @@ class SelfManagedApiSecurityConfigurationTest {
 
     @Test
     void configurationsEndpoint_isDeniedEvenWithABearerToken() throws Exception {
+      mvc.perform(validateRequest("any-token-at-all")).andExpect(status().isNotFound());
+    }
+
+    /** Not even an already-authenticated caller gets through: the chain is deny-all, not a gate. */
+    @Test
+    void configurationsEndpoint_isDeniedEvenWhenAlreadyAuthenticated() throws Exception {
       mvc.perform(post("/configurations/validate").with(jwt())).andExpect(status().isNotFound());
     }
   }
 
   /**
    * An operator opts in by pointing {@code camunda.connector.auth.self-managed.issuer} at their own
-   * identity provider (the same one Hub's forwarded bearer token is issued from).
+   * identity provider (the same one Hub's forwarded bearer token is issued from). Every case here
+   * goes through the real {@code Authorization: Bearer} header so the configured {@code JwtDecoder}
+   * — signature, expiry and issuer — is what decides, rather than a pre-authenticated stand-in
+   * placed straight into the security context.
    */
   @Nested
   @SpringBootTest(
@@ -88,6 +108,86 @@ class SelfManagedApiSecurityConfigurationTest {
   @DirtiesContext
   @AutoConfigureMockMvc
   class WithIssuerConfigured {
+
+    private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+    /** A second issuer, used to sign tokens this runtime must not accept. */
+    private static final MockOidcServer FOREIGN_OIDC_SERVER = MockOidcServer.start();
+
+    @DynamicPropertySource
+    static void registerOidcProperties(DynamicPropertyRegistry registry) {
+      registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
+    }
+
+    @AfterAll
+    static void stopOidcServers() {
+      OIDC_SERVER.close();
+      FOREIGN_OIDC_SERVER.close();
+    }
+
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    public CamundaClient camundaClient;
+
+    @Autowired private MockMvc mvc;
+
+    @Test
+    void configurationsEndpoint_noAuth_isDenied() throws Exception {
+      mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void configurationsEndpoint_withTokenFromConfiguredIssuer_isNotDenied() throws Exception {
+      mvc.perform(validateRequest(OIDC_SERVER.token().sign())).andExpect(status().isOk());
+    }
+
+    @Test
+    void configurationsEndpoint_withMalformedToken_isDenied() throws Exception {
+      mvc.perform(validateRequest("not-a-jwt")).andExpect(status().isUnauthorized());
+    }
+
+    /** Signed by a different IdP's key: the JWKS of the configured issuer cannot verify it. */
+    @Test
+    void configurationsEndpoint_withTokenSignedByAnotherKey_isDenied() throws Exception {
+      var forgedToken = FOREIGN_OIDC_SERVER.token().issuer(OIDC_SERVER.issuer()).sign();
+
+      mvc.perform(validateRequest(forgedToken)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void configurationsEndpoint_withTokenFromAnotherIssuer_isDenied() throws Exception {
+      var otherIssuerToken = OIDC_SERVER.token().issuer("https://not-the-configured-issuer").sign();
+
+      mvc.perform(validateRequest(otherIssuerToken)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void configurationsEndpoint_withExpiredToken_isDenied() throws Exception {
+      var expiredToken =
+          OIDC_SERVER
+              .token()
+              .issuedAt(Instant.now().minus(Duration.ofHours(2)))
+              .expiresAt(Instant.now().minus(Duration.ofHours(1)))
+              .sign();
+
+      mvc.perform(validateRequest(expiredToken)).andExpect(status().isUnauthorized());
+    }
+  }
+
+  /**
+   * {@code camunda.connector.auth.self-managed.audience} narrows acceptance further: a token from
+   * the configured issuer is only good enough if it was also minted for this runtime.
+   */
+  @Nested
+  @SpringBootTest(
+      webEnvironment = WebEnvironment.RANDOM_PORT,
+      classes = ConnectorRuntimeApplication.class,
+      properties = {
+        "management.server.port=0",
+        "camunda.connector.auth.self-managed.audience=connectors"
+      })
+  @DirtiesContext
+  @AutoConfigureMockMvc
+  class WithAudienceConfigured {
 
     private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
 
@@ -107,18 +207,20 @@ class SelfManagedApiSecurityConfigurationTest {
     @Autowired private MockMvc mvc;
 
     @Test
-    void configurationsEndpoint_noAuth_isDenied() throws Exception {
-      mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
+    void configurationsEndpoint_withRequiredAudience_isNotDenied() throws Exception {
+      mvc.perform(validateRequest(OIDC_SERVER.token().audience("connectors").sign()))
+          .andExpect(status().isOk());
     }
 
     @Test
-    void configurationsEndpoint_withAuth_isNotDenied() throws Exception {
-      mvc.perform(
-              post("/configurations/validate")
-                  .with(jwt())
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(BODY))
-          .andExpect(status().isOk());
+    void configurationsEndpoint_withAnotherAudience_isDenied() throws Exception {
+      mvc.perform(validateRequest(OIDC_SERVER.token().audience("something-else").sign()))
+          .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void configurationsEndpoint_withoutAudience_isDenied() throws Exception {
+      mvc.perform(validateRequest(OIDC_SERVER.token().sign())).andExpect(status().isUnauthorized());
     }
   }
 

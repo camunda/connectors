@@ -27,7 +27,7 @@ RUN addgroup --gid 1001 camunda && adduser -S -G camunda -u 1001 --no-create-hom
 USER 1001:1001
 
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
-ENV HEALTHCHECK_URL=http://localhost:8080/actuator/health/readiness
+ENV HEALTHCHECK_URL=http://localhost:9080/actuator/health/readiness
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
   CMD ["java", "-cp", "/opt/app/*", "-Dloader.main=io.camunda.connector.runtime.healthcheck.HealthCheckCommand", "org.springframework.boot.loader.launch.PropertiesLauncher"]
