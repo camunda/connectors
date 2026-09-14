@@ -29,8 +29,11 @@ callers that can reach it.
 **This runtime ships no authentication.** With
 `camunda.connector.configuration-validation.enabled=true`, the route answers anonymously on the runtime's HTTP port.
 That same port serves the deliberately public `/inbound/**` webhook paths, so the route cannot be protected by
-restricting the port — it needs a path-level rule in front of the runtime (an ingress rule, a network policy, or an
-authenticating proxy) covering `/configurations/**`.
+restricting the port — it needs an HTTP-aware rule in front of the runtime that matches the path, such as an ingress
+or reverse proxy that authenticates `/configurations/**`.
+
+A Kubernetes `NetworkPolicy` is not enough on its own: it filters by address and port, not by path, so any source
+allowed to reach the public webhook paths can also reach `/configurations/**`.
 
 Put that restriction in place before enabling the property. The same applies to the other management routes
 (`/inbound`, `/inbound-instances`, `/outbound`), which are also unauthenticated, but those expose configuration

@@ -63,9 +63,11 @@ import org.springframework.context.annotation.Import;
  * runtime has no {@code SecurityFilterChain} on the classpath at all — Spring Security is a
  * dependency of the SaaS bundle alone — so once enabled there, the route answers anonymously on the
  * runtime's HTTP port, which also serves the deliberately public {@code /inbound/**} webhook paths.
- * Restricting it to trusted callers therefore cannot be done by fencing the port, and has to be a
- * path-level rule in front of the runtime (ingress rule, network policy, or an authenticating
- * proxy) put in place before it is turned on.
+ * Restricting it to trusted callers therefore cannot be done by fencing the port, and needs an
+ * HTTP-aware rule in front of the runtime that matches the path — an ingress or reverse proxy
+ * authenticating {@code /configurations/**} — put in place before it is turned on. A Kubernetes
+ * {@code NetworkPolicy} cannot express this: it filters by address and port, so any source allowed
+ * to reach the webhook paths reaches this one too.
  */
 @Configuration
 @ConditionalOnProperty(
