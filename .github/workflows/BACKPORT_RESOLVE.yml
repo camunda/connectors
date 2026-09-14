@@ -53,6 +53,13 @@ jobs:
           app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
+      # Only the backport bot itself is allowed to author the PR this workflow acts on
+      # (see the author check below): every write this job makes goes through this same
+      # App token, and korthout/backport-action always opens the backport PR with it too.
+      - name: Determine the backport bot's login
+        id: bot
+        run: echo "login=${{ steps.app-token.outputs.app-slug }}[bot]" >> "$GITHUB_OUTPUT"
+
       # Runs before the checkout on purpose: this decides *which* branch gets checked
       # out and force-pushed, so it has to be able to refuse before the repo is there.
       - name: Resolve and validate context
@@ -61,6 +68,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
           BACKPORT_PR: ${{ inputs.backport_pr }}
+          BOT_LOGIN: ${{ steps.bot.outputs.login }}
         run: |
           set -euo pipefail
 
@@ -88,8 +96,8 @@ jobs:
             echo "::error::#${BACKPORT_PR} is not a draft — it either cherry-picked cleanly or has already been resolved"
             fail=1
           fi
-          if [[ "${author}" != *"[bot]" && "${author}" != app/* ]]; then
-            echo "::error::#${BACKPORT_PR} was opened by ${author}, not the backport bot"
+          if [ "${author}" != "${BOT_LOGIN}" ]; then
+            echo "::error::#${BACKPORT_PR} was opened by ${author}, not the backport bot (${BOT_LOGIN})"
             fail=1
           fi
           if [[ "${head}" =~ ^backport-([0-9]+)-to-(.+)$ ]]; then
@@ -101,8 +109,14 @@ jobs:
           [ "${fail}" -eq 0 ] || exit 1
 
           gh pr view "${source_pr}" --repo "${REPO}" \
-            --json number,title,body,url,author,mergeCommit,commits \
+            --json number,title,body,url,author,state,mergeCommit,commits \
             > /tmp/source-pr.json
+
+          source_state=$(jq -r '.state' /tmp/source-pr.json)
+          if [ "${source_state}" != "MERGED" ]; then
+            echo "::error::head branch '${head}' points at #${source_pr}, but that PR is ${source_state}, not MERGED — refusing to treat it as this backport's source"
+            exit 1
+          fi
 
           gh api "repos/${REPO}/issues/${BACKPORT_PR}/comments" --paginate \
             --jq '.[] | select(.body | test("cherry-pick the changes locally")) | .body' \
@@ -213,11 +227,14 @@ jobs:
           claude -p "You are the Camunda connectors backport resolution agent. Read /tmp/BACKPORT_RESOLVE_AGENT.md in full. It is your operating manual: follow it exactly; do not skip it." \
             --dangerously-skip-permissions
 
-      # Gated on the validation having passed, not just always(): a refusal in that step
-      # means no checkout, no branch to inspect, and a PR this workflow was never meant
-      # to touch. It fails with its own error and this step stays out of it.
+      # Gated on validation and the pre-agent fetch having passed, not just always():
+      # a refusal in ctx means no checkout, no branch to inspect, and a PR this workflow
+      # was never meant to touch; a failure in pre means head_sha was never recorded, so
+      # there's no baseline to diff the remote against and no way to tell a real agent
+      # push from an unrelated one. Both fail with their own error and this step stays
+      # out of it, leaving the PR as a draft.
       - name: Apply the outcome
-        if: always() && steps.ctx.outcome == 'success'
+        if: always() && steps.ctx.outcome == 'success' && steps.pre.outcome == 'success'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
