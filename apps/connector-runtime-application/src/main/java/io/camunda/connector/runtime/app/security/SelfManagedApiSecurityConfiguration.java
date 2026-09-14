@@ -46,8 +46,8 @@ import org.springframework.util.StringUtils;
  *
  * <p>Self-managed has no fixed identity provider the way SaaS has Console, so protection is opt-in
  * via {@code camunda.connector.auth.self-managed.issuer} — but it fails <b>closed</b>: absent that
- * property, the route is denied outright rather than left open, the same way it silently is today.
- * An operator who wants Hub's "validate credential" feature configures this to the issuer their
+ * property, the route is denied outright rather than left silently open the way it is today. An
+ * operator who wants Hub's "validate credential" feature configures this to the issuer their
  * cluster's Hub calls are already authenticated against (Hub forwards its caller's own bearer token
  * for a {@code BEARER_TOKEN}-auth cluster); everyone else simply doesn't get the feature — the same
  * degradation the Hub adapter already applies to a {@code BASIC}-auth cluster or a too-old runtime
@@ -75,8 +75,9 @@ import org.springframework.util.StringUtils;
  * {@code camunda-saas-bundle}) legitimately sets {@code camunda.client.mode=saas} to reach a
  * SaaS-hosted orchestration cluster. Keying off that property would have switched this protection
  * off precisely on that topology, while {@code camunda-saas-bundle}'s classes — the thing actually
- * being deferred to — are absent. Presence of its security class is decoupled from client-auth mode
- * and is not, so it is the correct signal for "is the SaaS bundle's own protection actually here."
+ * being deferred to — are absent. Presence of its security class, unlike that property, is
+ * decoupled from client-auth mode, so it is the correct signal for "is the SaaS bundle's own
+ * protection actually here."
  */
 @Configuration
 @EnableWebSecurity
