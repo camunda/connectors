@@ -49,6 +49,26 @@
       <groupId>org.codehaus.janino</groupId>
       <artifactId>janino</artifactId>
     </dependency>
+    <!-- SelfManagedSecurityConfiguration: lets the runtime authenticate /configurations/** itself.
+         Versions come from the spring-boot-dependencies BOM imported in parent/pom.xml. -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-resource-server</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -94,6 +114,11 @@
                 <ignoredDependency>com.google.cloud:spring-cloud-gcp-logging</ignoredDependency>
                 <ignoredDependency>org.codehaus.janino:janino</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-jackson2</ignoredDependency>
+                <!-- Resolved by the resource-server autoconfiguration once
+                     spring.security.oauth2.resourceserver.jwt.issuer-uri is set;
+                     SelfManagedSecurityConfiguration references neither directly. -->
+                <ignoredDependency>org.springframework.security:spring-security-oauth2-resource-server</ignoredDependency>
+                <ignoredDependency>org.springframework.security:spring-security-oauth2-jose</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
