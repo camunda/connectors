@@ -119,7 +119,8 @@ jobs:
           fi
 
           gh api "repos/${REPO}/issues/${BACKPORT_PR}/comments" --paginate \
-            --jq '.[] | select(.body | test("cherry-pick the changes locally")) | .body' \
+            --jq --arg bot "${BOT_LOGIN}" \
+              '.[] | select(.user.login == $bot) | select(.body | test("cherry-pick the changes locally")) | .body' \
             > /tmp/conflict-instructions.txt
 
           if [ ! -s /tmp/conflict-instructions.txt ]; then
@@ -148,12 +149,17 @@ jobs:
 
           echo "resolving #${BACKPORT_PR} (${head} -> ${base}) from source PR #${source_pr}"
 
+      # persist-credentials: false so nothing checked out — the conflicted diff, PR body,
+      # comments — sits next to a write-capable git credential. The agent runs over this
+      # checkout with --dangerously-skip-permissions; keep the push credential out of its
+      # reach entirely rather than trust it not to be prompt-injected into using one.
       - name: Check out the backport branch
         uses: actions/checkout@v7
         with:
           ref: ${{ steps.ctx.outputs.head }}
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Fetch the target branch and the source commit
         id: pre
@@ -215,24 +221,30 @@ jobs:
           git show origin/main:.github/workflows/BACKPORT_RESOLVE_AGENT.md > /tmp/BACKPORT_RESOLVE_AGENT.md
           wc -l /tmp/BACKPORT_RESOLVE_AGENT.md
 
+      # No GH_TOKEN here: the agent gets ANTHROPIC_API_KEY only, so it can run itself, but
+      # no credential that can write to GitHub. It resolves and builds against the local
+      # checkout and leaves the result as a local commit; it never pushes or calls `gh`.
       - name: Run the backport resolution agent
         id: agent
         env:
           ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
           # Input for the agent is in /tmp/backport-context.json, written by the
-          # validation step. 
+          # validation step.
           claude -p "You are the Camunda connectors backport resolution agent. Read /tmp/BACKPORT_RESOLVE_AGENT.md in full. It is your operating manual: follow it exactly; do not skip it." \
             --dangerously-skip-permissions
 
       # Gated on validation and the pre-agent fetch having passed, not just always():
       # a refusal in ctx means no checkout, no branch to inspect, and a PR this workflow
       # was never meant to touch; a failure in pre means head_sha was never recorded, so
-      # there's no baseline to diff the remote against and no way to tell a real agent
-      # push from an unrelated one. Both fail with their own error and this step stays
-      # out of it, leaving the PR as a draft.
+      # there's no baseline to diff local HEAD against and no way to tell a real agent
+      # resolution from an unrelated one. Both fail with their own error and this step
+      # stays out of it, leaving the PR as a draft.
+      #
+      # This is also the first step with a write-capable credential since the agent ran,
+      # and the only one that pushes — the agent leaves its resolution as a local commit,
+      # never touching origin itself.
       - name: Apply the outcome
         if: always() && steps.ctx.outcome == 'success' && steps.pre.outcome == 'success'
         env:
@@ -255,11 +267,14 @@ jobs:
           if [ -s /tmp/backport-notes.txt ]; then
             notes=$(cat /tmp/backport-notes.txt)
           fi
-          remote_sha=$(git ls-remote origin "refs/heads/${HEAD}" | cut -f1)
-          if [ "${remote_sha}" = "${PRE_SHA}" ]; then
-            comment ":warning: The backport resolution agent pushed nothing (agent step: \`${AGENT_OUTCOME}\`), so this PR is unchanged and stays a draft. Resolve it locally with the instructions above. ${notes} [Run](${run_url})"
+          local_sha=$(git rev-parse HEAD)
+          if [ "${local_sha}" = "${PRE_SHA}" ]; then
+            comment ":warning: The backport resolution agent left this unchanged (agent step: \`${AGENT_OUTCOME}\`), so this PR stays a draft. Resolve it locally with the instructions above. ${notes} [Run](${run_url})"
             exit 0
           fi
+
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
+            push --force-with-lease origin "HEAD:refs/heads/${HEAD}"
 
           gh pr ready "${BACKPORT_PR}" --repo "${REPO}"
           comment ":robot: Conflict resolved by the backport resolution agent — a machine merge, so please read the diff rather than only the checks. ${notes} [Run](${run_url})"

@@ -10,7 +10,10 @@ that draft into the change a developer would have produced resolving the conflic
 |---|---|
 | `/tmp/backport-context.json` | `.backport_pr` and `.source_pr` as GitHub JSON, plus `.conflict_instructions` — the action's own comment verbatim |
 | the checkout | already on the backport branch, full history, target branch as `origin/<target>` |
-| `gh` | authenticated as the connectors app, scoped to this repository |
+
+You have no `gh` credential and no push access — nothing here can write to GitHub. Everything
+you need is in the context file and the checkout; a trusted workflow step pushes your result
+(or doesn't) once you exit.
 
 The context file, not your instructions, says which backport this is. Read
 `.conflict_instructions` first: it names the commits to replay. Merge commits are disabled
@@ -20,21 +23,25 @@ several, listed in order there, and all must be replayed.
 ## Git strategy
 
 **Never commit a fix on top of the conflict-marker commit** — markers are permanent in
-`stable/8.x` history once merged. Reset and replay instead:
+`stable/8.x` history once merged. Note where you started, then reset and replay:
 
 ```bash
+original_sha=$(git rev-parse HEAD)     # the conflict-marker commit — your fallback below
 git reset --hard "origin/<target>"
 git cherry-pick -x <sha> [<sha>...]     # resolve as each conflict arises
 ```
 
-Then, **only after the build gate passes**:
+Then, **only after the build gate passes, leave the resolution as local `HEAD`** — you have
+no push credential; a trusted workflow step pushes it once you exit.
+
+**If the gate never passes, leave nothing changed**:
 
 ```bash
-git push --force-with-lease origin HEAD:<backport branch>
+git reset --hard "${original_sha}"
 ```
 
-**If the gate never passes, push nothing** — the draft PR is a working record of the
-conflict. Say so in your notes.
+so the branch is exactly the conflict-marker commit it started as — the draft PR stays a
+working record of the conflict. Say so in your notes.
 
 ## Latitude
 
@@ -46,8 +53,8 @@ backport *is*. Three limits:
   owning connector's `GenerateElementTemplate` test.
 - **Never change the PR title.** `PULL_REQUEST_NAME_CHECK_ON_PR.yml` and
   `ENFORCE_QA_APPROVAL.yml` key off it.
-- Do not mark the PR ready, request review, label or merge, and touch no other branch or
-  PR. The workflow handles PR state from the branch you push.
+- Touch no other branch or PR — you couldn't anyway, you have no push or `gh` credential.
+  The workflow marks the PR ready and comments from the commit you leave behind.
 
 ## Build gate
 
@@ -65,9 +72,10 @@ wrong.
 
 ## What you leave behind
 
-**The push is the outcome.** You report nothing: the workflow reads the branch, so pushed
-means resolved and the PR goes ready, not pushed means it stays a draft. Nothing re-checks
-the push, so the gate is the only thing between a bad resolution and a reviewer.
+**The local commit is the outcome.** You report nothing: the workflow diffs local `HEAD`
+against the commit you started at, and pushes it if it changed — new commit means resolved
+and the PR goes ready, unchanged means it stays a draft. Nothing re-checks your build, so the
+gate is the only thing between a bad resolution and a reviewer.
 
 **Write `/tmp/backport-notes.txt` before you stop, either way** — a few plain-text
 sentences, spliced into a PR comment for the reviewer.
