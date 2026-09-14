@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.app.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +31,7 @@ import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
@@ -117,6 +119,34 @@ class SelfManagedApiSecurityConfigurationTest {
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(BODY))
           .andExpect(status().isOk());
+    }
+  }
+
+  /**
+   * Hybrid regression, isolated from the rest of the application context (a full
+   * {@code @SpringBootTest} with {@code camunda.client.mode=saas} pulls in unrelated CamundaClient
+   * property validation for SaaS-style connections, which has nothing to do with this class): this
+   * module never carries {@code camunda-saas-bundle}'s security classes, regardless of {@code
+   * camunda.client.mode} — a self-managed runtime reaching a SaaS-hosted orchestration cluster
+   * (Hybrid) legitimately sets that property to {@code saas}. Protection must still register in
+   * that case, proving the exclusion is keyed off the SaaS bundle's class being absent, not off
+   * this property (which {@link SelfManagedApiSecurityConfiguration} no longer reads at all).
+   */
+  @Nested
+  class HybridRegression {
+
+    private final WebApplicationContextRunner contextRunner =
+        new WebApplicationContextRunner()
+            .withUserConfiguration(SelfManagedApiSecurityConfiguration.class);
+
+    @Test
+    void staysActiveRegardlessOfClientMode() {
+      contextRunner
+          .withPropertyValues("camunda.client.mode=saas")
+          .run(
+              context ->
+                  assertThat(context)
+                      .hasBean("selfManagedConfigurationValidationDenyAllFilterChain"));
     }
   }
 }

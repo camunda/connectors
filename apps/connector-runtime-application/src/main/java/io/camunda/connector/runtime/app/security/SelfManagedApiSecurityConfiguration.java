@@ -20,9 +20,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -60,10 +60,22 @@ import org.springframework.util.StringUtils;
  * <p>A custom Spring Boot application built directly on {@code spring-boot-starter-camunda-
  * connectors} (bypassing this module and {@code default-bundle} entirely) does not get this
  * protection and must add its own equivalent.
+ *
+ * <p>Backs off when {@code camunda-saas-bundle}'s own {@code
+ * ConnectorInstancesSecurityConfiguration} is on the classpath, since that module already covers
+ * this route with the Console JWT chain and pulls this module in transitively at runtime. This is
+ * deliberately a classpath check ({@code @ConditionalOnMissingClass}) rather than a check on {@code
+ * camunda.client.mode}: in a Hybrid deployment, a self-managed runtime (running this module, not
+ * {@code camunda-saas-bundle}) legitimately sets {@code camunda.client.mode=saas} to reach a
+ * SaaS-hosted orchestration cluster. Keying off that property would have switched this protection
+ * off precisely on that topology, while {@code camunda-saas-bundle}'s classes — the thing actually
+ * being deferred to — are absent. Presence of its security class is decoupled from client-auth mode
+ * and is not, so it is the correct signal for "is the SaaS bundle's own protection actually here."
  */
 @Configuration
 @EnableWebSecurity
-@Conditional(SelfManagedRuntimeCondition.class)
+@ConditionalOnMissingClass(
+    "io.camunda.connector.runtime.saas.security.ConnectorInstancesSecurityConfiguration")
 public class SelfManagedApiSecurityConfiguration {
 
   private static final String PROTECTED_ROUTES = "/configurations/**";
