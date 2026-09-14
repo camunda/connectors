@@ -44,8 +44,7 @@ import org.jspecify.annotations.Nullable;
  * backends, for both the Responses and Chat Completions API families. Client construction is folded
  * in here rather than a separate client-factory class; the openai-java {@link
  * com.openai.credential.Credential} each {@code foundry} authentication variant needs is built in
- * {@link #applyFoundryBackend}, which delegates Entra ID token acquisition to {@link
- * FoundryCredentialResolver} rather than handling azure-identity itself.
+ * {@link #applyFoundryBackend}.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
@@ -173,10 +172,10 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   /**
    * Applies the {@code foundry} backend: base URL (normalized onto the unified OpenAI/v1 API
    * surface, see {@link #unifiedEndpoint(String)}), an optional {@code apiVersion} pin, and the
-   * {@link com.openai.credential.Credential} built here for the configured authentication variant,
-   * delegating Entra ID token acquisition to {@link FoundryCredentialResolver}. {@code apiVersion}
-   * is only wired when explicitly set: the unified surface uses implicit versioning, so it's an
-   * escape hatch for pinning a specific version rather than something every request needs.
+   * {@link com.openai.credential.Credential} built here for the configured authentication variant.
+   * {@code apiVersion} is only wired when explicitly set: the unified surface uses implicit
+   * versioning, so it's an escape hatch for pinning a specific version rather than something every
+   * request needs.
    *
    * <p>{@code azureUrlPathMode} is forced to {@link AzureUrlPathMode#UNIFIED} rather than left on
    * the SDK's default {@code AUTO} host-sniffing: the endpoint is already unconditionally

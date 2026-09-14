@@ -176,9 +176,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
   /**
    * Delegates to the Anthropic SDK's own {@link FoundryBackend}, which owns base-URL normalization
-   * (appending {@code /anthropic} if missing) and per-request authorization. Entra ID token
-   * acquisition is delegated to {@link FoundryCredentialResolver}; this method never sees a raw
-   * token or credential.
+   * (appending {@code /anthropic} if missing) and per-request authorization; this method never sees
+   * a raw token or credential.
    */
   private static void applyFoundryBackend(
       AnthropicOkHttpClient.Builder builder,
