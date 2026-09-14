@@ -10,8 +10,9 @@ on:
     branches:
       - '**'
       - '!main'
+      - '!gh-readonly-queue/**'
   merge_group:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
 
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
 # letting push and pull_request events cancel each other.
