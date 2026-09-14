@@ -32,14 +32,20 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * The route presents a resolved credential to a caller-named endpoint and the runtime ships no
- * authentication, so it must not exist unless a deployment asked for it. Asserted on the route,
- * with bean assertions guarding the premise: a context that failed to wire validation for an
- * unrelated reason would 404 too, and the disabled case would then prove nothing.
+ * authentication, so it must not exist unless a deployment asked for it.
+ *
+ * <p>The disabled cases assert the handler mapping rather than a status code. An unmapped path does
+ * not answer 404 here: {@code GlobalExceptionHandler} advises on {@code Exception}, so the {@code
+ * NoResourceFoundException} Spring raises is reported as 500, which is indistinguishable from the
+ * route erroring. The mapping is the security property anyway.
  */
 class ConfigurationValidationOptInTest {
+
+  private static final String PATH = "/configurations/validate";
 
   /**
    * An unregistered {@code credentialId}, so validation short-circuits to {@code UNSUPPORTED}
@@ -50,6 +56,11 @@ class ConfigurationValidationOptInTest {
       {"credentialId":"io.camunda:not-registered:1","credentialRef":"=ref","tenantId":"acme",\
       "physicalTenantId":"engine-a"}""";
 
+  private static boolean isMapped(RequestMappingHandlerMapping handlerMapping) {
+    return handlerMapping.getHandlerMethods().keySet().stream()
+        .anyMatch(mapping -> mapping.getPatternValues().contains(PATH));
+  }
+
   @Nested
   @SpringBootTest(
       classes = TestConnectorRuntimeApplication.class,
@@ -57,20 +68,14 @@ class ConfigurationValidationOptInTest {
         "camunda.connector.polling.enabled=false",
         "camunda.connector.webhook.enabled=false"
       })
-  @AutoConfigureMockMvc
   class NotEnabled {
 
-    @Autowired private MockMvc mockMvc;
+    @Autowired private RequestMappingHandlerMapping handlerMapping;
     @Autowired private ApplicationContext applicationContext;
 
     @Test
-    void theRouteIsNotServed() throws Exception {
-      mockMvc
-          .perform(
-              post("/configurations/validate")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(BODY))
-          .andExpect(status().isNotFound());
+    void theRouteIsNotMapped() {
+      assertThat(isMapped(handlerMapping)).isFalse();
     }
 
     @Test
@@ -104,10 +109,9 @@ class ConfigurationValidationOptInTest {
         "camunda.connector.polling.enabled=false",
         "camunda.connector.webhook.enabled=false"
       })
-  @AutoConfigureMockMvc
   class NotEnabledUnderComponentScan {
 
-    @Autowired private MockMvc mockMvc;
+    @Autowired private RequestMappingHandlerMapping handlerMapping;
     @Autowired private ApplicationContext applicationContext;
 
     @Test
@@ -120,13 +124,8 @@ class ConfigurationValidationOptInTest {
     }
 
     @Test
-    void theRouteIsNotServed() throws Exception {
-      mockMvc
-          .perform(
-              post("/configurations/validate")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(BODY))
-          .andExpect(status().isNotFound());
+    void theRouteIsNotMapped() {
+      assertThat(isMapped(handlerMapping)).isFalse();
     }
   }
 
@@ -147,10 +146,7 @@ class ConfigurationValidationOptInTest {
     @Test
     void theRouteIsServed() throws Exception {
       mockMvc
-          .perform(
-              post("/configurations/validate")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(BODY))
+          .perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
           .andExpect(status().isOk());
     }
 
