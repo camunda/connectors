@@ -116,9 +116,11 @@ else
 fi
 ```
 
-Use `./mvnw`, never `mvn`. **Do not borrow a test-skip flag from this repo's CI jobs** —
-some are undefined in `pom.xml` and `parent/pom.xml` and come from an external parent, so
-they may silently do nothing. `-DskipTests -DskipChecks` above is the correct invocation.
+Use `./mvnw`, never `mvn`.
+
+**Do not add `-Dquickly`** — it is undefined in this repo's `pom.xml` and
+`parent/pom.xml`; it comes from an external parent and may silently do nothing here.
+`-DskipTests -DskipChecks` above is the correct invocation.
 
 This catches the dominant backport failure: a method or signature that does not exist on
 the older branch. It does not catch behavioural breakage — CI on the pushed PR does.
