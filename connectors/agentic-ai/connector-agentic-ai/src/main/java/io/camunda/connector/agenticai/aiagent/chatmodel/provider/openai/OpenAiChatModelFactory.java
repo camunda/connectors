@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import com.openai.azure.AzureOpenAIServiceVersion;
 import com.openai.azure.AzureUrlPathMode;
 import com.openai.client.OpenAIClient;
@@ -25,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -33,7 +36,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link ChatModelFactory} for the native OpenAI provider's {@code openai-api} (API key), {@code
@@ -45,6 +49,9 @@ import org.jspecify.annotations.Nullable;
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiChatModelFactory.class);
+
+  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiApiFamilyStrategy completionsStrategy;
   private final OpenAiApiFamilyStrategy responsesStrategy;
@@ -52,11 +59,13 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public OpenAiChatModelFactory(
+      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiApiFamilyStrategy completionsStrategy,
       OpenAiApiFamilyStrategy responsesStrategy,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.completionsStrategy = completionsStrategy;
     this.responsesStrategy = responsesStrategy;
@@ -73,7 +82,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (OpenAiChatModelConfiguration) configuration;
     final var connection = model.openai();
-    final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
+    final var timeout =
+        deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);
 
     final var client =
         buildClient(
@@ -95,7 +105,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
   private static OpenAIClient buildClient(
       OpenAiBackend backend,
-      @Nullable Duration timeout,
+      Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
@@ -109,9 +119,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
-    if (timeout != null) {
-      builder.timeout(timeout);
-    }
+    builder.timeout(timeout);
 
     final String scheme =
         configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);

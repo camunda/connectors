@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import com.anthropic.bedrock.backends.BedrockMantleBackend;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
@@ -23,28 +25,35 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEn
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 
 public class AnthropicChatModelFactory implements ChatModelFactory {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AnthropicChatModelFactory.class);
+
+  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public AnthropicChatModelFactory(
+      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
+    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -60,7 +69,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (AnthropicChatModelConfiguration) configuration;
     final var connection = model.anthropic();
-    final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
+    final var timeout =
+        deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);
 
     final var client =
         buildClient(
@@ -70,7 +80,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
   private static AnthropicClient buildClient(
       AnthropicBackend backend,
-      @Nullable Duration timeout,
+      Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var builder = AnthropicOkHttpClient.builder();
@@ -83,9 +93,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
-    if (timeout != null) {
-      builder.timeout(timeout);
-    }
+    builder.timeout(timeout);
 
     final String scheme =
         configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);
