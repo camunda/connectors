@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
+import io.camunda.connector.slack.outbound.model.MessageType;
 import io.camunda.connector.slack.outbound.model.SlackTokenConfiguration;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ class SlackRequestCredentialTest {
 
   private static final String CREDENTIAL_TOKEN = "xoxb-token-from-credential";
   private static final String INLINE_TOKEN = "xoxb-token-from-element-template";
+  private static final String MESSAGE_TEXT = "ada.lovelace@example.com was invited";
 
   private static String variables(String slackCredential, String token) {
     return """
@@ -112,5 +115,33 @@ class SlackRequestCredentialTest {
     assertThat(new SlackTokenConfiguration(CREDENTIAL_TOKEN).toString())
         .doesNotContain(CREDENTIAL_TOKEN)
         .contains("REDACTED");
+  }
+
+  @Test
+  void theRequestRedactsTheCredentialAndTheDataItCarries() {
+    var request =
+        new SlackRequest<>(new SlackTokenConfiguration(CREDENTIAL_TOKEN), null, messageData());
+
+    assertThat(request.toString())
+        .doesNotContain(CREDENTIAL_TOKEN)
+        .doesNotContain(MESSAGE_TEXT)
+        .contains("slackCredential=[REDACTED]")
+        .contains("data=[REDACTED]");
+  }
+
+  @Test
+  void theRequestRedactsTheInlineTokenAndReportsThatNoCredentialIsBound() {
+    var request = new SlackRequest<>(null, INLINE_TOKEN, messageData());
+
+    assertThat(request.toString())
+        .doesNotContain(INLINE_TOKEN)
+        .doesNotContain(MESSAGE_TEXT)
+        .contains("slackCredential=null")
+        .contains("data=[REDACTED]");
+  }
+
+  private static ChatPostMessageData messageData() {
+    return new ChatPostMessageData(
+        "#general", null, MessageType.plainText, MESSAGE_TEXT, null, null);
   }
 }

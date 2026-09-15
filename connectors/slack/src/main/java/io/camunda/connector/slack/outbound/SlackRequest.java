@@ -105,10 +105,9 @@ public record SlackRequest<T extends SlackRequestData>(
   public String toString() {
     return "SlackRequest{"
         + "slackCredential="
-        + slackCredential
+        + (slackCredential != null ? "[REDACTED]" : "null")
         + ", token=[REDACTED]"
-        + ", data="
-        + data
+        + ", data=[REDACTED]"
         + "}";
   }
 }

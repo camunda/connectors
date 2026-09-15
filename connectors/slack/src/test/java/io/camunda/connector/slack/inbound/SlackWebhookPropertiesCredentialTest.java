@@ -113,4 +113,25 @@ class SlackWebhookPropertiesCredentialTest {
         .doesNotContain(CREDENTIAL_SECRET)
         .contains("REDACTED");
   }
+
+  @Test
+  void thePropertiesRedactTheBoundCredential() {
+    var properties =
+        new SlackWebhookProperties(
+            "ctx", new SlackSigningSecretConfiguration(CREDENTIAL_SECRET), null, null);
+
+    assertThat(properties.toString())
+        .doesNotContain(CREDENTIAL_SECRET)
+        .contains("slackCredential=[REDACTED]");
+  }
+
+  @Test
+  void thePropertiesRedactTheInlineSecretAndReportThatNoCredentialIsBound() {
+    var properties = new SlackWebhookProperties("ctx", null, INLINE_SECRET, null);
+
+    assertThat(properties.toString())
+        .doesNotContain(INLINE_SECRET)
+        .contains("slackCredential=null")
+        .contains("slackSigningSecret=[REDACTED]");
+  }
 }

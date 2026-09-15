@@ -111,7 +111,7 @@ public record SlackWebhookProperties(
         + context
         + "'"
         + ", slackCredential="
-        + slackCredential
+        + (slackCredential != null ? "[REDACTED]" : "null")
         + ", slackSigningSecret=[REDACTED]"
         + ", verificationExpression="
         + verificationExpression
