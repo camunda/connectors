@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -178,6 +179,46 @@ class ImportSchedulersTest {
   }
 
   @Test
+  void onStart_migratesFallbackRegistrationToResolvedPhysicalTenantId() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions("physical-tenant-a", overrideSearchQueryClient))
+        .thenReturn(resultFor("physical-tenant-a"));
+    var schedulers =
+        new ImportSchedulers(
+            stateManager,
+            Map.of("client-a", overrideSearchQueryClient),
+            Optional.of(overrideSearchQueryClient),
+            200,
+            importers,
+            true);
+
+    schedulers.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions("physical-tenant-a", overrideSearchQueryClient);
+    verify(importers, never()).importLatestVersions(eq("client-a"), any());
+  }
+
+  @Test
+  void onStart_rejectsDuplicatePhysicalTenantIdFromDifferentClientName() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var firstClient = clientWithPhysicalTenantId("shared-physical-tenant");
+    var duplicateClient = clientWithPhysicalTenantId("shared-physical-tenant");
+    var schedulers = new ImportSchedulers(stateManager, Map.of(), importers, true);
+
+    schedulers.onStart(firstClient, "client-a");
+
+    assertThatThrownBy(() -> schedulers.onStart(duplicateClient, "client-b"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("shared-physical-tenant")
+        .hasMessageContaining("client-b");
+  }
+
+  @Test
   void onStart_replacesSearchClientAfterReconnect() {
     var stateManager = mock(ProcessStateManager.class);
     var importers = mock(Importers.class);
@@ -234,6 +275,7 @@ class ImportSchedulersTest {
             importers,
             true);
 
+    schedulers.onStart(camundaClient, "client-a");
     schedulers.onStop(camundaClient, "client-a");
     schedulers.onStart(camundaClient, "client-a");
     schedulers.scheduleLatestVersionImport();

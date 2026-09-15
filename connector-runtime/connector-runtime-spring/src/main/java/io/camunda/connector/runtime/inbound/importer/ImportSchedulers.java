@@ -47,7 +47,7 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   private final Importers importers;
   private final ExecutorService executor;
   private final Optional<SearchQueryClient> legacySearchQueryClient;
-  private final Optional<String> legacySearchQueryClientPhysicalTenantId;
+  private final Map<String, SearchQueryClient> legacySearchQueryClientsByClientName;
   private final int limit;
 
   private volatile boolean ready = true;
@@ -55,7 +55,14 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   private final boolean activeVersionsPollingEnabled;
 
   private record ClientRegistration(
-      Optional<CamundaClient> camundaClient, SearchQueryClient searchQueryClient) {}
+      Optional<CamundaClient> camundaClient,
+      Optional<String> clientName,
+      SearchQueryClient searchQueryClient) {
+
+    boolean isUnassociated() {
+      return camundaClient.isEmpty() && clientName.isEmpty();
+    }
+  }
 
   public ImportSchedulers(
       ProcessStateManager stateStore,
@@ -84,17 +91,10 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
     searchQueryClientsByPhysicalTenantId.forEach(
         (physicalTenantId, client) ->
             clientsByPhysicalTenantId.put(
-                physicalTenantId, new ClientRegistration(Optional.empty(), client)));
+                physicalTenantId,
+                new ClientRegistration(Optional.empty(), Optional.empty(), client)));
     this.legacySearchQueryClient = legacySearchQueryClient;
-    this.legacySearchQueryClientPhysicalTenantId =
-        searchQueryClientsByPhysicalTenantId.entrySet().stream()
-            .filter(
-                entry ->
-                    legacySearchQueryClient
-                        .map(searchQueryClient -> entry.getValue() == searchQueryClient)
-                        .orElse(false))
-            .map(Map.Entry::getKey)
-            .findFirst();
+    this.legacySearchQueryClientsByClientName = new ConcurrentHashMap<>();
     this.limit = limit;
     this.importers = importers;
     this.executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -111,19 +111,48 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   }
 
   @Override
-  public void onStart(CamundaClient client, String clientName) {
+  public synchronized void onStart(CamundaClient client, String clientName) {
     var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
+    var fallbackRegistration =
+        physicalTenantId.equals(clientName)
+            ? Optional.<ClientRegistration>empty()
+            : Optional.ofNullable(clientsByPhysicalTenantId.get(clientName))
+                .filter(ClientRegistration::isUnassociated);
+    var existingRegistration = Optional.ofNullable(clientsByPhysicalTenantId.get(physicalTenantId));
+
+    if (fallbackRegistration.isPresent() && existingRegistration.isPresent()) {
+      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
+    }
+    if (existingRegistration
+        .flatMap(ClientRegistration::clientName)
+        .filter(existingClientName -> !existingClientName.equals(clientName))
+        .isPresent()) {
+      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
+    }
+
+    fallbackRegistration.ifPresent(
+        registration -> clientsByPhysicalTenantId.remove(clientName, registration));
+    var initialRegistration =
+        fallbackRegistration.or(
+            () -> existingRegistration.filter(ClientRegistration::isUnassociated));
+    legacySearchQueryClient
+        .filter(
+            legacyClient ->
+                initialRegistration
+                    .map(registration -> registration.searchQueryClient() == legacyClient)
+                    .orElse(false))
+        .ifPresent(
+            legacyClient -> legacySearchQueryClientsByClientName.put(clientName, legacyClient));
     var searchQueryClient =
-        legacySearchQueryClientPhysicalTenantId
-            .filter(physicalTenantId::equals)
-            .flatMap(ignored -> legacySearchQueryClient)
+        Optional.ofNullable(legacySearchQueryClientsByClientName.get(clientName))
             .orElseGet(() -> new SearchQueryClientImpl(client, limit));
     clientsByPhysicalTenantId.put(
-        physicalTenantId, new ClientRegistration(Optional.of(client), searchQueryClient));
+        physicalTenantId,
+        new ClientRegistration(Optional.of(client), Optional.of(clientName), searchQueryClient));
   }
 
   @Override
-  public void onStop(CamundaClient client, String clientName) {
+  public synchronized void onStop(CamundaClient client, String clientName) {
     var matchingRegistration =
         clientsByPhysicalTenantId.entrySet().stream()
             .filter(
@@ -144,6 +173,16 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
     clientsByPhysicalTenantId.computeIfPresent(
         physicalTenantId,
         (ignored, registration) -> registration.camundaClient().isEmpty() ? null : registration);
+  }
+
+  private static IllegalStateException duplicatePhysicalTenantId(
+      String physicalTenantId, String clientName) {
+    return new IllegalStateException(
+        "CamundaClient '"
+            + clientName
+            + "' resolves to physical tenant ID '"
+            + physicalTenantId
+            + "', which is already registered to another client");
   }
 
   @Scheduled(
