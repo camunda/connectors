@@ -40,6 +40,7 @@ SUPPRESSED_ALL_ACCOUNTED = "all-specs-already-accounted-for"
 #: mode is a label that is never created, which disables dedupe without any error.
 KEY_LABEL_PREFIX = "ag-key:"
 MAX_LABEL_LENGTH = 50
+ALL_INFLIGHT = "*"
 
 
 #: How long an open fix PR's key label keeps holding its dispatch key.
@@ -257,7 +258,7 @@ def plan_dispatches(
             )
             continue
 
-        if cand.key in inflight_keys:
+        if cand.key in inflight_keys or ALL_INFLIGHT in inflight_keys:
             plan.suppressed.append(Suppression(cand, SUPPRESSED_IN_FLIGHT, cand.key))
             continue
 
