@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.18</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.19</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -132,7 +132,7 @@ limitations under the License.</license.inlineheader>
          4.1.x line and covers all 7 netty CVEs (4.1.136 fixes CVE-2026-55831/55833/56745/56819/
          59901; 4.1.137.Final additionally fixes CVE-2026-62243/75595). -->
     <version.netty>4.2.18.Final</version.netty>
-    <version.amqp-client>5.35.0</version.amqp-client>
+    <version.amqp-client>5.36.0</version.amqp-client>
     <version.lz4-java>1.11.3</version.lz4-java>
 
     <!-- CVE-2026-87795: zstd-jni transitive override — kafka-clients 3.9.2 ships zstd-jni 1.5.6-4,
