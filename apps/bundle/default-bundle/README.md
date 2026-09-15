@@ -54,6 +54,7 @@ startup**, because it would accept every token that IdP signs for any of its cli
 |---|---|
 | `camunda.connector.auth.self-managed.issuer` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_ISSUER` |
 | `camunda.connector.auth.self-managed.audience` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_AUDIENCE` |
+| `camunda.connector.configuration.validation.unsecured` | `CAMUNDA_CONNECTOR_CONFIGURATION_VALIDATION_UNSECURED` |
 
 - `issuer` — OIDC issuer URL. Its discovery endpoint must be reachable from the runtime at startup,
   and its JWKS endpoint must be reachable when tokens are validated. It must be the same IdP that
@@ -64,5 +65,10 @@ Requests are then accepted only with an `Authorization: Bearer <token>` that ver
 issuer's keys, is unexpired, and carries the configured audience. There is no role or claim check
 beyond that, so keep the endpoint off untrusted networks.
 
-Only a `BEARER_TOKEN`-auth cluster registration can supply that token, so `NONE`- and `BASIC`-auth
-clusters cannot use this feature.
+When the endpoint is isolated from untrusted networks, it can instead be enabled without
+authentication by setting `camunda.connector.configuration.validation.unsecured=true`. This cannot
+be combined with `issuer` or `audience`; the runtime fails to start if both modes are configured.
+Only use this mode when network controls prevent unauthorized access to the runtime.
+
+Only a `BEARER_TOKEN`-auth cluster registration can use secured mode. `NONE`- and `BASIC`-auth
+clusters require unsecured mode.
