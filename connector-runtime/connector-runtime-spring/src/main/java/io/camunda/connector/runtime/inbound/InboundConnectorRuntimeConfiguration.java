@@ -100,6 +100,7 @@ public class InboundConnectorRuntimeConfiguration {
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
+      SearchQueryClientRegistry searchQueryClientRegistry,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
@@ -137,7 +138,8 @@ public class InboundConnectorRuntimeConfiguration {
                           PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
                           secretFilterEnabled);
                     }));
-    return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
+    return new PhysicalTenantIdRoutingInboundConnectorContextFactory(
+        delegatesByPhysicalTenantId, searchQueryClientRegistry);
   }
 
   @Bean

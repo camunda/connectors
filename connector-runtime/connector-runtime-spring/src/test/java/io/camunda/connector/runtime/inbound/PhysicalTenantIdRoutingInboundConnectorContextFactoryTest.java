@@ -19,11 +19,14 @@ package io.camunda.connector.runtime.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -35,9 +38,19 @@ import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelati
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class PhysicalTenantIdRoutingInboundConnectorContextFactoryTest {
+
+  private final InboundConnectorRuntimeConfiguration configuration =
+      new InboundConnectorRuntimeConfiguration();
+
+  private static CamundaClient clientWithPhysicalTenantId(String physicalTenantId) {
+    var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn(physicalTenantId);
+    return client;
+  }
 
   private static ValidInboundConnectorDetails detailsFor(String physicalTenantId) {
     var element =
@@ -125,5 +138,38 @@ class PhysicalTenantIdRoutingInboundConnectorContextFactoryTest {
                     details, t -> {}, InboundConnectorExecutable.class, (a) -> {}))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("physical-tenant-unknown");
+  }
+
+  @Test
+  void resolvesDelegateByClientNameAfterFallbackMigrationWhenRegistrySupplied() {
+    // delegatesByPhysicalTenantId is built once at startup, keyed "engine-c" (the client's own
+    // name) because its real physical tenant ID wasn't readable yet. A later onStart migrates the
+    // SAME client's registry entry to "resolved-tenant", so freshly-imported connector elements are
+    // tagged "resolved-tenant" from then on -- this factory must still find the "engine-c" delegate
+    // for them, since the delegate itself was never rebuilt.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-c"));
+    var uninitializedClient = mock(CamundaClient.class);
+    when(uninitializedClient.getConfiguration())
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("resolved-tenant").getConfiguration());
+    when(registry.get("engine-c")).thenReturn(uninitializedClient);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+    searchQueryClientRegistry.onStart(uninitializedClient, "engine-c");
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("resolved-tenant");
+
+    var delegate = mock(InboundConnectorContextFactory.class);
+    var context = mock(InboundConnectorContext.class);
+    when(delegate.createContext(any(), any(), any(), any())).thenReturn(context);
+    var routingFactory =
+        new PhysicalTenantIdRoutingInboundConnectorContextFactory(
+            Map.of("engine-c", delegate), searchQueryClientRegistry);
+
+    var result =
+        routingFactory.createContext(
+            detailsFor("resolved-tenant"), t -> {}, InboundConnectorExecutable.class, (a) -> {});
+
+    assertThat(result).isSameAs(context);
   }
 }
