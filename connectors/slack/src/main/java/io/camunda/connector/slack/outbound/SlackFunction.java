@@ -11,6 +11,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.slack.outbound.model.SlackTokenConfiguration;
 
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -31,7 +32,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "notification"
     },
     inputDataClass = SlackRequest.class,
-    version = 12,
+    configurations = {SlackTokenConfiguration.class},
+    version = 13,
     defaultResultExpression =
         "{\n"
             + "  myResponse: response\n"
@@ -53,7 +55,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg")
 @OutboundConnector(
     name = "Slack Outbound",
-    inputVariables = {"token", "method", "data"},
+    inputVariables = {"slackCredential", "token", "method", "data"},
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 

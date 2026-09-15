@@ -23,6 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.slack.inbound.model.SlackSigningSecretConfiguration;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties.SlackConnectorPropertiesWrapper;
@@ -37,11 +38,12 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Slack Inbound", type = "io.camunda:slack-webhook:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.inbound.Slack.v1",
     name = "Slack Webhook Boundary Event Connector",
     icon = "icon.svg",
-    version = 8,
+    version = 9,
+    configurations = {SlackSigningSecretConfiguration.class},
     inputDataClass = SlackConnectorPropertiesWrapper.class,
     description = "Receive events from Slack",
     keywords = {
