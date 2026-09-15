@@ -119,6 +119,34 @@ class PhysicalTenantIdResolutionTest {
   }
 
   @Test
+  void onStartDeclinesAndRemovesStaleFallbackKeyOnDuplicateAfterFallbackMigration() {
+    // client-a already legitimately owns "shared". client-b's config wasn't readable at
+    // construction (fell back to its own name "client-b"); once its real config resolves to the
+    // SAME "shared" tenant (a misconfiguration), onStart must decline the duplicate *and* remove
+    // the now-stale "client-b" placeholder — otherwise client-b keeps polling under that bogus key
+    // in addition to never occupying "shared", i.e. the same physical backend gets polled twice.
+    var registry = mock(CamundaClientRegistry.class);
+    var clientA = clientWithPhysicalTenantId("shared");
+    var clientB = mock(CamundaClient.class);
+    when(clientB.getConfiguration())
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("shared").getConfiguration());
+    when(registry.clientNames()).thenReturn(Set.of("client-a", "client-b"));
+    when(registry.get("client-a")).thenReturn(clientA);
+    when(registry.get("client-b")).thenReturn(clientB);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("shared", "client-b");
+    var incumbentSharedClient = searchQueryClientRegistry.get("shared");
+
+    assertThatCode(() -> searchQueryClientRegistry.onStart(clientB, "client-b"))
+        .doesNotThrowAnyException();
+
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("shared");
+    assertThat(searchQueryClientRegistry.get("shared")).isSameAs(incumbentSharedClient);
+  }
+
+  @Test
   void fallsBackToLegacyCamundaClientWhenRegistryLookupFails() {
     // simulates a manually-supplied CamundaClient bean (e.g. this repo's own @MockitoBean test
     // pattern) that bypasses the registry's own client-bean registration

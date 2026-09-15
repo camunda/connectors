@@ -128,6 +128,20 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
                         + "'"));
   }
 
+  /**
+   * Returns the configured client name currently registered under {@code physicalTenantId}, so a
+   * different startup-frozen, physical-tenant-id-keyed map (e.g. {@code
+   * io.camunda.connector.runtime.inbound.PhysicalTenantIdRoutingInboundConnectorContextFactory}'s
+   * {@code delegatesByPhysicalTenantId}, which has no {@code clientName} of its own to fall back on
+   * the way {@link #get} does) can look itself up by the client name it was keyed by at
+   * construction time, before an {@code onStart} fallback migration changed this registry's key for
+   * the same client.
+   */
+  public synchronized Optional<String> clientNameFor(String physicalTenantId) {
+    return Optional.ofNullable(clientsByPhysicalTenantId.get(physicalTenantId))
+        .flatMap(ClientRegistration::clientName);
+  }
+
   @Override
   public void onStart(CamundaClient client) {
     onStart(client, "default");
@@ -146,6 +160,12 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
             ? Optional.<ClientRegistration>empty()
             : Optional.ofNullable(clientsByPhysicalTenantId.get(clientName))
                 .filter(registration -> registration.belongsTo(clientName));
+    // Once this client's real physical tenant ID is known, its startup-time, name-keyed
+    // placeholder (if any) is obsolete either way — whether it goes on to occupy physicalTenantId
+    // below or is declined next for conflicting with another client. Left behind on the decline
+    // path, it would keep this client polled a second time under that bogus placeholder key.
+    fallbackRegistration.ifPresent(
+        registration -> clientsByPhysicalTenantId.remove(clientName, registration));
     var existingRegistration = Optional.ofNullable(clientsByPhysicalTenantId.get(physicalTenantId));
 
     if (fallbackRegistration.isPresent() && existingRegistration.isPresent()) {
@@ -160,8 +180,6 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
       return;
     }
 
-    fallbackRegistration.ifPresent(
-        registration -> clientsByPhysicalTenantId.remove(clientName, registration));
     var initialRegistration =
         fallbackRegistration.or(
             () -> existingRegistration.filter(registration -> registration.belongsTo(clientName)));
