@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas.security;
 
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
 import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -84,7 +85,7 @@ public class ConnectorInstancesSecurityConfiguration {
   }
 
   @Bean
-  @Order(2)
+  @Order(ConfigurationValidationDenyAllSecurityConfiguration.ORDER)
   public SecurityFilterChain connectorInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
         .csrf(

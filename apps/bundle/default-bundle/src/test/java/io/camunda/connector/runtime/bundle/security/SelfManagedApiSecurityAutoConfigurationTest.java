@@ -35,10 +35,15 @@ import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -242,6 +247,39 @@ class SelfManagedApiSecurityAutoConfigurationTest {
                   assertThat(context)
                       .doesNotHaveBean(ConfigurationValidationSecurityPolicy.class)
                       .hasBean("configurationValidationDenyAllFilterChain"));
+    }
+  }
+
+  /** A permissive chain at ordinary precedence, as a consuming application might declare. */
+  @TestConfiguration
+  static class PermissiveCatchAllChain {
+
+    @Bean
+    @Order(0)
+    SecurityFilterChain catchAll(HttpSecurity http) throws Exception {
+      return http.csrf(csrf -> csrf.ignoringRequestMatchers("/**"))
+          .securityMatchers(matchers -> matchers.requestMatchers("/**"))
+          .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+          .build();
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      webEnvironment = WebEnvironment.RANDOM_PORT,
+      classes = {ConnectorRuntimeApplication.class, PermissiveCatchAllChain.class})
+  @DirtiesContext
+  @AutoConfigureMockMvc
+  class WithPermissiveCatchAllChain {
+
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    public CamundaClient camundaClient;
+
+    @Autowired private MockMvc mvc;
+
+    @Test
+    void routeStillDeniesBecauseTheFailClosedChainOutranksIt() throws Exception {
+      mvc.perform(post("/configurations/validate")).andExpect(status().isNotFound());
     }
   }
 }
