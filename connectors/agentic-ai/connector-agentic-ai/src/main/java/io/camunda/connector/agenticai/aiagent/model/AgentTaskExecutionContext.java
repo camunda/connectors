@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -29,6 +30,7 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   private final AgentConfiguration configuration;
 
   @Nullable private List<AdHocToolElement> toolElements;
+  @Nullable private String composedSystemPrompt;
 
   public AgentTaskExecutionContext(
       JobContext jobContext,
@@ -42,7 +44,12 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
       AgentTaskRequestData data,
       ChatModelConfiguration chatModel,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this(jobContext, data, chatModel, toolElementsResolver, data.systemPrompt());
+    this(
+        jobContext,
+        data,
+        chatModel,
+        toolElementsResolver,
+        Objects.requireNonNull(data.systemPrompt(), "System prompt must be provided"));
   }
 
   public AgentTaskExecutionContext(
@@ -119,5 +126,13 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   @Override
   public AgentConfiguration configuration() {
     return configuration;
+  }
+
+  public void recordComposedSystemPrompt(@Nullable String prompt) {
+    composedSystemPrompt = prompt;
+  }
+
+  public @Nullable String composedSystemPrompt() {
+    return composedSystemPrompt;
   }
 }

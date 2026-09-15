@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -43,7 +44,7 @@ import org.jspecify.annotations.Nullable;
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.10",
-    version = 1,
+    version = 2,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,
@@ -98,6 +99,7 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
   private static final String LINKED_RESOURCES_HEADER = "linkedResources";
   private static final String SYSTEM_PROMPT_RESOURCE_TYPE = "system-prompt";
   private static final String SYSTEM_PROMPT_LINK_NAME = "systemPrompt";
+  private static final String SYSTEM_PROMPT_BINDING_HEADER = "systemPromptBinding";
   private static final String ERROR_CODE_LINKED_SYSTEM_PROMPT =
       "LINKED_SYSTEM_PROMPT_RESOLUTION_ERROR";
 
@@ -120,9 +122,11 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
   @Override
   public AgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentTaskV2Request.class);
-    var systemPrompt =
-        composeSystemPrompt(
-            request.data().systemPrompt().prompt(), context.getJobContext().getCustomHeaders());
+    var inlinePrompt =
+        request.data().systemPrompt() == null ? null : request.data().systemPrompt().prompt();
+    var customHeaders = context.getJobContext().getCustomHeaders();
+    var linkedPrompt = resolveLinkedSystemPrompt(customHeaders);
+    var systemPrompt = composeSystemPrompt(inlinePrompt, linkedPrompt);
     var executionContext =
         new AgentTaskExecutionContext(
             context.getJobContext(),
@@ -130,21 +134,43 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
             request.provider(),
             toolElementsResolver,
             new SystemPromptConfiguration(systemPrompt));
-    return agentRequestHandler.handleRequest(executionContext);
+    var connectorResponse = agentRequestHandler.handleRequest(executionContext);
+    if (linkedPrompt == null || connectorResponse.agentResponse() == null) {
+      return connectorResponse;
+    }
+
+    var response = connectorResponse.agentResponse();
+    var provenance =
+        new SystemPromptProvenance(
+            "linked",
+            linkedPrompt.promptId(),
+            linkedPrompt.binding(),
+            linkedPrompt.version(),
+            StringUtils.defaultString(executionContext.composedSystemPrompt(), systemPrompt));
+    var enrichedResponse =
+        new AgentResponse(
+            response.context(),
+            response.toolCalls(),
+            response.responseMessage(),
+            response.responseText(),
+            response.responseJson(),
+            provenance);
+    return new AgentTaskConnectorResponse(enrichedResponse, connectorResponse.completionListener());
   }
 
-  private String composeSystemPrompt(String inlinePrompt, Map<String, String> customHeaders) {
-    var linkedPrompt = resolveLinkedSystemPrompt(customHeaders);
-    if (StringUtils.isBlank(linkedPrompt)) {
-      return inlinePrompt;
+  private String composeSystemPrompt(
+      @Nullable String inlinePrompt, @Nullable ResolvedLinkedSystemPrompt linkedPrompt) {
+    if (linkedPrompt == null || StringUtils.isBlank(linkedPrompt.prompt())) {
+      return StringUtils.defaultString(inlinePrompt);
     }
     if (StringUtils.isBlank(inlinePrompt)) {
-      return linkedPrompt;
+      return linkedPrompt.prompt();
     }
-    return inlinePrompt + "\n\n" + linkedPrompt;
+    return inlinePrompt + "\n\n" + linkedPrompt.prompt();
   }
 
-  private @Nullable String resolveLinkedSystemPrompt(Map<String, String> customHeaders) {
+  private @Nullable ResolvedLinkedSystemPrompt resolveLinkedSystemPrompt(
+      Map<String, String> customHeaders) {
     var rawLinkedResources = customHeaders.get(LINKED_RESOURCES_HEADER);
     if (StringUtils.isBlank(rawLinkedResources)) {
       return null;
@@ -159,6 +185,11 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
           ERROR_CODE_LINKED_SYSTEM_PROMPT,
           "Failed to parse linked resource metadata from the activated job.",
           e);
+    }
+    if (linkedResources == null) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "Failed to parse linked resource metadata from the activated job.");
     }
 
     var systemPromptResources =
@@ -183,8 +214,17 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
           ERROR_CODE_LINKED_SYSTEM_PROMPT,
           "The linked system prompt resource has no resolved resource key.");
     }
+    var binding = customHeaders.get(SYSTEM_PROMPT_BINDING_HEADER);
+    if (StringUtils.isBlank(binding)) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "The linked system prompt resource has no binding metadata.");
+    }
     try {
-      return camundaClient.newResourceContentBinaryGetRequest(resourceKey).execute();
+      var resource = camundaClient.newResourceGetRequest(resourceKey).execute();
+      var prompt = camundaClient.newResourceContentBinaryGetRequest(resourceKey).execute();
+      return new ResolvedLinkedSystemPrompt(
+          prompt, resource.getResourceId(), binding, resource.getVersion());
     } catch (Exception e) {
       throw new ConnectorException(
           ERROR_CODE_LINKED_SYSTEM_PROMPT,
@@ -195,4 +235,7 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record LinkedResource(@Nullable Long resourceKey, String resourceType, String linkName) {}
+
+  private record ResolvedLinkedSystemPrompt(
+      String prompt, String promptId, String binding, int version) {}
 }

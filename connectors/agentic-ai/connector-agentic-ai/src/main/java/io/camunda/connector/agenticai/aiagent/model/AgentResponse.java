@@ -28,7 +28,8 @@ public record AgentResponse(
     List<ToolCallProcessVariable> toolCalls,
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
-    @Nullable Object responseJson)
+    @Nullable Object responseJson,
+    @Nullable SystemPromptProvenance systemPrompt)
     implements AgentResponseBuilder.With {
 
   public static AgentResponseBuilder builder() {

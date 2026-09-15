@@ -146,6 +146,13 @@ def updatedProperties = []
         return
     }
 
+    if ((property.binding?.type == "zeebe:linkedResource" &&
+        property.binding?.linkName == "systemPrompt") ||
+        (property.binding?.type == "zeebe:taskHeader" &&
+        property.binding?.key in ["instructionSource", "systemPromptBinding"])) {
+        return
+    }
+
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
         return
@@ -224,6 +231,10 @@ def updatedProperties = []
         property.binding.name = "agentContext"
         property.remove("value")
         property.remove("constraints")
+        updatedProperties.add(property)
+    } else if (property.id == "data.systemPrompt.prompt") {
+        property.label = "System prompt"
+        property.remove("condition")
         updatedProperties.add(property)
     } else {
         updatedProperties.add(property)

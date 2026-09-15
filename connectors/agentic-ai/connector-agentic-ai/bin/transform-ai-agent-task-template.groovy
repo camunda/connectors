@@ -101,6 +101,167 @@ static def configurePromptCaching(List properties) {
     return remaining
 }
 
+static def configureLinkedSystemPrompt(List properties) {
+    def promptId = "data.systemPrompt.prompt"
+    def instructionSourceId = "instructionSource"
+    def linkedPropertyIds = [
+        "systemPrompt.resourceId",
+        "systemPrompt.bindingType",
+        "systemPrompt.versionTag"
+    ]
+    def remaining = properties.findAll { property ->
+        property.id != instructionSourceId &&
+            !(property.id in linkedPropertyIds) &&
+            !(property.binding?.type == "zeebe:linkedResource" &&
+                property.binding?.linkName == "systemPrompt")
+    }
+    def promptIndex = remaining.findIndexOf { it.id == promptId }
+    if (promptIndex < 0) {
+        return properties
+    }
+
+    def prompt = remaining[promptIndex]
+    prompt.label = "Prompt"
+    prompt.condition = [
+        property: instructionSourceId,
+        equals: "inline"
+    ]
+
+    def linkedCondition = [
+        allMatch: [[
+            property: instructionSourceId,
+            equals: "resource"
+        ]]
+    ]
+    def controls = [
+        [
+            label: "Type",
+            description: "Store the system prompt inline or link a governed prompt.",
+            id: instructionSourceId,
+            type: "Dropdown",
+            value: "inline",
+            group: "systemPrompt",
+            choices: [
+                [name: "Inline", value: "inline"],
+                [name: "Linked", value: "resource"]
+            ],
+            binding: [
+                type: "zeebe:taskHeader",
+                key: instructionSourceId
+            ]
+        ],
+        prompt,
+        [
+            type: "Hidden",
+            value: "system-prompt",
+            group: "systemPrompt",
+            binding: [
+                type: "zeebe:linkedResource",
+                linkName: "systemPrompt",
+                property: "resourceType"
+            ],
+            condition: linkedCondition
+        ],
+        [
+            label: "Prompt ID",
+            description: "Enter the stable prompt ID. The prompt is stored as a deployed Markdown resource.",
+            id: "systemPrompt.resourceId",
+            type: "String",
+            group: "systemPrompt",
+            constraints: [notEmpty: true],
+            binding: [
+                type: "zeebe:linkedResource",
+                linkName: "systemPrompt",
+                property: "resourceId"
+            ],
+            condition: linkedCondition
+        ],
+        [
+            label: "Binding",
+            description: "Choose which governed prompt version the process uses.",
+            id: "systemPrompt.bindingType",
+            type: "Dropdown",
+            value: "latest",
+            group: "systemPrompt",
+            choices: [
+                [name: "Latest", value: "latest"],
+                [name: "Deployment", value: "deployment"],
+                [name: "Version tag", value: "versionTag"]
+            ],
+            binding: [
+                type: "zeebe:linkedResource",
+                linkName: "systemPrompt",
+                property: "bindingType"
+            ],
+            condition: linkedCondition
+        ],
+        [
+            type: "Hidden",
+            value: "latest",
+            binding: [
+                type: "zeebe:taskHeader",
+                key: "systemPromptBinding"
+            ],
+            condition: [
+                allMatch: [
+                    [property: instructionSourceId, equals: "resource"],
+                    [property: "systemPrompt.bindingType", equals: "latest"]
+                ]
+            ]
+        ],
+        [
+            type: "Hidden",
+            value: "deployment",
+            binding: [
+                type: "zeebe:taskHeader",
+                key: "systemPromptBinding"
+            ],
+            condition: [
+                allMatch: [
+                    [property: instructionSourceId, equals: "resource"],
+                    [property: "systemPrompt.bindingType", equals: "deployment"]
+                ]
+            ]
+        ],
+        [
+            type: "Hidden",
+            value: "versionTag",
+            binding: [
+                type: "zeebe:taskHeader",
+                key: "systemPromptBinding"
+            ],
+            condition: [
+                allMatch: [
+                    [property: instructionSourceId, equals: "resource"],
+                    [property: "systemPrompt.bindingType", equals: "versionTag"]
+                ]
+            ]
+        ],
+        [
+            label: "Version tag",
+            id: "systemPrompt.versionTag",
+            type: "String",
+            group: "systemPrompt",
+            constraints: [notEmpty: true],
+            binding: [
+                type: "zeebe:linkedResource",
+                linkName: "systemPrompt",
+                property: "versionTag"
+            ],
+            condition: [
+                allMatch: [
+                    [property: instructionSourceId, equals: "resource"],
+                    [property: "systemPrompt.bindingType", equals: "versionTag"]
+                ]
+            ]
+        ]
+    ]
+
+    remaining.remove(promptIndex)
+    remaining.addAll(promptIndex, controls)
+    return remaining
+}
+
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
@@ -134,6 +295,7 @@ updatedProperties = moveAfter(
 )
 if (json.id?.toString()?.contains("ai-agent-task.v2")) {
     updatedProperties = configurePromptCaching(updatedProperties)
+    updatedProperties = configureLinkedSystemPrompt(updatedProperties)
 }
 
 json.put('properties', updatedProperties)
