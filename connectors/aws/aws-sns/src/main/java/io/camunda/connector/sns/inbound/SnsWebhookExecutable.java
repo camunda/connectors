@@ -100,12 +100,13 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
 
-    checkMessageAllowListed(webhookProcessingPayload);
-    Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
     String region = extractRegionFromTopicArnHeader(webhookProcessingPayload.headers());
     SnsMessageManager msgManager = snsClientSupplier.messageManager(region);
     SnsMessage msg =
         msgManager.parseMessage(new ByteArrayInputStream(webhookProcessingPayload.rawBody()));
+    String verifiedTopicArn = msg.getTopicArn();
+    checkMessageAllowListed(verifiedTopicArn);
+    Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
     if (msg instanceof SnsSubscriptionConfirmation ssc) {
       return tryConfirmSubscription(webhookProcessingPayload, bodyAsMap, ssc);
     } else if (msg instanceof SnsNotification) {
@@ -137,17 +138,14 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         Map.of("snsEventType", "Notification"));
   }
 
-  private void checkMessageAllowListed(WebhookProcessingPayload webhookProcessingPayload)
-      throws Exception {
+  private void checkMessageAllowListed(String verifiedTopicArn) throws Exception {
     if (SubscriptionAllowListFlag.specific.equals(props.securitySubscriptionAllowedFor())
-        && !props
-            .topicsAllowListParsed()
-            .contains(webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER))) {
+        && !props.topicsAllowListParsed().contains(verifiedTopicArn)) {
       throw new Exception(
           "Request didn't match allow list. Allow list: "
               + props.topicsAllowListParsed()
               + ". Request coming from "
-              + webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER));
+              + verifiedTopicArn);
     }
   }
 
