@@ -101,7 +101,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Determine Maven cache key
         id: maven-cache-key
@@ -350,7 +350,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Secrets
         id: secrets

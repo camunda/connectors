@@ -113,11 +113,11 @@ limitations under the License.</license.inlineheader>
          An earlier override was removed once the BOM caught up to a previous, lower threshold,
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 11.0.25, not against whatever the BOM happens to ship. -->
-    <tomcat.version>11.0.25</tomcat.version>
+    <tomcat.version>11.0.26</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.35.0</version.amqp-client>
+    <version.amqp-client>5.36.0</version.amqp-client>
     <version.netty>4.2.18.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
