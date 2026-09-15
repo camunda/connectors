@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -215,17 +216,26 @@ class ImportSchedulersTest {
   }
 
   @Test
-  void onStart_rejectsDuplicatePhysicalTenantIdFromDifferentClientName() {
+  void onStart_declinesDuplicatePhysicalTenantIdFromDifferentClientNameWithoutThrowing() {
+    // onStart runs from CamundaClientEventListener's unguarded forEach over every
+    // CamundaClientLifecycleAware bean (and, for the multi-client producer, over every configured
+    // client); a thrown exception here would abort that fan-out for every client processed after
+    // this one, not just the misconfigured one. So a runtime duplicate must be declined, not
+    // thrown.
     var firstClient = clientWithPhysicalTenantId("shared-physical-tenant");
     var duplicateClient = clientWithPhysicalTenantId("shared-physical-tenant");
     var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
 
     searchQueryClientRegistry.onStart(firstClient, "client-a");
 
-    assertThatThrownBy(() -> searchQueryClientRegistry.onStart(duplicateClient, "client-b"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("shared-physical-tenant")
-        .hasMessageContaining("client-b");
+    assertThatCode(() -> searchQueryClientRegistry.onStart(duplicateClient, "client-b"))
+        .doesNotThrowAnyException();
+
+    // the first registration is left in place: onStop for it still finds and removes it, which
+    // would not be the case had "client-b" silently overwritten the mapping.
+    searchQueryClientRegistry.onStop(firstClient, "client-a");
+    assertThatThrownBy(() -> searchQueryClientRegistry.get("shared-physical-tenant"))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test

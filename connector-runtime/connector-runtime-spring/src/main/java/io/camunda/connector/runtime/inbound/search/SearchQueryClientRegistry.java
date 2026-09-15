@@ -23,12 +23,16 @@ import io.camunda.connector.runtime.inbound.PhysicalTenantIds.SearchQueryClientR
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Keeps the search clients used by process-definition polling and inspection aligned with Camunda
  * client lifecycle events.
  */
 public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SearchQueryClientRegistry.class);
 
   private final Map<String, ClientRegistration> clientsByPhysicalTenantId;
   private final Optional<SearchQueryClient> legacySearchQueryClient;
@@ -123,13 +127,15 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
     var existingRegistration = Optional.ofNullable(clientsByPhysicalTenantId.get(physicalTenantId));
 
     if (fallbackRegistration.isPresent() && existingRegistration.isPresent()) {
-      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
+      logDuplicatePhysicalTenantId(physicalTenantId, clientName);
+      return;
     }
     if (existingRegistration
         .flatMap(ClientRegistration::clientName)
         .filter(existingClientName -> !existingClientName.equals(clientName))
         .isPresent()) {
-      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
+      logDuplicatePhysicalTenantId(physicalTenantId, clientName);
+      return;
     }
 
     fallbackRegistration.ifPresent(
@@ -177,13 +183,23 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
         (ignored, registration) -> registration.camundaClient().isEmpty() ? null : registration);
   }
 
-  private static IllegalStateException duplicatePhysicalTenantId(
-      String physicalTenantId, String clientName) {
-    return new IllegalStateException(
-        "CamundaClient '"
-            + clientName
-            + "' resolves to physical tenant ID '"
-            + physicalTenantId
-            + "', which is already registered to another client");
+  /**
+   * Logs and declines a conflicting registration instead of throwing: {@code onStart} runs from
+   * {@code CamundaClientEventListener}'s unguarded {@code forEach} over every {@code
+   * CamundaClientLifecycleAware} bean (and, for the multi-client producer, over every configured
+   * client), so a thrown exception here would abort that fan-out for every client processed after
+   * this one — not just the misconfigured one. Static misconfiguration (duplicate {@code
+   * physical-tenant-id} at startup) still fails loudly, via {@link
+   * PhysicalTenantIds#toMapByPhysicalTenantId}, which runs at bean construction rather than from a
+   * lifecycle event.
+   */
+  private static void logDuplicatePhysicalTenantId(String physicalTenantId, String clientName) {
+    LOG.error(
+        "CamundaClient '{}' resolves to physical tenant ID '{}', which is already registered to "
+            + "another client; keeping the existing registration and ignoring this one. Configure "
+            + "a unique physical-tenant-id for '{}'.",
+        clientName,
+        physicalTenantId,
+        clientName);
   }
 }
