@@ -31,6 +31,8 @@ Each row gives the three values every later phase uses. Bind them per candidate:
 PR=<number>            # column 1
 BASE=<baseRefName>     # column 2 — the release branch being backported to
 HEAD_BRANCH=<headRefName>  # column 3 — backport-<n>-to-<target>
+SOURCE_PR=$(echo "${HEAD_BRANCH}" | sed -E 's/^backport-([0-9]+)-to-.*/\1/')
+[[ "$SOURCE_PR" =~ ^[0-9]+$ ]] || { echo "cannot derive source PR from ${HEAD_BRANCH} — report this candidate as unprocessable, do not proceed with an empty value"; }
 ```
 
 Then confirm each candidate genuinely has conflict markers, rather than being a draft
@@ -57,16 +59,23 @@ git worktree add ".claude/worktrees/backport-${PR}" "${HEAD_BRANCH}"
 cd ".claude/worktrees/backport-${PR}"
 ```
 
-Read which commits to replay from `backport-action`'s own comment on the draft PR:
+Read which commits to replay from `backport-action`'s own comment. As of writing it is
+not confirmed whether that comment lands on the draft PR or on the source PR
+(`${SOURCE_PR}`, bound in Phase 1) — check both, draft first, and use whichever yields
+it:
 
 ```bash
 gh pr view "${PR}" --repo camunda/connectors --json comments \
   --jq '.comments[] | select(.author.login == "app/team-connectors-int-automation") | .body'
+gh pr view "${SOURCE_PR}" --repo camunda/connectors --json comments \
+  --jq '.comments[] | select(.author.login == "app/team-connectors-int-automation") | .body'
 ```
 
-That comment names the SHAs in a `git cherry-pick -x` block. Merge commits are disabled
-in this repo, so a squash-merged source PR gives one SHA; a rebase-merged one gives
-several, in order, and **all** must be replayed.
+Whichever comment is non-empty names the SHAs in a `git cherry-pick -x` block. Merge
+commits are disabled in this repo, so a squash-merged source PR gives one SHA; a
+rebase-merged one gives several, in order, and **all** must be replayed. If neither PR
+carries the comment, that is a legitimate give-up per Phase 6, not something to guess
+around — never fabricate SHAs when the lookup comes up empty.
 
 Then:
 
