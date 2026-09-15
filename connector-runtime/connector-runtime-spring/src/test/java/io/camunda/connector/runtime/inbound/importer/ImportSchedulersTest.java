@@ -216,8 +216,6 @@ class ImportSchedulersTest {
 
   @Test
   void onStart_rejectsDuplicatePhysicalTenantIdFromDifferentClientName() {
-    var stateManager = mock(ProcessStateManager.class);
-    var importers = mock(Importers.class);
     var firstClient = clientWithPhysicalTenantId("shared-physical-tenant");
     var duplicateClient = clientWithPhysicalTenantId("shared-physical-tenant");
     var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
