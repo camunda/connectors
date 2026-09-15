@@ -21,9 +21,11 @@ import io.camunda.connector.runtime.configuration.security.ConfigurationValidati
 import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -55,14 +57,18 @@ import org.springframework.util.StringUtils;
  * ConfigurationValidationSecurityPolicy} below is in place when the shared fail-closed default
  * tests for it.
  *
- * <p>Also lands on the SaaS classpath, since {@code camunda-saas-bundle} depends on this bundle,
- * but contributes nothing there: SaaS does not set the self-managed issuer, and its own policy is
- * what stands the shared default down.
+ * <p>Also lands on the SaaS classpath, since {@code camunda-saas-bundle} depends on this bundle. It
+ * stays inert there even if the self-managed properties are set, because SaaS declares its own
+ * {@link ConfigurationValidationSecurityPolicy} from a component-scanned configuration — those are
+ * registered before any auto-configuration, so the condition below sees it and backs off. Without
+ * that, setting the self-managed issuer on SaaS would add a second chain on the route and a second
+ * OIDC discovery at startup.
  */
 @Configuration
 @EnableWebSecurity
 @AutoConfigureBefore(ConnectorsAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "camunda.connector.auth.self-managed", name = "issuer")
+@ConditionalOnMissingBean(ConfigurationValidationSecurityPolicy.class)
 public class SelfManagedApiSecurityAutoConfiguration {
 
   @Value("${camunda.connector.auth.self-managed.issuer:}")
@@ -77,6 +83,7 @@ public class SelfManagedApiSecurityAutoConfiguration {
   }
 
   @Bean
+  @Order(ConfigurationValidationDenyAllSecurityConfiguration.ORDER)
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
     var routes = ConfigurationValidationDenyAllSecurityConfiguration.PROTECTED_ROUTES;

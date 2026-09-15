@@ -21,6 +21,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -40,6 +42,10 @@ import org.springframework.security.web.SecurityFilterChain;
  * <p>Denies with a plain 404 rather than 401/403: the Hub adapter calling this route already reads
  * a 404 as "this runtime does not support credential validation" and hides the feature, whereas a
  * 401/403 surfaces as a visible failure.
+ *
+ * <p>Ordered ahead of everything else, and any policy replacing it must use the same {@link #ORDER}
+ * — Spring Security applies the first chain whose matcher accepts the request, so a catch-all chain
+ * in a consuming application would otherwise swallow this route and leave it unprotected.
  */
 @Configuration
 @EnableWebSecurity
@@ -47,7 +53,11 @@ public class ConfigurationValidationDenyAllSecurityConfiguration {
 
   public static final String PROTECTED_ROUTES = "/configurations/**";
 
+  /** Precedence for any chain governing {@link #PROTECTED_ROUTES}; see the class javadoc. */
+  public static final int ORDER = Ordered.HIGHEST_PRECEDENCE;
+
   @Bean
+  @Order(ORDER)
   @ConditionalOnMissingBean(ConfigurationValidationSecurityPolicy.class)
   public SecurityFilterChain configurationValidationDenyAllFilterChain(HttpSecurity http)
       throws Exception {

@@ -70,6 +70,11 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @DynamicPropertySource
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
+    // Deliberately set: the self-managed bundle is a runtime dependency here, so its
+    // auto-configuration must stay inert even when its properties are present. If it did not,
+    // this context would gain a second chain on /configurations/** and a second OIDC discovery.
+    registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
+    registry.add("camunda.connector.auth.self-managed.audience", () -> "connectors");
   }
 
   @AfterAll
@@ -114,8 +119,8 @@ public class ConnectorInstancesSecurityConfigurationTest {
 
   /**
    * This module governs {@code /configurations/**}, so the shared runtime's fail-closed default
-   * must stand down and exactly one policy must be in play — the self-managed bundle is a runtime
-   * dependency here, so its auto-configuration is on this classpath too.
+   * must stand down and exactly one policy must be in play — even with the self-managed properties
+   * set above, which is the cross-bundle case that would otherwise double up.
    */
   @Test
   public void configurationValidationRoute_isGovernedByExactlyOnePolicy() {
