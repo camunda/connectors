@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
@@ -603,7 +603,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
-          java-version: "21.0.9"
+          java-version: "21.0.12+101.0.LTS"
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
