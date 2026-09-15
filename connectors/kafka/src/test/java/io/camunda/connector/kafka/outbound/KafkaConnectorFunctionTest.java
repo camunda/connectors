@@ -21,6 +21,8 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -180,5 +182,69 @@ class KafkaConnectorFunctionTest {
     assertThat(req.authentication()).isNull();
     assertThat(req.topic().bootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
     assertThat(req.topic().topicName()).isEqualTo(SECRET_TOPIC_NAME);
+  }
+
+  @Test
+  void execute_UsesCredentialConnectionForProducer() throws Exception {
+    var capturedProperties = new Properties();
+    var function =
+        new KafkaConnectorFunction(
+            properties -> {
+              capturedProperties.putAll(properties);
+              return producer;
+            });
+    var metadata = new RecordMetadata(new TopicPartition("task-topic", 1), 1, 1, 1, 1, 1);
+    Mockito.when(producer.send(ArgumentMatchers.any()))
+        .thenReturn(CompletableFuture.completedFuture(metadata));
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(
+                Map.of(
+                    "kafkaConnectionConfiguration",
+                    Map.of(
+                        "bootstrapServers", "credential-broker:9093",
+                        "username", "credential-user",
+                        "password", "credential-password"),
+                    "topic",
+                    Map.of("topicName", "task-topic"),
+                    "message",
+                    Map.of("key", "task-key", "value", "task-value")))
+            .build();
+
+    function.execute(context);
+
+    assertThat(capturedProperties)
+        .containsEntry("bootstrap.servers", "credential-broker:9093")
+        .containsEntry("security.protocol", "SASL_SSL")
+        .containsEntry("sasl.mechanism", "PLAIN");
+    assertThat(capturedProperties.getProperty("sasl.jaas.config"))
+        .contains("credential-user", "credential-password");
+    Mockito.verify(producer).send(producerRecordCaptor.capture());
+    assertThat(producerRecordCaptor.getValue().topic()).isEqualTo("task-topic");
+    Mockito.verify(producer).close();
+  }
+
+  @Test
+  void execute_InvalidCredentialDoesNotCreateProducer() {
+    var function =
+        new KafkaConnectorFunction(
+            properties -> {
+              throw new AssertionError("Invalid credentials must fail before creating a producer");
+            });
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(
+                Map.of(
+                    "kafkaConnectionConfiguration",
+                    Map.of("bootstrapServers", "credential-broker:9093", "username", "user"),
+                    "authentication",
+                    Map.of("username", "inline-user", "password", "inline-pass"),
+                    "topic",
+                    Map.of("topicName", "task-topic", "bootstrapServers", "inline:9092"),
+                    "message",
+                    Map.of("value", "task-value")))
+            .build();
+
+    Assertions.assertThrows(ConnectorInputException.class, () -> function.execute(context));
   }
 }
