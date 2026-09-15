@@ -21,7 +21,9 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -33,10 +35,28 @@ public class PhysicalTenantIdRoutingInboundConnectorContextFactory
     implements InboundConnectorContextFactory {
 
   private final Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId;
+  private final Optional<SearchQueryClientRegistry> searchQueryClientRegistry;
 
   public PhysicalTenantIdRoutingInboundConnectorContextFactory(
       Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId) {
+    this(delegatesByPhysicalTenantId, null);
+  }
+
+  /**
+   * {@code searchQueryClientRegistry}, when supplied, resolves a physical tenant ID that has no
+   * delegate here back to the client name {@code delegatesByPhysicalTenantId} was actually keyed by
+   * at construction time. Both maps are keyed the same way at startup (the client's configured
+   * name, whenever its real physical tenant ID isn't readable yet); but only the registry tracks
+   * that a client's later {@code onStart} can migrate its own key to the resolved physical tenant
+   * ID, so it — not this class — is what can bridge an incoming connector element already tagged
+   * with the post-migration ID back to the delegate this map still has filed under the client's
+   * name.
+   */
+  public PhysicalTenantIdRoutingInboundConnectorContextFactory(
+      Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId,
+      SearchQueryClientRegistry searchQueryClientRegistry) {
     this.delegatesByPhysicalTenantId = delegatesByPhysicalTenantId;
+    this.searchQueryClientRegistry = Optional.ofNullable(searchQueryClientRegistry);
   }
 
   @Override
@@ -46,12 +66,23 @@ public class PhysicalTenantIdRoutingInboundConnectorContextFactory
       final Class<T> executableClass,
       final ActivityLogWriter logWriter) {
     var physicalTenantId = connectorDetails.connectorElements().getFirst().physicalTenantId();
-    var delegate = delegatesByPhysicalTenantId.get(physicalTenantId);
+    var delegate = resolveDelegate(physicalTenantId);
     if (delegate == null) {
       throw new IllegalStateException(
           "No CamundaClient configured for physical tenant '" + physicalTenantId + "'");
     }
     return delegate.createContext(
         connectorDetails, cancellationCallback, executableClass, logWriter);
+  }
+
+  private InboundConnectorContextFactory resolveDelegate(String physicalTenantId) {
+    var delegate = delegatesByPhysicalTenantId.get(physicalTenantId);
+    if (delegate != null) {
+      return delegate;
+    }
+    return searchQueryClientRegistry
+        .flatMap(registry -> registry.clientNameFor(physicalTenantId))
+        .map(delegatesByPhysicalTenantId::get)
+        .orElse(null);
   }
 }

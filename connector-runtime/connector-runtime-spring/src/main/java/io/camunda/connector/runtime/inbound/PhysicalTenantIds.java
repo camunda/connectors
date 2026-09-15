@@ -31,8 +31,7 @@ import java.util.stream.Collectors;
 /**
  * Physical-tenant-id resolution helpers shared across every {@code @Configuration} class that needs
  * to build a per-physical-tenant map from a {@link CamundaClientRegistry} ({@link
- * InboundConnectorRuntimeConfiguration}, {@link InboundCorrelationConfiguration}, {@code
- * ProcessDefinitionImportConfiguration}, {@code ProcessInstanceClientConfiguration}). Plain static
+ * InboundConnectorRuntimeConfiguration} and {@link InboundCorrelationConfiguration}). Plain static
  * methods, deliberately not {@code @Bean}-produced: none of these consumers may declare a {@code
  * Map<String, X>}-typed {@code @Bean} parameter, since Spring's dependency resolution special-cases
  * any such parameter by collecting *all* beans of type {@code X} by name — including scalar
@@ -41,6 +40,12 @@ import java.util.stream.Collectors;
  * name rather than the real per-physical-tenant map.
  */
 public final class PhysicalTenantIds {
+
+  /**
+   * Search client state captured together so lifecycle tracking retains the logical client name.
+   */
+  public record SearchQueryClientRegistration(
+      String clientName, CamundaClient camundaClient, SearchQueryClient searchQueryClient) {}
 
   private PhysicalTenantIds() {}
 
@@ -83,13 +88,22 @@ public final class PhysicalTenantIds {
   static String resolvePhysicalTenantId(
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
+      return resolvePhysicalTenantId(resolveClient(registry, name, legacyCamundaClient), name);
     } catch (RuntimeException e) {
       return name;
+    }
+  }
+
+  /**
+   * Resolves the physical tenant ID directly from a client supplied by a lifecycle event, falling
+   * back to the configured client name when no explicit physical tenant ID is available.
+   */
+  public static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
+    try {
+      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      return physicalTenantId != null ? physicalTenantId : clientName;
+    } catch (RuntimeException e) {
+      return clientName;
     }
   }
 
@@ -132,7 +146,7 @@ public final class PhysicalTenantIds {
   }
 
   /**
-   * Builds one {@link SearchQueryClient} per configured physical tenant. When a {@code
+   * Builds one {@link SearchQueryClient} registration per configured physical tenant. When a {@code
    * SearchQueryClient} bean is manually supplied (e.g. a test's {@code @MockitoBean}, used to
    * control process-definition search results) and only a single client is configured, that bean is
    * used in place of constructing a real client — mirroring the {@code legacyCamundaClient}
@@ -140,32 +154,43 @@ public final class PhysicalTenantIds {
    * configuration; applying it to every physical tenant in a genuine multi-client setup would have
    * every tenant's search silently query through the same override instead of its own client.
    */
-  public static Map<String, SearchQueryClient> buildSearchQueryClientsByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      SearchQueryClient legacySearchQueryClient,
-      int limit) {
+  static Map<String, SearchQueryClientRegistration>
+      buildSearchQueryClientRegistrationsByPhysicalTenantId(
+          CamundaClientRegistry registry,
+          CamundaClient legacyCamundaClient,
+          SearchQueryClient legacySearchQueryClient,
+          int limit) {
     boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
     return registry.clientNames().stream()
+        .map(
+            name -> {
+              var client = resolveClient(registry, name, legacyCamundaClient);
+              var physicalTenantId = resolvePhysicalTenantId(client, name);
+              var searchQueryClient =
+                  useOverride ? legacySearchQueryClient : new SearchQueryClientImpl(client, limit);
+              return Map.entry(
+                  physicalTenantId,
+                  new SearchQueryClientRegistration(name, client, searchQueryClient));
+            })
         .collect(
-            toMapByPhysicalTenantId(
-                registry,
-                legacyCamundaClient,
-                name ->
-                    useOverride
-                        ? legacySearchQueryClient
-                        : new SearchQueryClientImpl(
-                            resolveClient(registry, name, legacyCamundaClient), limit)));
+            Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (a, b) -> {
+                  throw new IllegalStateException(
+                      "Multiple CamundaClients resolve to the same physical tenant ID; "
+                          + "each configured client must have a unique physical-tenant-id");
+                }));
   }
 
   /**
    * Builds one {@link DocumentFactory} per configured physical tenant, each backed by its own
    * {@link CamundaDocumentStoreImpl}/{@link CamundaClient} — mirrors {@link
-   * #buildSearchQueryClientsByPhysicalTenantId} exactly, including the single-client-only {@code
-   * legacyDocumentFactory} override escape hatch (e.g. a test's {@code @Primary DocumentFactory}
-   * bean, or an in-memory store for tests), so overriding this bean continues to work for existing
-   * single-physical-tenant deployments/tests without silently applying the same override to every
-   * physical tenant in a genuine multi-client setup.
+   * #buildSearchQueryClientRegistrationsByPhysicalTenantId} exactly, including the
+   * single-client-only {@code legacyDocumentFactory} override escape hatch (e.g. a test's
+   * {@code @Primary DocumentFactory} bean, or an in-memory store for tests), so overriding this
+   * bean continues to work for existing single-physical-tenant deployments/tests without silently
+   * applying the same override to every physical tenant in a genuine multi-client setup.
    */
   public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,

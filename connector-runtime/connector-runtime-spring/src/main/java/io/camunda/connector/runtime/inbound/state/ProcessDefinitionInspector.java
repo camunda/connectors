@@ -32,6 +32,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCo
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import io.camunda.connector.runtime.inbound.state.model.DeployedVersionRef;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
@@ -87,7 +88,7 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
-  private final Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
+  private final SearchQueryClientRegistry searchQueryClientRegistry;
   private final Cache processDefinitionCache;
   private final ConnectorsInboundMetrics metrics;
 
@@ -95,7 +96,17 @@ public class ProcessDefinitionInspector {
       Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
       Cache processDefinitionCache,
       ConnectorsInboundMetrics metrics) {
-    this.searchQueryClientsByPhysicalTenantId = searchQueryClientsByPhysicalTenantId;
+    this(
+        new SearchQueryClientRegistry(searchQueryClientsByPhysicalTenantId, Optional.empty(), 200),
+        processDefinitionCache,
+        metrics);
+  }
+
+  public ProcessDefinitionInspector(
+      SearchQueryClientRegistry searchQueryClientRegistry,
+      Cache processDefinitionCache,
+      ConnectorsInboundMetrics metrics) {
+    this.searchQueryClientRegistry = searchQueryClientRegistry;
     if (processDefinitionCache == null) {
       throw new IllegalArgumentException("processDefinitionCache must not be null");
     }
@@ -133,14 +144,7 @@ public class ProcessDefinitionInspector {
   }
 
   private SearchQueryClient searchQueryClient(ProcessDefinitionRef identifier) {
-    var client = searchQueryClientsByPhysicalTenantId.get(identifier.physicalTenantId());
-    if (client == null) {
-      throw new IllegalStateException(
-          "No CamundaClient configured for physical tenant '"
-              + identifier.physicalTenantId()
-              + "'");
-    }
-    return client;
+    return searchQueryClientRegistry.get(identifier.physicalTenantId());
   }
 
   private List<InboundConnectorElement> fetchAndParseConnectors(

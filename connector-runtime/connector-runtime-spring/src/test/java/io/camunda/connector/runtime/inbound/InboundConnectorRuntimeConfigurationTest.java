@@ -41,11 +41,13 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -74,6 +76,7 @@ class InboundConnectorRuntimeConfigurationTest {
             mock(DocumentFactory.class),
             registry,
             null,
+            new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200),
             mode);
     return (InboundConnectorContextImpl)
         factory.createContext(

@@ -16,14 +16,9 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -31,22 +26,23 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessInstanceClientConfiguration {
 
   /**
-   * Takes the raw inputs rather than a {@code Map<String, SearchQueryClient>} parameter — see
-   * {@link PhysicalTenantIds} for why a {@code Map<String, X>}-typed {@code @Bean} parameter is
-   * unsafe whenever a scalar bean of type {@code X} can also exist in the context (several E2E test
-   * suites add a scalar {@code @MockitoBean SearchQueryClient}).
+   * Built from the shared {@link SearchQueryClientRegistry} bean rather than a one-time {@code
+   * PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId} snapshot, so each {@link
+   * ProcessInstanceClientImpl} resolves its client from the registry per call and picks up a client
+   * replaced by a reconnect — mirroring {@link
+   * io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector}, which the same registry
+   * already backs. The registry is a scalar bean, so injecting it here doesn't hit the {@code
+   * Map<String, X>}-typed {@code @Bean} parameter hazard described on {@link
+   * io.camunda.connector.runtime.inbound.PhysicalTenantIds}.
    */
   @Bean
   public Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
-      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
-    var searchQueryClientsByPhysicalTenantId =
-        PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit);
-    return searchQueryClientsByPhysicalTenantId.entrySet().stream()
+      SearchQueryClientRegistry searchQueryClientRegistry) {
+    return searchQueryClientRegistry.snapshot().keySet().stream()
         .collect(
-            Collectors.toMap(Map.Entry::getKey, e -> new ProcessInstanceClientImpl(e.getValue())));
+            Collectors.toMap(
+                physicalTenantId -> physicalTenantId,
+                physicalTenantId ->
+                    new ProcessInstanceClientImpl(searchQueryClientRegistry, physicalTenantId)));
   }
 }

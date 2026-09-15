@@ -17,20 +17,40 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
+import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.state.ProcessStateContainerImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManagerImpl;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.cache.support.NoOpCacheManager;
 
 /**
  * Verifies that {@link ImportSchedulers} polls every configured physical tenant's {@link
@@ -155,5 +175,171 @@ class ImportSchedulersTest {
 
     verify(importers, times(0)).importActiveVersions(any(), any());
     verify(stateManager, times(0)).update(any());
+  }
+
+  @Test
+  void onStart_registersNewClientForPolling() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions(any(), any())).thenReturn(resultFor("physical-tenant-a"));
+    var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+
+    searchQueryClientRegistry.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions(eq("physical-tenant-a"), any(SearchQueryClient.class));
+    verify(stateManager).update(resultFor("physical-tenant-a"));
+  }
+
+  @Test
+  void onStart_migratesFallbackRegistrationToResolvedPhysicalTenantId() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions("physical-tenant-a", overrideSearchQueryClient))
+        .thenReturn(resultFor("physical-tenant-a"));
+    var searchQueryClientRegistry =
+        new SearchQueryClientRegistry(
+            Map.of("client-a", overrideSearchQueryClient),
+            Optional.of(overrideSearchQueryClient),
+            200);
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+
+    searchQueryClientRegistry.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions("physical-tenant-a", overrideSearchQueryClient);
+    verify(importers, never()).importLatestVersions(eq("client-a"), any());
+  }
+
+  @Test
+  void onStart_declinesDuplicatePhysicalTenantIdFromDifferentClientNameWithoutThrowing() {
+    // onStart runs from CamundaClientEventListener's unguarded forEach over every
+    // CamundaClientLifecycleAware bean (and, for the multi-client producer, over every configured
+    // client); a thrown exception here would abort that fan-out for every client processed after
+    // this one, not just the misconfigured one. So a runtime duplicate must be declined, not
+    // thrown.
+    var firstClient = clientWithPhysicalTenantId("shared-physical-tenant");
+    var duplicateClient = clientWithPhysicalTenantId("shared-physical-tenant");
+    var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
+
+    searchQueryClientRegistry.onStart(firstClient, "client-a");
+
+    assertThatCode(() -> searchQueryClientRegistry.onStart(duplicateClient, "client-b"))
+        .doesNotThrowAnyException();
+
+    // the first registration is left in place: onStop for it still finds and removes it, which
+    // would not be the case had "client-b" silently overwritten the mapping.
+    searchQueryClientRegistry.onStop(firstClient, "client-a");
+    assertThatThrownBy(() -> searchQueryClientRegistry.get("shared-physical-tenant"))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void onStart_replacesSearchClientAfterReconnect() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var oldClient = clientWithPhysicalTenantId("physical-tenant-a");
+    var replacementClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions(any(), any())).thenReturn(resultFor("physical-tenant-a"));
+    var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+    var searchClientCaptor = ArgumentCaptor.forClass(SearchQueryClient.class);
+
+    searchQueryClientRegistry.onStart(oldClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+    searchQueryClientRegistry.onStart(replacementClient, "client-a");
+    searchQueryClientRegistry.onStop(oldClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers, times(2))
+        .importLatestVersions(eq("physical-tenant-a"), searchClientCaptor.capture());
+    assertThat(searchClientCaptor.getAllValues().get(1))
+        .isNotSameAs(searchClientCaptor.getAllValues().get(0));
+  }
+
+  @Test
+  void reconnectRefreshesPollingAndProcessModelFetching() {
+    var oldClient = clientWithPhysicalTenantId("physical-tenant-a");
+    var replacementClient = clientWithPhysicalTenantId("physical-tenant-a");
+    var model = Bpmn.createExecutableProcess("process").done();
+    when(replacementClient.newProcessDefinitionGetXmlRequest(1L).send().join())
+        .thenReturn(Bpmn.convertToString(model));
+    clearInvocations(oldClient, replacementClient);
+
+    var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
+    searchQueryClientRegistry.onStart(oldClient, "client-a");
+    searchQueryClientRegistry.onStart(replacementClient, "client-a");
+    searchQueryClientRegistry.onStop(oldClient, "client-a");
+
+    var metrics = new ConnectorsInboundMetrics(new SimpleMeterRegistry());
+    var cache =
+        new NoOpCacheManager().getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);
+    var inspector = new ProcessDefinitionInspector(searchQueryClientRegistry, cache, metrics);
+    var executableRegistry = mock(InboundExecutableRegistry.class);
+    var stateManager =
+        new ProcessStateManagerImpl(
+            new ProcessStateContainerImpl(), inspector, executableRegistry, metrics);
+    var importers = mock(Importers.class);
+    when(importers.importLatestVersions(eq("physical-tenant-a"), any()))
+        .thenReturn(resultFor("physical-tenant-a"));
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+
+    schedulers.scheduleLatestVersionImport();
+
+    verify(replacementClient).newProcessDefinitionGetXmlRequest(1L);
+    verify(oldClient, never()).newProcessDefinitionGetXmlRequest(anyLong());
+    verify(executableRegistry).publishEvent(any(InboundExecutableEvent.ProcessStateChanged.class));
+  }
+
+  @Test
+  void onStop_removesClientFromPolling() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(camundaClient.getConfiguration().getPhysicalTenantId())
+        .thenReturn("physical-tenant-a")
+        .thenThrow(new IllegalStateException("client is closing"));
+    var searchQueryClientRegistry = new SearchQueryClientRegistry(Map.of(), Optional.empty(), 200);
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+
+    searchQueryClientRegistry.onStart(camundaClient, "client-a");
+    searchQueryClientRegistry.onStop(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers, never()).importLatestVersions(any(), any());
+    assertThat(schedulers.isReady()).isTrue();
+  }
+
+  @Test
+  void reconnect_preservesLegacySearchQueryClientOverride() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions("physical-tenant-a", overrideSearchQueryClient))
+        .thenReturn(resultFor("physical-tenant-a"));
+    var searchQueryClientRegistry =
+        new SearchQueryClientRegistry(
+            Map.of("physical-tenant-a", overrideSearchQueryClient),
+            Optional.of(overrideSearchQueryClient),
+            200);
+    var schedulers = new ImportSchedulers(stateManager, searchQueryClientRegistry, importers, true);
+
+    searchQueryClientRegistry.onStart(camundaClient, "client-a");
+    searchQueryClientRegistry.onStop(camundaClient, "client-a");
+    searchQueryClientRegistry.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions("physical-tenant-a", overrideSearchQueryClient);
+  }
+
+  private static CamundaClient clientWithPhysicalTenantId(String physicalTenantId) {
+    var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn(physicalTenantId);
+    return client;
   }
 }

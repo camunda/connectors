@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -34,9 +35,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Exercises the physical-tenant-id resolution/fallback logic in {@link PhysicalTenantIds} via
- * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientsByPhysicalTenantId} bean
- * method (a plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
- * resolvePhysicalTenantId} and {@code toMapByPhysicalTenantId}.
+ * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientRegistry} bean method (a
+ * plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
+ * resolvePhysicalTenantId} and {@code buildSearchQueryClientRegistrationsByPhysicalTenantId}.
  */
 class PhysicalTenantIdResolutionTest {
 
@@ -56,7 +57,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result = configuration.searchQueryClientRegistry(registry, null, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -68,7 +69,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result = configuration.searchQueryClientRegistry(registry, null, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -81,12 +82,68 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-c"));
     var uninitializedClient = mock(CamundaClient.class);
     when(uninitializedClient.getConfiguration())
-        .thenThrow(new RuntimeException("client not initialized"));
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("resolved-tenant").getConfiguration());
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
 
-    assertThat(result).containsOnlyKeys("engine-c");
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("engine-c");
+
+    searchQueryClientRegistry.onStart(uninitializedClient, "engine-c");
+
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("resolved-tenant");
+  }
+
+  @Test
+  void getResolvesByOldClientNameAfterFallbackMigration() {
+    // a caller that resolved and captured "engine-c" (e.g. a per-physical-tenant map built once,
+    // before the client's real configuration became readable) must keep working after onStart
+    // migrates the registration to "resolved-tenant" — the map key changes underneath it, but the
+    // registration's clientName does not.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-c"));
+    var uninitializedClient = mock(CamundaClient.class);
+    when(uninitializedClient.getConfiguration())
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("resolved-tenant").getConfiguration());
+    when(registry.get("engine-c")).thenReturn(uninitializedClient);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+
+    searchQueryClientRegistry.onStart(uninitializedClient, "engine-c");
+
+    assertThat(searchQueryClientRegistry.get("engine-c"))
+        .isSameAs(searchQueryClientRegistry.get("resolved-tenant"));
+  }
+
+  @Test
+  void onStartDeclinesAndRemovesStaleFallbackKeyOnDuplicateAfterFallbackMigration() {
+    // client-a already legitimately owns "shared". client-b's config wasn't readable at
+    // construction (fell back to its own name "client-b"); once its real config resolves to the
+    // SAME "shared" tenant (a misconfiguration), onStart must decline the duplicate *and* remove
+    // the now-stale "client-b" placeholder — otherwise client-b keeps polling under that bogus key
+    // in addition to never occupying "shared", i.e. the same physical backend gets polled twice.
+    var registry = mock(CamundaClientRegistry.class);
+    var clientA = clientWithPhysicalTenantId("shared");
+    var clientB = mock(CamundaClient.class);
+    when(clientB.getConfiguration())
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("shared").getConfiguration());
+    when(registry.clientNames()).thenReturn(Set.of("client-a", "client-b"));
+    when(registry.get("client-a")).thenReturn(clientA);
+    when(registry.get("client-b")).thenReturn(clientB);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("shared", "client-b");
+    var incumbentSharedClient = searchQueryClientRegistry.get("shared");
+
+    assertThatCode(() -> searchQueryClientRegistry.onStart(clientB, "client-b"))
+        .doesNotThrowAnyException();
+
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("shared");
+    assertThat(searchQueryClientRegistry.get("shared")).isSameAs(incumbentSharedClient);
   }
 
   @Test
@@ -101,7 +158,7 @@ class PhysicalTenantIdResolutionTest {
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
     var result =
-        configuration.searchQueryClientsByPhysicalTenantId(registry, legacyClient, null, 200);
+        configuration.searchQueryClientRegistry(registry, legacyClient, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
   }
@@ -116,11 +173,37 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("default")).thenReturn(client);
     var overrideSearchQueryClient = mock(SearchQueryClient.class);
 
-    var result =
-        configuration.searchQueryClientsByPhysicalTenantId(
-            registry, null, overrideSearchQueryClient, 200);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, overrideSearchQueryClient, 200);
 
-    assertThat(result).containsOnly(Map.entry("tenant", overrideSearchQueryClient));
+    searchQueryClientRegistry.onStart(client, "default");
+
+    assertThat(searchQueryClientRegistry.snapshot())
+        .containsOnly(Map.entry("tenant", overrideSearchQueryClient));
+  }
+
+  @Test
+  void lifecycleDeclinesDuplicatePhysicalTenantBeforeInitialClientStartEventWithoutThrowing() {
+    // Thrown here would abort CamundaClientEventListener's unguarded forEach over every
+    // CamundaClientLifecycleAware bean (and, upstream, the multi-client producer's forEach over
+    // every configured client), taking down clients processed after this one for an unrelated
+    // misconfiguration. So a runtime duplicate is declined instead of thrown.
+    var registry = mock(CamundaClientRegistry.class);
+    var initialClient = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(initialClient);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+    var duplicateClient = clientWithPhysicalTenantId("tenant");
+
+    assertThatCode(() -> searchQueryClientRegistry.onStart(duplicateClient, "engine-b"))
+        .doesNotThrowAnyException();
+
+    // "engine-a" keeps the registration: onStop for it still finds and removes it, which would
+    // not be the case had "engine-b" silently overwritten the mapping.
+    searchQueryClientRegistry.onStop(initialClient, "engine-a");
+    assertThatThrownBy(() -> searchQueryClientRegistry.get("tenant"))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -131,8 +214,7 @@ class PhysicalTenantIdResolutionTest {
         .thenThrow(
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
-    assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+    assertThatThrownBy(() -> configuration.searchQueryClientRegistry(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -146,8 +228,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+    assertThatThrownBy(() -> configuration.searchQueryClientRegistry(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }
