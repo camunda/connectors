@@ -37,3 +37,32 @@
 - Operate is now integrated into the core distribution
 - Updated port configurations for both webhook and Operate interface
 - Improved compatibility with current connector implementations
+
+## Securing `POST /configurations/validate`
+
+The credential-validation endpoint resolves stored secrets in order to run a validator, so it is
+closed by default: with nothing configured it answers **404** to every request, which is the signal
+Camunda Hub reads as "this runtime does not support credential validation" — it hides the feature
+rather than reporting an error.
+
+To enable it, point the runtime at the identity provider whose tokens Hub forwards. `issuer` turns
+the feature on, and `audience` is required whenever `issuer` is set: an issuer alone **fails
+startup**, because it would accept every token that IdP signs for any of its clients. Setting only
+`audience` leaves the feature off, so the route keeps answering 404.
+
+| Property | Environment variable |
+|---|---|
+| `camunda.connector.auth.self-managed.issuer` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_ISSUER` |
+| `camunda.connector.auth.self-managed.audience` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_AUDIENCE` |
+
+- `issuer` — OIDC issuer URL. Its discovery endpoint must be reachable from the runtime at startup,
+  and its JWKS endpoint must be reachable when tokens are validated. It must be the same IdP that
+  authenticates your Hub users.
+- `audience` — the `aud` claim carried by the tokens Hub forwards to this runtime.
+
+Requests are then accepted only with an `Authorization: Bearer <token>` that verifies against that
+issuer's keys, is unexpired, and carries the configured audience. There is no role or claim check
+beyond that, so keep the endpoint off untrusted networks.
+
+Only a `BEARER_TOKEN`-auth cluster registration can supply that token, so `NONE`- and `BASIC`-auth
+clusters cannot use this feature.
