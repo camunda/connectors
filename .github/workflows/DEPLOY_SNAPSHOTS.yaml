@@ -73,7 +73,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
           server-id: camunda-nexus
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
