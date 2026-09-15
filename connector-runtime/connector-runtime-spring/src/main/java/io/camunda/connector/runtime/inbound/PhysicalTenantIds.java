@@ -31,16 +31,22 @@ import java.util.stream.Collectors;
 /**
  * Physical-tenant-id resolution helpers shared across every {@code @Configuration} class that needs
  * to build a per-physical-tenant map from a {@link CamundaClientRegistry} ({@link
- * InboundConnectorRuntimeConfiguration}, {@link InboundCorrelationConfiguration}, {@code
- * ProcessDefinitionImportConfiguration}, {@code ProcessInstanceClientConfiguration}). Plain static
- * methods, deliberately not {@code @Bean}-produced: none of these consumers may declare a {@code
- * Map<String, X>}-typed {@code @Bean} parameter, since Spring's dependency resolution special-cases
- * any such parameter by collecting *all* beans of type {@code X} by name — including scalar
- * override beans (e.g. a test's {@code @MockitoBean SearchQueryClient}) — instead of using the bean
- * whose own declared type is the map. That would silently produce a map keyed by the scalar bean's
- * name rather than the real per-physical-tenant map.
+ * InboundConnectorRuntimeConfiguration}, {@link InboundCorrelationConfiguration}, and {@code
+ * ProcessInstanceClientConfiguration}). Plain static methods, deliberately not
+ * {@code @Bean}-produced: none of these consumers may declare a {@code Map<String, X>}-typed
+ * {@code @Bean} parameter, since Spring's dependency resolution special-cases any such parameter by
+ * collecting *all* beans of type {@code X} by name — including scalar override beans (e.g. a test's
+ * {@code @MockitoBean SearchQueryClient}) — instead of using the bean whose own declared type is
+ * the map. That would silently produce a map keyed by the scalar bean's name rather than the real
+ * per-physical-tenant map.
  */
 public final class PhysicalTenantIds {
+
+  /**
+   * Search client state captured together so lifecycle tracking retains the logical client name.
+   */
+  public record SearchQueryClientRegistration(
+      String clientName, CamundaClient camundaClient, SearchQueryClient searchQueryClient) {}
 
   private PhysicalTenantIds() {}
 
@@ -154,17 +160,41 @@ public final class PhysicalTenantIds {
       CamundaClient legacyCamundaClient,
       SearchQueryClient legacySearchQueryClient,
       int limit) {
+    return buildSearchQueryClientRegistrationsByPhysicalTenantId(
+            registry, legacyCamundaClient, legacySearchQueryClient, limit)
+        .entrySet()
+        .stream()
+        .collect(
+            Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().searchQueryClient()));
+  }
+
+  static Map<String, SearchQueryClientRegistration>
+      buildSearchQueryClientRegistrationsByPhysicalTenantId(
+          CamundaClientRegistry registry,
+          CamundaClient legacyCamundaClient,
+          SearchQueryClient legacySearchQueryClient,
+          int limit) {
     boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
     return registry.clientNames().stream()
+        .map(
+            name -> {
+              var client = resolveClient(registry, name, legacyCamundaClient);
+              var physicalTenantId = resolvePhysicalTenantId(client, name);
+              var searchQueryClient =
+                  useOverride ? legacySearchQueryClient : new SearchQueryClientImpl(client, limit);
+              return Map.entry(
+                  physicalTenantId,
+                  new SearchQueryClientRegistration(name, client, searchQueryClient));
+            })
         .collect(
-            toMapByPhysicalTenantId(
-                registry,
-                legacyCamundaClient,
-                name ->
-                    useOverride
-                        ? legacySearchQueryClient
-                        : new SearchQueryClientImpl(
-                            resolveClient(registry, name, legacyCamundaClient), limit)));
+            Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (a, b) -> {
+                  throw new IllegalStateException(
+                      "Multiple CamundaClients resolve to the same physical tenant ID; "
+                          + "each configured client must have a unique physical-tenant-id");
+                }));
   }
 
   /**

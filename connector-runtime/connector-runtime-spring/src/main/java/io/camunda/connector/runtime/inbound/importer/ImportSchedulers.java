@@ -16,11 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.lifecycle.CamundaClientLifecycleAware;
-import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
@@ -29,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -38,31 +34,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** Utility class for schedulers used to import process data needed for inbound connectors. */
-public class ImportSchedulers implements CamundaClientLifecycleAware {
+public class ImportSchedulers {
 
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
   private final ProcessStateManager stateStore;
-  private final Map<String, ClientRegistration> clientsByPhysicalTenantId;
+  private final SearchQueryClientRegistry searchQueryClientRegistry;
   private final Importers importers;
   private final ExecutorService executor;
-  private final Optional<SearchQueryClient> legacySearchQueryClient;
-  private final Map<String, SearchQueryClient> legacySearchQueryClientsByClientName;
-  private final int limit;
 
   private volatile boolean ready = true;
 
   private final boolean activeVersionsPollingEnabled;
-
-  private record ClientRegistration(
-      Optional<CamundaClient> camundaClient,
-      Optional<String> clientName,
-      SearchQueryClient searchQueryClient) {
-
-    boolean isUnassociated() {
-      return camundaClient.isEmpty() && clientName.isEmpty();
-    }
-  }
 
   public ImportSchedulers(
       ProcessStateManager stateStore,
@@ -71,118 +54,21 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
       boolean activeVersionsPollingEnabled) {
     this(
         stateStore,
-        searchQueryClientsByPhysicalTenantId,
-        Optional.empty(),
-        200,
+        new SearchQueryClientRegistry(searchQueryClientsByPhysicalTenantId, Optional.empty(), 200),
         importers,
         activeVersionsPollingEnabled);
   }
 
   public ImportSchedulers(
       ProcessStateManager stateStore,
-      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
-      Optional<SearchQueryClient> legacySearchQueryClient,
-      int limit,
+      SearchQueryClientRegistry searchQueryClientRegistry,
       Importers importers,
       boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
-    this.clientsByPhysicalTenantId = new ConcurrentHashMap<>();
-    searchQueryClientsByPhysicalTenantId.forEach(
-        (physicalTenantId, client) ->
-            clientsByPhysicalTenantId.put(
-                physicalTenantId,
-                new ClientRegistration(Optional.empty(), Optional.empty(), client)));
-    this.legacySearchQueryClient = legacySearchQueryClient;
-    this.legacySearchQueryClientsByClientName = new ConcurrentHashMap<>();
-    this.limit = limit;
+    this.searchQueryClientRegistry = searchQueryClientRegistry;
     this.importers = importers;
     this.executor = Executors.newVirtualThreadPerTaskExecutor();
-  }
-
-  @Override
-  public void onStart(CamundaClient client) {
-    onStart(client, "default");
-  }
-
-  @Override
-  public void onStop(CamundaClient client) {
-    onStop(client, "default");
-  }
-
-  @Override
-  public synchronized void onStart(CamundaClient client, String clientName) {
-    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
-    var fallbackRegistration =
-        physicalTenantId.equals(clientName)
-            ? Optional.<ClientRegistration>empty()
-            : Optional.ofNullable(clientsByPhysicalTenantId.get(clientName))
-                .filter(ClientRegistration::isUnassociated);
-    var existingRegistration = Optional.ofNullable(clientsByPhysicalTenantId.get(physicalTenantId));
-
-    if (fallbackRegistration.isPresent() && existingRegistration.isPresent()) {
-      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
-    }
-    if (existingRegistration
-        .flatMap(ClientRegistration::clientName)
-        .filter(existingClientName -> !existingClientName.equals(clientName))
-        .isPresent()) {
-      throw duplicatePhysicalTenantId(physicalTenantId, clientName);
-    }
-
-    fallbackRegistration.ifPresent(
-        registration -> clientsByPhysicalTenantId.remove(clientName, registration));
-    var initialRegistration =
-        fallbackRegistration.or(
-            () -> existingRegistration.filter(ClientRegistration::isUnassociated));
-    legacySearchQueryClient
-        .filter(
-            legacyClient ->
-                initialRegistration
-                    .map(registration -> registration.searchQueryClient() == legacyClient)
-                    .orElse(false))
-        .ifPresent(
-            legacyClient -> legacySearchQueryClientsByClientName.put(clientName, legacyClient));
-    var searchQueryClient =
-        Optional.ofNullable(legacySearchQueryClientsByClientName.get(clientName))
-            .orElseGet(() -> new SearchQueryClientImpl(client, limit));
-    clientsByPhysicalTenantId.put(
-        physicalTenantId,
-        new ClientRegistration(Optional.of(client), Optional.of(clientName), searchQueryClient));
-  }
-
-  @Override
-  public synchronized void onStop(CamundaClient client, String clientName) {
-    var matchingRegistration =
-        clientsByPhysicalTenantId.entrySet().stream()
-            .filter(
-                entry ->
-                    entry
-                        .getValue()
-                        .camundaClient()
-                        .filter(registeredClient -> registeredClient == client)
-                        .isPresent())
-            .findFirst();
-    if (matchingRegistration.isPresent()) {
-      var entry = matchingRegistration.orElseThrow();
-      clientsByPhysicalTenantId.remove(entry.getKey(), entry.getValue());
-      return;
-    }
-
-    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
-    clientsByPhysicalTenantId.computeIfPresent(
-        physicalTenantId,
-        (ignored, registration) -> registration.camundaClient().isEmpty() ? null : registration);
-  }
-
-  private static IllegalStateException duplicatePhysicalTenantId(
-      String physicalTenantId, String clientName) {
-    return new IllegalStateException(
-        "CamundaClient '"
-            + clientName
-            + "' resolves to physical tenant ID '"
-            + physicalTenantId
-            + "', which is already registered to another client");
   }
 
   @Scheduled(
@@ -213,16 +99,13 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   private boolean pollAllPhysicalTenants(
       ImportType importType, BiFunction<String, SearchQueryClient, ImportResult> importFn) {
     List<CompletableFuture<Boolean>> futures =
-        clientsByPhysicalTenantId.entrySet().stream()
+        searchQueryClientRegistry.snapshot().entrySet().stream()
             .map(
                 entry ->
                     CompletableFuture.supplyAsync(
                         () ->
                             pollOnePhysicalTenant(
-                                importType,
-                                importFn,
-                                entry.getKey(),
-                                entry.getValue().searchQueryClient()),
+                                importType, importFn, entry.getKey(), entry.getValue()),
                         executor))
             .toList();
     return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
