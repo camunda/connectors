@@ -270,6 +270,11 @@
           <ignoredDependencies>
 <dependency>org.springframework:spring-webmvc</dependency>
             <dependency>org.springframework:spring-web</dependency>
+            <!-- Carry the fail-closed default in front of /configurations/**; the analyzer sees
+                 these through Spring Security's fluent builders rather than as direct references. -->
+            <dependency>org.springframework.security:spring-security-config</dependency>
+            <dependency>org.springframework.security:spring-security-web</dependency>
+            <dependency>org.springframework.security:spring-security-core</dependency>
           </ignoredDependencies>
         </configuration>
       </plugin>
