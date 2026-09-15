@@ -97,6 +97,28 @@ class PhysicalTenantIdResolutionTest {
   }
 
   @Test
+  void getResolvesByOldClientNameAfterFallbackMigration() {
+    // a caller that resolved and captured "engine-c" (e.g. a per-physical-tenant map built once,
+    // before the client's real configuration became readable) must keep working after onStart
+    // migrates the registration to "resolved-tenant" — the map key changes underneath it, but the
+    // registration's clientName does not.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-c"));
+    var uninitializedClient = mock(CamundaClient.class);
+    when(uninitializedClient.getConfiguration())
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("resolved-tenant").getConfiguration());
+    when(registry.get("engine-c")).thenReturn(uninitializedClient);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+
+    searchQueryClientRegistry.onStart(uninitializedClient, "engine-c");
+
+    assertThat(searchQueryClientRegistry.get("engine-c"))
+        .isSameAs(searchQueryClientRegistry.get("resolved-tenant"));
+  }
+
+  @Test
   void fallsBackToLegacyCamundaClientWhenRegistryLookupFails() {
     // simulates a manually-supplied CamundaClient bean (e.g. this repo's own @MockitoBean test
     // pattern) that bypasses the registry's own client-bean registration

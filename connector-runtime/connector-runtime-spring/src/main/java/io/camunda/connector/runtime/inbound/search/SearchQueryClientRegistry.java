@@ -97,13 +97,35 @@ public class SearchQueryClientRegistry implements CamundaClientLifecycleAware {
     return Map.copyOf(snapshot);
   }
 
-  public synchronized SearchQueryClient get(String physicalTenantId) {
-    var registration = clientsByPhysicalTenantId.get(physicalTenantId);
-    if (registration == null) {
-      throw new IllegalStateException(
-          "No CamundaClient configured for physical tenant '" + physicalTenantId + "'");
+  /**
+   * Resolves by physical tenant ID first, then falls back to treating {@code
+   * physicalTenantIdOrClientName} as a configured client name. A caller that captured this key
+   * before the client's real configuration became readable (the {@code onStart} fallback-migration
+   * case in {@link PhysicalTenantIds#resolvePhysicalTenantId(CamundaClientRegistry, String,
+   * CamundaClient)}) would otherwise see the entry vanish out from under it once {@code onStart}
+   * migrates the registration to the resolved physical tenant ID — the map key changes, but {@code
+   * clientName} on the registration does not.
+   */
+  public synchronized SearchQueryClient get(String physicalTenantIdOrClientName) {
+    var registration = clientsByPhysicalTenantId.get(physicalTenantIdOrClientName);
+    if (registration != null) {
+      return registration.searchQueryClient();
     }
-    return registration.searchQueryClient();
+    // Deliberately requires an explicit, present clientName match — not belongsTo(), whose
+    // isUnassociated() fallback would otherwise make every unassociated (legacy, no-lifecycle)
+    // registration match any key at all.
+    return clientsByPhysicalTenantId.values().stream()
+        .filter(
+            candidate ->
+                candidate.clientName().filter(physicalTenantIdOrClientName::equals).isPresent())
+        .findFirst()
+        .map(ClientRegistration::searchQueryClient)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No CamundaClient configured for physical tenant '"
+                        + physicalTenantIdOrClientName
+                        + "'"));
   }
 
   @Override
