@@ -22,7 +22,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +54,7 @@ class MultiClientPhysicalTenantWiringTest {
 
   @Autowired private CamundaClientRegistry camundaClientRegistry;
 
-  @Autowired private Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
+  @Autowired private SearchQueryClientRegistry searchQueryClientRegistry;
 
   @Autowired private Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId;
 
@@ -68,13 +68,13 @@ class MultiClientPhysicalTenantWiringTest {
 
   @Test
   void everyPerPhysicalTenantMapHasOneEntryPerConfiguredPhysicalTenant() {
-    assertThat(searchQueryClientsByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("tenanta", "tenantb");
     assertThat(processInstanceClientsByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
   }
 
   /**
    * Correlation handlers are deliberately not exposed as their own {@code Map<String,
-   * InboundCorrelationHandler>} bean (unlike the other per-physical-tenant maps above): {@link
+   * InboundCorrelationHandler>} bean (unlike the process-instance-client map above): {@link
    * InboundCorrelationConfiguration} also declares a {@code @Lazy} scalar {@link
    * InboundCorrelationHandler} bean for backward compatibility, and any {@code @Autowired
    * Map<String, InboundCorrelationHandler>} injection point in the same context risks Spring's
