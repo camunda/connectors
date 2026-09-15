@@ -109,11 +109,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         "Creating agent instance for element instance {}: model={}, provider={}",
         elementInstanceKey,
         configuration.chatModel().model(),
-        configuration.chatModel().provider());
+        configuration.chatModel().descriptiveProvider());
 
-    // model/provider are set only here, at create time; later CONFIGURATION items omit them.
-    // maxModelCalls isn't set here either: the engine rejects top-level limits alongside a
-    // history batch.
     final var command =
         camundaClient
             .newCreateAgentInstanceCommand()
@@ -123,8 +120,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .history(
                 List.of(
                     configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
-                        .model(configuration.chatModel().model())
-                        .provider(configuration.chatModel().provider())));
+                        .model(configuration.chatModel().model())));
 
     try {
       final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
@@ -250,6 +246,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .content(List.of())
         .loopIteration(iterationKey)
         .producedAt(producedAt)
+        .provider(configuration.chatModel().descriptiveProvider())
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
         .tools(toolMapper.mapTools(configuration.toolDefinitions()))
