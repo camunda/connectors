@@ -60,7 +60,6 @@ class SelfManagedApiSecurityAutoConfigurationTest {
         .content(BODY);
   }
 
-  /** Nothing configured: the route must fail closed, and as a 404 rather than a 401/403. */
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
@@ -90,10 +89,6 @@ class SelfManagedApiSecurityAutoConfigurationTest {
     }
   }
 
-  /**
-   * Configured. Every case goes through a real {@code Authorization: Bearer} header so the
-   * configured {@code JwtDecoder} decides, not a pre-authenticated stand-in.
-   */
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
@@ -181,7 +176,6 @@ class SelfManagedApiSecurityAutoConfigurationTest {
     }
   }
 
-  /** An issuer without an audience is a configuration error, not a looser mode. */
   @Nested
   class WithIssuerButNoAudience {
 
@@ -208,12 +202,6 @@ class SelfManagedApiSecurityAutoConfigurationTest {
     }
   }
 
-  /**
-   * Hybrid: a self-managed runtime reaching a SaaS-hosted cluster sets {@code
-   * camunda.client.mode=saas} but carries none of the SaaS bundle's classes, so this bundle's
-   * policy must still register. Uses a context runner rather than {@code @SpringBootTest} to avoid
-   * unrelated CamundaClient validation of SaaS-style connection properties.
-   */
   @Nested
   class HybridRegression {
 
@@ -240,10 +228,6 @@ class SelfManagedApiSecurityAutoConfigurationTest {
     }
   }
 
-  /**
-   * With no issuer this bundle contributes nothing, and the shared runtime's fail-closed default is
-   * what answers — so the route is closed by the layer below, not by this one.
-   */
   @Nested
   class WithoutIssuerTheSharedDefaultApplies {
 

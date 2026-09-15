@@ -37,14 +37,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Local OIDC issuer for tests that need provider discovery/JWKS endpoints without depending on an
- * external identity provider.
- *
- * <p>The signing key behind the served JWKS is kept, so {@link #token()} can mint tokens that
- * actually verify against it — letting a test exercise a real {@code JwtDecoder} (signature,
- * expiry, issuer, audience) rather than a pre-authenticated stand-in.
- */
+/** Local OIDC issuer for tests; {@link #token()} mints tokens valid against its JWKS. */
 public final class MockOidcServer implements AutoCloseable {
 
   private static final String OPEN_ID_CONFIGURATION_PATH = "/.well-known/openid-configuration";
@@ -78,17 +71,11 @@ public final class MockOidcServer implements AutoCloseable {
     return server.baseUrl() + TOKEN_PATH;
   }
 
-  /**
-   * Starts building a JWT signed with this server's key, defaulting to a token this server's own
-   * issuer would accept: {@code iss} set to {@link #issuer()} and an expiry five minutes out.
-   * Override those defaults to build the rejection cases (wrong issuer, expired, wrong audience);
-   * sign with a <em>second</em> server's {@code token()} to build an invalid-signature case.
-   */
+  /** A JWT signed with this server's key; defaults to one this issuer would accept. */
   public TokenBuilder token() {
     return new TokenBuilder(this);
   }
 
-  /** A JWT under construction, signed by the {@link MockOidcServer} it came from. */
   public static final class TokenBuilder {
 
     private final MockOidcServer server;
@@ -128,7 +115,6 @@ public final class MockOidcServer implements AutoCloseable {
       return this;
     }
 
-    /** Returns the serialized, signed token. */
     public String sign() {
       var header =
           """
@@ -277,11 +263,7 @@ public final class MockOidcServer implements AutoCloseable {
     return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
   }
 
-  /**
-   * JWK {@code n}/{@code e} are the unsigned big-endian magnitude, so the sign byte {@link
-   * java.math.BigInteger#toByteArray()} prepends for a positive value has to go. Only for those:
-   * stripping a leading zero from arbitrary bytes (a signature, say) would corrupt them.
-   */
+  /** Strips BigInteger's sign byte for JWK n/e. Never use on arbitrary bytes like a signature. */
   private static String base64UrlMagnitude(BigInteger value) {
     var bytes = value.toByteArray();
     if (bytes.length > 1 && bytes[0] == 0) {

@@ -35,9 +35,7 @@
       <artifactId>spring-boot-autoconfigure</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- For the fail-closed default in front of /configurations/**, which ships with the route so
-         every runtime carrying the endpoint has a policy, custom applications included. Supplied
-         at runtime by spring-boot-starter-camunda-connectors. -->
+    <!-- For ConfigurationValidationDenyAllSecurityConfiguration; supplied at runtime by the starter. -->
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
@@ -270,8 +268,7 @@
           <ignoredDependencies>
 <dependency>org.springframework:spring-webmvc</dependency>
             <dependency>org.springframework:spring-web</dependency>
-            <!-- Carry the fail-closed default in front of /configurations/**; the analyzer sees
-                 these through Spring Security's fluent builders rather than as direct references. -->
+            <!-- Used only through Spring Security's fluent builders. -->
             <dependency>org.springframework.security:spring-security-config</dependency>
             <dependency>org.springframework.security:spring-security-web</dependency>
             <dependency>org.springframework.security:spring-security-core</dependency>

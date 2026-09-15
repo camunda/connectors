@@ -28,32 +28,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * The fail-closed default for {@code /configurations/**}, which resolves stored secrets to run a
- * validator and so must never be reachable anonymously. It ships with the route itself, so any
- * runtime that has the endpoint has a default in front of it — including a custom Spring Boot
- * application built directly on the starter, which has no bundle to inherit one from.
- *
- * <p>Whichever module supplies a real policy declares a {@link
- * ConfigurationValidationSecurityPolicy} bean ({@code default-bundle} the self-managed OIDC chain,
- * {@code camunda-saas-bundle} the Console JWT and role chain) and this stands down, so the route is
- * governed by exactly one chain.
- *
- * <p>Denies with a plain 404 rather than 401/403: the Hub adapter calling this route already reads
- * a 404 as "this runtime does not support credential validation" and hides the feature, whereas a
- * 401/403 surfaces as a visible failure.
- *
- * <p>Ordered ahead of everything else, and any policy replacing it must use the same {@link #ORDER}
- * — Spring Security applies the first chain whose matcher accepts the request, so a catch-all chain
- * in a consuming application would otherwise swallow this route and leave it unprotected.
- */
+/** Fail-closed 404 on {@code /configurations/**} unless a module declares a policy. */
 @Configuration
 @EnableWebSecurity
 public class ConfigurationValidationDenyAllSecurityConfiguration {
 
   public static final String PROTECTED_ROUTES = "/configurations/**";
 
-  /** Precedence for any chain governing {@link #PROTECTED_ROUTES}; see the class javadoc. */
+  /** Shared by every chain on this route: Spring Security applies the first one that matches. */
   public static final int ORDER = Ordered.HIGHEST_PRECEDENCE;
 
   @Bean

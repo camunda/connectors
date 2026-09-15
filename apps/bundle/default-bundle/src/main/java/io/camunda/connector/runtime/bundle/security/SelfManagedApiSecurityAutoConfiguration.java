@@ -36,34 +36,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
-/**
- * The self-managed policy for {@code POST /configurations/validate}, which resolves stored secrets
- * to run a validator. It is this bundle's counterpart to the Console JWT chain {@code
- * camunda-saas-bundle} supplies for the same route.
- *
- * <p>Self-managed has no fixed identity provider the way SaaS has Console, so the policy is opt-in
- * via {@code camunda.connector.auth.self-managed.issuer} and {@code ...audience} (both required
- * together; startup fails on an issuer alone, which would accept every token that IdP signs for any
- * of its clients). Configure them to the issuer and {@code aud} of the tokens Hub forwards.
- *
- * <p>Absent the issuer this contributes nothing, and {@link
- * ConfigurationValidationDenyAllSecurityConfiguration} in the shared runtime keeps the route closed
- * — the operator simply doesn't get Hub's "validate credential" feature, the same degradation the
- * Hub adapter already applies to a {@code BASIC}-auth cluster or a too-old runtime.
- *
- * <p>Registered as an auto-configuration rather than component-scanned, because the runtime's
- * {@code @SpringBootApplication} lives in {@code connector-runtime-application} and scans its own
- * package. Ordered before {@link ConnectorsAutoConfiguration} so the {@link
- * ConfigurationValidationSecurityPolicy} below is in place when the shared fail-closed default
- * tests for it.
- *
- * <p>Also lands on the SaaS classpath, since {@code camunda-saas-bundle} depends on this bundle. It
- * stays inert there even if the self-managed properties are set, because SaaS declares its own
- * {@link ConfigurationValidationSecurityPolicy} from a component-scanned configuration — those are
- * registered before any auto-configuration, so the condition below sees it and backs off. Without
- * that, setting the self-managed issuer on SaaS would add a second chain on the route and a second
- * OIDC discovery at startup.
- */
+/** Self-managed policy for {@code /configurations/**}; needs issuer + audience properties. */
 @Configuration
 @EnableWebSecurity
 @AutoConfigureBefore(ConnectorsAutoConfiguration.class)

@@ -21,11 +21,6 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-/**
- * Mirrors {@code camunda-saas-bundle}'s validator of the same name; this bundle cannot depend on
- * that module (the dependency runs the other way), so this is a local copy rather than a shared
- * one.
- */
 class AudienceValidator implements OAuth2TokenValidator<Jwt> {
   private final String audience;
 
@@ -35,8 +30,7 @@ class AudienceValidator implements OAuth2TokenValidator<Jwt> {
 
   @Override
   public OAuth2TokenValidatorResult validate(Jwt jwt) {
-    // aud is optional in a JWT, and Jwt#getAudience is null when the claim is absent rather than
-    // an empty list — a token minted without it must be rejected, not blow up mid-filter.
+    // Jwt#getAudience is null, not empty, when the claim is absent.
     var tokenAudience = jwt.getAudience();
     if (tokenAudience != null && tokenAudience.contains(audience)) {
       return OAuth2TokenValidatorResult.success();

@@ -49,13 +49,8 @@ import org.springframework.context.annotation.Import;
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
  *
- * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
- * value can reach the response (see the message-safety policy on {@code
- * ConfigurationValidationService}), and the route is reachable only by trusted callers: it ships
- * with {@link ConfigurationValidationDenyAllSecurityConfiguration}, a fail-closed default that each
- * bundle replaces with its own policy — the Console JWT and role chain on SaaS, an opt-in OIDC
- * chain on self-managed. A custom application built directly on this starter gets the fail-closed
- * default, so it must supply a policy of its own to enable the endpoint.
+ * <p>{@code POST /configurations/validate} resolves stored secrets, so it ships behind {@link
+ * ConfigurationValidationDenyAllSecurityConfiguration} unless a module declares its own policy.
  */
 @Configuration
 @Import({

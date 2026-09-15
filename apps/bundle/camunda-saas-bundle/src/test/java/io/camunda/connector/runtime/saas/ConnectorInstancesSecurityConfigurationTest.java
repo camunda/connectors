@@ -70,9 +70,7 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @DynamicPropertySource
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
-    // Deliberately set: the self-managed bundle is a runtime dependency here, so its
-    // auto-configuration must stay inert even when its properties are present. If it did not,
-    // this context would gain a second chain on /configurations/** and a second OIDC discovery.
+    // Deliberately set: the self-managed auto-configuration must stay inert here.
     registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
     registry.add("camunda.connector.auth.self-managed.audience", () -> "connectors");
   }
@@ -117,20 +115,15 @@ public class ConnectorInstancesSecurityConfigurationTest {
     mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
   }
 
-  /**
-   * This module governs {@code /configurations/**}, so the shared runtime's fail-closed default
-   * must stand down and exactly one policy must be in play — even with the self-managed properties
-   * set above, which is the cross-bundle case that would otherwise double up.
-   */
   @Test
   public void configurationValidationRoute_isGovernedByExactlyOnePolicy() {
     assertThat(applicationContext.getBeansOfType(ConfigurationValidationSecurityPolicy.class))
         .hasSize(1);
     assertThat(applicationContext.containsBean("configurationValidationDenyAllFilterChain"))
-        .as("the shared fail-closed default must stand down when this module supplies a policy")
+        .as("shared fail-closed default must stand down")
         .isFalse();
     assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
-        .as("the self-managed chain must not register without a self-managed issuer")
+        .as("self-managed chain must stay inert")
         .isFalse();
   }
 

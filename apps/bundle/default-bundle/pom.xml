@@ -30,8 +30,7 @@
       <artifactId>connector-runtime-core</artifactId>
     </dependency>
 
-    <!-- This bundle's own policy for /configurations/**, replacing the shared runtime's
-         fail-closed default (see SelfManagedApiSecurityAutoConfiguration). -->
+    <!-- For SelfManagedApiSecurityAutoConfiguration. -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-spring</artifactId>
@@ -410,8 +409,6 @@
                 <dependency>io.camunda.connector:spring-boot-starter-camunda-connectors</dependency>
                 <dependency>org.springframework.security:spring-security-core</dependency>
                 <dependency>org.springframework.security:spring-security-oauth2-resource-server</dependency>
-                <!-- required by javac to resolve HttpSecurity#securityMatchers' overloads, but the
-                     compiled bytecode only references the String-only overload used -->
                 <dependency>org.springframework:spring-web</dependency>
               </ignoredDependencies>
             </configuration>

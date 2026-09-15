@@ -17,14 +17,8 @@
 package io.camunda.connector.runtime.configuration.security;
 
 /**
- * Declared by whichever module protects {@code /configurations/**}, to say that it has done so.
- * {@link ConfigurationValidationDenyAllSecurityConfiguration} stands down when one is present, so
- * exactly one policy governs the route.
+ * Declared by whichever module protects {@code /configurations/**}.
  *
- * <p>A bean of this type is the contract between the shared runtime and the bundles, deliberately
- * in place of a condition naming another module's class: a type reference cannot silently stop
- * matching when that class is renamed or moved.
- *
- * @param name for diagnostics — which module supplied the policy.
+ * @param name which module supplied the policy, for diagnostics.
  */
 public record ConfigurationValidationSecurityPolicy(String name) {}

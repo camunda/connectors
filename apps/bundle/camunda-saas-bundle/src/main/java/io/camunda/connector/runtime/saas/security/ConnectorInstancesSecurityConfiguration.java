@@ -78,10 +78,6 @@ public class ConnectorInstancesSecurityConfiguration {
     };
   }
 
-  /**
-   * Stands the shared runtime's fail-closed default for {@code /configurations/**} down: this
-   * module governs that route with the Console JWT chain below.
-   */
   @Bean
   public ConfigurationValidationSecurityPolicy saasConfigurationValidationPolicy() {
     return new ConfigurationValidationSecurityPolicy("SaaS Console JWT");
