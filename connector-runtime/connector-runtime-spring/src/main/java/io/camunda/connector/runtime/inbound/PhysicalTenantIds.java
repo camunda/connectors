@@ -83,13 +83,22 @@ public final class PhysicalTenantIds {
   static String resolvePhysicalTenantId(
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
+      return resolvePhysicalTenantId(resolveClient(registry, name, legacyCamundaClient), name);
     } catch (RuntimeException e) {
       return name;
+    }
+  }
+
+  /**
+   * Resolves the physical tenant ID directly from a client supplied by a lifecycle event, falling
+   * back to the configured client name when no explicit physical tenant ID is available.
+   */
+  public static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
+    try {
+      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      return physicalTenantId != null ? physicalTenantId : clientName;
+    } catch (RuntimeException e) {
+      return clientName;
     }
   }
 
