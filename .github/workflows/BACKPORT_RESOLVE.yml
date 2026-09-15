@@ -121,7 +121,7 @@ jobs:
           # `--arg` is a jq option, not a `gh api` one — it can't follow `--jq` directly,
           # so pipe the paginated (concatenated) JSON into a real jq instead.
           gh api "repos/${REPO}/issues/${BACKPORT_PR}/comments" --paginate \
-            | jq --arg bot "${BOT_LOGIN}" \
+            | jq -r --arg bot "${BOT_LOGIN}" \
                 '.[] | select(.user.login == $bot) | select(.body | test("cherry-pick the changes locally")) | .body' \
             > /tmp/conflict-instructions.txt
 
@@ -257,6 +257,9 @@ jobs:
           PRE_SHA: ${{ steps.pre.outputs.head_sha }}
           SOURCE_AUTHOR: ${{ steps.ctx.outputs.source_author }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
+          NEXUS_USER: ${{ steps.secrets.outputs.NEXUS_USER }}
+          NEXUS_PASSWORD: ${{ steps.secrets.outputs.NEXUS_PASSWORD }}
         run: |
           set -euo pipefail
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
@@ -265,22 +268,48 @@ jobs:
             gh pr comment "${BACKPORT_PR}" --repo "${REPO}" --body "$1"
           }
 
+          # The agent fully controls this file's content. Redact any of the secrets it
+          # had filesystem access to (but no env access to push with) before this trusted
+          # step publishes it verbatim to a PR comment — otherwise a prompt-injected agent
+          # could exfiltrate them through the comment itself, with no network egress needed.
+          redact() {
+            local text="$1" secret="$2"
+            if [ -n "${secret}" ]; then
+              text=$(printf '%s' "${text}" | sed "s/$(printf '%s' "${secret}" | sed 's/[.[\*^$()+?{|\\\/&]/\\&/g')/[redacted]/g")
+            fi
+            printf '%s' "${text}"
+          }
+
           notes="_The agent left no notes._"
           if [ -s /tmp/backport-notes.txt ]; then
             notes=$(cat /tmp/backport-notes.txt)
           fi
+          notes=$(redact "${notes}" "${ANTHROPIC_API_KEY}")
+          notes=$(redact "${notes}" "${NEXUS_USER}")
+          notes=$(redact "${notes}" "${NEXUS_PASSWORD}")
+
           local_sha=$(git rev-parse HEAD)
           if [ "${local_sha}" = "${PRE_SHA}" ]; then
             comment ":warning: The backport resolution agent left this unchanged (agent step: \`${AGENT_OUTCOME}\`), so this PR stays a draft. Resolve it locally with the instructions above. ${notes} [Run](${run_url})"
             exit 0
           fi
 
-          # Push by explicit URL and captured sha, bypassing hooks: the agent ran with
-          # unrestricted shell access to this checkout and could have left a `pre-push`
-          # hook or repointed `remote.origin.url` to smuggle this credential out once it
-          # appears here.
-          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
-            push --no-verify --force-with-lease "https://github.com/${REPO}.git" "${local_sha}:refs/heads/${HEAD}"
+          # Push from a pristine, agent-untouched clone with an isolated git environment:
+          # the working tree's local config (aliases like `push`, `url.*.insteadOf`, hooks)
+          # and the runner's own global/system git config are all reachable by the agent's
+          # unrestricted shell, and `git push` anywhere under this HOME honors all of it
+          # regardless of the URL/refspec given — so push from neither. The lease is pinned
+          # to PRE_SHA, captured before the agent ran, rather than a local remote-tracking
+          # ref the agent could have forged with `git fetch`/`update-ref`.
+          fresh_dir=$(mktemp -d)
+          git init --quiet "${fresh_dir}"
+          GIT_CONFIG_NOSYSTEM=1 HOME="${fresh_dir}" git -C "${fresh_dir}" \
+            fetch --quiet "${GITHUB_WORKSPACE}" "${local_sha}"
+          GIT_CONFIG_NOSYSTEM=1 HOME="${fresh_dir}" git -C "${fresh_dir}" \
+            -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
+            push --no-verify --force-with-lease="refs/heads/${HEAD}:${PRE_SHA}" \
+            "https://github.com/${REPO}.git" "${local_sha}:refs/heads/${HEAD}"
+          rm -rf "${fresh_dir}"
 
           gh pr ready "${BACKPORT_PR}" --repo "${REPO}"
           comment ":robot: Conflict resolved by the backport resolution agent — a machine merge, so please read the diff rather than only the checks. ${notes} [Run](${run_url})"
