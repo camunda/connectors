@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -67,6 +69,9 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @DynamicPropertySource
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
+    // Deliberately set: the self-managed auto-configuration must stay inert here.
+    registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
+    registry.add("camunda.connector.auth.self-managed.audience", () -> "connectors");
   }
 
   @AfterAll
@@ -81,6 +86,8 @@ public class ConnectorInstancesSecurityConfigurationTest {
   public CamundaClient camundaClient;
 
   @Autowired private MockMvc mvc;
+
+  @Autowired private ApplicationContext applicationContext;
 
   @Test
   public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
@@ -105,6 +112,16 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @Test
   public void configurationsEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
+  }
+
+  /**
+   * The self-managed chain names connectorInstancesFilterChain in a string literal to back off.
+   * Renaming that bean would otherwise put a second chain on this route.
+   */
+  @Test
+  public void selfManagedChain_backsOffBehindTheConsoleChain() {
+    assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
+        .isFalse();
   }
 
   @Test
