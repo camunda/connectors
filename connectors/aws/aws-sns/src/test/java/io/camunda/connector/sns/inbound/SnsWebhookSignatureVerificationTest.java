@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.sns.message.SnsMessage;
 import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
+import com.sun.net.httpserver.HttpServer;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
@@ -22,6 +23,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -30,6 +32,7 @@ import java.security.Signature;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -71,6 +74,47 @@ class SnsWebhookSignatureVerificationTest {
     assertThatThrownBy(() -> executable.triggerWebhook(payload))
         .hasMessageContaining("Request didn't match allow list")
         .hasMessageContaining(OTHER_TOPIC_ARN);
+  }
+
+  @Test
+  void triggerWebhook_signedUnlistedSubscriptionDoesNotInvokeConfirmationUrl() throws Exception {
+    AtomicInteger callbackCount = new AtomicInteger();
+    HttpServer callbackServer = startCallbackServer(callbackCount);
+    try {
+      KeyPair keyPair = generateRsaKeyPair();
+      String subscribeUrl =
+          "http://127.0.0.1:" + callbackServer.getAddress().getPort() + "/confirm";
+      Map<String, String> fields = subscriptionConfirmationFields(OTHER_TOPIC_ARN, subscribeUrl);
+      SnsWebhookExecutable executable = createExecutable(keyPair, "specific", TOPIC_ARN);
+      WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), TOPIC_ARN);
+
+      assertThatThrownBy(() -> executable.triggerWebhook(payload))
+          .hasMessageContaining("Request didn't match allow list")
+          .hasMessageContaining(OTHER_TOPIC_ARN);
+      assertThat(callbackCount.get()).isZero();
+    } finally {
+      callbackServer.stop(0);
+    }
+  }
+
+  @Test
+  void triggerWebhook_signedAllowListedSubscriptionInvokesConfirmationUrl() throws Exception {
+    AtomicInteger callbackCount = new AtomicInteger();
+    HttpServer callbackServer = startCallbackServer(callbackCount);
+    try {
+      KeyPair keyPair = generateRsaKeyPair();
+      String subscribeUrl =
+          "http://127.0.0.1:" + callbackServer.getAddress().getPort() + "/confirm";
+      Map<String, String> fields = subscriptionConfirmationFields(TOPIC_ARN, subscribeUrl);
+      SnsWebhookExecutable executable = createExecutable(keyPair, "specific", TOPIC_ARN);
+      WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), TOPIC_ARN);
+
+      assertThat(executable.triggerWebhook(payload).connectorData())
+          .containsEntry("snsEventType", "Subscription");
+      assertThat(callbackCount.get()).isEqualTo(1);
+    } finally {
+      callbackServer.stop(0);
+    }
   }
 
   @Test
@@ -276,14 +320,30 @@ class SnsWebhookSignatureVerificationTest {
     return fields;
   }
 
+  private static Map<String, String> subscriptionConfirmationFields(
+      String topicArn, String subscribeUrl) {
+    Map<String, String> fields = new LinkedHashMap<>();
+    fields.put("Type", "SubscriptionConfirmation");
+    fields.put("MessageId", "b9b4574f-b4ab-4c03-ac14-a3145896747f");
+    fields.put("Token", "test-token");
+    fields.put("TopicArn", topicArn);
+    fields.put("Message", "Confirm this subscription");
+    fields.put("SubscribeURL", subscribeUrl);
+    fields.put("Timestamp", "2023-04-26T15:04:47.883Z");
+    return fields;
+  }
+
   /**
-   * AWS's canonical "string to sign" for a Notification: present fields, sorted by key, as
+   * AWS's canonical "string to sign": present message-type fields, sorted by key, as
    * "Key\nValue\n".
    */
   private static String canonicalStringToSign(Map<String, String> fields) {
-    String[] keysInSortedOrder = {
-      "Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"
-    };
+    String[] keysInSortedOrder =
+        "SubscriptionConfirmation".equals(fields.get("Type"))
+            ? new String[] {
+              "Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type"
+            }
+            : new String[] {"Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"};
     StringBuilder builder = new StringBuilder();
     for (String key : keysInSortedOrder) {
       String value = fields.get(key);
@@ -299,6 +359,32 @@ class SnsWebhookSignatureVerificationTest {
     signer.initSign(keyPair.getPrivate());
     signer.update(canonicalStringToSign(fields).getBytes(StandardCharsets.UTF_8));
     return Base64.getEncoder().encodeToString(signer.sign());
+  }
+
+  private static HttpServer startCallbackServer(AtomicInteger callbackCount) throws Exception {
+    HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.createContext(
+        "/confirm",
+        exchange -> {
+          callbackCount.incrementAndGet();
+          byte[] response =
+              """
+              <ConfirmSubscriptionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+                <ConfirmSubscriptionResult>
+                  <SubscriptionArn>%s:11111111-2222-3333-4444-555555555555</SubscriptionArn>
+                </ConfirmSubscriptionResult>
+                <ResponseMetadata><RequestId>req-1</RequestId></ResponseMetadata>
+              </ConfirmSubscriptionResponse>
+              """
+                  .formatted(TOPIC_ARN)
+                  .getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().set("Content-Type", "text/xml");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.close();
+        });
+    server.start();
+    return server;
   }
 
   private static String toJson(Map<String, String> fields, String signature) {
