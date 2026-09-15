@@ -55,8 +55,9 @@ startup**, because it would accept every token that IdP signs for any of its cli
 | `camunda.connector.auth.self-managed.issuer` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_ISSUER` |
 | `camunda.connector.auth.self-managed.audience` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_AUDIENCE` |
 
-- `issuer` — OIDC issuer URL. Must be reachable from the runtime at startup (it performs discovery
-  to fetch the IdP's signing keys) and must be the same IdP that authenticates your Hub users.
+- `issuer` — OIDC issuer URL. Its discovery endpoint must be reachable from the runtime at startup,
+  and its JWKS endpoint must be reachable when tokens are validated. It must be the same IdP that
+  authenticates your Hub users.
 - `audience` — the `aud` claim carried by the tokens Hub forwards to this runtime.
 
 Requests are then accepted only with an `Authorization: Bearer <token>` that verifies against that
