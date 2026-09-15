@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
  * Exercises the physical-tenant-id resolution/fallback logic in {@link PhysicalTenantIds} via
  * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientRegistry} bean method (a
  * plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
- * resolvePhysicalTenantId} and {@code toMapByPhysicalTenantId}.
+ * resolvePhysicalTenantId} and {@code buildSearchQueryClientRegistrationsByPhysicalTenantId}.
  */
 class PhysicalTenantIdResolutionTest {
 
