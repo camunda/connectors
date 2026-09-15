@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,8 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import com.azure.identity.AuthenticationUtil;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.time.Duration;
@@ -24,34 +23,28 @@ import org.mockito.MockedStatic;
 
 /**
  * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
- * this class only verifies the openai-java {@code Credential} mapping per authentication variant.
+ * this class only verifies the bearer-token-supplier and scope resolution per authentication
+ * variant.
  */
-class OpenAiFoundryCredentialResolverTest {
+class FoundryCredentialResolverTest {
 
-  private final OpenAiFoundryCredentialResolver resolver =
-      new OpenAiFoundryCredentialResolver(
+  private final FoundryCredentialResolver resolver =
+      new FoundryCredentialResolver(
           new EntraIdTokenCredentialFactory(
               mock(AgenticAiHttpProxySupport.class),
               new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @Test
-  void resolvesApiKeyCredential() {
-    final var credential =
-        resolver.credential(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret"));
-
-    assertThat(credential).isNotNull();
-  }
-
-  @Test
-  void resolvesClientCredentialsAndManagedIdentityCredentialsWithoutThrowing() {
-    // building the wrapping Credential must not eagerly touch the network -- only calling its
-    // token supplier (i.e. issuing a real request) would.
+  void resolvesClientCredentialsAndManagedIdentitySuppliersWithoutThrowing() {
+    // building the wrapping supplier must not eagerly touch the network -- only calling it
+    // (i.e. issuing a real request) would.
     final var clientCredentials =
-        resolver.credential(
+        resolver.bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
                 "client-id", "client-secret", "tenant-id", null, null));
     final var managedIdentity =
-        resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+        resolver.bearerTokenSupplier(
+            new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(clientCredentials).isNotNull();
     assertThat(managedIdentity).isNotNull();
@@ -65,7 +58,7 @@ class OpenAiFoundryCredentialResolverTest {
       authenticationUtil
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ClientCredentialsAuthentication(
               "client-id", "client-secret", "tenant-id", null, null));
 
@@ -84,7 +77,8 @@ class OpenAiFoundryCredentialResolverTest {
       authenticationUtil
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
-      resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+      resolver.bearerTokenSupplier(
+          new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
       authenticationUtil.verify(
           () ->
@@ -102,7 +96,7 @@ class OpenAiFoundryCredentialResolverTest {
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
 
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ClientCredentialsAuthentication(
               "client-id",
               "client-secret",
@@ -125,7 +119,7 @@ class OpenAiFoundryCredentialResolverTest {
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
 
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ClientCredentialsAuthentication(
               "client-id",
               "client-secret",
@@ -149,7 +143,7 @@ class OpenAiFoundryCredentialResolverTest {
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
 
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ClientCredentialsAuthentication(
               "client-id",
               "client-secret",
@@ -173,7 +167,7 @@ class OpenAiFoundryCredentialResolverTest {
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
 
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ManagedIdentityAuthentication(
               null, "https://ai.azure.us/.default"));
 
@@ -192,7 +186,7 @@ class OpenAiFoundryCredentialResolverTest {
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
 
-      resolver.credential(
+      resolver.bearerTokenSupplier(
           new FoundryAuthentication.ClientCredentialsAuthentication(
               "client-id", "client-secret", "tenant-id", null, "   "));
 

@@ -179,6 +179,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-foundry</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.openai</groupId>
       <artifactId>openai-java-core</artifactId>
       <version>${version.openai-java}</version>
