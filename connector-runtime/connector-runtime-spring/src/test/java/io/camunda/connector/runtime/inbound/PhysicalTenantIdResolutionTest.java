@@ -34,8 +34,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Exercises the physical-tenant-id resolution/fallback logic in {@link PhysicalTenantIds} via
- * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientsByPhysicalTenantId} bean
- * method (a plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
+ * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientRegistry} bean method (a
+ * plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
  * resolvePhysicalTenantId} and {@code toMapByPhysicalTenantId}.
  */
 class PhysicalTenantIdResolutionTest {
@@ -56,7 +56,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result = configuration.searchQueryClientRegistry(registry, null, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -68,7 +68,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result = configuration.searchQueryClientRegistry(registry, null, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -81,12 +81,18 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-c"));
     var uninitializedClient = mock(CamundaClient.class);
     when(uninitializedClient.getConfiguration())
-        .thenThrow(new RuntimeException("client not initialized"));
+        .thenThrow(new RuntimeException("client not initialized"))
+        .thenReturn(clientWithPhysicalTenantId("resolved-tenant").getConfiguration());
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
 
-    assertThat(result).containsOnlyKeys("engine-c");
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("engine-c");
+
+    searchQueryClientRegistry.onStart(uninitializedClient, "engine-c");
+
+    assertThat(searchQueryClientRegistry.snapshot()).containsOnlyKeys("resolved-tenant");
   }
 
   @Test
@@ -101,7 +107,7 @@ class PhysicalTenantIdResolutionTest {
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
     var result =
-        configuration.searchQueryClientsByPhysicalTenantId(registry, legacyClient, null, 200);
+        configuration.searchQueryClientRegistry(registry, legacyClient, null, 200).snapshot();
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
   }
@@ -116,11 +122,29 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("default")).thenReturn(client);
     var overrideSearchQueryClient = mock(SearchQueryClient.class);
 
-    var result =
-        configuration.searchQueryClientsByPhysicalTenantId(
-            registry, null, overrideSearchQueryClient, 200);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, overrideSearchQueryClient, 200);
 
-    assertThat(result).containsOnly(Map.entry("tenant", overrideSearchQueryClient));
+    searchQueryClientRegistry.onStart(client, "default");
+
+    assertThat(searchQueryClientRegistry.snapshot())
+        .containsOnly(Map.entry("tenant", overrideSearchQueryClient));
+  }
+
+  @Test
+  void lifecycleRejectsDuplicatePhysicalTenantBeforeInitialClientStartEvent() {
+    var registry = mock(CamundaClientRegistry.class);
+    var initialClient = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(initialClient);
+    var searchQueryClientRegistry =
+        configuration.searchQueryClientRegistry(registry, null, null, 200);
+    var duplicateClient = clientWithPhysicalTenantId("tenant");
+
+    assertThatThrownBy(() -> searchQueryClientRegistry.onStart(duplicateClient, "engine-b"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("engine-b")
+        .hasMessageContaining("tenant");
   }
 
   @Test
@@ -131,8 +155,7 @@ class PhysicalTenantIdResolutionTest {
         .thenThrow(
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
-    assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+    assertThatThrownBy(() -> configuration.searchQueryClientRegistry(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -146,8 +169,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+    assertThatThrownBy(() -> configuration.searchQueryClientRegistry(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }

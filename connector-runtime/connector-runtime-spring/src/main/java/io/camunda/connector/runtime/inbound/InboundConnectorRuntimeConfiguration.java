@@ -40,6 +40,7 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfiguration;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateContainer;
 import io.camunda.connector.runtime.inbound.state.ProcessStateContainerImpl;
@@ -53,6 +54,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -187,13 +189,23 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId(
+  SearchQueryClientRegistry searchQueryClientRegistry(
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
-    return PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-        registry, legacyCamundaClient, legacySearchQueryClient, limit);
+    var initialRegistrations =
+        PhysicalTenantIds.buildSearchQueryClientRegistrationsByPhysicalTenantId(
+            registry, legacyCamundaClient, legacySearchQueryClient, limit);
+    var activeLegacySearchQueryClient =
+        Optional.ofNullable(legacySearchQueryClient)
+            .filter(
+                legacyClient ->
+                    initialRegistrations.values().stream()
+                        .anyMatch(
+                            registration -> registration.searchQueryClient() == legacyClient));
+    return SearchQueryClientRegistry.fromInitialRegistrations(
+        initialRegistrations, activeLegacySearchQueryClient, limit);
   }
 
   @Bean
@@ -214,10 +226,7 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public ProcessDefinitionInspector processDefinitionInspector(
-      CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
-      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit,
+      SearchQueryClientRegistry searchQueryClientRegistry,
       @Qualifier("processDefinitionCacheManager") CacheManager cacheManager,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     Cache cache =
@@ -225,10 +234,7 @@ public class InboundConnectorRuntimeConfiguration {
             cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
             "processDefinitions cache must be configured");
     return new ProcessDefinitionInspector(
-        PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit),
-        cache,
-        connectorsInboundMetrics);
+        searchQueryClientRegistry, cache, connectorsInboundMetrics);
   }
 
   @Bean
