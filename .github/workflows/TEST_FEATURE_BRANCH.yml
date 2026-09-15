@@ -65,7 +65,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - uses: actions/setup-node@v7.0.0
         with:
@@ -228,7 +228,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -309,7 +309,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
