@@ -363,6 +363,9 @@ jobs:
           echo "evidence files: $(wc -l < /tmp/evidence-files.txt) (first 40 shown)"
           head -40 /tmp/evidence-files.txt
 
+      - name: Extract Playwright traces
+        run: python .github/scripts/alwaysgreen/extract_traces.py /tmp/alwaysgreen-artifacts
+
       - name: Write agent context
         env:
           BASE_REF: ${{ inputs.base_ref }}
