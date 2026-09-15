@@ -46,6 +46,8 @@ import org.springframework.test.web.servlet.RequestBuilder;
 
 class SelfManagedApiSecurityConfigurationTest {
 
+  private static final String AUDIENCE = "connectors";
+
   private static final String BODY =
       "{\"credentialId\":\"unknown\",\"credentialRef\":\"=x\",\"tenantId\":\"t\"}";
 
@@ -94,15 +96,17 @@ class SelfManagedApiSecurityConfigurationTest {
 
   /**
    * An operator opts in by pointing {@code camunda.connector.auth.self-managed.issuer} at their own
-   * identity provider (the same one Hub's forwarded bearer token is issued from). Every case here
-   * goes through the real {@code Authorization: Bearer} header so the configured {@code JwtDecoder}
-   * — signature, expiry and issuer — is what decides, rather than a pre-authenticated stand-in
-   * placed straight into the security context.
+   * identity provider (the same one Hub's forwarded bearer token is issued from), plus the {@code
+   * audience} that IdP mints this runtime's tokens for. Every case here goes through the real
+   * {@code Authorization: Bearer} header so the configured {@code JwtDecoder} — signature, expiry,
+   * issuer and audience — is what decides, rather than a pre-authenticated stand-in placed straight
+   * into the security context.
    */
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
-      classes = ConnectorRuntimeApplication.class)
+      classes = ConnectorRuntimeApplication.class,
+      properties = {"camunda.connector.auth.self-managed.audience=" + AUDIENCE})
   @DirtiesContext
   @AutoConfigureMockMvc
   class WithIssuerConfigured {
@@ -135,7 +139,7 @@ class SelfManagedApiSecurityConfigurationTest {
 
     @Test
     void configurationsEndpoint_withTokenFromConfiguredIssuer_isNotDenied() throws Exception {
-      mvc.perform(validateRequest(OIDC_SERVER.token().sign())).andExpect(status().isOk());
+      mvc.perform(validateRequest(acceptableToken().sign())).andExpect(status().isOk());
     }
 
     @Test
@@ -146,14 +150,15 @@ class SelfManagedApiSecurityConfigurationTest {
     /** Signed by a different IdP's key: the JWKS of the configured issuer cannot verify it. */
     @Test
     void configurationsEndpoint_withTokenSignedByAnotherKey_isDenied() throws Exception {
-      var forgedToken = FOREIGN_OIDC_SERVER.token().issuer(OIDC_SERVER.issuer()).sign();
+      var forgedToken =
+          FOREIGN_OIDC_SERVER.token().issuer(OIDC_SERVER.issuer()).audience(AUDIENCE).sign();
 
       mvc.perform(validateRequest(forgedToken)).andExpect(status().isUnauthorized());
     }
 
     @Test
     void configurationsEndpoint_withTokenFromAnotherIssuer_isDenied() throws Exception {
-      var otherIssuerToken = OIDC_SERVER.token().issuer("https://not-the-configured-issuer").sign();
+      var otherIssuerToken = acceptableToken().issuer("https://not-the-configured-issuer").sign();
 
       mvc.perform(validateRequest(otherIssuerToken)).andExpect(status().isUnauthorized());
     }
@@ -161,50 +166,12 @@ class SelfManagedApiSecurityConfigurationTest {
     @Test
     void configurationsEndpoint_withExpiredToken_isDenied() throws Exception {
       var expiredToken =
-          OIDC_SERVER
-              .token()
+          acceptableToken()
               .issuedAt(Instant.now().minus(Duration.ofHours(2)))
               .expiresAt(Instant.now().minus(Duration.ofHours(1)))
               .sign();
 
       mvc.perform(validateRequest(expiredToken)).andExpect(status().isUnauthorized());
-    }
-  }
-
-  /**
-   * {@code camunda.connector.auth.self-managed.audience} narrows acceptance further: a token from
-   * the configured issuer is only good enough if it was also minted for this runtime.
-   */
-  @Nested
-  @SpringBootTest(
-      webEnvironment = WebEnvironment.RANDOM_PORT,
-      classes = ConnectorRuntimeApplication.class,
-      properties = {"camunda.connector.auth.self-managed.audience=connectors"})
-  @DirtiesContext
-  @AutoConfigureMockMvc
-  class WithAudienceConfigured {
-
-    private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
-
-    @DynamicPropertySource
-    static void registerOidcProperties(DynamicPropertyRegistry registry) {
-      registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
-    }
-
-    @AfterAll
-    static void stopOidcServer() {
-      OIDC_SERVER.close();
-    }
-
-    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
-    public CamundaClient camundaClient;
-
-    @Autowired private MockMvc mvc;
-
-    @Test
-    void configurationsEndpoint_withRequiredAudience_isNotDenied() throws Exception {
-      mvc.perform(validateRequest(OIDC_SERVER.token().audience("connectors").sign()))
-          .andExpect(status().isOk());
     }
 
     @Test
@@ -213,9 +180,46 @@ class SelfManagedApiSecurityConfigurationTest {
           .andExpect(status().isUnauthorized());
     }
 
+    /** aud is optional in a JWT; a token minted without one must not slip through. */
     @Test
-    void configurationsEndpoint_withoutAudience_isDenied() throws Exception {
+    void configurationsEndpoint_withoutAnyAudience_isDenied() throws Exception {
       mvc.perform(validateRequest(OIDC_SERVER.token().sign())).andExpect(status().isUnauthorized());
+    }
+
+    /** A token this runtime should accept: right issuer, right audience, not expired. */
+    private static MockOidcServer.TokenBuilder acceptableToken() {
+      return OIDC_SERVER.token().audience(AUDIENCE);
+    }
+  }
+
+  /**
+   * An issuer without an audience is a configuration error, not a looser mode: it would accept
+   * every token that IdP signs for any of its clients. Startup must fail and say which property is
+   * missing, rather than silently coming up with the wider trust boundary.
+   */
+  @Nested
+  class WithIssuerButNoAudience {
+
+    private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+    @AfterAll
+    static void stopOidcServer() {
+      OIDC_SERVER.close();
+    }
+
+    @Test
+    void failsToStart() {
+      new WebApplicationContextRunner()
+          .withUserConfiguration(SelfManagedApiSecurityConfiguration.class)
+          .withPropertyValues("camunda.connector.auth.self-managed.issuer=" + OIDC_SERVER.issuer())
+          .run(
+              context ->
+                  assertThat(context)
+                      .hasFailed()
+                      .getFailure()
+                      .rootCause()
+                      .isInstanceOf(IllegalStateException.class)
+                      .hasMessageContaining("camunda.connector.auth.self-managed.audience"));
     }
   }
 

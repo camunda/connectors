@@ -63,7 +63,11 @@
     </dependency>
 
     <!-- Protects the self-managed runtime's own REST routes (e.g. /configurations/validate),
-         mirroring the SecurityFilterChain the camunda-saas-bundle already carries for SaaS. -->
+         mirroring the SecurityFilterChain the camunda-saas-bundle already carries for SaaS.
+         These sit here rather than in default-bundle because this module is the self-managed
+         application while default-bundle is packaging-only; see the module-placement note in
+         SelfManagedApiSecurityConfiguration's javadoc for why moving them would not separate
+         self-managed from SaaS the way it appears to. -->
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>

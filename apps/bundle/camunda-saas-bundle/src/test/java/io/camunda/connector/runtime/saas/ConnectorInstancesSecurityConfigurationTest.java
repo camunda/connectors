@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -82,6 +84,8 @@ public class ConnectorInstancesSecurityConfigurationTest {
 
   @Autowired private MockMvc mvc;
 
+  @Autowired private ApplicationContext applicationContext;
+
   @Test
   public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(get("/inbound-instances")).andExpect(status().isUnauthorized());
@@ -105,6 +109,26 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @Test
   public void configurationsEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
+  }
+
+  /**
+   * The self-managed bundle is a runtime dependency of this one, so {@code
+   * SelfManagedApiSecurityConfiguration} is always on this classpath and backs off via
+   * {@code @ConditionalOnMissingClass} naming {@link
+   * io.camunda.connector.runtime.saas.security.ConnectorInstancesSecurityConfiguration}. That name
+   * is a string literal, so renaming or moving this class would silently stop the condition
+   * matching and leave two filter chains competing for {@code /configurations/**} here, with no
+   * compile error. Asserting the absence of its beans fails loudly from the side that would break.
+   */
+  @Test
+  public void selfManagedFilterChains_areNotRegisteredAlongsideTheConsoleChain() {
+    assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
+        .as("self-managed OIDC chain must back off when the Console chain is present")
+        .isFalse();
+    assertThat(
+            applicationContext.containsBean("selfManagedConfigurationValidationDenyAllFilterChain"))
+        .as("self-managed deny-all chain must back off when the Console chain is present")
+        .isFalse();
   }
 
   @Test

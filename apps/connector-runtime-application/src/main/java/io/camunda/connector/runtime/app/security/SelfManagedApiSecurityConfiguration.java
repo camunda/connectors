@@ -28,8 +28,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -52,6 +50,12 @@ import org.springframework.util.StringUtils;
  * for a {@code BEARER_TOKEN}-auth cluster); everyone else simply doesn't get the feature — the same
  * degradation the Hub adapter already applies to a {@code BASIC}-auth cluster or a too-old runtime
  * (see {@code SelfManagedConnectorCredentialValidationAdapter#validate}).
+ *
+ * <p>{@code camunda.connector.auth.self-managed.audience} is required whenever the issuer is set,
+ * and startup fails if it is missing. An issuer on its own accepts every token that IdP signs for
+ * any of its clients; on the org-wide IdP a typical self-managed install points at, that is a far
+ * wider trust boundary than a route which resolves secrets warrants. Set it to the {@code aud}
+ * claim of the tokens Hub forwards to this runtime.
  *
  * <p>CSRF is exempted for this route only, exactly as {@code camunda-saas-bundle} already exempts
  * it (and {@code /inbound-instances/**}, {@code /outbound/**}) in {@code
@@ -81,6 +85,18 @@ import org.springframework.util.StringUtils;
  * being deferred to — are absent. Presence of its security class, unlike that property, is
  * decoupled from client-auth mode, so it is the correct signal for "is the SaaS bundle's own
  * protection actually here."
+ *
+ * <p>On why a self-managed policy lives here rather than in {@code default-bundle}, mirroring how
+ * SaaS keeps its own in {@code camunda-saas-bundle}: this module is the self-managed application
+ * ({@code ConnectorRuntimeApplication}), whereas {@code default-bundle} is a packaging module with
+ * no main sources. Moving the class there would not buy the separation it looks like it should,
+ * because {@code camunda-saas-bundle} depends on {@code connector-runtime-bundle} — the SaaS
+ * classpath carries whatever the self-managed bundle carries, so the condition above stays
+ * necessary either way, and a naive move would in fact invert the wiring (this module's component
+ * scan is package-local, while the SaaS application scans all of {@code io.camunda.connector}).
+ * What would actually remove the need for the condition is both bundles depending on a shared core
+ * instead of SaaS depending on the self-managed bundle; that is a much larger change than the
+ * placement of this class.
  */
 @Configuration
 @EnableWebSecurity
@@ -137,12 +153,18 @@ public class SelfManagedApiSecurityConfiguration {
   }
 
   private JwtDecoder selfManagedJwtDecoder() {
+    if (!StringUtils.hasText(audience)) {
+      throw new IllegalStateException(
+          "camunda.connector.auth.self-managed.audience must be set when "
+              + "camunda.connector.auth.self-managed.issuer is set. Without an audience, every "
+              + "token the issuer signs for any of its clients would be accepted on "
+              + PROTECTED_ROUTES
+              + ". Set it to the aud claim of the tokens Camunda Hub forwards to this runtime.");
+    }
     NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuer);
-    OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuer);
     jwtDecoder.setJwtValidator(
-        StringUtils.hasText(audience)
-            ? new DelegatingOAuth2TokenValidator<>(withIssuer, new AudienceValidator(audience))
-            : withIssuer);
+        new DelegatingOAuth2TokenValidator<>(
+            JwtValidators.createDefaultWithIssuer(issuer), new AudienceValidator(audience)));
     return jwtDecoder;
   }
 }
