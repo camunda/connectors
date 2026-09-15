@@ -28,6 +28,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
@@ -50,15 +51,17 @@ import org.springframework.context.annotation.Import;
  *
  * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
  * value can reach the response (see the message-safety policy on {@code
- * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
- * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}, and the
- * self-managed bundle covers it with its own opt-in, fail-closed {@code SecurityFilterChain} (see
- * {@code apps/connector-runtime-application}'s {@code SelfManagedApiSecurityConfiguration}). A
- * custom Spring Boot application built directly on this starter, bypassing both bundles, does not
- * get either and must add its own equivalent protection.
+ * ConfigurationValidationService}), and the route is reachable only by trusted callers: it ships
+ * with {@link ConfigurationValidationDenyAllSecurityConfiguration}, a fail-closed default that each
+ * bundle replaces with its own policy — the Console JWT and role chain on SaaS, an opt-in OIDC
+ * chain on self-managed. A custom application built directly on this starter gets the fail-closed
+ * default, so it must supply a policy of its own to enable the endpoint.
  */
 @Configuration
-@Import(ConfigurationValidationRestController.class)
+@Import({
+  ConfigurationValidationRestController.class,
+  ConfigurationValidationDenyAllSecurityConfiguration.class
+})
 public class ConfigurationValidationConfiguration {
 
   @Bean

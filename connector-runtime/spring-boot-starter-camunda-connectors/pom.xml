@@ -96,6 +96,14 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!-- Carries the fail-closed default in front of /configurations/** (see
+         ConfigurationValidationDenyAllSecurityConfiguration). Declared here rather than left to
+         each consumer so that a runtime cannot end up with the endpoint and no policy; excluding
+         it fails startup, which is the safe direction for a security default. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-health</artifactId>
@@ -260,6 +268,7 @@
                 <ignoredDependency>org.springframework.boot:spring-boot-configuration-processor</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-webmvc</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-actuator</ignoredDependency>
+                <ignoredDependency>org.springframework.boot:spring-boot-starter-security</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-web</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-cache</ignoredDependency>
               </ignoredDependencies>

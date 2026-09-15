@@ -23,6 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -112,17 +113,19 @@ public class ConnectorInstancesSecurityConfigurationTest {
   }
 
   /**
-   * The self-managed chains name {@code ConnectorInstancesSecurityConfiguration} in a string
-   * literal to back off, so renaming it would silently leave two chains on this route. Fail here.
+   * This module governs {@code /configurations/**}, so the shared runtime's fail-closed default
+   * must stand down and exactly one policy must be in play — the self-managed bundle is a runtime
+   * dependency here, so its auto-configuration is on this classpath too.
    */
   @Test
-  public void selfManagedFilterChains_areNotRegisteredAlongsideTheConsoleChain() {
-    assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
-        .as("self-managed OIDC chain must back off when the Console chain is present")
+  public void configurationValidationRoute_isGovernedByExactlyOnePolicy() {
+    assertThat(applicationContext.getBeansOfType(ConfigurationValidationSecurityPolicy.class))
+        .hasSize(1);
+    assertThat(applicationContext.containsBean("configurationValidationDenyAllFilterChain"))
+        .as("the shared fail-closed default must stand down when this module supplies a policy")
         .isFalse();
-    assertThat(
-            applicationContext.containsBean("selfManagedConfigurationValidationDenyAllFilterChain"))
-        .as("self-managed deny-all chain must back off when the Console chain is present")
+    assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
+        .as("the self-managed chain must not register without a self-managed issuer")
         .isFalse();
   }
 

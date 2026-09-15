@@ -25,6 +25,13 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- For ConfigurationValidationSecurityPolicy, which stands the shared runtime's fail-closed
+         default for /configurations/** down in favour of the Console JWT chain here. -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-spring</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>secret-providers-base</artifactId>

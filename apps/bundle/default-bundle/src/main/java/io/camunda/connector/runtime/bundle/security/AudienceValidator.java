@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app.security;
+package io.camunda.connector.runtime.bundle.security;
 
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -22,7 +22,7 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
- * Mirrors {@code camunda-saas-bundle}'s validator of the same name; self-managed cannot depend on
+ * Mirrors {@code camunda-saas-bundle}'s validator of the same name; this bundle cannot depend on
  * that module (the dependency runs the other way), so this is a local copy rather than a shared
  * one.
  */

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas.security;
 
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -75,6 +76,15 @@ public class ConnectorInstancesSecurityConfiguration {
                     .allowedMethods("*"));
       }
     };
+  }
+
+  /**
+   * Stands the shared runtime's fail-closed default for {@code /configurations/**} down: this
+   * module governs that route with the Console JWT chain below.
+   */
+  @Bean
+  public ConfigurationValidationSecurityPolicy saasConfigurationValidationPolicy() {
+    return new ConfigurationValidationSecurityPolicy("SaaS Console JWT");
   }
 
   @Bean

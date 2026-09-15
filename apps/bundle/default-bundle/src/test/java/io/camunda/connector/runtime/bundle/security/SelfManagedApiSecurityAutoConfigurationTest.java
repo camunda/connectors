@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app.security;
+package io.camunda.connector.runtime.bundle.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -23,6 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
+import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import java.time.Duration;
 import java.time.Instant;
@@ -44,7 +46,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 
-class SelfManagedApiSecurityConfigurationTest {
+class SelfManagedApiSecurityAutoConfigurationTest {
 
   private static final String AUDIENCE = "connectors";
 
@@ -193,7 +195,7 @@ class SelfManagedApiSecurityConfigurationTest {
     @Test
     void failsToStart() {
       new WebApplicationContextRunner()
-          .withUserConfiguration(SelfManagedApiSecurityConfiguration.class)
+          .withUserConfiguration(SelfManagedApiSecurityAutoConfiguration.class)
           .withPropertyValues("camunda.connector.auth.self-managed.issuer=" + OIDC_SERVER.issuer())
           .run(
               context ->
@@ -208,25 +210,54 @@ class SelfManagedApiSecurityConfigurationTest {
 
   /**
    * Hybrid: a self-managed runtime reaching a SaaS-hosted cluster sets {@code
-   * camunda.client.mode=saas} but carries none of the SaaS bundle's classes, so protection must
-   * still register. Uses a context runner rather than {@code @SpringBootTest} to avoid unrelated
-   * CamundaClient validation of SaaS-style connection properties.
+   * camunda.client.mode=saas} but carries none of the SaaS bundle's classes, so this bundle's
+   * policy must still register. Uses a context runner rather than {@code @SpringBootTest} to avoid
+   * unrelated CamundaClient validation of SaaS-style connection properties.
    */
   @Nested
   class HybridRegression {
 
-    private final WebApplicationContextRunner contextRunner =
-        new WebApplicationContextRunner()
-            .withUserConfiguration(SelfManagedApiSecurityConfiguration.class);
+    private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+    @AfterAll
+    static void stopOidcServer() {
+      OIDC_SERVER.close();
+    }
 
     @Test
-    void staysActiveRegardlessOfClientMode() {
-      contextRunner
-          .withPropertyValues("camunda.client.mode=saas")
+    void policyRegistersRegardlessOfClientMode() {
+      new WebApplicationContextRunner()
+          .withUserConfiguration(SelfManagedApiSecurityAutoConfiguration.class)
+          .withPropertyValues(
+              "camunda.client.mode=saas",
+              "camunda.connector.auth.self-managed.issuer=" + OIDC_SERVER.issuer(),
+              "camunda.connector.auth.self-managed.audience=" + AUDIENCE)
           .run(
               context ->
                   assertThat(context)
-                      .hasBean("selfManagedConfigurationValidationDenyAllFilterChain"));
+                      .hasSingleBean(ConfigurationValidationSecurityPolicy.class)
+                      .hasBean("selfManagedConfigurationValidationFilterChain"));
+    }
+  }
+
+  /**
+   * With no issuer this bundle contributes nothing, and the shared runtime's fail-closed default is
+   * what answers — so the route is closed by the layer below, not by this one.
+   */
+  @Nested
+  class WithoutIssuerTheSharedDefaultApplies {
+
+    @Test
+    void contributesNoPolicy() {
+      new WebApplicationContextRunner()
+          .withUserConfiguration(
+              SelfManagedApiSecurityAutoConfiguration.class,
+              ConfigurationValidationDenyAllSecurityConfiguration.class)
+          .run(
+              context ->
+                  assertThat(context)
+                      .doesNotHaveBean(ConfigurationValidationSecurityPolicy.class)
+                      .hasBean("configurationValidationDenyAllFilterChain"));
     }
   }
 }
