@@ -8,11 +8,17 @@ package io.camunda.connector.sns.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.sns.message.SnsMessage;
 import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,6 +31,8 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Exercises the real (unmocked) AWS SDK v1 {@link SnsMessageManager} that {@link
@@ -32,6 +40,9 @@ import org.junit.jupiter.api.Test;
  * SnsWebhookExecutableTest} mocks {@link SnsMessageManager}, so it never runs real
  * signature/cert-URL verification; these tests do, covering: a spoofed {@code SigningCertURL}, a
  * validly-signed message, a tampered message, and a missing signature.
+ *
+ * <p>The webhook entry-point tests also cover topic authorization using the signature-verified
+ * message rather than unsigned HTTP headers.
  *
  * <p>The certificate-download step is skipped by seeding {@code SnsMessageManager}'s internal
  * certificate cache via reflection with a self-generated RSA key, so the crypto check runs fully
@@ -44,8 +55,89 @@ import org.junit.jupiter.api.Test;
  */
 class SnsWebhookSignatureVerificationTest {
 
+  private static final String TOPIC_ARN = "arn:aws:sns:eu-central-1:111222333444:SNSWebhook";
+  private static final String OTHER_TOPIC_ARN = "arn:aws:sns:eu-central-1:555666777888:OtherTopic";
   private static final String SIGNING_CERT_URL =
       "https://sns.eu-central-1.amazonaws.com/SimpleNotificationService-56e67fcb41f6fec09b0196692625d385.pem";
+
+  @Test
+  void triggerWebhook_signedUnlistedTopicWithAllowListedHeader_isRejected() throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    fields.put("TopicArn", OTHER_TOPIC_ARN);
+    SnsWebhookExecutable executable = createExecutable(keyPair, "specific", TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), TOPIC_ARN);
+
+    assertThatThrownBy(() -> executable.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN);
+  }
+
+  @Test
+  void triggerWebhook_matchingUnlistedTopic_isRejected() throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    fields.put("TopicArn", OTHER_TOPIC_ARN);
+    SnsWebhookExecutable executable = createExecutable(keyPair, "specific", TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), OTHER_TOPIC_ARN);
+
+    assertThatThrownBy(() -> executable.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"any", "specific"})
+  void triggerWebhook_differentVerifiedAndHeaderTopics_isAccepted(String allowedFor)
+      throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    fields.put("TopicArn", OTHER_TOPIC_ARN);
+    SnsWebhookExecutable executable =
+        createExecutable(keyPair, allowedFor, TOPIC_ARN + "," + OTHER_TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), TOPIC_ARN);
+
+    assertThat(executable.triggerWebhook(payload).connectorData())
+        .containsEntry("snsEventType", "Notification");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"any", "specific"})
+  void triggerWebhook_matchingAllowListedTopic_isAccepted(String allowedFor) throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    SnsWebhookExecutable executable = createExecutable(keyPair, allowedFor, TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), TOPIC_ARN);
+
+    assertThat(executable.triggerWebhook(payload).connectorData())
+        .containsEntry("snsEventType", "Notification");
+  }
+
+  @Test
+  void triggerWebhook_anyTopicAllowsUnlistedTopic() throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    fields.put("TopicArn", OTHER_TOPIC_ARN);
+    SnsWebhookExecutable executable = createExecutable(keyPair, "any", TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, sign(fields, keyPair), OTHER_TOPIC_ARN);
+
+    assertThat(executable.triggerWebhook(payload).connectorData())
+        .containsEntry("snsEventType", "Notification");
+  }
+
+  @Test
+  void triggerWebhook_tamperedTopicArn_isRejected() throws Exception {
+    KeyPair keyPair = generateRsaKeyPair();
+    Map<String, String> fields = notificationFields("Hello, world");
+    fields.put("TopicArn", OTHER_TOPIC_ARN);
+    String signature = sign(fields, keyPair);
+    fields.put("TopicArn", TOPIC_ARN);
+    SnsWebhookExecutable executable = createExecutable(keyPair, "specific", TOPIC_ARN);
+    WebhookProcessingPayload payload = payloadWith(fields, signature, TOPIC_ARN);
+
+    assertThatThrownBy(() -> executable.triggerWebhook(payload))
+        .hasMessageContaining("Signature in SNS message was invalid");
+  }
 
   @Test
   void spoofedSigningCertUrl_isRejectedBeforeAnyNetworkCall() {
@@ -129,6 +221,39 @@ class SnsWebhookSignatureVerificationTest {
         .hasMessageContaining("Message cannot have null values");
   }
 
+  private static SnsWebhookExecutable createExecutable(
+      KeyPair keyPair, String allowedFor, String topicsAllowList) throws Exception {
+    SnsMessageManager manager = new SnsClientSupplier().messageManager("eu-central-1");
+    seedCertificateCache(manager, keyPair.getPublic());
+    SnsClientSupplier supplier = mock(SnsClientSupplier.class);
+    when(supplier.messageManager("eu-central-1")).thenReturn(manager);
+    var mapper = ObjectMapperSupplier.getMapperInstance();
+    SnsWebhookExecutable executable = new SnsWebhookExecutable(mapper, supplier);
+    executable.activate(
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "snstest",
+                        "securitySubscriptionAllowedFor", allowedFor,
+                        "topicsAllowList", topicsAllowList)))
+            .objectMapper(mapper)
+            .validation(new DefaultValidationProvider())
+            .build());
+    return executable;
+  }
+
+  private static WebhookProcessingPayload payloadWith(
+      Map<String, String> fields, String signature, String topicArnHeader) {
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers())
+        .thenReturn(Map.of(SnsWebhookExecutable.TOPIC_ARN_HEADER, topicArnHeader));
+    when(payload.rawBody()).thenReturn(toJson(fields, signature).getBytes(StandardCharsets.UTF_8));
+    when(payload.params()).thenReturn(Map.of());
+    return payload;
+  }
+
   private static KeyPair generateRsaKeyPair() throws Exception {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
     keyPairGenerator.initialize(2048);
@@ -139,7 +264,7 @@ class SnsWebhookSignatureVerificationTest {
     Map<String, String> fields = new LinkedHashMap<>();
     fields.put("Type", "Notification");
     fields.put("MessageId", "2e062e6b-a527-5e68-b69b-72a8e42add60");
-    fields.put("TopicArn", "arn:aws:sns:eu-central-1:111222333444:SNSWebhook");
+    fields.put("TopicArn", TOPIC_ARN);
     fields.put("Subject", "test subject");
     fields.put("Message", message);
     fields.put("Timestamp", "2023-04-26T15:10:05.479Z");

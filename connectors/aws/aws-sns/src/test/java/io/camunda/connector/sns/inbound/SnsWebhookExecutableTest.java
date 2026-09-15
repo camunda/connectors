@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +33,8 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -40,6 +43,9 @@ import org.mockito.quality.Strictness;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SnsWebhookExecutableTest {
+
+  private static final String TOPIC_ARN = "arn:aws:sns:eu-central-1:111222333444:SNSWebhook";
+  private static final String OTHER_TOPIC_ARN = "arn:aws:sns:eu-central-1:555666777888:OtherTopic";
 
   @Mock private InboundConnectorContext ctx;
   @Mock private ObjectMapper mapper;
@@ -51,7 +57,7 @@ class SnsWebhookExecutableTest {
       Map.of(
           "user-agent", "Amazon Simple Notification Service Agent",
           "content-type", "text/plain; charset=UTF-8",
-          "x-amz-sns-topic-arn", "arn:aws:sns:eu-central-1:111222333444:SNSWebhook",
+          "x-amz-sns-topic-arn", TOPIC_ARN,
           "x-amz-sns-message-id", "b9b4574f-b4ab-4c03-ac14-a3145896747f");
 
   private static final String SUBSCRIPTION_CONFIRMATION_REQUEST =
@@ -110,6 +116,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -144,6 +151,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -181,6 +189,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -215,6 +224,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -244,6 +254,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -255,6 +266,71 @@ class SnsWebhookExecutableTest {
     // when & then
     testObject.activate(ctx);
     assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {TOPIC_ARN, OTHER_TOPIC_ARN})
+  void triggerWebhook_SubscriptionUnlistedTopic_DoesNotConfirm(String headerTopicArn)
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-topic-arn", headerTopicArn);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN);
+    verify(confirmation, never()).confirmSubscription();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"any", "specific"})
+  void triggerWebhook_SubscriptionTopicMismatch_ConfirmsWhenVerifiedTopicAllowed(String allowedFor)
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context",
+                    "snstest",
+                    "securitySubscriptionAllowedFor",
+                    allowedFor,
+                    "topicsAllowList",
+                    TOPIC_ARN + "," + OTHER_TOPIC_ARN))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    testObject.triggerWebhook(payload);
+
+    verify(confirmation).confirmSubscription();
   }
 
   @Test
@@ -273,6 +349,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "Notification");
     final var notification = mock(SnsNotification.class);
+    when(notification.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -343,6 +420,7 @@ class SnsWebhookExecutableTest {
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "CorruptedNotification");
     final var unknownMessage = mock(SnsUnknownMessage.class);
+    when(unknownMessage.getTopicArn()).thenReturn(TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
@@ -352,7 +430,8 @@ class SnsWebhookExecutableTest {
 
     // when & then
     testObject.activate(ctx);
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageStartingWith("Operation not supported:");
   }
 
   private InboundConnectorContext createConnectorContext(Map<String, Object> properties) {
