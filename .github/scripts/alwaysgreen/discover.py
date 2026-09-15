@@ -497,12 +497,16 @@ def inflight_keys() -> tuple[set[str], bool]:
             log("fix workflow has no runs yet; treating as nothing in flight")
             return set(), True
         return set(), False
-    current_run_id = os.environ.get("GITHUB_RUN_ID", "")
-    predecessor_running = any(
-        r.get("status") in {"queued", "in_progress"}
-        and str(r.get("databaseId") or "") != current_run_id
-        for r in runs
-    )
+    try:
+        current_run_id = int(os.environ["GITHUB_RUN_ID"])
+        active_run_ids = {
+            int(r["databaseId"])
+            for r in runs
+            if r.get("status") in {"queued", "in_progress"}
+        }
+    except (KeyError, TypeError, ValueError):
+        return set(), False
+    predecessor_running = any(run_id < current_run_id for run_id in active_run_ids)
     return ({planning.ALL_INFLIGHT} if predecessor_running else set()), True
 
 

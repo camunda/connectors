@@ -83,7 +83,8 @@ is running and returning errors is visible. Retention is 1 day, so it may be abs
 replaying an older run — treat absence as "no cluster evidence", not as "the cluster was
 fine".
 
-Read PNG screenshots directly. For a trace: `unzip -l trace.zip`, then extract what you need.
+Read PNG screenshots directly. Playwright traces are pre-extracted beside each
+`trace.zip` under `trace-extracted/`; inspect those files directly.
 
 ## Diagnosis order
 

@@ -465,6 +465,32 @@ def test_inflight_keys_serialize_behind_an_older_watcher_run(monkeypatch):
     assert discover.inflight_keys() == ({planning.ALL_INFLIGHT}, True)
 
 
+def test_inflight_keys_do_not_block_an_older_watcher_for_a_newer_run(monkeypatch):
+    monkeypatch.setenv("GITHUB_RUN_ID", "7")
+    monkeypatch.setattr(
+        discover,
+        "gh_json_ex",
+        lambda *_args, **_kwargs: (
+            [{"status": "in_progress", "databaseId": 8}],
+            "",
+        ),
+    )
+    assert discover.inflight_keys() == (set(), True)
+
+
+def test_inflight_keys_fail_closed_on_an_invalid_run_id(monkeypatch):
+    monkeypatch.setenv("GITHUB_RUN_ID", "not-a-run-id")
+    monkeypatch.setattr(
+        discover,
+        "gh_json_ex",
+        lambda *_args, **_kwargs: (
+            [{"status": "in_progress", "databaseId": 7}],
+            "",
+        ),
+    )
+    assert discover.inflight_keys() == (set(), False)
+
+
 def test_failing_jobs_asks_for_the_pinned_attempt(monkeypatch):
     # The whole point: the gate judged one attempt's jobs, so discovery must read that
     # attempt's jobs and that attempt's conclusion, not the newest ones.
