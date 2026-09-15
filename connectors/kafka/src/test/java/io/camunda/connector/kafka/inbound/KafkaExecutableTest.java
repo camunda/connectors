@@ -25,7 +25,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
+import io.camunda.connector.kafka.model.KafkaConnectionConfiguration;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
@@ -36,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -135,6 +138,87 @@ public class KafkaExecutableTest {
     ArgumentCaptor<Collection<String>> argumentCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(mockConsumer, times(1)).subscribe(argumentCaptor.capture(), any());
     verify(mockConsumer, times(1)).poll(any());
+  }
+
+  @Test
+  void activatesConsumerWithCredentialAndTaskTopic() throws Exception {
+    var properties = new Properties();
+    var executable =
+        new KafkaExecutable(
+            resolved -> {
+              properties.putAll(resolved);
+              return mockConsumer;
+            },
+            RetryPolicy.builder().withMaxAttempts(1).build());
+    var credentialContext =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "kafkaConnectionConfiguration",
+                    new KafkaConnectionConfiguration("credential:9093", "user", "password"),
+                    "topic",
+                    Map.of("topicName", "task-topic"),
+                    "groupId",
+                    "task-group",
+                    "autoOffsetReset",
+                    "earliest"))
+            .definition(InboundConnectorDefinitionBuilder.create().build())
+            .validation(new DefaultValidationProvider())
+            .build();
+    when(mockConsumer.poll(any()))
+        .then(
+            invocation -> {
+              executable.kafkaConnectorConsumer.shouldLoop = false;
+              return new ConsumerRecords<>(new HashMap<>());
+            });
+    var groupMetadata = mock(ConsumerGroupMetadata.class);
+    when(groupMetadata.groupId()).thenReturn("task-group");
+    when(groupMetadata.groupInstanceId()).thenReturn(Optional.empty());
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadata);
+
+    executable.activate(credentialContext);
+    try {
+      executable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
+
+      assertThat(properties)
+          .containsEntry("bootstrap.servers", "credential:9093")
+          .containsEntry("security.protocol", "SASL_SSL")
+          .containsEntry("sasl.mechanism", "PLAIN")
+          .containsEntry("group.id", "task-group");
+      assertThat(properties.getProperty("sasl.jaas.config")).contains("user", "password");
+      verify(mockConsumer).subscribe(org.mockito.ArgumentMatchers.eq(List.of("task-topic")), any());
+    } finally {
+      executable.deactivate();
+    }
+  }
+
+  @Test
+  void rejectsInvalidCredentialBeforeActivatingConsumer() {
+    var executable =
+        new KafkaExecutable(
+            properties -> {
+              throw new AssertionError("Invalid credentials must fail before creating a consumer");
+            },
+            RetryPolicy.builder().withMaxAttempts(1).build());
+    var credentialContext =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "kafkaConnectionConfiguration",
+                    Map.of("bootstrapServers", "credential:9093", "username", "user"),
+                    "authentication",
+                    Map.of("username", "inline-user", "password", "inline-pass"),
+                    "topic",
+                    Map.of("topicName", "task-topic", "bootstrapServers", "inline:9092"),
+                    "autoOffsetReset",
+                    "earliest"))
+            .definition(InboundConnectorDefinitionBuilder.create().build())
+            .validation(new DefaultValidationProvider())
+            .build();
+
+    Assertions.assertThrows(
+        ConnectorInputException.class, () -> executable.activate(credentialContext));
+    assertThat(executable.kafkaConnectorConsumer).isNull();
   }
 
   @Test
