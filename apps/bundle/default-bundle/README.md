@@ -62,5 +62,5 @@ Requests are then accepted only with an `Authorization: Bearer <token>` that ver
 issuer's keys, is unexpired, and carries the configured audience. There is no role or claim check
 beyond that, so keep the endpoint off untrusted networks.
 
-Only a `BEARER_TOKEN`-auth cluster registration can use this feature; `NONE`- and `BASIC`-auth
-clusters cannot, and get the 404 behaviour above.
+Only a `BEARER_TOKEN`-auth cluster registration can supply that token, so `NONE`- and `BASIC`-auth
+clusters cannot use this feature.
