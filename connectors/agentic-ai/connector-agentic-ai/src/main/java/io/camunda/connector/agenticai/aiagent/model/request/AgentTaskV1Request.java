@@ -8,7 +8,14 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 public record AgentTaskV1Request(
-    @Valid @NotNull ProviderConfiguration provider, @Valid @NotNull AgentTaskRequestData data) {}
+    @Valid @NotNull ProviderConfiguration provider, @Valid @NotNull AgentTaskRequestData data) {
+
+  @AssertTrue(message = "System prompt must be provided")
+  public boolean isSystemPromptPresent() {
+    return data != null && data.systemPrompt() != null;
+  }
+}

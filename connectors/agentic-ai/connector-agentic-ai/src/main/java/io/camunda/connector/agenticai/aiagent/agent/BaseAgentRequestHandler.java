@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -350,6 +351,9 @@ public abstract class BaseAgentRequestHandler<
       AgentExecutionContext executionContext, AgentContext agentContext) {
     LOGGER.trace("Composing system message");
     var composedPrompt = systemPromptComposer.compose(executionContext, agentContext);
+    if (executionContext instanceof AgentTaskExecutionContext taskExecutionContext) {
+      taskExecutionContext.recordComposedSystemPrompt(composedPrompt);
+    }
     if (StringUtils.isBlank(composedPrompt)) {
       return null;
     }

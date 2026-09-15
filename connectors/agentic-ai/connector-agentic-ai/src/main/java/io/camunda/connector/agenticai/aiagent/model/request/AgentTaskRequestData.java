@@ -37,7 +37,7 @@ public record AgentTaskRequestData(
         @Valid
         @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
         AgentContext context,
-    @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
+    @Valid PromptConfiguration.@Nullable SystemPromptConfiguration systemPrompt,
     @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
     @Valid @Nullable ToolsConfiguration tools,
     @Valid @Nullable MemoryConfiguration memory,

@@ -5,7 +5,7 @@
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -3039,8 +3039,26 @@
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
+    "label" : "Type",
+    "description" : "Store the system prompt inline or link a governed prompt.",
+    "id" : "instructionSource",
+    "type" : "Dropdown",
+    "value" : "inline",
+    "group" : "systemPrompt",
+    "choices" : [ {
+      "name" : "Inline",
+      "value" : "inline"
+    }, {
+      "name" : "Linked",
+      "value" : "resource"
+    } ],
+    "binding" : {
+      "type" : "zeebe:taskHeader",
+      "key" : "instructionSource"
+    }
+  }, {
     "id" : "data.systemPrompt.prompt",
-    "label" : "System prompt",
+    "label" : "Prompt",
     "optional" : false,
     "value" : "=\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
     "constraints" : {
@@ -3052,7 +3070,144 @@
       "name" : "data.systemPrompt.prompt",
       "type" : "zeebe:input"
     },
-    "type" : "Text"
+    "type" : "Text",
+    "condition" : {
+      "property" : "instructionSource",
+      "equals" : "inline"
+    }
+  }, {
+    "type" : "Hidden",
+    "value" : "system-prompt",
+    "group" : "systemPrompt",
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "systemPrompt",
+      "property" : "resourceType"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      } ]
+    }
+  }, {
+    "label" : "Prompt ID",
+    "description" : "Enter the stable prompt ID. The prompt is stored as a deployed Markdown resource.",
+    "id" : "systemPrompt.resourceId",
+    "type" : "String",
+    "group" : "systemPrompt",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "systemPrompt",
+      "property" : "resourceId"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      } ]
+    }
+  }, {
+    "label" : "Binding",
+    "description" : "Choose which governed prompt version the process uses.",
+    "id" : "systemPrompt.bindingType",
+    "type" : "Dropdown",
+    "value" : "latest",
+    "group" : "systemPrompt",
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ],
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "systemPrompt",
+      "property" : "bindingType"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      } ]
+    }
+  }, {
+    "type" : "Hidden",
+    "value" : "latest",
+    "binding" : {
+      "type" : "zeebe:taskHeader",
+      "key" : "systemPromptBinding"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      }, {
+        "property" : "systemPrompt.bindingType",
+        "equals" : "latest"
+      } ]
+    }
+  }, {
+    "type" : "Hidden",
+    "value" : "deployment",
+    "binding" : {
+      "type" : "zeebe:taskHeader",
+      "key" : "systemPromptBinding"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      }, {
+        "property" : "systemPrompt.bindingType",
+        "equals" : "deployment"
+      } ]
+    }
+  }, {
+    "type" : "Hidden",
+    "value" : "versionTag",
+    "binding" : {
+      "type" : "zeebe:taskHeader",
+      "key" : "systemPromptBinding"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      }, {
+        "property" : "systemPrompt.bindingType",
+        "equals" : "versionTag"
+      } ]
+    }
+  }, {
+    "label" : "Version tag",
+    "id" : "systemPrompt.versionTag",
+    "type" : "String",
+    "group" : "systemPrompt",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "systemPrompt",
+      "property" : "versionTag"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "instructionSource",
+        "equals" : "resource"
+      }, {
+        "property" : "systemPrompt.bindingType",
+        "equals" : "versionTag"
+      } ]
+    }
   }, {
     "id" : "data.userPrompt.prompt",
     "label" : "User prompt",
@@ -3488,7 +3643,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
