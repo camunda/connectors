@@ -73,6 +73,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-autoconfigure</artifactId>
     </dependency>
+    <!-- HttpServletRequest/Response in SelfManagedApiSecurityAutoConfiguration. -->
+    <dependency>
+      <groupId>org.apache.tomcat.embed</groupId>
+      <artifactId>tomcat-embed-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
 
 
@@ -410,6 +416,8 @@
                 <dependency>org.springframework.security:spring-security-core</dependency>
                 <dependency>org.springframework.security:spring-security-oauth2-resource-server</dependency>
                 <dependency>org.springframework:spring-web</dependency>
+                <!-- Used only as an @AutoConfigureBefore value, which the analyzer cannot see. -->
+                <dependency>io.camunda.connector:connector-runtime-spring</dependency>
               </ignoredDependencies>
             </configuration>
           </execution>
