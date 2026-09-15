@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -45,12 +45,11 @@ import org.springframework.util.StringUtils;
 @Configuration
 @EnableWebSecurity
 @AutoConfigureBefore(ConnectorsAutoConfiguration.class)
-@ConditionalOnMissingClass(SelfManagedApiSecurityAutoConfiguration.SAAS_SECURITY_CONFIGURATION)
+@ConditionalOnMissingBean(name = SelfManagedApiSecurityAutoConfiguration.SAAS_CONSOLE_CHAIN)
 public class SelfManagedApiSecurityAutoConfiguration {
 
-  /** The SaaS bundle covers this route with the Console JWT chain; back off there. */
-  static final String SAAS_SECURITY_CONFIGURATION =
-      "io.camunda.connector.runtime.saas.security.ConnectorInstancesSecurityConfiguration";
+  /** The SaaS Console JWT chain already covers this route; back off wherever it is registered. */
+  static final String SAAS_CONSOLE_CHAIN = "connectorInstancesFilterChain";
 
   private static final String PROTECTED_ROUTES = "/configurations/**";
 

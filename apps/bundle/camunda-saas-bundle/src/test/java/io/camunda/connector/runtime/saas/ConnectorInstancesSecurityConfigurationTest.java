@@ -115,8 +115,8 @@ public class ConnectorInstancesSecurityConfigurationTest {
   }
 
   /**
-   * The self-managed chain names this class in a string literal to back off. Renaming the class
-   * would otherwise put a second chain on this route.
+   * The self-managed chain names connectorInstancesFilterChain in a string literal to back off.
+   * Renaming that bean would otherwise put a second chain on this route.
    */
   @Test
   public void selfManagedChain_backsOffBehindTheConsoleChain() {
