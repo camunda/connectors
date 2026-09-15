@@ -29,11 +29,8 @@ USER 1001:1001
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
+ENV HEALTHCHECK_URL=http://localhost:8080/actuator/health/readiness
 
-# HEALTHCHECK_URL is deliberately left unset: HealthCheckCommand then derives the readiness URL
-# from MANAGEMENT_SERVER_PORT / MANAGEMENT_SERVER_BASE_PATH (defaulting to the 9080 /actuator this
-# image's application.properties configures), so moving Actuator moves the health check with it.
-# Set HEALTHCHECK_URL to pin a full URL instead.
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
   CMD ["java", "-cp", "/opt/app/*", "-Dloader.main=io.camunda.connector.runtime.healthcheck.HealthCheckCommand", "org.springframework.boot.loader.launch.PropertiesLauncher"]
 

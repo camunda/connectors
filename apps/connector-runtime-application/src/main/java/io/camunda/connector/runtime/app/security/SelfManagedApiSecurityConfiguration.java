@@ -59,9 +59,12 @@ import org.springframework.util.StringUtils;
  * bearer token, with no cookie or session for a browser to replay, so a CSRF token would have
  * nothing to protect and would simply reject every legitimate Hub call.
  *
- * <p>Does not touch {@code /actuator/**}: that is addressed by giving self-managed its own {@code
- * management.server.port} (see {@code application.properties}), the same network-isolation approach
- * the SaaS bundle already uses, rather than authentication.
+ * <p>Scope is this route only. {@code /actuator/**} also answers anonymously on self-managed, but
+ * the fix there is network isolation (its own {@code management.server.port}, as {@code
+ * camunda-saas-bundle} already does) rather than authentication, which would break unauthenticated
+ * k8s probes. That move has to land together with a {@code camunda-platform-helm} change, since the
+ * chart's Connectors probes currently target the public {@code http} port, so it is deliberately
+ * left out of here.
  *
  * <p>A custom Spring Boot application built directly on {@code spring-boot-starter-camunda-
  * connectors} (bypassing this module and {@code default-bundle} entirely) does not get this

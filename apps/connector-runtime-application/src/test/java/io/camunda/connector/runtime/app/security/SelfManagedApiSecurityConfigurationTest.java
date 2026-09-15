@@ -65,8 +65,7 @@ class SelfManagedApiSecurityConfigurationTest {
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
-      classes = ConnectorRuntimeApplication.class,
-      properties = {"management.server.port=0"})
+      classes = ConnectorRuntimeApplication.class)
   @DirtiesContext
   @AutoConfigureMockMvc
   class WithoutIssuerConfigured {
@@ -103,8 +102,7 @@ class SelfManagedApiSecurityConfigurationTest {
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
-      classes = ConnectorRuntimeApplication.class,
-      properties = {"management.server.port=0"})
+      classes = ConnectorRuntimeApplication.class)
   @DirtiesContext
   @AutoConfigureMockMvc
   class WithIssuerConfigured {
@@ -181,10 +179,7 @@ class SelfManagedApiSecurityConfigurationTest {
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
       classes = ConnectorRuntimeApplication.class,
-      properties = {
-        "management.server.port=0",
-        "camunda.connector.auth.self-managed.audience=connectors"
-      })
+      properties = {"camunda.connector.auth.self-managed.audience=connectors"})
   @DirtiesContext
   @AutoConfigureMockMvc
   class WithAudienceConfigured {
