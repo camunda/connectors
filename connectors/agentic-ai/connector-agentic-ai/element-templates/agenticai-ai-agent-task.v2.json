@@ -3409,6 +3409,7 @@
       "name" : "data.response.format.type",
       "type" : "zeebe:input"
     },
+    "tooltip" : "For providers without native schema-less JSON support (e.g. Anthropic, Bedrock Converse), a JSON instruction is added to the system prompt as a best-effort attempt when no schema is supplied.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Text",

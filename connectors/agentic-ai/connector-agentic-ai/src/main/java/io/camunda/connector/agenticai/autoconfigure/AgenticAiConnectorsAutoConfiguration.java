@@ -59,6 +59,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SchemaOnlyJsonResponseFormatSystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
@@ -272,6 +273,13 @@ public class AgenticAiConnectorsAutoConfiguration {
   public SystemPromptComposer aiAgentSystemPromptComposer(
       List<SystemPromptContributor> contributors) {
     return new SystemPromptComposerImpl(contributors);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SchemaOnlyJsonResponseFormatSystemPromptContributor
+      aiAgentSchemaOnlyJsonResponseFormatSystemPromptContributor() {
+    return new SchemaOnlyJsonResponseFormatSystemPromptContributor();
   }
 
   @Bean

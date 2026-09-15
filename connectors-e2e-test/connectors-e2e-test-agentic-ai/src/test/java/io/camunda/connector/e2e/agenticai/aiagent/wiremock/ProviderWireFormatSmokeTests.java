@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -280,5 +281,55 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** APIs with no native schema-less JSON mode: they get a system-prompt instruction instead. */
+  private static final Set<String> SCHEMA_ONLY_JSON_MODE_APIS =
+      Set.of(
+          "AnthropicMessagesV1", "AnthropicMessagesV2", "BedrockConverseV1", "BedrockConverseV2");
+
+  @Test
+  void jsonResponseFormatWithoutSchema() throws Exception {
+    final var userPrompt = "Write a haiku about the sea";
+
+    fixture.stubConversation(TurnStub.text(HAIKU_JSON, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
+                Map.of("userPrompt", userPrompt)));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(1);
+    final var request = fixture.lastRecordedRequest();
+    final var systemMessageText = request.messages().getFirst().textContent();
+
+    if (SCHEMA_ONLY_JSON_MODE_APIS.contains(fixture.apiName())) {
+      assertThat(request.responseFormat())
+          .as("no native structured-output config for schema-less JSON on %s", fixture.apiName())
+          .isEmpty();
+      assertThat(systemMessageText)
+          .as("system prompt augmented with JSON instruction on %s", fixture.apiName())
+          .startsWith(expectedSystemPrompt() + "\n\n")
+          .containsIgnoringCase("json");
+    } else {
+      assertThat(request.responseFormat())
+          .as("native schema-less JSON mode configured on %s", fixture.apiName())
+          .isPresent();
+      assertThat(request.responseFormat().orElseThrow().type()).isEqualTo("json_object");
+      assertThat(systemMessageText)
+          .as(
+              "system prompt left untouched on %s (native schema-less JSON mode)",
+              fixture.apiName())
+          .isEqualTo(expectedSystemPrompt());
+    }
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
   }
 }
