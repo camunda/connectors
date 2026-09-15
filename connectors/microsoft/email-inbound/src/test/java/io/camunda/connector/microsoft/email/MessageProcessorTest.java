@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.microsoft.email;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -14,6 +15,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.output.EmailAddress;
+import io.camunda.connector.microsoft.email.model.output.EmailAttachmentMetadata;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import java.time.OffsetDateTime;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -58,7 +61,7 @@ class MessageProcessorTest {
     return createTestMessage(List.of());
   }
 
-  private EmailMessage createTestMessage(List<Document> attachments) {
+  private EmailMessage createTestMessage(List<EmailAttachmentMetadata> attachmentMetadata) {
     return new EmailMessage(
         TEST_MESSAGE_ID,
         "conversation-123",
@@ -70,7 +73,8 @@ class MessageProcessorTest {
         "Test Body",
         "text",
         TEST_RECEIVED_TIME,
-        attachments);
+        attachmentMetadata,
+        List.of());
   }
 
   private void setupSuccessfulCorrelation() {
@@ -291,6 +295,61 @@ class MessageProcessorTest {
       // Then - Ignore strategy means postprocessing happens
       verify(spyMailClient, times(1)).fetchAttachments(context, message);
       verify(spyMailClient, times(1)).markMessageRead(message);
+    }
+  }
+
+  @Nested
+  class AttachmentMetadataScenarios {
+
+    @Test
+    void handleMessage_attachmentMetadata_isVisibleToActivationCondition() {
+      // Given - a message carrying attachment metadata resolved at poll time (no documents yet)
+      var pdf =
+          new EmailAttachmentMetadata("att-1", "invoice.pdf", "application/pdf", 1024L, false);
+      var operation = new EmailProcessingOperation.MarkAsReadOperation();
+      var message = createTestMessage(List.of(pdf));
+      setupSuccessfulCorrelation();
+      var processor = new MessageProcessor(operation, spyMailClient, context);
+
+      // When
+      processor.handleMessage(message);
+
+      // Then - the activation check sees the metadata (so a FEEL condition can filter on file type)
+      // but no attachments yet, since the content hasn't been downloaded
+      ArgumentCaptor<EmailMessage> captor = ArgumentCaptor.forClass(EmailMessage.class);
+      verify(context).canActivate(captor.capture());
+      assertThat(captor.getValue().attachmentMetadata()).containsExactly(pdf);
+      assertThat(captor.getValue().attachments()).isEmpty();
+    }
+
+    @Test
+    void handleMessage_correlationVariables_carryDownloadedDocuments() {
+      // Given
+      var pdf =
+          new EmailAttachmentMetadata("att-1", "invoice.pdf", "application/pdf", 1024L, false);
+      var operation = new EmailProcessingOperation.MarkAsReadOperation();
+      var message = createTestMessage(List.of(pdf));
+      setupSuccessfulCorrelation();
+      var downloaded = mock(Document.class);
+      doReturn(List.of(downloaded)).when(spyMailClient).fetchAttachments(any(), any());
+      var processor = new MessageProcessor(operation, spyMailClient, context);
+
+      // When
+      processor.handleMessage(message);
+
+      // Then - correlation variables carry the downloaded documents, with the common fields
+      // preserved from the polled message
+      ArgumentCaptor<CorrelationRequest> captor = ArgumentCaptor.forClass(CorrelationRequest.class);
+      verify(context).correlate(captor.capture());
+      assertThat(captor.getValue().getVariables()).isInstanceOf(EmailMessage.class);
+      var variables = (EmailMessage) captor.getValue().getVariables();
+      assertThat(variables.attachments()).containsExactly(downloaded);
+      assertThat(variables.subject()).isEqualTo("Test Subject");
+      assertThat(variables.id()).isEqualTo(TEST_MESSAGE_ID);
+      // and - attachmentMetadata survives into the correlation variables, so the runtime's
+      // internal re-check of the activation condition (against these variables, not the
+      // pre-activation message) still sees the same attribute it matched on
+      assertThat(variables.attachmentMetadata()).containsExactly(pdf);
     }
   }
 }
