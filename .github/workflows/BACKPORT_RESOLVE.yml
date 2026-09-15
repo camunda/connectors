@@ -46,6 +46,7 @@ jobs:
       pull-requests: read
     outputs:
       head: ${{ steps.ctx.outputs.head }}
+      base: ${{ steps.ctx.outputs.base }}
       pre_sha: ${{ steps.pre.outputs.head_sha }}
       source_author: ${{ steps.ctx.outputs.source_author }}
       agent_outcome: ${{ steps.agent.outcome }}
@@ -269,6 +270,11 @@ jobs:
           if [ "${local_sha}" != "${PRE_SHA}" ]; then
             git bundle create /tmp/resolution/resolution.bundle HEAD
           fi
+          # Always leave at least one file: an agent that fails before writing notes
+          # and leaves HEAD at PRE_SHA produces neither of the above, and an empty
+          # directory means upload-artifact creates no artifact at all — `apply`'s
+          # unconditional download would then fail before it could report anything.
+          touch /tmp/resolution/notes.txt
           if [ -s /tmp/backport-notes.txt ]; then
             cp /tmp/backport-notes.txt /tmp/resolution/notes.txt
           fi
@@ -338,6 +344,7 @@ jobs:
           REPO: ${{ github.repository }}
           BACKPORT_PR: ${{ inputs.backport_pr }}
           HEAD: ${{ needs.resolve.outputs.head }}
+          BASE: ${{ needs.resolve.outputs.base }}
           PRE_SHA: ${{ needs.resolve.outputs.pre_sha }}
           SOURCE_AUTHOR: ${{ needs.resolve.outputs.source_author }}
           AGENT_OUTCOME: ${{ needs.resolve.outputs.agent_outcome }}
@@ -390,6 +397,34 @@ jobs:
 
           git fetch --quiet /tmp/resolution/resolution.bundle HEAD:refs/resolution/head
           local_sha=$(git rev-parse refs/resolution/head)
+
+          # The agent left this commit; nothing has verified it's a real resolution
+          # rather than an arbitrary or fabricated tree. Two checks before this
+          # write-capable step will touch it:
+          #
+          # 1. Ancestry: it must actually build forward from the target branch's
+          # current tip, ruling out a disconnected commit unrelated to this repo's
+          # history.
+          git fetch --quiet origin "${BASE}"
+          base_sha=$(git rev-parse FETCH_HEAD)
+          if ! git merge-base --is-ancestor "${base_sha}" "${local_sha}"; then
+            echo "::error::the resolution commit ${local_sha} is not a descendant of origin/${BASE}; refusing to push a fabricated or unrelated tree"
+            comment ":rotating_light: The backport resolution agent's commit doesn't build on top of \`${BASE}\`, so it was rejected rather than pushed. This PR stays a draft; investigate before re-running the resolver. [Run](${run_url})"
+            exit 0
+          fi
+
+          # 2. Content: none of our own known secrets — which the agent had
+          # filesystem/env access to while resolving — may appear literally
+          # anywhere in the committed tree. Catches a prompt-injected agent
+          # exfiltrating a credential by committing it, which redacting the
+          # free-text notes above does not.
+          for secret in "${ANTHROPIC_API_KEY}" "${NEXUS_USER}" "${NEXUS_PASSWORD}"; do
+            if [ -n "${secret}" ] && git grep -qF -- "${secret}" "${local_sha}"; then
+              echo "::error::the resolution commit ${local_sha} contains known secret material; refusing to push it"
+              comment ":rotating_light: The backport resolution agent's commit appears to contain credential material, so it was rejected rather than pushed. This PR stays a draft; investigate before re-running the resolver. [Run](${run_url})"
+              exit 0
+            fi
+          done
 
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
             push --no-verify --force-with-lease="refs/heads/${HEAD}:${PRE_SHA}" \
