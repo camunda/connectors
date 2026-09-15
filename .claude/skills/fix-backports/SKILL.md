@@ -152,9 +152,18 @@ Push nothing before the developer approves. They may approve per-PR or in a batc
 ## Phase 5 — apply, only what was approved
 
 ```bash
-git push origin "HEAD:${HEAD_BRANCH}"
+git push --force-with-lease="refs/heads/${HEAD_BRANCH}:${original_sha}" \
+  origin "HEAD:refs/heads/${HEAD_BRANCH}"
 gh pr ready "${PR}" --repo camunda/connectors
 ```
+
+The force is intentional, not incidental: local `HEAD` dropped the conflict-marker commit,
+so it is no longer a descendant of the branch's current tip, and that marker commit must
+never survive into `stable/8.x` history. The lease is not optional — pinning the expected
+remote tip to `${original_sha}` (bound back in Phase 2) is what tells a legitimate rewrite
+apart from clobbering a colleague's intervening push; if someone pushed to this branch
+while you were resolving, the lease refuses and nothing is overwritten. If it refuses,
+stop and re-fetch — never fall back to a bare `--force`.
 
 No PR comment on success.
 
