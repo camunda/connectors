@@ -31,14 +31,13 @@ import java.util.stream.Collectors;
 /**
  * Physical-tenant-id resolution helpers shared across every {@code @Configuration} class that needs
  * to build a per-physical-tenant map from a {@link CamundaClientRegistry} ({@link
- * InboundConnectorRuntimeConfiguration}, {@link InboundCorrelationConfiguration}, and {@code
- * ProcessInstanceClientConfiguration}). Plain static methods, deliberately not
- * {@code @Bean}-produced: none of these consumers may declare a {@code Map<String, X>}-typed
- * {@code @Bean} parameter, since Spring's dependency resolution special-cases any such parameter by
- * collecting *all* beans of type {@code X} by name — including scalar override beans (e.g. a test's
- * {@code @MockitoBean SearchQueryClient}) — instead of using the bean whose own declared type is
- * the map. That would silently produce a map keyed by the scalar bean's name rather than the real
- * per-physical-tenant map.
+ * InboundConnectorRuntimeConfiguration} and {@link InboundCorrelationConfiguration}). Plain static
+ * methods, deliberately not {@code @Bean}-produced: none of these consumers may declare a {@code
+ * Map<String, X>}-typed {@code @Bean} parameter, since Spring's dependency resolution special-cases
+ * any such parameter by collecting *all* beans of type {@code X} by name — including scalar
+ * override beans (e.g. a test's {@code @MockitoBean SearchQueryClient}) — instead of using the bean
+ * whose own declared type is the map. That would silently produce a map keyed by the scalar bean's
+ * name rather than the real per-physical-tenant map.
  */
 public final class PhysicalTenantIds {
 
@@ -147,7 +146,7 @@ public final class PhysicalTenantIds {
   }
 
   /**
-   * Builds one {@link SearchQueryClient} per configured physical tenant. When a {@code
+   * Builds one {@link SearchQueryClient} registration per configured physical tenant. When a {@code
    * SearchQueryClient} bean is manually supplied (e.g. a test's {@code @MockitoBean}, used to
    * control process-definition search results) and only a single client is configured, that bean is
    * used in place of constructing a real client — mirroring the {@code legacyCamundaClient}
@@ -155,19 +154,6 @@ public final class PhysicalTenantIds {
    * configuration; applying it to every physical tenant in a genuine multi-client setup would have
    * every tenant's search silently query through the same override instead of its own client.
    */
-  public static Map<String, SearchQueryClient> buildSearchQueryClientsByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      SearchQueryClient legacySearchQueryClient,
-      int limit) {
-    return buildSearchQueryClientRegistrationsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit)
-        .entrySet()
-        .stream()
-        .collect(
-            Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().searchQueryClient()));
-  }
-
   static Map<String, SearchQueryClientRegistration>
       buildSearchQueryClientRegistrationsByPhysicalTenantId(
           CamundaClientRegistry registry,
@@ -200,11 +186,11 @@ public final class PhysicalTenantIds {
   /**
    * Builds one {@link DocumentFactory} per configured physical tenant, each backed by its own
    * {@link CamundaDocumentStoreImpl}/{@link CamundaClient} — mirrors {@link
-   * #buildSearchQueryClientsByPhysicalTenantId} exactly, including the single-client-only {@code
-   * legacyDocumentFactory} override escape hatch (e.g. a test's {@code @Primary DocumentFactory}
-   * bean, or an in-memory store for tests), so overriding this bean continues to work for existing
-   * single-physical-tenant deployments/tests without silently applying the same override to every
-   * physical tenant in a genuine multi-client setup.
+   * #buildSearchQueryClientRegistrationsByPhysicalTenantId} exactly, including the
+   * single-client-only {@code legacyDocumentFactory} override escape hatch (e.g. a test's
+   * {@code @Primary DocumentFactory} bean, or an in-memory store for tests), so overriding this
+   * bean continues to work for existing single-physical-tenant deployments/tests without silently
+   * applying the same override to every physical tenant in a genuine multi-client setup.
    */
   public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,

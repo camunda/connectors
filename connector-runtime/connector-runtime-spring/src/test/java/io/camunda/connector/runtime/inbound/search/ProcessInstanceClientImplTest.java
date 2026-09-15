@@ -31,6 +31,8 @@ import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,11 +41,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProcessInstanceClientImplTest {
 
+  private static final String PHYSICAL_TENANT_ID = "physicalTenant1";
+
   @Mock private SearchQueryClient searchQueryClient;
 
   @Test
   public void testFetchFlowNodeInstanceByDefinitionKeyAndElementId() {
-    ProcessInstanceClient processInstanceClient = new ProcessInstanceClientImpl(searchQueryClient);
+    var searchQueryClientRegistry =
+        new SearchQueryClientRegistry(
+            Map.of(PHYSICAL_TENANT_ID, searchQueryClient), Optional.empty(), 200);
+    ProcessInstanceClient processInstanceClient =
+        new ProcessInstanceClientImpl(searchQueryClientRegistry, PHYSICAL_TENANT_ID);
 
     // Given
     Long processDefinitionKey = 123L;

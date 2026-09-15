@@ -27,11 +27,20 @@ import org.springframework.util.CollectionUtils;
 
 public class ProcessInstanceClientImpl implements ProcessInstanceClient {
 
-  private final SearchQueryClient searchQueryClient;
+  private final SearchQueryClientRegistry searchQueryClientRegistry;
+  private final String physicalTenantId;
   private final Lock fetchActiveProcessLock;
 
-  public ProcessInstanceClientImpl(final SearchQueryClient searchQueryClient) {
-    this.searchQueryClient = searchQueryClient;
+  /**
+   * Resolves its {@link SearchQueryClient} from the registry on every call instead of capturing one
+   * at construction time, so a client replaced by a {@code CamundaClientLifecycleAware} reconnect
+   * ({@link SearchQueryClientRegistry#onStart}) is picked up on the next lookup rather than serving
+   * the closed client indefinitely.
+   */
+  public ProcessInstanceClientImpl(
+      final SearchQueryClientRegistry searchQueryClientRegistry, final String physicalTenantId) {
+    this.searchQueryClientRegistry = searchQueryClientRegistry;
+    this.physicalTenantId = physicalTenantId;
     this.fetchActiveProcessLock = new ReentrantLock();
   }
 
@@ -56,8 +65,9 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
       List<ElementInstance> result = new ArrayList<>();
       do {
         searchResult =
-            searchQueryClient.queryActiveFlowNodes(
-                processDefinitionKey, elementId, processPaginationIndex);
+            searchQueryClientRegistry
+                .get(physicalTenantId)
+                .queryActiveFlowNodes(processDefinitionKey, elementId, processPaginationIndex);
         processPaginationIndex = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           result.addAll(searchResult.items());
