@@ -400,8 +400,11 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   public AgentTaskV2Function aiAgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
-    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+      AgentTaskRequestHandler agentRequestHandler,
+      CamundaClient camundaClient,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new AgentTaskV2Function(
+        toolElementsResolver, agentRequestHandler, camundaClient, objectMapper);
   }
 
   @Bean
