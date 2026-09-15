@@ -300,6 +300,50 @@ class SnsWebhookExecutableTest {
     verify(confirmation, never()).confirmSubscription();
   }
 
+  @Test
+  void triggerWebhook_UnlistedHeader_DoesNotVerifyMessage() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-topic-arn", OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN);
+    verify(snsClientSupplier, never()).messageManager(anyString());
+    verify(messageManager, never()).parseMessage(any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"arn:aws:sns", "", "garbage", "arn:aws:sns:", "::", "a:b:c"})
+  void triggerWebhook_MalformedTopicArnHeader_ThrowsHandledException(String topicArn)
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "any"))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-topic-arn", topicArn);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .isNotInstanceOf(ArrayIndexOutOfBoundsException.class)
+        .hasMessageContaining("Invalid SNS topic ARN header");
+    verify(snsClientSupplier, never()).messageManager(anyString());
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"any", "specific"})
   void triggerWebhook_SubscriptionTopicMismatch_ConfirmsWhenVerifiedTopicAllowed(String allowedFor)
