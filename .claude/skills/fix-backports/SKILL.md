@@ -254,7 +254,7 @@ if [ -z "${original_sha}" ] || [ -z "${HEAD_BRANCH}" ]; then
   echo "state for PR ${PR} did not load — stop and report; do not push"
   exit 1
 fi
-cd "${WORKTREE}"
+cd "${WORKTREE}" || exit 1
 git push --force-with-lease="refs/heads/${HEAD_BRANCH}:${original_sha}" \
   origin "HEAD:refs/heads/${HEAD_BRANCH}"
 gh pr ready "${PR}" --repo camunda/connectors
@@ -267,6 +267,12 @@ remote tip to `${original_sha}` (persisted in Phase 2) is what tells a legitimat
 apart from clobbering a colleague's intervening push; if someone pushed to this branch
 while you were resolving, the lease refuses and nothing is overwritten. If it refuses,
 stop and re-fetch — never fall back to a bare `--force`.
+
+The `cd` above must halt on failure rather than fall through: if the worktree was removed
+or moved between approval and this apply step, a failed `cd` would leave the push running
+against the repo root, pushing the developer's *current* HEAD to `${HEAD_BRANCH}` — and the
+lease would not catch it, because the remote tip still matches `${original_sha}`. Do not
+remove this guard.
 
 No PR comment on success.
 
@@ -287,13 +293,17 @@ if [ -z "${original_sha}" ] || [ -z "${HEAD_BRANCH}" ]; then
   echo "state for PR ${PR} did not load — stop and report; do not reset"
   exit 1
 fi
-cd "${WORKTREE}"
+cd "${WORKTREE}" || exit 1
 git reset --hard "${original_sha}"
 gh pr comment "${PR}" --repo camunda/connectors --body "..."
 ```
 
 Say what defeated you specifically — which hunk, which missing API, what you could not
 determine — not "could not resolve automatically".
+
+Guard this `cd` the same way: a failed `cd` here would run `git reset --hard` against the
+main checkout instead of the worktree, discarding whatever the developer has checked out
+there. Halt instead of continuing.
 
 ## Phase 7 — clean up
 
