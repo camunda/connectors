@@ -16,14 +16,20 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.lifecycle.CamundaClientLifecycleAware;
+import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -32,29 +38,112 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** Utility class for schedulers used to import process data needed for inbound connectors. */
-public class ImportSchedulers {
+public class ImportSchedulers implements CamundaClientLifecycleAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
   private final ProcessStateManager stateStore;
-  private final Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
+  private final Map<String, ClientRegistration> clientsByPhysicalTenantId;
   private final Importers importers;
   private final ExecutorService executor;
+  private final Optional<SearchQueryClient> legacySearchQueryClient;
+  private final Optional<String> legacySearchQueryClientPhysicalTenantId;
+  private final int limit;
 
   private volatile boolean ready = true;
 
   private final boolean activeVersionsPollingEnabled;
+
+  private record ClientRegistration(
+      Optional<CamundaClient> camundaClient, SearchQueryClient searchQueryClient) {}
 
   public ImportSchedulers(
       ProcessStateManager stateStore,
       Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
       Importers importers,
       boolean activeVersionsPollingEnabled) {
+    this(
+        stateStore,
+        searchQueryClientsByPhysicalTenantId,
+        Optional.empty(),
+        200,
+        importers,
+        activeVersionsPollingEnabled);
+  }
+
+  public ImportSchedulers(
+      ProcessStateManager stateStore,
+      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
+      Optional<SearchQueryClient> legacySearchQueryClient,
+      int limit,
+      Importers importers,
+      boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
-    this.searchQueryClientsByPhysicalTenantId = searchQueryClientsByPhysicalTenantId;
+    this.clientsByPhysicalTenantId = new ConcurrentHashMap<>();
+    searchQueryClientsByPhysicalTenantId.forEach(
+        (physicalTenantId, client) ->
+            clientsByPhysicalTenantId.put(
+                physicalTenantId, new ClientRegistration(Optional.empty(), client)));
+    this.legacySearchQueryClient = legacySearchQueryClient;
+    this.legacySearchQueryClientPhysicalTenantId =
+        searchQueryClientsByPhysicalTenantId.entrySet().stream()
+            .filter(
+                entry ->
+                    legacySearchQueryClient
+                        .map(searchQueryClient -> entry.getValue() == searchQueryClient)
+                        .orElse(false))
+            .map(Map.Entry::getKey)
+            .findFirst();
+    this.limit = limit;
     this.importers = importers;
     this.executor = Executors.newVirtualThreadPerTaskExecutor();
+  }
+
+  @Override
+  public void onStart(CamundaClient client) {
+    onStart(client, "default");
+  }
+
+  @Override
+  public void onStop(CamundaClient client) {
+    onStop(client, "default");
+  }
+
+  @Override
+  public void onStart(CamundaClient client, String clientName) {
+    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
+    var searchQueryClient =
+        legacySearchQueryClientPhysicalTenantId
+            .filter(physicalTenantId::equals)
+            .flatMap(ignored -> legacySearchQueryClient)
+            .orElseGet(() -> new SearchQueryClientImpl(client, limit));
+    clientsByPhysicalTenantId.put(
+        physicalTenantId, new ClientRegistration(Optional.of(client), searchQueryClient));
+  }
+
+  @Override
+  public void onStop(CamundaClient client, String clientName) {
+    var matchingRegistration =
+        clientsByPhysicalTenantId.entrySet().stream()
+            .filter(
+                entry ->
+                    entry
+                        .getValue()
+                        .camundaClient()
+                        .filter(registeredClient -> registeredClient == client)
+                        .isPresent())
+            .findFirst();
+    if (matchingRegistration.isPresent()) {
+      var entry = matchingRegistration.orElseThrow();
+      clientsByPhysicalTenantId.remove(entry.getKey(), entry.getValue());
+      return;
+    }
+
+    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
+    clientsByPhysicalTenantId.computeIfPresent(
+        physicalTenantId,
+        (ignored, registration) -> registration.camundaClient().isEmpty() ? null : registration);
   }
 
   @Scheduled(
@@ -85,11 +174,17 @@ public class ImportSchedulers {
   private boolean pollAllPhysicalTenants(
       ImportType importType, BiFunction<String, SearchQueryClient, ImportResult> importFn) {
     List<CompletableFuture<Boolean>> futures =
-        searchQueryClientsByPhysicalTenantId.entrySet().stream()
+        clientsByPhysicalTenantId.entrySet().stream()
             .map(
                 entry ->
                     CompletableFuture.supplyAsync(
-                        () -> pollOnePhysicalTenant(importType, importFn, entry), executor))
+                        () ->
+                            pollOnePhysicalTenant(
+                                importType,
+                                importFn,
+                                entry.getKey(),
+                                entry.getValue().searchQueryClient()),
+                        executor))
             .toList();
     return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
   }
@@ -97,16 +192,17 @@ public class ImportSchedulers {
   private boolean pollOnePhysicalTenant(
       ImportType importType,
       BiFunction<String, SearchQueryClient, ImportResult> importFn,
-      Map.Entry<String, SearchQueryClient> entry) {
+      String physicalTenantId,
+      SearchQueryClient searchQueryClient) {
     try {
-      var result = importFn.apply(entry.getKey(), entry.getValue());
+      var result = importFn.apply(physicalTenantId, searchQueryClient);
       stateStore.update(result);
       return true;
     } catch (Exception e) {
       LOG.error(
           "Failed to import {} process versions for physical tenant '{}'",
           importType,
-          entry.getKey(),
+          physicalTenantId,
           e);
       return false;
     }

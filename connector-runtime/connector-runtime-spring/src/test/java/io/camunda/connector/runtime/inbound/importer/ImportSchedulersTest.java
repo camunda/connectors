@@ -18,19 +18,24 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Verifies that {@link ImportSchedulers} polls every configured physical tenant's {@link
@@ -155,5 +160,90 @@ class ImportSchedulersTest {
 
     verify(importers, times(0)).importActiveVersions(any(), any());
     verify(stateManager, times(0)).update(any());
+  }
+
+  @Test
+  void onStart_registersNewClientForPolling() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions(any(), any())).thenReturn(resultFor("physical-tenant-a"));
+    var schedulers = new ImportSchedulers(stateManager, Map.of(), importers, true);
+
+    schedulers.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions(eq("physical-tenant-a"), any(SearchQueryClient.class));
+    verify(stateManager).update(resultFor("physical-tenant-a"));
+  }
+
+  @Test
+  void onStart_replacesSearchClientAfterReconnect() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var oldClient = clientWithPhysicalTenantId("physical-tenant-a");
+    var replacementClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions(any(), any())).thenReturn(resultFor("physical-tenant-a"));
+    var schedulers = new ImportSchedulers(stateManager, Map.of(), importers, true);
+    var searchClientCaptor = ArgumentCaptor.forClass(SearchQueryClient.class);
+
+    schedulers.onStart(oldClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+    schedulers.onStart(replacementClient, "client-a");
+    schedulers.onStop(oldClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers, times(2))
+        .importLatestVersions(eq("physical-tenant-a"), searchClientCaptor.capture());
+    assertThat(searchClientCaptor.getAllValues().get(1))
+        .isNotSameAs(searchClientCaptor.getAllValues().get(0));
+  }
+
+  @Test
+  void onStop_removesClientFromPolling() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(camundaClient.getConfiguration().getPhysicalTenantId())
+        .thenReturn("physical-tenant-a")
+        .thenThrow(new IllegalStateException("client is closing"));
+    var schedulers = new ImportSchedulers(stateManager, Map.of(), importers, true);
+
+    schedulers.onStart(camundaClient, "client-a");
+    schedulers.onStop(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers, never()).importLatestVersions(any(), any());
+    assertThat(schedulers.isReady()).isTrue();
+  }
+
+  @Test
+  void reconnect_preservesLegacySearchQueryClientOverride() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+    var camundaClient = clientWithPhysicalTenantId("physical-tenant-a");
+    when(importers.importLatestVersions("physical-tenant-a", overrideSearchQueryClient))
+        .thenReturn(resultFor("physical-tenant-a"));
+    var schedulers =
+        new ImportSchedulers(
+            stateManager,
+            Map.of("physical-tenant-a", overrideSearchQueryClient),
+            Optional.of(overrideSearchQueryClient),
+            200,
+            importers,
+            true);
+
+    schedulers.onStop(camundaClient, "client-a");
+    schedulers.onStart(camundaClient, "client-a");
+    schedulers.scheduleLatestVersionImport();
+
+    verify(importers).importLatestVersions("physical-tenant-a", overrideSearchQueryClient);
+  }
+
+  private static CamundaClient clientWithPhysicalTenantId(String physicalTenantId) {
+    var client = mock(CamundaClient.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn(physicalTenantId);
+    return client;
   }
 }
