@@ -11,6 +11,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.kafka.model.KafkaConnectionConfiguration;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
@@ -27,6 +28,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 @OutboundConnector(
     name = "Kafka Producer",
     inputVariables = {
+      "kafkaConnectionConfiguration",
       "authentication",
       "topic",
       "message",
@@ -36,7 +38,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     },
     type = "io.camunda:connector-kafka:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.KAFKA.v1",
     name = "Publish Message to Kafka",
     description = "Produce Kafka message",
@@ -50,15 +52,16 @@ import org.apache.kafka.clients.producer.RecordMetadata;
       "kafka topic"
     },
     inputDataClass = KafkaConnectorRequest.class,
-    version = 6,
+    version = 7,
+    configurations = {KafkaConnectionConfiguration.class},
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
       @ElementTemplate.PropertyGroup(id = "schema", label = "Schema"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
     icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
