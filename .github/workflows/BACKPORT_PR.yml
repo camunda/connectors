@@ -59,23 +59,3 @@ jobs:
               "detect_merge_method": true,
               "conflict_resolution": "draft_commit_conflicts"
             }
-      # gh workflow run needs Actions:write on whatever token it's called with. That's the
-      # App token here (GH_TOKEN below), not github.token, so this workflow's own
-      # `permissions:` block can't grant it — Actions:write has to already be part of the
-      # GitHub App's own installation permissions.
-      - name: Dispatch the resolver for conflicted backports
-        if: steps.backport.outputs.created_pull_numbers != ''
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ github.repository }}
-          CREATED: ${{ steps.backport.outputs.created_pull_numbers }}
-        run: |
-          set -euo pipefail
-          for pr in ${CREATED}; do
-            if [ "$(gh pr view "$pr" --repo "$REPO" --json isDraft -q .isDraft)" != "true" ]; then
-              echo "#$pr cherry-picked cleanly, nothing to resolve"
-              continue
-            fi
-            echo "#$pr has committed conflicts, dispatching the resolver"
-            gh workflow run BACKPORT_RESOLVE.yml --repo "$REPO" -f backport_pr="$pr"
-          done
