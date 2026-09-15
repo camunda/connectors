@@ -13,11 +13,19 @@ on:
       - main
     paths:
       - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-fix.yml'
+      - '.github/workflows/alwaysgreen-triage.yml'
+      - '.github/workflows/connectors-streak-detector.yml'
       - '.github/workflows/alwaysgreen-scripts-test.yml'
+      - 'docs/alwaysgreen/FIX-AGENT.md'
   pull_request:
     paths:
       - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-fix.yml'
+      - '.github/workflows/alwaysgreen-triage.yml'
+      - '.github/workflows/connectors-streak-detector.yml'
       - '.github/workflows/alwaysgreen-scripts-test.yml'
+      - 'docs/alwaysgreen/FIX-AGENT.md'
 
 defaults:
   run:
