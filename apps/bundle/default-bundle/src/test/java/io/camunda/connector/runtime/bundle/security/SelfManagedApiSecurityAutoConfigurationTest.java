@@ -96,6 +96,53 @@ class SelfManagedApiSecurityAutoConfigurationTest {
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
       classes = ConnectorRuntimeApplication.class,
+      properties = {"camunda.connector.configuration.validation.unsecured=true"})
+  @DirtiesContext
+  @AutoConfigureMockMvc
+  class WithUnsecuredAccess {
+
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    public CamundaClient camundaClient;
+
+    @Autowired private MockMvc mvc;
+
+    @Test
+    void configurationsEndpoint_withoutCredentials_isAvailable() throws Exception {
+      mvc.perform(
+              post("/configurations/validate")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(BODY))
+          .andExpect(status().isOk());
+    }
+  }
+
+  @Nested
+  class WithUnsecuredAccessAndAuthentication {
+
+    @Test
+    void failsToStart() {
+      new WebApplicationContextRunner()
+          .withUserConfiguration(SelfManagedApiSecurityAutoConfiguration.class)
+          .withPropertyValues(
+              "camunda.connector.configuration.validation.unsecured=true",
+              "camunda.connector.auth.self-managed.issuer=https://issuer.example.com",
+              "camunda.connector.auth.self-managed.audience=" + AUDIENCE)
+          .run(
+              context ->
+                  assertThat(context)
+                      .hasFailed()
+                      .getFailure()
+                      .rootCause()
+                      .isInstanceOf(IllegalStateException.class)
+                      .hasMessageContaining(
+                          "camunda.connector.configuration.validation.unsecured"));
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      webEnvironment = WebEnvironment.RANDOM_PORT,
+      classes = ConnectorRuntimeApplication.class,
       properties = {"camunda.connector.auth.self-managed.audience=" + AUDIENCE})
   @DirtiesContext
   @AutoConfigureMockMvc

@@ -40,7 +40,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * {@code POST /configurations/validate} resolves stored secrets, so self-managed requires an OIDC
- * token on it, and answers 404 until an issuer is configured.
+ * token on it, allows an explicit unsecured mode, and otherwise answers 404.
  */
 @Configuration
 @EnableWebSecurity
@@ -59,6 +59,9 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Value("${camunda.connector.auth.self-managed.audience:}")
   private String audience;
 
+  @Value("${camunda.connector.configuration.validation.unsecured:false}")
+  private boolean unsecured;
+
   /** First in the chain order, so no catch-all chain can claim the route ahead of it. */
   @Bean
   @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -69,7 +72,10 @@ public class SelfManagedApiSecurityAutoConfiguration {
         // Stateless, so a session from another route cannot satisfy authenticated() here.
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-    if (StringUtils.hasText(issuer)) {
+    if (unsecured) {
+      rejectAuthenticationConfiguration();
+      http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    } else if (StringUtils.hasText(issuer)) {
       http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
           .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     } else {
@@ -83,6 +89,15 @@ public class SelfManagedApiSecurityAutoConfiguration {
                           SelfManagedApiSecurityAutoConfiguration::respondNotFound));
     }
     return http.build();
+  }
+
+  private void rejectAuthenticationConfiguration() {
+    if (StringUtils.hasText(issuer) || StringUtils.hasText(audience)) {
+      throw new IllegalStateException(
+          "camunda.connector.configuration.validation.unsecured cannot be enabled together with "
+              + "camunda.connector.auth.self-managed.issuer or "
+              + "camunda.connector.auth.self-managed.audience");
+    }
   }
 
   private JwtDecoder jwtDecoder() {

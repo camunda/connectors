@@ -72,6 +72,7 @@ public class ConnectorInstancesSecurityConfigurationTest {
     // Deliberately set: the self-managed auto-configuration must stay inert here.
     registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
     registry.add("camunda.connector.auth.self-managed.audience", () -> "connectors");
+    registry.add("camunda.connector.configuration.validation.unsecured", () -> "true");
   }
 
   @AfterAll
