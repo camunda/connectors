@@ -112,13 +112,8 @@ public class ConnectorInstancesSecurityConfigurationTest {
   }
 
   /**
-   * The self-managed bundle is a runtime dependency of this one, so {@code
-   * SelfManagedApiSecurityConfiguration} is always on this classpath and backs off via
-   * {@code @ConditionalOnMissingClass} naming {@link
-   * io.camunda.connector.runtime.saas.security.ConnectorInstancesSecurityConfiguration}. That name
-   * is a string literal, so renaming or moving this class would silently stop the condition
-   * matching and leave two filter chains competing for {@code /configurations/**} here, with no
-   * compile error. Asserting the absence of its beans fails loudly from the side that would break.
+   * The self-managed chains name {@code ConnectorInstancesSecurityConfiguration} in a string
+   * literal to back off, so renaming it would silently leave two chains on this route. Fail here.
    */
   @Test
   public void selfManagedFilterChains_areNotRegisteredAlongsideTheConsoleChain() {

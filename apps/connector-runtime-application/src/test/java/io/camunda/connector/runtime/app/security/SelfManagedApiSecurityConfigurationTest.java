@@ -58,12 +58,7 @@ class SelfManagedApiSecurityConfigurationTest {
         .content(BODY);
   }
 
-  /**
-   * Default self-managed configuration: no {@code camunda.connector.auth.self-managed.issuer} is
-   * set. The route must fail closed rather than behave like it does today (wide open) — as a 404,
-   * matching how the Hub adapter already treats a too-old runtime, rather than a 401/403 that would
-   * surface as a visible failure in Hub.
-   */
+  /** Nothing configured: the route must fail closed, and as a 404 rather than a 401/403. */
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
@@ -87,7 +82,6 @@ class SelfManagedApiSecurityConfigurationTest {
       mvc.perform(validateRequest("any-token-at-all")).andExpect(status().isNotFound());
     }
 
-    /** Not even an already-authenticated caller gets through: the chain is deny-all, not a gate. */
     @Test
     void configurationsEndpoint_isDeniedEvenWhenAlreadyAuthenticated() throws Exception {
       mvc.perform(post("/configurations/validate").with(jwt())).andExpect(status().isNotFound());
@@ -95,12 +89,8 @@ class SelfManagedApiSecurityConfigurationTest {
   }
 
   /**
-   * An operator opts in by pointing {@code camunda.connector.auth.self-managed.issuer} at their own
-   * identity provider (the same one Hub's forwarded bearer token is issued from), plus the {@code
-   * audience} that IdP mints this runtime's tokens for. Every case here goes through the real
-   * {@code Authorization: Bearer} header so the configured {@code JwtDecoder} — signature, expiry,
-   * issuer and audience — is what decides, rather than a pre-authenticated stand-in placed straight
-   * into the security context.
+   * Configured. Every case goes through a real {@code Authorization: Bearer} header so the
+   * configured {@code JwtDecoder} decides, not a pre-authenticated stand-in.
    */
   @Nested
   @SpringBootTest(
@@ -113,7 +103,6 @@ class SelfManagedApiSecurityConfigurationTest {
 
     private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
 
-    /** A second issuer, used to sign tokens this runtime must not accept. */
     private static final MockOidcServer FOREIGN_OIDC_SERVER = MockOidcServer.start();
 
     @DynamicPropertySource
@@ -180,23 +169,17 @@ class SelfManagedApiSecurityConfigurationTest {
           .andExpect(status().isUnauthorized());
     }
 
-    /** aud is optional in a JWT; a token minted without one must not slip through. */
     @Test
     void configurationsEndpoint_withoutAnyAudience_isDenied() throws Exception {
       mvc.perform(validateRequest(OIDC_SERVER.token().sign())).andExpect(status().isUnauthorized());
     }
 
-    /** A token this runtime should accept: right issuer, right audience, not expired. */
     private static MockOidcServer.TokenBuilder acceptableToken() {
       return OIDC_SERVER.token().audience(AUDIENCE);
     }
   }
 
-  /**
-   * An issuer without an audience is a configuration error, not a looser mode: it would accept
-   * every token that IdP signs for any of its clients. Startup must fail and say which property is
-   * missing, rather than silently coming up with the wider trust boundary.
-   */
+  /** An issuer without an audience is a configuration error, not a looser mode. */
   @Nested
   class WithIssuerButNoAudience {
 
@@ -224,14 +207,10 @@ class SelfManagedApiSecurityConfigurationTest {
   }
 
   /**
-   * Hybrid regression, isolated from the rest of the application context (a full
-   * {@code @SpringBootTest} with {@code camunda.client.mode=saas} pulls in unrelated CamundaClient
-   * property validation for SaaS-style connections, which has nothing to do with this class): this
-   * module never carries {@code camunda-saas-bundle}'s security classes, regardless of {@code
-   * camunda.client.mode} — a self-managed runtime reaching a SaaS-hosted orchestration cluster
-   * (Hybrid) legitimately sets that property to {@code saas}. Protection must still register in
-   * that case, proving the exclusion is keyed off the SaaS bundle's class being absent, not off
-   * this property (which {@link SelfManagedApiSecurityConfiguration} no longer reads at all).
+   * Hybrid: a self-managed runtime reaching a SaaS-hosted cluster sets {@code
+   * camunda.client.mode=saas} but carries none of the SaaS bundle's classes, so protection must
+   * still register. Uses a context runner rather than {@code @SpringBootTest} to avoid unrelated
+   * CamundaClient validation of SaaS-style connection properties.
    */
   @Nested
   class HybridRegression {

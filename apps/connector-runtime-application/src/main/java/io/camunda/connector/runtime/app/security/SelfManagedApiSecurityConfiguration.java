@@ -36,67 +36,25 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
 /**
- * Protects {@code POST /configurations/validate} on self-managed runtimes. It resolves stored
- * secrets to run a validator (see {@code ConfigurationValidationConfiguration}'s javadoc), and
- * unlike the SaaS bundle, self-managed has no security filter chain in front of it at all today —
- * anyone who can reach the runtime's HTTP port can name any secret it can resolve and have it
- * delivered to a URL of their choosing.
+ * Protects {@code POST /configurations/validate} on self-managed runtimes, which resolves stored
+ * secrets to run a validator and today sits behind no filter chain at all — anyone who can reach
+ * the runtime's HTTP port can name a secret and have it delivered to a URL of their choosing.
  *
- * <p>Self-managed has no fixed identity provider the way SaaS has Console, so protection is opt-in
- * via {@code camunda.connector.auth.self-managed.issuer} — but it fails <b>closed</b>: absent that
- * property, the route is denied outright rather than left silently open the way it is today. An
- * operator who wants Hub's "validate credential" feature configures this to the issuer their
- * cluster's Hub calls are already authenticated against (Hub forwards its caller's own bearer token
- * for a {@code BEARER_TOKEN}-auth cluster); everyone else simply doesn't get the feature — the same
- * degradation the Hub adapter already applies to a {@code BASIC}-auth cluster or a too-old runtime
- * (see {@code SelfManagedConnectorCredentialValidationAdapter#validate}).
+ * <p>Self-managed has no fixed identity provider the way SaaS has Console, so the route is opt-in
+ * via {@code camunda.connector.auth.self-managed.issuer} and {@code ...audience} (both required
+ * together; startup fails on an issuer alone, which would accept every token that IdP signs for any
+ * of its clients). Unconfigured, it fails closed as a 404 — the signal the calling Hub adapter
+ * already reads as "this runtime is too old for credential validation", so it hides the feature
+ * instead of reporting an error.
  *
- * <p>{@code camunda.connector.auth.self-managed.audience} is required whenever the issuer is set,
- * and startup fails if it is missing. An issuer on its own accepts every token that IdP signs for
- * any of its clients; on the org-wide IdP a typical self-managed install points at, that is a far
- * wider trust boundary than a route which resolves secrets warrants. Set it to the {@code aud}
- * claim of the tokens Hub forwards to this runtime.
+ * <p>CSRF is exempted for this route, as {@code camunda-saas-bundle} also does for it: the caller
+ * is a machine client with a bearer token and no session to replay.
  *
- * <p>CSRF is exempted for this route only, exactly as {@code camunda-saas-bundle} already exempts
- * it (and {@code /inbound-instances/**}, {@code /outbound/**}) in {@code
- * ConnectorInstancesSecurityConfiguration}: the caller is a server-side machine client presenting a
- * bearer token, with no cookie or session for a browser to replay, so a CSRF token would have
- * nothing to protect and would simply reject every legitimate Hub call.
- *
- * <p>Scope is this route only. {@code /actuator/**} also answers anonymously on self-managed, but
- * the fix there is network isolation (its own {@code management.server.port}, as {@code
- * camunda-saas-bundle} already does) rather than authentication, which would break unauthenticated
- * k8s probes. That move has to land together with a {@code camunda-platform-helm} change, since the
- * chart's Connectors probes currently target the public {@code http} port, so it is deliberately
- * left out of here.
- *
- * <p>A custom Spring Boot application built directly on {@code spring-boot-starter-camunda-
- * connectors} (bypassing this module and {@code default-bundle} entirely) does not get this
- * protection and must add its own equivalent.
- *
- * <p>Backs off when {@code camunda-saas-bundle}'s own {@code
- * ConnectorInstancesSecurityConfiguration} is on the classpath, since that module already covers
- * this route with the Console JWT chain and pulls this module in transitively at runtime. This is
- * deliberately a classpath check ({@code @ConditionalOnMissingClass}) rather than a check on {@code
- * camunda.client.mode}: in a Hybrid deployment, a self-managed runtime (running this module, not
- * {@code camunda-saas-bundle}) legitimately sets {@code camunda.client.mode=saas} to reach a
- * SaaS-hosted orchestration cluster. Keying off that property would have switched this protection
- * off precisely on that topology, while {@code camunda-saas-bundle}'s classes — the thing actually
- * being deferred to — are absent. Presence of its security class, unlike that property, is
- * decoupled from client-auth mode, so it is the correct signal for "is the SaaS bundle's own
- * protection actually here."
- *
- * <p>On why a self-managed policy lives here rather than in {@code default-bundle}, mirroring how
- * SaaS keeps its own in {@code camunda-saas-bundle}: this module is the self-managed application
- * ({@code ConnectorRuntimeApplication}), whereas {@code default-bundle} is a packaging module with
- * no main sources. Moving the class there would not buy the separation it looks like it should,
- * because {@code camunda-saas-bundle} depends on {@code connector-runtime-bundle} — the SaaS
- * classpath carries whatever the self-managed bundle carries, so the condition above stays
- * necessary either way, and a naive move would in fact invert the wiring (this module's component
- * scan is package-local, while the SaaS application scans all of {@code io.camunda.connector}).
- * What would actually remove the need for the condition is both bundles depending on a shared core
- * instead of SaaS depending on the self-managed bundle; that is a much larger change than the
- * placement of this class.
+ * <p>Backs off when {@code camunda-saas-bundle}'s {@code ConnectorInstancesSecurityConfiguration}
+ * is on the classpath, since it already covers this route and pulls this module in transitively.
+ * The check is deliberately on that class rather than {@code camunda.client.mode}: a Hybrid runtime
+ * is self-managed but sets that property to {@code saas} to reach a SaaS-hosted cluster, so keying
+ * off it would disable this protection exactly where the SaaS classes are absent.
  */
 @Configuration
 @EnableWebSecurity
@@ -123,15 +81,7 @@ public class SelfManagedApiSecurityConfiguration {
     return http.build();
   }
 
-  /**
-   * Fail-closed default: with no issuer configured there is nothing safe to validate a caller's
-   * token against, so the route is denied outright rather than left reachable. Answers with a plain
-   * 404 rather than 401/403: the Hub adapter that calls this route ({@code
-   * SelfManagedConnectorCredentialValidationAdapter}) already treats a 404 as "this runtime doesn't
-   * support credential validation" and hides the feature accordingly (the same path a too-old
-   * runtime takes); 401/403 would instead surface as a visible failure for every self-managed
-   * operator who has not yet configured the issuer.
-   */
+  /** Fail-closed default: no issuer configured means nothing to validate against, so deny. */
   @Bean
   @ConditionalOnMissingBean(name = "selfManagedConfigurationValidationFilterChain")
   public SecurityFilterChain selfManagedConfigurationValidationDenyAllFilterChain(HttpSecurity http)
