@@ -40,6 +40,28 @@
       <artifactId>spring-beans</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!-- For ConfigurationValidationSecurityConfiguration. Provided, so consumers of the starter
+         are not forced to take Spring Security. -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-config</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
       <artifactId>tomcat-embed-core</artifactId>
@@ -257,6 +279,10 @@
           <ignoredDependencies>
 <dependency>org.springframework:spring-webmvc</dependency>
             <dependency>org.springframework:spring-web</dependency>
+            <!-- Reached only through Spring Security's fluent builders. -->
+            <dependency>org.springframework.security:spring-security-config</dependency>
+            <dependency>org.springframework.security:spring-security-web</dependency>
+            <dependency>org.springframework.security:spring-security-core</dependency>
           </ignoredDependencies>
         </configuration>
       </plugin>
