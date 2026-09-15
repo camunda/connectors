@@ -23,7 +23,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -115,15 +114,13 @@ public class ConnectorInstancesSecurityConfigurationTest {
     mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
   }
 
+  /**
+   * The self-managed chain names this class in a string literal to back off. Renaming the class
+   * would otherwise put a second chain on this route.
+   */
   @Test
-  public void configurationValidationRoute_isGovernedByExactlyOnePolicy() {
-    assertThat(applicationContext.getBeansOfType(ConfigurationValidationSecurityPolicy.class))
-        .hasSize(1);
-    assertThat(applicationContext.containsBean("configurationValidationDenyAllFilterChain"))
-        .as("shared fail-closed default must stand down")
-        .isFalse();
+  public void selfManagedChain_backsOffBehindTheConsoleChain() {
     assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
-        .as("self-managed chain must stay inert")
         .isFalse();
   }
 

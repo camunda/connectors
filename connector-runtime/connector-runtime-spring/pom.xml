@@ -35,17 +35,6 @@
       <artifactId>spring-boot-autoconfigure</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- For ConfigurationValidationDenyAllSecurityConfiguration; supplied at runtime by the starter. -->
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-config</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-web</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-beans</artifactId>
@@ -268,10 +257,6 @@
           <ignoredDependencies>
 <dependency>org.springframework:spring-webmvc</dependency>
             <dependency>org.springframework:spring-web</dependency>
-            <!-- Used only through Spring Security's fluent builders. -->
-            <dependency>org.springframework.security:spring-security-config</dependency>
-            <dependency>org.springframework.security:spring-security-web</dependency>
-            <dependency>org.springframework.security:spring-security-core</dependency>
           </ignoredDependencies>
         </configuration>
       </plugin>

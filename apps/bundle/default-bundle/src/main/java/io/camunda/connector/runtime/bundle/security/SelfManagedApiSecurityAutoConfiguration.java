@@ -17,15 +17,16 @@
 package io.camunda.connector.runtime.bundle.security;
 
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -36,13 +37,21 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
-/** Self-managed policy for {@code /configurations/**}; needs issuer + audience properties. */
+/**
+ * {@code POST /configurations/validate} resolves stored secrets, so self-managed requires an OIDC
+ * token on it, and answers 404 until an issuer is configured.
+ */
 @Configuration
 @EnableWebSecurity
 @AutoConfigureBefore(ConnectorsAutoConfiguration.class)
-@ConditionalOnProperty(prefix = "camunda.connector.auth.self-managed", name = "issuer")
-@ConditionalOnMissingBean(ConfigurationValidationSecurityPolicy.class)
+@ConditionalOnMissingClass(SelfManagedApiSecurityAutoConfiguration.SAAS_SECURITY_CONFIGURATION)
 public class SelfManagedApiSecurityAutoConfiguration {
+
+  /** The SaaS bundle covers this route with the Console JWT chain; back off there. */
+  static final String SAAS_SECURITY_CONFIGURATION =
+      "io.camunda.connector.runtime.saas.security.ConnectorInstancesSecurityConfiguration";
+
+  private static final String PROTECTED_ROUTES = "/configurations/**";
 
   @Value("${camunda.connector.auth.self-managed.issuer:}")
   private String issuer;
@@ -50,30 +59,36 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Value("${camunda.connector.auth.self-managed.audience:}")
   private String audience;
 
+  /** First in the chain order, so no catch-all chain can claim the route ahead of it. */
   @Bean
-  public ConfigurationValidationSecurityPolicy selfManagedConfigurationValidationPolicy() {
-    return new ConfigurationValidationSecurityPolicy("self-managed OIDC");
-  }
-
-  @Bean
-  @Order(ConfigurationValidationDenyAllSecurityConfiguration.ORDER)
+  @Order(Ordered.HIGHEST_PRECEDENCE)
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
-    var routes = ConfigurationValidationDenyAllSecurityConfiguration.PROTECTED_ROUTES;
-    http.csrf(csrf -> csrf.ignoringRequestMatchers(routes))
-        .securityMatchers(matchers -> matchers.requestMatchers(routes))
-        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(selfManagedJwtDecoder())));
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
+        .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES));
+    if (StringUtils.hasText(issuer)) {
+      http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+          .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+    } else {
+      http.authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
+          .exceptionHandling(
+              exceptionHandling ->
+                  exceptionHandling
+                      .authenticationEntryPoint(
+                          SelfManagedApiSecurityAutoConfiguration::respondNotFound)
+                      .accessDeniedHandler(
+                          SelfManagedApiSecurityAutoConfiguration::respondNotFound));
+    }
     return http.build();
   }
 
-  private JwtDecoder selfManagedJwtDecoder() {
+  private JwtDecoder jwtDecoder() {
     if (!StringUtils.hasText(audience)) {
       throw new IllegalStateException(
           "camunda.connector.auth.self-managed.audience must be set when "
               + "camunda.connector.auth.self-managed.issuer is set. Without an audience, every "
               + "token the issuer signs for any of its clients would be accepted on "
-              + ConfigurationValidationDenyAllSecurityConfiguration.PROTECTED_ROUTES
+              + PROTECTED_ROUTES
               + ". Set it to the aud claim of the tokens Camunda Hub forwards to this runtime.");
     }
     NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuer);
@@ -81,5 +96,10 @@ public class SelfManagedApiSecurityAutoConfiguration {
         new DelegatingOAuth2TokenValidator<>(
             JwtValidators.createDefaultWithIssuer(issuer), new AudienceValidator(audience)));
     return jwtDecoder;
+  }
+
+  private static void respondNotFound(
+      HttpServletRequest request, HttpServletResponse response, Exception ignoredException) {
+    response.setStatus(HttpStatus.NOT_FOUND.value());
   }
 }

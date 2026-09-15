@@ -23,8 +23,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import java.time.Duration;
 import java.time.Instant;
@@ -218,7 +216,7 @@ class SelfManagedApiSecurityAutoConfigurationTest {
     }
 
     @Test
-    void policyRegistersRegardlessOfClientMode() {
+    void chainRegistersRegardlessOfClientMode() {
       new WebApplicationContextRunner()
           .withUserConfiguration(SelfManagedApiSecurityAutoConfiguration.class)
           .withPropertyValues(
@@ -227,26 +225,7 @@ class SelfManagedApiSecurityAutoConfigurationTest {
               "camunda.connector.auth.self-managed.audience=" + AUDIENCE)
           .run(
               context ->
-                  assertThat(context)
-                      .hasSingleBean(ConfigurationValidationSecurityPolicy.class)
-                      .hasBean("selfManagedConfigurationValidationFilterChain"));
-    }
-  }
-
-  @Nested
-  class WithoutIssuerTheSharedDefaultApplies {
-
-    @Test
-    void contributesNoPolicy() {
-      new WebApplicationContextRunner()
-          .withUserConfiguration(
-              SelfManagedApiSecurityAutoConfiguration.class,
-              ConfigurationValidationDenyAllSecurityConfiguration.class)
-          .run(
-              context ->
-                  assertThat(context)
-                      .doesNotHaveBean(ConfigurationValidationSecurityPolicy.class)
-                      .hasBean("configurationValidationDenyAllFilterChain"));
+                  assertThat(context).hasBean("selfManagedConfigurationValidationFilterChain"));
     }
   }
 

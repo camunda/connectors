@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.saas.security;
 
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationSecurityPolicy;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -80,12 +78,7 @@ public class ConnectorInstancesSecurityConfiguration {
   }
 
   @Bean
-  public ConfigurationValidationSecurityPolicy saasConfigurationValidationPolicy() {
-    return new ConfigurationValidationSecurityPolicy("SaaS Console JWT");
-  }
-
-  @Bean
-  @Order(ConfigurationValidationDenyAllSecurityConfiguration.ORDER)
+  @Order(2)
   public SecurityFilterChain connectorInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
         .csrf(

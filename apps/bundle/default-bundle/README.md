@@ -37,6 +37,7 @@
 - Operate is now integrated into the core distribution
 - Updated port configurations for both webhook and Operate interface
 - Improved compatibility with current connector implementations
+
 ## Securing `POST /configurations/validate`
 
 The credential-validation endpoint resolves stored secrets in order to run a validator, so it is

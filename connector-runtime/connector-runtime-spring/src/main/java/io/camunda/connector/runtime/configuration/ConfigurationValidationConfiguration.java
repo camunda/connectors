@@ -28,7 +28,6 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
-import io.camunda.connector.runtime.configuration.security.ConfigurationValidationDenyAllSecurityConfiguration;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
@@ -49,14 +48,13 @@ import org.springframework.context.annotation.Import;
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
  *
- * <p>{@code POST /configurations/validate} resolves stored secrets, so it ships behind {@link
- * ConfigurationValidationDenyAllSecurityConfiguration} unless a module declares its own policy.
+ * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
+ * value can reach the response (see the message-safety policy on {@code
+ * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
+ * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
  */
 @Configuration
-@Import({
-  ConfigurationValidationRestController.class,
-  ConfigurationValidationDenyAllSecurityConfiguration.class
-})
+@Import(ConfigurationValidationRestController.class)
 public class ConfigurationValidationConfiguration {
 
   @Bean

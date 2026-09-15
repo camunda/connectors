@@ -25,12 +25,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!-- For ConfigurationValidationSecurityPolicy. -->
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-runtime-spring</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>secret-providers-base</artifactId>
