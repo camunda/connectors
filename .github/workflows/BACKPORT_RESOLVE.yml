@@ -5,6 +5,16 @@ run-name: Resolve backport conflicts
 # i.e. every one whose cherry-pick hit a conflict and had that conflict committed.
 # Runs the Claude Code CLI over the checkout, replays the cherry-pick cleanly, and
 # force-pushes the resolution only if it builds.
+#
+# Split into two jobs on purpose. `resolve` runs the agent with `--dangerously-skip-
+# permissions` and unrestricted shell access to the checkout; it never holds a
+# write-capable GitHub credential, only read access via the default GITHUB_TOKEN.
+# `apply` does the actual push, PR-ready, and comment on a separate, fresh runner
+# the agent never touched, using the App token. A same-job trusted step after an
+# untrusted one isn't a real boundary — the untrusted step can persist environment
+# and PATH changes via $GITHUB_ENV/$GITHUB_PATH into every later step of that job,
+# so isolating `HOME`/git config in-job (an earlier version of this workflow did
+# that) is bypassable. A separate job gets a genuinely clean environment instead.
 
 on:
   workflow_dispatch:
@@ -15,9 +25,11 @@ on:
         required: true
         type: string
 
-# Everything this workflow writes goes through the App token, not the workflow token, as App token will trigger CI.
-permissions:
-  contents: read
+env:
+  # korthout/backport-action always runs with this App's token, so it's who opens
+  # every backport PR and posts every conflict-instruction comment. Fixed rather
+  # than derived from a token's app-slug, so the `resolve` job never needs one.
+  BOT_LOGIN: team-connectors-int-automation[bot]
 
 concurrency:
   group: backport-resolve-${{ inputs.backport_pr }}
@@ -28,8 +40,20 @@ jobs:
     name: Resolve conflicts
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      head: ${{ steps.ctx.outputs.head }}
+      pre_sha: ${{ steps.pre.outputs.head_sha }}
+      source_author: ${{ steps.ctx.outputs.source_author }}
+      agent_outcome: ${{ steps.agent.outcome }}
 
     steps:
+      # No App token in this job — only secrets an untrusted agent is allowed to see.
+      # Reads use the default GITHUB_TOKEN (contents/issues/pull-requests: read above);
+      # the write-capable App token is generated in, and never leaves, the `apply` job.
       - name: Import Vault secrets
         id: secrets
         uses: hashicorp/vault-action@v4.0.0
@@ -40,35 +64,18 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false
           secrets: |
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
             secret/data/products/connectors/ci/common CLAUDE_API_KEY | ANTHROPIC_API_KEY;
             secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
             secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
 
-      - name: Generate a GitHub token for connectors
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
-          private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-
-      # Only the backport bot itself is allowed to author the PR this workflow acts on
-      # (see the author check below): every write this job makes goes through this same
-      # App token, and korthout/backport-action always opens the backport PR with it too.
-      - name: Determine the backport bot's login
-        id: bot
-        run: echo "login=${{ steps.app-token.outputs.app-slug }}[bot]" >> "$GITHUB_OUTPUT"
-
       # Runs before the checkout on purpose: this decides *which* branch gets checked
-      # out and force-pushed, so it has to be able to refuse before the repo is there.
+      # out, so it has to be able to refuse before the repo is there.
       - name: Resolve and validate context
         id: ctx
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           BACKPORT_PR: ${{ inputs.backport_pr }}
-          BOT_LOGIN: ${{ steps.bot.outputs.login }}
         run: |
           set -euo pipefail
 
@@ -153,14 +160,14 @@ jobs:
 
       # persist-credentials: false so nothing checked out — the conflicted diff, PR body,
       # comments — sits next to a write-capable git credential. The agent runs over this
-      # checkout with --dangerously-skip-permissions; keep the push credential out of its
-      # reach entirely rather than trust it not to be prompt-injected into using one.
+      # checkout with --dangerously-skip-permissions; this job never has a credential
+      # that can write to GitHub in the first place, but keep the habit regardless.
       - name: Check out the backport branch
         uses: actions/checkout@v7
         with:
           ref: ${{ steps.ctx.outputs.head }}
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ github.token }}
           persist-credentials: false
 
       - name: Fetch the target branch and the source commit
@@ -174,10 +181,11 @@ jobs:
           if [ -n "${MERGE_SHA}" ]; then
             git fetch origin "${MERGE_SHA}"
           fi
-          # The tip as it stands before the agent touches anything. The outcome step
-          # compares the remote against this to decide whether a resolution was pushed,
-          # rather than asking the agent whether it succeeded. The checkout just fetched
-          # this branch, so local HEAD is the remote tip.
+          # The tip as it stands before the agent touches anything. `apply` compares
+          # the remote against this both to decide whether a resolution was pushed
+          # and, again right before pushing, to make sure nothing else moved the
+          # branch meanwhile. The checkout just fetched this branch, so local HEAD
+          # is the remote tip.
           echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Restore Maven cache
@@ -208,8 +216,8 @@ jobs:
 
       - name: Configure git
         run: |
-          git config user.name "team-connectors-int-automation[bot]"
-          git config user.email "team-connectors-int-automation[bot]@users.noreply.github.com"
+          git config user.name "${BOT_LOGIN}"
+          git config user.email "${BOT_LOGIN}@users.noreply.github.com"
 
       - name: Install Claude Code CLI
         run: |
@@ -223,11 +231,18 @@ jobs:
           git show origin/main:.github/workflows/BACKPORT_RESOLVE_AGENT.md > /tmp/BACKPORT_RESOLVE_AGENT.md
           wc -l /tmp/BACKPORT_RESOLVE_AGENT.md
 
-      # No GH_TOKEN here: the agent gets ANTHROPIC_API_KEY only, so it can run itself, but
-      # no credential that can write to GitHub. It resolves and builds against the local
-      # checkout and leaves the result as a local commit; it never pushes or calls `gh`.
+      # No GH_TOKEN here (there isn't one in this job at all): the agent gets
+      # ANTHROPIC_API_KEY only, so it can run itself, but no credential that can write
+      # to GitHub. It resolves and builds against the local checkout and leaves the
+      # result as a local commit; it never pushes or calls `gh`.
+      #
+      # continue-on-error so a failing agent (bad resolution, failed build gate, tool
+      # error) doesn't fail this job — `apply` still needs to run to comment on the
+      # PR either way, gated on `agent_outcome` above rather than on this job's own
+      # success.
       - name: Run the backport resolution agent
         id: agent
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
         run: |
@@ -237,26 +252,95 @@ jobs:
           claude -p "You are the Camunda connectors backport resolution agent. Read /tmp/BACKPORT_RESOLVE_AGENT.md in full. It is your operating manual: follow it exactly; do not skip it." \
             --dangerously-skip-permissions
 
-      # Gated on validation and the pre-agent fetch having passed, not just always():
-      # a refusal in ctx means no checkout, no branch to inspect, and a PR this workflow
-      # was never meant to touch; a failure in pre means head_sha was never recorded, so
-      # there's no baseline to diff local HEAD against and no way to tell a real agent
-      # resolution from an unrelated one. Both fail with their own error and this step
-      # stays out of it, leaving the PR as a draft.
-      #
-      # This is also the first step with a write-capable credential since the agent ran,
-      # and the only one that pushes — the agent leaves its resolution as a local commit,
-      # never touching origin itself.
-      - name: Apply the outcome
+      # Package whatever the agent left as a bundle rather than a diff, so the exact
+      # commit (message, author, tree) survives the handoff — `apply` clones straight
+      # from it. Gated on ctx+pre having passed, not just always(): a refusal in ctx
+      # means no checkout, no branch to inspect, and a PR this workflow was never meant
+      # to touch; a failure in pre means head_sha (PRE_SHA) was never recorded, so
+      # there's no baseline to diff local HEAD against.
+      - name: Package the result
         if: always() && steps.ctx.outcome == 'success' && steps.pre.outcome == 'success'
+        env:
+          PRE_SHA: ${{ steps.pre.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/resolution
+          local_sha=$(git rev-parse HEAD)
+          if [ "${local_sha}" != "${PRE_SHA}" ]; then
+            git bundle create /tmp/resolution/resolution.bundle HEAD
+          fi
+          if [ -s /tmp/backport-notes.txt ]; then
+            cp /tmp/backport-notes.txt /tmp/resolution/notes.txt
+          fi
+
+      - name: Upload the resolution artifact
+        if: always() && steps.ctx.outcome == 'success' && steps.pre.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backport-resolution-${{ inputs.backport_pr }}
+          path: /tmp/resolution
+          if-no-files-found: warn
+          retention-days: 1
+
+  apply:
+    name: Apply the outcome
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Import Vault secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/common CLAUDE_API_KEY | ANTHROPIC_API_KEY;
+            secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
+            secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
+
+      # The only App token in this workflow, generated on a runner the agent never
+      # touched, right before it's needed.
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Download the resolution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backport-resolution-${{ inputs.backport_pr }}
+          path: /tmp/resolution
+
+      # A plain, fresh checkout of the branch as it stands right now — nothing to do
+      # with the `resolve` job's checkout, which the agent had unrestricted shell
+      # access to and which never leaves that job.
+      - name: Check out the backport branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.head }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Apply the outcome
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
           BACKPORT_PR: ${{ inputs.backport_pr }}
-          HEAD: ${{ steps.ctx.outputs.head }}
-          PRE_SHA: ${{ steps.pre.outputs.head_sha }}
-          SOURCE_AUTHOR: ${{ steps.ctx.outputs.source_author }}
-          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          HEAD: ${{ needs.resolve.outputs.head }}
+          PRE_SHA: ${{ needs.resolve.outputs.pre_sha }}
+          SOURCE_AUTHOR: ${{ needs.resolve.outputs.source_author }}
+          AGENT_OUTCOME: ${{ needs.resolve.outputs.agent_outcome }}
           ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
           NEXUS_USER: ${{ steps.secrets.outputs.NEXUS_USER }}
           NEXUS_PASSWORD: ${{ steps.secrets.outputs.NEXUS_PASSWORD }}
@@ -268,10 +352,11 @@ jobs:
             gh pr comment "${BACKPORT_PR}" --repo "${REPO}" --body "$1"
           }
 
-          # The agent fully controls this file's content. Redact any of the secrets it
-          # had filesystem access to (but no env access to push with) before this trusted
-          # step publishes it verbatim to a PR comment — otherwise a prompt-injected agent
-          # could exfiltrate them through the comment itself, with no network egress needed.
+          # The agent fully controlled notes.txt's content. Redact any of the secrets
+          # it had filesystem access to (but no env access to push with) before this
+          # step publishes it verbatim to a PR comment — otherwise a prompt-injected
+          # agent could exfiltrate them through the comment itself, no network egress
+          # needed.
           redact() {
             local text="$1" secret="$2"
             if [ -n "${secret}" ]; then
@@ -281,35 +366,34 @@ jobs:
           }
 
           notes="_The agent left no notes._"
-          if [ -s /tmp/backport-notes.txt ]; then
-            notes=$(cat /tmp/backport-notes.txt)
+          if [ -s /tmp/resolution/notes.txt ]; then
+            notes=$(cat /tmp/resolution/notes.txt)
           fi
           notes=$(redact "${notes}" "${ANTHROPIC_API_KEY}")
           notes=$(redact "${notes}" "${NEXUS_USER}")
           notes=$(redact "${notes}" "${NEXUS_PASSWORD}")
 
-          local_sha=$(git rev-parse HEAD)
-          if [ "${local_sha}" = "${PRE_SHA}" ]; then
+          # This checkout is fresh, so HEAD here is the branch's current remote tip —
+          # re-check it against PRE_SHA in case something else pushed while `resolve`
+          # was running, rather than trusting the value `resolve` captured earlier.
+          current_sha=$(git rev-parse HEAD)
+          if [ "${current_sha}" != "${PRE_SHA}" ]; then
+            echo "::error::${HEAD} moved from ${PRE_SHA} to ${current_sha} while resolving; discarding the agent's resolution rather than overwriting that change"
+            comment ":warning: Someone else pushed to this branch while the resolution agent was working, so its result was discarded to avoid overwriting that push. Re-run the resolver if it's still needed. [Run](${run_url})"
+            exit 0
+          fi
+
+          if [ "${AGENT_OUTCOME}" != "success" ] || [ ! -f /tmp/resolution/resolution.bundle ]; then
             comment ":warning: The backport resolution agent left this unchanged (agent step: \`${AGENT_OUTCOME}\`), so this PR stays a draft. Resolve it locally with the instructions above. ${notes} [Run](${run_url})"
             exit 0
           fi
 
-          # Push from a pristine, agent-untouched clone with an isolated git environment:
-          # the working tree's local config (aliases like `push`, `url.*.insteadOf`, hooks)
-          # and the runner's own global/system git config are all reachable by the agent's
-          # unrestricted shell, and `git push` anywhere under this HOME honors all of it
-          # regardless of the URL/refspec given — so push from neither. The lease is pinned
-          # to PRE_SHA, captured before the agent ran, rather than a local remote-tracking
-          # ref the agent could have forged with `git fetch`/`update-ref`.
-          fresh_dir=$(mktemp -d)
-          git init --quiet "${fresh_dir}"
-          GIT_CONFIG_NOSYSTEM=1 HOME="${fresh_dir}" git -C "${fresh_dir}" \
-            fetch --quiet "${GITHUB_WORKSPACE}" "${local_sha}"
-          GIT_CONFIG_NOSYSTEM=1 HOME="${fresh_dir}" git -C "${fresh_dir}" \
-            -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
+          git fetch --quiet /tmp/resolution/resolution.bundle HEAD:refs/resolution/head
+          local_sha=$(git rev-parse refs/resolution/head)
+
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
             push --no-verify --force-with-lease="refs/heads/${HEAD}:${PRE_SHA}" \
             "https://github.com/${REPO}.git" "${local_sha}:refs/heads/${HEAD}"
-          rm -rf "${fresh_dir}"
 
           gh pr ready "${BACKPORT_PR}" --repo "${REPO}"
           comment ":robot: Conflict resolved by the backport resolution agent — a machine merge, so please read the diff rather than only the checks. ${notes} [Run](${run_url})"
