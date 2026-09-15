@@ -29,6 +29,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
@@ -65,7 +66,10 @@ public class SelfManagedApiSecurityAutoConfiguration {
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
-        .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES));
+        .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES))
+        // Stateless, so a session from another route cannot satisfy authenticated() here.
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
     if (StringUtils.hasText(issuer)) {
       http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
           .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));

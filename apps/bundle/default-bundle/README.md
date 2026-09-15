@@ -45,9 +45,10 @@ closed by default: with nothing configured it answers **404** to every request, 
 Camunda Hub reads as "this runtime does not support credential validation" — it hides the feature
 rather than reporting an error.
 
-To enable it, point the runtime at the identity provider whose tokens Hub forwards. Both properties
-are required together; setting the issuer alone **fails startup**, because an issuer on its own
-would accept every token that IdP signs for any of its clients.
+To enable it, point the runtime at the identity provider whose tokens Hub forwards. `issuer` turns
+the feature on, and `audience` is required whenever `issuer` is set: an issuer alone **fails
+startup**, because it would accept every token that IdP signs for any of its clients. Setting only
+`audience` leaves the feature off, so the route keeps answering 404.
 
 | Property | Environment variable |
 |---|---|
