@@ -23,12 +23,16 @@ several, listed in order there, and all must be replayed.
 ## Git strategy
 
 **Never commit a fix on top of the conflict-marker commit** — markers are permanent in
-`stable/8.x` history once merged. Note where you started, then reset and replay:
+`stable/8.x` history once merged. The action stops at the first conflict, so everything on
+this branch below that one commit is already a cleanly-applied cherry-pick from the source
+PR — reset past only the conflict-marker commit itself, never all the way to the target
+branch, or you will silently drop those earlier commits from the backport. Note where you
+started, then reset and replay:
 
 ```bash
 original_sha=$(git rev-parse HEAD)     # the conflict-marker commit — your fallback below
-git reset --hard "origin/<target>"
-git cherry-pick -x <sha> [<sha>...]     # resolve as each conflict arises
+git reset --hard HEAD~1                # drop only the conflict-marker commit, keep earlier cherry-picks
+git cherry-pick -x <sha> [<sha>...]    # replay .conflict_instructions' shas; resolve as conflicts arise
 ```
 
 Then, **only after the build gate passes, leave the resolution as local `HEAD`** — you have

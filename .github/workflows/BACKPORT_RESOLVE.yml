@@ -118,9 +118,11 @@ jobs:
             exit 1
           fi
 
+          # `--arg` is a jq option, not a `gh api` one — it can't follow `--jq` directly,
+          # so pipe the paginated (concatenated) JSON into a real jq instead.
           gh api "repos/${REPO}/issues/${BACKPORT_PR}/comments" --paginate \
-            --jq --arg bot "${BOT_LOGIN}" \
-              '.[] | select(.user.login == $bot) | select(.body | test("cherry-pick the changes locally")) | .body' \
+            | jq --arg bot "${BOT_LOGIN}" \
+                '.[] | select(.user.login == $bot) | select(.body | test("cherry-pick the changes locally")) | .body' \
             > /tmp/conflict-instructions.txt
 
           if [ ! -s /tmp/conflict-instructions.txt ]; then
@@ -273,8 +275,12 @@ jobs:
             exit 0
           fi
 
+          # Push by explicit URL and captured sha, bypassing hooks: the agent ran with
+          # unrestricted shell access to this checkout and could have left a `pre-push`
+          # hook or repointed `remote.origin.url` to smuggle this credential out once it
+          # appears here.
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)" \
-            push --force-with-lease origin "HEAD:refs/heads/${HEAD}"
+            push --no-verify --force-with-lease "https://github.com/${REPO}.git" "${local_sha}:refs/heads/${HEAD}"
 
           gh pr ready "${BACKPORT_PR}" --repo "${REPO}"
           comment ":robot: Conflict resolved by the backport resolution agent — a machine merge, so please read the diff rather than only the checks. ${notes} [Run](${run_url})"
