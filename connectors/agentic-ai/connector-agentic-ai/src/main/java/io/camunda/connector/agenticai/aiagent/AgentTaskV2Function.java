@@ -6,15 +6,26 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
  * AI Agent Task v2 connector (LLM-provider layer). Service-task flavor; reuses the shared handler.
@@ -84,22 +95,104 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     },
     icon = "aiagent.svg")
 public class AgentTaskV2Function implements AgentConnectorFunction {
+  private static final String LINKED_RESOURCES_HEADER = "linkedResources";
+  private static final String SYSTEM_PROMPT_RESOURCE_TYPE = "system-prompt";
+  private static final String SYSTEM_PROMPT_LINK_NAME = "systemPrompt";
+  private static final String ERROR_CODE_LINKED_SYSTEM_PROMPT =
+      "LINKED_SYSTEM_PROMPT_RESOLUTION_ERROR";
+
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
+  private final CamundaClient camundaClient;
+  private final ObjectMapper objectMapper;
 
   public AgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
+      AgentTaskRequestHandler agentRequestHandler,
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
+    this.camundaClient = camundaClient;
+    this.objectMapper = objectMapper;
   }
 
   @Override
   public AgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentTaskV2Request.class);
+    var systemPrompt =
+        composeSystemPrompt(
+            request.data().systemPrompt().prompt(), context.getJobContext().getCustomHeaders());
     var executionContext =
         new AgentTaskExecutionContext(
-            context.getJobContext(), request.data(), request.provider(), toolElementsResolver);
+            context.getJobContext(),
+            request.data(),
+            request.provider(),
+            toolElementsResolver,
+            new SystemPromptConfiguration(systemPrompt));
     return agentRequestHandler.handleRequest(executionContext);
   }
+
+  private String composeSystemPrompt(String inlinePrompt, Map<String, String> customHeaders) {
+    var linkedPrompt = resolveLinkedSystemPrompt(customHeaders);
+    if (StringUtils.isBlank(linkedPrompt)) {
+      return inlinePrompt;
+    }
+    if (StringUtils.isBlank(inlinePrompt)) {
+      return linkedPrompt;
+    }
+    return inlinePrompt + "\n\n" + linkedPrompt;
+  }
+
+  private @Nullable String resolveLinkedSystemPrompt(Map<String, String> customHeaders) {
+    var rawLinkedResources = customHeaders.get(LINKED_RESOURCES_HEADER);
+    if (StringUtils.isBlank(rawLinkedResources)) {
+      return null;
+    }
+
+    final List<LinkedResource> linkedResources;
+    try {
+      linkedResources =
+          objectMapper.readValue(rawLinkedResources, new TypeReference<List<LinkedResource>>() {});
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "Failed to parse linked resource metadata from the activated job.",
+          e);
+    }
+
+    var systemPromptResources =
+        linkedResources.stream()
+            .filter(
+                resource ->
+                    SYSTEM_PROMPT_RESOURCE_TYPE.equals(resource.resourceType())
+                        && SYSTEM_PROMPT_LINK_NAME.equals(resource.linkName()))
+            .toList();
+    if (systemPromptResources.isEmpty()) {
+      return null;
+    }
+    if (systemPromptResources.size() > 1) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "The activated job contains multiple linked system prompt resources.");
+    }
+
+    var resourceKey = systemPromptResources.getFirst().resourceKey();
+    if (resourceKey == null) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "The linked system prompt resource has no resolved resource key.");
+    }
+    try {
+      return camundaClient.newResourceContentBinaryGetRequest(resourceKey).execute();
+    } catch (Exception e) {
+      throw new ConnectorException(
+          ERROR_CODE_LINKED_SYSTEM_PROMPT,
+          "Failed to retrieve linked system prompt resource with key %d.".formatted(resourceKey),
+          e);
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record LinkedResource(@Nullable Long resourceKey, String resourceType, String linkName) {}
 }
