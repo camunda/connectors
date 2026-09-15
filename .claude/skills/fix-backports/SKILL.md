@@ -15,9 +15,11 @@ repo.
 
 ## Which commits to replay
 
-The bot's comment names them. **A source PR gets one comment per target branch** — PR
-#8812 carries five, one each for `stable/8.6` through `8.9`. Read the comment for *your*
-target branch, not the first one that matches, or you will replay the wrong set.
+The bot's comment names them. **A source PR gets one comment per target branch**, for
+successes as well as failures — PR #8812 carries five: "Backport failed for" `stable/8.6`,
+`8.7`, `8.8` and `8.9`, plus a "Successfully created backport PR for `stable/8.10`". Match
+on the branch named in the comment, never on position, or you will replay another target's
+commits or land on a success comment that names none.
 
 If no comment names them, stop and say so. Never guess a SHA.
 
@@ -37,12 +39,19 @@ history are permanent once merged.
 
 ## Which PRs are safe to touch
 
-Only ones authored by `app/team-connectors-int-automation`.
+Two things must both hold: the bot authored it, **and** there is actual evidence of a
+conflict — a "Backport failed" comment naming this target, or committed conflict markers.
+Authorship alone also matches clean backports that need no help.
+
+The bot's login differs by API: `gh pr view --json author` reports
+`app/team-connectors-int-automation`, the REST API reports
+`team-connectors-int-automation[bot]`. Accept either; don't hardcode one and silently
+match nothing.
 
 Humans create branches matching the bot's exact naming: PRs #8845–#8849 are `johnBgood`'s,
-on `backport-8812-to-stable/8.6` through `8.9`. **The author is the only discriminator** —
-the branch name is not. Rewriting a colleague's branch because it looked bot-shaped is the
-worst thing this skill can do.
+on `backport-8812-to-stable/8.6` through `8.9`. **The branch name proves nothing** —
+rewriting a colleague's branch because it looked bot-shaped is the worst thing this skill
+can do.
 
 ## Building
 
