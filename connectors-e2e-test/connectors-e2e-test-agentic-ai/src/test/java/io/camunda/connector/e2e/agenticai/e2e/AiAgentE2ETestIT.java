@@ -463,9 +463,9 @@ public class AiAgentE2ETestIT {
 
   /**
    * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as {@link
-   * #anthropicV2}, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
-   * api.anthropic.com. Bedrock names its models with an {@code anthropic.} prefix and without the
-   * date suffix.
+   * #anthropicV2}, authenticated with a Bedrock API key and sent to a Bedrock Mantle endpoint
+   * instead of api.anthropic.com. Bedrock names its models with an {@code anthropic.} prefix and
+   * without the date suffix.
    */
   static ProviderConfig anthropicBedrockMantleV2(String model) {
     return new ProviderConfig(

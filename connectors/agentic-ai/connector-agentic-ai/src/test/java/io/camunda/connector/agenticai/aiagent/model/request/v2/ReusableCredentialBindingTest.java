@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -525,8 +526,10 @@ class ReusableCredentialBindingTest {
   }
 
   @ParameterizedTest
-  @EnumSource(BedrockProvider.class)
-  void rejectsSharedAwsCredentialWithoutAuthentication(BedrockProvider provider) throws Exception {
+  @CsvSource({"CONVERSE, false", "CONVERSE, true", "MANTLE, false", "MANTLE, true"})
+  void rejectsSharedAwsCredentialWithoutAuthentication(BedrockProvider provider, boolean saas)
+      throws Exception {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, Boolean.toString(saas));
     var configuration =
         readBedrock(
             provider,
@@ -542,7 +545,9 @@ class ReusableCredentialBindingTest {
             }
             """);
 
-    assertThat(validator.validate(configuration)).isNotEmpty();
+    assertThat(validator.validate(configuration))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS IAM authentication is required from the credential or element template");
   }
 
   @ParameterizedTest

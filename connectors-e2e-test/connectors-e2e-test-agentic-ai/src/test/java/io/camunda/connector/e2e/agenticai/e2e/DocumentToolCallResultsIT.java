@@ -366,8 +366,8 @@ class DocumentToolCallResultsIT {
 
   /**
    * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as
-   * anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
-   * api.anthropic.com.
+   * anthropicV2, authenticated with a Bedrock API key and sent to a Bedrock Mantle endpoint instead
+   * of api.anthropic.com.
    */
   static ProviderConfig anthropicBedrockMantleV2(String model) {
     return new ProviderConfig(

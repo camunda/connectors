@@ -232,7 +232,7 @@ class RealProviderApiSmokeIT {
   }
 
   // Bedrock Mantle is Anthropic's own Messages API (the same wire format as anthropic-api),
-  // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+  // hosted on/by AWS: requests use a Bedrock API key and go to a Bedrock Mantle endpoint instead of
   // api.anthropic.com, but the connector performs no body/path/response translation between the
   // two.
   static ProviderConfig anthropicBedrockMantleV2(
