@@ -10,6 +10,8 @@ ROOT = Path(__file__).parents[3]
 FIX = (ROOT / ".github/workflows/alwaysgreen-fix.yml").read_text()
 TRIAGE = (ROOT / ".github/workflows/alwaysgreen-triage.yml").read_text()
 WATCHER = (ROOT / ".github/workflows/connectors-streak-detector.yml").read_text()
+FEATURE_TEST = (ROOT / ".github/workflows/TEST_FEATURE_BRANCH.yml").read_text()
+LICENSE_CHECK = (ROOT / ".github/workflows/CHECK_LICENSES.yml").read_text()
 
 
 def _step(workflow: str, name: str, next_name: str) -> str:
@@ -98,6 +100,21 @@ def test_read_token_is_revoked_before_model_and_publish_token_is_minted_after():
 
 def test_generated_connector_catalog_cannot_be_published():
     assert "connectors:connector-templates.json" in FIX
+
+
+def test_agent_branches_are_untrusted_in_secret_bearing_ci():
+    assert FEATURE_TEST.count("'fix/alwaysgreen-'") >= 2
+    assert "persist-credentials: false" in FEATURE_TEST
+    assert "contents: read" in FEATURE_TEST
+    assert LICENSE_CHECK.count("'fix/alwaysgreen-'") >= 2
+    assert "persist-credentials: false" in LICENSE_CHECK
+
+
+def test_e2e_publishing_requires_the_untrusted_branch_guard():
+    assert "for e2e_job in set-versions-matrix lint build" in FIX
+    assert '$0 == "  " job ":"' in FIX
+    assert 'in_job && $0 == guard { found = 1 }' in FIX
+    assert "does not treat AlwaysGreen branches as untrusted" in FIX
 
 
 def test_agent_data_is_outside_the_instruction_stream():

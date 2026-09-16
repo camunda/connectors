@@ -527,6 +527,21 @@ jobs:
               exit 1
               ;;
           esac
+          if [ "$repo" = "c8-cross-component-e2e-tests" ]; then
+            e2e_workflow="$(git show HEAD:.github/workflows/playwright.yml)"
+            e2e_guard="    if: \${{ !startsWith(github.head_ref, 'fix/alwaysgreen-') }}"
+            for e2e_job in set-versions-matrix lint build; do
+              if ! awk -v job="$e2e_job" -v guard="$e2e_guard" '
+                $0 == "  " job ":" { in_job = 1; next }
+                in_job && /^  [[:alnum:]_-]+:/ { exit }
+                in_job && $0 == guard { found = 1 }
+                END { exit(found ? 0 : 1) }
+              ' <<< "$e2e_workflow"; then
+                echo "::error::the e2e $e2e_job job does not treat AlwaysGreen branches as untrusted"
+                exit 1
+              fi
+            done
+          fi
           [ "$(jq -r '.change.repo // ""' /tmp/fix-meta.json)" = "$repo" ] || {
             echo "::error::the manifest repository does not match the changed repository"
             exit 1
