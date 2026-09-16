@@ -102,12 +102,16 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
             .tag(webhookProcessingPayload.method())
             .message("Url: " + webhookProcessingPayload.requestURL()));
 
-    checkMessageAllowListed(webhookProcessingPayload);
-    Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
+    // Reject obvious misses before the expensive signature verification. The second allow-list
+    // check below remains authoritative because the header is not covered by the SNS signature.
+    checkMessageAllowListed(webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER));
     String region = extractRegionFromTopicArnHeader(webhookProcessingPayload.headers());
     SnsMessageManager msgManager = snsClientSupplier.messageManager(region);
     SnsMessage msg =
         msgManager.parseMessage(new ByteArrayInputStream(webhookProcessingPayload.rawBody()));
+    String verifiedTopicArn = msg.getTopicArn();
+    checkMessageAllowListed(verifiedTopicArn);
+    Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
     if (msg instanceof SnsSubscriptionConfirmation ssc) {
       return tryConfirmSubscription(webhookProcessingPayload, bodyAsMap, ssc);
     } else if (msg instanceof SnsNotification) {
@@ -144,17 +148,14 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         Map.of("snsEventType", "Notification"));
   }
 
-  private void checkMessageAllowListed(WebhookProcessingPayload webhookProcessingPayload)
-      throws Exception {
+  private void checkMessageAllowListed(String topicArn) throws Exception {
     if (SubscriptionAllowListFlag.specific.equals(props.securitySubscriptionAllowedFor())
-        && !props
-            .topicsAllowListParsed()
-            .contains(webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER))) {
+        && !props.topicsAllowListParsed().contains(topicArn)) {
       throw new Exception(
           "Request didn't match allow list. Allow list: "
               + props.topicsAllowListParsed()
               + ". Request coming from "
-              + webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER));
+              + topicArn);
     }
   }
 
@@ -178,7 +179,17 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         Optional.ofNullable(headers.get(TOPIC_ARN_HEADER))
             .orElseThrow(
                 () -> new Exception("SNS request did not contain header: " + TOPIC_ARN_HEADER));
-    return topicArn.split(":")[3];
+    final var topicArnParts = topicArn.split(":", 6);
+    if (topicArnParts.length != 6
+        || !"arn".equals(topicArnParts[0])
+        || topicArnParts[1].isBlank()
+        || !"sns".equals(topicArnParts[2])
+        || topicArnParts[3].isBlank()
+        || topicArnParts[4].isBlank()
+        || topicArnParts[5].isBlank()) {
+      throw new Exception("Invalid SNS topic ARN header: " + topicArn);
+    }
+    return topicArnParts[3];
   }
 
   @Override
