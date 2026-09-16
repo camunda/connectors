@@ -741,8 +741,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
         public CustomBackend {
           if (credential != null) {
-            authentication =
-                new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey());
+            authentication = credential.authentication();
           }
         }
 

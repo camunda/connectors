@@ -206,7 +206,9 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.anthropic.backend.type", "custom")
             .property(
                 "provider.anthropic.backend.custom.credential",
-                "={endpoint: \"" + wireMock.getHttpBaseUrl() + "\", apiKey: \"dummy\"}")
+                "={endpoint: \""
+                    + wireMock.getHttpBaseUrl()
+                    + "\", authentication: {type: \"apiKey\", apiKey: \"dummy\"}}")
             .property("provider.anthropic.model.model", "claude-3-5-sonnet")
             .property("provider.anthropic.timeouts.timeout", MODEL_TIMEOUT.toString());
   }

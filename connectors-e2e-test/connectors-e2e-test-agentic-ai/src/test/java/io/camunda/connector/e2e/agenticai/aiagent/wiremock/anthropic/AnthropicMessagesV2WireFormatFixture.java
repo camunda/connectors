@@ -51,7 +51,9 @@ public final class AnthropicMessagesV2WireFormatFixture
             .property("provider.anthropic.backend.type", "custom")
             .property(
                 "provider.anthropic.backend.custom.credential",
-                "={endpoint: \"" + wireMock.getHttpBaseUrl() + "\", apiKey: \"dummy\"}")
+                "={endpoint: \""
+                    + wireMock.getHttpBaseUrl()
+                    + "\", authentication: {type: \"apiKey\", apiKey: \"dummy\"}}")
             .property("provider.anthropic.model.model", "test-model");
   }
 

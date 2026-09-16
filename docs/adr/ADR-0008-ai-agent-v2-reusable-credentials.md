@@ -19,8 +19,10 @@ by the runtime.
 Keep provider/backend/API discriminators, model and request options local. Reuse
 `io.camunda:aws-credential:1` for Bedrock IAM and add a separate Bedrock API-key credential; the
 Bedrock authentication-family discriminator exposes exactly one applicable chooser. Gateway
-credentials contain an endpoint and API key only and are interpreted by the selected Anthropic or
-OpenAI protocol.
+credentials contain an endpoint and an authentication selector: API key or OAuth 2.0 client
+credentials. Both authentication methods work with the selected Anthropic or OpenAI protocol.
+OAuth token endpoint, client ID/secret, client authentication method, audience, and scopes belong
+in the credential, not on the task. Reuse the existing OAuth model and token resolver.
 
 ## Consequences
 
@@ -34,5 +36,5 @@ credential does not specify a default.
 ### Negative
 
 The native provider models contain explicit effective-value accessors and the generated template
-contains several credential schemas. Gateway OAuth and credentials for MCP, A2A, custom beans, and
-memory remain outside this decision.
+contains several credential schemas. Credentials for MCP, A2A, custom beans, and memory remain
+outside this decision.

@@ -67,11 +67,11 @@ public final class AgenticAiCredentialConfigurations {
   public record AiGatewayCredential(
       @NotBlank @HttpUrl @TemplateProperty(group = "connection", label = "Gateway endpoint")
           String endpoint,
-      @NotBlank @TemplateProperty(group = "authentication", label = "API key", secret = true)
-          String apiKey) {
+      @Valid @NotNull @TemplateProperty(group = "authentication")
+          OpenAiCustomEndpointAuthentication authentication) {
     @Override
     public String toString() {
-      return "AiGatewayCredential{endpoint=" + endpoint + ", apiKey=[REDACTED]}";
+      return "AiGatewayCredential{endpoint=" + endpoint + ", authentication=[REDACTED]}";
     }
   }
 

@@ -343,7 +343,13 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         public CustomBackend {
           if (credential != null) {
             authentication =
-                new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey());
+                switch (credential.authentication()) {
+                  case OpenAiCustomEndpointAuthentication.ApiKeyAuthentication apiKey ->
+                      new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(
+                          apiKey.apiKey());
+                  case OAuthClientCredentialsAuthentication oauth -> oauth;
+                  case null -> null;
+                };
           }
         }
 

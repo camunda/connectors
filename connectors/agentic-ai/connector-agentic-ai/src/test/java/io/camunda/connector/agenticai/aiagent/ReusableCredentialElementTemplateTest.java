@@ -64,6 +64,55 @@ class ReusableCredentialElementTemplateTest {
         "authentication.clientSecret");
     assertSecret(
         template, "io.camunda:agentic-ai-vertex-ai-credential:1", "authentication.jsonKey");
+    assertSecret(template, "io.camunda:agentic-ai-gateway-credential:1", "authentication.apiKey");
+    assertSecret(
+        template, "io.camunda:agentic-ai-gateway-credential:1", "authentication.clientSecret");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "element-templates/agenticai-ai-agent-task.v2.json",
+        "element-templates/agenticai-ai-agent-subprocess.v2.json",
+        "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void exposesApiKeyAndOAuthInsideTheGatewayCredential(String templatePath) throws Exception {
+    JsonNode template = OBJECT_MAPPER.readTree(Path.of(templatePath).toFile());
+    JsonNode gateway =
+        template
+            .path("configurationTemplates")
+            .valueStream()
+            .filter(
+                configuration ->
+                    "io.camunda:agentic-ai-gateway-credential:1"
+                        .equals(configuration.path("id").asText()))
+            .findFirst()
+            .orElseThrow();
+    List<JsonNode> properties = gateway.path("properties").valueStream().toList();
+    JsonNode authentication = property(properties, "authentication.type");
+
+    assertThat(authentication.path("value").asText()).isEqualTo("apiKey");
+    assertThat(
+            authentication
+                .path("choices")
+                .valueStream()
+                .map(choice -> choice.path("value").asText())
+                .toList())
+        .containsExactlyInAnyOrder("apiKey", "oauth-client-credentials-flow");
+    assertThat(property(properties, "authentication.apiKey").path("condition").toString())
+        .contains("\"equals\":\"apiKey\"");
+    for (String field :
+        List.of(
+            "oauthTokenEndpoint",
+            "clientId",
+            "clientSecret",
+            "clientAuthentication",
+            "audience",
+            "scopes")) {
+      assertThat(property(properties, "authentication." + field).path("condition").toString())
+          .contains("\"equals\":\"oauth-client-credentials-flow\"");
+    }
   }
 
   @ParameterizedTest

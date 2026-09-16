@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -61,7 +62,12 @@ class ReusableCredentialBindingTest {
             new AgenticAiCredentialConfigurations.AnthropicApiCredential(secret),
             new AgenticAiCredentialConfigurations.OpenAiApiCredential(secret, null, null),
             new AgenticAiCredentialConfigurations.AiGatewayCredential(
-                "https://gateway.example", secret),
+                "https://gateway.example",
+                new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(secret)),
+            new AgenticAiCredentialConfigurations.AiGatewayCredential(
+                "https://gateway.example",
+                new OAuthClientCredentialsAuthentication(
+                    "https://auth.example/token", secret, secret, null, null, null)),
             bedrockCredential,
             new AgenticAiCredentialConfigurations.GoogleGeminiApiCredential(secret),
             new AgenticAiCredentialConfigurations.MicrosoftFoundryCredential(
@@ -122,15 +128,77 @@ class ReusableCredentialBindingTest {
         List.of(
             read(
                 """
-                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","apiKey":"credential-key"}}},"model":{"model":"claude"}}}
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"credential-key"}}}},"model":{"model":"claude"}}}
                 """),
             read(
                 """
-                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","apiKey":"credential-key"}}},"model":{"model":"gpt"}}}
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"credential-key"}}}},"model":{"model":"gpt"}}}
                 """));
 
     configurations.forEach(
         configuration -> assertThat(validator.validate(configuration)).isEmpty());
+  }
+
+  @ParameterizedTest
+  @EnumSource(OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.class)
+  void bindsOAuthGatewayCredentialsWithoutInlineFields(
+      OAuthClientCredentialsAuthentication.ClientAuthenticationMethod clientAuthentication)
+      throws Exception {
+    var credential =
+        new AgenticAiCredentialConfigurations.AiGatewayCredential(
+            "https://gateway.example",
+            new OAuthClientCredentialsAuthentication(
+                "https://auth.example/token",
+                "client",
+                "secret",
+                "https://api.example",
+                clientAuthentication,
+                "models:read inference:write"));
+    String credentialJson = mapper.writeValueAsString(credential);
+    AnthropicChatModelConfiguration anthropic =
+        read(
+            """
+            {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"credential":%s}},"model":{"model":"claude"}}}
+            """
+                .formatted(credentialJson));
+    OpenAiChatModelConfiguration openAi =
+        read(
+            """
+            {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"credential":%s}},"model":{"model":"gpt"}}}
+            """
+                .formatted(credentialJson));
+
+    assertThat(validator.validate(anthropic)).isEmpty();
+    assertThat(validator.validate(openAi)).isEmpty();
+    var anthropicBackend = ((AnthropicCustomBackend) anthropic.anthropic().backend()).custom();
+    var openAiBackend = ((OpenAiCustomBackend) openAi.openai().backend()).custom();
+    assertThat(anthropicBackend.endpoint()).isEqualTo(credential.endpoint());
+    assertThat(openAiBackend.endpoint()).isEqualTo(credential.endpoint());
+    assertThat(anthropicBackend.authentication()).isEqualTo(credential.authentication());
+    assertThat(openAiBackend.authentication()).isEqualTo(credential.authentication());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "null",
+        "{\"type\":\"apiKey\",\"apiKey\":\"\"}",
+        "{\"type\":\"oauth-client-credentials-flow\"}",
+        "{\"type\":\"oauth-client-credentials-flow\",\"oauthTokenEndpoint\":\"invalid\",\"clientId\":\"client\",\"clientSecret\":\"secret\"}"
+      })
+  void rejectsInvalidGatewayCredentialAuthentication(String authentication) throws Exception {
+    for (String provider : List.of("anthropic", "openai")) {
+      ProviderConfiguration configuration =
+          read(
+              """
+              {"type":"%1$s","%1$s":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"authentication":{"type":"apiKey","apiKey":"inline-key"},"credential":{"endpoint":"https://gateway.example","authentication":%2$s}}},"model":{"model":"test-model"}}}
+              """
+                  .formatted(provider, authentication));
+
+      assertThat(validator.validate(configuration))
+          .extracting(violation -> violation.getPropertyPath().toString())
+          .anyMatch(path -> path.contains(".credential.authentication"));
+    }
   }
 
   @Test
@@ -156,7 +224,7 @@ class ReusableCredentialBindingTest {
     AnthropicChatModelConfiguration gateway =
         read(
             """
-            {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"claude"}}}
+            {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"claude"}}}
             """);
 
     assertThat(((AnthropicApiBackend) api.anthropic().backend()).anthropic().apiKey())
@@ -232,7 +300,7 @@ class ReusableCredentialBindingTest {
     OpenAiChatModelConfiguration configuration =
         read(
             """
-            {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"https://request.example","credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"gpt"}}}
+            {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"https://request.example","credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"gpt"}}}
             """);
 
     var gateway = ((OpenAiCustomBackend) configuration.openai().backend()).custom();
@@ -272,11 +340,11 @@ class ReusableCredentialBindingTest {
                 """),
             read(
                 """
-                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"gpt"}}}
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"gpt"}}}
                 """),
             read(
                 """
-                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"claude"}}}
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"","authentication":{"type":"apiKey"},"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"claude"}}}
                 """),
             read(
                 """
@@ -297,7 +365,7 @@ class ReusableCredentialBindingTest {
                 """),
             read(
                 """
-                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"claude"}}}
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"claude"}}}
                 """),
             read(
                 """
@@ -309,7 +377,7 @@ class ReusableCredentialBindingTest {
                 """),
             read(
                 """
-                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"credential":{"endpoint":"https://gateway.example","apiKey":"gateway-key"}}},"model":{"model":"gpt"}}}
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"credential":{"endpoint":"https://gateway.example","authentication":{"type":"apiKey","apiKey":"gateway-key"}}}},"model":{"model":"gpt"}}}
                 """),
             read(
                 """
@@ -360,11 +428,11 @@ class ReusableCredentialBindingTest {
                 """),
             read(
                 """
-                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"https://inline.example","authentication":{"type":"apiKey","apiKey":"inline-key"},"credential":{"endpoint":"","apiKey":""}}},"model":{"model":"gpt"}}}
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"https://inline.example","authentication":{"type":"apiKey","apiKey":"inline-key"},"credential":{"endpoint":"","authentication":{"type":"apiKey","apiKey":""}}}},"model":{"model":"gpt"}}}
                 """),
             read(
                 """
-                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"https://inline.example","authentication":{"type":"apiKey","apiKey":"inline-key"},"credential":{"endpoint":"","apiKey":""}}},"model":{"model":"claude"}}}
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"https://inline.example","authentication":{"type":"apiKey","apiKey":"inline-key"},"credential":{"endpoint":"","authentication":{"type":"apiKey","apiKey":""}}}},"model":{"model":"claude"}}}
                 """),
             read(
                 """
