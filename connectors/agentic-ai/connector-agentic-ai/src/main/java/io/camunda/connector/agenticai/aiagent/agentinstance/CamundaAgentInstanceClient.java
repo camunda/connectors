@@ -116,7 +116,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
             .jobKey(jobContext.getJobKey())
-            .jobLease(ensureJobLeaseToken(jobContext))
+            .jobLeaseToken(ensureJobLeaseToken(jobContext))
             .history(
                 List.of(
                     configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
@@ -385,7 +385,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
 
     cmd.jobKey(jobContext.getJobKey())
-        .jobLease(ensureJobLeaseToken(jobContext))
+        .jobLeaseToken(ensureJobLeaseToken(jobContext))
         .history(historyItems)
         .execute();
   }
