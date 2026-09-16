@@ -169,7 +169,7 @@ public class KafkaExecutableTest {
         .then(
             invocation -> {
               executable.kafkaConnectorConsumer.shouldLoop = false;
-              return new ConsumerRecords<>(new HashMap<>());
+              return ConsumerRecords.empty();
             });
     var groupMetadata = mock(ConsumerGroupMetadata.class);
     when(groupMetadata.groupId()).thenReturn("task-group");

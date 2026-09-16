@@ -22,6 +22,7 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.concurrent.CancellationException;
@@ -38,12 +39,15 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.errors.SslAuthenticationException;
+import org.apache.kafka.common.security.JaasContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -91,6 +95,43 @@ class KafkaConnectionValidatorTest {
     verify(nodes).get(125, TimeUnit.MILLISECONDS);
     verify(admin).close(TIMEOUT);
     verifyNoMoreInteractions(admin, nodes);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "apostrophe's",
+        "double\"quote",
+        "back\\slash",
+        "trailing\\",
+        "literal\\n",
+        "' injected='option",
+        "line\nbreak\rnext\tcolumn"
+      })
+  void preservesJaasOptionValues(String value) throws Exception {
+    prepareProbe();
+    when(nodes.get(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS))
+        .thenReturn(List.of(new Node(1, "broker.example.com", 9093)));
+    var username = "user-" + value;
+    var password = "password-" + value;
+    var configuration =
+        new KafkaConnectionConfiguration(VALID.bootstrapServers(), username, password);
+
+    assertThat(validator.validate(configuration))
+        .isEqualTo(ConfigurationValidationResult.success());
+
+    var properties = ArgumentCaptor.forClass(Properties.class);
+    verify(factory).apply(properties.capture());
+    var entries =
+        JaasContext.loadClientContext(
+                Map.of(
+                    SaslConfigs.SASL_JAAS_CONFIG,
+                    new Password(properties.getValue().getProperty(SaslConfigs.SASL_JAAS_CONFIG))))
+            .configurationEntries();
+    assertThat(entries).hasSize(1);
+    assertThat(entries.getFirst().getOptions())
+        .isEqualTo(Map.of("username", username, "password", password));
+    verify(admin).close(TIMEOUT);
   }
 
   @ParameterizedTest

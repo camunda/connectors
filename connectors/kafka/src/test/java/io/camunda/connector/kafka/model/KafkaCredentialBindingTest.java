@@ -28,6 +28,8 @@ import java.util.stream.Stream;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.types.Password;
+import org.apache.kafka.common.security.JaasContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -68,6 +70,59 @@ class KafkaCredentialBindingTest {
           .containsEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
           .containsEntry(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("jaasOptionValues")
+  void preservesJaasOptionValues(boolean inbound, boolean reusable, String value) throws Exception {
+    var input = input();
+    var username = "user-" + value;
+    var password = "password-" + value;
+    if (reusable) {
+      input.put(
+          CREDENTIAL_INPUT,
+          Map.of(
+              "bootstrapServers", "credential-broker:9093",
+              "username", username,
+              "password", password));
+    } else {
+      input.put("authentication", Map.of("username", username, "password", password));
+      input.put(
+          "topic", Map.of("bootstrapServers", "inline-broker:9093", "topicName", "task-topic"));
+    }
+
+    var connection = bind(inbound, input);
+    var entries =
+        JaasContext.loadClientContext(
+                Map.of(
+                    SaslConfigs.SASL_JAAS_CONFIG,
+                    new Password(
+                        connection.properties().getProperty(SaslConfigs.SASL_JAAS_CONFIG))))
+            .configurationEntries();
+
+    assertThat(entries).hasSize(1);
+    assertThat(entries.getFirst().getLoginModuleName())
+        .isEqualTo("org.apache.kafka.common.security.plain.PlainLoginModule");
+    assertThat(entries.getFirst().getOptions())
+        .isEqualTo(Map.of("username", username, "password", password));
+  }
+
+  static Stream<Arguments> jaasOptionValues() {
+    return Stream.of(false, true)
+        .flatMap(
+            inbound ->
+                Stream.of(false, true)
+                    .flatMap(
+                        reusable ->
+                            Stream.of(
+                                    "apostrophe's",
+                                    "double\"quote",
+                                    "back\\slash",
+                                    "trailing\\",
+                                    "literal\\n",
+                                    "' injected='option",
+                                    "line\nbreak\rnext\tcolumn")
+                                .map(value -> Arguments.of(inbound, reusable, value))));
   }
 
   @ParameterizedTest
