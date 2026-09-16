@@ -27,7 +27,10 @@ import jakarta.validation.constraints.NotBlank;
  * configured when its host is set; its port and encryption protocol then default to the protocol's
  * conventional values rather than being separately mandatory.
  */
-@Configuration(id = "io.camunda.connectors:email-account:1", version = 1, name = "Email Account")
+@Configuration(
+    id = "io.camunda.connectors:email-account:1",
+    version = 1,
+    name = "Email Account (Outbound)")
 public record EmailAccountConfiguration(
     @NotBlank
         @TemplateProperty(

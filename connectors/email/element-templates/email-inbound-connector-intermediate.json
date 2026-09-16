@@ -538,7 +538,7 @@
     "id" : "io.camunda.connectors:email-account-imap:1",
     "kind" : "CREDENTIAL",
     "version" : 1,
-    "name" : "Email Account (IMAP)",
+    "name" : "Email Account (Inbound)",
     "properties" : [ {
       "id" : "username",
       "label" : "Username",

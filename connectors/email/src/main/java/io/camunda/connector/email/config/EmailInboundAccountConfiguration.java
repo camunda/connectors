@@ -29,7 +29,7 @@ import jakarta.validation.constraints.NotNull;
 @Configuration(
     id = "io.camunda.connectors:email-account-imap:1",
     version = 1,
-    name = "Email Account (IMAP)")
+    name = "Email Account (Inbound)")
 public record EmailInboundAccountConfiguration(
     @NotBlank
         @TemplateProperty(

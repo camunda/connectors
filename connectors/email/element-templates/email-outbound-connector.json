@@ -1788,7 +1788,7 @@
     "id" : "io.camunda.connectors:email-account:1",
     "kind" : "CREDENTIAL",
     "version" : 1,
-    "name" : "Email Account",
+    "name" : "Email Account (Outbound)",
     "properties" : [ {
       "id" : "username",
       "label" : "Username",
