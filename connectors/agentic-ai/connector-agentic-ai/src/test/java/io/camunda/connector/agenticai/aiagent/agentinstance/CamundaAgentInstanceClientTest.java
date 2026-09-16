@@ -492,8 +492,8 @@ class CamundaAgentInstanceClientTest {
    * The batched turn methods ({@code applyTurnStart}/{@code applyTurnCompletion}/{@code
    * applyToolCallResults}) replace the request-level status/metrics/tools update plus the
    * single-item history create with one combined {@code update} command carrying a {@code
-   * history()} batch. {@code jobKey}/{@code jobLease} live on the command, not per item, unlike the
-   * old single-item {@code newCreateAgentHistoryItemCommand}.
+   * history()} batch. {@code jobKey}/{@code jobLeaseToken} live on the command, not per item,
+   * unlike the old single-item {@code newCreateAgentHistoryItemCommand}.
    */
   @Nested
   class TurnStart {
