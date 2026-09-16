@@ -206,6 +206,55 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   @Test
+  void foundryBackendWithClientCredentialsSendsBearerToken(WireMockRuntimeInfo wireMock) {
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(FoundryAuthentication.ClientCredentialsAuthentication.class), any()))
+        .thenReturn(() -> "client-credentials-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-id", "client-secret", "tenant-id", null, null),
+                null,
+                null,
+                null)),
+        null);
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withHeader("Authorization", equalTo("Bearer client-credentials-token")));
+  }
+
+  @Test
+  void foundryBackendWithManagedIdentitySendsBearerToken(WireMockRuntimeInfo wireMock) {
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(FoundryAuthentication.ManagedIdentityAuthentication.class), any()))
+        .thenReturn(() -> "managed-identity-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ManagedIdentityAuthentication(null, null),
+                null,
+                null,
+                null)),
+        null);
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withHeader("Authorization", equalTo("Bearer managed-identity-token")));
+  }
+
+  @Test
   void forwardsTheConfiguredTimeoutToTheFoundryCredentialResolver(WireMockRuntimeInfo wireMock) {
     final var timeout = Duration.ofSeconds(7);
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
