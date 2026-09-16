@@ -1,1 +1,2 @@
 io.camunda.connector.email.client.jakarta.outbound.EmailAccountValidator
+io.camunda.connector.email.client.jakarta.inbound.EmailInboundAccountValidator

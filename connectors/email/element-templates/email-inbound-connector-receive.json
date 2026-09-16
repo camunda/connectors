@@ -57,7 +57,7 @@
   }, {
     "id" : "emailAccountConfiguration",
     "label" : "Email account credential",
-    "description" : "Choose a reusable email account credential, or configure one-time email parameters below.",
+    "description" : "Choose a reusable IMAP email account credential, or configure one-time email parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -65,7 +65,7 @@
       "type" : "zeebe:property"
     },
     "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:email-account:1"
+    "configurationTemplate" : "io.camunda.connectors:email-account-imap:1"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -534,10 +534,10 @@
     "type" : "Text"
   } ],
   "configurationTemplates" : [ {
-    "id" : "io.camunda.connectors:email-account:1",
+    "id" : "io.camunda.connectors:email-account-imap:1",
     "kind" : "CREDENTIAL",
     "version" : 1,
-    "name" : "Email Account",
+    "name" : "Email Account (IMAP)",
     "properties" : [ {
       "id" : "username",
       "label" : "Username",
@@ -567,60 +567,25 @@
       "type" : "String",
       "secret" : true
     }, {
-      "id" : "smtpHost",
-      "label" : "SMTP host",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "smtpHost",
-        "type" : "property"
-      },
-      "tooltip" : "Address of the SMTP server used for sending emails (e.g., smtp.example.com). Leave empty if this account is not used to send emails.",
-      "type" : "String"
-    }, {
-      "id" : "smtpPort",
-      "label" : "SMTP port",
-      "value" : "587",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "smtpPort",
-        "type" : "property"
-      },
-      "tooltip" : "Typically 587 for secure connections with STARTTLS, 465 for SSL/TLS, and 25 for non-secure connections.",
-      "type" : "String"
-    }, {
-      "id" : "smtpCryptographicProtocol",
-      "label" : "SMTP encryption protocol",
-      "value" : "TLS",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "smtpCryptographicProtocol",
-        "type" : "property"
-      },
-      "type" : "Dropdown",
-      "choices" : [ {
-        "name" : "TLS",
-        "value" : "TLS"
-      }, {
-        "name" : "SSL",
-        "value" : "SSL"
-      }, {
-        "name" : "None",
-        "value" : "NONE"
-      } ]
-    }, {
       "id" : "imapHost",
       "label" : "IMAP host",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapHost",
         "type" : "property"
       },
-      "tooltip" : "Address of the IMAP server used to retrieve your emails (e.g., imap.example.com). Leave empty if this account is not read over IMAP.",
+      "tooltip" : "Address of the IMAP server used to retrieve your emails (e.g., imap.example.com).",
       "type" : "String"
     }, {
       "id" : "imapPort",
       "label" : "IMAP port",
       "value" : "993",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapPort",
@@ -632,50 +597,12 @@
       "id" : "imapCryptographicProtocol",
       "label" : "IMAP encryption protocol",
       "value" : "TLS",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapCryptographicProtocol",
-        "type" : "property"
-      },
-      "type" : "Dropdown",
-      "choices" : [ {
-        "name" : "TLS",
-        "value" : "TLS"
-      }, {
-        "name" : "SSL",
-        "value" : "SSL"
-      }, {
-        "name" : "None",
-        "value" : "NONE"
-      } ]
-    }, {
-      "id" : "pop3Host",
-      "label" : "POP3 host",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "pop3Host",
-        "type" : "property"
-      },
-      "tooltip" : "Address of the POP3 server used to download your emails (e.g., pop.example.com). Leave empty if this account is not read over POP3.",
-      "type" : "String"
-    }, {
-      "id" : "pop3Port",
-      "label" : "POP3 port",
-      "value" : "995",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "pop3Port",
-        "type" : "property"
-      },
-      "tooltip" : "Typically 995 for SSL/TLS, or 110 for non-secure connections.",
-      "type" : "String"
-    }, {
-      "id" : "pop3CryptographicProtocol",
-      "label" : "POP3 encryption protocol",
-      "value" : "TLS",
-      "group" : "protocol",
-      "binding" : {
-        "name" : "pop3CryptographicProtocol",
         "type" : "property"
       },
       "type" : "Dropdown",

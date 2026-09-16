@@ -8,7 +8,7 @@ package io.camunda.connector.email.inbound.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.email.authentication.InboundAuthentication;
-import io.camunda.connector.email.config.EmailAccountConfiguration;
+import io.camunda.connector.email.config.EmailInboundAccountConfiguration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -29,10 +29,10 @@ public record EmailInboundConnectorProperties(
             optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "emailAccountConfiguration"),
             description =
-                "Choose a reusable email account credential, or configure one-time email"
+                "Choose a reusable IMAP email account credential, or configure one-time email"
                     + " parameters below.")
         @Valid
-        EmailAccountConfiguration emailAccountConfiguration,
+        EmailInboundAccountConfiguration emailAccountConfiguration,
     // Neither @Valid nor @NotNull any more: a bound account supplies the login instead (see
     // authentication() below), and the losing inline value is a leftover discriminator Modeler
     // emits unconditionally - validated only when it wins, via
@@ -88,9 +88,9 @@ public record EmailInboundConnectorProperties(
   }
 
   /**
-   * The listener needs IMAP server coordinates from one of the two sources. A bound account can
-   * legitimately carry no IMAP block (e.g. an SMTP-only account), and that must fail binding rather
-   * than reach the mail session as a null configuration.
+   * The listener needs IMAP server coordinates from one of the two sources: a bound {@link
+   * EmailInboundAccountConfiguration} always carries one (its {@code imapHost} is mandatory), so
+   * this only matters when nothing is bound and the inline field was left empty too.
    */
   @AssertTrue(
       message = "No email server settings provided by the credential or the element template")

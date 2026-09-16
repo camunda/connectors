@@ -165,31 +165,13 @@ class EmailInboundConnectorPropertiesTest {
   }
 
   /**
-   * An account that speaks only SMTP cannot serve the IMAP listener, and must say so at binding
-   * time.
+   * {@code EmailInboundAccountConfiguration} is IMAP-only, so - unlike the outbound account, which
+   * can legitimately carry no block for a given protocol - a bound account missing its IMAP host
+   * fails the credential's own {@code @NotBlank}, cascaded through the chooser's {@code @Valid},
+   * rather than {@link EmailInboundConnectorProperties#isImapConfigurationProvided()}.
    */
   @Test
-  void bindingFailsWhenTheBoundAccountHasNoImapBlock() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "emailAccountConfiguration": {
-                        "username": "account-user",
-                        "password": "account-pass",
-                        "smtpHost": "localhost"
-                      },
-                      "data": { %s }
-                    }
-                    """
-                        .formatted(POLLING_CONFIG)))
-        .hasMessageContaining(
-            "No email server settings provided by the credential or the element template");
-  }
-
-  @Test
-  void bindingFailsWhenTheBoundAccountHasNoServerAtAll() {
+  void bindingFailsWhenTheBoundAccountIsMissingItsImapHost() {
     assertThatThrownBy(
             () ->
                 bind(
@@ -203,7 +185,7 @@ class EmailInboundConnectorPropertiesTest {
                     }
                     """
                         .formatted(POLLING_CONFIG)))
-        .hasMessageContaining("Configure at least one of the SMTP, IMAP or POP3 servers");
+        .hasMessageContaining("imapHost");
   }
 
   /** The pre-chooser Java shape keeps compiling and behaving as before. */
