@@ -7,6 +7,7 @@
     "schedule:automergeNonOfficeHours",
     "github>camunda/infra-renovate-config:herodevs.json5"
   ],
+  "pinDigests": true,
   "timezone": "Europe/Berlin",
   "labels": [
     "dependencies",
@@ -58,7 +59,22 @@
       "matchManagers": [
         "github-actions"
       ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "automerge": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "automerge": false
     },
     {
       "matchBaseBranches": [
@@ -172,7 +188,7 @@
       ],
       "matchPackageNames": [
         "org.apache.maven.plugins:maven-surefire-plugin"
-      ]
+      ],
       "enabled": false
     }
   ],
