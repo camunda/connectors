@@ -13,7 +13,7 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.email.client.jakarta.outbound.EmailAccountValidator;
 import io.camunda.connector.email.config.CryptographicProtocol;
-import io.camunda.connector.email.outbound.model.EmailAccountConfiguration;
+import io.camunda.connector.email.config.EmailAccountConfiguration;
 import java.util.ServiceLoader;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;

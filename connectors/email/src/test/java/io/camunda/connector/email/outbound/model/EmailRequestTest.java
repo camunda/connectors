@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.config.CryptographicProtocol;
+import io.camunda.connector.email.config.EmailAccountConfiguration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;

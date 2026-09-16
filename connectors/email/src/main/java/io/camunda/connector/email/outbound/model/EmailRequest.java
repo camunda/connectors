@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.authentication.OutboundAuthentication;
 import io.camunda.connector.email.config.Configuration;
+import io.camunda.connector.email.config.EmailAccountConfiguration;
 import io.camunda.connector.email.outbound.protocols.Imap;
 import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;

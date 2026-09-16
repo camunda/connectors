@@ -12,7 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.email.client.EmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
-import io.camunda.connector.email.outbound.model.EmailAccountConfiguration;
+import io.camunda.connector.email.config.EmailAccountConfiguration;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;

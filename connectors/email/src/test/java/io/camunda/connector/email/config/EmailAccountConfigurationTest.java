@@ -4,12 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.model;
+package io.camunda.connector.email.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import org.junit.jupiter.api.Test;
 

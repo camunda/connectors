@@ -4,15 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.model;
+package io.camunda.connector.email.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
-import io.camunda.connector.email.config.CryptographicProtocol;
-import io.camunda.connector.email.config.ImapConfig;
-import io.camunda.connector.email.config.Pop3Config;
-import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.hostvalidator.VerifiedHost;

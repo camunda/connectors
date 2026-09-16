@@ -11,6 +11,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
+import io.camunda.connector.email.config.EmailAccountConfiguration;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -23,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg",
     version = 3,
     inputDataClass = EmailInboundConnectorProperties.class,
+    configurations = {EmailAccountConfiguration.class},
     description = "Consume emails",
     keywords = {
       "email received",
