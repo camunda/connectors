@@ -51,6 +51,41 @@ class ReusableCredentialBindingTest {
   }
 
   @Test
+  void redactsReusableCredentialsAndNestedAuthentication() {
+    String secret = "do-not-log-this-key";
+    var bedrockCredential =
+        new AgenticAiCredentialConfigurations.BedrockApiKeyCredential(secret, "eu-west-1");
+    var inlineIam = new AwsIamInlineAuthentication.StaticCredentials(secret, secret);
+    List<Object> credentials =
+        List.of(
+            new AgenticAiCredentialConfigurations.AnthropicApiCredential(secret),
+            new AgenticAiCredentialConfigurations.OpenAiApiCredential(secret, null, null),
+            new AgenticAiCredentialConfigurations.AiGatewayCredential(
+                "https://gateway.example", secret),
+            bedrockCredential,
+            new AgenticAiCredentialConfigurations.GoogleGeminiApiCredential(secret),
+            new AgenticAiCredentialConfigurations.MicrosoftFoundryCredential(
+                "https://foundry.example",
+                new OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication
+                    .ApiKeyAuthentication(secret)),
+            new AgenticAiCredentialConfigurations.VertexAiCredential(
+                "project",
+                "region",
+                new GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication
+                    .ServiceAccountCredentialsAuthentication(secret)),
+            new AwsAuthentication.BedrockApiKeyCredentialAuthentication(bedrockCredential),
+            new BedrockApiKeyAuthentication(bedrockCredential, secret),
+            new BedrockApiKeyAuthentication(null, secret),
+            inlineIam,
+            new AwsIamAuthentication(null, inlineIam));
+
+    assertThat(credentials)
+        .allSatisfy(
+            credential ->
+                assertThat(credential.toString()).doesNotContain(secret).contains("[REDACTED]"));
+  }
+
+  @Test
   void preservesInlineOAuthAuthentication() throws Exception {
     List<ProviderConfiguration> configurations =
         List.of(

@@ -24,7 +24,12 @@ public final class AgenticAiCredentialConfigurations {
       version = 1,
       name = "Anthropic API Credential")
   public record AnthropicApiCredential(
-      @NotBlank @TemplateProperty(group = "authentication", secret = true) String apiKey) {}
+      @NotBlank @TemplateProperty(group = "authentication", secret = true) String apiKey) {
+    @Override
+    public String toString() {
+      return "AnthropicApiCredential{apiKey=[REDACTED]}";
+    }
+  }
 
   @Configuration(
       id = "io.camunda:agentic-ai-openai-api-credential:1",
@@ -34,7 +39,16 @@ public final class AgenticAiCredentialConfigurations {
       @NotBlank @TemplateProperty(group = "authentication", secret = true) String apiKey,
       @TemplateProperty(group = "connection", label = "Organization ID")
           @Nullable String organizationId,
-      @TemplateProperty(group = "connection", label = "Project ID") @Nullable String projectId) {}
+      @TemplateProperty(group = "connection", label = "Project ID") @Nullable String projectId) {
+    @Override
+    public String toString() {
+      return "OpenAiApiCredential{apiKey=[REDACTED], organizationId="
+          + organizationId
+          + ", projectId="
+          + projectId
+          + "}";
+    }
+  }
 
   @Configuration(
       id = "io.camunda:agentic-ai-microsoft-foundry-credential:1",
@@ -54,7 +68,12 @@ public final class AgenticAiCredentialConfigurations {
       @NotBlank @HttpUrl @TemplateProperty(group = "connection", label = "Gateway endpoint")
           String endpoint,
       @NotBlank @TemplateProperty(group = "authentication", label = "API key", secret = true)
-          String apiKey) {}
+          String apiKey) {
+    @Override
+    public String toString() {
+      return "AiGatewayCredential{endpoint=" + endpoint + ", apiKey=[REDACTED]}";
+    }
+  }
 
   @Configuration(
       id = "io.camunda:agentic-ai-bedrock-api-key-credential:1",
@@ -63,7 +82,12 @@ public final class AgenticAiCredentialConfigurations {
   public record BedrockApiKeyCredential(
       @NotBlank @TemplateProperty(group = "authentication", label = "API key", secret = true)
           String apiKey,
-      @NotBlank @TemplateProperty(group = "connection", label = "AWS region") String region) {}
+      @NotBlank @TemplateProperty(group = "connection", label = "AWS region") String region) {
+    @Override
+    public String toString() {
+      return "BedrockApiKeyCredential{apiKey=[REDACTED], region=" + region + "}";
+    }
+  }
 
   @Configuration(
       id = "io.camunda:agentic-ai-google-gemini-api-credential:1",
@@ -71,7 +95,12 @@ public final class AgenticAiCredentialConfigurations {
       name = "Google Gemini API Credential")
   public record GoogleGeminiApiCredential(
       @NotBlank @TemplateProperty(group = "authentication", label = "Gemini API key", secret = true)
-          String apiKey) {}
+          String apiKey) {
+    @Override
+    public String toString() {
+      return "GoogleGeminiApiCredential{apiKey=[REDACTED]}";
+    }
+  }
 
   @Configuration(
       id = "io.camunda:agentic-ai-vertex-ai-credential:1",

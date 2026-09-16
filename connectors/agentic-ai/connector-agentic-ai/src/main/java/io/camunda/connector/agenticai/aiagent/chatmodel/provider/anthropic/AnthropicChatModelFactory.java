@@ -168,7 +168,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
           backendBuilder
               .awsAccessKey(staticAuth.accessKey())
               .awsSecretAccessKey(staticAuth.secretKey());
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication() ->
           backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
       case null, default ->
           throw new IllegalArgumentException("No AWS IAM authentication configured");
@@ -183,8 +183,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
               staticAuth ->
           builder.awsAccessKey(staticAuth.accessKey()).awsSecretAccessKey(staticAuth.secretKey());
       case io.camunda.connector.aws.model.impl.AwsAuthentication
-                  .AwsDefaultCredentialsChainAuthentication
-              ignored ->
+              .AwsDefaultCredentialsChainAuthentication() ->
           builder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
     }
   }

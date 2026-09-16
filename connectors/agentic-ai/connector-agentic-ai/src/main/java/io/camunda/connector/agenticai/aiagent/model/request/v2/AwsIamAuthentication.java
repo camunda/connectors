@@ -62,7 +62,7 @@ record AwsIamAuthentication(
       case AwsIamInlineAuthentication.StaticCredentials credentials ->
           new AwsAuthentication.AwsStaticCredentialsAuthentication(
               credentials.accessKey(), credentials.secretKey());
-      case AwsIamInlineAuthentication.DefaultCredentialsChain ignored ->
+      case AwsIamInlineAuthentication.DefaultCredentialsChain() ->
           new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
       case null -> null;
     };
@@ -104,7 +104,12 @@ sealed interface AwsIamInlineAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String secretKey)
-      implements AwsIamInlineAuthentication {}
+      implements AwsIamInlineAuthentication {
+    @Override
+    public String toString() {
+      return "StaticCredentials{accessKey=[REDACTED], secretKey=[REDACTED]}";
+    }
+  }
 
   @TemplateSubType(
       id = "defaultCredentialsChain",
@@ -142,5 +147,10 @@ record BedrockApiKeyAuthentication(
   @Override
   public @Nullable String effectiveApiKey() {
     return apiKey();
+  }
+
+  @Override
+  public String toString() {
+    return "BedrockApiKeyAuthentication{apiKey=[REDACTED]}";
   }
 }

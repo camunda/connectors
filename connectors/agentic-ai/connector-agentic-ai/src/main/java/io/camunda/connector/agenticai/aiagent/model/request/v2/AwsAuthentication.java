@@ -58,9 +58,9 @@ public sealed interface AwsAuthentication
 
   default @Nullable AwsAuthentication effectiveIamAuthentication() {
     return switch (this) {
-      case AwsStaticCredentialsAuthentication ignored -> this;
-      case AwsDefaultCredentialsChainAuthentication ignored -> this;
-      case AwsCredentialConfigurationAuthentication ignored -> this;
+      case AwsStaticCredentialsAuthentication authentication -> authentication;
+      case AwsDefaultCredentialsChainAuthentication() -> this;
+      case AwsCredentialConfigurationAuthentication authentication -> authentication;
       default -> null;
     };
   }
@@ -179,7 +179,12 @@ public sealed interface AwsAuthentication
           @jakarta.validation.Valid
           @NotNull
           AgenticAiCredentialConfigurations.BedrockApiKeyCredential bedrockApiKeyCredential)
-      implements AwsAuthentication {}
+      implements AwsAuthentication {
+    @Override
+    public String toString() {
+      return "BedrockApiKeyCredentialAuthentication{bedrockApiKeyCredential=[REDACTED]}";
+    }
+  }
 
   @TemplateSubType(
       id = "defaultCredentialsChain",

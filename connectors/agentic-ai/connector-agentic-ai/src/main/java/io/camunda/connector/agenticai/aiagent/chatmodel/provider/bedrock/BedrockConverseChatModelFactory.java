@@ -151,7 +151,7 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
                   StaticCredentialsProvider.create(
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication() ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
@@ -172,8 +172,7 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
       case io.camunda.connector.aws.model.impl.AwsAuthentication
-                  .AwsDefaultCredentialsChainAuthentication
-              ignored ->
+              .AwsDefaultCredentialsChainAuthentication() ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
