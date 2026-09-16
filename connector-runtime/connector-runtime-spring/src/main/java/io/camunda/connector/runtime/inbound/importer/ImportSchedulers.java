@@ -111,12 +111,21 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    *
    * <p>The other startup-snapshotted consumers of a per-physical-tenant {@code SearchQueryClient}
    * map — notably {@code ProcessDefinitionInspector}, which the {@link ProcessStateManager} below
-   * fetches BPMN models through — deliberately need no equivalent refresh, because the client an
-   * event carries is the same instance they already hold: the multi-client producer publishes
-   * {@code registry.get(name)}, which is exactly what {@code PhysicalTenantIds.resolveClient}
-   * snapshotted, and under {@code camunda-process-test-spring} that instance is a proxy which swaps
-   * its own delegate. {@code aLifecycleEventCarriesTheSameClientInstanceTheStartupSnapshotsHold}
-   * pins that invariant, and fails if it ever stops holding.
+   * fetches BPMN models through — deliberately need no equivalent refresh. Two separate mechanisms
+   * cover the two paths that can deliver an event, and only the first is an identity guarantee:
+   *
+   * <ul>
+   *   <li><b>Production:</b> the event's client is literally the same instance. {@code
+   *       MultiCamundaLifecycleEventProducer} publishes {@code registry.get(name)}, which is
+   *       exactly what {@code PhysicalTenantIds.resolveClient} snapshotted. Pinned by {@code
+   *       theProducerPublishesTheSameClientInstanceTheStartupSnapshotsHold}, which fails if the
+   *       producer ever begins publishing a different instance.
+   *   <li><b>{@code camunda-process-test-spring}:</b> the instances differ — the event carries the
+   *       raw per-test client, while the snapshot holds the {@code CamundaClientProxy} bean — but
+   *       they reach the same connection, because the test listener sets that proxy's delegate to
+   *       this very client before publishing. The snapshotted reference is the proxy, so it follows
+   *       each per-test swap by itself rather than pinning one client.
+   * </ul>
    */
   @Override
   public void onStart(CamundaClient client, String clientName) {

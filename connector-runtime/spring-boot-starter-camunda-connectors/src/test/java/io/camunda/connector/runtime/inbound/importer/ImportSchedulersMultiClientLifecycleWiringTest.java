@@ -18,14 +18,19 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.client.spring.event.CamundaClientClosingSpringEvent;
 import io.camunda.client.spring.event.CamundaClientCreatedSpringEvent;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 
 /**
  * The multi-client counterpart of {@code ImportSchedulersLifecycleWiringTest}, which can only cover
@@ -44,7 +49,10 @@ import org.springframework.context.ApplicationContext;
  * past the end of the test via a long initial delay, since only the registration is of interest.
  */
 @SpringBootTest(
-    classes = TestConnectorRuntimeApplication.class,
+    classes = {
+      TestConnectorRuntimeApplication.class,
+      ImportSchedulersMultiClientLifecycleWiringTest.CreatedClientRecorder.class
+    },
     properties = {
       "camunda.clients.engine-a.mode=self-managed",
       "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
@@ -67,24 +75,46 @@ class ImportSchedulersMultiClientLifecycleWiringTest {
 
   @Autowired private CamundaClientRegistry camundaClientRegistry;
 
+  @Autowired private CreatedClientRecorder createdClientRecorder;
+
+  /**
+   * Records what the real producer actually published at context start, so the assertion below
+   * observes the event rather than merely repeating the lookup it is supposed to be compared
+   * against.
+   */
+  @TestConfiguration
+  static class CreatedClientRecorder {
+
+    private final Map<String, CamundaClient> publishedClientsByName = new ConcurrentHashMap<>();
+
+    @EventListener
+    void record(CamundaClientCreatedSpringEvent event) {
+      publishedClientsByName.put(event.getClientName(), event.getClient());
+    }
+  }
+
   /**
    * Pins why the other startup-snapshotted consumers of a per-physical-tenant {@code
    * SearchQueryClient} map — {@code ProcessDefinitionInspector}, which {@code
    * ProcessStateManagerImpl} fetches BPMN models through — do not need refreshing alongside the
-   * polling entries here: the client a lifecycle event carries is the very same instance the
-   * startup snapshot resolved, because {@code MultiCamundaLifecycleEventProducer} publishes {@code
-   * registry.get(name)} and {@code PhysicalTenantIds.resolveClient} snapshots {@code
-   * registry.get(name)}, and the client beans are singletons.
+   * polling entries here: on the production path the client a lifecycle event carries is the very
+   * same instance the startup snapshot resolved, because {@code MultiCamundaLifecycleEventProducer}
+   * publishes {@code registry.get(name)} and {@code PhysicalTenantIds.resolveClient} snapshots
+   * {@code registry.get(name)}.
    *
-   * <p>If the SDK ever started handing out a different instance per event, this assertion fails —
-   * which is exactly the signal that the model-fetching path would then be polling a replacement
-   * client while resolving models through a stale one, and would need the same treatment.
+   * <p>Asserted against the client the producer really published — comparing two {@code
+   * registry.get(name)} calls would only have re-proven that the client beans are singletons, and
+   * would stay green if the producer ever began publishing a different instance. That is the case
+   * this test exists to catch, because it is the point at which polling would start using a
+   * replacement client while models were still resolved through the snapshotted one.
    */
   @Test
-  void aLifecycleEventCarriesTheSameClientInstanceTheStartupSnapshotsHold() {
-    assertThat(camundaClientRegistry.get("engine-a"))
+  void theProducerPublishesTheSameClientInstanceTheStartupSnapshotsHold() {
+    assertThat(createdClientRecorder.publishedClientsByName)
+        .containsOnlyKeys("engine-a", "engine-b");
+    assertThat(createdClientRecorder.publishedClientsByName.get("engine-a"))
         .isSameAs(camundaClientRegistry.get("engine-a"));
-    assertThat(camundaClientRegistry.get("engine-b"))
+    assertThat(createdClientRecorder.publishedClientsByName.get("engine-b"))
         .isSameAs(camundaClientRegistry.get("engine-b"));
   }
 
