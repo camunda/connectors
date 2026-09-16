@@ -7,9 +7,11 @@
 package io.camunda.connector.email.inbound.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.email.authentication.InboundAuthentication;
 import io.camunda.connector.email.config.EmailInboundAccountConfiguration;
 import io.camunda.connector.email.config.ImapConfig;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
@@ -21,12 +23,20 @@ public record EmailInboundConnectorProperties(
     // Declared first so it renders (and is emitted in properties[]) before the fallback fields it
     // gates below - required both for UX (pick an account before falling back to inline fields)
     // and by ConditionPropertyOrderRule (a condition's referenced property must appear earlier).
-    @TemplateProperty(
+    // @FEEL: an inbound zeebe:property carries a Configuration chooser's value as a raw FEEL
+    // expression (`=camunda.vars.env.<name>`), unlike outbound's fetchVariables path, which
+    // resolves it before this class ever sees it. Without @FEEL that expression string would be
+    // handed straight to the EmailInboundAccountConfiguration deserializer instead of evaluated
+    // first, exactly the fix SlackWebhookProperties#slackCredential and
+    // PollingRuntimeProperties#authenticationConfiguration already needed for the same reason.
+    @FEEL
+        @TemplateProperty(
             id = "emailAccountConfiguration",
             label = "Email account credential",
             group = "authentication",
             type = TemplateProperty.PropertyType.Configuration,
             optional = true,
+            feel = FeelMode.disabled,
             binding = @TemplateProperty.PropertyBinding(name = "emailAccountConfiguration"),
             description =
                 "Choose a reusable IMAP email account credential, or configure one-time email"
