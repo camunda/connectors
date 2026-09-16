@@ -21,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -136,7 +135,7 @@ class AnthropicChatModelFactoryTest {
   }
 
   private static AnthropicChatModelConfiguration bedrockConfig(
-      String modelId, BedrockAuthentication authentication) {
+      String modelId, AwsAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicAwsBedrockMantleBackend(

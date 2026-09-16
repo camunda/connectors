@@ -41,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -236,7 +235,7 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   private void executeAgainstBedrock(
-      WireMockRuntimeInfo wireMock, BedrockAuthentication authentication) {
+      WireMockRuntimeInfo wireMock, AwsAuthentication authentication) {
     // the endpoint override must be the full Bedrock Mantle base URL, including the /anthropic
     // path segment BedrockMantleBackend's own default derivation appends (see
     // AnthropicChatModelFactory#applyAwsBedrockMantleBackend).

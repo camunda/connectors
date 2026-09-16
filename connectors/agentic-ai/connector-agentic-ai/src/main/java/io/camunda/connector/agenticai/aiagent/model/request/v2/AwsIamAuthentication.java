@@ -21,79 +21,6 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Bedrock's two credential families. Legacy {@link AwsAuthentication} variants remain accepted for
- * already-deployed jobs but are excluded from the v2 template.
- */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = AwsIamAuthentication.class, name = "awsIam"),
-  @JsonSubTypes.Type(value = BedrockApiKeyAuthentication.class, name = "bedrockApiKey"),
-  @JsonSubTypes.Type(
-      value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
-      name = "credentials"),
-  @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey"),
-  @JsonSubTypes.Type(
-      value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
-      name = "defaultCredentialsChain"),
-  @JsonSubTypes.Type(
-      value = AwsAuthentication.AwsCredentialConfigurationAuthentication.class,
-      name = "awsCredential"),
-  @JsonSubTypes.Type(
-      value = AwsAuthentication.BedrockApiKeyCredentialAuthentication.class,
-      name = "bedrockApiKeyCredential")
-})
-@TemplateDiscriminatorProperty(
-    label = "Authentication family",
-    group = "provider",
-    name = "type",
-    defaultValue = "awsIam",
-    description = "Choose AWS IAM credentials or an Amazon Bedrock API key.")
-public sealed interface BedrockAuthentication
-    permits AwsAuthentication.AwsStaticCredentialsAuthentication,
-        AwsAuthentication.AwsApiKeyAuthentication,
-        AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
-        AwsAuthentication.AwsCredentialConfigurationAuthentication,
-        AwsAuthentication.BedrockApiKeyCredentialAuthentication,
-        AwsIamAuthentication,
-        BedrockApiKeyAuthentication {
-
-  default @Nullable AwsCredentialConfiguration awsCredentialConfiguration() {
-    return this instanceof AwsAuthentication.AwsCredentialConfigurationAuthentication credential
-        ? credential.awsCredential()
-        : null;
-  }
-
-  default @Nullable AwsAuthentication effectiveIamAuthentication() {
-    return this instanceof AwsAuthentication authentication
-            && !(authentication instanceof AwsAuthentication.AwsApiKeyAuthentication)
-            && !(authentication instanceof AwsAuthentication.BedrockApiKeyCredentialAuthentication)
-        ? authentication
-        : null;
-  }
-
-  default @Nullable String effectiveApiKey() {
-    return switch (this) {
-      case AwsAuthentication.AwsApiKeyAuthentication authentication -> authentication.apiKey();
-      case AwsAuthentication.BedrockApiKeyCredentialAuthentication authentication ->
-          authentication.bedrockApiKeyCredential().apiKey();
-      default -> null;
-    };
-  }
-
-  default boolean usesDefaultCredentialsChain() {
-    var credential = awsCredentialConfiguration();
-    if (credential != null) {
-      return credential.authentication()
-          instanceof
-          io.camunda.connector.aws.model.impl.AwsAuthentication
-              .AwsDefaultCredentialsChainAuthentication;
-    }
-    return effectiveIamAuthentication()
-        instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-  }
-}
-
 @TemplateSubType(id = "awsIam", label = "AWS IAM")
 record AwsIamAuthentication(
     @TemplateProperty(
@@ -107,7 +34,7 @@ record AwsIamAuthentication(
         @Nullable AwsCredentialConfiguration awsCredential,
     @TemplateProperty(type = PropertyType.Hidden, ignore = true)
         @Nullable AwsIamInlineAuthentication inlineAuthentication)
-    implements BedrockAuthentication {
+    implements AwsAuthentication {
 
   @JsonIgnore
   @AssertTrue(
@@ -197,7 +124,7 @@ record BedrockApiKeyAuthentication(
         @Valid
         @Nullable BedrockApiKeyCredential bedrockApiKeyCredential,
     @TemplateProperty(ignore = true) @Nullable String apiKey)
-    implements BedrockAuthentication {
+    implements AwsAuthentication {
 
   @JsonIgnore
   @AssertTrue(

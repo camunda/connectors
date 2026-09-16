@@ -68,7 +68,7 @@ public record BedrockConverseChatModelConfiguration(
               feel = FeelMode.optional,
               optional = true)
           @Nullable String endpoint,
-      @Valid @NotNull BedrockAuthentication authentication,
+      @Valid @NotNull AwsAuthentication authentication,
       @TemplateProperty(
               group = "advanced-provider-options",
               label = "HTTP headers",
@@ -98,22 +98,7 @@ public record BedrockConverseChatModelConfiguration(
       if (region != null && !region.isBlank()) {
         return region;
       }
-      return switch (authentication) {
-        case AwsAuthentication.AwsCredentialConfigurationAuthentication credential ->
-            credential.awsCredential().region();
-        case AwsAuthentication.BedrockApiKeyCredentialAuthentication credential ->
-            credential.bedrockApiKeyCredential().region();
-        default -> {
-          if (authentication.awsCredentialConfiguration() != null) {
-            yield authentication.awsCredentialConfiguration().region();
-          }
-          if (authentication instanceof BedrockApiKeyAuthentication apiKey
-              && apiKey.bedrockApiKeyCredential() != null) {
-            yield apiKey.bedrockApiKeyCredential().region();
-          }
-          yield region;
-        }
-      };
+      return authentication != null ? authentication.credentialRegion() : null;
     }
 
     @JsonIgnore
@@ -126,7 +111,9 @@ public record BedrockConverseChatModelConfiguration(
     @JsonIgnore
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
-      return ConnectorUtils.isSaaS() && authentication.usesDefaultCredentialsChain();
+      return ConnectorUtils.isSaaS()
+          && authentication != null
+          && authentication.usesDefaultCredentialsChain();
     }
 
     @Override

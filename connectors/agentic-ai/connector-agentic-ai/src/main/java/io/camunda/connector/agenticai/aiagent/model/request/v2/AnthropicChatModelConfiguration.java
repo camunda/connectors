@@ -214,7 +214,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.optional,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull BedrockAuthentication authentication,
+          @Valid @NotNull AwsAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -243,21 +243,10 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
 
         @Override
         public @Nullable String region() {
-          if (authentication.awsCredentialConfiguration() != null) {
-            String credentialRegion = authentication.awsCredentialConfiguration().region();
-            if ((region == null || region.isBlank())
-                && credentialRegion != null
-                && !credentialRegion.isBlank()) {
-              return credentialRegion;
-            }
+          if (region != null && !region.isBlank()) {
+            return region;
           }
-          if (authentication instanceof BedrockApiKeyAuthentication credential
-              && credential.bedrockApiKeyCredential() != null) {
-            if (region == null || region.isBlank()) {
-              return credential.bedrockApiKeyCredential().region();
-            }
-          }
-          return region;
+          return authentication != null ? authentication.credentialRegion() : null;
         }
 
         @JsonIgnore
@@ -270,7 +259,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         @JsonIgnore
         @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
         public boolean isDefaultCredentialsChainUsedInSaaS() {
-          return ConnectorUtils.isSaaS() && authentication.usesDefaultCredentialsChain();
+          return ConnectorUtils.isSaaS()
+              && authentication != null
+              && authentication.usesDefaultCredentialsChain();
         }
 
         @Override

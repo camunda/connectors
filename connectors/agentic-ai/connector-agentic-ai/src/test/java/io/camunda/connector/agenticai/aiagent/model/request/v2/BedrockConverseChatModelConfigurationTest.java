@@ -305,7 +305,7 @@ class BedrockConverseChatModelConfigurationTest {
   }
 
   private static BedrockConverseChatModelConfiguration bedrockConfig(
-      BedrockAuthentication authentication) {
+      AwsAuthentication authentication) {
     return new BedrockConverseChatModelConfiguration(
         new BedrockConverseConnection(
             "eu-central-1",

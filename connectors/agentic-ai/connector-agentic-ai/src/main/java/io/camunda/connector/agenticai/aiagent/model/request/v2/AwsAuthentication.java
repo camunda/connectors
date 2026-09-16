@@ -15,9 +15,12 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
+  @JsonSubTypes.Type(value = AwsIamAuthentication.class, name = "awsIam"),
+  @JsonSubTypes.Type(value = BedrockApiKeyAuthentication.class, name = "bedrockApiKey"),
   @JsonSubTypes.Type(
       value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
       name = "credentials"),
@@ -33,17 +36,74 @@ import jakarta.validation.constraints.NotNull;
       name = "defaultCredentialsChain")
 })
 @TemplateDiscriminatorProperty(
-    label = "Authentication",
+    label = "Authentication family",
     group = "provider",
     name = "type",
-    defaultValue = "credentials",
-    description = "Specify the AWS authentication strategy.")
+    defaultValue = "awsIam",
+    description = "Choose AWS IAM credentials or an Amazon Bedrock API key.")
 public sealed interface AwsAuthentication
     permits AwsAuthentication.AwsStaticCredentialsAuthentication,
         AwsAuthentication.AwsApiKeyAuthentication,
         AwsAuthentication.AwsCredentialConfigurationAuthentication,
         AwsAuthentication.BedrockApiKeyCredentialAuthentication,
-        AwsAuthentication.AwsDefaultCredentialsChainAuthentication {
+        AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
+        AwsIamAuthentication,
+        BedrockApiKeyAuthentication {
+
+  default @Nullable AwsCredentialConfiguration awsCredentialConfiguration() {
+    return this instanceof AwsCredentialConfigurationAuthentication credential
+        ? credential.awsCredential()
+        : null;
+  }
+
+  default @Nullable AwsAuthentication effectiveIamAuthentication() {
+    return switch (this) {
+      case AwsStaticCredentialsAuthentication ignored -> this;
+      case AwsDefaultCredentialsChainAuthentication ignored -> this;
+      case AwsCredentialConfigurationAuthentication ignored -> this;
+      default -> null;
+    };
+  }
+
+  default @Nullable String effectiveApiKey() {
+    return switch (this) {
+      case AwsApiKeyAuthentication authentication -> authentication.apiKey();
+      case BedrockApiKeyCredentialAuthentication authentication ->
+          authentication.bedrockApiKeyCredential() != null
+              ? authentication.bedrockApiKeyCredential().apiKey()
+              : null;
+      default -> null;
+    };
+  }
+
+  default @Nullable String credentialRegion() {
+    var credential = awsCredentialConfiguration();
+    if (credential != null) {
+      return credential.region();
+    }
+    return switch (this) {
+      case BedrockApiKeyCredentialAuthentication authentication ->
+          authentication.bedrockApiKeyCredential() != null
+              ? authentication.bedrockApiKeyCredential().region()
+              : null;
+      case BedrockApiKeyAuthentication authentication ->
+          authentication.bedrockApiKeyCredential() != null
+              ? authentication.bedrockApiKeyCredential().region()
+              : null;
+      default -> null;
+    };
+  }
+
+  default boolean usesDefaultCredentialsChain() {
+    var credential = awsCredentialConfiguration();
+    if (credential != null) {
+      return credential.authentication()
+          instanceof
+          io.camunda.connector.aws.model.impl.AwsAuthentication
+              .AwsDefaultCredentialsChainAuthentication;
+    }
+    return effectiveIamAuthentication() instanceof AwsDefaultCredentialsChainAuthentication;
+  }
 
   @TemplateSubType(id = "credentials", label = "Credentials", ignore = true)
   record AwsStaticCredentialsAuthentication(
@@ -65,7 +125,7 @@ public sealed interface AwsAuthentication
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String secretKey)
-      implements AwsAuthentication, BedrockAuthentication {
+      implements AwsAuthentication {
 
     @Override
     public String toString() {
@@ -84,7 +144,7 @@ public sealed interface AwsAuthentication
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
-      implements AwsAuthentication, BedrockAuthentication {
+      implements AwsAuthentication {
 
     @Override
     public String toString() {
@@ -103,7 +163,7 @@ public sealed interface AwsAuthentication
           @jakarta.validation.Valid
           @NotNull
           AwsCredentialConfiguration awsCredential)
-      implements AwsAuthentication, BedrockAuthentication {}
+      implements AwsAuthentication {}
 
   @TemplateSubType(
       id = "bedrockApiKeyCredential",
@@ -119,12 +179,11 @@ public sealed interface AwsAuthentication
           @jakarta.validation.Valid
           @NotNull
           AgenticAiCredentialConfigurations.BedrockApiKeyCredential bedrockApiKeyCredential)
-      implements AwsAuthentication, BedrockAuthentication {}
+      implements AwsAuthentication {}
 
   @TemplateSubType(
       id = "defaultCredentialsChain",
       label = "Default Credentials Chain (Hybrid/Self-Managed only)",
       ignore = true)
-  record AwsDefaultCredentialsChainAuthentication()
-      implements AwsAuthentication, BedrockAuthentication {}
+  record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
 }

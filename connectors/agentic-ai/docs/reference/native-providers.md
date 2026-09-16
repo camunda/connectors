@@ -16,8 +16,9 @@ conversation-memory connections are not part of this migration.
 
 `AgenticAiCredentialConfigurations` declares seven schemas: Anthropic API, OpenAI API, Microsoft
 Foundry, AI Gateway, Bedrock API key, Google Gemini API, and Vertex AI. Bedrock IAM instead reuses
-the shared `AwsCredentialConfiguration`. `BedrockAuthentication` selects between the IAM and
-Bedrock API-key credential families; each exposes exactly one chooser.
+the shared `AwsCredentialConfiguration`. `AwsAuthentication` selects between the IAM and
+Bedrock API-key credential families; each exposes exactly one chooser. The existing authentication
+component type is retained for constructor and accessor compatibility.
 
 The provider configuration accessors prefer the selected credential over legacy inline fields.
 Gateway endpoints and Bedrock endpoints/regions can be overridden locally; a Bedrock region is
@@ -86,7 +87,7 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
-backend axis: `BedrockConverseChatModelConfiguration` carries a region, a `BedrockAuthentication`,
+backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`,
 and an optional custom endpoint. The authentication resolves a shared AWS IAM credential or a
 Bedrock API-key credential, while retaining static credentials, API keys, and the default
 credentials chain from older inline jobs.

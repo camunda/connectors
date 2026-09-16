@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -133,7 +132,7 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
    * it (the SDK falls back to it solely when no credentials provider was set at all).
    */
   private static void applyAuthentication(
-      BedrockAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
+      AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
     if (authentication.awsCredentialConfiguration() != null) {
       applyAwsCredential(authentication.awsCredentialConfiguration(), builder);
       return;
@@ -156,13 +155,8 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsApiKeyAuthentication ignored ->
+      case null, default ->
           throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case AwsAuthentication.AwsCredentialConfigurationAuthentication ignored ->
-          throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case AwsAuthentication.BedrockApiKeyCredentialAuthentication ignored ->
-          throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case null -> throw new IllegalArgumentException("No AWS IAM authentication configured");
     }
   }
 

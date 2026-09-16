@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
@@ -22,6 +23,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -158,7 +160,7 @@ class ReusableCredentialBindingTest {
             {"type":"bedrock","bedrock":{"region":"eu-central-1","authentication":{"type":"awsIam","inlineAuthentication":{"type":"credentials","accessKey":"key","secretKey":"secret"}},"model":{"model":"nova"}}}
             """);
 
-    BedrockAuthentication authentication = configuration.bedrock().authentication();
+    AwsAuthentication authentication = configuration.bedrock().authentication();
     assertThat(authentication).isInstanceOf(AwsIamAuthentication.class);
     assertThat(authentication.awsCredentialConfiguration()).isNull();
     assertThat(authentication.effectiveIamAuthentication())
@@ -518,20 +520,96 @@ class ReusableCredentialBindingTest {
     assertThat(validator.validate(configuration)).isEmpty();
   }
 
+  @ParameterizedTest
+  @EnumSource(BedrockProvider.class)
+  void reportsMissingBedrockAuthenticationAsValidationFailure(BedrockProvider provider)
+      throws Exception {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+
+    for (String authentication :
+        List.of("null", "{\"type\":\"awsCredential\"}", "{\"type\":\"bedrockApiKeyCredential\"}")) {
+      var configuration = readBedrock(provider, authentication, "");
+      assertThat(validator.validate(configuration))
+          .extracting(ConstraintViolation::getMessage)
+          .contains("must not be null");
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(BedrockProvider.class)
+  void legacyBedrockApiKeyCredentialSuppliesRegion(BedrockProvider provider) throws Exception {
+    var configuration =
+        readBedrock(
+            provider,
+            """
+            {"type":"bedrockApiKeyCredential","bedrockApiKeyCredential":{"apiKey":"key","region":"eu-west-1"}}
+            """,
+            "");
+
+    assertThat(validator.validate(configuration)).isEmpty();
+    String region =
+        switch (provider) {
+          case CONVERSE ->
+              ((BedrockConverseChatModelConfiguration) configuration).bedrock().region();
+          case MANTLE ->
+              ((AnthropicAwsBedrockMantleBackend)
+                      ((AnthropicChatModelConfiguration) configuration).anthropic().backend())
+                  .awsBedrockMantle()
+                  .region();
+        };
+    assertThat(region).isEqualTo("eu-west-1");
+  }
+
+  @Test
+  void retainsBedrockAuthenticationConstructorAndAccessorSignatures() throws Exception {
+    var converse = BedrockConverseChatModelConfiguration.BedrockConverseConnection.class;
+    var mantle = AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend.class;
+
+    assertThat(converse.getMethod("authentication").getReturnType())
+        .isEqualTo(AwsAuthentication.class);
+    assertThat(mantle.getMethod("authentication").getReturnType())
+        .isEqualTo(AwsAuthentication.class);
+    assertThat(
+            converse.getConstructor(
+                String.class,
+                String.class,
+                AwsAuthentication.class,
+                Map.class,
+                Map.class,
+                Map.class,
+                TimeoutConfiguration.class,
+                BedrockConverseChatModelConfiguration.BedrockConverseModel.class))
+        .isNotNull();
+    assertThat(
+            mantle.getConstructor(
+                String.class,
+                String.class,
+                AwsAuthentication.class,
+                Map.class,
+                Map.class,
+                Map.class))
+        .isNotNull();
+  }
+
   private ProviderConfiguration readBedrock(BedrockProvider provider, String authentication)
       throws Exception {
+    return readBedrock(provider, authentication, "eu-central-1");
+  }
+
+  private ProviderConfiguration readBedrock(
+      BedrockProvider provider, String authentication, String region) throws Exception {
     String json =
         switch (provider) {
           case CONVERSE ->
               """
-              {"type":"bedrock","bedrock":{"region":"eu-central-1","authentication":%s,"model":{"model":"nova"}}}
+              {"type":"bedrock","bedrock":{"region":"%s","authentication":%s,"model":{"model":"nova"}}}
               """;
           case MANTLE ->
               """
-              {"type":"anthropic","anthropic":{"backend":{"type":"aws-bedrock-mantle","awsBedrockMantle":{"region":"eu-central-1","authentication":%s}},"model":{"model":"claude"}}}
+              {"type":"anthropic","anthropic":{"backend":{"type":"aws-bedrock-mantle","awsBedrockMantle":{"region":"%s","authentication":%s}},"model":{"model":"claude"}}}
               """;
         };
-    return mapper.readValue(json.formatted(authentication), ProviderConfiguration.class);
+    return mapper.readValue(json.formatted(region, authentication), ProviderConfiguration.class);
   }
 
   private enum BedrockProvider {

@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -154,7 +153,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   private static void applyBedrockAuthentication(
-      BedrockMantleBackend.Builder backendBuilder, BedrockAuthentication authentication) {
+      BedrockMantleBackend.Builder backendBuilder, AwsAuthentication authentication) {
     if (authentication.awsCredentialConfiguration() != null) {
       applyAwsCredential(backendBuilder, authentication.awsCredentialConfiguration());
       return;
@@ -171,13 +170,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
               .awsSecretAccessKey(staticAuth.secretKey());
       case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
           backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
-      case AwsAuthentication.AwsApiKeyAuthentication ignored ->
+      case null, default ->
           throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case AwsAuthentication.AwsCredentialConfigurationAuthentication ignored ->
-          throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case AwsAuthentication.BedrockApiKeyCredentialAuthentication ignored ->
-          throw new IllegalArgumentException("No AWS IAM authentication configured");
-      case null -> throw new IllegalArgumentException("No AWS IAM authentication configured");
     }
   }
 

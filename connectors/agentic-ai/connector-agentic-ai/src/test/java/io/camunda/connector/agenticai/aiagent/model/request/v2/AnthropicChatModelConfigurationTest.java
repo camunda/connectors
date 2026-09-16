@@ -615,8 +615,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(validator.validate(config)).isEmpty();
   }
 
-  private static AnthropicChatModelConfiguration bedrockConfig(
-      BedrockAuthentication authentication) {
+  private static AnthropicChatModelConfiguration bedrockConfig(AwsAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicAwsBedrockMantleBackend(
