@@ -14,7 +14,11 @@ jobs:
       deployments: write
       id-token: write
     # checks that the PR isn't closed AND check whether the labeled event contains deploy-preview as substring || check whether on new commit of PR the label deploy-preview is part of label array
-    if: github.event.pull_request.state != 'closed' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
+    if: |
+      github.event.pull_request.state != 'closed' &&
+      !startsWith(github.head_ref, 'fix/alwaysgreen-') &&
+      (contains(github.event.label.name, 'deploy-preview') ||
+       contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
     runs-on: ubuntu-24.04
     name: deploy-preview-env-${{ matrix.product_context }}
     env:
@@ -52,6 +56,8 @@ jobs:
     # composite actions and deployment manifests.
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     #########################################################################
     # Determine the argocd arguments that need to be passed to the create app command
     - name: Determine Argocd Arguments for ${{ matrix.product_context }}
