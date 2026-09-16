@@ -32,6 +32,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigura
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
 import java.time.Duration;
 import java.util.stream.Stream;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -157,10 +159,20 @@ class BedrockConverseChatModelFactoryTest {
     }
   }
 
-  @Test
-  void buildsClientWithStaticCredentials() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"credentials","accessKey":"AKIA","secretKey":"secret"}
+        """,
+        """
+        {"type":"awsIam","awsCredential":{"authentication":{"type":"credentials","accessKey":"AKIA","secretKey":"secret"}}}
+        """
+      })
+  void buildsClientWithStaticCredentials(String authenticationJson) throws Exception {
     final var authentication =
-        new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret");
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authenticationJson, AwsAuthentication.class);
 
     testBuilder(
         bedrockConfig(authentication, null),
@@ -179,10 +191,22 @@ class BedrockConverseChatModelFactoryTest {
         });
   }
 
-  @Test
-  void buildsClientWithDefaultCredentialsChain() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"defaultCredentialsChain"}
+        """,
+        """
+        {"type":"awsIam","awsCredential":{"authentication":{"type":"defaultCredentialsChain"}}}
+        """
+      })
+  void buildsClientWithDefaultCredentialsChain(String authenticationJson) throws Exception {
     testBuilder(
-        bedrockConfig(defaultCredentialsAuth(), null),
+        bedrockConfig(
+            ConnectorsObjectMapperSupplier.getCopy()
+                .readValue(authenticationJson, AwsAuthentication.class),
+            null),
         (clientBuilder) -> {
           verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
           assertThat(credentialsProviderCaptor.getValue())
@@ -192,9 +216,20 @@ class BedrockConverseChatModelFactoryTest {
         });
   }
 
-  @Test
-  void buildsClientWithApiKeyBearerAuthentication() {
-    final var authentication = new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key");
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"apiKey","apiKey":"bedrock-key"}
+        """,
+        """
+        {"type":"bedrockApiKey","bedrockApiKeyCredential":{"apiKey":"bedrock-key","region":"eu-central-1"}}
+        """
+      })
+  void buildsClientWithApiKeyBearerAuthentication(String authenticationJson) throws Exception {
+    final var authentication =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authenticationJson, AwsAuthentication.class);
 
     testBuilder(
         bedrockConfig(authentication, null),

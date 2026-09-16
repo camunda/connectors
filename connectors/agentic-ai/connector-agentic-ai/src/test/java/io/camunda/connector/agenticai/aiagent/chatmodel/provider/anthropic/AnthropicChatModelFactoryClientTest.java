@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCreden
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -58,6 +59,8 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Exercises {@link AnthropicChatModelFactory}'s {@code custom}-backend and proxy wiring through its
@@ -212,22 +215,44 @@ class AnthropicChatModelFactoryClientTest {
             .withoutHeader("x-api-key"));
   }
 
-  @Test
-  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"credentials","accessKey":"AKIAEXAMPLE","secretKey":"secretExampleKey"}
+        """,
+        """
+        {"type":"awsIam","awsCredential":{"authentication":{"type":"credentials","accessKey":"AKIAEXAMPLE","secretKey":"secretExampleKey"}}}
+        """
+      })
+  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(
+      String authentication, WireMockRuntimeInfo wireMock) throws Exception {
     executeAgainstBedrock(
         wireMock,
-        new AwsAuthentication.AwsStaticCredentialsAuthentication(
-            "AKIAEXAMPLE", "secretExampleKey"));
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authentication, AwsAuthentication.class));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
-            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/.*")));
   }
 
-  @Test
-  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"apiKey","apiKey":"bedrock-secret-key"}
+        """,
+        """
+        {"type":"bedrockApiKey","bedrockApiKeyCredential":{"apiKey":"bedrock-secret-key","region":"eu-central-1"}}
+        """
+      })
+  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(
+      String authentication, WireMockRuntimeInfo wireMock) throws Exception {
     executeAgainstBedrock(
-        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+        wireMock,
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authentication, AwsAuthentication.class));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
