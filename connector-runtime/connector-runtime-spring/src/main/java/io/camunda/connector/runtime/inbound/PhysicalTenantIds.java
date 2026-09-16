@@ -83,25 +83,37 @@ public final class PhysicalTenantIds {
   static String resolvePhysicalTenantId(
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
-      return resolvePhysicalTenantId(resolveClient(registry, name, legacyCamundaClient), name);
+      var physicalTenantId =
+          resolveClient(registry, name, legacyCamundaClient)
+              .getConfiguration()
+              .getPhysicalTenantId();
+      return physicalTenantId != null ? physicalTenantId : name;
     } catch (RuntimeException e) {
       return name;
     }
   }
 
   /**
-   * Same resolution as {@link #resolvePhysicalTenantId(CamundaClientRegistry, String,
-   * CamundaClient)}, for a client already in hand — a {@code CamundaClientLifecycleAware} callback
-   * is handed the client instance directly and needs no registry lookup. Kept here so a lifecycle
-   * callback and the startup snapshot it refreshes resolve identically.
+   * The client-name-to-physical-tenant-ID association as resolved at startup, so a {@code
+   * CamundaClientLifecycleAware} consumer can find the key a given client was filed under instead
+   * of re-resolving the ID from the client an event hands it.
+   *
+   * <p>Re-resolving is not equivalent, and the difference is load-bearing. Resolution here falls
+   * back to the client name whenever the configuration cannot be read yet, so the same client can
+   * resolve to its name at startup and to a real physical tenant ID later; an event resolving the
+   * later value would miss the frozen key entirely. Worse, because that startup fallback also
+   * bypasses {@link #toMapByPhysicalTenantId}'s duplicate check, a client keyed by name at startup
+   * can later resolve onto a key another client legitimately owns — and re-resolution would hand it
+   * that other tenant's entry. Looking the key up by client name is immune to both: a client can
+   * only ever address the entry it was given at startup.
    */
-  public static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
-    try {
-      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : clientName;
-    } catch (RuntimeException e) {
-      return clientName;
-    }
+  public static Map<String, String> buildPhysicalTenantIdByClientName(
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return registry.clientNames().stream()
+        .collect(
+            Collectors.toMap(
+                name -> name,
+                name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient)));
   }
 
   /**

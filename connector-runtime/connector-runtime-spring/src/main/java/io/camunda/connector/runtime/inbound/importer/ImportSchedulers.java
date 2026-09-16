@@ -45,7 +45,7 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   private final ProcessStateManager stateStore;
 
   /**
-   * The physical tenant IDs this runtime is configured for, resolved once at startup. Deliberately
+   * The physical tenant ID each configured client name was filed under at startup. Deliberately
    * frozen: every other per-physical-tenant map in the runtime ({@code
    * PhysicalTenantIdRoutingInboundConnectorContextFactory}'s delegates, {@code
    * ProcessDefinitionInspector}'s search clients, the document factories {@code
@@ -53,13 +53,18 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    * process definitions are tagged with these keys. A lifecycle event may therefore only refresh
    * the client behind an existing key, never introduce or rename one — otherwise polling would
    * start tagging imports with an ID no other component knows about.
+   *
+   * <p>Keyed by client name rather than by physical tenant ID so that an event addresses the entry
+   * its own client was given at startup, instead of whatever ID that client resolves to at event
+   * time. See {@link PhysicalTenantIds#buildPhysicalTenantIdByClientName} for why re-resolving is
+   * not equivalent.
    */
-  private final Set<String> configuredPhysicalTenantIds;
+  private final Map<String, String> physicalTenantIdByClientName;
 
   /**
    * The search client currently polled per physical tenant. Mutable, and a subset of {@link
-   * #configuredPhysicalTenantIds}: a tenant whose client has stopped is removed until that client
-   * starts again, so polling skips it instead of querying a closed client.
+   * #physicalTenantIdByClientName}'s values: a tenant whose client has stopped is removed until
+   * that client starts again, so polling skips it instead of querying a closed client.
    */
   private final Map<String, SearchQueryClient> activeSearchQueryClientsByPhysicalTenantId;
 
@@ -74,12 +79,13 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
   public ImportSchedulers(
       ProcessStateManager stateStore,
       Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
+      Map<String, String> physicalTenantIdByClientName,
       Function<CamundaClient, SearchQueryClient> searchQueryClientFactory,
       Importers importers,
       boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
-    this.configuredPhysicalTenantIds = Set.copyOf(searchQueryClientsByPhysicalTenantId.keySet());
+    this.physicalTenantIdByClientName = Map.copyOf(physicalTenantIdByClientName);
     this.activeSearchQueryClientsByPhysicalTenantId =
         new ConcurrentHashMap<>(searchQueryClientsByPhysicalTenantId);
     this.searchQueryClientFactory = searchQueryClientFactory;
@@ -129,9 +135,9 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    */
   @Override
   public void onStart(CamundaClient client, String clientName) {
-    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
-    if (!configuredPhysicalTenantIds.contains(physicalTenantId)) {
-      logUnknownPhysicalTenantId("start", physicalTenantId, clientName);
+    var physicalTenantId = physicalTenantIdByClientName.get(clientName);
+    if (physicalTenantId == null) {
+      logUnknownClientName("start", clientName);
       return;
     }
     activeSearchQueryClientsByPhysicalTenantId.put(
@@ -145,9 +151,9 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    */
   @Override
   public void onStop(CamundaClient client, String clientName) {
-    var physicalTenantId = PhysicalTenantIds.resolvePhysicalTenantId(client, clientName);
-    if (!configuredPhysicalTenantIds.contains(physicalTenantId)) {
-      logUnknownPhysicalTenantId("stop", physicalTenantId, clientName);
+    var physicalTenantId = physicalTenantIdByClientName.get(clientName);
+    if (physicalTenantId == null) {
+      logUnknownClientName("stop", clientName);
       return;
     }
     activeSearchQueryClientsByPhysicalTenantId.remove(physicalTenantId);
@@ -159,16 +165,13 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    * would also skip every bean processed after this one. Ignoring leaves the startup snapshot in
    * place, i.e. degrades to the behaviour this class had before it tracked lifecycle events.
    */
-  private void logUnknownPhysicalTenantId(
-      String event, String physicalTenantId, String clientName) {
+  private void logUnknownClientName(String event, String clientName) {
     LOG.warn(
-        "Ignoring {} event for CamundaClient '{}': it resolves to physical tenant ID '{}', which is"
-            + " not one of the configured physical tenants {}. Process definition polling for that"
-            + " client is left unchanged.",
+        "Ignoring {} event for CamundaClient '{}': it is not one of the clients configured for"
+            + " process definition polling {}. Polling is left unchanged.",
         event,
         clientName,
-        physicalTenantId,
-        configuredPhysicalTenantIds);
+        physicalTenantIdByClientName.keySet());
   }
 
   @Scheduled(
