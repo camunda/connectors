@@ -51,4 +51,11 @@ public record OAuthAuthentication(
     implements Authentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "oAuth-client-credentials-flow";
+
+  @Override
+  public String toString() {
+    return String.format(
+        "OAuthAuthentication{tenantId='%s', clientId='%s', clientSecret='%s', accountUrl='%s'}",
+        tenantId, clientId, "[REDACTED]", accountUrl);
+  }
 }

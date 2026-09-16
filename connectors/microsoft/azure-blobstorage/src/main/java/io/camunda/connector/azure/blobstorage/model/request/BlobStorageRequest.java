@@ -6,11 +6,18 @@
  */
 package io.camunda.connector.azure.blobstorage.model.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.azure.blobstorage.model.request.auth.Authentication;
+import io.camunda.connector.azure.blobstorage.model.request.auth.AzureBlobStorageConfiguration;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 public class BlobStorageRequest {
@@ -28,6 +35,25 @@ public class BlobStorageRequest {
   @NestedProperties(addNestedPath = false)
   private BlobStorageOperation operation;
 
+  @TemplateProperty(
+      id = "authenticationConfiguration",
+      label = "Azure Blob Storage credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
+      description =
+          "Choose a reusable Azure Blob Storage credential, or configure one-time authentication"
+              + " parameters below.")
+  @Valid
+  private AzureBlobStorageConfiguration authenticationConfiguration;
+
+  @NestedProperties(
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.TRUE))
+  @Valid
   private Authentication authentication;
 
   public BlobStorageRequest() {}
@@ -40,11 +66,29 @@ public class BlobStorageRequest {
     this.operation = operation;
   }
 
+  public AzureBlobStorageConfiguration getAuthenticationConfiguration() {
+    return authenticationConfiguration;
+  }
+
+  public void setAuthenticationConfiguration(
+      AzureBlobStorageConfiguration authenticationConfiguration) {
+    this.authenticationConfiguration = authenticationConfiguration;
+  }
+
   public Authentication getAuthentication() {
-    return authentication;
+    return authenticationConfiguration != null
+        ? authenticationConfiguration.authentication()
+        : authentication;
   }
 
   public void setAuthentication(Authentication authentication) {
     this.authentication = authentication;
+  }
+
+  @AssertTrue(
+      message = "No authentication provided by the reusable credential or the element template")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return getAuthentication() != null;
   }
 }

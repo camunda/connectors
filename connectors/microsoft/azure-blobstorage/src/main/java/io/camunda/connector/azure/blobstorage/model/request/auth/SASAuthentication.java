@@ -38,4 +38,10 @@ public record SASAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "SAS";
+
+  @Override
+  public String toString() {
+    return String.format(
+        "SASAuthentication{SASToken='%s', SASUrl='%s'}", "[REDACTED]", "[REDACTED]");
+  }
 }
