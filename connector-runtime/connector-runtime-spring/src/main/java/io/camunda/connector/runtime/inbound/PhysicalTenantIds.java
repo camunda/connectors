@@ -83,13 +83,24 @@ public final class PhysicalTenantIds {
   static String resolvePhysicalTenantId(
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
+      return resolvePhysicalTenantId(resolveClient(registry, name, legacyCamundaClient), name);
     } catch (RuntimeException e) {
       return name;
+    }
+  }
+
+  /**
+   * Same resolution as {@link #resolvePhysicalTenantId(CamundaClientRegistry, String,
+   * CamundaClient)}, for a client already in hand — a {@code CamundaClientLifecycleAware} callback
+   * is handed the client instance directly and needs no registry lookup. Kept here so a lifecycle
+   * callback and the startup snapshot it refreshes resolve identically.
+   */
+  public static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
+    try {
+      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      return physicalTenantId != null ? physicalTenantId : clientName;
+    } catch (RuntimeException e) {
+      return clientName;
     }
   }
 
@@ -145,17 +156,32 @@ public final class PhysicalTenantIds {
       CamundaClient legacyCamundaClient,
       SearchQueryClient legacySearchQueryClient,
       int limit) {
-    boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
+    var searchQueryClientFactory =
+        searchQueryClientFactory(registry, legacySearchQueryClient, limit);
     return registry.clientNames().stream()
         .collect(
             toMapByPhysicalTenantId(
                 registry,
                 legacyCamundaClient,
                 name ->
-                    useOverride
-                        ? legacySearchQueryClient
-                        : new SearchQueryClientImpl(
-                            resolveClient(registry, name, legacyCamundaClient), limit)));
+                    searchQueryClientFactory.apply(
+                        resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
+   * The {@link SearchQueryClient}-per-{@link CamundaClient} rule behind {@link
+   * #buildSearchQueryClientsByPhysicalTenantId}, exposed so that a {@code
+   * CamundaClientLifecycleAware} consumer rebuilding one entry for a restarted client applies the
+   * very same rule — including the single-client-only {@code legacySearchQueryClient} override,
+   * which several E2E suites rely on and which must therefore survive a client restart rather than
+   * be replaced by a real client.
+   */
+  public static Function<CamundaClient, SearchQueryClient> searchQueryClientFactory(
+      CamundaClientRegistry registry, SearchQueryClient legacySearchQueryClient, int limit) {
+    boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
+    return useOverride
+        ? client -> legacySearchQueryClient
+        : client -> new SearchQueryClientImpl(client, limit);
   }
 
   /**

@@ -63,6 +63,7 @@ public class ProcessDefinitionImportConfiguration {
     return new ImportSchedulers(
         processStateManager,
         searchQueryClientsByPhysicalTenantId,
+        PhysicalTenantIds.searchQueryClientFactory(registry, legacySearchQueryClient, limit),
         importers,
         activeVersionsPollingEnabled);
   }
