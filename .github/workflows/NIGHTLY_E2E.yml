@@ -19,7 +19,8 @@ jobs:
     # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
     if: |
       github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.fork == false &&
+      (!startsWith(github.head_ref, 'fix/alwaysgreen-') &&
+       github.event.pull_request.head.repo.fork == false &&
        ((github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
         (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests'))))
     outputs:

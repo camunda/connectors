@@ -13,11 +13,31 @@ on:
       - main
     paths:
       - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-fix.yml'
+      - '.github/workflows/alwaysgreen-triage.yml'
+      - '.github/workflows/BUILD_PR_DOCKER_IMAGES.yml'
+      - '.github/workflows/CHECK_LICENSES.yml'
+      - '.github/workflows/NIGHTLY_E2E.yml'
+      - '.github/workflows/PREVIEW-ENV-DEPLOY.yml'
+      - '.github/workflows/QA_REQUIRED.yml'
+      - '.github/workflows/TEST_FEATURE_BRANCH.yml'
+      - '.github/workflows/connectors-streak-detector.yml'
       - '.github/workflows/alwaysgreen-scripts-test.yml'
+      - 'docs/alwaysgreen/FIX-AGENT.md'
   pull_request:
     paths:
       - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-fix.yml'
+      - '.github/workflows/alwaysgreen-triage.yml'
+      - '.github/workflows/BUILD_PR_DOCKER_IMAGES.yml'
+      - '.github/workflows/CHECK_LICENSES.yml'
+      - '.github/workflows/NIGHTLY_E2E.yml'
+      - '.github/workflows/PREVIEW-ENV-DEPLOY.yml'
+      - '.github/workflows/QA_REQUIRED.yml'
+      - '.github/workflows/TEST_FEATURE_BRANCH.yml'
+      - '.github/workflows/connectors-streak-detector.yml'
       - '.github/workflows/alwaysgreen-scripts-test.yml'
+      - 'docs/alwaysgreen/FIX-AGENT.md'
 
 defaults:
   run:
