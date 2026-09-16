@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.identity.AuthenticationUtil;
+import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AzureAuthorityHosts;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
@@ -21,8 +21,10 @@ import org.jspecify.annotations.Nullable;
  * EntraIdTokenCredentialFactory}, together with the Entra ID token scope to request. Returns a
  * plain {@link Supplier}, so it stays independent of any model vendor's SDK.
  *
- * <p>No token is cached here: the supplier is invoked fresh on every request, relying entirely on
- * the wrapped credential's own token cache and refresh logic.
+ * <p>No token is cached here: the supplier asks the credential for a token on every request,
+ * relying entirely on the wrapped credential's own token cache and refresh logic. The token is read
+ * straight off the credential, so invoking the supplier issues no HTTP request of its own beyond
+ * the credential's token exchange.
  */
 public class FoundryCredentialResolver {
 
@@ -57,7 +59,7 @@ public class FoundryCredentialResolver {
             authentication.clientId(),
             authentication.clientSecret(),
             authentication.authorityHost());
-    return AuthenticationUtil.getBearerTokenSupplier(
+    return bearerTokenSupplier(
         tokenCredential, scopeFor(authentication.authorityHost(), authentication.entraIdScope()));
   }
 
@@ -68,8 +70,20 @@ public class FoundryCredentialResolver {
   public Supplier<String> bearerTokenSupplier(ManagedIdentityAuthentication authentication) {
     final var tokenCredential =
         entraIdTokenCredentialFactory.managedIdentity(authentication.clientId());
-    return AuthenticationUtil.getBearerTokenSupplier(
-        tokenCredential, scopeFor(null, authentication.entraIdScope()));
+    return bearerTokenSupplier(tokenCredential, scopeFor(null, authentication.entraIdScope()));
+  }
+
+  /**
+   * Reads the token off the credential directly. The azure-identity {@code
+   * AuthenticationUtil.getBearerTokenSupplier} helper is deliberately not used: it obtains the
+   * token by sending a throwaway HTTP request to {@code https://www.example.com} and reading the
+   * {@code Authorization} header back off it, which would put an outbound call to an unrelated host
+   * on every LLM request and bypass the credential's own proxy configuration.
+   */
+  private static Supplier<String> bearerTokenSupplier(
+      TokenCredential tokenCredential, String scope) {
+    return () ->
+        tokenCredential.getTokenSync(new TokenRequestContext().addScopes(scope)).getToken();
   }
 
   private static String scopeFor(@Nullable String authorityHost, @Nullable String scopeOverride) {
