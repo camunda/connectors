@@ -34,9 +34,12 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.feel.jackson.JacksonModuleSecretReference;
 import io.camunda.connector.hostvalidator.CidrRange;
 import io.camunda.connector.hostvalidator.VerifiedHostValidator;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -163,6 +166,17 @@ public class ConnectorsAutoConfiguration {
     OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(skewBuffer);
     OAuthTokenCacheHolder.set(cache);
     return cache;
+  }
+
+  /**
+   * Resolves OAuth2 client-credentials access tokens, backed by the shared {@link OAuthTokenCache}.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver(
+      OAuthTokenCache oAuthTokenCache) {
+    return new OAuthClientCredentialsTokenResolver(
+        new OAuthService(), oAuthTokenCache, new CustomApacheHttpClient());
   }
 
   /**

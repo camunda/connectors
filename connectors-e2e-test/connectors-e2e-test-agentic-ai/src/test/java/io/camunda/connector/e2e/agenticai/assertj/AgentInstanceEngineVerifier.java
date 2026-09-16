@@ -117,7 +117,7 @@ public class AgentInstanceEngineVerifier {
           assertThat(configItem.getSystemPrompt()).as("config item system prompt").isNotEmpty();
           assertThat(configItem.getLoopIteration()).as("config item loop iteration").isEqualTo(1);
           assertThat(configItem.getJobKey()).as("config item job key").isPositive();
-          assertThat(configItem.getJobLease()).as("config item job lease").isNotBlank();
+          assertThat(configItem.getJobLeaseToken()).as("config item job lease").isNotBlank();
           assertThat(configItem.getLimits().getMaxModelCalls())
               .as("config item max model calls")
               .isEqualTo(maxModelCalls);

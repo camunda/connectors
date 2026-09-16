@@ -30,6 +30,29 @@ class ReusableCredentialElementTemplateTest {
         "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
         "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
+  void defaultsToOpenAiResponsesWithCustomEndpoint(String templatePath) throws Exception {
+    List<JsonNode> properties =
+        OBJECT_MAPPER
+            .readTree(Path.of(templatePath).toFile())
+            .path("properties")
+            .valueStream()
+            .toList();
+
+    assertThat(property(properties, "provider.type").path("value").asText()).isEqualTo("openai");
+    assertThat(property(properties, "provider.openai.api.type").path("value").asText())
+        .isEqualTo("responses");
+    assertThat(property(properties, "provider.openai.backend.type").path("value").asText())
+        .isEqualTo("custom");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "element-templates/agenticai-ai-agent-task.v2.json",
+        "element-templates/agenticai-ai-agent-subprocess.v2.json",
+        "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
   void marksSecretsInReusableCredentials(String templatePath) throws Exception {
     JsonNode template = OBJECT_MAPPER.readTree(Path.of(templatePath).toFile());
 

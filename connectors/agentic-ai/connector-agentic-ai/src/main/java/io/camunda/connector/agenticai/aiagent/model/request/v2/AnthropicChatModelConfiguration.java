@@ -56,6 +56,11 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     return anthropic.model().model();
   }
 
+  @Override
+  public String descriptiveProvider() {
+    return "%s/%s".formatted(provider(), anthropic.backend().type());
+  }
+
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,
@@ -300,7 +305,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record CustomBackend(
-          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+          @Valid @TemplateProperty(type = PropertyType.Hidden, ignore = true)
               @Nullable AnthropicCustomEndpointAuthentication authentication,
           @TemplateProperty(
                   group = "provider",
@@ -344,6 +349,13 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        public CustomBackend {
+          if (credential != null) {
+            authentication =
+                new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey());
+          }
+        }
+
         public CustomBackend(
             String endpoint,
             @Nullable Map<String, String> headers,
@@ -360,11 +372,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         }
 
         public AnthropicCustomEndpointAuthentication authentication() {
-          return Objects.requireNonNull(
-              credential != null
-                  ? new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(
-                      credential.apiKey())
-                  : authentication);
+          return Objects.requireNonNull(authentication);
         }
 
         @JsonIgnore
@@ -382,19 +390,10 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
 
         @JsonIgnore
         @jakarta.validation.constraints.AssertTrue(
-            message = "AI Gateway API-key authentication must not be blank")
-        public boolean isAuthenticationValid() {
-          AnthropicCustomEndpointAuthentication effectiveAuthentication =
-              credential != null
-                  ? new AnthropicCustomEndpointAuthentication.ApiKeyAuthentication(
-                      credential.apiKey())
-                  : authentication;
-          return effectiveAuthentication
-                  instanceof AnthropicCustomEndpointAuthentication.NoAuthentication
-              || effectiveAuthentication
-                      instanceof AnthropicCustomEndpointAuthentication.ApiKeyAuthentication apiKey
-                  && apiKey.apiKey() != null
-                  && !apiKey.apiKey().isBlank();
+            message =
+                "AI Gateway authentication is required from the credential or element template")
+        public boolean isAuthenticationPresent() {
+          return authentication != null;
         }
 
         @Override

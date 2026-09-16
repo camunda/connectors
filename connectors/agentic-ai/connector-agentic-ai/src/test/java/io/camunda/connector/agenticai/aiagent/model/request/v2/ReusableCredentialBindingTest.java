@@ -49,6 +49,67 @@ class ReusableCredentialBindingTest {
   }
 
   @Test
+  void preservesInlineOAuthAuthentication() throws Exception {
+    List<ProviderConfiguration> configurations =
+        List.of(
+            read(
+                """
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"https://gateway.example","authentication":{"type":"oauth-client-credentials-flow","oauthTokenEndpoint":"https://auth.example/token","clientId":"client","clientSecret":"secret"}}},"model":{"model":"claude"}}}
+                """),
+            read(
+                """
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"endpoint":"https://gateway.example","authentication":{"type":"oauth-client-credentials-flow","oauthTokenEndpoint":"https://auth.example/token","clientId":"client","clientSecret":"secret"}}},"model":{"model":"gpt"}}}
+                """));
+
+    configurations.forEach(
+        configuration -> assertThat(validator.validate(configuration)).isEmpty());
+    assertThat(
+            ((AnthropicCustomBackend)
+                    ((AnthropicChatModelConfiguration) configurations.getFirst())
+                        .anthropic()
+                        .backend())
+                .custom()
+                .authentication())
+        .isInstanceOf(OAuthClientCredentialsAuthentication.class);
+    assertThat(
+            ((OpenAiCustomBackend)
+                    ((OpenAiChatModelConfiguration) configurations.getLast()).openai().backend())
+                .custom()
+                .authentication())
+        .isInstanceOf(OAuthClientCredentialsAuthentication.class);
+  }
+
+  @Test
+  void credentialTakesPrecedenceOverIncompleteInlineOAuthAuthentication() throws Exception {
+    List<ProviderConfiguration> configurations =
+        List.of(
+            read(
+                """
+                {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","apiKey":"credential-key"}}},"model":{"model":"claude"}}}
+                """),
+            read(
+                """
+                {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"authentication":{"type":"oauth-client-credentials-flow"},"credential":{"endpoint":"https://gateway.example","apiKey":"credential-key"}}},"model":{"model":"gpt"}}}
+                """));
+
+    configurations.forEach(
+        configuration -> assertThat(validator.validate(configuration)).isEmpty());
+  }
+
+  @Test
+  void reportsMissingGatewayEndpointAsValidationFailure() throws Exception {
+    OpenAiChatModelConfiguration configuration =
+        read(
+            """
+            {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{"authentication":{"type":"apiKey","apiKey":"key"}}},"model":{"model":"gpt"}}}
+            """);
+
+    assertThat(validator.validate(configuration))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("An AI Gateway endpoint is required from the credential or element template");
+  }
+
+  @Test
   void bindsAnthropicApiAndGatewayCredentials() throws Exception {
     AnthropicChatModelConfiguration api =
         read(

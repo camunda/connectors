@@ -136,14 +136,14 @@
       "name" : "AWS Bedrock Converse",
       "value" : "bedrock"
     }, {
-      "name" : "Custom Implementation (Self-Managed/Hybrid only)",
-      "value" : "custom"
+      "name" : "OpenAI",
+      "value" : "openai"
     }, {
       "name" : "Google Gemini",
       "value" : "google-gemini"
     }, {
-      "name" : "OpenAI",
-      "value" : "openai"
+      "name" : "Custom Implementation (Self-Managed/Hybrid only)",
+      "value" : "custom"
     } ]
   }, {
     "id" : "provider.anthropic.backend.type",

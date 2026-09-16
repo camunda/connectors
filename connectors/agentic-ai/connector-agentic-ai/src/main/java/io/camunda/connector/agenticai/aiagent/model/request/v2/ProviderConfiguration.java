@@ -32,7 +32,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     group = "provider",
     name = "type",
     description = "Specify the LLM provider to use.",
-    defaultValue = ANTHROPIC_ID)
+    defaultValue = OPENAI_ID)
 public sealed interface ProviderConfiguration extends ChatModelConfiguration
     permits AnthropicChatModelConfiguration,
         BedrockConverseChatModelConfiguration,

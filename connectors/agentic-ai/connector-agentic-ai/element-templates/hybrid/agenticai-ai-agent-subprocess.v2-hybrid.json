@@ -127,7 +127,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "anthropic",
+    "value" : "openai",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
@@ -580,7 +580,7 @@
     "id" : "provider.openai.backend.type",
     "label" : "Backend",
     "description" : "Specify how the OpenAI API is reached.",
-    "value" : "openai-api",
+    "value" : "custom",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.type",

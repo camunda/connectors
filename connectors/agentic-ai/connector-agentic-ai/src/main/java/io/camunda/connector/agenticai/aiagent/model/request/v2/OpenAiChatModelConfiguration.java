@@ -57,6 +57,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     return openai.model().model();
   }
 
+  @Override
+  public String descriptiveProvider() {
+    return "%s/%s/%s".formatted(provider(), openai.api().type(), openai.backend().type());
+  }
+
   /** All OpenAI-specific configuration, nested under the {@code openai} wire key. */
   public record OpenAiConnection(
       @Valid @NotNull OpenAiApi api,
@@ -238,7 +243,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       label = "Backend",
       group = "provider",
       name = "type",
-      defaultValue = OPENAI_API_ID,
+      defaultValue = CUSTOM_ID,
       description = "Specify how the OpenAI API is reached.")
   public sealed interface OpenAiBackend {
 
@@ -731,8 +736,15 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+          @Valid @TemplateProperty(type = PropertyType.Hidden, ignore = true)
               @Nullable OpenAiCustomEndpointAuthentication authentication) {
+
+        public CustomBackend {
+          if (credential != null) {
+            authentication =
+                new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey());
+          }
+        }
 
         public CustomBackend(
             String endpoint,
@@ -757,7 +769,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
         @JsonIgnore
         @jakarta.validation.constraints.AssertTrue(
             message =
-                "AI Gateway API-key authentication is required from the credential or element template")
+                "AI Gateway authentication is required from the credential or element template")
         public boolean isAuthenticationPresent() {
           return credential != null || authentication != null;
         }
@@ -770,30 +782,13 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
         }
 
         public OpenAiCustomEndpointAuthentication authentication() {
-          return Objects.requireNonNull(
-              credential != null
-                  ? new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey())
-                  : authentication);
+          return Objects.requireNonNull(authentication);
         }
 
         @JsonIgnore
         @jakarta.validation.constraints.AssertTrue(message = "Must be an HTTP or HTTPS URL")
         public boolean isEndpointHttpUrl() {
-          return endpoint() == null || endpoint().isBlank() || endpoint().matches("^https?://.+");
-        }
-
-        @JsonIgnore
-        @jakarta.validation.constraints.AssertTrue(
-            message = "AI Gateway API-key authentication must not be blank")
-        public boolean isAuthenticationValid() {
-          OpenAiCustomEndpointAuthentication effectiveAuthentication =
-              credential != null
-                  ? new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(credential.apiKey())
-                  : authentication;
-          return effectiveAuthentication
-                  instanceof OpenAiCustomEndpointAuthentication.ApiKeyAuthentication apiKey
-              && apiKey.apiKey() != null
-              && !apiKey.apiKey().isBlank();
+          return !isEndpointPresent() || endpoint().matches("^https?://.+");
         }
 
         @Override
