@@ -3,6 +3,7 @@
     "config:base",
     "github>camunda/infra-renovate-config:herodevs.json5"
   ],
+  "pinDigests": true,
   "labels": [
     "dependencies",
     "no milestone"
@@ -32,7 +33,22 @@
       "matchManagers": [
         "github-actions"
       ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "automerge": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "automerge": false
     },
     {
       "matchManagers": ["helm"],
