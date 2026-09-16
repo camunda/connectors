@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -19,6 +20,7 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AuthenticationUtil;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,8 @@ import org.mockito.MockedStatic;
  */
 class FoundryCredentialResolverTest {
 
+  private static final Duration TIMEOUT = Duration.ofSeconds(7);
+
   private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory =
       mock(EntraIdTokenCredentialFactory.class);
   private final TokenCredential tokenCredential = mock(TokenCredential.class);
@@ -40,9 +44,9 @@ class FoundryCredentialResolverTest {
 
   @BeforeEach
   void setUp() {
-    when(entraIdTokenCredentialFactory.clientCredentials(any(), any(), any(), any()))
+    when(entraIdTokenCredentialFactory.clientCredentials(any(), any(), any(), any(), any()))
         .thenReturn(tokenCredential);
-    when(entraIdTokenCredentialFactory.managedIdentity(any())).thenReturn(tokenCredential);
+    when(entraIdTokenCredentialFactory.managedIdentity(any(), any())).thenReturn(tokenCredential);
     when(tokenCredential.getTokenSync(any()))
         .thenReturn(new AccessToken("test-token", OffsetDateTime.MAX));
   }
@@ -52,7 +56,8 @@ class FoundryCredentialResolverTest {
     final var supplier =
         resolver.bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null));
+                "client-id", "client-secret", "tenant-id", null, null),
+            TIMEOUT);
 
     assertThat(supplier.get()).isEqualTo("test-token");
   }
@@ -61,7 +66,8 @@ class FoundryCredentialResolverTest {
   void buildingTheSupplierDoesNotRequestAToken() {
     resolver.bearerTokenSupplier(
         new FoundryAuthentication.ClientCredentialsAuthentication(
-            "client-id", "client-secret", "tenant-id", null, null));
+            "client-id", "client-secret", "tenant-id", null, null),
+        TIMEOUT);
 
     verify(tokenCredential, org.mockito.Mockito.never()).getTokenSync(any());
   }
@@ -75,21 +81,27 @@ class FoundryCredentialResolverTest {
                 "client-secret",
                 "tenant-id",
                 "https://login.microsoftonline.us/",
-                null))
+                null),
+            TIMEOUT)
         .get();
 
     verify(entraIdTokenCredentialFactory)
         .clientCredentials(
-            "tenant-id", "client-id", "client-secret", "https://login.microsoftonline.us/");
+            "tenant-id",
+            "client-id",
+            "client-secret",
+            "https://login.microsoftonline.us/",
+            TIMEOUT);
   }
 
   @Test
   void passesTheManagedIdentityClientIdToTheFactory() {
     resolver
-        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentityAuthentication("mi-id", null))
+        .bearerTokenSupplier(
+            new FoundryAuthentication.ManagedIdentityAuthentication("mi-id", null), TIMEOUT)
         .get();
 
-    verify(entraIdTokenCredentialFactory).managedIdentity("mi-id");
+    verify(entraIdTokenCredentialFactory).managedIdentity("mi-id", TIMEOUT);
   }
 
   @Test
@@ -97,7 +109,8 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null))
+                "client-id", "client-secret", "tenant-id", null, null),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.com/.default");
@@ -106,7 +119,8 @@ class FoundryCredentialResolverTest {
   @Test
   void requestsTheFoundryScopeForManagedIdentity() {
     resolver
-        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentityAuthentication(null, null))
+        .bearerTokenSupplier(
+            new FoundryAuthentication.ManagedIdentityAuthentication(null, null), TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.com/.default");
@@ -121,7 +135,8 @@ class FoundryCredentialResolverTest {
                 "client-secret",
                 "tenant-id",
                 "https://login.microsoftonline.us/",
-                null))
+                null),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.us/.default");
@@ -136,7 +151,8 @@ class FoundryCredentialResolverTest {
                 "client-secret",
                 "tenant-id",
                 "https://login.someprivatecloud.example/",
-                null))
+                null),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.com/.default");
@@ -151,7 +167,8 @@ class FoundryCredentialResolverTest {
                 "client-secret",
                 "tenant-id",
                 "https://login.microsoftonline.us/",
-                "https://custom.scope/.default"))
+                "https://custom.scope/.default"),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://custom.scope/.default");
@@ -162,7 +179,8 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ManagedIdentityAuthentication(
-                null, "https://ai.azure.us/.default"))
+                null, "https://ai.azure.us/.default"),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.us/.default");
@@ -173,7 +191,8 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, "   "))
+                "client-id", "client-secret", "tenant-id", null, "   "),
+            TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.com/.default");
@@ -193,7 +212,8 @@ class FoundryCredentialResolverTest {
       resolver
           .bearerTokenSupplier(
               new FoundryAuthentication.ClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", null, null))
+                  "client-id", "client-secret", "tenant-id", null, null),
+              TIMEOUT)
           .get();
 
       authenticationUtil.verifyNoInteractions();
@@ -203,10 +223,24 @@ class FoundryCredentialResolverTest {
   @Test
   void managedIdentityResolvesTheSystemAssignedIdentityForABlankClientId() {
     resolver
-        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentityAuthentication(null, null))
+        .bearerTokenSupplier(
+            new FoundryAuthentication.ManagedIdentityAuthentication(null, null), TIMEOUT)
         .get();
 
-    verify(entraIdTokenCredentialFactory).managedIdentity(isNull());
+    verify(entraIdTokenCredentialFactory).managedIdentity(isNull(), eq(TIMEOUT));
+  }
+
+  @Test
+  void passesAnAbsentTimeoutThroughUnchanged() {
+    resolver
+        .bearerTokenSupplier(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                "client-id", "client-secret", "tenant-id", null, null),
+            null)
+        .get();
+
+    verify(entraIdTokenCredentialFactory)
+        .clientCredentials("tenant-id", "client-id", "client-secret", null, null);
   }
 
   private java.util.List<String> requestedScopes() {
