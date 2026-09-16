@@ -82,8 +82,10 @@ and no human has pushed a commit to it since. Authorship alone also matches clea
 backports that need no help, and a PR someone is already fixing by hand is the one case
 this skill must never touch.
 
-Check every commit, not just the PR's author: `gh api repos/camunda/connectors/pulls/<n>/commits --jq '.[].committer.login'`.
-If any entry isn't the bot, a human already pushed to this branch — skip the PR entirely.
+Check every commit, not just the PR's author: `gh api --paginate repos/camunda/connectors/pulls/<n>/commits --jq '.[].committer.login'`.
+Without `--paginate` this silently checks only the first page (30 commits), so a human
+commit past that point would be missed. If any entry isn't the bot, a human already pushed
+to this branch — skip the PR entirely.
 Do not add a commit on top of someone's in-progress work.
 
 The bot's login differs by API: `gh pr view --json author` reports
