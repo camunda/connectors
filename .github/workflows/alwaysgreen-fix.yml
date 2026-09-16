@@ -450,6 +450,8 @@ jobs:
           )
 
           cd agent-workspace
+          # Glob and Grep remain available inside the working directory, but
+          # are not pre-authorized to search paths outside it.
           claude -p "$prompt" \
             --permission-mode dontAsk \
             --tools "Read,Edit,Write,Glob,Grep" \
@@ -460,9 +462,7 @@ jobs:
               "Edit(./c8-cross-component-e2e-tests/**)" \
               "Write(./connectors/**)" \
               "Write(./c8-cross-component-e2e-tests/**)" \
-              "Write(./fix-meta.json)" \
-              "Glob" \
-              "Grep"
+              "Write(./fix-meta.json)"
 
       - name: Validate agent result
         id: change

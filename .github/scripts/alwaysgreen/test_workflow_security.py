@@ -97,6 +97,8 @@ def test_model_has_no_github_credential_or_shell_tool():
     assert '--disallowedTools "Bash"' in model
     assert '"Read(./**)"' in model
     assert '"Write(./fix-meta.json)"' in model
+    assert '\n              "Glob"' not in model
+    assert '\n              "Grep"' not in model
 
 
 def test_read_token_is_revoked_before_model_and_publish_token_is_minted_after():
