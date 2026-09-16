@@ -216,6 +216,42 @@ class ReusableCredentialElementTemplateTest {
     }
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "element-templates/agenticai-ai-agent-task.v2.json",
+        "element-templates/agenticai-ai-agent-subprocess.v2.json",
+        "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void validatesCredentialEndpointsInGeneratedForms(String templatePath) throws Exception {
+    JsonNode template = OBJECT_MAPPER.readTree(Path.of(templatePath).toFile());
+    for (String credentialId :
+        List.of(
+            "io.camunda:agentic-ai-gateway-credential:1",
+            "io.camunda:agentic-ai-microsoft-foundry-credential:1")) {
+      JsonNode credential =
+          template
+              .path("configurationTemplates")
+              .valueStream()
+              .filter(candidate -> credentialId.equals(candidate.path("id").asText()))
+              .findFirst()
+              .orElseThrow();
+      JsonNode endpoint =
+          property(credential.path("properties").valueStream().toList(), "endpoint");
+      JsonNode constraints = endpoint.path("constraints");
+
+      assertThat(constraints.path("notEmpty").asBoolean()).isTrue();
+      String pattern = constraints.path("pattern").path("value").asText();
+      assertThat(pattern).isEqualTo("^https?://.+");
+      assertThat("https://gateway.example/v1").matches(pattern);
+      assertThat("http://localhost:8080").matches(pattern);
+      assertThat("ftp://gateway.example").doesNotMatch(pattern);
+      assertThat("gateway.example").doesNotMatch(pattern);
+      assertThat("https://").doesNotMatch(pattern);
+    }
+  }
+
   private static void assertAuthenticationFamily(List<JsonNode> properties, String prefix) {
     JsonNode family =
         properties.stream()

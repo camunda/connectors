@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
-import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /** Reusable connection and authentication configurations supported by the native AI Agent v2. */
@@ -55,7 +55,9 @@ public final class AgenticAiCredentialConfigurations {
       version = 1,
       name = "Microsoft Foundry Credential")
   public record MicrosoftFoundryCredential(
-      @NotBlank @HttpUrl @TemplateProperty(group = "connection", label = "Resource endpoint")
+      @NotBlank
+          @Pattern(regexp = "^https?://.+", message = "Must be an HTTP or HTTPS URL")
+          @TemplateProperty(group = "connection", label = "Resource endpoint")
           String endpoint,
       @Valid @NotNull @TemplateProperty(group = "authentication")
           OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication authentication) {}
@@ -65,7 +67,9 @@ public final class AgenticAiCredentialConfigurations {
       version = 1,
       name = "AI Gateway Credential")
   public record AiGatewayCredential(
-      @NotBlank @HttpUrl @TemplateProperty(group = "connection", label = "Gateway endpoint")
+      @NotBlank
+          @Pattern(regexp = "^https?://.+", message = "Must be an HTTP or HTTPS URL")
+          @TemplateProperty(group = "connection", label = "Gateway endpoint")
           String endpoint,
       @Valid @NotNull @TemplateProperty(group = "authentication")
           OpenAiCustomEndpointAuthentication authentication) {

@@ -2746,7 +2746,11 @@
       "id" : "endpoint",
       "label" : "Resource endpoint",
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^https?://.+",
+          "message" : "Must be an HTTP or HTTPS URL"
+        }
       },
       "group" : "connection",
       "binding" : {
@@ -2918,7 +2922,11 @@
       "id" : "endpoint",
       "label" : "Gateway endpoint",
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^https?://.+",
+          "message" : "Must be an HTTP or HTTPS URL"
+        }
       },
       "group" : "connection",
       "binding" : {
