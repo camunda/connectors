@@ -1735,13 +1735,13 @@ retried): its write endpoint is `x-eventually-consistent: false` and validated a
 processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
 same partition before the key is ever returned to the caller. A `404` from any `update()` call
 (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
-via `jobKey`/`jobLease` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+via `jobKey`/`jobLeaseToken` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
 treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
 Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and
-`jobLease` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
+`jobLeaseToken` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
 list — never a separate create-history command:
 
 - **`applyTurnStart`** (`BaseAgentRequestHandler.proceed`, before the LLM call): moves the agent
