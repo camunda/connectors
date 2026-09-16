@@ -447,6 +447,31 @@ class ConfigurationValidationServiceTest {
   }
 
   @Test
+  void unquotesAPlainSecretNameInAValuePosition() {
+    var expressions = new ArrayList<String>();
+    var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
+
+    service.validate(
+        new ConfigurationValidationRequest(
+            "ok", "={\"token\":\"camunda.secrets.TOKEN\"}", "tenant", "engine-a"));
+
+    assertThat(expressions).containsExactly("={\"token\":camunda.secrets.TOKEN}");
+  }
+
+  @Test
+  void keepsTheCallersBacktickEscapingWhenUnquoting() {
+    // A dashed name is authored escaped (ADR-0007); the backticks must survive unquoting.
+    var expressions = new ArrayList<String>();
+    var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
+
+    service.validate(
+        new ConfigurationValidationRequest(
+            "ok", "={\"token\":\"camunda.secrets.`MY-TOKEN`\"}", "tenant", "engine-a"));
+
+    assertThat(expressions).containsExactly("={\"token\":camunda.secrets.`MY-TOKEN`}");
+  }
+
+  @Test
   void leavesAReferenceShapedJsonKeyQuoted() {
     var expressions = new ArrayList<String>();
     var service = serviceWith(Map.of("engine-a", feelCapturing("{\"value\":\"x\"}", expressions)));
