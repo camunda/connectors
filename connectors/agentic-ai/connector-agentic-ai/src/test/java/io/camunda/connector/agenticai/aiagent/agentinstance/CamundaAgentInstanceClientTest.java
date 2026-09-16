@@ -148,7 +148,7 @@ class CamundaAgentInstanceClientTest {
     when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
         .thenReturn(createCommandStep2);
     when(createCommandStep2.jobKey(JOB_KEY)).thenReturn(createCommandStep3);
-    when(createCommandStep3.jobLease(any())).thenReturn(createCommandStep4);
+    when(createCommandStep3.jobLeaseToken(any())).thenReturn(createCommandStep4);
     when(createCommandStep4.history(any())).thenReturn(createCommandStep5);
   }
 
@@ -158,7 +158,7 @@ class CamundaAgentInstanceClientTest {
     when(updateCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
         .thenReturn(updateCommandStep2);
     when(updateCommandStep2.jobKey(JOB_KEY)).thenReturn(updateCommandStep3);
-    when(updateCommandStep3.jobLease(any())).thenReturn(updateCommandStep4);
+    when(updateCommandStep3.jobLeaseToken(any())).thenReturn(updateCommandStep4);
   }
 
   @Nested
@@ -183,7 +183,7 @@ class CamundaAgentInstanceClientTest {
           ArgumentCaptor.forClass(List.class);
       verify(createCommandStep1).elementInstanceKey(ELEMENT_INSTANCE_KEY);
       verify(createCommandStep2).jobKey(JOB_KEY);
-      verify(createCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(createCommandStep3).jobLeaseToken(DEFAULT_LEASE_TOKEN);
       verify(createCommandStep4).history(historyCaptor.capture());
 
       assertThat(historyCaptor.getValue())
@@ -274,7 +274,7 @@ class CamundaAgentInstanceClientTest {
 
       client.create(TestAgentExecutionContext.withLeaseToken("lease-token-abc"));
 
-      verify(createCommandStep3).jobLease("lease-token-abc");
+      verify(createCommandStep3).jobLeaseToken("lease-token-abc");
     }
 
     @Test
@@ -457,7 +457,7 @@ class CamundaAgentInstanceClientTest {
       // then
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_DISCOVERY);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep3).jobLeaseToken(DEFAULT_LEASE_TOKEN);
       verify(updateCommandStep4).history(List.of());
       verify(updateCommandStep4).execute();
     }
@@ -472,7 +472,7 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep3).jobLease("lease-token-abc");
+      verify(updateCommandStep3).jobLeaseToken("lease-token-abc");
     }
 
     @Test
@@ -536,8 +536,8 @@ class CamundaAgentInstanceClientTest {
    * The batched turn methods ({@code applyTurnStart}/{@code applyTurnCompletion}/{@code
    * applyToolCallResults}) replace the request-level status/metrics/tools update plus the
    * single-item history create with one combined {@code update} command carrying a {@code
-   * history()} batch. {@code jobKey}/{@code jobLease} live on the command, not per item, unlike the
-   * old single-item {@code newCreateAgentHistoryItemCommand}.
+   * history()} batch. {@code jobKey}/{@code jobLeaseToken} live on the command, not per item,
+   * unlike the old single-item {@code newCreateAgentHistoryItemCommand}.
    */
   @Nested
   class TurnStart {
@@ -636,7 +636,7 @@ class CamundaAgentInstanceClientTest {
 
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep3).jobLeaseToken(DEFAULT_LEASE_TOKEN);
       verify(updateCommandStep4).history(historyCaptor.capture());
       verify(updateCommandStep4).execute();
 
@@ -665,7 +665,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep3).jobLease("lease-token-abc");
+      verify(updateCommandStep3).jobLeaseToken("lease-token-abc");
     }
 
     @Test
@@ -995,7 +995,7 @@ class CamundaAgentInstanceClientTest {
       // request-level metrics/tools ride on the history item, not the command builder
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep3).jobLeaseToken(DEFAULT_LEASE_TOKEN);
       verify(updateCommandStep4).history(historyCaptor.capture());
       verify(updateCommandStep4).execute();
 
