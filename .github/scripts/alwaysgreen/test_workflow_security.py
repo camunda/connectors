@@ -1,9 +1,10 @@
 """Static security invariants for the privileged AlwaysGreen workflows."""
 
 import os
-from pathlib import Path
+import re
 import subprocess
 import textwrap
+from pathlib import Path
 
 
 ROOT = Path(__file__).parents[3]
@@ -18,6 +19,16 @@ def _step(workflow: str, name: str, next_name: str) -> str:
     start = workflow.index(f"- name: {name}")
     end = workflow.index(f"- name: {next_name}", start)
     return workflow[start:end]
+
+
+def _jobs(workflow: str) -> dict[str, str]:
+    jobs = workflow.split("\njobs:\n", 1)[1]
+    return dict(
+        re.findall(
+            r"(?ms)^  ([A-Za-z0-9_-]+):\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            jobs,
+        )
+    )
 
 
 def _run_validate_inputs(tmp_path: Path, **overrides: str):
@@ -103,17 +114,46 @@ def test_generated_connector_catalog_cannot_be_published():
 
 
 def test_agent_branches_are_untrusted_in_secret_bearing_ci():
-    assert FEATURE_TEST.count("'fix/alwaysgreen-'") >= 2
-    assert "persist-credentials: false" in FEATURE_TEST
+    feature_jobs = _jobs(FEATURE_TEST)
+    assert {
+        "run-tests",
+        "check-javadoc",
+        "check-format",
+        "check-versioned-element-templates",
+    } <= feature_jobs.keys()
+    for job in feature_jobs.values():
+        if "uses: actions/checkout@" in job:
+            assert "persist-credentials: false" in job
+            assert "runs-on: ubuntu-latest" in job or "!startsWith(" in job
+        if "uses: hashicorp/vault-action@" in job:
+            assert job.count("'fix/alwaysgreen-'") >= 2
+            assert 'if [ "${IS_ALWAYSGREEN_BRANCH}" = "true" ]; then' in job
+            assert 'echo "internal=false" >> $GITHUB_OUTPUT' in job
     assert "contents: read" in FEATURE_TEST
-    assert LICENSE_CHECK.count("'fix/alwaysgreen-'") >= 2
-    assert "persist-credentials: false" in LICENSE_CHECK
+
+    license_jobs = _jobs(LICENSE_CHECK)
+    assert "analyze" in license_jobs
+    for job in license_jobs.values():
+        if "uses: hashicorp/vault-action@" in job:
+            assert "!startsWith(github.head_ref, 'fix/alwaysgreen-')" in job
+            assert "persist-credentials: false" in job
+
+
+def test_connectors_publishing_requires_guards_on_the_target_branch():
+    assert "jobs_containing()" in FIX
+    assert 'jobs_containing "uses: actions/checkout@"' in FIX
+    assert 'jobs_containing "uses: hashicorp/vault-action@"' in FIX
+    assert 'git -C "$connectors_dir" show' in FIX
+    assert "HEAD:.github/workflows/TEST_FEATURE_BRANCH.yml" in FIX
+    assert "HEAD:.github/workflows/CHECK_LICENSES.yml" in FIX
+    assert "$BASE_REF does not isolate AlwaysGreen branches" in FIX
 
 
 def test_e2e_publishing_requires_the_untrusted_branch_guard():
     assert "for e2e_job in set-versions-matrix lint build" in FIX
     assert '$0 == "  " job ":"' in FIX
-    assert 'in_job && $0 == guard { found = 1 }' in FIX
+    assert "git -C agent-workspace/c8-cross-component-e2e-tests show" in FIX
+    assert "in_job && index($0, needle) { found = 1 }" in FIX
     assert "does not treat AlwaysGreen branches as untrusted" in FIX
 
 

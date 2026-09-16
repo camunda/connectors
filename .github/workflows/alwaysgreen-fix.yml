@@ -527,16 +527,95 @@ jobs:
               exit 1
               ;;
           esac
+
+          job_contains() {
+            local job="$1"
+            local needle="$2"
+            awk -v job="$job" -v needle="$needle" '
+              $0 == "  " job ":" { in_job = 1; next }
+              in_job && /^  [[:alnum:]_-]+:/ { exit }
+              in_job && index($0, needle) { found = 1 }
+              END { exit(found ? 0 : 1) }
+            '
+          }
+
+          jobs_containing() {
+            local needle="$1"
+            awk -v needle="$needle" '
+              /^  [[:alnum:]_-]+:$/ {
+                job = $1
+                sub(/:$/, "", job)
+              }
+              job != "" && index($0, needle) && !seen[job]++ { print job }
+            '
+          }
+
+          if [ "$repo" = "connectors" ]; then
+            connectors_dir="agent-workspace/connectors"
+            if ! feature_workflow="$(git -C "$connectors_dir" show \
+              HEAD:.github/workflows/TEST_FEATURE_BRANCH.yml)"; then
+              echo "::error::$BASE_REF does not contain the protected feature-branch workflow"
+              exit 1
+            fi
+            feature_guard="startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-')"
+            mapfile -t checkout_jobs < <(
+              jobs_containing "uses: actions/checkout@" <<< "$feature_workflow"
+            )
+            for feature_job in "${checkout_jobs[@]}"; do
+              if ! job_contains "$feature_job" 'persist-credentials: false' \
+                <<< "$feature_workflow"; then
+                echo "::error::$BASE_REF persists checkout credentials in the $feature_job job"
+                exit 1
+              fi
+              if ! job_contains "$feature_job" "runs-on: ubuntu-latest" \
+                <<< "$feature_workflow" \
+                && ! job_contains "$feature_job" "!${feature_guard}" \
+                  <<< "$feature_workflow"; then
+                echo "::error::$BASE_REF can run untrusted code on a privileged runner in the $feature_job job"
+                exit 1
+              fi
+            done
+
+            mapfile -t privileged_jobs < <(
+              jobs_containing "uses: hashicorp/vault-action@" <<< "$feature_workflow"
+            )
+            for feature_job in "${privileged_jobs[@]}"; do
+              for requirement in \
+                "!${feature_guard}" \
+                "IS_ALWAYSGREEN_BRANCH: \${{ ${feature_guard} }}" \
+                'if [ "${IS_ALWAYSGREEN_BRANCH}" = "true" ]; then' \
+                'echo "internal=false" >> $GITHUB_OUTPUT'; do
+                if ! job_contains "$feature_job" "$requirement" <<< "$feature_workflow"; then
+                  echo "::error::$BASE_REF does not isolate AlwaysGreen branches in the $feature_job job"
+                  exit 1
+                fi
+              done
+            done
+
+            if license_workflow="$(git -C "$connectors_dir" show \
+              HEAD:.github/workflows/CHECK_LICENSES.yml 2>/dev/null)"; then
+              mapfile -t license_jobs < <(
+                jobs_containing "uses: hashicorp/vault-action@" <<< "$license_workflow"
+              )
+              for license_job in "${license_jobs[@]}"; do
+                for requirement in \
+                  "!startsWith(github.head_ref, 'fix/alwaysgreen-')" \
+                  'persist-credentials: false'; do
+                  if ! job_contains "$license_job" "$requirement" <<< "$license_workflow"; then
+                    echo "::error::$BASE_REF does not isolate AlwaysGreen branches in the $license_job license job"
+                    exit 1
+                  fi
+                done
+              done
+            fi
+          fi
+
           if [ "$repo" = "c8-cross-component-e2e-tests" ]; then
-            e2e_workflow="$(git show HEAD:.github/workflows/playwright.yml)"
+            e2e_workflow="$(git -C agent-workspace/c8-cross-component-e2e-tests show \
+              HEAD:.github/workflows/playwright.yml)"
             e2e_guard="    if: \${{ !startsWith(github.head_ref, 'fix/alwaysgreen-') }}"
             for e2e_job in set-versions-matrix lint build; do
-              if ! awk -v job="$e2e_job" -v guard="$e2e_guard" '
-                $0 == "  " job ":" { in_job = 1; next }
-                in_job && /^  [[:alnum:]_-]+:/ { exit }
-                in_job && $0 == guard { found = 1 }
-                END { exit(found ? 0 : 1) }
-              ' <<< "$e2e_workflow"; then
+              if ! job_contains "$e2e_job" "$e2e_guard" <<< "$e2e_workflow"; then
                 echo "::error::the e2e $e2e_job job does not treat AlwaysGreen branches as untrusted"
                 exit 1
               fi
