@@ -19,7 +19,7 @@ if you are on Camunda 8.10, use version `11`.
 
 ## AI Agent connectors
 
-See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
+See the [AI Agent connector documentation](https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
 
 The current v2 templates require reusable credentials for model connections and do not expose inline
@@ -27,6 +27,8 @@ authentication fallbacks. Provider, backend, API, and model settings remain loca
 Gateway endpoints and Bedrock endpoints/regions can still be overridden per task. Older templates
 and existing inline configurations remain supported by the runtime; v1 templates are unchanged.
 Custom provider beans and conversation-memory connections are outside this credential migration.
+AI Gateway credentials use API-key authentication; OAuth and Anthropic no-auth remain available
+to older inline jobs, but are not exposed by the current credential-only templates.
 
 ### AI Agent Task
 

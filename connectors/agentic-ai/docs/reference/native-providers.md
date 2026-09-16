@@ -7,6 +7,31 @@ and how to add a provider at all live in
 [`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
+## Reusable model credentials
+
+AI Agent v2 template version 2 requires reusable credentials for native model connections, including
+the hybrid templates. Provider, backend, API family, model, and request options remain local to the
+task. New templates default to OpenAI, Responses, and a custom endpoint. Custom provider beans and
+conversation-memory connections are not part of this migration.
+
+`AgenticAiCredentialConfigurations` declares seven schemas: Anthropic API, OpenAI API, Microsoft
+Foundry, AI Gateway, Bedrock API key, Google Gemini API, and Vertex AI. Bedrock IAM instead reuses
+the shared `AwsCredentialConfiguration`. `BedrockAuthentication` selects between the IAM and
+Bedrock API-key credential families; each exposes exactly one chooser.
+
+The provider configuration accessors prefer the selected credential over legacy inline fields.
+Gateway endpoints and Bedrock endpoints/regions can be overridden locally; a Bedrock region is
+required from either the credential or the task. The AI Gateway credential contains an endpoint
+and API key and works with either the Anthropic or OpenAI protocol. OAuth and Anthropic no-auth
+remain supported for older inline jobs, but are not exposed by the new credential-only templates.
+Custom backend constructors select the effective authentication before cascading validation, so
+obsolete inline defaults cannot invalidate a selected credential and inline OAuth still receives
+its normal field validation.
+
+The previous v2 template version is archived unchanged; deploying old templates does not require
+credentials. See [ADR-0008](../../../../docs/adr/ADR-0008-ai-agent-v2-reusable-credentials.md) for
+the credential-only UI decision.
+
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
@@ -61,8 +86,10 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
-backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
-(static credentials, API key, or the default credentials chain) and an optional custom endpoint.
+backend axis: `BedrockConverseChatModelConfiguration` carries a region, a `BedrockAuthentication`,
+and an optional custom endpoint. The authentication resolves a shared AWS IAM credential or a
+Bedrock API-key credential, while retaining static credentials, API keys, and the default
+credentials chain from older inline jobs.
 
 ### HTTP overrides
 
