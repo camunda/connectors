@@ -539,6 +539,18 @@ jobs:
             '
           }
 
+          job_line_contains() {
+            local job="$1"
+            local first="$2"
+            local second="$3"
+            awk -v job="$job" -v first="$first" -v second="$second" '
+              $0 == "  " job ":" { in_job = 1; next }
+              in_job && /^  [[:alnum:]_-]+:/ { exit }
+              in_job && index($0, first) && index($0, second) { found = 1 }
+              END { exit(found ? 0 : 1) }
+            '
+          }
+
           jobs_containing() {
             local needle="$1"
             awk -v needle="$needle" '
@@ -582,7 +594,6 @@ jobs:
             for feature_job in "${privileged_jobs[@]}"; do
               for requirement in \
                 "!${feature_guard}" \
-                "IS_ALWAYSGREEN_BRANCH: \${{ ${feature_guard} }}" \
                 'if [ "${IS_ALWAYSGREEN_BRANCH}" = "true" ]; then' \
                 'echo "internal=false" >> $GITHUB_OUTPUT'; do
                 if ! job_contains "$feature_job" "$requirement" <<< "$feature_workflow"; then
@@ -590,6 +601,11 @@ jobs:
                   exit 1
                 fi
               done
+              if ! job_line_contains "$feature_job" \
+                "IS_ALWAYSGREEN_BRANCH:" "$feature_guard" <<< "$feature_workflow"; then
+                echo "::error::$BASE_REF does not classify AlwaysGreen branches in the $feature_job job"
+                exit 1
+              fi
             done
 
             if license_workflow="$(git -C "$connectors_dir" show \
@@ -608,14 +624,37 @@ jobs:
                 done
               done
             fi
+
+            while IFS=: read -r workflow_path guarded_job has_checkout; do
+              if guarded_workflow="$(git -C "$connectors_dir" show \
+                "HEAD:.github/workflows/${workflow_path}" 2>/dev/null)"; then
+                if ! job_contains "$guarded_job" \
+                  "!startsWith(github.head_ref, 'fix/alwaysgreen-')" \
+                  <<< "$guarded_workflow"; then
+                  echo "::error::$BASE_REF does not isolate AlwaysGreen branches in $workflow_path"
+                  exit 1
+                fi
+                if [ "$has_checkout" = "true" ] \
+                  && ! job_contains "$guarded_job" 'persist-credentials: false' \
+                    <<< "$guarded_workflow"; then
+                  echo "::error::$BASE_REF persists credentials in $workflow_path"
+                  exit 1
+                fi
+              fi
+            done <<'EOF'
+          BUILD_PR_DOCKER_IMAGES.yml:build-images:true
+          NIGHTLY_E2E.yml:setup:false
+          PREVIEW-ENV-DEPLOY.yml:deploy-preview:true
+          QA_REQUIRED.yml:process-qa-label:false
+          EOF
           fi
 
           if [ "$repo" = "c8-cross-component-e2e-tests" ]; then
             e2e_workflow="$(git -C agent-workspace/c8-cross-component-e2e-tests show \
               HEAD:.github/workflows/playwright.yml)"
-            e2e_guard="    if: \${{ !startsWith(github.head_ref, 'fix/alwaysgreen-') }}"
             for e2e_job in set-versions-matrix lint build; do
-              if ! job_contains "$e2e_job" "$e2e_guard" <<< "$e2e_workflow"; then
+              if ! job_line_contains "$e2e_job" "if:" \
+                "!startsWith(github.head_ref, 'fix/alwaysgreen-')" <<< "$e2e_workflow"; then
                 echo "::error::the e2e $e2e_job job does not treat AlwaysGreen branches as untrusted"
                 exit 1
               fi
@@ -678,7 +717,7 @@ jobs:
             echo "repository_name=${repo}"
             echo "base=${base}"
             echo "type=${type}"
-            echo "branch=fix/alwaysgreen-${SURFACE}-${GITHUB_RUN_ID}"
+            echo "branch=fix/alwaysgreen-${SURFACE}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Generate publish token
@@ -718,6 +757,28 @@ jobs:
           set -euo pipefail
           root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json)
           fix=$(jq -r '.change.fix' /tmp/fix-meta.json)
+
+          record_pr() {
+            local number="$1"
+            local url="$2"
+            local branch="$3"
+            jq --argjson number "$number" \
+               --arg owner camunda \
+               --arg repo "$REPO_NAME" \
+               --arg branch "$branch" \
+               --arg url "$url" \
+              '.prs = [{
+                 number: $number,
+                 owner: $owner,
+                 repo: $repo,
+                 branch: $branch,
+                 url: $url,
+                 root_cause: .change.root_cause,
+                 fix: .change.fix
+               }] | del(.change)' /tmp/fix-meta.json > /tmp/fix-meta.published.json
+            mv /tmp/fix-meta.published.json /tmp/fix-meta.json
+          }
+
           {
             echo "## Root cause"
             echo
@@ -738,6 +799,32 @@ jobs:
             echo "-->"
           } > /tmp/pr-body.md
 
+          gh label create "${FIX_LABEL}" --repo "$REPO" --color "1D76DB" \
+            --description "Bot-opened fix PR for an AlwaysGreen failure" 2>/dev/null || true
+          gh label create "${KEY_LABEL}" --repo "$REPO" --color "C5DEF5" \
+            --description "AlwaysGreen fix PR for dispatch key ${KEY_LABEL#ag-key:}" 2>/dev/null || true
+
+          existing_prs=$(gh pr list --repo "$REPO" --state open --label "$KEY_LABEL" \
+            --limit 2 --json number,url,headRefName,baseRefName)
+          existing_count=$(jq 'length' <<< "$existing_prs")
+          if [ "$existing_count" -gt 1 ]; then
+            echo "::error::multiple open PRs use dispatch label $KEY_LABEL"
+            exit 1
+          fi
+          if [ "$existing_count" -eq 1 ]; then
+            number=$(jq -r '.[0].number' <<< "$existing_prs")
+            url=$(jq -r '.[0].url' <<< "$existing_prs")
+            existing_branch=$(jq -r '.[0].headRefName' <<< "$existing_prs")
+            existing_base=$(jq -r '.[0].baseRefName' <<< "$existing_prs")
+            if [[ "$existing_branch" != fix/alwaysgreen-* ]] \
+              || [ "$existing_base" != "$BASE_REF" ]; then
+              echo "::error::$KEY_LABEL is attached to an unexpected PR"
+              exit 1
+            fi
+            record_pr "$number" "$url" "$existing_branch"
+            exit 0
+          fi
+
           cd "agent-workspace/$REPO_NAME"
           git config user.name "quality-assurance-ci[bot]"
           git config user.email "quality-assurance-ci[bot]@users.noreply.github.com"
@@ -748,10 +835,6 @@ jobs:
             -c http.extraHeader="Authorization: Basic ${auth}" \
             push origin "HEAD:refs/heads/${BRANCH}"
 
-          gh label create "${FIX_LABEL}" --repo "$REPO" --color "1D76DB" \
-            --description "Bot-opened fix PR for an AlwaysGreen failure" 2>/dev/null || true
-          gh label create "${KEY_LABEL}" --repo "$REPO" --color "C5DEF5" \
-            --description "AlwaysGreen fix PR for dispatch key ${KEY_LABEL#ag-key:}" 2>/dev/null || true
           url=$(gh pr create --repo "$REPO" --base "$BASE_REF" --head "$BRANCH" \
             --title "${COMMIT_TYPE}: fix ${SURFACE} AlwaysGreen failure" \
             --body-file /tmp/pr-body.md \
@@ -761,21 +844,7 @@ jobs:
             gh pr edit "$number" --repo "$REPO" --add-reviewer "$BLAME_REVIEWER" 2>/dev/null \
               || echo "::warning::could not request review from ${BLAME_REVIEWER} on ${REPO}#${number}"
           fi
-          jq --argjson number "$number" \
-             --arg owner camunda \
-             --arg repo "$REPO_NAME" \
-             --arg branch "$BRANCH" \
-             --arg url "$url" \
-            '.prs = [{
-               number: $number,
-               owner: $owner,
-               repo: $repo,
-               branch: $branch,
-               url: $url,
-               root_cause: .change.root_cause,
-               fix: .change.fix
-             }] | del(.change)' /tmp/fix-meta.json > /tmp/fix-meta.published.json
-          mv /tmp/fix-meta.published.json /tmp/fix-meta.json
+          record_pr "$number" "$url" "$BRANCH"
 
       - name: Write job summary
         if: always()

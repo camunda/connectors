@@ -13,12 +13,23 @@ TRIAGE = (ROOT / ".github/workflows/alwaysgreen-triage.yml").read_text()
 WATCHER = (ROOT / ".github/workflows/connectors-streak-detector.yml").read_text()
 FEATURE_TEST = (ROOT / ".github/workflows/TEST_FEATURE_BRANCH.yml").read_text()
 LICENSE_CHECK = (ROOT / ".github/workflows/CHECK_LICENSES.yml").read_text()
+DOCKER_IMAGES = (ROOT / ".github/workflows/BUILD_PR_DOCKER_IMAGES.yml").read_text()
+NIGHTLY_E2E = (ROOT / ".github/workflows/NIGHTLY_E2E.yml").read_text()
+PREVIEW_DEPLOY = (ROOT / ".github/workflows/PREVIEW-ENV-DEPLOY.yml").read_text()
+QA_REQUIRED = (ROOT / ".github/workflows/QA_REQUIRED.yml").read_text()
+SCRIPT_TEST = (ROOT / ".github/workflows/alwaysgreen-scripts-test.yml").read_text()
 
 
 def _step(workflow: str, name: str, next_name: str) -> str:
     start = workflow.index(f"- name: {name}")
     end = workflow.index(f"- name: {next_name}", start)
     return workflow[start:end]
+
+
+def _script(workflow: str, name: str, next_name: str) -> str:
+    return textwrap.dedent(
+        _step(workflow, name, next_name).split("run: |\n", 1)[1]
+    )
 
 
 def _jobs(workflow: str) -> dict[str, str]:
@@ -32,8 +43,7 @@ def _jobs(workflow: str) -> dict[str, str]:
 
 
 def _run_validate_inputs(tmp_path: Path, **overrides: str):
-    block = _step(FIX, "Validate inputs", "Checkout main for tooling")
-    script = textwrap.dedent(block.split("run: |\n", 1)[1])
+    script = _script(FIX, "Validate inputs", "Checkout main for tooling")
     env = os.environ | {
         "GITHUB_OUTPUT": str(tmp_path / "output"),
         "BASE_REF": "main",
@@ -141,6 +151,27 @@ def test_agent_branches_are_untrusted_in_secret_bearing_ci():
             assert "persist-credentials: false" in job
 
 
+def test_agent_branches_are_excluded_from_label_triggered_privileged_ci():
+    guarded_jobs = (
+        (_jobs(DOCKER_IMAGES)["build-images"], True),
+        (_jobs(NIGHTLY_E2E)["setup"], False),
+        (_jobs(PREVIEW_DEPLOY)["deploy-preview"], True),
+        (_jobs(QA_REQUIRED)["process-qa-label"], False),
+    )
+    for job, has_checkout in guarded_jobs:
+        assert "!startsWith(github.head_ref, 'fix/alwaysgreen-')" in job
+        if has_checkout:
+            assert "persist-credentials: false" in job
+
+    for path in (
+        "BUILD_PR_DOCKER_IMAGES.yml",
+        "NIGHTLY_E2E.yml",
+        "PREVIEW-ENV-DEPLOY.yml",
+        "QA_REQUIRED.yml",
+    ):
+        assert SCRIPT_TEST.count(f"'.github/workflows/{path}'") == 2
+
+
 def test_connectors_publishing_requires_guards_on_the_target_branch():
     assert "jobs_containing()" in FIX
     assert 'jobs_containing "uses: actions/checkout@"' in FIX
@@ -148,6 +179,10 @@ def test_connectors_publishing_requires_guards_on_the_target_branch():
     assert 'git -C "$connectors_dir" show' in FIX
     assert "HEAD:.github/workflows/TEST_FEATURE_BRANCH.yml" in FIX
     assert "HEAD:.github/workflows/CHECK_LICENSES.yml" in FIX
+    assert "BUILD_PR_DOCKER_IMAGES.yml:build-images:true" in FIX
+    assert "NIGHTLY_E2E.yml:setup:false" in FIX
+    assert "PREVIEW-ENV-DEPLOY.yml:deploy-preview:true" in FIX
+    assert "QA_REQUIRED.yml:process-qa-label:false" in FIX
     assert "$BASE_REF does not isolate AlwaysGreen branches" in FIX
 
 
@@ -155,8 +190,35 @@ def test_e2e_publishing_requires_the_untrusted_branch_guard():
     assert "for e2e_job in set-versions-matrix lint build" in FIX
     assert '$0 == "  " job ":"' in FIX
     assert "git -C agent-workspace/c8-cross-component-e2e-tests show" in FIX
-    assert "in_job && index($0, needle) { found = 1 }" in FIX
+    assert "in_job && index($0, first) && index($0, second)" in FIX
     assert "does not treat AlwaysGreen branches as untrusted" in FIX
+
+
+def test_workflow_guard_literals_are_not_github_expressions():
+    script = _script(FIX, "Validate agent result", "Generate publish token")
+    assert r"\${{" not in script
+    assert "job_line_contains()" in script
+
+
+def test_security_sensitive_shell_blocks_parse():
+    for script in (
+        _script(FIX, "Validate agent result", "Generate publish token"),
+        _script(FIX, "Publish validated patch", "Write job summary"),
+    ):
+        result = subprocess.run(["bash", "-n"], input=script, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+
+
+def test_publish_is_idempotent_across_run_attempts():
+    validation = _step(FIX, "Validate agent result", "Generate publish token")
+    assert "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" in validation
+
+    publish = _step(FIX, "Publish validated patch", "Write job summary")
+    assert "existing_prs=$(gh pr list" in publish
+    assert "record_pr()" in publish
+    assert publish.index("existing_prs=$(gh pr list") < publish.index(
+        'commit -m "${COMMIT_TYPE}:'
+    )
 
 
 def test_agent_data_is_outside_the_instruction_stream():
