@@ -210,4 +210,17 @@ describe('this repo CODEOWNERS', () => {
       '@camunda/connectors-experience',
     ]);
   });
+
+  it('a GitHub workflow routes to the connectors core team', () => {
+    assert.deepEqual(ownersFor('.github/workflows/RELEASE.yaml', rules), [
+      '@camunda/connectors-core',
+    ]);
+  });
+
+  it('a nested Dockerfile routes to the connectors core team', () => {
+    assert.deepEqual(
+      ownersFor('apps/connector-runtime-application/example/Dockerfile', rules),
+      ['@camunda/connectors-core'],
+    );
+  });
 });
