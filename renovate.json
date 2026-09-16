@@ -2,6 +2,7 @@
   "extends": [
     "config:base"
   ],
+  "pinDigests": true,
   "labels": ["dependencies", "no milestone"],
   "packageRules": [
     {
@@ -11,7 +12,13 @@
     },
     {
       "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
       "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "automerge": false
     },
     {
       "matchBaseBranches": ["/^release/.*/"],
