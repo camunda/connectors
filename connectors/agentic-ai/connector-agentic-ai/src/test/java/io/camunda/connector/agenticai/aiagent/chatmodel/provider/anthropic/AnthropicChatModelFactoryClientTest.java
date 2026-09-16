@@ -258,7 +258,7 @@ class AnthropicChatModelFactoryClientTest {
   void foundryBackendWithClientCredentialsSendsBearerToken(WireMockRuntimeInfo wireMock) {
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(FoundryAuthentication.ClientCredentialsAuthentication.class)))
+            any(FoundryAuthentication.ClientCredentialsAuthentication.class), any()))
         .thenReturn(() -> "client-credentials-token");
 
     executeAgainst(
@@ -281,7 +281,7 @@ class AnthropicChatModelFactoryClientTest {
   void foundryBackendWithManagedIdentitySendsBearerToken(WireMockRuntimeInfo wireMock) {
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(FoundryAuthentication.ManagedIdentityAuthentication.class)))
+            any(FoundryAuthentication.ManagedIdentityAuthentication.class), any()))
         .thenReturn(() -> "managed-identity-token");
 
     executeAgainst(

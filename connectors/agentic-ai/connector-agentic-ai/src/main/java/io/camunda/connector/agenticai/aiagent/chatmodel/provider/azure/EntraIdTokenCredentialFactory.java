@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -19,8 +20,10 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Objects;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -43,8 +46,13 @@ import org.jspecify.annotations.Nullable;
  * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
  * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
  * that requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the
- * token exchange too. Managed identity does not: see {@link
- * #buildManagedIdentityCredential(String)}.
+ * token exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
+ * Duration)}.
+ *
+ * <p>The caller's configured request timeout bounds the token exchange as well as the model call
+ * itself, so a slow Entra ID endpoint or IMDS cannot stall a request past its budget. Because the
+ * timeout is baked into the credential's HTTP client, it is part of the cache key: two otherwise
+ * identical configurations with different timeouts get their own credential.
  */
 public class EntraIdTokenCredentialFactory {
 
@@ -70,15 +78,24 @@ public class EntraIdTokenCredentialFactory {
    * client-credentials (app registration + secret) flow.
    */
   public TokenCredential clientCredentials(
-      String tenantId, String clientId, String clientSecret, @Nullable String authorityHost) {
+      String tenantId,
+      String clientId,
+      String clientSecret,
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
     final var key =
         String.join(
-            "\0", tenantId, clientId, clientSecret, Objects.requireNonNullElse(authorityHost, ""));
+            "\0",
+            tenantId,
+            clientId,
+            clientSecret,
+            Objects.requireNonNullElse(authorityHost, ""),
+            timeoutKeyPart(timeout));
     return cache.get(
         sha256Hex(key),
         k ->
             buildClientSecretCredential(
-                httpProxySupport, tenantId, clientId, clientSecret, authorityHost));
+                httpProxySupport, tenantId, clientId, clientSecret, authorityHost, timeout));
   }
 
   /**
@@ -86,9 +103,10 @@ public class EntraIdTokenCredentialFactory {
    * managed-identity flow. {@code clientId} selects a user-assigned identity; {@code null} resolves
    * the system-assigned identity.
    */
-  public TokenCredential managedIdentity(@Nullable String clientId) {
-    final var key = Objects.requireNonNullElse(clientId, "");
-    return cache.get(sha256Hex(key), k -> buildManagedIdentityCredential(clientId));
+  public TokenCredential managedIdentity(@Nullable String clientId, @Nullable Duration timeout) {
+    final var key =
+        String.join("\0", Objects.requireNonNullElse(clientId, ""), timeoutKeyPart(timeout));
+    return cache.get(sha256Hex(key), k -> buildManagedIdentityCredential(clientId, timeout));
   }
 
   private static TokenCredential buildClientSecretCredential(
@@ -96,7 +114,8 @@ public class EntraIdTokenCredentialFactory {
       String tenantId,
       String clientId,
       String clientSecret,
-      @Nullable String authorityHost) {
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
     final var clientSecretCredentialBuilder =
         new ClientSecretCredentialBuilder()
             .clientId(clientId)
@@ -105,13 +124,10 @@ public class EntraIdTokenCredentialFactory {
     if (authorityHost != null && !authorityHost.isBlank()) {
       clientSecretCredentialBuilder.authorityHost(authorityHost);
     }
-    httpProxySupport
-        .azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(
-            proxyOptions ->
-                clientSecretCredentialBuilder.httpClient(
-                    HttpClient.createDefault(
-                        new HttpClientOptions().setProxyOptions(proxyOptions))));
+    httpClientFor(
+            httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS).orElse(null),
+            timeout)
+        .ifPresent(clientSecretCredentialBuilder::httpClient);
     return clientSecretCredentialBuilder.build();
   }
 
@@ -121,12 +137,38 @@ public class EntraIdTokenCredentialFactory {
    * endpoint, neither of which is reachable via an internet-facing egress proxy -- Microsoft's own
    * IMDS guidance explicitly calls out bypassing any configured proxy for this address.
    */
-  private static TokenCredential buildManagedIdentityCredential(@Nullable String clientId) {
+  private static TokenCredential buildManagedIdentityCredential(
+      @Nullable String clientId, @Nullable Duration timeout) {
     final var managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
     if (clientId != null && !clientId.isBlank()) {
       managedIdentityCredentialBuilder.clientId(clientId);
     }
+    httpClientFor(null, timeout).ifPresent(managedIdentityCredentialBuilder::httpClient);
     return managedIdentityCredentialBuilder.build();
+  }
+
+  /**
+   * Builds the credential's HTTP client only when there is something to configure on it, so a
+   * deployment with neither a proxy nor a configured timeout keeps azure-identity's own default
+   * client. The timeout bounds both establishing the connection and waiting for the response.
+   */
+  private static Optional<HttpClient> httpClientFor(
+      @Nullable ProxyOptions proxyOptions, @Nullable Duration timeout) {
+    if (proxyOptions == null && timeout == null) {
+      return Optional.empty();
+    }
+    final var httpClientOptions = new HttpClientOptions();
+    if (proxyOptions != null) {
+      httpClientOptions.setProxyOptions(proxyOptions);
+    }
+    if (timeout != null) {
+      httpClientOptions.setConnectTimeout(timeout).setResponseTimeout(timeout);
+    }
+    return Optional.of(HttpClient.createDefault(httpClientOptions));
+  }
+
+  private static String timeoutKeyPart(@Nullable Duration timeout) {
+    return timeout == null ? "" : timeout.toString();
   }
 
   private static String sha256Hex(String raw) {

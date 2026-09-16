@@ -11,6 +11,7 @@ import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AzureAuthorityHosts;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
@@ -50,16 +51,19 @@ public class FoundryCredentialResolver {
 
   /**
    * The authentication's own {@code entraIdScope}, when set, wins over the scope derived from
-   * {@code authorityHost}.
+   * {@code authorityHost}. {@code timeout} bounds the Entra ID token exchange the supplier
+   * performs; {@code null} leaves the SDK default in place.
    */
-  public Supplier<String> bearerTokenSupplier(ClientCredentialsAuthentication authentication) {
+  public Supplier<String> bearerTokenSupplier(
+      ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {
     final var tokenCredential =
         entraIdTokenCredentialFactory.clientCredentials(
             authentication.tenantId(),
             authentication.clientId(),
             authentication.clientSecret(),
-            authentication.authorityHost());
-    return bearerTokenSupplier(
+            authentication.authorityHost(),
+            timeout);
+    return tokenSupplier(
         tokenCredential, scopeFor(authentication.authorityHost(), authentication.entraIdScope()));
   }
 
@@ -67,10 +71,11 @@ public class FoundryCredentialResolver {
    * No {@code authorityHost} field here: always Azure Public Cloud, unless {@code entraIdScope}
    * overrides it.
    */
-  public Supplier<String> bearerTokenSupplier(ManagedIdentityAuthentication authentication) {
+  public Supplier<String> bearerTokenSupplier(
+      ManagedIdentityAuthentication authentication, @Nullable Duration timeout) {
     final var tokenCredential =
-        entraIdTokenCredentialFactory.managedIdentity(authentication.clientId());
-    return bearerTokenSupplier(tokenCredential, scopeFor(null, authentication.entraIdScope()));
+        entraIdTokenCredentialFactory.managedIdentity(authentication.clientId(), timeout);
+    return tokenSupplier(tokenCredential, scopeFor(null, authentication.entraIdScope()));
   }
 
   /**
@@ -80,8 +85,7 @@ public class FoundryCredentialResolver {
    * {@code Authorization} header back off it, which would put an outbound call to an unrelated host
    * on every LLM request and bypass the credential's own proxy configuration.
    */
-  private static Supplier<String> bearerTokenSupplier(
-      TokenCredential tokenCredential, String scope) {
+  private static Supplier<String> tokenSupplier(TokenCredential tokenCredential, String scope) {
     return () ->
         tokenCredential.getTokenSync(new TokenRequestContext().addScopes(scope)).getToken();
   }

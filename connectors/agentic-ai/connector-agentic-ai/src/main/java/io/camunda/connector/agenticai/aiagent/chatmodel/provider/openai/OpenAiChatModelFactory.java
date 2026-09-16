@@ -105,7 +105,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     switch (backend) {
       case OpenAiApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
       case OpenAiFoundryBackend foundryBackend ->
-          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver);
+          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver, timeout);
       case OpenAiCustomBackend custom ->
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
@@ -185,7 +185,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private static void applyFoundryBackend(
       OpenAIOkHttpClient.Builder builder,
       OpenAiFoundryBackend foundryBackend,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver,
+      @Nullable Duration timeout) {
     final var foundry = foundryBackend.foundry();
     builder.baseUrl(unifiedEndpoint(foundry.endpoint()));
     builder.azureUrlPathMode(AzureUrlPathMode.UNIFIED);
@@ -200,11 +201,11 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           builder.credential(
               BearerTokenCredential.create(
-                  foundryCredentialResolver.bearerTokenSupplier(clientCredentials)));
+                  foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout)));
       case FoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
           builder.credential(
               BearerTokenCredential.create(
-                  foundryCredentialResolver.bearerTokenSupplier(managedIdentity)));
+                  foundryCredentialResolver.bearerTokenSupplier(managedIdentity, timeout)));
     }
   }
 

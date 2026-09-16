@@ -92,7 +92,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           applyAwsBedrockMantleBackend(builder, awsBedrockMantleBackend);
       case AnthropicFoundryBackend foundryBackend ->
-          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver);
+          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver, timeout);
       case AnthropicCustomBackend custom ->
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
@@ -181,7 +181,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private static void applyFoundryBackend(
       AnthropicOkHttpClient.Builder builder,
       AnthropicFoundryBackend foundryBackend,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver,
+      @Nullable Duration timeout) {
     final var foundry = foundryBackend.foundry();
     final var backendBuilder = FoundryBackend.builder().baseUrl(foundry.endpoint());
 
@@ -190,10 +191,10 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
           backendBuilder.apiKey(apiKeyAuth.apiKey());
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           backendBuilder.bearerTokenSupplier(
-              foundryCredentialResolver.bearerTokenSupplier(clientCredentials));
+              foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout));
       case FoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
           backendBuilder.bearerTokenSupplier(
-              foundryCredentialResolver.bearerTokenSupplier(managedIdentity));
+              foundryCredentialResolver.bearerTokenSupplier(managedIdentity, timeout));
     }
 
     builder.backend(backendBuilder.build());
