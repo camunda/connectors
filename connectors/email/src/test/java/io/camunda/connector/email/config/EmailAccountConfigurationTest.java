@@ -17,142 +17,73 @@ class EmailAccountConfigurationTest {
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
-  void carriesOnlyTheProtocolBlocksThatHaveAHost() {
-    var configuration =
-        new EmailAccountConfiguration(
-            "u",
-            "p",
-            "smtp.example.com",
-            2525,
-            CryptographicProtocol.SSL,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
-
-    assertThat(configuration.toSmtpConfig())
-        .isNotNull()
-        .satisfies(
-            smtp -> {
-              assertThat(smtp.smtpHost()).isEqualTo("smtp.example.com");
-              assertThat(smtp.smtpPort()).isEqualTo(2525);
-              assertThat(smtp.smtpCryptographicProtocol()).isEqualTo(CryptographicProtocol.SSL);
-            });
-    assertThat(configuration.toImapConfig()).isNull();
-    assertThat(configuration.toPop3Config()).isNull();
-  }
-
-  @Test
-  void carriesEveryProtocolBlockOfAFullAccount() {
-    var configuration =
-        new EmailAccountConfiguration(
-            "u",
-            "p",
-            "smtp.example.com",
-            587,
-            CryptographicProtocol.TLS,
-            "imap.example.com",
-            993,
-            CryptographicProtocol.TLS,
-            "pop.example.com",
-            995,
-            CryptographicProtocol.TLS);
-
-    assertThat(configuration.toSmtpConfig().smtpHost()).isEqualTo("smtp.example.com");
-    assertThat(configuration.toImapConfig().imapHost()).isEqualTo("imap.example.com");
-    assertThat(configuration.toPop3Config().pop3Host()).isEqualTo("pop.example.com");
-  }
-
-  /**
-   * A credential editor writes an empty string for a protocol block the user left alone, which must
-   * not read as "this account speaks SMTP".
-   */
-  @Test
-  void treatsABlankHostAsNoServerAtAll() throws Exception {
+  void deserializesAnSmtpAccountThroughTheProtocolDiscriminator() throws Exception {
     var configuration =
         objectMapper.readValue(
             """
             {
-              "username": "u",
-              "password": "p",
-              "smtpHost": "",
-              "smtpPort": 587,
-              "smtpCryptographicProtocol": "TLS",
-              "imapHost": "imap.example.com",
-              "pop3Host": "  "
-            }
-            """,
-            EmailAccountConfiguration.class);
-
-    assertThat(configuration.smtpHost()).isNull();
-    assertThat(configuration.toSmtpConfig()).isNull();
-    assertThat(configuration.toPop3Config()).isNull();
-    assertThat(configuration.toImapConfig()).isNotNull();
-  }
-
-  @Test
-  void defaultsThePortAndEncryptionOfAConfiguredServer() throws Exception {
-    var configuration =
-        objectMapper.readValue(
-            """
-            {
+              "protocol": "smtp",
               "username": "u",
               "password": "p",
               "smtpHost": "smtp.example.com",
-              "imapHost": "imap.example.com",
-              "pop3Host": "pop.example.com"
+              "smtpPort": 2525,
+              "smtpCryptographicProtocol": "SSL"
             }
             """,
             EmailAccountConfiguration.class);
 
-    assertThat(configuration.toSmtpConfig().smtpPort()).isEqualTo(587);
-    assertThat(configuration.toSmtpConfig().smtpCryptographicProtocol())
-        .isEqualTo(CryptographicProtocol.TLS);
-    assertThat(configuration.toImapConfig().imapPort()).isEqualTo(993);
-    assertThat(configuration.toPop3Config().pop3Port()).isEqualTo(995);
+    assertThat(configuration).isInstanceOf(SmtpAccountConfiguration.class);
+    assertThat(configuration.getConfiguration())
+        .isEqualTo(new SmtpConfig("smtp.example.com", 2525, CryptographicProtocol.SSL));
   }
 
   @Test
-  void leavesThePortOfAnUnconfiguredServerAlone() {
+  void deserializesAnImapAccountThroughTheProtocolDiscriminator() throws Exception {
     var configuration =
-        new EmailAccountConfiguration(
-            "u", "p", null, null, null, "imap.example.com", null, null, null, null, null);
+        objectMapper.readValue(
+            """
+            {
+              "protocol": "imap",
+              "username": "u",
+              "password": "p",
+              "imapHost": "imap.example.com",
+              "imapPort": 1993,
+              "imapCryptographicProtocol": "SSL"
+            }
+            """,
+            EmailAccountConfiguration.class);
 
-    assertThat(configuration.smtpPort()).isNull();
-    assertThat(configuration.smtpCryptographicProtocol()).isNull();
+    assertThat(configuration).isInstanceOf(ImapAccountConfiguration.class);
+    assertThat(configuration.getConfiguration())
+        .isEqualTo(new ImapConfig("imap.example.com", 1993, CryptographicProtocol.SSL));
   }
 
   @Test
-  void reportsWhetherAnyServerIsConfigured() {
-    assertThat(
-            new EmailAccountConfiguration(
-                    "u", "p", null, null, null, null, null, null, null, null, null)
-                .isAtLeastOneServerConfigured())
-        .isFalse();
-    assertThat(
-            new EmailAccountConfiguration(
-                    "u", "p", null, null, null, "imap.example.com", null, null, null, null, null)
-                .isAtLeastOneServerConfigured())
-        .isTrue();
+  void deserializesAPop3AccountThroughTheProtocolDiscriminator() throws Exception {
+    var configuration =
+        objectMapper.readValue(
+            """
+            {
+              "protocol": "pop3",
+              "username": "u",
+              "password": "p",
+              "pop3Host": "pop.example.com",
+              "pop3Port": 1995,
+              "pop3CryptographicProtocol": "SSL"
+            }
+            """,
+            EmailAccountConfiguration.class);
+
+    assertThat(configuration).isInstanceOf(Pop3AccountConfiguration.class);
+    assertThat(configuration.getConfiguration())
+        .isEqualTo(new Pop3Config("pop.example.com", 1995, CryptographicProtocol.SSL));
   }
 
   @Test
   void suppliesTheMailboxLoginAsSimpleAuthentication() {
     var authentication =
-        new EmailAccountConfiguration(
-                "the-login",
-                "the-secret",
-                "smtp.example.com",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null)
+        new SmtpAccountConfiguration(
+                "the-login", "the-secret", "smtp.example.com", 587, CryptographicProtocol.TLS)
             .toAuthentication();
 
     assertThat(authentication.username()).isEqualTo("the-login");
@@ -160,25 +91,30 @@ class EmailAccountConfigurationTest {
   }
 
   @Test
-  void toStringRedactsTheLogin() {
-    var configuration =
-        new EmailAccountConfiguration(
-            "the-login",
-            "the-secret",
-            "smtp.example.com",
-            587,
-            CryptographicProtocol.TLS,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
-
-    assertThat(configuration.toString())
+  void toStringRedactsTheLoginForEveryProtocol() {
+    assertThat(
+            new SmtpAccountConfiguration(
+                    "the-login", "the-secret", "smtp.example.com", 587, CryptographicProtocol.TLS)
+                .toString())
         .doesNotContain("the-login")
         .doesNotContain("the-secret")
         .contains("[REDACTED]")
         .contains("smtp.example.com");
+    assertThat(
+            new ImapAccountConfiguration(
+                    "the-login", "the-secret", "imap.example.com", 993, CryptographicProtocol.TLS)
+                .toString())
+        .doesNotContain("the-login")
+        .doesNotContain("the-secret")
+        .contains("[REDACTED]")
+        .contains("imap.example.com");
+    assertThat(
+            new Pop3AccountConfiguration(
+                    "the-login", "the-secret", "pop.example.com", 995, CryptographicProtocol.TLS)
+                .toString())
+        .doesNotContain("the-login")
+        .doesNotContain("the-secret")
+        .contains("[REDACTED]")
+        .contains("pop.example.com");
   }
 }

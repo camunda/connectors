@@ -14,6 +14,9 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.email.client.jakarta.outbound.EmailAccountValidator;
 import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.EmailAccountConfiguration;
+import io.camunda.connector.email.config.ImapAccountConfiguration;
+import io.camunda.connector.email.config.Pop3AccountConfiguration;
+import io.camunda.connector.email.config.SmtpAccountConfiguration;
 import java.util.ServiceLoader;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -26,42 +29,22 @@ class EmailAccountValidatorTest extends BaseEmailTest {
   private final EmailAccountValidator validator = new EmailAccountValidator();
 
   @Test
-  void succeedsForAnSmtpOnlyAccount() {
+  void succeedsForAnSmtpAccount() {
     var result = validator.validate(smtp(PASSWORD));
 
     assertThat(result.status()).isEqualTo(Status.SUCCESS);
   }
 
   @Test
-  void succeedsForAnImapOnlyAccount() {
+  void succeedsForAnImapAccount() {
     var result = validator.validate(imap(PASSWORD));
 
     assertThat(result.status()).isEqualTo(Status.SUCCESS);
   }
 
   @Test
-  void succeedsForAPop3OnlyAccount() {
+  void succeedsForAPop3Account() {
     var result = validator.validate(pop3(PASSWORD));
-
-    assertThat(result.status()).isEqualTo(Status.SUCCESS);
-  }
-
-  @Test
-  void succeedsForAnAccountThatSpeaksEveryProtocol() {
-    var result =
-        validator.validate(
-            new EmailAccountConfiguration(
-                USERNAME,
-                PASSWORD,
-                LOCALHOST,
-                Integer.valueOf(getUnsecureSmtpPort()),
-                CryptographicProtocol.NONE,
-                LOCALHOST,
-                Integer.valueOf(getUnsecureImapPort()),
-                CryptographicProtocol.NONE,
-                LOCALHOST,
-                Integer.valueOf(getUnsecurePop3Port()),
-                CryptographicProtocol.NONE));
 
     assertThat(result.status()).isEqualTo(Status.SUCCESS);
   }
@@ -89,28 +72,6 @@ class EmailAccountValidatorTest extends BaseEmailTest {
   }
 
   @Test
-  void reportsAnErrorForAnUnreachableSmtpServer() {
-    var result =
-        validator.validate(
-            new EmailAccountConfiguration(
-                USERNAME,
-                PASSWORD,
-                LOCALHOST,
-                1,
-                CryptographicProtocol.NONE,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null));
-
-    assertThat(result.status()).isEqualTo(Status.FAILURE);
-    assertThat(result.code()).isEqualTo(ErrorCode.ERROR.name());
-    assertThat(result.message()).contains("SMTP");
-  }
-
-  @Test
   void reportsUnauthorizedForAWrongPop3Password() {
     var result = validator.validate(pop3("wrong-password"));
 
@@ -119,61 +80,29 @@ class EmailAccountValidatorTest extends BaseEmailTest {
     assertThat(result.message()).contains("POP3");
   }
 
-  /** A port nothing listens on: the connection fails, which is not an authentication verdict. */
   @Test
-  void reportsAnErrorForAnUnreachableServer() {
+  void reportsAnErrorForAnUnreachableSmtpServer() {
     var result =
         validator.validate(
-            new EmailAccountConfiguration(
-                USERNAME,
-                PASSWORD,
-                null,
-                null,
-                null,
-                LOCALHOST,
-                1,
-                CryptographicProtocol.NONE,
-                null,
-                null,
-                null));
+            new SmtpAccountConfiguration(
+                USERNAME, PASSWORD, LOCALHOST, 1, CryptographicProtocol.NONE));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo(ErrorCode.ERROR.name());
+    assertThat(result.message()).contains("SMTP");
+  }
+
+  /** A port nothing listens on: the connection fails, which is not an authentication verdict. */
+  @Test
+  void reportsAnErrorForAnUnreachableImapServer() {
+    var result =
+        validator.validate(
+            new ImapAccountConfiguration(
+                USERNAME, PASSWORD, LOCALHOST, 1, CryptographicProtocol.NONE));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo(ErrorCode.ERROR.name());
     assertThat(result.message()).contains("IMAP");
-  }
-
-  /** The first failing server decides, even when another one would have accepted the account. */
-  @Test
-  void failsWhenOnlyOneOfSeveralServersRejectsTheAccount() {
-    var result =
-        validator.validate(
-            new EmailAccountConfiguration(
-                USERNAME,
-                PASSWORD,
-                LOCALHOST,
-                Integer.valueOf(getUnsecureSmtpPort()),
-                CryptographicProtocol.NONE,
-                LOCALHOST,
-                1,
-                CryptographicProtocol.NONE,
-                null,
-                null,
-                null));
-
-    assertThat(result.status()).isEqualTo(Status.FAILURE);
-    assertThat(result.message()).contains("IMAP");
-  }
-
-  @Test
-  void reportsInvalidInputForAnAccountWithNoServer() {
-    var result =
-        validator.validate(
-            new EmailAccountConfiguration(
-                USERNAME, PASSWORD, null, null, null, null, null, null, null, null, null));
-
-    assertThat(result.status()).isEqualTo(Status.FAILURE);
-    assertThat(result.code()).isEqualTo(ErrorCode.INVALID_INPUT.name());
-    assertThat(result.message()).contains("at least one of the SMTP, IMAP or POP3 servers");
   }
 
   /**
@@ -191,45 +120,27 @@ class EmailAccountValidatorTest extends BaseEmailTest {
   }
 
   private EmailAccountConfiguration smtp(String password) {
-    return new EmailAccountConfiguration(
+    return new SmtpAccountConfiguration(
         USERNAME,
         password,
         LOCALHOST,
         Integer.valueOf(getUnsecureSmtpPort()),
-        CryptographicProtocol.NONE,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null);
+        CryptographicProtocol.NONE);
   }
 
   private EmailAccountConfiguration imap(String password) {
-    return new EmailAccountConfiguration(
+    return new ImapAccountConfiguration(
         USERNAME,
         password,
-        null,
-        null,
-        null,
         LOCALHOST,
         Integer.valueOf(getUnsecureImapPort()),
-        CryptographicProtocol.NONE,
-        null,
-        null,
-        null);
+        CryptographicProtocol.NONE);
   }
 
   private EmailAccountConfiguration pop3(String password) {
-    return new EmailAccountConfiguration(
+    return new Pop3AccountConfiguration(
         USERNAME,
         password,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
         LOCALHOST,
         Integer.valueOf(getUnsecurePop3Port()),
         CryptographicProtocol.NONE);

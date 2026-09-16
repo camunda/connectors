@@ -6,32 +6,21 @@
  */
 package io.camunda.connector.email.config;
 
-import io.camunda.connector.api.annotation.Configuration;
-import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Configuration (credential) template for a mailbox read over IMAP: the login plus the IMAP server
- * coordinates. Deliberately IMAP-only rather than sharing {@link EmailAccountConfiguration}'s type
- * (itself single-protocol, just chosen from SMTP/IMAP/POP3 rather than fixed to IMAP): the inbound
- * Email listener only ever polls over IMAP, and a shared type would let an SMTP- or POP3-chosen
- * account be picked in the inbound chooser only to fail at binding time instead of at
- * credential-modelling time. Registering one shared {@code @Configuration} across both an inbound
- * and an outbound connector also hits a real element-template-generator limitation - the same
- * configuration id gets a different property schema (Number vs. String port fields) depending on
- * which connector's generation context produced it - so a dedicated type per direction sidesteps
- * that too, the same way {@code SlackTokenConfiguration} and {@code
- * SlackSigningSecretConfiguration} already do for Slack.
+ * An {@link EmailAccountConfiguration} for reading email over IMAP: the mailbox login plus the IMAP
+ * server coordinates. Mirrors the outbound task's own {@code Imap} shape.
  */
-@Configuration(
-    id = "io.camunda.connectors:email-account-imap:1",
-    version = 1,
-    name = "Email Account (Inbound)")
-public record EmailInboundAccountConfiguration(
+@TemplateSubType(
+    id = "imap",
+    label = "IMAP",
+    description = "Read and manage emails using the IMAP protocol")
+public record ImapAccountConfiguration(
     @NotBlank
         @TemplateProperty(
             group = "authentication",
@@ -67,21 +56,19 @@ public record EmailInboundAccountConfiguration(
         @TemplateProperty(
             group = "protocol",
             label = "IMAP encryption protocol",
-            type = PropertyType.Dropdown,
+            type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "TLS")
-        CryptographicProtocol imapCryptographicProtocol) {
+        CryptographicProtocol imapCryptographicProtocol)
+    implements EmailAccountConfiguration {
 
-  public SimpleAuthentication toAuthentication() {
-    return new SimpleAuthentication(username, password);
-  }
-
-  public ImapConfig toImapConfig() {
+  @Override
+  public Configuration getConfiguration() {
     return new ImapConfig(imapHost, imapPort, imapCryptographicProtocol);
   }
 
   @Override
   public String toString() {
-    return "EmailInboundAccountConfiguration{"
+    return "ImapAccountConfiguration{"
         + "username=[REDACTED]"
         + ", password=[REDACTED]"
         + ", imapHost="

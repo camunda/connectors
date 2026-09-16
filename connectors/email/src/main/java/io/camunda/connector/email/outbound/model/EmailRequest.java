@@ -12,6 +12,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.authentication.OutboundAuthentication;
 import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.EmailAccountConfiguration;
+import io.camunda.connector.email.config.ImapConfig;
+import io.camunda.connector.email.config.Pop3Config;
+import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.Imap;
 import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
@@ -83,10 +86,15 @@ public record EmailRequest(
   }
 
   /**
-   * The server coordinates the requested operation runs against: the bound account's block for the
-   * chosen protocol, or the inline per-protocol fields when no account is bound. The account wins
-   * over the inline fields, which Modeler keeps emitting (with their static defaults) even for a
-   * diagram that only picks an account.
+   * The server coordinates the requested operation runs against: the bound account's server, or the
+   * inline per-protocol fields when no account is bound. The account wins over the inline fields,
+   * which Modeler keeps emitting (with their static defaults) even for a diagram that only picks an
+   * account.
+   *
+   * <p>The bound account is itself single-protocol (see {@link EmailAccountConfiguration}), so an
+   * account created for a different protocol than this task's ({@code data}) is not a source at all
+   * here - it falls through to {@code null}, same as an account with no matching block did under
+   * the account's old multi-protocol shape, so the failure below still catches it.
    */
   @JsonIgnore
   public Configuration getProtocolConfiguration() {
@@ -96,10 +104,11 @@ public record EmailRequest(
     if (emailAccountConfiguration == null) {
       return data.getConfiguration();
     }
+    var accountConfiguration = emailAccountConfiguration.getConfiguration();
     return switch (data) {
-      case Smtp ignored -> emailAccountConfiguration.toSmtpConfig();
-      case Imap ignored -> emailAccountConfiguration.toImapConfig();
-      case Pop3 ignored -> emailAccountConfiguration.toPop3Config();
+      case Smtp ignored -> accountConfiguration instanceof SmtpConfig config ? config : null;
+      case Imap ignored -> accountConfiguration instanceof ImapConfig config ? config : null;
+      case Pop3 ignored -> accountConfiguration instanceof Pop3Config config ? config : null;
     };
   }
 

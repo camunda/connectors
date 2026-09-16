@@ -1795,6 +1795,26 @@
     "version" : 1,
     "name" : "Email Account (Outbound)",
     "properties" : [ {
+      "id" : "protocol",
+      "label" : "Protocol",
+      "value" : "smtp",
+      "group" : "protocol",
+      "binding" : {
+        "name" : "protocol",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "SMTP",
+        "value" : "smtp"
+      }, {
+        "name" : "IMAP",
+        "value" : "imap"
+      }, {
+        "name" : "POP3",
+        "value" : "pop3"
+      } ]
+    }, {
       "id" : "username",
       "label" : "Username",
       "constraints" : {
@@ -1804,6 +1824,11 @@
       "binding" : {
         "name" : "username",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
       },
       "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service.",
       "type" : "String",
@@ -1819,27 +1844,48 @@
         "name" : "password",
         "type" : "property"
       },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      },
       "tooltip" : "Enter the password associated with your email account.",
       "type" : "String",
       "secret" : true
     }, {
       "id" : "smtpHost",
       "label" : "SMTP host",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "smtpHost",
         "type" : "property"
       },
-      "tooltip" : "Address of the SMTP server used for sending emails (e.g., smtp.example.com). Leave empty if this account is not used to send emails.",
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      },
+      "tooltip" : "Address of the SMTP server used for sending emails (e.g., smtp.example.com).",
       "type" : "String"
     }, {
       "id" : "smtpPort",
       "label" : "SMTP port",
       "value" : 587,
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "smtpPort",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
       },
       "tooltip" : "Typically 587 for secure connections with STARTTLS, 465 for SSL/TLS, and 25 for non-secure connections.",
       "type" : "Number"
@@ -1847,10 +1893,18 @@
       "id" : "smtpCryptographicProtocol",
       "label" : "SMTP encryption protocol",
       "value" : "TLS",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "smtpCryptographicProtocol",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
       },
       "type" : "Dropdown",
       "choices" : [ {
@@ -1864,23 +1918,77 @@
         "value" : "NONE"
       } ]
     }, {
+      "id" : "username",
+      "label" : "Username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "username",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      },
+      "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service.",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "password",
+      "label" : "Email password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      },
+      "tooltip" : "Enter the password associated with your email account.",
+      "type" : "String",
+      "secret" : true
+    }, {
       "id" : "imapHost",
       "label" : "IMAP host",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapHost",
         "type" : "property"
       },
-      "tooltip" : "Address of the IMAP server used to retrieve your emails (e.g., imap.example.com). Leave empty if this account is not read over IMAP.",
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      },
+      "tooltip" : "Address of the IMAP server used to retrieve your emails (e.g., imap.example.com).",
       "type" : "String"
     }, {
       "id" : "imapPort",
       "label" : "IMAP port",
       "value" : 993,
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapPort",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
       },
       "tooltip" : "Typically 993 for SSL/TLS, or 143 for non-secure connections.",
       "type" : "Number"
@@ -1888,10 +1996,18 @@
       "id" : "imapCryptographicProtocol",
       "label" : "IMAP encryption protocol",
       "value" : "TLS",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "imapCryptographicProtocol",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
       },
       "type" : "Dropdown",
       "choices" : [ {
@@ -1905,23 +2021,77 @@
         "value" : "NONE"
       } ]
     }, {
+      "id" : "username",
+      "label" : "Username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "username",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      },
+      "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service.",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "password",
+      "label" : "Email password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      },
+      "tooltip" : "Enter the password associated with your email account.",
+      "type" : "String",
+      "secret" : true
+    }, {
       "id" : "pop3Host",
       "label" : "POP3 host",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "pop3Host",
         "type" : "property"
       },
-      "tooltip" : "Address of the POP3 server used to download your emails (e.g., pop.example.com). Leave empty if this account is not read over POP3.",
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      },
+      "tooltip" : "Address of the POP3 server used to download your emails (e.g., pop.example.com).",
       "type" : "String"
     }, {
       "id" : "pop3Port",
       "label" : "POP3 port",
       "value" : 995,
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "pop3Port",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
       },
       "tooltip" : "Typically 995 for SSL/TLS, or 110 for non-secure connections.",
       "type" : "Number"
@@ -1929,10 +2099,18 @@
       "id" : "pop3CryptographicProtocol",
       "label" : "POP3 encryption protocol",
       "value" : "TLS",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "protocol",
       "binding" : {
         "name" : "pop3CryptographicProtocol",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
       },
       "type" : "Dropdown",
       "choices" : [ {

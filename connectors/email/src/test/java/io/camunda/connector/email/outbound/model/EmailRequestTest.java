@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.config.CryptographicProtocol;
-import io.camunda.connector.email.config.EmailAccountConfiguration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
@@ -50,6 +49,7 @@ class EmailRequestTest {
             {
               "protocol": "smtp",
               "emailAccountConfiguration": {
+                "protocol": "smtp",
                 "username": "account-user",
                 "password": "account-pass",
                 "smtpHost": "localhost",
@@ -112,6 +112,7 @@ class EmailRequestTest {
               "protocol": "smtp",
               "authentication": { "type": "simple", "username": "", "password": "" },
               "emailAccountConfiguration": {
+                "protocol": "smtp",
                 "username": "account-user",
                 "password": "account-pass",
                 "smtpHost": "localhost",
@@ -181,10 +182,11 @@ class EmailRequestTest {
   }
 
   /**
-   * An account that speaks only SMTP cannot serve an IMAP task, and must say so at binding time.
+   * An account created for SMTP cannot serve an IMAP task, and must say so at binding time - the
+   * same failure the account's old multi-protocol shape gave for a block it never configured.
    */
   @Test
-  void bindingFailsWhenTheBoundAccountHasNoServerForTheChosenProtocol() {
+  void bindingFailsWhenTheBoundAccountsProtocolDoesNotMatchTheTask() {
     assertThatThrownBy(
             () ->
                 bind(
@@ -192,6 +194,7 @@ class EmailRequestTest {
                     {
                       "protocol": "imap",
                       "emailAccountConfiguration": {
+                        "protocol": "smtp",
                         "username": "account-user",
                         "password": "account-pass",
                         "smtpHost": "localhost"
@@ -207,47 +210,19 @@ class EmailRequestTest {
   }
 
   @Test
-  void bindingFailsWhenTheBoundAccountHasNoServerAtAll() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "protocol": "smtp",
-                      "emailAccountConfiguration": { "username": "account-user", "password": "account-pass" },
-                      "data": { %s }
-                    }
-                    """
-                        .formatted(SEND_EMAIL_ACTION)))
-        .hasMessageContaining("Configure at least one of the SMTP, IMAP or POP3 servers");
-  }
-
-  @Test
-  void readsTheAccountsOwnServerForEachProtocol() {
-    var configuration =
-        new EmailAccountConfiguration(
-            "u",
-            "p",
-            "localhost",
-            587,
-            CryptographicProtocol.TLS,
-            "localhost",
-            993,
-            CryptographicProtocol.TLS,
-            null,
-            null,
-            null);
-
+  void readsTheAccountsOwnServerForAnImapTask() {
     var request =
         bind(
             """
             {
               "protocol": "imap",
               "emailAccountConfiguration": {
+                "protocol": "imap",
                 "username": "u",
                 "password": "p",
-                "smtpHost": "localhost",
-                "imapHost": "localhost"
+                "imapHost": "localhost",
+                "imapPort": 993,
+                "imapCryptographicProtocol": "TLS"
               },
               "data": {
                 "imapActionDiscriminator": "listEmailsImap",
@@ -258,13 +233,11 @@ class EmailRequestTest {
 
     assertThat(request.getProtocolConfiguration())
         .isEqualTo(new ImapConfig("localhost", 993, CryptographicProtocol.TLS));
-    assertThat(configuration.toImapConfig())
-        .isEqualTo(new ImapConfig("localhost", 993, CryptographicProtocol.TLS));
   }
 
   /**
    * The POP3 arm of the protocol switch was the one never reached through binding, so a copy/paste
-   * slip there - handing a POP3 task the account's IMAP or SMTP block - would have gone unnoticed.
+   * slip there - handing a POP3 task the wrong config type - would have gone unnoticed.
    */
   @Test
   void readsTheAccountsPop3ServerForAPop3Task() {
@@ -274,12 +247,9 @@ class EmailRequestTest {
             {
               "protocol": "pop3",
               "emailAccountConfiguration": {
+                "protocol": "pop3",
                 "username": "account-user",
                 "password": "account-pass",
-                "smtpHost": "localhost",
-                "smtpPort": 2525,
-                "imapHost": "localhost",
-                "imapPort": 1993,
                 "pop3Host": "localhost",
                 "pop3Port": 1995,
                 "pop3CryptographicProtocol": "SSL"
