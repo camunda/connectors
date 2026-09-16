@@ -56,6 +56,10 @@ class ReusableCredentialElementTemplateTest {
   void marksSecretsInReusableCredentials(String templatePath) throws Exception {
     JsonNode template = OBJECT_MAPPER.readTree(Path.of(templatePath).toFile());
 
+    assertSecret(template, "io.camunda:agentic-ai-anthropic-api-credential:1", "apiKey");
+    assertSecret(template, "io.camunda:agentic-ai-openai-api-credential:1", "apiKey");
+    assertSecret(template, "io.camunda:agentic-ai-google-gemini-api-credential:1", "apiKey");
+    assertSecret(template, "io.camunda:agentic-ai-bedrock-api-key-credential:1", "apiKey");
     assertSecret(
         template, "io.camunda:agentic-ai-microsoft-foundry-credential:1", "authentication.apiKey");
     assertSecret(

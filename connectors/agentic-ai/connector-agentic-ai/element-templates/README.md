@@ -14,8 +14,8 @@ than or equal to the Camunda version you are running. The `engines.camunda`
 field in each JSON file captures the same information (e.g. `^8.9` means
 "requires Camunda 8.9 or later").
 
-For example, if you are on Camunda 8.9, use the AI Agent template version `7`;
-if you are on Camunda 8.10, use version `11`.
+For example, on Camunda 8.9, use AI Agent (v1) template version `7`;
+on Camunda 8.10, use AI Agent (v2) template version `2`.
 
 ## AI Agent connectors
 
