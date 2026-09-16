@@ -10,15 +10,23 @@ per-provider "here's what's special" detail that would otherwise bloat that sect
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
-(`anthropic-api` | `aws-bedrock-mantle` | `custom`).
+(`anthropic-api` | `aws-bedrock-mantle` | `custom`). `descriptiveProvider()` reports this backend
+too, e.g. `anthropic/aws-bedrock-mantle`.
 
 ### Backends
 
 `AnthropicCustomBackend` is the only variant exposing user-configurable
 `headers`/`queryParameters`/`bodyProperties`, and the only one supporting genuine no-auth
-(`AnthropicCustomEndpointAuthentication.NoAuthentication`) alongside API-key auth. Overrides merge
+(`AnthropicCustomEndpointAuthentication.NoAuthentication`) alongside `apiKey` and
+`OAuthClientCredentialsAuthentication` (OAuth 2.0 client-credentials flow). Overrides merge
 additively per-key onto the SDK request builder (`AnthropicMessageRequestConverter
 .applyRequestCustomizations`), never a wholesale replace.
+
+`AnthropicChatModelFactory` adds an `OAuthBearerTokenInterceptor` (`com.anthropic.core.http.Interceptor`,
+a supported public hook) via `builder.addInterceptor(...)`: it wraps the transport `HttpClient` and rewrites
+each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolved per request from
+the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
+(`provider/authentication/oauth/`).
 
 ### Reasoning
 
@@ -150,13 +158,23 @@ Two orthogonal sealed axes: `OpenAiApi` (`completions` | `responses`, default `r
 backend can serve either wire format. The wire format is a sealed discriminator rather than a flat enum
 so each family gets its own namespace for family-specific knobs — e.g. the differing max-token field
 name (`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating or collisions.
+`descriptiveProvider()` reports both axes too, e.g. `openai/completions/custom`.
 
 ### Backends
 
 `OpenAiCustomBackend` is the only variant exposing user-configurable
-`headers`/`queryParameters`/`bodyProperties`, and requires an API key — no no-auth option, because the
-SDK client builder requires a credential source to build at all. Overrides merge additively per-key
-via `OpenAiRequestCustomizations` (shared between both converters).
+`headers`/`queryParameters`/`bodyProperties` — no no-auth option, because the SDK client builder
+requires a credential source to build at all. Overrides merge additively per-key via
+`OpenAiRequestCustomizations` (shared between both converters). Its
+`OpenAiCustomEndpointAuthentication` sealed interface supports `apiKey` (static) and
+`OAuthClientCredentialsAuthentication` (OAuth 2.0 client-credentials flow, for OpenAI-compatible API
+gateways that require it): `OpenAiChatModelFactory.applyCustomBackend` wraps the shared
+`OAuthClientCredentialsTokenResolver` (`connector-commons/http-client`, backed by the same
+`OAuthService`/`OAuthTokenCache` the HTTP connector uses) as a `com.openai.credential.BearerTokenCredential`
+supplier via `builder.credential(...)`, invoked fresh on every request — the same mechanism
+`OpenAiFoundryCredentialResolver` uses for Entra ID. The MCP client's `OAuthHeadersSupplier` is
+migrated onto the same resolver in a stacked follow-up, so all OAuth2 client-credentials token
+fetching in this module eventually shares one cache.
 
 `OpenAiFoundryBackend` (Microsoft Foundry / Azure OpenAI) exposes the same request customizations as
 `headers`/`queryParameters`/`bodyProperties`, but hidden, matching
@@ -274,7 +292,8 @@ branch and shares every converter described below unchanged.
 
 `GeminiChatModelFactory.buildClient` builds the SDK's `Client` directly from the API key; there is no
 custom-backend variant (no user-configurable headers/query params, unlike Anthropic/OpenAI's
-`*CustomBackend`).
+`*CustomBackend`). `descriptiveProvider()` reports this backend too, e.g.
+`google-gemini/google-vertex-ai`.
 
 ### Reasoning
 

@@ -170,6 +170,33 @@ public class GraphQLFunctionTest extends BaseTest {
         .isEqualTo("http://localhost:8087/other-path");
   }
 
+  @Test
+  void malformedInlineUrlIsRejectedWhenCredentialIsBound() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "not-a-url"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(GraphQLRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Must be a http(s) URL");
+  }
+
   /**
    * The URL may come from the credential instead of the model, so it is asserted on the effective
    * value ({@code isUrlPresent()}) rather than by a {@code @NotBlank} on the component - a model

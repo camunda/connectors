@@ -74,7 +74,9 @@ public record GraphQLRequest(
     // optional override rather than a required field. Declared on the outer record (rather than
     // inside GraphQL) so the nested record's canonical constructor stays untouched; the explicit
     // binding is what places it on `graphql.url`. Never populated - the engine writes a single
-    // `graphql.url` input, which Jackson binds to GraphQL#url above.
+    // `graphql.url` input, which Jackson binds to GraphQL#url above. Keep this component
+    // constraint-free: Modeler's field validator applies patterns to an undefined optional value,
+    // while runtime validation still applies the URL pattern to GraphQL#url.
     @TemplateProperty(
             id = "urlOverride",
             group = "endpoint",
@@ -86,12 +88,6 @@ public record GraphQLRequest(
                 @PropertyCondition(
                     property = "authenticationConfiguration",
                     isEmpty = NullableBoolean.FALSE),
-            constraints =
-                @TemplateProperty.PropertyConstraints(
-                    pattern =
-                        @TemplateProperty.Pattern(
-                            value = HttpCommonRequest.URL_PATTERN,
-                            message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
             description =
                 "Overrides the URL carried by the selected credential. Required when the credential"
                     + " carries none, as an OAuth credential need not.")

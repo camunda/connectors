@@ -23,33 +23,42 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * Local OIDC issuer for tests that need provider discovery/JWKS endpoints without depending on an
- * external identity provider.
- */
+/** Local OIDC issuer for tests; {@link #token()} mints tokens valid against its JWKS. */
 public final class MockOidcServer implements AutoCloseable {
 
   private static final String OPEN_ID_CONFIGURATION_PATH = "/.well-known/openid-configuration";
   private static final String JWKS_PATH = "/oauth2/jwks";
   private static final String TOKEN_PATH = "/token";
+  private static final String KEY_ID = "test-key";
   private static final int DEFAULT_STUB_PRIORITY = 10;
   private static final int CUSTOM_STUB_PRIORITY = 1;
 
   private final WireMockServer server;
+  private final KeyPair signingKeyPair;
 
-  private MockOidcServer(WireMockServer server) {
+  private MockOidcServer(WireMockServer server, KeyPair signingKeyPair) {
     this.server = server;
+    this.signingKeyPair = signingKeyPair;
   }
 
   public static MockOidcServer start() {
     var server = new WireMockServer(options().dynamicPort());
     server.start();
-    var mockOidcServer = new MockOidcServer(server);
+    var mockOidcServer = new MockOidcServer(server, generateSigningKeyPair());
     mockOidcServer.stubOidcEndpoints();
     return mockOidcServer;
   }
@@ -60,6 +69,76 @@ public final class MockOidcServer implements AutoCloseable {
 
   public String tokenUrl() {
     return server.baseUrl() + TOKEN_PATH;
+  }
+
+  /** A JWT signed with this server's key; defaults to one this issuer would accept. */
+  public TokenBuilder token() {
+    return new TokenBuilder(this);
+  }
+
+  public static final class TokenBuilder {
+
+    private final MockOidcServer server;
+    private final List<String> audience = new ArrayList<>();
+    private String issuer;
+    private String subject = "test-subject";
+    private Instant issuedAt = Instant.now();
+    private Instant expiresAt = Instant.now().plus(Duration.ofMinutes(5));
+
+    private TokenBuilder(MockOidcServer server) {
+      this.server = server;
+      this.issuer = server.issuer();
+    }
+
+    public TokenBuilder issuer(String issuer) {
+      this.issuer = issuer;
+      return this;
+    }
+
+    public TokenBuilder subject(String subject) {
+      this.subject = subject;
+      return this;
+    }
+
+    public TokenBuilder audience(String... audience) {
+      this.audience.addAll(Arrays.asList(audience));
+      return this;
+    }
+
+    public TokenBuilder issuedAt(Instant issuedAt) {
+      this.issuedAt = issuedAt;
+      return this;
+    }
+
+    public TokenBuilder expiresAt(Instant expiresAt) {
+      this.expiresAt = expiresAt;
+      return this;
+    }
+
+    public String sign() {
+      var header =
+          """
+          {"alg":"RS256","typ":"JWT","kid":"%s"}"""
+              .formatted(KEY_ID);
+      var claims = new ArrayList<String>();
+      claims.add("\"iss\":\"%s\"".formatted(issuer));
+      claims.add("\"sub\":\"%s\"".formatted(subject));
+      claims.add("\"iat\":%d".formatted(issuedAt.getEpochSecond()));
+      claims.add("\"exp\":%d".formatted(expiresAt.getEpochSecond()));
+      if (!audience.isEmpty()) {
+        claims.add(
+            "\"aud\":[%s]"
+                .formatted(
+                    audience.stream().map("\"%s\""::formatted).collect(Collectors.joining(","))));
+      }
+      var payload = "{" + String.join(",", claims) + "}";
+
+      var signingInput =
+          base64Url(header.getBytes(StandardCharsets.UTF_8))
+              + "."
+              + base64Url(payload.getBytes(StandardCharsets.UTF_8));
+      return signingInput + "." + base64Url(server.sign(signingInput));
+    }
   }
 
   public MockOidcServer stubOpenIdConfigurationResponse(String body) {
@@ -141,34 +220,55 @@ public final class MockOidcServer implements AutoCloseable {
         .withBody(body);
   }
 
-  private static String jwk() {
+  private static KeyPair generateSigningKeyPair() {
     try {
       var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
       keyPairGenerator.initialize(2048);
-      var keyPair = keyPairGenerator.generateKeyPair();
-      var publicKey = (RSAPublicKey) keyPair.getPublic();
-      return """
-          {
-            "kty": "RSA",
-            "kid": "test-key",
-            "use": "sig",
-            "alg": "RS256",
-            "n": "%s",
-            "e": "%s"
-          }
-          """
-          .formatted(
-              base64Url(publicKey.getModulus().toByteArray()),
-              base64Url(publicKey.getPublicExponent().toByteArray()));
+      return keyPairGenerator.generateKeyPair();
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to create test JWK", e);
+      throw new IllegalStateException("Failed to create test signing key", e);
     }
   }
 
+  private byte[] sign(String signingInput) {
+    try {
+      var signature = Signature.getInstance("SHA256withRSA");
+      signature.initSign(signingKeyPair.getPrivate());
+      signature.update(signingInput.getBytes(StandardCharsets.UTF_8));
+      return signature.sign();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to sign test token", e);
+    }
+  }
+
+  private String jwk() {
+    var publicKey = (RSAPublicKey) signingKeyPair.getPublic();
+    return """
+        {
+          "kty": "RSA",
+          "kid": "%s",
+          "use": "sig",
+          "alg": "RS256",
+          "n": "%s",
+          "e": "%s"
+        }
+        """
+        .formatted(
+            KEY_ID,
+            base64UrlMagnitude(publicKey.getModulus()),
+            base64UrlMagnitude(publicKey.getPublicExponent()));
+  }
+
   private static String base64Url(byte[] bytes) {
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  /** Strips BigInteger's sign byte for JWK n/e. Never use on arbitrary bytes like a signature. */
+  private static String base64UrlMagnitude(BigInteger value) {
+    var bytes = value.toByteArray();
     if (bytes.length > 1 && bytes[0] == 0) {
       bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
     }
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    return base64Url(bytes);
   }
 }

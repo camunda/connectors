@@ -16,6 +16,8 @@ import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.junit.jupiter.api.Nested;
@@ -26,11 +28,7 @@ class RestAuthenticationValidatorTest {
   private static final String SENSITIVE = "SENSITIVE-DETAIL";
 
   private static RestAuthenticationConfiguration configuration(Authentication authentication) {
-    String url =
-        authentication != null && RestAuthenticationConfiguration.requiresUrl(authentication)
-            ? "https://example.com/api"
-            : null;
-    return new RestAuthenticationConfiguration(authentication, url);
+    return new RestAuthenticationConfiguration(authentication, null);
   }
 
   private static OAuthAuthentication clientCredentials(String tokenEndpoint) {
@@ -52,40 +50,49 @@ class RestAuthenticationValidatorTest {
         .contains(RestAuthenticationValidator.class);
   }
 
+  @Test
+  void refreshTokenCredentialPayloadUsesFlatRuntimeFields() throws Exception {
+    var configuration =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(
+                """
+                {
+                  "authentication": {
+                    "type": "oauth-refresh-token",
+                    "oauthTokenEndpoint": "https://example.com/oauth/token",
+                    "clientId": "client-id",
+                    "clientSecret": "client-secret",
+                    "refreshToken": "refresh-token",
+                    "scopes": "openid offline_access"
+                  }
+                }
+                """,
+                RestAuthenticationConfiguration.class);
+
+    ValidationUtil.discoverDefaultValidationProviderImplementation().validate(configuration);
+
+    assertThat(configuration.authentication())
+        .isEqualTo(
+            new OAuthRefreshTokenAuthentication(
+                "https://example.com/oauth/token",
+                "client-id",
+                "client-secret",
+                "refresh-token",
+                "openid offline_access"));
+    assertThat(configuration.url()).isNull();
+  }
+
   @Nested
   class VariantDispatch {
 
     private final RestAuthenticationValidator validator = new RestAuthenticationValidator();
 
     @Test
-    void noAuthenticationIsUsable() {
+    void noAuthenticationIsRejected() {
       var result = validator.validate(configuration(new NoAuthentication()));
 
-      assertThat(result.status()).isEqualTo(Status.SUCCESS);
-    }
-
-    @Test
-    void basicIsNotValidatable() {
-      var result = validator.validate(configuration(new BasicAuthentication("user", "password")));
-
-      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
-    }
-
-    @Test
-    void bearerIsNotValidatable() {
-      var result = validator.validate(configuration(new BearerAuthentication("token")));
-
-      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
-    }
-
-    @Test
-    void apiKeyIsNotValidatable() {
-      var result =
-          validator.validate(
-              configuration(
-                  new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "X-Api-Key", "secret")));
-
-      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("INVALID_INPUT");
     }
 
     @Test
@@ -292,6 +299,99 @@ class RestAuthenticationValidatorTest {
 
       assertThat(result.status()).isEqualTo(Status.FAILURE);
       assertThat(result.code()).isEqualTo("ERROR");
+    }
+  }
+
+  @Nested
+  @WireMockTest
+  class AgainstARealEndpoint {
+
+    private final RestAuthenticationValidator validator = new RestAuthenticationValidator();
+
+    private RestAuthenticationConfiguration boundTo(
+        Authentication authentication, WireMockRuntimeInfo wireMock) {
+      return new RestAuthenticationConfiguration(
+          authentication, "http://localhost:" + wireMock.getHttpPort() + "/api");
+    }
+
+    @Test
+    void basicSucceedsWhenTheEndpointAcceptsIt(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api").withBasicAuth("user", "password").willReturn(WireMock.ok()));
+
+      var result =
+          validator.validate(boundTo(new BasicAuthentication("user", "password"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    }
+
+    @Test
+    void apiKeySucceedsWhenTheEndpointAcceptsIt(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api")
+              .withHeader("X-Api-Key", WireMock.equalTo("secret"))
+              .willReturn(WireMock.ok()));
+
+      var result =
+          validator.validate(
+              boundTo(
+                  new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "X-Api-Key", "secret"),
+                  wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    }
+
+    @Test
+    void bearerIsUnauthorizedWhenTheEndpointRejectsIt(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api")
+              .willReturn(WireMock.unauthorized().withBody("denied because " + SENSITIVE)));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("UNAUTHORIZED");
+      assertThat(result.message()).doesNotContain(SENSITIVE);
+    }
+
+    @Test
+    void noVerdictWhenTheEndpointForbidsTheRequest(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api").willReturn(WireMock.forbidden().withBody("denied " + SENSITIVE)));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+    }
+
+    @Test
+    void noVerdictWhenTheEndpointDoesNotAllowGet(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(WireMock.get("/api").willReturn(WireMock.aResponse().withStatus(405)));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+    }
+
+    @Test
+    void noVerdictWhenTheEndpointRedirects(WireMockRuntimeInfo wireMock) {
+      WireMock.stubFor(
+          WireMock.get("/api")
+              .willReturn(WireMock.aResponse().withStatus(302).withHeader("Location", "/login")));
+
+      var result = validator.validate(boundTo(new BearerAuthentication("token"), wireMock));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+    }
+
+    @Test
+    void noVerdictWhenTheEndpointIsUnreachable() {
+      var result =
+          validator.validate(
+              new RestAuthenticationConfiguration(
+                  new BearerAuthentication("token"), "http://localhost:1/api"));
+
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
     }
   }
 }

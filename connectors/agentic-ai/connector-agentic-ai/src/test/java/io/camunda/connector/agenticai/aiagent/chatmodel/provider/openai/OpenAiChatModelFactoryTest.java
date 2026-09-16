@@ -41,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpo
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -61,6 +62,7 @@ class OpenAiChatModelFactoryTest {
   private static final String MODEL_ID = "gpt-5.5";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
+  @Mock private OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -83,7 +85,8 @@ class OpenAiChatModelFactoryTest {
             new OpenAiFoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     httpProxySupport,
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+            oAuthClientCredentialsTokenResolver);
   }
 
   @Test

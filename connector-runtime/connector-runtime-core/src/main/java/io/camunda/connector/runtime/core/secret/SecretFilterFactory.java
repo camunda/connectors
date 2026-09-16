@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import java.time.Instant;
+
 public interface SecretFilterFactory {
   SecretFilter create(SecretFilterContext context);
 
@@ -23,5 +25,5 @@ public interface SecretFilterFactory {
     return context -> SecretFilter.allowAll();
   }
 
-  record SecretFilterContext(long processDefinitionKey, String elementId) {}
+  record SecretFilterContext(long processDefinitionKey, String elementId, Instant deadline) {}
 }

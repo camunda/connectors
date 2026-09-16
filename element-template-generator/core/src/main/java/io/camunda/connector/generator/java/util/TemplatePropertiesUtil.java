@@ -581,16 +581,16 @@ public class TemplatePropertiesUtil {
   /**
    * Extracts properties from a {@code @Configuration}-annotated class in configuration-template
    * extraction mode: each property's binding is replaced with a {@link
-   * PropertyBinding.ConfigurationTemplateProperty} (name = property id), {@code feel} is disabled,
-   * and any {@code secret} hint from {@link
+   * PropertyBinding.ConfigurationTemplateProperty} using its runtime binding name, {@code feel} is
+   * disabled, and any {@code secret} hint from {@link
    * io.camunda.connector.generator.java.annotation.TemplateProperty#secret()} is preserved.
    */
   public static List<PropertyBuilder> extractConfigurationTemplatePropertiesFromType(
       Class<?> type, TemplateGenerationContext context) {
     var builders = extractTemplatePropertiesFromType(type, context);
     for (var builder : builders) {
-      // Override binding: configuration-template properties use {"type":"property","name":<id>}
-      builder.binding(new PropertyBinding.ConfigurationTemplateProperty(builder.getId()));
+      // Preserve the runtime path while switching to the configuration-template binding type.
+      builder.binding(toConfigurationTemplateProperty(builder.getBinding()));
       // No feel on configuration-template properties (values are atomic literals / secret refs)
       builder.feel(FeelMode.disabled);
       // The configuration-template schema forbids `optional`; optionality is expressed via
@@ -598,6 +598,21 @@ public class TemplatePropertiesUtil {
       builder.optional(null);
     }
     return builders;
+  }
+
+  private static PropertyBinding.ConfigurationTemplateProperty toConfigurationTemplateProperty(
+      PropertyBinding binding) {
+    return switch (binding) {
+      case ZeebeInput input -> new PropertyBinding.ConfigurationTemplateProperty(input.name());
+      case ZeebeProperty property ->
+          new PropertyBinding.ConfigurationTemplateProperty(property.name());
+      default -> throw unsupportedConfigurationBinding(binding);
+    };
+  }
+
+  private static IllegalStateException unsupportedConfigurationBinding(PropertyBinding binding) {
+    return new IllegalStateException(
+        "Unsupported configuration-template property binding: " + binding.type());
   }
 
   private static Set<Class<?>> excludedSubTypes(TemplateProperty annotation) {

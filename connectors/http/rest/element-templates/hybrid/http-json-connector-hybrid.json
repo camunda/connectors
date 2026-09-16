@@ -661,13 +661,6 @@
     "label" : "URL",
     "description" : "Overrides the URL carried by the selected credential. Required when the credential carries none, as an OAuth credential need not.",
     "optional" : true,
-    "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
     "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
@@ -934,7 +927,7 @@
   "configurationTemplates" : [ {
     "id" : "io.camunda.connectors:rest-authentication:1",
     "kind" : "CREDENTIAL",
-    "version" : 1,
+    "version" : 2,
     "name" : "REST Authentication",
     "properties" : [ {
       "id" : "authentication.type",
@@ -1202,7 +1195,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
+        "name" : "authentication.oauthTokenEndpoint",
         "type" : "property"
       },
       "condition" : {
@@ -1219,7 +1212,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.clientId",
+        "name" : "authentication.clientId",
         "type" : "property"
       },
       "condition" : {
@@ -1234,7 +1227,7 @@
       "label" : "Client secret",
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.clientSecret",
+        "name" : "authentication.clientSecret",
         "type" : "property"
       },
       "condition" : {
@@ -1253,7 +1246,7 @@
       },
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.refreshToken",
+        "name" : "authentication.refreshToken",
         "type" : "property"
       },
       "condition" : {
@@ -1269,7 +1262,7 @@
       "label" : "Scopes",
       "group" : "authentication",
       "binding" : {
-        "name" : "authentication.oauthRefreshToken.scopes",
+        "name" : "authentication.scopes",
         "type" : "property"
       },
       "condition" : {
@@ -1282,9 +1275,9 @@
     }, {
       "id" : "url",
       "label" : "URL",
-      "description" : "The endpoint this credential is bound to. Required for basic, bearer and API key authentication; optional for OAuth, which carries its own token endpoint.",
+      "description" : "The endpoint this credential is bound to. Required for basic, bearer and API key authentication; not shown for OAuth, which carries its own token endpoint.",
       "constraints" : {
-        "notEmpty" : false,
+        "notEmpty" : true,
         "pattern" : {
           "value" : "^((http://|https://|secrets|\\{\\{).*$)",
           "message" : "Must be a http(s) URL"
@@ -1294,6 +1287,11 @@
       "binding" : {
         "name" : "url",
         "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "oneOf" : [ "apiKey", "basic", "bearer" ],
+        "type" : "simple"
       },
       "type" : "String"
     } ]

@@ -251,6 +251,30 @@ public class HttpJsonFunctionTest extends BaseTest {
         .isEqualTo("http://localhost:8086/other-path");
   }
 
+  @Test
+  void malformedInlineUrlIsRejectedWhenCredentialIsBound() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "not-a-url",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Must be a http(s) URL");
+  }
+
   /**
    * The URL may come from the credential instead of the model, so it is asserted on the effective
    * value ({@code isUrlPresent()}) rather than by a {@code @NotBlank} on the field - a model that
