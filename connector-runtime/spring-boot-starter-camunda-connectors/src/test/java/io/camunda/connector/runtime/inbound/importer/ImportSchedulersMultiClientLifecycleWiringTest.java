@@ -68,6 +68,27 @@ class ImportSchedulersMultiClientLifecycleWiringTest {
   @Autowired private CamundaClientRegistry camundaClientRegistry;
 
   /**
+   * Pins why the other startup-snapshotted consumers of a per-physical-tenant {@code
+   * SearchQueryClient} map — {@code ProcessDefinitionInspector}, which {@code
+   * ProcessStateManagerImpl} fetches BPMN models through — do not need refreshing alongside the
+   * polling entries here: the client a lifecycle event carries is the very same instance the
+   * startup snapshot resolved, because {@code MultiCamundaLifecycleEventProducer} publishes {@code
+   * registry.get(name)} and {@code PhysicalTenantIds.resolveClient} snapshots {@code
+   * registry.get(name)}, and the client beans are singletons.
+   *
+   * <p>If the SDK ever started handing out a different instance per event, this assertion fails —
+   * which is exactly the signal that the model-fetching path would then be polling a replacement
+   * client while resolving models through a stale one, and would need the same treatment.
+   */
+  @Test
+  void aLifecycleEventCarriesTheSameClientInstanceTheStartupSnapshotsHold() {
+    assertThat(camundaClientRegistry.get("engine-a"))
+        .isSameAs(camundaClientRegistry.get("engine-a"));
+    assertThat(camundaClientRegistry.get("engine-b"))
+        .isSameAs(camundaClientRegistry.get("engine-b"));
+  }
+
+  /**
    * One sequential test rather than several: the events mutate context-wide state, so independent
    * test methods sharing this context would be order-dependent.
    */

@@ -108,6 +108,15 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
    * lifecycle event carries, so a tenant whose client was replaced (or whose client had not been
    * usable yet when the startup snapshot was taken) is polled through the current client instead of
    * the one captured at bean construction.
+   *
+   * <p>The other startup-snapshotted consumers of a per-physical-tenant {@code SearchQueryClient}
+   * map — notably {@code ProcessDefinitionInspector}, which the {@link ProcessStateManager} below
+   * fetches BPMN models through — deliberately need no equivalent refresh, because the client an
+   * event carries is the same instance they already hold: the multi-client producer publishes
+   * {@code registry.get(name)}, which is exactly what {@code PhysicalTenantIds.resolveClient}
+   * snapshotted, and under {@code camunda-process-test-spring} that instance is a proxy which swaps
+   * its own delegate. {@code aLifecycleEventCarriesTheSameClientInstanceTheStartupSnapshotsHold}
+   * pins that invariant, and fails if it ever stops holding.
    */
   @Override
   public void onStart(CamundaClient client, String clientName) {
