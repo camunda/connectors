@@ -29,6 +29,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
@@ -304,6 +306,83 @@ class InboundWebhookRestControllerTest {
     assertThat(latestActivity(activityLogRegistry, executableId).message())
         .doesNotContain("secret leak reason")
         .doesNotContain("SUPER_SECRET_VALUE");
+  }
+
+  @Test
+  void feelExpressionFailureWrappedInRuntimeException_fromResponseBinding_doesNotExposeToLogs()
+      throws Exception {
+    // Regression test for a PR review finding on
+    // https://github.com/camunda/security-testing-findings/issues/265:
+    // InboundConnectorContextImpl#bindElementProperties/#bindProperties (invoked when a webhook's
+    // per-element response expression is resolved after a successful correlation) wrap a
+    // FeelEngineWrapperException in a plain RuntimeException, so `e instanceof
+    // FeelEngineWrapperException` alone misses it once it surfaces as a *cause* rather than
+    // directly. This reproduces that exact request path: triggerWebhook and correlation both
+    // succeed, and the failure happens only when the runtime applies the response function
+    // afterward (mirroring HttpWebhookExecutable#resolveResponse calling
+    // result.correlation().bindProperties(...)).
+    var activityLogRegistry = new ActivityLogRegistry();
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response())
+        .thenReturn(
+            ctx -> {
+              throw new RuntimeException(
+                  "Failed to bind element properties to DynamicWebhookPropertiesWrapper using"
+                      + " FEEL evaluation/deserialization (tenantId=<default>)",
+                  new FeelEngineWrapperException(
+                      "secret leak reason", "={{secrets.SUPER_SECRET}}", null));
+            });
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class))).thenReturn(webhookResult);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                mock(ProcessElement.class), 1L, "<default>"));
+
+    var details = webhookDefinition("processA", 1, "myPath");
+    var executableId = ExecutableId.fromDeduplicationId(details.deduplicationId());
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            activityLogRegistry,
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(new RegisteredExecutable.Activated(executable, context, executableId));
+
+    var controller = new InboundWebhookRestController(registry);
+
+    var loggedEvents =
+        logsOf(
+            () -> {
+              try {
+                controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
+              } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+              }
+            },
+            InboundWebhookRestController.class,
+            ActivityLogRegistry.class);
+
+    assertThat(loggedEvents).isNotEmpty();
+    assertThat(loggedEvents)
+        .noneMatch(
+            event ->
+                event.getFormattedMessage().contains("secret leak reason")
+                    || event.getFormattedMessage().contains("SUPER_SECRET"));
+    assertThat(loggedEvents).noneMatch(event -> event.getThrowableProxy() != null);
+
+    assertThat(latestActivity(activityLogRegistry, executableId).message())
+        .doesNotContain("secret leak reason")
+        .doesNotContain("SUPER_SECRET");
   }
 
   @Test

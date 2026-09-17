@@ -254,11 +254,16 @@ public class InboundWebhookRestController {
           .log(
               activity -> {
                 var builder = activity.withSeverity(Severity.ERROR).withTag(payload.method());
-                if (e instanceof FeelEngineWrapperException) {
+                if (containsFeelEngineWrapperException(e)) {
                   // The reason/expression must not reach this log either: a verification
-                  // expression can resolve secrets (e.g. {{secrets.X}}) at bind time, and
-                  // ActivityLogRegistry both retains this message and re-emits it through SLF4J
-                  // (see buildErrorResponse for the same rationale on the HTTP response/app log).
+                  // expression (or a per-element response expression, bound via
+                  // InboundConnectorContextImpl#bindElementProperties, which wraps a
+                  // FeelEngineWrapperException in a plain RuntimeException) can resolve secrets
+                  // (e.g. {{secrets.X}}) at bind time. ActivityLogRegistry both retains this
+                  // message and re-emits it through SLF4J (see buildErrorResponse for the same
+                  // rationale on the HTTP response/app log). Throwable#printStackTrace() prints
+                  // the whole "Caused by:" chain, so checking only `e instanceof
+                  // FeelEngineWrapperException` misses it wrapped as a cause.
                   builder.withMessage(
                       "Webhook processing failed: FEEL expression evaluation failed");
                 } else if (e instanceof WebhookSecurityException) {
@@ -272,6 +277,21 @@ public class InboundWebhookRestController {
       response = buildErrorResponse(e);
     }
     return response;
+  }
+
+  /**
+   * Whether {@code e} or any exception in its cause chain is a {@link FeelEngineWrapperException}.
+   * {@code InboundConnectorContextImpl#bindElementProperties}/{@code #bindProperties} (used to
+   * evaluate a per-element response expression) wrap it in a plain {@link RuntimeException}, so a
+   * direct {@code instanceof} check on the caught exception alone would miss it.
+   */
+  private static boolean containsFeelEngineWrapperException(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof FeelEngineWrapperException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private List<Document> createDocuments(
