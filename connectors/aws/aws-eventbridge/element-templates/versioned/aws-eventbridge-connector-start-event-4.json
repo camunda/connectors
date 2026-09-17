@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon EventBridge Boundary Event Connector",
-  "id": "io.camunda.connectors.AWSEventBridge.boundary.v1",
-  "version": 5,
+  "name": "Amazon EventBridge Start Event Connector",
+  "id": "io.camunda.connectors.AWSEventBridge.startEvent.v1",
+  "version": 4,
   "description": "Receive events from AWS EventBridge",
   "keywords": [
     "receive event",
@@ -16,15 +16,17 @@
     "id": "connectors",
     "name": "Connectors"
   },
+  "deprecated": {
+    "message": "Migrate to Amazon EventBridge Message Start Event Connector"
+  },
   "appliesTo": [
-    "bpmn:BoundaryEvent"
+    "bpmn:StartEvent"
   ],
   "elementType": {
-    "value": "bpmn:BoundaryEvent",
-    "eventDefinition": "bpmn:MessageEventDefinition"
+    "value": "bpmn:StartEvent"
   },
   "engines": {
-    "camunda": "^8.4"
+    "camunda": "^8.2"
   },
   "groups": [
     {
@@ -51,16 +53,6 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
-      }
-    },
-    {
-      "type": "Hidden",
-      "generatedValue": {
-        "type": "uuid"
-      },
-      "binding": {
-        "type": "bpmn:Message#property",
-        "name": "name"
       }
     },
     {
@@ -174,38 +166,6 @@
       }
     },
     {
-      "label": "Issuer",
-      "description": "Expected value of the JWT 'iss' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.issuer"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
-      "label": "Audience",
-      "description": "Expected value of the JWT 'aud' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.audience"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
       "label": "JWT role property expression",
       "description": "Expression to extract the roles from the JWT token",
       "type": "String",
@@ -309,46 +269,6 @@
         "notEmpty": true
       },
       "value": "=request.headers.apikey"
-    },
-    {
-      "label": "Correlation key (process)",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "description": "Sets up the correlation key from process variables",
-      "binding": {
-        "type": "bpmn:Message#zeebe:subscription#property",
-        "name": "correlationKey"
-      },
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "label": "Correlation key (payload)",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "correlationKeyExpression"
-      },
-      "description": "Extracts the correlation key from the incoming message payload",
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "label": "Message ID expression",
-      "feel": "required",
-      "type": "String",
-      "optional": true,
-      "group": "activation",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "messageIdExpression"
-      },
-      "description": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",

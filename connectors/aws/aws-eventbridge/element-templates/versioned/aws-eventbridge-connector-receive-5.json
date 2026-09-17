@@ -1,10 +1,10 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon EventBridge Boundary Event Connector",
-  "id": "io.camunda.connectors.AWSEventBridge.boundary.v1",
+  "name": "Amazon EventBridge Receive Task Connector",
+  "id": "io.camunda.connectors.AWSEventBridge.receive.v1",
   "version": 5,
   "description": "Receive events from AWS EventBridge",
-  "keywords": [
+  "keywords" : [
     "receive event",
     "subscribe to event",
     "event bus",
@@ -16,12 +16,9 @@
     "id": "connectors",
     "name": "Connectors"
   },
-  "appliesTo": [
-    "bpmn:BoundaryEvent"
-  ],
-  "elementType": {
-    "value": "bpmn:BoundaryEvent",
-    "eventDefinition": "bpmn:MessageEventDefinition"
+  "appliesTo" : [ "bpmn:ReceiveTask" ],
+  "elementType" : {
+    "value" : "bpmn:ReceiveTask"
   },
   "engines": {
     "camunda": "^8.4"
@@ -167,38 +164,6 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.auth.jwt.jwkUrl"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
-      "label": "Issuer",
-      "description": "Expected value of the JWT 'iss' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.issuer"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
-      "label": "Audience",
-      "description": "Expected value of the JWT 'aud' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.audience"
       },
       "condition": {
         "property": "authorizationType",

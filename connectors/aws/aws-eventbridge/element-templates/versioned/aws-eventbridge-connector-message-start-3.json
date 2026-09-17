@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon EventBridge Boundary Event Connector",
-  "id": "io.camunda.connectors.AWSEventBridge.boundary.v1",
-  "version": 5,
+  "name": "Amazon EventBridge Message Start Event Connector",
+  "id": "io.camunda.connectors.AWSEventBridge.MessageStart.v1",
+  "version": 3,
   "description": "Receive events from AWS EventBridge",
   "keywords": [
     "receive event",
@@ -17,14 +17,14 @@
     "name": "Connectors"
   },
   "appliesTo": [
-    "bpmn:BoundaryEvent"
+    "bpmn:StartEvent"
   ],
   "elementType": {
-    "value": "bpmn:BoundaryEvent",
+    "value": "bpmn:StartEvent",
     "eventDefinition": "bpmn:MessageEventDefinition"
   },
   "engines": {
-    "camunda": "^8.4"
+    "camunda": "^8.3"
   },
   "groups": [
     {
@@ -38,6 +38,10 @@
     {
       "id": "activation",
       "label": "Activation"
+    },
+    {
+      "id": "correlation",
+      "label": "Subprocess correlation"
     },
     {
       "id": "variable-mapping",
@@ -174,38 +178,6 @@
       }
     },
     {
-      "label": "Issuer",
-      "description": "Expected value of the JWT 'iss' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.issuer"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
-      "label": "Audience",
-      "description": "Expected value of the JWT 'aud' claim",
-      "type": "String",
-      "group": "authorization",
-      "feel": "optional",
-      "optional": false,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.auth.jwt.audience"
-      },
-      "condition": {
-        "property": "authorizationType",
-        "equals": "JWT"
-      }
-    },
-    {
       "label": "JWT role property expression",
       "description": "Expression to extract the roles from the JWT token",
       "type": "String",
@@ -311,34 +283,6 @@
       "value": "=request.headers.apikey"
     },
     {
-      "label": "Correlation key (process)",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "description": "Sets up the correlation key from process variables",
-      "binding": {
-        "type": "bpmn:Message#zeebe:subscription#property",
-        "name": "correlationKey"
-      },
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "label": "Correlation key (payload)",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "correlationKeyExpression"
-      },
-      "description": "Extracts the correlation key from the incoming message payload",
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
       "label": "Message ID expression",
       "feel": "required",
       "type": "String",
@@ -361,6 +305,64 @@
         "name": "activationCondition"
       },
       "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+    },
+    {
+      "label": "Correlation required",
+      "description": "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+      "id": "correlationRequired",
+      "group": "correlation",
+      "type": "Dropdown",
+      "value": "notRequired",
+      "choices": [
+        {
+          "name": "Correlation not required",
+          "value": "notRequired"
+        },
+        {
+          "name": "Correlation required",
+          "value": "required"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationRequired"
+      }
+    },
+    {
+      "label": "Correlation key (process)",
+      "type": "String",
+      "group": "correlation",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "correlationRequired",
+        "equals": "required"
+      }
+    },
+    {
+      "label": "Correlation key (payload)",
+      "type": "String",
+      "group": "correlation",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      },
+      "description": "Extracts the correlation key from the incoming message payload",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "correlationRequired",
+        "equals": "required"
+      }
     },
     {
       "label": "Result variable",
