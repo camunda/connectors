@@ -493,8 +493,6 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
-            // Same model/full capability matrix as the anthropic-api claude-sonnet-5 row above:
-            // Foundry carries the exact same Messages wire format, just auth/endpoint differ.
             anthropicFoundryV2(
                 "claude-sonnet-5",
                 Map.of(
