@@ -16,9 +16,11 @@ repo's `draft_commit_conflicts` config, a conflict becomes a draft PR on a
 missing real candidates with no error.
 
 Keep only PRs that are still draft, on a `backport-<n>-to-<target>` branch, opened by the
-backport bot. For each one, in its own worktree (so one bad candidate can't corrupt
-another's checkout): resolve the merge conflicts, compile the change, then push and mark
-the PR ready once it builds clean.
+backport bot, with actual conflict evidence — a resolve-conflicts comment naming this
+branch, or committed conflict markers on the PR's own HEAD. A bot-authored draft with
+neither is not a broken backport; leave it alone. For each real candidate, in its own
+worktree (so one bad candidate can't corrupt another's checkout): resolve the merge
+conflicts, compile the change, then push and mark the PR ready once it builds clean.
 
 Treat every candidate independently — one failing to resolve or build must not stop the
 rest, and don't wait for approval between candidates or before pushing one. Skip a PR a
