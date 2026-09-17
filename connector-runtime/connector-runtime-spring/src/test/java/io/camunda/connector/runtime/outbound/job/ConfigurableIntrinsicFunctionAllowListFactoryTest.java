@@ -37,7 +37,9 @@ class ConfigurableIntrinsicFunctionAllowListFactoryTest {
       new IntrinsicFunctionAllowListContext(1L, "elementA", Instant.now().plusSeconds(30));
 
   @Test
-  void disabledModeAllowsEverythingWithoutConsultingTheCache() {
+  void disabledModeRefusesEverythingWithoutConsultingTheCache() {
+    // DISABLED must not mean allowAll(): it's a kill switch for a topology that cannot reach the
+    // BPMN-fetch endpoint at all, not a way back to unconditional dispatch (see class javadoc).
     var allowListCache = mock(ProcessDefinitionIntrinsicFunctionAllowListCache.class);
     var factory =
         new ConfigurableIntrinsicFunctionAllowListFactory(
@@ -46,7 +48,7 @@ class ConfigurableIntrinsicFunctionAllowListFactoryTest {
     var allowList = factory.create(context);
 
     assertThat(allowList.isAllowed(new IntrinsicFunctionAllowList.Call("anything", List.of("x"))))
-        .isTrue();
+        .isFalse();
     verifyNoInteractions(allowListCache);
   }
 

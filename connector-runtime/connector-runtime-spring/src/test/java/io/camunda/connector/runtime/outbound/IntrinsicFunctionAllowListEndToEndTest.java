@@ -127,15 +127,18 @@ class IntrinsicFunctionAllowListEndToEndTest {
   }
 
   private JobHandlerContext contextFor(String modelXml, String variablesJson) {
+    return contextFor(modelXml, variablesJson, IntrinsicFunctionAllowListMode.ENABLED);
+  }
+
+  private JobHandlerContext contextFor(
+      String modelXml, String variablesJson, IntrinsicFunctionAllowListMode mode) {
     var modelCache =
         new ProcessDefinitionModelCache(
             "tenant-a", clientReturningXml(modelXml), new ConcurrentMapCache("models"));
     var allowListCache =
         new ProcessDefinitionIntrinsicFunctionAllowListCache(
             "tenant-a", modelCache, new ConcurrentMapCache("allow-list"));
-    var factory =
-        new ConfigurableIntrinsicFunctionAllowListFactory(
-            IntrinsicFunctionAllowListMode.ENABLED, allowListCache);
+    var factory = new ConfigurableIntrinsicFunctionAllowListFactory(mode, allowListCache);
     var allowList =
         factory.create(
             new IntrinsicFunctionAllowListContext(1L, "http_task", Instant.now().plusSeconds(30)));
@@ -206,5 +209,38 @@ class IntrinsicFunctionAllowListEndToEndTest {
     assertThatThrownBy(() -> context.bindVariables(AuthTargetType.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createGithubAppInstallationToken");
+  }
+
+  @Test
+  void disabledModeStillRefusesTheExploitShapeRatherThanFailingOpen() {
+    // camunda.connector.intrinsic-function.allow-list.mode=DISABLED must not mean "dispatch
+    // unconditionally" — that would silently reopen security-testing-findings#275 for any operator
+    // (e.g. a self-managed deployment without the BPMN-fetch endpoint available) who turns the
+    // allow-list mechanism off. It means "refuse everything instead", the same posture as the
+    // interim, pre-allow-list fix. The model here is irrelevant to the outcome in this mode — the
+    // BPMN is never even fetched (verified by aSameNamedCallInjectedAtADeeperPathThanTheDeclaration
+    // IsStillRefused's own model already covering the fetch path) — what matters is the mode.
+    String variablesJson =
+        """
+        {"body": {"camunda.function.type":"createLink",
+                  "params":[{"camunda.document.type":"camunda"}, "PT1H"]}}
+        """;
+    var context =
+        contextFor(EXPLOIT_MODEL_XML, variablesJson, IntrinsicFunctionAllowListMode.DISABLED);
+
+    assertThatThrownBy(() -> context.bindVariables(TargetType.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("createLink");
+  }
+
+  @Test
+  void disabledModeStillBindsOrdinaryDataNormally() {
+    var context =
+        contextFor(
+            EXPLOIT_MODEL_XML, "{\"body\": \"hello\"}", IntrinsicFunctionAllowListMode.DISABLED);
+
+    var result = context.bindVariables(TargetType.class);
+
+    assertThat(result.body()).isEqualTo("hello");
   }
 }
