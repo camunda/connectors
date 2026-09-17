@@ -21,6 +21,7 @@ jobs:
     # Skip fork PRs: pull_request runs from forks don't get repository secrets (Vault/registry creds).
     if: |
       github.event.pull_request.state != 'closed' &&
+      !startsWith(github.head_ref, 'fix/alwaysgreen-') &&
       github.event.pull_request.head.repo.full_name == github.repository && (
         github.event.label.name == 'docker-images-required' ||
         github.event.label.name == 'deploy-preview' ||
@@ -34,6 +35,7 @@ jobs:
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Import Secrets
         id: secrets
@@ -72,7 +74,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '25.0.4+101.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'

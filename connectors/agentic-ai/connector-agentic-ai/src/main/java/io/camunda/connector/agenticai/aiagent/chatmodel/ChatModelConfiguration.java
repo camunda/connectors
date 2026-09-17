@@ -17,4 +17,11 @@ public interface ChatModelConfiguration {
 
   /** Identifier of the model to use (provider-specific format). */
   String model();
+
+  /**
+   * A more specific provider identifier than {@link #provider()}. Defaults to {@link #provider()}.
+   */
+  default String descriptiveProvider() {
+    return provider();
+  }
 }

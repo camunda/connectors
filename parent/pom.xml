@@ -113,17 +113,17 @@ limitations under the License.</license.inlineheader>
          An earlier override was removed once the BOM caught up to a previous, lower threshold,
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 11.0.25, not against whatever the BOM happens to ship. -->
-    <tomcat.version>11.0.25</tomcat.version>
+    <tomcat.version>11.0.26</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.35.0</version.amqp-client>
+    <version.amqp-client>5.36.0</version.amqp-client>
     <version.netty>4.2.18.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.17</version.aws-sdk2>
+    <version.aws-sdk2>2.54.19</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -231,7 +231,7 @@ limitations under the License.</license.inlineheader>
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
-    <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
+    <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>

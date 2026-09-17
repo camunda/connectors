@@ -87,7 +87,8 @@ class SlackInboundWebhookExecutableTest {
 
   @BeforeEach
   void beforeEach() {
-    SlackWebhookProperties props = new SlackWebhookProperties("slackTest", SLACK_SIGNING_KEY, null);
+    SlackWebhookProperties props =
+        new SlackWebhookProperties("slackTest", null, SLACK_SIGNING_KEY, null);
     SlackConnectorPropertiesWrapper wrapper = new SlackConnectorPropertiesWrapper(props);
     when(ctx.bindProperties(SlackConnectorPropertiesWrapper.class)).thenReturn(wrapper);
     testObject = new SlackInboundWebhookExecutable();
@@ -139,7 +140,7 @@ class SlackInboundWebhookExecutableTest {
   void triggerWebhook_UrlVerificationEvent_ReturnsChallengeBack() throws Exception {
     SlackWebhookProperties props =
         new SlackWebhookProperties(
-            "slackTest", SLACK_SIGNING_KEY, CHALLENGE_RESPONSE_VERIFICATION_FUNCTION);
+            "slackTest", null, SLACK_SIGNING_KEY, CHALLENGE_RESPONSE_VERIFICATION_FUNCTION);
     SlackConnectorPropertiesWrapper wrapper = new SlackConnectorPropertiesWrapper(props);
     when(ctx.bindProperties(SlackConnectorPropertiesWrapper.class)).thenReturn(wrapper);
     testObject = new SlackInboundWebhookExecutable();

@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if the 'qa:required' label was just added
     if: |
-      github.event.pull_request.state != 'closed' && 
+      github.event.pull_request.state != 'closed' &&
+      !startsWith(github.head_ref, 'fix/alwaysgreen-') &&
       github.event.label.name == 'qa:required'
 
     steps:

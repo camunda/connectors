@@ -205,7 +205,22 @@ describe('this repo CODEOWNERS', () => {
     ]);
   });
 
-  it('a pom.xml is excluded from ownership', () => {
-    assert.deepEqual(ownersFor('connectors/email/pom.xml', rules), []);
+  it('a connector pom.xml routes to the connectors experience team', () => {
+    assert.deepEqual(ownersFor('connectors/email/pom.xml', rules), [
+      '@camunda/connectors-experience',
+    ]);
+  });
+
+  it('a GitHub workflow routes to the connectors core team', () => {
+    assert.deepEqual(ownersFor('.github/workflows/RELEASE.yaml', rules), [
+      '@camunda/connectors-core',
+    ]);
+  });
+
+  it('a nested Dockerfile routes to the connectors core team', () => {
+    assert.deepEqual(
+      ownersFor('apps/connector-runtime-application/example/Dockerfile', rules),
+      ['@camunda/connectors-core'],
+    );
   });
 });

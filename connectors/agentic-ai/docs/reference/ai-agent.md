@@ -1735,19 +1735,19 @@ retried): its write endpoint is `x-eventually-consistent: false` and validated a
 processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
 same partition before the key is ever returned to the caller. A `404` from any `update()` call
 (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
-via `jobKey`/`jobLease` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+via `jobKey`/`jobLeaseToken` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
 treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
 Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and
-`jobLease` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
+`jobLeaseToken` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
 list — never a separate create-history command:
 
 - **`applyTurnStart`** (`BaseAgentRequestHandler.proceed`, before the LLM call): moves the agent
   instance to `THINKING` and appends the current turn's input-message history items (see below),
-  prepending a `CONFIGURATION` item when the system prompt or tool list changed since the previous
-  turn.
+  prepending a `CONFIGURATION` item when the model, provider, system prompt, tool list, or model-call
+  limit changed since the previous turn.
 - **`applyTurnCompletion`** (`BaseAgentRequestHandler.driveContinuationLoop`, once per round including
   intermediate `ChatResult.Continuation` rounds): appends one `ASSISTANT` item carrying that round's
   assistant text, `toolCalls`, and metrics (input/output tokens + `durationMs`, measured by the
@@ -1758,9 +1758,11 @@ list — never a separate create-history command:
 
 Once a batch is attached to an `update()` command, the engine only allows `status` at the request
 level — `model`/`provider`/`systemPrompt`/`limits`/`tools` can only change through a `CONFIGURATION`
-history item. This connector still narrows that to system prompt and tool list only (`model`/
-`provider`/`limits` are fixed at `create` time and not currently re-pushed via `CONFIGURATION`; see
-the ADR's Deferred section).
+history item. Of those, `systemPrompt`, `tools`, `limits`, and `provider` are re-pushed on every
+`CONFIGURATION` item; `model` stays fixed at `create` time. The reported `provider` is a more
+specific identifier than the plain `provider()` constant — it also covers backend and, for OpenAI,
+API family (e.g. `openai/completions/custom`, `anthropic/aws-bedrock-mantle`) — so a configuration
+change limited to that no longer goes unnoticed.
 
 There is no more deferred, completion-listener-driven agent instance update: `applyTurnStart` and
 `applyTurnCompletion` both fire synchronously inline, so a job that never completes (crash, timeout)
