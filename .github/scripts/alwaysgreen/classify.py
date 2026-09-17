@@ -434,6 +434,32 @@ def backported_pr_number(title: str | None) -> int | None:
 
 @dataclass(frozen=True)
 class Blame:
+    """Attribution for the run's head commit -- a lead, not a verdict.
+
+    `via` names how the login was resolved, in decreasing order of certainty. None
+    of the cases confirm that the named person caused the failure:
+
+    * `"pr-author"`: `originating_pr()`'s pick, whose author is not a bot. This
+      single value actually covers two different levels of certainty that do not
+      survive into this field -- `originating_pr()` matches a PR whose
+      `merge_commit_sha` equals the run's head commit (a trigger, not a suspect)
+      but *falls back to the first candidate in its list* when no PR's merge
+      matches at all, which may have no established relationship to the head
+      commit whatsoever. `via` alone cannot tell you which of the two happened.
+    * `"backport-original"`: the matched PR's merge was bot-authored (e.g. a
+      backport), so `author`/`pr_number` instead name the ORIGINAL PR its title
+      cites -- a different PR than the one that actually produced the head
+      commit being tested.
+    * `"bot-unresolved"`: the merge was bot-authored and no original PR could be
+      resolved; `author` is the bot login itself and `reviewer` is None.
+    * `"no-pr"`: no candidate PR was available at all.
+
+    Consumers (the fix agent, per FIX-AGENT.md's "Zeroth check") are responsible
+    for verifying relevance before treating any of this as a cause or naming it
+    publicly -- skipping that check is exactly what pinged an uninvolved author
+    in camunda/camunda once already (camunda/camunda#63373).
+    """
+
     #: Login to request review from; None when only a bot could be identified.
     reviewer: str | None
     #: Login to name in the PR body, even when it is a bot.

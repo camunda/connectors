@@ -485,10 +485,11 @@ jobs:
           find agent-workspace -type d -name .git -prune -exec chmod -R u+w {} +
           jq -e --arg surface "$SURFACE" '
             type == "object" and
-            ((keys - ["surface", "category", "change", "reason"]) | length == 0) and
+            ((keys - ["surface", "category", "change", "reason", "blame_relevant"]) | length == 0) and
             .surface == $surface and
             (.category | IN("test", "chart", "product", "ci", "not-determined")) and
             (.reason == null or (.reason | type == "string" and length <= 2000)) and
+            (.blame_relevant == null or (.blame_relevant | type == "boolean")) and
             (.change == null or (
               .change | type == "object" and
               ((keys - ["owner", "repo", "root_cause", "fix"]) | length == 0) and
@@ -758,6 +759,14 @@ jobs:
           root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json)
           fix=$(jq -r '.change.fix' /tmp/fix-meta.json)
 
+          # The agent's own "Zeroth check" verdict (FIX-AGENT.md), not just whether a
+          # blame author/reviewer was resolved at all: a merge that merely triggered this
+          # run is not a confirmed cause, and naming or reviewer-requesting its author
+          # regardless of relevance is exactly what pinged an uninvolved contributor in
+          # camunda/camunda once already (camunda/camunda#63373). Absent or malformed
+          # defaults to "not relevant" -- fail safe, not fail open.
+          blame_relevant=$(jq -r '.blame_relevant // false' /tmp/fix-meta.json 2>/dev/null || echo false)
+
           record_pr() {
             local number="$1"
             local url="$2"
@@ -792,7 +801,8 @@ jobs:
             echo
             echo "- Failing run: ${FAILING_RUN_URL}"
             echo "- Triage run: ${TRIAGE_RUN_URL}"
-            [ -z "$BLAME_AUTHOR" ] || echo "- Breaking-change author: @${BLAME_AUTHOR}"
+            [ -z "$BLAME_AUTHOR" ] || [ "$blame_relevant" != "true" ] \
+              || echo "- Breaking-change author: @${BLAME_AUTHOR}"
             echo
             echo "<!-- alwaysgreen-fixed"
             jq -r '.[] | "fp=\(.)"' /tmp/fingerprints.json
@@ -840,9 +850,15 @@ jobs:
             --body-file /tmp/pr-body.md \
             --label "${FIX_LABEL}" --label "${KEY_LABEL}")
           number="${url##*/}"
-          if [ -n "$BLAME_REVIEWER" ]; then
+          # Gated on the same blame_relevant verdict as the body mention above: a formal
+          # review request notifies the blamed author exactly like a body mention does, so
+          # requesting one for a PR the agent already ruled unrelated (or never judged)
+          # reintroduces the same false-cause ping the body-mention gate exists to prevent.
+          if [ -n "$BLAME_REVIEWER" ] && [ "$blame_relevant" = "true" ]; then
             gh pr edit "$number" --repo "$REPO" --add-reviewer "$BLAME_REVIEWER" 2>/dev/null \
               || echo "::warning::could not request review from ${BLAME_REVIEWER} on ${REPO}#${number}"
+          elif [ -n "$BLAME_REVIEWER" ]; then
+            echo "blame_relevant is not true in fix-meta.json -- skipping review request for ${BLAME_REVIEWER} on ${REPO}#${number} (zeroth check ruled them out, or no verdict was recorded)"
           fi
           record_pr "$number" "$url" "$BRANCH"
 

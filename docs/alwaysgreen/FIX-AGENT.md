@@ -129,8 +129,36 @@ this **before** picking a repo, because guessing wrong is expensive in both dire
 reverting an intentional change destroys someone's work, and adapting the test to a real
 regression masks the defect the test exists to catch.
 
-The discriminator is whether the product still agrees with itself. The breaking PR
-metadata is in `./.alwaysgreen-data/blame-pr.json` — read what it changed.
+**Zeroth check: does the blamed PR even touch anything relevant?** `./.alwaysgreen-data/blame-pr.json`
+comes from `originating_pr()`/`resolve_blame()` in `classify.py`, which match whichever PR's
+merge produced the commit this run tested — a trigger, not a suspect, and that is the
+*strongest* of their cases. Weaker still: a bot-authored merge (e.g. a backport) attributes
+to a different, original PR instead, and when no PR's merge matches the head commit at all
+the fallback is just the first candidate in the list, with no established connection to this
+commit whatsoever. See `Blame`'s docstring in `classify.py` for the exact cases. Treat all of
+them as leads, never verdicts — this is exactly the mistake that pinged an uninvolved author
+in camunda/camunda once already (camunda/camunda#63373).
+
+Before running the intended/regression test below, check whether `blame-pr.json`'s file list
+has any plausible connection to the failing surface (e.g. a Zeebe engine test fix blamed for
+a Tasklist frontend failure has none). If it doesn't, that test does not apply — the real
+cause predates this commit and simply surfaced on the run it happened to trigger, or no
+commit-level attribution exists at all. Say so explicitly in the PR body, and go find the
+real cause the normal way (recent commits touching the failing component, git history for
+the affected path).
+
+Record the verdict as `"blame_relevant": true` or `false` in `./fix-meta.json` (omit only
+when `blame-pr.json` is empty, i.e. no blame PR was supplied at all). The workflow reads this
+field, defaulting to "not relevant" when it is absent or anything other than `true`, before
+mentioning the blamed author in the PR body or requesting their review — see "Result
+manifest" below. Never name the blamed author yourself, anywhere in the PR body: naming an
+uninvolved person still notifies them via GitHub's mention handling even inside a sentence
+explaining they are not the cause, and the mention is the workflow's job, gated on this
+verdict, not yours.
+
+The discriminator is whether the product still agrees with itself, once the zeroth check
+above has confirmed the blamed PR is at least plausibly connected. Read what
+`./.alwaysgreen-data/blame-pr.json` changed.
 
 - **It also updated the product's own tests** to the new value → the change is **intended**
   and the cross-component suite is simply behind. Fix `c8-cross-component-e2e-tests`.
@@ -284,9 +312,18 @@ Write `./fix-meta.json` before stopping, always:
     "root_cause": "One sentence.",
     "fix": "One sentence."
   },
-  "reason": "Required when change is null: what you found and why no change was safe."
+  "reason": "Required when change is null: what you found and why no change was safe.",
+  "blame_relevant": true
 }
 ```
+
+`blame_relevant` is your "Zeroth check" verdict (see "Regression, or an intended change"
+above): `true` only when `./.alwaysgreen-data/blame-pr.json` is plausibly connected to the
+failing surface, `false` when it is a mere trigger you ruled out, omitted only when no blame
+PR was supplied at all. The workflow reads it before naming the blamed author in the PR body
+or requesting their review, and treats anything other than `true` — including a missing
+field — as "do not mention or request review from this person." Get this field right; it is
+the only thing standing between an uninvolved contributor and an unwanted mention.
 
 The repository must be `camunda/connectors` or
 `camunda/c8-cross-component-e2e-tests`, must match the one changed repository, and the
