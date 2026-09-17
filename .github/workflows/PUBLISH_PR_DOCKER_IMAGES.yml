@@ -50,6 +50,17 @@ jobs:
       # which commit was actually built, never from repo/artifact content. A stale run
       # (PR advanced since the build), a mismatched run, a closed PR, or a fork PR stops
       # here before any secret is touched.
+      #
+      # It also independently requires the live PR to carry `docker-images-required` or
+      # `deploy-preview` right now. BUILD_PR_DOCKER_IMAGES.yml's own label check cannot be
+      # trusted as authorization: that workflow is `pull_request`-triggered, so its
+      # definition (including its `if:` condition) is read from the PR's own branch and
+      # is PR-editable content (`.github/**/*.yml` has no required CODEOWNERS review). A
+      # same-repository PR author could otherwise strip that gate in their own PR and
+      # force a successful build-job run - carrying no secrets itself - purely to make
+      # this trusted workflow believe it was authorized. Re-checking the label here,
+      # against the live PR rather than anything the untrusted run produced, closes that
+      # bypass regardless of what the source workflow's condition says.
       - name: Resolve and verify PR context
         id: pr
         uses: actions/github-script@v9
@@ -92,7 +103,17 @@ jobs:
               return;
             }
 
-            const deployPreview = pr.labels.some((label) => label.name === 'deploy-preview');
+            const labelNames = pr.labels.map((label) => label.name);
+            const isAuthorized = labelNames.includes('docker-images-required') || labelNames.includes('deploy-preview');
+            if (!isAuthorized) {
+              core.setFailed(
+                `PR #${prNumber} does not currently carry docker-images-required or ` +
+                `deploy-preview; refusing to import secrets or publish`
+              );
+              return;
+            }
+
+            const deployPreview = labelNames.includes('deploy-preview');
             core.setOutput('number', String(prNumber));
             core.setOutput('deploy_preview', String(deployPreview));
             core.setOutput('head_sha', headSha);
