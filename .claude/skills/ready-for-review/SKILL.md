@@ -13,9 +13,12 @@ Final pass before requesting review: strip comments added on this branch, squash
 
 ### 1. Remove comments added on this branch
 
+Resolve the actual target branch once, and reuse it (as `$BASE`) for every diff, log, hash, and reset command below — don't hard-code `origin/main`, since a branch may target `stable/*` or another base:
+
 ```
-git merge-base origin/main HEAD
-git diff --name-only $(git merge-base origin/main HEAD)...HEAD
+BASE="origin/$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null || echo main)"
+git merge-base "$BASE" HEAD
+git diff --name-only $(git merge-base "$BASE" HEAD)...HEAD
 ```
 
 Exclude non-code files (`.json`, `.md`, `.yml`, generated element templates) unless they contain relevant source comments.
@@ -33,16 +36,16 @@ Remove qualifying comments (and, if a comment was the only content of a block, r
 Show the user the current commit log first and **stop for confirmation** before rewriting anything — this is a hard-to-reverse operation:
 
 ```
-git log origin/main...HEAD --oneline
+git log "$BASE"...HEAD --oneline
 ```
 
 After confirmation, snapshot the diff for a safety check, then squash:
 
 ```
-TREE_BEFORE=$(git diff origin/main...HEAD | sha256sum)
-git reset --soft $(git merge-base origin/main HEAD)
+TREE_BEFORE=$(git diff "$BASE"...HEAD | sha256sum)
+git reset --soft $(git merge-base "$BASE" HEAD)
 git commit -m "<message>"
-TREE_AFTER=$(git diff origin/main...HEAD | sha256sum)
+TREE_AFTER=$(git diff "$BASE"...HEAD | sha256sum)
 ```
 
 Infer `<message>` from the overall diff/branch name if the user hasn't given one; ask only if genuinely ambiguous. If `$TREE_BEFORE` != `$TREE_AFTER`, stop and report the mismatch — do not proceed — and point to `git reflog` for recovery.
@@ -53,8 +56,10 @@ Never force-push as part of this step. Report that a force-push (`git push --for
 
 Hard cap: **200 words. Target ~100.** Summarize what changed and why — no restating the diff file-by-file, no narrating the work session. A short bullet list is fine if it stays within the cap.
 
-If a PR already exists for this branch (`gh pr view --json number,body`), update it in place:
+If a PR already exists for this branch (`gh pr view --json number,body`), update it in place. Pass the description through a quoted heredoc and `--body-file` rather than a shell argument, so quotes, backticks, and `$()` in the text can't be interpreted by the shell:
 ```
-gh pr edit <number> --body "<description>"
+gh pr edit <number> --body-file - <<'EOF'
+<description>
+EOF
 ```
 Otherwise print the draft description for the user to use when opening the PR.
