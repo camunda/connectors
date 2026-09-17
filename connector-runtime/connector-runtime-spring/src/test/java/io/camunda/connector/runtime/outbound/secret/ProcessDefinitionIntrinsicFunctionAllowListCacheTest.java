@@ -1,0 +1,153 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.runtime.outbound.secret;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import io.camunda.connector.runtime.core.intrinsic.AllowedIntrinsicFunction;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import java.io.ByteArrayInputStream;
+import java.time.Instant;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.cache.concurrent.ConcurrentMapCache;
+
+class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
+
+  private static final String GITHUB_STYLE_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="github_task" name="GitHub">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input source="=githubPat" target="fallbackToken" />
+                <zeebe:input
+                    source="={&quot;camunda.function.type&quot;:&quot;createGithubAppInstallationToken&quot;,&quot;params&quot;:[key]}"
+                    target="authentication.token" />
+                <zeebe:input source="={probeResult: hookResult.request.body.probe}" target="body" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
+  private ProcessDefinitionModelCache modelCacheReturning(String xml) {
+    var modelCache = mock(ProcessDefinitionModelCache.class);
+    var model = Bpmn.readModelFromStream(new ByteArrayInputStream(xml.getBytes()));
+    when(modelCache.getModel(eq(42L), any())).thenReturn(model);
+    return modelCache;
+  }
+
+  @Test
+  void aLiterallyDeclaredFunctionCallIsAllowedAtItsOwnFieldPath() {
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a",
+            modelCacheReturning(GITHUB_STYLE_XML),
+            new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(
+                42L, "github_task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .contains(
+            new AllowedIntrinsicFunction(
+                "createGithubAppInstallationToken", List.of("authentication", "token")));
+  }
+
+  @Test
+  void aDynamicIoMappingWithNoLiteralDeclarationContributesNoAllowedFunction() {
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a",
+            modelCacheReturning(GITHUB_STYLE_XML),
+            new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(
+                42L, "github_task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).noneMatch(a -> a.fieldPath().equals(List.of("body")));
+  }
+
+  @Test
+  void anElementWithNoIoMappingAtAllReturnsAnEmptyList() {
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a",
+            modelCacheReturning(GITHUB_STYLE_XML),
+            new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(
+                42L, "no_such_element", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void twoPhysicalTenantsSharingOneCacheDoNotLeakAllowedFunctionsBetweenEachOther() {
+    var sharedCache = new ConcurrentMapCache("allow-list");
+    var cacheForTenantA =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(GITHUB_STYLE_XML), sharedCache);
+    var emptyModelCache = mock(ProcessDefinitionModelCache.class);
+    when(emptyModelCache.getModel(eq(42L), any()))
+        .thenReturn(
+            Bpmn.readModelFromStream(
+                new ByteArrayInputStream(
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                                      id="defs2" targetNamespace="http://bpmn.io/schema/bpmn">
+                      <bpmn:process id="proc" isExecutable="true">
+                        <bpmn:serviceTask id="github_task" name="Other" />
+                      </bpmn:process>
+                    </bpmn:definitions>
+                    """
+                        .getBytes())));
+    var cacheForTenantB =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-b", emptyModelCache, sharedCache);
+
+    var allowedA =
+        cacheForTenantA.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(
+                42L, "github_task", Instant.now().plusSeconds(30)));
+    var allowedB =
+        cacheForTenantB.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(
+                42L, "github_task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowedA).isNotEmpty();
+    assertThat(allowedB).isEmpty();
+  }
+}
