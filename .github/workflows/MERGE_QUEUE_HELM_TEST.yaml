@@ -314,7 +314,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    timeout-minutes: 25
+    # Must stay above `wait-downstream`'s own 40min deadline. When this fires
+    # first the runner kills the step mid-poll, the job lands as `cancelled`,
+    # and the loop's timeout path never runs -- so the failure surfaces with
+    # no reason attached. Keep the loop as the timeout mechanism and this as
+    # the backstop for what a deadline cannot bound: a single `gh api` call
+    # that hangs indefinitely rather than returning an error to retry.
+    timeout-minutes: 50
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
     outputs:
@@ -434,6 +440,35 @@ jobs:
           TARGET_REPO="camunda/c8-cross-component-e2e-tests"
           WORKFLOW_FILE="playwright_saas_pr_trigger_connectors.yml"
 
+          # Bound the wait by wall clock rather than by a tick count. A tick
+          # is not a fixed cost: a poll whose `gh_api_with_retry` exhausts its
+          # backoff burns up to 62s on top of the 30s tick, so counting ticks
+          # says nothing about how long this step runs (80 ticks is ~40min at
+          # best and ~123min at worst). Only an absolute deadline keeps the
+          # loop -- not the runner -- the thing that ends the wait, which is
+          # what lets the timeout path below report a reason.
+          #
+          # 40min is sized off the downstream connectors suite's observed
+          # distribution (median ~18min, p90 ~31min, p95 ~35min over the last
+          # 100 runs). Raise it if that suite grows, and keep the job-level
+          # `timeout-minutes` above it.
+          WAIT_DEADLINE=$(( $(date +%s) + 40 * 60 ))
+
+          # Never sleep past the deadline: both the loop condition and the
+          # retry backoff are only re-checked between sleeps, so an unguarded
+          # sleep is exactly how the overshoot creeps back in.
+          deadline_sleep() {
+            local want="$1" remaining
+            remaining=$(( WAIT_DEADLINE - $(date +%s) ))
+            if (( remaining <= 0 )); then
+              return 0
+            fi
+            if (( remaining > want )); then
+              remaining="$want"
+            fi
+            sleep "$remaining"
+          }
+
           gh_api_with_retry() {
             local endpoint="$1"
             local max_attempts="${2:-6}"
@@ -447,7 +482,7 @@ jobs:
                 return 0
               fi
 
-              if echo "$out" | grep -Eq 'HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF'; then
+              if echo "$out" | grep -Eq 'HTTP 500|HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF|tls: failed to verify certificate|x509: certificate|stream error|GOAWAY|broken pipe|no such host|connection refused'; then
                 if (( attempt >= max_attempts )); then
                   echo "gh api failed after ${attempt}/${max_attempts} attempts for $endpoint" >&2
                   echo "$out" >&2
@@ -455,36 +490,55 @@ jobs:
                 fi
                 echo "Transient gh/api error (attempt ${attempt}/${max_attempts}) for $endpoint:" >&2
                 echo "$out" >&2
-                sleep "$sleep_s"
+                deadline_sleep "$sleep_s"
                 attempt=$((attempt + 1))
                 sleep_s=$((sleep_s * 2))
                 continue
               fi
 
+              # Exit code 2 marks a permanent error (bad token, renamed workflow
+              # file) so the caller fails fast instead of polling to the timeout,
+              # and is distinguishable from the retry-exhausted 1 above -- which
+              # must NOT end the wait, since a transient blip that outlasts the
+              # backoff is exactly what the next tick is for.
               echo "Non-retryable gh/api error for $endpoint:" >&2
               echo "$out" >&2
-              return 1
+              return 2
             done
           }
 
           RUN_ID=""
 
-          for _ in {1..80}; do
+          while (( $(date +%s) < WAIT_DEADLINE )); do
             if [[ -z "$RUN_ID" ]]; then
+              # Capture the API call separately from the jq parse. Piping it
+              # straight into jq under `set -o pipefail` made a retry-exhausted
+              # transient blip abort the whole step, so a 30s GitHub hiccup
+              # failed the merge-queue gate instead of being retried on the
+              # next tick. Only a permanent error (exit 2) aborts now.
+              RUNS_JSON="" RC=0
+              RUNS_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50")" || RC=$?
+              if (( RC == 2 )); then
+                exit 1
+              elif (( RC != 0 )); then
+                echo "Could not list downstream runs on this poll; retrying on the next tick." >&2
+                deadline_sleep 30
+                continue
+              fi
+
               RUN_ID=$(
-                gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50" \
-                | jq -r --arg c "$CORRELATION_ID" '
+                jq -r --arg c "$CORRELATION_ID" '
                     .workflow_runs
                     | map(select(.display_title != null and (.display_title | contains($c))))
                     | sort_by(.created_at)
                     | last
                     | .id // empty
-                  '
+                  ' <<<"$RUNS_JSON"
               )
 
               if [[ -z "$RUN_ID" ]]; then
                 echo "No downstream run found yet for correlation id. Sleeping..."
-                sleep 30
+                deadline_sleep 30
                 continue
               fi
 
@@ -492,7 +546,16 @@ jobs:
               echo "downstream_run_url=https://github.com/$TARGET_REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
             fi
 
-            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")"
+            RUN_JSON="" RC=0
+            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")" || RC=$?
+            if (( RC == 2 )); then
+              exit 1
+            elif (( RC != 0 )); then
+              echo "Could not read downstream run $RUN_ID on this poll; retrying on the next tick." >&2
+              deadline_sleep 30
+              continue
+            fi
+
             STATUS="$(jq -r .status <<<"$RUN_JSON")"
             CONCLUSION="$(jq -r .conclusion <<<"$RUN_JSON")"
             echo "Workflow run $RUN_ID status: $STATUS ($CONCLUSION)"
@@ -507,7 +570,7 @@ jobs:
               fi
             fi
 
-            sleep 30
+            deadline_sleep 30
           done
 
           echo "Timed out waiting for downstream workflow to complete."
