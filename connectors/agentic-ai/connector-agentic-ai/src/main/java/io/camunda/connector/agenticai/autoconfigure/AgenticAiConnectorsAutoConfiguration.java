@@ -75,8 +75,10 @@ import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -142,11 +144,13 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
-      CamundaClient camundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       AdHocToolElementParameterExtractor parameterExtractor) {
     final var processDefinitionClient =
         new ProcessDefinitionClient(
-            camundaClient, configuration.tools().processDefinition().retries());
+            PhysicalTenantClients.defaultClient(
+                camundaClientProvider, "aiAgentProcessDefinitionToolElementsResolver"),
+            configuration.tools().processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             processDefinitionClient, parameterExtractor);
@@ -205,12 +209,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceClient aiAgentInstanceClient(
-      CamundaClient camundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       AgenticAiConnectorsConfigurationProperties configuration,
       AgentInstanceHistoryMapper historyMapper,
       AgentInstanceToolMapper toolMapper) {
     return new CamundaAgentInstanceClient(
-        camundaClient,
+        PhysicalTenantClients.defaultClient(camundaClientProvider, "aiAgentInstanceClient"),
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
         historyMapper,

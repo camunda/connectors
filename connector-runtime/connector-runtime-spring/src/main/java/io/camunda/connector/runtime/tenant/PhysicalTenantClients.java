@@ -23,6 +23,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * Physical-tenant resolution helpers shared by the direction-agnostic {@code @Configuration}
@@ -44,7 +47,74 @@ import java.util.stream.Collectors;
  */
 public final class PhysicalTenantClients {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PhysicalTenantClients.class);
+
   private PhysicalTenantClients() {}
+
+  /**
+   * Resolves the {@code CamundaClient} that per-physical-tenant builders fall back to when the
+   * registry cannot resolve a client name itself (see {@link #resolveClient}): the sole configured
+   * client, or the one designated {@code camunda.clients.<name>.primary=true}.
+   *
+   * <p>Returns {@code null} when several clients are configured and none is designated primary,
+   * which is exactly the case where a fallback must not be applied anyway — substituting one
+   * tenant's client for another's lookup failure would misroute silently. A plain {@code @Autowired
+   * CamundaClient} parameter cannot express this: {@code required = false} covers the "no bean"
+   * case but still fails the whole context with {@code NoUniqueBeanDefinitionException} on an
+   * ambiguous one (#8977).
+   */
+  public static CamundaClient legacyClient(ObjectProvider<CamundaClient> camundaClientProvider) {
+    return camundaClientProvider.getIfUnique();
+  }
+
+  /**
+   * Resolves the {@code CamundaClient} backing one of the legacy scalar, single-client beans kept
+   * for backward compatibility ({@code documentStore}, {@code secretKeyCache}, {@code
+   * brokerJobStreamClient}, the ambient FEEL evaluator): the sole configured client, or the one
+   * designated {@code camunda.clients.<name>.primary=true}.
+   *
+   * <p>When several clients are configured and none is designated primary there is no such client,
+   * so the first one is used and a warning naming {@code beanName} is logged. Every
+   * physical-tenant-aware path — job worker fan-out, inbound executables, the {@code /outbound}
+   * listing — goes through the per-physical-tenant maps built from the registry instead, so this
+   * choice only affects code injecting one of those scalar beans directly; designating a primary
+   * client makes it explicit.
+   */
+  public static CamundaClient defaultClient(
+      ObjectProvider<CamundaClient> camundaClientProvider, String beanName) {
+    var uniqueClient = camundaClientProvider.getIfUnique();
+    if (uniqueClient != null) {
+      return uniqueClient;
+    }
+    var client =
+        camundaClientProvider
+            .orderedStream()
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "No CamundaClient configured for '" + beanName + "'"));
+    LOG.warn(
+        "Several CamundaClients are configured and none is designated primary; the single-client "
+            + "'{}' bean is bound to the client of physical tenant '{}'. Set "
+            + "camunda.clients.<name>.primary=true to choose explicitly.",
+        beanName,
+        readPhysicalTenantIdIfAvailable(client));
+    return client;
+  }
+
+  /**
+   * Reads the client's configured physical tenant ID for logging, tolerating the case where its
+   * configuration cannot be read at all — some test doubles defer real initialization until a test
+   * container is ready and throw if queried during Spring context startup.
+   */
+  private static String readPhysicalTenantIdIfAvailable(CamundaClient client) {
+    try {
+      return client.getConfiguration().getPhysicalTenantId();
+    } catch (RuntimeException e) {
+      return "unknown";
+    }
+  }
 
   /**
    * Enumerates the configured client names: the {@link CamundaClientRegistry}'s own names when a

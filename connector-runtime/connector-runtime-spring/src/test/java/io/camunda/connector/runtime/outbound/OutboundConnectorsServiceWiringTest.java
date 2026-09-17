@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -93,7 +94,7 @@ class OutboundConnectorsServiceWiringTest {
     return configuration.outboundConnectorsService(
         connectorFactory,
         registry,
-        null,
+        clientProvider(),
         injected,
         ConnectorsObjectMapperSupplier.getCopy(),
         9600,

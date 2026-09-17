@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.outbound;
 
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNames;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.defaultClient;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.legacyClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolvePhysicalTenantId;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
@@ -68,6 +70,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -229,7 +232,8 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public CamundaDocumentStore documentStore(CamundaClient camundaClient) {
+  public CamundaDocumentStore documentStore(ObjectProvider<CamundaClient> camundaClientProvider) {
+    var camundaClient = defaultClient(camundaClientProvider, "documentStore");
     return new CamundaDocumentStoreImpl(
         camundaClient, readPhysicalTenantIdIfAvailable(camundaClient));
   }
@@ -313,16 +317,17 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   public Map<String, CamundaDocumentStore> documentStoresByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
-    return buildDocumentStoresByPhysicalTenantId(registry, legacyCamundaClient);
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return buildDocumentStoresByPhysicalTenantId(registry, legacyClient(camundaClientProvider));
   }
 
   @Bean
   public Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) DocumentFactory documentFactory) {
-    return buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
+    return buildDocumentFactoriesByPhysicalTenantId(
+        registry, legacyClient(camundaClientProvider), documentFactory);
   }
 
   @Bean
@@ -359,7 +364,7 @@ public class OutboundConnectorRuntimeConfiguration {
       havingValue = "true",
       matchIfMissing = true)
   public BrokerJobStreamClient brokerJobStreamClient(
-      CamundaClient camundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @ConnectorsObjectMapper ObjectMapper mapper,
       @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
       @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
@@ -367,7 +372,8 @@ public class OutboundConnectorRuntimeConfiguration {
     if (!uris.isEmpty()) {
       return new BrokerJobStreamClient(uris, mapper);
     }
-    return new BrokerJobStreamClient(camundaClient, monitoringPort, mapper);
+    return new BrokerJobStreamClient(
+        defaultClient(camundaClientProvider, "brokerJobStreamClient"), monitoringPort, mapper);
   }
 
   private static List<URI> parseMonitoringAddresses(String addresses) {
@@ -444,11 +450,12 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorsService outboundConnectorsService(
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient,
       @ConnectorsObjectMapper ObjectMapper mapper,
       @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
       @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
+    var legacyCamundaClient = legacyClient(camundaClientProvider);
     return new OutboundConnectorsService(
         outboundConnectorConfigurationRegistry,
         physicalTenantIds(registry, legacyCamundaClient),
@@ -503,7 +510,9 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
+      ObjectProvider<CamundaClient> camundaClientProvider,
+      SecretKeyCacheHolder secretKeyCacheStore) {
+    var camundaClient = defaultClient(camundaClientProvider, "secretKeyCache");
     return new ProcessDefinitionSecretKeyCache(
         resolvePhysicalTenantIdOrDefault(camundaClient),
         camundaClient,
@@ -558,21 +567,24 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   public Map<String, SecretKeyCache> secretKeyCachesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       SecretKeyCacheHolder secretKeyCacheStore) {
     return buildSecretKeyCachesByPhysicalTenantId(
-        registry, legacyCamundaClient, secretKeyCacheStore.cache());
+        registry, legacyClient(camundaClientProvider), secretKeyCacheStore.cache());
   }
 
   @Bean
   public Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       SecretKeyCacheHolder secretKeyCacheStore,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     return buildSecretFilterFactoriesByPhysicalTenantId(
-        registry, legacyCamundaClient, secretKeyCacheStore.cache(), secretFilterMode);
+        registry,
+        legacyClient(camundaClientProvider),
+        secretKeyCacheStore.cache(),
+        secretFilterMode);
   }
 
   /**
@@ -596,13 +608,14 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) DocumentFactory documentFactory,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCacheHolder secretKeyCacheStore,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
       Optional<MeterRegistry> meterRegistry) {
+    var legacyCamundaClient = legacyClient(camundaClientProvider);
     var documentFactoriesByPhysicalTenantId =
         buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
     var secretFilterFactoriesByPhysicalTenantId =

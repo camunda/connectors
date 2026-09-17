@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,7 +69,7 @@ class InboundCorrelationConfigurationTest {
     var result =
         configuration.inboundCorrelationHandler(
             registry,
-            null,
+            clientProvider(),
             mock(ObjectMapper.class),
             mock(DocumentFactory.class),
             mock(ConnectorsInboundMetrics.class));
@@ -89,7 +90,7 @@ class InboundCorrelationConfigurationTest {
             () ->
                 configuration.inboundCorrelationHandler(
                     registry,
-                    null,
+                    clientProvider(),
                     mock(ObjectMapper.class),
                     mock(DocumentFactory.class),
                     mock(ConnectorsInboundMetrics.class)))
