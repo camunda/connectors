@@ -50,19 +50,23 @@ class IntrinsicFunctionAllowListTest {
   }
 
   @Test
-  void allowOnlyMatchesAPathThatExtendsTheDeclaredOne() {
-    // Mirrors Secret's own field-path semantics: a declaration at "authentication" also covers
-    // "authentication.token" — the runtime value at the deeper path is still the declared one.
+  void allowOnlyDoesNotMatchAPathThatExtendsTheDeclaredOne() {
+    // Deliberately unlike Secret's field-path semantics (see class javadoc): a declaration at
+    // "authentication.token" must not also authorize "authentication.token.extra" — that deeper
+    // path can only be populated by some other, separately-sourced zeebe:input, which is exactly
+    // the injection this class exists to refuse.
     var allowList =
         IntrinsicFunctionAllowList.allowOnly(
             List.of(
                 new AllowedIntrinsicFunction(
-                    "createGithubAppInstallationToken", List.of("authentication"))));
+                    "createGithubAppInstallationToken", List.of("authentication", "token"))));
 
     assertThat(
             allowList.isAllowed(
-                new Call("createGithubAppInstallationToken", List.of("authentication", "token"))))
-        .isTrue();
+                new Call(
+                    "createGithubAppInstallationToken",
+                    List.of("authentication", "token", "extra"))))
+        .isFalse();
   }
 
   @Test

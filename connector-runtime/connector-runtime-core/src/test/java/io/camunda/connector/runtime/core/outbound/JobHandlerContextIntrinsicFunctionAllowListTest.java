@@ -103,4 +103,41 @@ class JobHandlerContextIntrinsicFunctionAllowListTest {
 
     assertThat(result.body()).isEqualTo("hello");
   }
+
+  @Test
+  void theSourceCompatibilityConstructorDefaultsToRefusingIntrinsicFunctionDispatch() {
+    // The 6-arg constructor (no IntrinsicFunctionAllowList argument) is a source-compatibility
+    // overload for callers compiled before the allow-list existed. It must default to
+    // allowNone(), not allowAll(): the only production caller (SpringConnectorJobHandler) always
+    // supplies a real allow-list via the 7-arg constructor, so nothing production-relevant
+    // depends on this default ever permitting dispatch.
+    var context =
+        new JobHandlerContext(
+            jobWithVariables(EXPLOIT_JSON),
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(DocumentFactory.class),
+            ConnectorsObjectMapperSupplier.getCopy(),
+            SecretFilter.allowAll());
+
+    assertThatThrownBy(() -> context.bindVariables(TargetType.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("createLink");
+  }
+
+  @Test
+  void theSourceCompatibilityConstructorStillBindsOrdinaryDataNormally() {
+    var context =
+        new JobHandlerContext(
+            jobWithVariables("{\"body\": \"hello\"}"),
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(DocumentFactory.class),
+            ConnectorsObjectMapperSupplier.getCopy(),
+            SecretFilter.allowAll());
+
+    var result = context.bindVariables(TargetType.class);
+
+    assertThat(result.body()).isEqualTo("hello");
+  }
 }

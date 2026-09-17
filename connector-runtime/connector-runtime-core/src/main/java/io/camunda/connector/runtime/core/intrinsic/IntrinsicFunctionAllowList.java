@@ -21,9 +21,21 @@ import java.util.Set;
 
 /**
  * Determines whether a {@code camunda.function.type} call at a given field path may be dispatched.
- * Mirrors {@code io.camunda.connector.runtime.core.secret.SecretFilter}'s shape and reasoning: only
- * a call the deployed BPMN model literally declares at that exact field (or a path beneath it) may
- * run; anything else arrived as data, not model text. See security-testing-findings#275.
+ * See security-testing-findings#275.
+ *
+ * <p>Unlike {@code io.camunda.connector.runtime.core.secret.SecretFilter}, a grant is <em>not</em>
+ * inherited by a descendant path. A secret's text can be interpolated into a larger value another,
+ * deeper field then reads — so {@code Secret} deliberately authorizes at-or-beneath the declared
+ * path. An intrinsic-function call has no equivalent: {@code
+ * ProcessDefinitionIntrinsicFunctionAllowListCache} always declares a function at the exact {@code
+ * zeebe:input} target whose evaluated value <em>is</em> that call, in full, never a path some other
+ * field merely reads from. Every shipped element template (checked directly) declares a call this
+ * way; none nests one intrinsic-function literal inside another's {@code params}, so exact matching
+ * costs nothing today. A prefix grant, in contrast, would authorize a same-named call arriving from
+ * an entirely different, attacker-sourced {@code zeebe:input} whose target merely happens to extend
+ * a declared one (e.g. a declaration at {@code authentication.token} would also authorize one
+ * injected at {@code authentication.token.extra}) — the same failure mode this class exists to
+ * close, one level removed.
  */
 @FunctionalInterface
 public interface IntrinsicFunctionAllowList {
@@ -37,15 +49,13 @@ public interface IntrinsicFunctionAllowList {
   }
 
   /**
-   * @param allowed the permitted (functionName, fieldPath) pairs. An empty list denies everything.
+   * @param allowed the permitted (functionName, fieldPath) pairs, matched exactly — not by prefix.
+   *     An empty list denies everything.
    */
   static IntrinsicFunctionAllowList allowOnly(List<AllowedIntrinsicFunction> allowed) {
     var set = Set.copyOf(allowed);
     return call ->
-        set.stream()
-            .filter(a -> a.functionName().equals(call.functionName()))
-            .filter(a -> call.fieldPath().size() >= a.fieldPath().size())
-            .anyMatch(a -> call.fieldPath().subList(0, a.fieldPath().size()).equals(a.fieldPath()));
+        set.contains(new AllowedIntrinsicFunction(call.functionName(), call.fieldPath()));
   }
 
   boolean isAllowed(Call call);

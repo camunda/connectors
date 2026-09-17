@@ -65,8 +65,13 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   /**
    * Source-compatibility overload for existing callers compiled before the intrinsic-function
-   * allow-list was introduced: defaults to {@link IntrinsicFunctionAllowList#allowAll()}, i.e. the
-   * pre-allow-list behavior.
+   * allow-list was introduced. Defaults to {@link IntrinsicFunctionAllowList#allowNone()} —
+   * deliberately the secure default, not {@code allowAll()}: the one production caller ({@code
+   * SpringConnectorJobHandler}) always uses the 7-arg constructor with a real per-job allow-list,
+   * so nothing production-relevant depends on this overload dispatching a {@code
+   * camunda.function.type} call at all. A caller that genuinely needs one (e.g. a test exercising
+   * legitimate dispatch) should pass an explicit {@link IntrinsicFunctionAllowList} via the 7-arg
+   * constructor instead of relying on this default.
    */
   public JobHandlerContext(
       final ActivatedJob job,
@@ -82,7 +87,7 @@ public class JobHandlerContext extends AbstractConnectorContext
         documentFactory,
         objectMapper,
         secretFilter,
-        IntrinsicFunctionAllowList.allowAll());
+        IntrinsicFunctionAllowList.allowNone());
   }
 
   public JobHandlerContext(
