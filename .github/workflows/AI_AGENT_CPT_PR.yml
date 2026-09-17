@@ -1,15 +1,19 @@
 name: AI Agent CPT Tests (PR)
 
 # Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI, see #8234) on a PR before it
-# reaches the merge queue, gated by the `ai-agent-cpt` label so it isn't triggered accidentally.
+# reaches the merge queue, gated by the `ai-agent-model-e2e-test` label so it isn't triggered
+# accidentally. Named for the capability being verified (real-LLM AI Agent model E2E coverage),
+# not the underlying test-framework acronym, so it stays meaningful if that framework changes.
 #
 # Deliberately a standalone workflow rather than adding `pull_request` to MERGE_QUEUE_HELM_TEST.yaml:
 # that file's build-image job also feeds trigger-sm-e2e/trigger-saas-e2e, which gate only on
 # build-image producing a version - reusing it here would arm both on every labeled PR.
 #
 # Build and test share a single job: the bundle image is built with `load: true` (never pushed),
-# so it's only ever available to this job's own Docker daemon - no push/pull round trip, no Harbor
-# credentials in this workflow's blast radius, and no orphan tags left behind in the registry.
+# so it's only ever available to this job's own Docker daemon - no push/pull round trip, no
+# Harbor login/push happens in this job (the ARTIFACTORY_USR/ARTIFACTORY_PSW secrets it does
+# import are only used for Maven/Nexus auth, not for Docker registry access), and no orphan tags
+# left behind in the registry.
 on:
   pull_request:
     types: [ labeled, synchronize ]
@@ -20,7 +24,7 @@ on:
 # condition below for what counts as a real CPT trigger. Any other labeled event keeps its own
 # label name as the suffix, so it lands in a separate group and never touches a real CPT run.
 concurrency:
-  group: ai-agent-cpt-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'ai-agent-cpt' || (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-cpt'))) && 'cpt' || (github.event.label.name || github.event.action) }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'ai-agent-model-e2e-test' || (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test'))) && 'cpt' || (github.event.label.name || github.event.action) }}
   cancel-in-progress: true
 
 permissions:
@@ -42,8 +46,8 @@ jobs:
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository && (
-        github.event.label.name == 'ai-agent-cpt' ||
-        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-cpt'))
+        github.event.label.name == 'ai-agent-model-e2e-test' ||
+        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test'))
       )
     steps:
       - uses: actions/checkout@v7
@@ -139,8 +143,8 @@ jobs:
 
       # Fails fast with a clear error if the bundle jar wasn't produced, rather than a confusing
       # Docker COPY failure downstream. Checks the actual glob the Dockerfile depends on, not just
-      # that target/ exists. Same check MERGE_QUEUE_HELM_TEST.yaml runs after its own equivalent
-      # build step.
+      # that target/ exists - stricter than MERGE_QUEUE_HELM_TEST.yaml's own post-build step,
+      # which only runs a plain `ls -lh` on the directory without asserting the jar itself exists.
       - name: Check default-bundle jar exists
         if: steps.changes.outputs.ai == 'true'
         run: ls -lh apps/bundle/default-bundle/target/*-with-dependencies.jar
