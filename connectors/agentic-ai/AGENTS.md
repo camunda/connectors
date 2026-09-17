@@ -155,6 +155,10 @@ General coding behavior (think before coding, simplicity, surgical changes, goal
 lives in [`docs/coding-guidelines.md`](docs/coding-guidelines.md). The rules below are the module
 specifics.
 
+### Element-template guidance
+
+- Keep visible property descriptions to one short line. Move decision help and documentation links into the tooltip; reserve the description for a concise `Note:` or `Warning:` that must remain visible.
+
 ### Building & testing
 
 ```bash
