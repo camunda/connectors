@@ -20,9 +20,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredenti
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.VertexAiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -98,12 +101,21 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   group = "provider",
                   label = "Google Gemini API credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable Google Gemini API credential.")
+                  tooltip =
+                      "Choose a reusable Google Gemini API credential, or configure connection and authentication below.")
               @Valid
               @Nullable GoogleGeminiApiCredential credential,
-          @TemplateProperty(ignore = true) @Nullable String apiKey,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  secret = true,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -152,13 +164,28 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   group = "provider",
                   label = "Vertex AI credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable Vertex AI credential.")
+                  tooltip =
+                      "Choose a reusable Vertex AI credential, or configure connection and authentication below.")
               @Valid
               @Nullable VertexAiCredential credential,
-          @TemplateProperty(ignore = true) @Nullable String projectId,
-          @TemplateProperty(ignore = true) @Nullable String region,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Project ID",
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String projectId,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Region",
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String region,
           // Hidden: never shown in the modeler. Exists solely so e2e tests can point the client
           // at a local WireMock server via HttpOptions.baseUrl(); real deployments never set it.
           // Mirrors GoogleGeminiApi's own hidden endpoint field 1:1 (same rationale).
@@ -170,7 +197,9 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable String endpoint,
-          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+          @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable GoogleVertexAiAuthentication authentication) {
 
         public GoogleVertexAi(

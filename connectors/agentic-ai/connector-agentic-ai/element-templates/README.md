@@ -22,14 +22,17 @@ on Camunda 8.10, use AI Agent (v2) template version `2`.
 See the [AI Agent connector documentation](https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
 
-The current v2 templates require reusable credentials for model connections and do not expose inline
-authentication fallbacks. Provider, backend, API, and model settings remain local to the task.
-Gateway endpoints and Bedrock endpoints/regions can still be overridden per task. Older templates
-and existing inline configurations remain supported by the runtime; v1 templates are unchanged.
+The current v2 templates offer optional reusable credentials for model connections. Leave the
+credential chooser empty to configure authentication and connection settings inline, including in
+c8run without creating a credential. Selecting a credential hides the inline fallback fields and
+makes the credential authoritative. Provider, backend, API, and model settings remain local to the task.
+Gateway endpoints and Bedrock endpoints/regions can still be overridden per task; gateway endpoints
+and Bedrock regions are required inline when no credential supplies them. Older templates remain
+supported by the runtime; v1 templates are unchanged.
 Custom provider beans and conversation-memory connections are outside this credential support.
 AI Gateway credentials offer API-key or OAuth 2.0 client-credentials authentication in one
-credential type, shared by the Anthropic and OpenAI custom backends. Anthropic no-auth remains
-available to older inline jobs but is not exposed by the credential-only templates.
+credential type, shared by the Anthropic and OpenAI custom backends. Both methods are also available
+inline. Anthropic additionally offers an inline no-auth option.
 
 ### AI Agent Task
 

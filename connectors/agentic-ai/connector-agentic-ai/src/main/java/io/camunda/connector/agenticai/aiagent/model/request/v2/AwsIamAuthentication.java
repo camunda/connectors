@@ -12,8 +12,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.BedrockApiKeyCredential;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -27,12 +30,15 @@ record AwsIamAuthentication(
             group = "provider",
             label = "AWS credential",
             type = PropertyType.Configuration,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
-            tooltip = "Choose a reusable AWS credential.")
+            tooltip =
+                "Choose a reusable AWS credential, or configure connection and authentication below.")
         @Valid
         @Nullable AwsCredentialConfiguration awsCredential,
-    @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+    @NestedProperties(
+            condition =
+                @PropertyCondition(property = "awsCredential", isEmpty = NullableBoolean.TRUE))
         @Nullable AwsIamInlineAuthentication inlineAuthentication)
     implements AwsAuthentication {
 
@@ -83,7 +89,7 @@ record AwsIamAuthentication(
     group = "provider",
     name = "type",
     defaultValue = "credentials",
-    description = "Specify the one-time AWS IAM authentication strategy.")
+    tooltip = "Specify the one-time AWS IAM authentication strategy.")
 sealed interface AwsIamInlineAuthentication {
 
   @TemplateSubType(id = "credentials", label = "Credentials")
@@ -93,6 +99,7 @@ sealed interface AwsIamInlineAuthentication {
               group = "provider",
               label = "Access key",
               type = PropertyType.String,
+              secret = true,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String accessKey,
@@ -101,6 +108,7 @@ sealed interface AwsIamInlineAuthentication {
               group = "provider",
               label = "Secret key",
               type = PropertyType.String,
+              secret = true,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String secretKey)
@@ -123,12 +131,23 @@ record BedrockApiKeyAuthentication(
             group = "provider",
             label = "Amazon Bedrock API key credential",
             type = PropertyType.Configuration,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "bedrockApiKeyCredential"),
-            tooltip = "Choose a reusable Amazon Bedrock API key credential.")
+            tooltip =
+                "Choose a reusable Amazon Bedrock API key credential, or configure connection and authentication below.")
         @Valid
         @Nullable BedrockApiKeyCredential bedrockApiKeyCredential,
-    @TemplateProperty(ignore = true) @Nullable String apiKey)
+    @TemplateProperty(
+            group = "provider",
+            label = "API key",
+            secret = true,
+            feel = FeelMode.optional,
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            condition =
+                @PropertyCondition(
+                    property = "bedrockApiKeyCredential",
+                    isEmpty = NullableBoolean.TRUE))
+        @Nullable String apiKey)
     implements AwsAuthentication {
 
   @JsonIgnore

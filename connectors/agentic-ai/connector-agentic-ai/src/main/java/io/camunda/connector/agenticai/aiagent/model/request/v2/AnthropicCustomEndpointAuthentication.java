@@ -53,6 +53,7 @@ public sealed interface AnthropicCustomEndpointAuthentication
               group = "provider",
               label = "API key",
               type = TemplateProperty.PropertyType.String,
+              secret = true,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)

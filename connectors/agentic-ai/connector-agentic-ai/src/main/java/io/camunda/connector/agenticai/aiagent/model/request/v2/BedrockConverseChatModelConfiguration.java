@@ -14,6 +14,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutCon
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -46,16 +49,87 @@ public record BedrockConverseChatModelConfiguration(
 
   /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
   public record BedrockConverseConnection(
+      @Valid @NotNull AwsAuthentication authentication,
       @TemplateProperty(
               group = "provider",
-              label = "AWS region override",
-              tooltip =
-                  "Overrides the credential's region. Required if the AWS credential has no default region.",
+              label = "AWS region",
               placeholder = "eu-west-1",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              optional = true)
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+              condition =
+                  @PropertyCondition(
+                      property = "",
+                      allMatch = {
+                        @NestedPropertyCondition(
+                            property = "authentication.type",
+                            equals = "awsIam"),
+                        @NestedPropertyCondition(
+                            property = "authentication.awsCredential",
+                            isEmpty = NullableBoolean.TRUE)
+                      }))
           @Nullable String region,
+      @JsonIgnore
+          @TemplateProperty(
+              group = "provider",
+              label = "AWS region",
+              feel = FeelMode.optional,
+              placeholder = "eu-west-1",
+              binding = @TemplateProperty.PropertyBinding(name = "region"),
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+              condition =
+                  @PropertyCondition(
+                      property = "",
+                      allMatch = {
+                        @NestedPropertyCondition(
+                            property = "authentication.type",
+                            equals = "bedrockApiKey"),
+                        @NestedPropertyCondition(
+                            property = "authentication.bedrockApiKeyCredential",
+                            isEmpty = NullableBoolean.TRUE)
+                      }))
+          @Nullable String apiKeyRegion,
+      @JsonIgnore
+          @TemplateProperty(
+              group = "provider",
+              label = "AWS region override",
+              feel = FeelMode.optional,
+              optional = true,
+              tooltip =
+                  "Overrides the reusable credential's region. Required if the AWS credential has no default region.",
+              binding = @TemplateProperty.PropertyBinding(name = "region"),
+              condition =
+                  @PropertyCondition(
+                      property = "",
+                      allMatch = {
+                        @NestedPropertyCondition(
+                            property = "authentication.type",
+                            equals = "awsIam"),
+                        @NestedPropertyCondition(
+                            property = "authentication.awsCredential",
+                            isEmpty = NullableBoolean.FALSE)
+                      }))
+          @Nullable String iamRegionOverride,
+      @JsonIgnore
+          @TemplateProperty(
+              group = "provider",
+              label = "AWS region override",
+              feel = FeelMode.optional,
+              optional = true,
+              tooltip = "Overrides the reusable credential's region.",
+              binding = @TemplateProperty.PropertyBinding(name = "region"),
+              condition =
+                  @PropertyCondition(
+                      property = "",
+                      allMatch = {
+                        @NestedPropertyCondition(
+                            property = "authentication.type",
+                            equals = "bedrockApiKey"),
+                        @NestedPropertyCondition(
+                            property = "authentication.bedrockApiKeyCredential",
+                            isEmpty = NullableBoolean.FALSE)
+                      }))
+          @Nullable String apiKeyRegionOverride,
       @HttpUrl
           @TemplateProperty(
               group = "provider",
@@ -68,7 +142,6 @@ public record BedrockConverseChatModelConfiguration(
               feel = FeelMode.optional,
               optional = true)
           @Nullable String endpoint,
-      @Valid @NotNull AwsAuthentication authentication,
       @TemplateProperty(
               group = "advanced-provider-options",
               label = "HTTP headers",
@@ -93,6 +166,29 @@ public record BedrockConverseChatModelConfiguration(
           @Nullable Map<String, Object> bodyProperties,
       @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull BedrockConverseModel model) {
+
+    public BedrockConverseConnection(
+        @Nullable String region,
+        @Nullable String endpoint,
+        AwsAuthentication authentication,
+        @Nullable Map<String, String> headers,
+        @Nullable Map<String, String> queryParameters,
+        @Nullable Map<String, Object> bodyProperties,
+        @Nullable TimeoutConfiguration timeouts,
+        BedrockConverseModel model) {
+      this(
+          authentication,
+          region,
+          null,
+          null,
+          null,
+          endpoint,
+          headers,
+          queryParameters,
+          bodyProperties,
+          timeouts,
+          model);
+    }
 
     public @Nullable String region() {
       if (region != null && !region.isBlank()) {

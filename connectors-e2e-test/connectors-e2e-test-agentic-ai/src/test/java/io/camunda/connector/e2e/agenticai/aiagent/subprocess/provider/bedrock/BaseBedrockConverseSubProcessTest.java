@@ -58,7 +58,7 @@ abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessTest
   private ElementTemplate configureBedrockBackend(ElementTemplate template) {
     return template
         .property("provider.type", "bedrock")
-        .property("provider.bedrock.region", "us-east-1")
+        .property("provider.bedrock.iamRegionOverride", "us-east-1")
         .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
         .property("provider.bedrock.authentication.type", "awsIam")
         .property(

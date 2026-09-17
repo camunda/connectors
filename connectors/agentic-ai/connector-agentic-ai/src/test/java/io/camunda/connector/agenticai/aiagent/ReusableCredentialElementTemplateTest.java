@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -71,6 +72,40 @@ class ReusableCredentialElementTemplateTest {
     assertSecret(template, "io.camunda:agentic-ai-gateway-credential:1", "authentication.apiKey");
     assertSecret(
         template, "io.camunda:agentic-ai-gateway-credential:1", "authentication.clientSecret");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "element-templates/agenticai-ai-agent-task.v2.json",
+        "element-templates/agenticai-ai-agent-subprocess.v2.json",
+        "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void marksInlineAuthenticationSecrets(String templatePath) throws Exception {
+    List<JsonNode> properties =
+        OBJECT_MAPPER
+            .readTree(Path.of(templatePath).toFile())
+            .path("properties")
+            .valueStream()
+            .toList();
+    List<JsonNode> secrets =
+        properties.stream()
+            .filter(field -> field.path("id").asText().startsWith("provider."))
+            .filter(
+                field ->
+                    List.of(".apiKey", ".accessKey", ".secretKey", ".clientSecret", ".jsonKey")
+                        .stream()
+                        .anyMatch(field.path("id").asText()::endsWith))
+            .toList();
+
+    assertThat(secrets)
+        .hasSize(16)
+        .allSatisfy(
+            field ->
+                assertThat(field.path("secret").asBoolean())
+                    .as(field.path("id").asText())
+                    .isTrue());
   }
 
   @ParameterizedTest
@@ -145,7 +180,8 @@ class ReusableCredentialElementTemplateTest {
         "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
         "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
-  void requiresCredentialsWithoutInlineProviderFallbacks(String templatePath) throws Exception {
+  void offersOptionalCredentialsWithConditionalInlineFallbacks(String templatePath)
+      throws Exception {
     JsonNode template = OBJECT_MAPPER.readTree(Path.of(templatePath).toFile());
     List<JsonNode> properties = template.path("properties").valueStream().toList();
     List<JsonNode> credentials =
@@ -157,36 +193,63 @@ class ReusableCredentialElementTemplateTest {
         .hasSize(11)
         .allSatisfy(
             credential -> {
-              assertThat(credential.path("constraints").path("notEmpty").asBoolean()).isTrue();
-              assertThat(credential.path("optional").asBoolean()).isFalse();
+              assertThat(credential.path("constraints").path("notEmpty").asBoolean()).isFalse();
+              assertThat(credential.path("optional").asBoolean()).isTrue();
               assertThat(credential.path("condition").toString())
                   .doesNotContain("isEmpty", "inlineAuthentication");
             });
 
-    List<String> fallbackPaths =
-        List.of(
-            "provider.anthropic.backend.anthropic.apiKey",
-            "provider.anthropic.backend.custom.authentication",
-            "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication",
-            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-            "provider.bedrock.authentication.inlineAuthentication",
-            "provider.bedrock.authentication.apiKey",
-            "provider.openai.backend.openai.apiKey",
-            "provider.openai.backend.openai.organizationId",
-            "provider.openai.backend.openai.projectId",
-            "provider.openai.backend.foundry.endpoint",
-            "provider.openai.backend.foundry.authentication",
-            "provider.openai.backend.custom.authentication",
-            "provider.googleGemini.backend.googleGeminiApi.apiKey",
-            "provider.googleGemini.backend.googleVertexAi.projectId",
-            "provider.googleGemini.backend.googleVertexAi.region",
-            "provider.googleGemini.backend.googleVertexAi.authentication");
-    assertThat(properties)
-        .extracting(property -> property.path("binding").path("name").asText())
-        .noneMatch(
-            binding ->
-                fallbackPaths.stream()
-                    .anyMatch(path -> binding.equals(path) || binding.startsWith(path + ".")));
+    Map<String, List<String>> fallbacks =
+        Map.ofEntries(
+            Map.entry("provider.anthropic.backend.anthropic.credential", List.of("apiKey")),
+            Map.entry(
+                "provider.anthropic.backend.custom.credential",
+                List.of("authentication", "endpoint")),
+            Map.entry(
+                "provider.openai.backend.openai.credential",
+                List.of("apiKey", "organizationId", "projectId")),
+            Map.entry(
+                "provider.openai.backend.foundry.credential",
+                List.of("endpoint", "authentication")),
+            Map.entry(
+                "provider.openai.backend.custom.credential", List.of("endpoint", "authentication")),
+            Map.entry(
+                "provider.googleGemini.backend.googleGeminiApi.credential", List.of("apiKey")),
+            Map.entry(
+                "provider.googleGemini.backend.googleVertexAi.credential",
+                List.of("projectId", "region", "authentication")),
+            Map.entry(
+                "provider.bedrock.authentication.awsCredential", List.of("inlineAuthentication")),
+            Map.entry("provider.bedrock.authentication.bedrockApiKeyCredential", List.of("apiKey")),
+            Map.entry(
+                "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+                List.of("inlineAuthentication")),
+            Map.entry(
+                "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+                List.of("apiKey")));
+    fallbacks.forEach(
+        (chooserId, paths) -> {
+          String prefix = chooserId.substring(0, chooserId.lastIndexOf('.') + 1);
+          for (String path : paths) {
+            String id = prefix + path;
+            List<JsonNode> fields =
+                properties.stream()
+                    .filter(
+                        field ->
+                            field.path("id").asText().equals(id)
+                                || field.path("id").asText().startsWith(id + "."))
+                    .toList();
+            assertThat(fields)
+                .as(id)
+                .isNotEmpty()
+                .allSatisfy(
+                    field -> {
+                      assertEmptyCondition(field, chooserId, true);
+                      assertThat(properties.indexOf(property(properties, chooserId)))
+                          .isLessThan(properties.indexOf(field));
+                    });
+          }
+        });
 
     JsonNode gateway = property(properties, "provider.anthropic.backend.custom.credential");
     assertThat(gateway.path("condition").toString()).doesNotContain("authentication.type");
@@ -200,7 +263,7 @@ class ReusableCredentialElementTemplateTest {
         "element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json",
         "element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
-  void retainsOptionalConnectionOverrides(String templatePath) throws Exception {
+  void requiresInlineConnectionsAndRetainsOptionalOverrides(String templatePath) throws Exception {
     List<JsonNode> properties =
         OBJECT_MAPPER
             .readTree(Path.of(templatePath).toFile())
@@ -208,16 +271,57 @@ class ReusableCredentialElementTemplateTest {
             .valueStream()
             .toList();
 
-    for (String id :
-        List.of(
-            "provider.anthropic.backend.custom.endpoint",
-            "provider.openai.backend.custom.endpoint",
-            "provider.anthropic.backend.awsBedrockMantle.region",
-            "provider.bedrock.region")) {
-      JsonNode override = property(properties, id);
-      assertThat(override.path("optional").asBoolean()).isTrue();
-      assertThat(override.path("constraints").path("notEmpty").asBoolean()).isFalse();
+    for (String prefix :
+        List.of("provider.anthropic.backend.custom", "provider.openai.backend.custom")) {
+      assertConnectionPair(
+          properties, prefix + ".endpoint", prefix + ".endpointOverride", prefix + ".credential");
     }
+    for (String prefix :
+        List.of("provider.anthropic.backend.awsBedrockMantle", "provider.bedrock")) {
+      assertConnectionPair(
+          properties,
+          prefix + ".region",
+          prefix + ".iamRegionOverride",
+          prefix + ".authentication.awsCredential");
+      assertConnectionPair(
+          properties,
+          prefix + ".apiKeyRegion",
+          prefix + ".apiKeyRegionOverride",
+          prefix + ".authentication.bedrockApiKeyCredential");
+      assertThat(
+              property(properties, prefix + ".apiKeyRegion").path("binding").path("name").asText())
+          .isEqualTo(prefix + ".region");
+      for (String field : List.of("region", "iamRegionOverride")) {
+        assertThat(property(properties, prefix + "." + field).path("condition").toString())
+            .contains("\"equals\":\"awsIam\"");
+      }
+      for (String field : List.of("apiKeyRegion", "apiKeyRegionOverride")) {
+        assertThat(property(properties, prefix + "." + field).path("condition").toString())
+            .contains("\"equals\":\"bedrockApiKey\"");
+      }
+    }
+  }
+
+  private static void assertConnectionPair(
+      List<JsonNode> properties, String inlineId, String overrideId, String chooserId) {
+    JsonNode inline = property(properties, inlineId);
+    JsonNode override = property(properties, overrideId);
+    assertThat(inline.path("constraints").path("notEmpty").asBoolean()).isTrue();
+    assertThat(override.path("constraints").path("notEmpty").asBoolean()).isFalse();
+    assertThat(override.path("optional").asBoolean()).isTrue();
+    assertThat(override.path("binding")).isEqualTo(inline.path("binding"));
+    assertEmptyCondition(inline, chooserId, true);
+    assertEmptyCondition(override, chooserId, false);
+  }
+
+  private static void assertEmptyCondition(JsonNode field, String chooserId, boolean empty) {
+    assertThat(field.path("condition").path("allMatch").valueStream().toList())
+        .anySatisfy(
+            condition -> {
+              assertThat(condition.path("property").asText()).isEqualTo(chooserId);
+              assertThat(condition.path("isEmpty").isBoolean()).isTrue();
+              assertThat(condition.path("isEmpty").asBoolean()).isEqualTo(empty);
+            });
   }
 
   @ParameterizedTest
@@ -277,8 +381,8 @@ class ReusableCredentialElementTemplateTest {
     assertThat(awsCredential.path("condition").toString()).contains("\"equals\":\"awsIam\"");
     assertThat(apiKeyCredential.path("condition").toString())
         .contains("\"equals\":\"bedrockApiKey\"");
-    assertThat(awsCredential.path("constraints").path("notEmpty").asBoolean()).isTrue();
-    assertThat(apiKeyCredential.path("constraints").path("notEmpty").asBoolean()).isTrue();
+    assertThat(awsCredential.path("optional").asBoolean()).isTrue();
+    assertThat(apiKeyCredential.path("optional").asBoolean()).isTrue();
   }
 
   private static void assertSecret(JsonNode template, String configurationId, String bindingName) {

@@ -418,6 +418,76 @@ class ReusableCredentialBindingTest {
         configuration -> assertThat(validator.validate(configuration)).isNotEmpty());
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+    {"type":"anthropic","anthropic":{"backend":{"type":"anthropic-api","anthropic":{"apiKey":"key"}},"model":{"model":"claude"}}}
+    """,
+        """
+    {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"openai-api","openai":{"apiKey":"key","organizationId":"org","projectId":"project"}},"model":{"model":"gpt"}}}
+    """,
+        """
+    {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"foundry","foundry":{"endpoint":"https://foundry.example","authentication":{"type":"clientCredentials","clientId":"client","clientSecret":"secret","tenantId":"tenant"}}},"model":{"model":"gpt"}}}
+    """,
+        """
+    {"type":"google-gemini","googleGemini":{"backend":{"type":"google-gemini-api","googleGeminiApi":{"apiKey":"key"}},"model":{"model":"gemini"}}}
+    """,
+        """
+    {"type":"google-gemini","googleGemini":{"backend":{"type":"google-vertex-ai","googleVertexAi":{"projectId":"project","region":"us-central1","authentication":{"type":"serviceAccountCredentials","jsonKey":"{}"}}},"model":{"model":"gemini"}}}
+    """,
+        """
+    {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{"endpoint":"https://gateway.example","authentication":{"type":"none"}}},"model":{"model":"claude"}}}
+    """
+      })
+  void acceptsInlineConfigurationWithoutReusableCredentials(String json) throws Exception {
+    assertThat(validator.validate(read(json))).isEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+    {"type":"anthropic","anthropic":{"backend":{"type":"anthropic-api","anthropic":{}},"model":{"model":"claude"}}}
+    """,
+        """
+    {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"openai-api","openai":{}},"model":{"model":"gpt"}}}
+    """,
+        """
+    {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"foundry","foundry":{}},"model":{"model":"gpt"}}}
+    """,
+        """
+    {"type":"google-gemini","googleGemini":{"backend":{"type":"google-gemini-api","googleGeminiApi":{}},"model":{"model":"gemini"}}}
+    """,
+        """
+    {"type":"google-gemini","googleGemini":{"backend":{"type":"google-vertex-ai","googleVertexAi":{}},"model":{"model":"gemini"}}}
+    """,
+        """
+    {"type":"openai","openai":{"api":{"type":"responses"},"backend":{"type":"custom","custom":{}},"model":{"model":"gpt"}}}
+    """,
+        """
+    {"type":"anthropic","anthropic":{"backend":{"type":"custom","custom":{}},"model":{"model":"claude"}}}
+    """
+      })
+  void rejectsMissingCredentialAndInlineConfiguration(String json) throws Exception {
+    assertThat(validator.validate(read(json)))
+        .extracting(ConstraintViolation::getMessage)
+        .anyMatch(message -> message.contains("credential or element template"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(BedrockProvider.class)
+  void validatesInlineBedrockApiKeyAndRequiresItsRegion(BedrockProvider provider) throws Exception {
+    String authentication =
+        """
+        {"type":"bedrockApiKey","apiKey":"inline-key"}
+        """;
+    assertThat(validator.validate(readBedrock(provider, authentication))).isEmpty();
+    assertThat(validator.validate(readBedrock(provider, authentication, "")))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("An AWS region is required from the credential or element template");
+  }
+
   @Test
   void rejectsInvalidSelectedCredentialInsteadOfFallingBackToInlineAuthentication()
       throws Exception {

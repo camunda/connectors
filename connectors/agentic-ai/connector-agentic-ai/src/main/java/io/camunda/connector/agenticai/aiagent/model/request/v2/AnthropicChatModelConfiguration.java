@@ -22,9 +22,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredenti
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AnthropicApiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -102,12 +106,21 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   group = "provider",
                   label = "Anthropic API credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable Anthropic API credential.")
+                  tooltip =
+                      "Choose a reusable Anthropic API credential, or configure connection and authentication below.")
               @Valid
               @Nullable AnthropicApiCredential credential,
-          @TemplateProperty(ignore = true) @Nullable String apiKey,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  feel = FeelMode.optional,
+                  secret = true,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -190,16 +203,87 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record AwsBedrockMantleBackend(
+          @Valid @NotNull AwsAuthentication authentication,
           @TemplateProperty(
                   group = "provider",
-                  label = "AWS region override",
-                  tooltip =
-                      "Overrides the credential's region. Required if the AWS credential has no default region.",
+                  label = "AWS region",
                   placeholder = "eu-west-1",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  optional = true)
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(
+                          property = "",
+                          allMatch = {
+                            @NestedPropertyCondition(
+                                property = "authentication.type",
+                                equals = "awsIam"),
+                            @NestedPropertyCondition(
+                                property = "authentication.awsCredential",
+                                isEmpty = NullableBoolean.TRUE)
+                          }))
               @Nullable String region,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "AWS region",
+                  feel = FeelMode.optional,
+                  placeholder = "eu-west-1",
+                  binding = @TemplateProperty.PropertyBinding(name = "region"),
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(
+                          property = "",
+                          allMatch = {
+                            @NestedPropertyCondition(
+                                property = "authentication.type",
+                                equals = "bedrockApiKey"),
+                            @NestedPropertyCondition(
+                                property = "authentication.bedrockApiKeyCredential",
+                                isEmpty = NullableBoolean.TRUE)
+                          }))
+              @Nullable String apiKeyRegion,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "AWS region override",
+                  feel = FeelMode.optional,
+                  optional = true,
+                  tooltip =
+                      "Overrides the reusable credential's region. Required if the AWS credential has no default region.",
+                  binding = @TemplateProperty.PropertyBinding(name = "region"),
+                  condition =
+                      @PropertyCondition(
+                          property = "",
+                          allMatch = {
+                            @NestedPropertyCondition(
+                                property = "authentication.type",
+                                equals = "awsIam"),
+                            @NestedPropertyCondition(
+                                property = "authentication.awsCredential",
+                                isEmpty = NullableBoolean.FALSE)
+                          }))
+              @Nullable String iamRegionOverride,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "AWS region override",
+                  feel = FeelMode.optional,
+                  optional = true,
+                  tooltip = "Overrides the reusable credential's region.",
+                  binding = @TemplateProperty.PropertyBinding(name = "region"),
+                  condition =
+                      @PropertyCondition(
+                          property = "",
+                          allMatch = {
+                            @NestedPropertyCondition(
+                                property = "authentication.type",
+                                equals = "bedrockApiKey"),
+                            @NestedPropertyCondition(
+                                property = "authentication.bedrockApiKeyCredential",
+                                isEmpty = NullableBoolean.FALSE)
+                          }))
+              @Nullable String apiKeyRegionOverride,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -214,7 +298,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.optional,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull AwsAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -240,6 +323,25 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
+
+        public AwsBedrockMantleBackend(
+            @Nullable String region,
+            @Nullable String endpoint,
+            AwsAuthentication authentication,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties) {
+          this(
+              authentication,
+              region,
+              null,
+              null,
+              null,
+              endpoint,
+              headers,
+              queryParameters,
+              bodyProperties);
+        }
 
         @Override
         public @Nullable String region() {
@@ -296,27 +398,51 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record CustomBackend(
-          @Valid @TemplateProperty(type = PropertyType.Hidden, ignore = true)
-              @Nullable AnthropicCustomEndpointAuthentication authentication,
           @TemplateProperty(
                   group = "provider",
                   label = "AI Gateway credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable AI Gateway credential.")
+                  tooltip =
+                      "Choose a reusable AI Gateway credential, or configure connection and authentication below.")
               @Valid
               @Nullable AiGatewayCredential credential,
+          @Valid
+              @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable AnthropicCustomEndpointAuthentication authentication,
           @TemplateProperty(
                   group = "provider",
-                  label = "API endpoint override",
+                  label = "API endpoint",
                   tooltip =
-                      "Overrides the credential's gateway endpoint. <code>/v1/messages</code> is appended automatically.",
+                      "The gateway endpoint. <code>/v1/messages</code> is appended automatically.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.anthropic.com",
-                  optional = true)
+                  constraints =
+                      @TemplateProperty.PropertyConstraints(
+                          notEmpty = true,
+                          pattern =
+                              @TemplateProperty.Pattern(
+                                  value = "^https?://.+",
+                                  message = "Must be an HTTP or HTTPS URL")),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable String endpoint,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint override",
+                  tooltip =
+                      "Overrides the reusable credential's gateway endpoint. <code>/v1/messages</code> is appended automatically.",
+                  feel = FeelMode.optional,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.FALSE))
+              @Nullable String endpointOverride,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -351,6 +477,17 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   case null -> null;
                 };
           }
+        }
+
+        public CustomBackend(
+            @Nullable AnthropicCustomEndpointAuthentication authentication,
+            @Nullable AiGatewayCredential credential,
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties) {
+          this(
+              credential, authentication, endpoint, null, headers, queryParameters, bodyProperties);
         }
 
         public CustomBackend(

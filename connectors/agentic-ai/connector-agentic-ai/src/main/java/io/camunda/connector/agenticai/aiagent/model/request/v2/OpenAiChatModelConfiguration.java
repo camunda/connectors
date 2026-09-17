@@ -24,9 +24,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredenti
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.OpenAiApiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -274,14 +277,37 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "provider",
                   label = "OpenAI API credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable OpenAI API credential.")
+                  tooltip =
+                      "Choose a reusable OpenAI API credential, or configure connection and authentication below.")
               @Valid
               @Nullable OpenAiApiCredential credential,
-          @TemplateProperty(ignore = true) @Nullable String apiKey,
-          @TemplateProperty(ignore = true) @Nullable String organizationId,
-          @TemplateProperty(ignore = true) @Nullable String projectId,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  secret = true,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String apiKey,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Organization ID",
+                  optional = true,
+                  feel = FeelMode.optional,
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String organizationId,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Project ID",
+                  optional = true,
+                  feel = FeelMode.optional,
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String projectId,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -395,12 +421,26 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "provider",
                   label = "Microsoft Foundry credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable Microsoft Foundry credential.")
+                  tooltip =
+                      "Choose a reusable Microsoft Foundry credential, or configure connection and authentication below.")
               @Valid
               @Nullable MicrosoftFoundryCredential credential,
-          @TemplateProperty(ignore = true) @Nullable String endpoint,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Resource endpoint",
+                  feel = FeelMode.optional,
+                  constraints =
+                      @TemplateProperty.PropertyConstraints(
+                          notEmpty = true,
+                          pattern =
+                              @TemplateProperty.Pattern(
+                                  value = "^https?://.+",
+                                  message = "Must be an HTTP or HTTPS URL")),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String endpoint,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "API version",
@@ -412,7 +452,9 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable String apiVersion,
-          @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+          @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable FoundryAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
@@ -699,21 +741,42 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "provider",
                   label = "AI Gateway credential",
                   type = PropertyType.Configuration,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  optional = true,
                   binding = @TemplateProperty.PropertyBinding(name = "credential"),
-                  tooltip = "Choose a reusable AI Gateway credential.")
+                  tooltip =
+                      "Choose a reusable AI Gateway credential, or configure connection and authentication below.")
               @Valid
               @Nullable AiGatewayCredential credential,
           @TemplateProperty(
                   group = "provider",
-                  label = "API endpoint override",
+                  label = "API endpoint",
                   tooltip =
-                      "Overrides the credential's gateway endpoint. <code>/chat/completions</code> or <code>/responses</code> is appended depending on the selected API.",
+                      "The gateway endpoint. <code>/chat/completions</code> or <code>/responses</code> is appended depending on the selected API.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.openai.com/v1",
-                  optional = true)
+                  constraints =
+                      @TemplateProperty.PropertyConstraints(
+                          notEmpty = true,
+                          pattern =
+                              @TemplateProperty.Pattern(
+                                  value = "^https?://.+",
+                                  message = "Must be an HTTP or HTTPS URL")),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable String endpoint,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint override",
+                  feel = FeelMode.optional,
+                  tooltip =
+                      "Overrides the reusable credential's gateway endpoint. The selected API path is appended automatically.",
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.FALSE))
+              @Nullable String endpointOverride,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "Headers",
@@ -736,13 +799,27 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @Valid @TemplateProperty(type = PropertyType.Hidden, ignore = true)
+          @Valid
+              @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable OpenAiCustomEndpointAuthentication authentication) {
 
         public CustomBackend {
           if (credential != null) {
             authentication = credential.authentication();
           }
+        }
+
+        public CustomBackend(
+            @Nullable AiGatewayCredential credential,
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties,
+            @Nullable OpenAiCustomEndpointAuthentication authentication) {
+          this(
+              credential, endpoint, null, headers, queryParameters, bodyProperties, authentication);
         }
 
         public CustomBackend(

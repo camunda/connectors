@@ -16,6 +16,12 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.anthropic;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +36,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Anthropic-only e2e coverage for the Anthropic reasoning ({@code thinking}) and {@code effort}
@@ -49,12 +57,16 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
   // Thinking configuration on the wire
   // ---------------------------------------------------------------------------
 
-  @Test
-  void enabledThinkingWithBudgetTokensAppearsOnTheWire() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"credential", "apiKey", "oauth-client-credentials-flow"})
+  void enabledThinkingWithBudgetTokensAppearsOnTheWire(String authentication) throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
     StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(okJson("{\"access_token\":\"inline-oauth-token\",\"expires_in\":3600}")));
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
@@ -66,7 +78,28 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
                             "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
-        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
+        createProcessInstance(
+            elementTemplateModifier.andThen(
+                template -> {
+                  if (authentication.equals("credential")) {
+                    return template;
+                  }
+                  String prefix = "provider.anthropic.backend.custom";
+                  return template
+                      .property(prefix + ".credential", "")
+                      .property(prefix + ".endpoint", wireMock.getHttpBaseUrl())
+                      .property(prefix + ".authentication.type", authentication)
+                      .property(prefix + ".authentication.apiKey", "dummy")
+                      .property(
+                          prefix + ".authentication.oauthTokenEndpoint",
+                          wireMock.getHttpBaseUrl() + "/oauth/token")
+                      .property(prefix + ".authentication.clientId", "client")
+                      .property(prefix + ".authentication.clientSecret", "secret");
+                }),
+            Map.of("userPrompt", userPrompt)));
+    verify(
+        authentication.equals("oauth-client-credentials-flow") ? 1 : 0,
+        postRequestedFor(urlPathEqualTo("/oauth/token")));
 
     final var request = parseBody(soleRecordedRequest());
     final var thinking = request.path("thinking");
