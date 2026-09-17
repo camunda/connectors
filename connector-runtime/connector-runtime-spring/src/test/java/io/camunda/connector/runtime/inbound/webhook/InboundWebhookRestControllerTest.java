@@ -50,6 +50,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -231,9 +232,11 @@ class InboundWebhookRestControllerTest {
   void feelExpressionFailure_doesNotExposeReasonOrExpressionToCallerOrLogs() throws Exception {
     // Regression test for https://github.com/camunda/security-testing-findings/issues/265:
     // a FEEL evaluation failure (e.g. from a verification expression evaluated before/without
-    // authentication) must not leak its reason or expression text to the caller, nor to the
-    // application log: a verification expression can resolve secrets (e.g. {{secrets.X}}) at
-    // bind time, and application logs commonly ship to third-party aggregators.
+    // authentication) must not leak its reason or expression text to the caller, the application
+    // log, or the connector's activity log: a verification expression can resolve secrets (e.g.
+    // {{secrets.X}}) at bind time. ActivityLogRegistry both retains the activity for later query
+    // and re-emits its message through SLF4J, so it is checked as its own exposure surface,
+    // alongside the controller's own logger and the HTTP response.
     var activityLogRegistry = new ActivityLogRegistry();
     var executable = mock(WebhookConnectorExecutable.class);
     when(executable.verify(any(WebhookProcessingPayload.class)))
@@ -243,6 +246,7 @@ class InboundWebhookRestControllerTest {
 
     var correlationHandler = mock(InboundCorrelationHandler.class);
     var details = webhookDefinition("processA", 1, "myPath");
+    var executableId = ExecutableId.fromDeduplicationId(details.deduplicationId());
     var context =
         new InboundConnectorContextImpl(
             new NullSecretProvider(),
@@ -255,9 +259,7 @@ class InboundWebhookRestControllerTest {
             mock(CamundaClient.class));
 
     var registry = new WebhookConnectorRegistry();
-    registry.register(
-        new RegisteredExecutable.Activated(
-            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+    registry.register(new RegisteredExecutable.Activated(executable, context, executableId));
 
     var controller = new InboundWebhookRestController(registry);
 
@@ -271,7 +273,9 @@ class InboundWebhookRestControllerTest {
               } catch (IOException ex) {
                 throw new UncheckedIOException(ex);
               }
-            });
+            },
+            InboundWebhookRestController.class,
+            ActivityLogRegistry.class);
     var responseEntity = responseEntityHolder.get();
 
     assertThat(responseEntity.getStatusCode().value()).isEqualTo(422);
@@ -283,24 +287,38 @@ class InboundWebhookRestControllerTest {
         .isNotEmpty()
         .noneMatch(
             message -> message.contains("secret leak reason") || message.contains("SUPER_SECRET"));
+
+    // The activity itself (retained for later query, independent of the SLF4J re-emission above)
+    // must not carry the secret either.
+    assertThat(latestActivity(activityLogRegistry, executableId).message())
+        .doesNotContain("secret leak reason")
+        .doesNotContain("SUPER_SECRET");
   }
 
   /**
-   * Every message {@link InboundWebhookRestController}'s logger emits while {@code action} runs,
+   * Every message emitted, while {@code action} runs, by the loggers of the given classes,
    * formatted as it would be written.
    */
-  private static List<String> logsOf(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(InboundWebhookRestController.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
+  private static List<String> logsOf(Runnable action, Class<?>... loggerClasses) {
+    var loggers =
+        Arrays.stream(loggerClasses).map(c -> (Logger) LoggerFactory.getLogger(c)).toList();
+    var appenders = loggers.stream().map(logger -> new ListAppender<ILoggingEvent>()).toList();
+    for (int i = 0; i < loggers.size(); i++) {
+      appenders.get(i).start();
+      loggers.get(i).addAppender(appenders.get(i));
+    }
     try {
       action.run();
     } finally {
-      logger.detachAppender(appender);
-      appender.stop();
+      for (int i = 0; i < loggers.size(); i++) {
+        loggers.get(i).detachAppender(appenders.get(i));
+        appenders.get(i).stop();
+      }
     }
-    return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+    return appenders.stream()
+        .flatMap(appender -> appender.list.stream())
+        .map(ILoggingEvent::getFormattedMessage)
+        .toList();
   }
 
   private static io.camunda.connector.api.inbound.Activity latestActivity(

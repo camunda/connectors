@@ -252,11 +252,19 @@ public class InboundWebhookRestController {
       connector
           .context()
           .log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.ERROR)
-                      .withTag(payload.method())
-                      .withMessage("Webhook processing failed", e));
+              activity -> {
+                var builder = activity.withSeverity(Severity.ERROR).withTag(payload.method());
+                if (e instanceof FeelEngineWrapperException) {
+                  // The reason/expression must not reach this log either: a verification
+                  // expression can resolve secrets (e.g. {{secrets.X}}) at bind time, and
+                  // ActivityLogRegistry both retains this message and re-emits it through SLF4J
+                  // (see buildErrorResponse for the same rationale on the HTTP response/app log).
+                  builder.withMessage(
+                      "Webhook processing failed: FEEL expression evaluation failed");
+                } else {
+                  builder.withMessage("Webhook processing failed", e);
+                }
+              });
       response = buildErrorResponse(e);
     }
     return response;
@@ -374,7 +382,7 @@ public class InboundWebhookRestController {
       // aggregator. Only the exception type is safe to record.
       LOG.warn("Webhook FEEL expression evaluation failed");
       response =
-          ResponseEntity.unprocessableEntity()
+          ResponseEntity.unprocessableContent()
               .body(new GenericErrorResponse("Failed to evaluate FEEL expression"));
     } else if (e instanceof ConnectorException connectorException) {
       if (e instanceof WebhookConnectorException webhookConnectorException) {
