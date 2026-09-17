@@ -2625,6 +2625,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
@@ -2824,6 +2825,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {

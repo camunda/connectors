@@ -388,6 +388,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               label = "Model",
               description =
                   "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+              tooltip =
+                  "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, "
+                      + "but can be chosen freely when the deployment is created.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",
