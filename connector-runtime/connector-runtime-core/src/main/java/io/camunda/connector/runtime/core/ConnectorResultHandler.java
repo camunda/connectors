@@ -99,6 +99,7 @@ public class ConnectorResultHandler {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
+      verifyNoForbiddenLiterals(responseContent);
       outputVariables.put(resultVariableName, responseContent);
     }
 
@@ -323,6 +324,26 @@ public class ConnectorResultHandler {
                   expressionNameForError),
               expression,
               json,
+              e));
+    }
+  }
+
+  /**
+   * Serializes with {@link #documentSerializingObjectMapper} (not {@link #objectMapper}) so a
+   * resolved {@link io.camunda.connector.api.document.Document} in {@code responseContent} doesn't
+   * silently serialize as {@code {}} and hide a forbidden literal nested under it.
+   */
+  private void verifyNoForbiddenLiterals(Object responseContent) {
+    try {
+      verifyNoForbiddenLiterals(
+          documentSerializingObjectMapper.writeValueAsString(responseContent));
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              "Failed to serialize the connector result to verify it contains no forbidden"
+                  + " literals.",
+              null,
+              String.valueOf(responseContent),
               e));
     }
   }

@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
@@ -458,7 +459,10 @@ public class ConnectorsAutoConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    // Binds job variables into a connector's properties, which can carry payload/process data
+    // (e.g. a webhook body or a correlated variable) indistinguishable at this point from model
+    // text, so intrinsic-function dispatch must be disabled here (security-testing-findings#275).
+    var functionExecutor = new DisabledIntrinsicFunctionExecutor();
 
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
