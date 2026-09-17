@@ -12,6 +12,7 @@ import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
@@ -54,12 +55,12 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
-      Map<String, String> headers, JwkProvider jwkProvider) {
+      Map<String, String> headers, JwkProvider jwkProvider, JWTProperties jwtProperties) {
     final String jwtToken =
         JWTAuthHandler.extractJWTFomHeader(headers)
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
-      return Optional.of(JWTAuthHandler.verifyJWT(jwtToken, jwkProvider));
+      return Optional.of(JWTAuthHandler.verifyJWT(jwtToken, jwkProvider, jwtProperties));
     } catch (JWTDecodeException ex) {
       LOGGER.warn("Failed to decode JWT token! Cause: " + ex.getCause());
       return Optional.empty();
@@ -68,6 +69,9 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       return Optional.empty();
     } catch (TokenExpiredException ex) {
       LOGGER.warn("JWT token expired! Cause: " + ex.getCause());
+      return Optional.empty();
+    } catch (InvalidClaimException ex) {
+      LOGGER.warn("JWT token has an invalid or missing claim! Cause: " + ex.getMessage());
       return Optional.empty();
     }
   }
@@ -105,8 +109,9 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
         .map(authorizationHeader -> authorizationHeader.replace("Bearer", "").trim());
   }
 
-  private static DecodedJWT verifyJWT(String jwtToken, JwkProvider jwkProvider)
-      throws SignatureVerificationException, TokenExpiredException {
+  private static DecodedJWT verifyJWT(
+      String jwtToken, JwkProvider jwkProvider, JWTProperties jwtProperties)
+      throws SignatureVerificationException, TokenExpiredException, InvalidClaimException {
     DecodedJWT verifiedJWT =
         Optional.of(JWT.decode(jwtToken))
             .map(
@@ -116,7 +121,11 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
                     var algorithmName =
                         Optional.ofNullable(jwk.getAlgorithm()).orElse(decodedJWT.getAlgorithm());
                     var algorithm = getAlgorithm(algorithmName, jwk.getPublicKey());
-                    return JWT.require(algorithm).build();
+                    return JWT.require(algorithm)
+                        .withIssuer(jwtProperties.issuer())
+                        .withAudience(jwtProperties.audience())
+                        .withClaimPresence("exp")
+                        .build();
                   } catch (InvalidPublicKeyException e) {
                     LOGGER.warn("Token verification failed: {}", e.getMessage());
                     throw new RuntimeException(e);
@@ -150,7 +159,7 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
     JWTProperties jwtProperties = expectedAuthorization.jwt();
     Map<String, String> headers = payload.headers();
 
-    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
+    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider, jwtProperties);
     if (decodedJWT.isEmpty()) {
       return JWT_AUTH_FAILED_RESULT;
     }

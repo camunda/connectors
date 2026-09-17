@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
@@ -17,7 +20,9 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.In
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
+import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +89,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
@@ -108,6 +115,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
@@ -128,6 +137,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN);
@@ -148,6 +159,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN);
@@ -168,6 +181,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN);
@@ -188,6 +203,8 @@ public class JWTAuthHandlerTest {
     JWTProperties jwtProperties =
         new JWTProperties(
             "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
             getRoleExpressionFunction(
                 "=if admin = true then [\"wrongPermission\"] else wrongPermission"),
             List.of("admin"));
@@ -206,7 +223,8 @@ public class JWTAuthHandlerTest {
   public void jwtCheckWithOutRoles() {
     // given jwt, check only signature
     JwkProvider jwkProvider = new TestJwkProvider();
-    JWTProperties jwtProperties = new JWTProperties("https://mockUrl.com", null, null);
+    JWTProperties jwtProperties =
+        new JWTProperties("https://mockUrl.com", "https://idp.local", "api1", null, null);
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -222,7 +240,8 @@ public class JWTAuthHandlerTest {
   public void noAlgProvidedByJwkProvider() {
     // given jwt, check only signature
     JwkProvider jwkProvider = new JwkProviderNoAlg();
-    JWTProperties jwtProperties = new JWTProperties("https://mockUrl.com", null, null);
+    JWTProperties jwtProperties =
+        new JWTProperties("https://mockUrl.com", "https://idp.local", "api1", null, null);
     var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -232,6 +251,178 @@ public class JWTAuthHandlerTest {
 
     // then
     assertThat(verificationResult).isInstanceOf(Success.class);
+  }
+
+  @Test
+  public void jwtCheckCorrectClaimsTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers =
+        Map.of(
+            "Authorization",
+            "Bearer " + generateToken("https://idp.local", "api1", futureExpiry()));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(Success.class);
+  }
+
+  @Test
+  public void jwtCheckWrongIssuerTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers =
+        Map.of(
+            "Authorization",
+            "Bearer " + generateToken("https://attacker.evil", "api1", futureExpiry()));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  @Test
+  public void jwtCheckMissingIssuerTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers = Map.of("Authorization", "Bearer " + generateToken(null, "api1", futureExpiry()));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  @Test
+  public void jwtCheckWrongAudienceTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers =
+        Map.of(
+            "Authorization",
+            "Bearer " + generateToken("https://idp.local", "other-api", futureExpiry()));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  @Test
+  public void jwtCheckMissingAudienceTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers =
+        Map.of(
+            "Authorization", "Bearer " + generateToken("https://idp.local", null, futureExpiry()));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  @Test
+  public void jwtCheckMissingExpiryTest() {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers =
+        Map.of("Authorization", "Bearer " + generateToken("https://idp.local", "api1", null));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  private static Date futureExpiry() {
+    return new Date(System.currentTimeMillis() + 3600000);
+  }
+
+  /**
+   * Mints a token signed with the same RSA key material {@link TestJwkProvider} publishes, so tests
+   * can control exactly which of issuer/audience/expiry claims are present.
+   */
+  private String generateToken(String issuer, String audience, Date expiresAt) {
+    Jwk jwk = new TestJwkProvider().get("c6f8386d31b98b77d83bba35a457aef4");
+    JWTCreator.Builder builder =
+        JWT.create()
+            .withSubject("5be86359073c434bad2da3932222dabe")
+            .withClaim("roles", List.of("admin", "superadmin"))
+            .withClaim("admin", true)
+            .withHeader(Map.of("kid", "c6f8386d31b98b77d83bba35a457aef4"));
+    if (issuer != null) {
+      builder.withIssuer(issuer);
+    }
+    if (audience != null) {
+      builder.withAudience(audience);
+    }
+    if (expiresAt != null) {
+      builder.withExpiresAt(expiresAt);
+    }
+    return builder.sign(Algorithm.RSA256(new TestRSAKeyProvider(jwk)));
   }
 
   static class TestJwkProvider implements JwkProvider {

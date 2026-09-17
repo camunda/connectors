@@ -9,6 +9,7 @@ package io.camunda.connector.inbound.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -21,6 +22,22 @@ public record JWTProperties(
             group = "authorization")
         @FEEL
         String jwkUrl,
+    @TemplateProperty(
+            label = "Issuer",
+            description = "Expected value of the JWT 'iss' claim",
+            feel = FeelMode.optional,
+            group = "authorization")
+        @FEEL
+        @NotBlank
+        String issuer,
+    @TemplateProperty(
+            label = "Audience",
+            description = "Expected value of the JWT 'aud' claim",
+            feel = FeelMode.optional,
+            group = "authorization")
+        @FEEL
+        @NotBlank
+        String audience,
     @TemplateProperty(
             label = "JWT role property expression",
             description =
@@ -37,5 +54,7 @@ public record JWTProperties(
         List<String> requiredPermissions) {
   public JWTProperties {
     Objects.requireNonNull(jwkUrl);
+    Objects.requireNonNull(issuer, "issuer is required for JWT webhook authorization");
+    Objects.requireNonNull(audience, "audience is required for JWT webhook authorization");
   }
 }
