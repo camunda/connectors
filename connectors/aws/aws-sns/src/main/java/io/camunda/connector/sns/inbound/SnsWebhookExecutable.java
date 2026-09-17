@@ -149,19 +149,25 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   private void checkMessageAllowListed(String topicArn) throws Exception {
     if (!SubscriptionAllowListFlag.any.equals(props.securitySubscriptionAllowedFor())
         && !props.topicsAllowListParsed().contains(topicArn)) {
-      // Deliberately omits the allow-list contents and any request payload: operators get enough
-      // to see the attempt (subscription id, rejected topic) without this becoming a config or
-      // data leak.
+      // The first call site passes the caller-controlled header, before signature verification,
+      // so this value is not yet trustworthy: strip CR/LF before it reaches any log line (log
+      // injection, CWE-117).
+      String sanitizedTopicArn = sanitizeForLog(topicArn);
+      // Deliberately omits the allow-list contents and any request payload in both the log and
+      // the exception message below (InboundWebhookRestController logs the exception message
+      // into the connector's activity log): operators get enough to see the attempt (subscription
+      // id, rejected topic) without this becoming a config or data leak.
       LOG.error(
           "Rejected SNS message for subscription '{}': topic '{}' is not allow-listed",
           props.context(),
-          topicArn);
+          sanitizedTopicArn);
       throw new Exception(
-          "Request didn't match allow list. Allow list: "
-              + props.topicsAllowListParsed()
-              + ". Request coming from "
-              + topicArn);
+          "Request didn't match allow list. Request coming from " + sanitizedTopicArn);
     }
+  }
+
+  private static String sanitizeForLog(String value) {
+    return value == null ? null : value.replaceAll("[\r\n]", "_");
   }
 
   @Override
