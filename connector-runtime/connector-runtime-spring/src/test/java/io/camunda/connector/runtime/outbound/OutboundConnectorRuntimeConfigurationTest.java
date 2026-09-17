@@ -20,12 +20,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -186,5 +193,71 @@ class OutboundConnectorRuntimeConfigurationTest {
     var result = configuration.documentFactoriesByPhysicalTenantId(registry, null, null);
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
+  }
+
+  private record ObjectTypedProperty(Object value) {}
+
+  private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory)
+      throws Exception {
+    Method method =
+        OutboundConnectorRuntimeConfiguration.class.getDeclaredMethod(
+            "buildOutboundConnectorObjectMapper", DocumentFactory.class);
+    method.setAccessible(true);
+    return (ObjectMapper) method.invoke(null, documentFactory);
+  }
+
+  private static Map<String, Object> exploitNode() {
+    // The issue's PoC payload: createLink against an arbitrary document reference, arriving as
+    // ordinary Object-typed connector-property data (e.g. an ioMapping expression's result).
+    return Map.of(
+        "camunda.function.type",
+        "createLink",
+        "params",
+        List.of(Map.of("camunda.document.type", "camunda"), "PT1H"));
+  }
+
+  @Test
+  void
+      buildOutboundConnectorObjectMapper_refusesIntrinsicFunctionDispatchThroughAnObjectTypedProperty()
+          throws Exception {
+    // Regression coverage for security-testing-findings#275, on the actual production
+    // per-physical-tenant mapper construction path — the "equivalent surface" duplicating
+    // ConnectorsAutoConfiguration's own outbound mapper builder.
+    ObjectMapper mapper = buildOutboundConnectorObjectMapper(mock(DocumentFactory.class));
+    var payload = Map.of("value", exploitNode());
+
+    assertThatThrownBy(() -> mapper.convertValue(payload, ObjectTypedProperty.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Intrinsic function dispatch is disabled");
+  }
+
+  @Test
+  void buildOutboundConnectorObjectMapper_aDocumentReferenceStillMaterializes() throws Exception {
+    var documentFactory = mock(DocumentFactory.class);
+    var expectedDocument = mock(Document.class);
+    when(documentFactory.resolve(any())).thenReturn(expectedDocument);
+    ObjectMapper mapper = buildOutboundConnectorObjectMapper(documentFactory);
+
+    var payload =
+        Map.of(
+            "value",
+            Map.of(
+                "camunda.document.type", "camunda",
+                "storeId", "store-1",
+                "documentId", "doc-1",
+                "contentHash", "hash-1"));
+
+    var result = mapper.convertValue(payload, ObjectTypedProperty.class);
+
+    assertThat(result.value()).isEqualTo(expectedDocument);
+  }
+
+  @Test
+  void buildOutboundConnectorObjectMapper_ordinaryDataStillBinds() throws Exception {
+    ObjectMapper mapper = buildOutboundConnectorObjectMapper(mock(DocumentFactory.class));
+
+    var result = mapper.convertValue(Map.of("value", "hello"), ObjectTypedProperty.class);
+
+    assertThat(result.value()).isEqualTo("hello");
   }
 }
