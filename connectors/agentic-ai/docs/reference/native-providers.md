@@ -28,7 +28,7 @@ each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolve
 the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
 (`provider/authentication/oauth/`).
 
-`AnthropicFoundryBackend` (Microsoft Foundry, issue #8060) delegates to the Anthropic Java SDK's own
+`AnthropicFoundryBackend` (Microsoft Foundry) delegates to the Anthropic Java SDK's own
 `com.anthropic.foundry.backends.FoundryBackend`, which normalizes the base URL (appending `/anthropic`
 to the configured `endpoint` if missing) and authorizes each request: API-key auth sends the native
 `x-api-key` header (not the generic Azure `api-key` header OpenAI's Foundry backend uses), while either
@@ -353,16 +353,6 @@ final wrapping into its vendor SDK's credential type, since those types are vend
 `provider.<provider>.backend.foundry.authentication.*`. `ManagedIdentityAuthentication` is blocked on
 SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
 tenant.
-
-`ManagedIdentityAuthentication.clientId` (the identity's own client ID field) and `entraIdScope` share
-their field names with `ClientCredentialsAuthentication`'s fields of the same name rather than being
-disambiguated in Java, since the generator only requires distinct *template property IDs*, not distinct
-field names or binding paths — sibling sealed variants never coexist in one config, so both variants
-safely reusing the same runtime binding path is fine. Only `ManagedIdentityAuthentication`'s two fields
-set an explicit, path-relative `@TemplateProperty(id = ...)` (e.g. `"managedIdentity.clientId"`) to
-break the tie; giving both sides an explicit id isn't needed once one side diverges from its default.
-Because the ids are path-relative, the shared type still generates per-provider template property ids
-(`provider.anthropic.…` and `provider.openai.…`) with no collision.
 
 ### Entra ID token scope
 
