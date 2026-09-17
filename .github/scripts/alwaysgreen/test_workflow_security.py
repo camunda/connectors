@@ -145,7 +145,7 @@ def test_publish_notifies_the_blamed_author_only_on_a_true_verdict(tmp_path):
         ("absent", {}, False),
     ):
         body, gh_calls = _run_publish(tmp_path / case, _change(**verdict))
-        assert ("- Breaking-change author: @octocat" in body) is notified, case
+        assert ("- Candidate breaking-change author: @octocat" in body) is notified, case
         assert ("--add-reviewer" in gh_calls) is notified, case
 
 
@@ -161,17 +161,21 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
                 "repo": "connectors",
                 # GitHub's mention parser takes any non-word character as a boundary, so
                 # punctuation-prefixed forms notify exactly like a space-prefixed one.
-                "root_cause": "Ruled-out-@octocat, (@octocat), .@octocat: selector moved.",
-                "fix": "Updated it, per @camunda/test-automation-team. No email@example.com.",
+                # "` @octocat `" is the case backtick-wrapping cannot survive: it would
+                # close the agent's own code span and free the mention. "@@octocat" only
+                # becomes a mention once the first @ is dealt with.
+                "root_cause": "Ruled-out-@octocat, (@octocat), ` @octocat `, @@octocat.",
+                "fix": "Per @camunda/test-automation-team, cc email@example.com.",
             },
         ),
     )
-    assert body.count("`@octocat`") == 3
-    assert "`@camunda/test-automation-team`" in body
+    assert "octocat" in body  # the name survives, readable, just not as a mention
+    assert "camunda/test-automation-team" in body
     assert "email@example.com" in body  # an email is not a mention; leave it alone
-    # Nothing left that GitHub would still parse as a mention: start of line or any
-    # non-word character before the @, matching its own boundary rule.
-    assert re.search(r"(?m)(?:^|[^A-Za-z0-9_`])@[A-Za-z0-9]", body) is None
+    # Nothing GitHub would parse as a mention is left, under any surrounding markup:
+    # start of line or any non-word character before an @ is its own boundary rule, and
+    # unlike a backtick-wrapping scheme this holds without trusting the markup around it.
+    assert re.search(r"(?m)(?:^|[^A-Za-z0-9_])@[A-Za-z0-9]", body) is None
     assert "--add-reviewer" not in gh_calls
 
 

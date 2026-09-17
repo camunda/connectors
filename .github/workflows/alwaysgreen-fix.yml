@@ -761,14 +761,22 @@ jobs:
           # untrusted agent output rendered verbatim below. FIX-AGENT.md tells the agent not
           # to name anyone itself, but that is an instruction, not an enforcement: defang
           # mention-shaped tokens here so the gated "Breaking-change author" line stays the
-          # only thing in this body that can notify a human. The prefix class mirrors the
-          # boundary GitHub's own mention parser uses -- start of line or any non-word
-          # character, so "ruled-out-@octocat" and ".@octocat" are mentions and are caught
-          # too. Emails need no special case and keep their @: a local part ends in a word
-          # character, which is not a mention boundary for GitHub either. Note
-          # /tmp/fix-meta.json keeps the agent's wording verbatim for the run artifact.
+          # only thing in this body that can notify a human. Dropping the sigil is what
+          # makes that hold under any renderer: wrapping the token in backticks instead
+          # would break an existing code span ("` @x `" -> "` `@x` `" closes the span
+          # before the mention), and an HTML entity relies on GitHub's mention filter
+          # running before entity decoding. With no @ left in mention position there is
+          # nothing to parse, whatever the surrounding markup.
+          #
+          # The prefix class is the boundary GitHub's own mention parser uses -- start of
+          # line or any non-word character -- so "ruled-out-@x" and "(@x)" are caught too,
+          # while an email keeps its @ because a local part ends in a word character and
+          # is not a mention for GitHub either. The loop re-runs to a fixpoint so a token
+          # that only becomes a mention after an earlier edit ("@@x" -> "@x") is caught as
+          # well. Note /tmp/fix-meta.json keeps the agent's wording verbatim for the
+          # run artifact.
           defang_mentions() {
-            sed -E 's,(^|[^A-Za-z0-9_])@([A-Za-z0-9][A-Za-z0-9-]*(/[A-Za-z0-9_-]+)?),\1`@\2`,g'
+            sed -E -e ':a' -e 's,(^|[^A-Za-z0-9_])@([A-Za-z0-9]),\1\2,g' -e 'ta'
           }
           root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json | defang_mentions)
           fix=$(jq -r '.change.fix' /tmp/fix-meta.json | defang_mentions)
@@ -815,8 +823,14 @@ jobs:
             echo
             echo "- Failing run: ${FAILING_RUN_URL}"
             echo "- Triage run: ${TRIAGE_RUN_URL}"
+            # "Candidate", not "the": a true verdict says the blamed PR is plausibly
+            # connected to the failing surface, which is not the same as establishing that
+            # this person's change caused it. The line says why they are mentioned so the
+            # notification is actionable rather than an accusation.
             [ -z "$BLAME_AUTHOR" ] || [ "$blame_relevant" != "true" ] \
-              || echo "- Breaking-change author: @${BLAME_AUTHOR}"
+              || echo "- Candidate breaking-change author: @${BLAME_AUTHOR} (their merge" \
+                      "produced the commit this run tested, and the agent judged the PR" \
+                      "related to this failure -- not a confirmed cause)"
             echo
             echo "<!-- alwaysgreen-fixed"
             jq -r '.[] | "fp=\(.)"' /tmp/fingerprints.json

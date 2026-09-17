@@ -158,9 +158,8 @@ mentioning the blamed author in the PR body or requesting their review — see "
 manifest" below. Never name the blamed author yourself, anywhere in `root_cause` or `fix`:
 naming an uninvolved person still notifies them via GitHub's mention handling even inside a
 sentence explaining they are not the cause, and the mention is the workflow's job, gated on
-this verdict, not yours. The workflow defuses any `@login` it finds in your prose by
-wrapping it in backticks, so writing one only makes the body read oddly — refer to the PR
-by number instead.
+this verdict, not yours. The workflow strips the `@` from any mention it finds in your
+prose, so writing one only garbles the name — refer to the PR by number instead.
 
 The discriminator is whether the product still agrees with itself, once the zeroth check
 above has confirmed the blamed PR is at least plausibly connected. Read what
