@@ -2485,7 +2485,7 @@
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+    "description" : "<b>Note:</b> Prompt caching is automatic and not configurable.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2501,6 +2501,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "Identifies the model to use. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
@@ -2596,7 +2597,7 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
+    "description" : "<b>Note:</b> Prompt caching is automatic and not configurable.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2612,6 +2613,7 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
+    "tooltip" : "Identifies the model to use. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
@@ -2673,7 +2675,7 @@
   }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "Identifier of the model to use.",
+    "description" : "<b>Note:</b> Prompt caching, if supported, is configured in custom code.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2689,6 +2691,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Identifies the model to use.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
