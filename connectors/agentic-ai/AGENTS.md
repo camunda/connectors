@@ -159,6 +159,7 @@ specifics.
 
 - Keep visible property descriptions to one short line. Move decision help and documentation links into the tooltip; reserve the description for a concise `Note:` or `Warning:` that must remain visible.
 - Exception: displaying the prompt caching status under the model may require a longer visible description. Review this workaround before it goes live.
+- Keep shared behavior consistent across every provider and backend combination: when changing one, update the others that expose the same behavior, such as moving equivalent guidance from descriptions to tooltips. Preserve intentional differences where provider capabilities or configuration differ; do not force identical presentation, such as when prompt caching is a configurable property for one provider but explanatory text for another.
 
 ### Building & testing
 
