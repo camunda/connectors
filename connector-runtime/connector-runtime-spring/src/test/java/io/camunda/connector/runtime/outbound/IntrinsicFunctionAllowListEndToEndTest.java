@@ -52,6 +52,8 @@ class IntrinsicFunctionAllowListEndToEndTest {
 
   private record TargetType(Object body) {}
 
+  private record AuthTargetType(Object authentication) {}
+
   // Mirrors the issue's actual exploit shape: an ordinary ioMapping pulling from process data,
   // with no literal "camunda.function.type" anywhere in the model text.
   private static final String EXPLOIT_MODEL_XML =
@@ -86,6 +88,29 @@ class IntrinsicFunctionAllowListEndToEndTest {
                 <zeebe:input
                     source="={&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[content]}"
                     target="body" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
+  // Declares createGithubAppInstallationToken at "authentication.token" — the actual shape of
+  // GitHub's shipped template. Used to prove a declaration at this exact path does not also
+  // authorize a same-named call arriving at a deeper, separately-sourced path beneath it.
+  private static final String GITHUB_AUTH_MODEL_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="http_task" name="HTTP">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input
+                    source="={&quot;camunda.function.type&quot;:&quot;createGithubAppInstallationToken&quot;,&quot;params&quot;:[key]}"
+                    target="authentication.token" />
               </zeebe:ioMapping>
             </bpmn:extensionElements>
           </bpmn:serviceTask>
@@ -159,5 +184,27 @@ class IntrinsicFunctionAllowListEndToEndTest {
     var result = context.bindVariables(TargetType.class);
 
     assertThat(result.body()).isEqualTo("placeholder");
+  }
+
+  @Test
+  void aSameNamedCallInjectedAtADeeperPathThanTheDeclarationIsStillRefused() {
+    // GITHUB_AUTH_MODEL_XML declares createGithubAppInstallationToken at exactly
+    // "authentication.token" — nothing declares anything at "authentication.token.extra". This
+    // reuses the SAME function name the model does legitimately declare (the strongest form of
+    // this attack: a bare prefix match, not just any descendant, would authorize this), sourced
+    // from a path only a separate, attacker-controlled zeebe:input could ever populate. Regression
+    // test for the prefix-matching gap closed by IntrinsicFunctionAllowList#allowOnly requiring an
+    // exact (functionName, fieldPath) match.
+    String variablesJson =
+        """
+        {"authentication": {"token": {"extra":
+          {"camunda.function.type":"createGithubAppInstallationToken",
+           "params":["attacker-key","attacker-app","attacker-installation"]}}}}
+        """;
+    var context = contextFor(GITHUB_AUTH_MODEL_XML, variablesJson);
+
+    assertThatThrownBy(() -> context.bindVariables(AuthTargetType.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("createGithubAppInstallationToken");
   }
 }
