@@ -5,7 +5,7 @@
   "description" : "Receive messages from AWS SNS via HTTPS.",
   "keywords" : [ "receive event", "receive message", "notification", "subscribe to topic", "event driven" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -61,7 +61,7 @@
     "id" : "inbound.securitySubscriptionAllowedFor",
     "label" : "Allow to receive messages from topic(s)",
     "optional" : false,
-    "value" : "specific",
+    "value" : "any",
     "group" : "subscription",
     "binding" : {
       "name" : "inbound.securitySubscriptionAllowedFor",
@@ -79,10 +79,7 @@
   }, {
     "id" : "inbound.topicsAllowList",
     "label" : "Topic ARN(s)",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "optional" : true,
     "feel" : "optional",
     "group" : "subscription",
     "binding" : {
