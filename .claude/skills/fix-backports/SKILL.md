@@ -77,10 +77,16 @@ branch, so there is nothing to force and nothing that needs a lease.
 ## Which PRs are safe to touch
 
 Three things must all hold: the bot authored the PR, there is actual evidence of a
-conflict — a "Backport failed" comment naming this target, or committed conflict markers —
-and no human has pushed a commit to it since. Authorship alone also matches clean
-backports that need no help, and a PR someone is already fixing by hand is the one case
-this skill must never touch.
+conflict — the draft's resolve-instructions comment (see "Which commits to replay"), or
+committed conflict markers on the candidate's own HEAD — and no human has pushed a commit
+to it since. Authorship alone also matches clean backports that need no help, and a PR
+someone is already fixing by hand is the one case this skill must never touch.
+
+Don't require a "Backport failed" comment specifically: under `draft_commit_conflicts` the
+source PR's status comment reads "Created backport PR ... with remaining conflicts," not
+"Backport failed," and not every conflict leaves recognizable text markers (a modify/delete
+or binary conflict may not). The resolve-instructions comment or the committed markers
+already prove the conflict; don't add a second, narrower requirement on top.
 
 Check every commit, not just the PR's author: `gh api --paginate repos/camunda/connectors/pulls/<n>/commits --jq '.[].committer.login'`.
 Without `--paginate` this silently checks only the first page (30 commits), so a human
@@ -124,11 +130,14 @@ without waiting for anyone's go-ahead. A clean build only proves the change *com
 it is not a review, and CI on the pushed PR is what actually runs the tests. Never let a
 clean build read as "verified correct" in what you report.
 
-Check the push itself succeeded before marking a draft ready — a rejected push followed
-by `gh pr ready` would publish the conflict markers as finished work. Because you only
-ever added commits, a plain push is a normal fast-forward; if it isn't, stop — something
-changed on the branch since you started (see "Which PRs are safe to touch"), and pushing
-anyway is exactly the case that check exists to prevent.
+Immediately before you push, re-check `gh pr view <n> --json isDraft` — a fast-forward
+push check alone only catches a new commit, not a human marking the PR ready while you
+were resolving or compiling it. If it's no longer a draft, stop; someone else already
+took over. Check the push itself succeeded before marking a draft ready — a rejected push
+followed by `gh pr ready` would publish the conflict markers as finished work. Because you
+only ever added commits, a plain push is a normal fast-forward; if it isn't, stop —
+something changed on the branch since you started (see "Which PRs are safe to touch"), and
+pushing anyway is exactly the case that check exists to prevent.
 
 Put the reasoning in the commit(s) you add, not a PR comment: keep `cherry-pick -x`'s
 trailer where it applies and add a line of substance ("`stable/8.9` still has the old
