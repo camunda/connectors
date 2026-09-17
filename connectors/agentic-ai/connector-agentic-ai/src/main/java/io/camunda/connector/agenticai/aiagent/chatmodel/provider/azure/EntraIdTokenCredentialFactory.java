@@ -150,7 +150,8 @@ public class EntraIdTokenCredentialFactory {
   /**
    * Builds the credential's HTTP client only when there is something to configure on it, so a
    * deployment with neither a proxy nor a configured timeout keeps azure-identity's own default
-   * client. The timeout bounds both establishing the connection and waiting for the response.
+   * client. The timeout bounds each attempt's connection establishment and response wait, not the
+   * overall token acquisition.
    */
   private static Optional<HttpClient> httpClientFor(
       @Nullable ProxyOptions proxyOptions, @Nullable Duration timeout) {
