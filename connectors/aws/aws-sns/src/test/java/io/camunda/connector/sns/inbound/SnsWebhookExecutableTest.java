@@ -259,6 +259,27 @@ class SnsWebhookExecutableTest {
   }
 
   /**
+   * Regression test raised in PR review: a delimiter-only {@code topicsAllowList} (e.g. {@code
+   * ","}) is non-blank but parses to zero usable topic ARNs, which would otherwise activate
+   * successfully and then reject every request.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {",", " , ", ",,"})
+  void activate_DelimiterOnlyAllowList_FailsValidation(String delimiterOnlyAllowList) {
+    Map<String, Object> actualBPMNProperties =
+        Map.of(
+            "inbound",
+            Map.of(
+                "context", "snstest",
+                "securitySubscriptionAllowedFor", "specific",
+                "topicsAllowList", delimiterOnlyAllowList));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
    * Regression test for security-testing-findings#263, clauses 2+3: a {@code null}
    * securitySubscriptionAllowedFor (hand-authored BPMN, or a diagram built on an older element
    * template) is treated the same as "specific" and therefore also requires a non-empty allow list

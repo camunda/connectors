@@ -77,12 +77,18 @@ public record SnsWebhookConnectorProperties(
    * templates cannot leave a topic allow list unset while still requiring one. This is the backstop
    * for paths that bypass Modeler entirely; the element template above already requires {@code
    * topicsAllowList} to be non-empty whenever {@code specific} is selected.
+   *
+   * <p>Checks for at least one non-blank, comma-separated entry rather than just a non-blank raw
+   * string: a delimiter-only value like {@code ","} is non-blank but parses (see the wrapper
+   * constructor above) to zero usable topic ARNs, which would otherwise activate successfully and
+   * then reject every request.
    */
   @AssertTrue(message = "Topic ARN(s) are required unless subscription is allowed for any topic")
   @JsonIgnore
   public boolean isTopicsAllowListPresentWhenRequired() {
     return SubscriptionAllowListFlag.any.equals(securitySubscriptionAllowedFor)
-        || (topicsAllowList != null && !topicsAllowList.isBlank());
+        || Arrays.stream(Optional.ofNullable(topicsAllowList).orElse("").split(","))
+            .anyMatch(entry -> !entry.isBlank());
   }
 
   public record SnsWebhookConnectorPropertiesWrapper(
