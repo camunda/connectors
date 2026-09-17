@@ -51,8 +51,8 @@ public class FoundryCredentialResolver {
 
   /**
    * The authentication's own {@code entraIdScope}, when set, wins over the scope derived from
-   * {@code authorityHost}. {@code timeout} bounds the Entra ID token exchange the supplier
-   * performs; {@code null} leaves the SDK default in place.
+   * {@code authorityHost}. {@code timeout} bounds each HTTP attempt of the Entra ID token exchange
+   * the supplier performs; {@code null} leaves the SDK default in place.
    */
   public Supplier<String> bearerTokenSupplier(
       ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {

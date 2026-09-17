@@ -396,9 +396,11 @@ than bypassing it. Managed identity is deliberately excluded: its token request 
 link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via
 an internet-facing egress proxy.
 
-The connection's configured `timeout` bounds the token exchange as well as the model call, so a slow
-Entra ID endpoint or IMDS cannot stall a request past its budget. It is applied as the credential
-HTTP client's connect and response timeout, for both Entra ID variants. Because the timeout is baked
+The connection's configured `timeout` reaches the token exchange as well as the model call, so a
+slow Entra ID endpoint or IMDS cannot stall a request indefinitely. It is applied as the credential
+HTTP client's connect and response timeout, for both Entra ID variants, which makes it a per-attempt
+rather than an overall deadline: each phase may consume it in full, and azure-identity's own retries
+start a fresh attempt, so a retrying token exchange can outlast a single `timeout`. Because it is baked
 into that client, it is part of the credential cache key: two otherwise identical configurations with
 different timeouts get their own credential rather than silently sharing whichever was built first.
 When neither a proxy nor a timeout is configured, no HTTP client is set at all and azure-identity's
