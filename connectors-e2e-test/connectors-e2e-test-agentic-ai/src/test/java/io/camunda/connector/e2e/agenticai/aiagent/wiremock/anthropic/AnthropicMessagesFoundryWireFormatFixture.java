@@ -25,11 +25,10 @@ import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI, driving the connector through the {@code foundry} backend of the
- * native v2 Anthropic provider — see {@code AnthropicFoundryBackend}. The SDK's {@code
- * FoundryBackend} auto-appends {@code /anthropic} onto the configured base URL, so the recorded
- * requests land on {@code /anthropic/v1/messages} rather than the bare {@code /v1/messages} the
- * other Anthropic fixtures use.
+ * ProviderWireFormatFixture} SPI, driving the connector through the Anthropic {@code foundry}
+ * backend. Recorded requests land on {@code /anthropic/v1/messages} rather than the bare {@code
+ * /v1/messages} the other Anthropic fixtures use: the Anthropic SDK's Foundry backend appends
+ * {@code /anthropic} to the configured base URL.
  */
 public final class AnthropicMessagesFoundryWireFormatFixture
     extends AbstractAnthropicMessagesWireFormatFixture {
