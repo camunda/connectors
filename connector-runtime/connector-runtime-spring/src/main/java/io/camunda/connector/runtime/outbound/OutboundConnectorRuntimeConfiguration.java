@@ -506,12 +506,24 @@ public class OutboundConnectorRuntimeConfiguration {
     }
   }
 
+  /**
+   * Builds its own {@link ProcessDefinitionModelCache} backed by the shared, bounded {@code
+   * bpmnModelCacheStore} rather than going through {@link ProcessDefinitionSecretKeyCache}'s {@code
+   * (String, CamundaClient, Cache)} convenience constructor, which allocates its own unbounded,
+   * never-evicting model cache — fine for the test-only convenience that constructor exists for,
+   * but this bean is real production wiring for the legacy scalar single-{@code CamundaClient}
+   * configuration and must not grow without the configured {@code bpmn-model.cache.max-size} limit.
+   */
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
+      CamundaClient camundaClient,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      SecretKeyCacheHolder secretKeyCacheStore) {
+    String physicalTenantId = resolvePhysicalTenantIdOrDefault(camundaClient);
     return new ProcessDefinitionSecretKeyCache(
-        resolvePhysicalTenantIdOrDefault(camundaClient),
-        camundaClient,
+        physicalTenantId,
+        new ProcessDefinitionModelCache(
+            physicalTenantId, camundaClient, bpmnModelCacheStore.cache()),
         secretKeyCacheStore.cache());
   }
 
@@ -616,24 +628,47 @@ public class OutboundConnectorRuntimeConfiguration {
         registry, legacyCamundaClient, bpmnModelCacheStore.cache());
   }
 
+  /**
+   * Takes the same raw {@code CamundaClientRegistry}/{@code CamundaClient} inputs as {@link
+   * #processDefinitionModelCachesByPhysicalTenantId} and rebuilds the model-cache map locally
+   * rather than declaring a {@code Map<String, ProcessDefinitionModelCache>}-typed parameter:
+   * Spring's autowiring special-cases any {@code Map<String, X>}-typed dependency — including a
+   * {@code @Bean} method parameter — by collecting individually-registered beans of type {@code X}
+   * keyed by name, not by resolving a single bean of the composite {@code Map} type. Since no
+   * individual {@code ProcessDefinitionModelCache} bean is ever registered (only the {@code Map}
+   * bean is), declaring the parameter that way would silently inject an empty map here. The rebuilt
+   * {@code ProcessDefinitionModelCache} instances still share the same underlying {@code
+   * bpmnModelCacheStore} cache as {@link #processDefinitionModelCachesByPhysicalTenantId}'s own
+   * instances, so a process definition's model is still fetched at most once regardless of which
+   * bean triggers the fetch.
+   */
   @Bean
   public Map<String, SecretKeyCache> secretKeyCachesByPhysicalTenantId(
-      Map<String, ProcessDefinitionModelCache> processDefinitionModelCachesByPhysicalTenantId,
+      @Autowired(required = false) CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      BpmnModelCacheHolder bpmnModelCacheStore,
       SecretKeyCacheHolder secretKeyCacheStore) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyCamundaClient, bpmnModelCacheStore.cache());
     return buildSecretKeyCachesByPhysicalTenantId(
-        processDefinitionModelCachesByPhysicalTenantId, secretKeyCacheStore.cache());
+        modelCachesByPhysicalTenantId, secretKeyCacheStore.cache());
   }
 
+  /** See {@link #secretKeyCachesByPhysicalTenantId} for why this rebuilds the model-cache map. */
   @Bean
   public Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId(
-      Map<String, ProcessDefinitionModelCache> processDefinitionModelCachesByPhysicalTenantId,
+      @Autowired(required = false) CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      BpmnModelCacheHolder bpmnModelCacheStore,
       SecretKeyCacheHolder secretKeyCacheStore,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyCamundaClient, bpmnModelCacheStore.cache());
     return buildSecretFilterFactoriesByPhysicalTenantId(
-        processDefinitionModelCachesByPhysicalTenantId,
-        secretKeyCacheStore.cache(),
-        secretFilterMode);
+        modelCachesByPhysicalTenantId, secretKeyCacheStore.cache(), secretFilterMode);
   }
 
   @Bean
@@ -652,15 +687,21 @@ public class OutboundConnectorRuntimeConfiguration {
             Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
+  /** See {@link #secretKeyCachesByPhysicalTenantId} for why this rebuilds the model-cache map. */
   @Bean
   public Map<String, IntrinsicFunctionAllowListFactory>
       intrinsicFunctionAllowListFactoriesByPhysicalTenantId(
-          Map<String, ProcessDefinitionModelCache> processDefinitionModelCachesByPhysicalTenantId,
+          @Autowired(required = false) CamundaClientRegistry registry,
+          @Autowired(required = false) CamundaClient legacyCamundaClient,
+          BpmnModelCacheHolder bpmnModelCacheStore,
           IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore,
           @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
               IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyCamundaClient, bpmnModelCacheStore.cache());
     return buildIntrinsicFunctionAllowListFactoriesByPhysicalTenantId(
-        processDefinitionModelCachesByPhysicalTenantId,
+        modelCachesByPhysicalTenantId,
         intrinsicFunctionAllowListCacheStore.cache(),
         intrinsicFunctionAllowListMode);
   }
@@ -767,8 +808,7 @@ public class OutboundConnectorRuntimeConfiguration {
     // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
     // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
     // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
-    // model actually declares remain in the tree. See
-    // docs/superpowers/specs/2026-09-17-intrinsic-function-allow-list.md.
+    // model actually declares remain in the tree. See security-testing-findings#275.
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     var jacksonModuleDocumentDeserializer =

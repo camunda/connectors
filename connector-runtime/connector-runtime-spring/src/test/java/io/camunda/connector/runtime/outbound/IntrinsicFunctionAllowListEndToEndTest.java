@@ -118,6 +118,30 @@ class IntrinsicFunctionAllowListEndToEndTest {
       </bpmn:definitions>
       """;
 
+  // Mirrors the Microsoft 365 Mail connector's actual sendMail attachments binding shape: the
+  // "body" input's FEEL source is a nested context/list literal that declares base64 three levels
+  // under the input's own target ("body" -> "message" -> "attachments" (array) -> "contentBytes"),
+  // not at "body" itself.
+  private static final String NESTED_ATTACHMENT_MODEL_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="http_task" name="HTTP">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input
+                    source="={&quot;message&quot;:{&quot;attachments&quot;: for document in attachments return {&quot;contentBytes&quot;:{&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}}}}"
+                    target="body" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
   private CamundaClient clientReturningXml(String xml) {
     var client = mock(CamundaClient.class);
     var request = mock(ProcessDefinitionGetXmlRequest.class);
@@ -231,6 +255,28 @@ class IntrinsicFunctionAllowListEndToEndTest {
     assertThatThrownBy(() -> context.bindVariables(TargetType.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createLink");
+  }
+
+  @Test
+  void aCallDeclaredSeveralLevelsInsideAContextAndListLiteralIsNotBlockedByTheGate() {
+    // Regression for the Microsoft 365 Mail connector's real sendMail-with-attachments shape:
+    // NESTED_ATTACHMENT_MODEL_XML declares base64 at "body" -> "message" -> "attachments" (array,
+    // adds no segment) -> "contentBytes", not at the zeebe:input's own target ("body") alone.
+    // Before
+    // computing that full nested path, the allow-list recorded every declaration at its input's
+    // bare
+    // target, so this exact legitimate shape was wrongly refused.
+    String variablesJson =
+        """
+        {"body": {"message": {"attachments": [
+          {"contentBytes": {"camunda.function.type":"base64","params":["ZG9jdW1lbnQ="]}}
+        ]}}}
+        """;
+    var context = contextFor(NESTED_ATTACHMENT_MODEL_XML, variablesJson);
+
+    var result = context.bindVariables(TargetType.class);
+
+    assertThat(result.body()).isNotNull();
   }
 
   @Test

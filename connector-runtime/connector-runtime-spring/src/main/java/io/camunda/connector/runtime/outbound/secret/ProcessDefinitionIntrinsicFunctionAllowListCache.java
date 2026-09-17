@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound.secret;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.runtime.core.intrinsic.AllowedIntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionUtil;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
 import io.camunda.zeebe.model.bpmn.instance.EndEvent;
@@ -32,36 +33,28 @@ import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import org.springframework.cache.Cache;
 
 /**
  * Statically finds every {@code camunda.function.type} call a process definition's deployed BPMN
- * model literally declares, scoped to the exact {@code zeebe:input} field path each declaration
- * occupies. Unlike {@link ProcessDefinitionSecretKeyCache}'s {@code extractSecrets}, there is no
- * cross-input data-flow propagation: an intrinsic-function call is a complete literal written whole
- * into the one input that uses it (see
- * docs/superpowers/specs/2026-09-17-intrinsic-function-allow-list.md), never assembled across
- * inputs the way a secret's string value can be. See security-testing-findings#275.
+ * model literally declares, scoped to the exact field path each declaration occupies once bound
+ * (the {@code zeebe:input}'s own target, plus however deep the call sits inside that input's FEEL
+ * object/array literal). Unlike {@link ProcessDefinitionSecretKeyCache}'s {@code extractSecrets},
+ * there is no cross-input data-flow propagation: an intrinsic-function call is a complete literal
+ * written whole into the one input that uses it, never assembled across inputs the way a secret's
+ * string value can be. See security-testing-findings#275.
  */
 public class ProcessDefinitionIntrinsicFunctionAllowListCache {
-
-  // Matches the literal FEEL/JSON-object-literal spelling connectors ship today, e.g.
-  // {"camunda.function.type":"createGithubAppInstallationToken",...} written directly into a
-  // zeebe:input's source text. Anchored to IntrinsicFunctionModel.DISCRIMINATOR_KEY's value rather
-  // than a second hardcoded copy of the string.
-  private static final Pattern DECLARATION =
-      Pattern.compile(
-          Pattern.quote("\"" + IntrinsicFunctionModel.DISCRIMINATOR_KEY + "\"")
-              + "\\s*:\\s*\"(?<name>[\\p{Alnum}_]+)\"");
 
   private static final List<Class<? extends BaseElement>> OUTBOUND_ELIGIBLE_TYPES =
       List.of(
@@ -114,13 +107,110 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
   private List<AllowedIntrinsicFunction> extractFromInputs(List<ZeebeInput> inputs) {
     List<AllowedIntrinsicFunction> result = new ArrayList<>();
     for (ZeebeInput input : inputs) {
-      List<String> path = Arrays.asList(input.getTarget().split("\\."));
-      var matcher = DECLARATION.matcher(input.getSource() == null ? "" : input.getSource());
-      while (matcher.find()) {
-        result.add(new AllowedIntrinsicFunction(matcher.group("name"), path));
+      List<String> targetPath = Arrays.asList(input.getTarget().split("\\."));
+      for (Declaration declaration : findDeclarations(input.getSource())) {
+        List<String> fullPath = new ArrayList<>(targetPath);
+        fullPath.addAll(declaration.path());
+        result.add(new AllowedIntrinsicFunction(declaration.functionName(), fullPath));
       }
     }
     return result;
+  }
+
+  private record Declaration(String functionName, List<String> path) {}
+
+  private record Frame(List<String> path, boolean isObject) {}
+
+  /**
+   * Scans a {@code zeebe:input}'s FEEL source text for {@code {"camunda.function.type":"name",
+   * ...}} object literals, returning each one's path -- the chain of enclosing object-literal keys
+   * -- relative to this input's own target. A template can nest a call arbitrarily deep inside
+   * context/list literals (for example an email attachment's {@code contentBytes}, several levels
+   * under the input's own target), so the declared path must be computed from the literal's actual
+   * structure rather than assumed to equal the input's target alone.
+   *
+   * <p>Mirrors {@link IntrinsicFunctionUtil}'s bound-tree walk exactly: a path segment is pushed
+   * only when descending from an object literal into the value of one of its keys -- whether that
+   * value is itself an object, an array, or a scalar -- and an array's own elements do not push a
+   * further segment. FEEL control-flow keywords ({@code if}/{@code then}/{@code else}/{@code
+   * for}/{@code in}/{@code return}) and everything else outside of {@code {}}, {@code []}, quoted
+   * strings and the {@code :}/{@code ,} separators is skipped as opaque text; none of it
+   * corresponds to an object-literal key.
+   */
+  private static List<Declaration> findDeclarations(String source) {
+    if (source == null || source.isEmpty()) {
+      return List.of();
+    }
+    List<Declaration> found = new ArrayList<>();
+    Deque<Frame> frames = new ArrayDeque<>();
+    frames.push(new Frame(List.of(), false));
+    String pendingKey = null;
+
+    int i = 0;
+    int n = source.length();
+    while (i < n) {
+      char c = source.charAt(i);
+      if (c == '"') {
+        int j = i + 1;
+        StringBuilder text = new StringBuilder();
+        while (j < n && source.charAt(j) != '"') {
+          char ch = source.charAt(j);
+          if (ch == '\\' && j + 1 < n) {
+            text.append(source.charAt(j + 1));
+            j += 2;
+          } else {
+            text.append(ch);
+            j++;
+          }
+        }
+        i = j + 1;
+
+        Frame top = frames.peek();
+        if (top.isObject() && pendingKey == null) {
+          int k = i;
+          while (k < n && Character.isWhitespace(source.charAt(k))) {
+            k++;
+          }
+          if (k < n && source.charAt(k) == ':') {
+            pendingKey = text.toString();
+            i = k + 1;
+          }
+        } else if (pendingKey != null) {
+          if (IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(pendingKey)) {
+            found.add(new Declaration(text.toString(), top.path()));
+          }
+          pendingKey = null;
+        }
+        continue;
+      }
+      if (c == '{' || c == '[') {
+        Frame parent = frames.peek();
+        List<String> childPath = parent.path();
+        if (pendingKey != null) {
+          childPath = new ArrayList<>(parent.path());
+          childPath.add(pendingKey);
+          pendingKey = null;
+        }
+        frames.push(new Frame(childPath, c == '{'));
+        i++;
+        continue;
+      }
+      if (c == '}' || c == ']') {
+        if (frames.size() > 1) {
+          frames.pop();
+        }
+        pendingKey = null;
+        i++;
+        continue;
+      }
+      if (c == ',') {
+        pendingKey = null;
+        i++;
+        continue;
+      }
+      i++;
+    }
+    return found;
   }
 
   private List<ZeebeInput> findInputs(BaseElement element) {
