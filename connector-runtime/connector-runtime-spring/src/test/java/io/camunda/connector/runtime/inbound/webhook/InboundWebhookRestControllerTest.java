@@ -24,6 +24,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -32,6 +35,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
@@ -43,13 +47,17 @@ import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelati
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockMultipartHttpServletRequest;
@@ -217,6 +225,82 @@ class InboundWebhookRestControllerTest {
 
     // legacy 2-segment route 404s: the flag registers only under the composite key
     mockMvc.perform(post("/inbound/myPath")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void feelExpressionFailure_doesNotExposeReasonOrExpressionToCallerOrLogs() throws Exception {
+    // Regression test for https://github.com/camunda/security-testing-findings/issues/265:
+    // a FEEL evaluation failure (e.g. from a verification expression evaluated before/without
+    // authentication) must not leak its reason or expression text to the caller, nor to the
+    // application log: a verification expression can resolve secrets (e.g. {{secrets.X}}) at
+    // bind time, and application logs commonly ship to third-party aggregators.
+    var activityLogRegistry = new ActivityLogRegistry();
+    var executable = mock(WebhookConnectorExecutable.class);
+    when(executable.verify(any(WebhookProcessingPayload.class)))
+        .thenThrow(
+            new FeelEngineWrapperException(
+                "secret leak reason", "={{secrets.SUPER_SECRET}}", null));
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    var details = webhookDefinition("processA", 1, "myPath");
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            activityLogRegistry,
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+
+    var controller = new InboundWebhookRestController(registry);
+
+    var responseEntityHolder = new AtomicReference<ResponseEntity<?>>();
+    var loggedMessages =
+        logsOf(
+            () -> {
+              try {
+                responseEntityHolder.set(
+                    controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest()));
+              } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+              }
+            });
+    var responseEntity = responseEntityHolder.get();
+
+    assertThat(responseEntity.getStatusCode().value()).isEqualTo(422);
+    assertThat(responseEntity.getBody()).isInstanceOf(GenericErrorResponse.class);
+    var body = (GenericErrorResponse) responseEntity.getBody();
+    assertThat(body.reason()).doesNotContain("secret leak reason").doesNotContain("SUPER_SECRET");
+
+    assertThat(loggedMessages)
+        .isNotEmpty()
+        .noneMatch(
+            message -> message.contains("secret leak reason") || message.contains("SUPER_SECRET"));
+  }
+
+  /**
+   * Every message {@link InboundWebhookRestController}'s logger emits while {@code action} runs,
+   * formatted as it would be written.
+   */
+  private static List<String> logsOf(Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(InboundWebhookRestController.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
   }
 
   private static io.camunda.connector.api.inbound.Activity latestActivity(

@@ -367,11 +367,15 @@ public class InboundWebhookRestController {
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {
     ResponseEntity<?> response;
-    if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
-      var error =
-          new FeelExpressionErrorResponse(
-              feelEngineWrapperException.getReason(), feelEngineWrapperException.getExpression());
-      response = ResponseEntity.unprocessableEntity().body(error);
+    if (e instanceof FeelEngineWrapperException) {
+      // Neither the response nor the application log carries the reason or expression: a
+      // verification expression can resolve secrets (e.g. {{secrets.X}}) at bind time, and the
+      // response may reach an unauthenticated caller while the log may reach a third-party
+      // aggregator. Only the exception type is safe to record.
+      LOG.warn("Webhook FEEL expression evaluation failed");
+      response =
+          ResponseEntity.unprocessableEntity()
+              .body(new GenericErrorResponse("Failed to evaluate FEEL expression"));
     } else if (e instanceof ConnectorException connectorException) {
       if (e instanceof WebhookConnectorException webhookConnectorException) {
         response = handleWebhookConnectorException(webhookConnectorException);
