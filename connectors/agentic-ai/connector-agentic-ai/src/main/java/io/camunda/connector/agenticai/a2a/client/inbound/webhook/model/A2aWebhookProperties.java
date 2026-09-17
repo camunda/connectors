@@ -15,7 +15,9 @@ import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice;
+import io.camunda.connector.inbound.signature.HMACVerifier;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -99,6 +101,30 @@ public record A2aWebhookProperties(
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         @FEEL
         HMACScope[] hmacScopes,
+    @TemplateProperty(
+            id = "hmacTimestampHeader",
+            label = "HMAC timestamp header",
+            description =
+                "Name of the header attribute carrying the request timestamp. Required when HMAC scopes include 'timestamp'",
+            group = "authentication",
+            feel = FeelMode.optional,
+            optional = true,
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
+        String hmacTimestampHeader,
+    @TemplateProperty(
+            id = "hmacToleranceSeconds",
+            label = "HMAC timestamp tolerance (seconds)",
+            description =
+                "Maximum allowed difference, in seconds, between the signed timestamp and the current time. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+            group = "authentication",
+            optional = true,
+            defaultValue = "300",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
+        @Min(1)
+        Integer hmacToleranceSeconds,
     @Valid @NotNull WebhookAuthorization auth) {
 
   public A2aWebhookProperties(A2aWebhookPropertiesWrapper wrapper) {
@@ -111,6 +137,9 @@ public record A2aWebhookProperties(
         wrapper.inbound.hmacAlgorithm,
         // default to BODY if no scopes are provided
         Optional.ofNullable(wrapper.inbound.hmacScopes).orElse(new HMACScope[] {HMACScope.BODY}),
+        wrapper.inbound.hmacTimestampHeader,
+        Optional.ofNullable(wrapper.inbound.hmacToleranceSeconds)
+            .orElse(HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS),
         Optional.ofNullable(wrapper.inbound.auth).orElse(new WebhookAuthorization.None()));
   }
 
@@ -134,6 +163,11 @@ public record A2aWebhookProperties(
         + "'"
         + ", hmacScopes="
         + Arrays.toString(hmacScopes)
+        + ", hmacTimestampHeader='"
+        + hmacTimestampHeader
+        + "'"
+        + ", hmacToleranceSeconds="
+        + hmacToleranceSeconds
         + ", auth="
         + auth
         + "}";

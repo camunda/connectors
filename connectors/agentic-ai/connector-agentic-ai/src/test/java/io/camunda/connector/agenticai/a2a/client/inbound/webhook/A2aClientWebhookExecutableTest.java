@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConv
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -32,9 +33,15 @@ import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -222,6 +229,207 @@ class A2aClientWebhookExecutableTest {
 
     assertThat(exception).isInstanceOf(WebhookSecurityException.class);
     assertThat(exception).hasMessageContaining("HMAC signature check didn't pass");
+  }
+
+  @Test
+  void activate_HmacTimestampScopeWithoutHeaderConfigured_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]")))
+            // hmacTimestampHeader intentionally omitted
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampWithinTolerance_Success()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    long now = Instant.now().getEpochSecond();
+    String timestamp = Long.toString(now);
+    byte[] body = TASK_JSON.getBytes(StandardCharsets.UTF_8);
+    String signature = hmacHex("mySecret123", timestamp, body);
+
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp")))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.JSON_UTF_8.toString(),
+                HMAC_HEADER,
+                signature,
+                "X-HMAC-Timestamp",
+                timestamp));
+    when(payload.rawBody()).thenReturn(body);
+
+    webhookExecutable.activate(ctx);
+    var result = webhookExecutable.triggerWebhook(payload);
+
+    assertThat(result).isNotNull();
+    assertThat(result.request().body()).isInstanceOf(A2aTask.class);
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampStale_ThrowsException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // an hour old; well outside the default 300-second tolerance
+    long staleTimestamp = Instant.now().getEpochSecond() - 3600;
+    String timestamp = Long.toString(staleTimestamp);
+    byte[] body = TASK_JSON.getBytes(StandardCharsets.UTF_8);
+    String signature = hmacHex("mySecret123", timestamp, body);
+
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp")))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.JSON_UTF_8.toString(),
+                HMAC_HEADER,
+                signature,
+                "X-HMAC-Timestamp",
+                timestamp));
+    when(payload.rawBody()).thenReturn(body);
+
+    webhookExecutable.activate(ctx);
+
+    var exception = catchException(() -> webhookExecutable.triggerWebhook(payload));
+
+    assertThat(exception).isInstanceOf(WebhookSecurityException.class);
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampMissing_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp")))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.JSON_UTF_8.toString(),
+                HMAC_HEADER,
+                "82874661fa330e9fa686ab66f78bad7dd198cdb1812e6fe84e7e83c1735501e1"));
+    when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
+
+    webhookExecutable.activate(ctx);
+
+    var exception = catchException(() -> webhookExecutable.triggerWebhook(payload));
+
+    assertThat(exception).isInstanceOf(WebhookSecurityException.class);
+  }
+
+  private static String hmacHex(String secret, String timestamp, byte[] body)
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    byte[] timestampPrefix = (timestamp + ":").getBytes(StandardCharsets.UTF_8);
+    byte[] bytesToSign = new byte[timestampPrefix.length + body.length];
+    System.arraycopy(timestampPrefix, 0, bytesToSign, 0, timestampPrefix.length);
+    System.arraycopy(body, 0, bytesToSign, timestampPrefix.length, body.length);
+
+    Mac mac = Mac.getInstance(HMACAlgoCustomerChoice.sha_256.getAlgoReference());
+    mac.init(
+        new SecretKeySpec(
+            secret.getBytes(StandardCharsets.UTF_8),
+            HMACAlgoCustomerChoice.sha_256.getAlgoReference()));
+    return HexFormat.of().formatHex(mac.doFinal(bytesToSign));
   }
 
   @Test

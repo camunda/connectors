@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhoo
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookProperties.A2aWebhookPropertiesWrapper;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookResult;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -29,8 +30,10 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorE
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
+import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -38,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.webhook.v0",
-    version = 0,
+    version = 1,
     name = "A2A Client Webhook Connector (early access)",
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
@@ -92,11 +95,37 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     this.context = context;
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
+    rejectMissingHmacTimestampHeader(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
-            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
+            props.hmacScopes(),
+            props.hmacHeader(),
+            props.hmacSecret(),
+            props.hmacAlgorithm(),
+            props.hmacTimestampHeader(),
+            props.hmacToleranceSeconds());
     context.reportHealth(Health.up());
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC authentication is enabled with the {@code
+   * timestamp} scope but no {@code hmacTimestampHeader} is configured to read it from — that
+   * combination can never pass verification, so it's rejected at deploy time rather than on every
+   * request.
+   */
+  private static void rejectMissingHmacTimestampHeader(A2aWebhookProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    boolean timestampHeaderConfigured =
+        props.hmacTimestampHeader() != null && !props.hmacTimestampHeader().isBlank();
+    if (enabled.equals(props.shouldValidateHmac())
+        && timestampScopeSelected
+        && !timestampHeaderConfigured) {
+      throw new ConnectorInputException(
+          "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
+              + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
+    }
   }
 
   @Override
