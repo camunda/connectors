@@ -30,6 +30,8 @@ import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
@@ -226,6 +228,50 @@ class InboundWebhookRestControllerTest {
 
     // legacy 2-segment route 404s: the flag registers only under the composite key
     mockMvc.perform(post("/inbound/myPath")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void webhookSecurityException_neverIncludesMessageInResponseEvenThoughStatusIs4xx()
+      throws Exception {
+    // Regression test for a PR review finding on
+    // https://github.com/camunda/security-testing-findings/issues/265: WebhookSecurityException
+    // is documented as "no message will be included for security reasons", but the 401/403 it
+    // carries are also 4xx, and handleWebhookConnectorException previously checked both branches
+    // with sequential `if`s rather than `else if` — the 4xx branch unconditionally overwrote the
+    // null-body response with e.getMessage(), silently defeating the stated exclusion for every
+    // security failure (e.g. an auth handler's sanitized-but-still-informative failure message,
+    // or worse, one that had not yet been sanitized).
+    var executable = mock(WebhookConnectorExecutable.class);
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenThrow(
+            new WebhookSecurityException(
+                401, Reason.INVALID_CREDENTIALS, "secret leak reason SUPER_SECRET_VALUE"));
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    var details = webhookDefinition("processA", 1, "myPath");
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+
+    var controller = new InboundWebhookRestController(registry);
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
+
+    assertThat(responseEntity.getStatusCode().value()).isEqualTo(401);
+    assertThat(responseEntity.getBody()).isNull();
   }
 
   @Test

@@ -562,19 +562,23 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
     var status = HttpStatus.valueOf(e.getStatusCode());
-    ResponseEntity response = ResponseEntity.status(status).build();
+    ResponseEntity response;
+    // WebhookSecurityException carries 401/403, both 4xx: this must be checked before the
+    // 4xx branch below, not just after it, or that branch unconditionally overwrites the
+    // "no message" response with e.getMessage() — silently undoing this exclusion for every
+    // security failure (e.g. a sanitized-but-still-informative auth failure message).
     if (e instanceof WebhookSecurityException) {
       LOG.warn("Webhook failed with security-related exception", e);
       // no message will be included for security reasons
       response = ResponseEntity.status(status).body(null);
-    }
-    if (status.is5xxServerError()) {
+    } else if (status.is5xxServerError()) {
       LOG.error("Webhook failed with exception", e);
       // no message will be included for security reasons
       response = ResponseEntity.status(status).body(null);
-    }
-    if (status.is4xxClientError()) {
+    } else if (status.is4xxClientError()) {
       response = ResponseEntity.status(status).body(new GenericErrorResponse(e.getMessage()));
+    } else {
+      response = ResponseEntity.status(status).build();
     }
     return response;
   }
