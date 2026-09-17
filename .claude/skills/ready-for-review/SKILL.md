@@ -16,7 +16,13 @@ Final pass before requesting review: strip comments added on this branch, squash
 Resolve the actual target branch once, and reuse it (as `$BASE`) for every diff, log, hash, and reset command below — don't hard-code `origin/main`, since a branch may target `stable/*` or another base:
 
 ```
-BASE="origin/$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null || echo main)"
+BASE_REF=$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null)
+```
+
+If that command fails (no PR yet, not authenticated, network error), do not guess `main` — ask the user which branch this targets, and use their answer as `BASE_REF`. Once resolved:
+
+```
+BASE="origin/$BASE_REF"
 git merge-base "$BASE" HEAD
 git diff --name-only $(git merge-base "$BASE" HEAD)...HEAD
 ```
