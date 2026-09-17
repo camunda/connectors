@@ -13,7 +13,11 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateSubType(label = "Bearer token", id = "token")
 public record BearerAuthentication(
     @NotBlank
-        @TemplateProperty(id = "bearer.token", group = "authentication", label = "Bearer token")
+        @TemplateProperty(
+            id = "bearer.token",
+            group = "authentication",
+            label = "Bearer token",
+            secret = true)
         String token)
     implements MicrosoftAuthentication {
 

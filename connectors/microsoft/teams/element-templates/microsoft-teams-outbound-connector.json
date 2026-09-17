@@ -205,7 +205,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
@@ -281,7 +282,8 @@
       } ]
     },
     "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.refresh.token",
     "label" : "Refresh token",
@@ -306,7 +308,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.refresh.clientId",
     "label" : "Client ID",
@@ -379,7 +382,8 @@
       } ]
     },
     "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "data.createChat.chatType",
     "label" : "Chat type",
@@ -2097,7 +2101,8 @@
         "equals" : "token",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.credentials.clientId",
       "label" : "Client ID",
@@ -2149,7 +2154,8 @@
         "type" : "simple"
       },
       "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.refresh.token",
       "label" : "Refresh token",
@@ -2166,7 +2172,8 @@
         "equals" : "refresh",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.refresh.clientId",
       "label" : "Client ID",
@@ -2215,7 +2222,8 @@
         "type" : "simple"
       },
       "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {

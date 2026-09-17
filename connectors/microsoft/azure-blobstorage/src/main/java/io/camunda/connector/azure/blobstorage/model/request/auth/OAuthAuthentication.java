@@ -37,7 +37,8 @@ public record OAuthAuthentication(
             group = "authentication",
             tooltip =
                 "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         @NotBlank
         String clientSecret,
     @FEEL

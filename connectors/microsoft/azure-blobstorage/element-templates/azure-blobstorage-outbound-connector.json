@@ -407,7 +407,8 @@
       } ]
     },
     "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.SASUrl",
     "label" : "SAS URL",
@@ -433,7 +434,8 @@
       } ]
     },
     "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
@@ -511,7 +513,8 @@
       } ]
     },
     "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.accountUrl",
     "label" : "Account url",
@@ -726,7 +729,8 @@
         "type" : "simple"
       },
       "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.SASUrl",
       "label" : "SAS URL",
@@ -744,7 +748,8 @@
         "type" : "simple"
       },
       "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.tenantId",
       "label" : "Tenant id",
@@ -798,7 +803,8 @@
         "type" : "simple"
       },
       "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.accountUrl",
       "label" : "Account url",

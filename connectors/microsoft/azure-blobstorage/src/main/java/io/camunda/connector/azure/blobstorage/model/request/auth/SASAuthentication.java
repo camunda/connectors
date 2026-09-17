@@ -22,7 +22,8 @@ public record SASAuthentication(
             label = "SAS token",
             tooltip =
                 "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         @NotBlank
         String SASToken,
     @FEEL
@@ -31,7 +32,8 @@ public record SASAuthentication(
             label = "SAS URL",
             tooltip =
                 "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         @NotBlank
         String SASUrl)
     implements Authentication {
