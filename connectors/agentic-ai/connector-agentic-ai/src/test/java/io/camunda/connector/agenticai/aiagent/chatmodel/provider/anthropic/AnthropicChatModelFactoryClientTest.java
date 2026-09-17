@@ -19,6 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -307,6 +309,31 @@ class AnthropicChatModelFactoryClientTest {
   }
 
   @Test
+  void forwardsTheConfiguredTimeoutToTheFoundryCredentialResolver(WireMockRuntimeInfo wireMock) {
+    final var timeout = Duration.ofSeconds(7);
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(FoundryAuthentication.ClientCredentialsAuthentication.class), eq(timeout)))
+        .thenReturn(() -> "client-credentials-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new AnthropicFoundryBackend(
+            new AnthropicFoundryBackend.FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                new FoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-id", "client-secret", "tenant-id", null, null),
+                null,
+                null,
+                null)),
+        timeout);
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer client-credentials-token")));
+  }
+
+  @Test
   void appliesConfiguredProxyToBuiltClientForFoundryBackend() throws Exception {
     try (var fakeProxy = new FakeProxyServer(null, null)) {
       final var realHttpProxySupport =
@@ -431,18 +458,27 @@ class AnthropicChatModelFactoryClientTest {
             new EntraIdTokenCredentialFactory(
                 httpProxySupport,
                 new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
-        backend);
+        backend,
+        null);
   }
 
   private void executeAgainst(
       FoundryCredentialResolver foundryCredentialResolver, AnthropicBackend backend) {
-    executeAgainst(httpProxySupport, foundryCredentialResolver, backend);
+    executeAgainst(httpProxySupport, foundryCredentialResolver, backend, null);
+  }
+
+  private void executeAgainst(
+      FoundryCredentialResolver foundryCredentialResolver,
+      AnthropicBackend backend,
+      @Nullable Duration timeout) {
+    executeAgainst(httpProxySupport, foundryCredentialResolver, backend, timeout);
   }
 
   private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport,
       FoundryCredentialResolver foundryCredentialResolver,
-      AnthropicBackend backend) {
+      AnthropicBackend backend,
+      @Nullable Duration timeout) {
     final var factory =
         new AnthropicChatModelFactory(
             chatModelProperties,
@@ -453,7 +489,10 @@ class AnthropicChatModelFactoryClientTest {
             foundryCredentialResolver);
     final var configuration =
         new AnthropicChatModelConfiguration(
-            new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
+            new AnthropicConnection(
+                backend,
+                new AnthropicModel(MODEL_ID, null),
+                timeout != null ? new TimeoutConfiguration(timeout) : null));
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
