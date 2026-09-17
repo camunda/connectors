@@ -33,12 +33,10 @@ import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.time.Instant;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -119,135 +117,368 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
 
   private record Declaration(String functionName, List<String> path) {}
 
-  private record Frame(List<String> path, boolean isObject) {}
-
   /**
-   * Scans a {@code zeebe:input}'s FEEL source text for {@code {"camunda.function.type":"name",
+   * Parses a {@code zeebe:input}'s FEEL source text for {@code {"camunda.function.type":"name",
    * ...}} object literals, returning each one's path -- the chain of enclosing object-literal keys
    * -- relative to this input's own target. A template can nest a call arbitrarily deep inside
    * context/list literals (for example an email attachment's {@code contentBytes}, several levels
    * under the input's own target), so the declared path must be computed from the literal's actual
    * structure rather than assumed to equal the input's target alone.
    *
-   * <p>Mirrors {@link IntrinsicFunctionUtil}'s bound-tree walk exactly: a path segment is pushed
-   * only when descending from an object literal into the value of one of its keys -- whether that
-   * value is itself an object, an array, or a scalar -- and an array's own elements do not push a
-   * further segment. FEEL control-flow keywords ({@code if}/{@code then}/{@code else}/{@code
-   * for}/{@code in}/{@code return}), {@code //} and {@code /* *&#47;} comments, and everything else
-   * outside of {@code {}}, {@code []}, quoted strings and the {@code :}/{@code ,} separators is
-   * skipped as opaque text; none of it corresponds to an object-literal key.
+   * <p>This recognizes exactly the FEEL forms shipped templates actually use: context literals
+   * (quoted or bare keys), list literals, {@code if}/{@code then}/{@code else}, and {@code for}/
+   * {@code in}/{@code return} -- mirroring {@link IntrinsicFunctionUtil}'s bound-tree walk, where a
+   * path segment is pushed only when descending into the value of an object key, and neither an
+   * array's elements nor a {@code for}-loop's result push a further one. Anything else -- a
+   * function call, an operator expression, a bare variable reference used as a value -- is skipped
+   * as an opaque, unparsed span rather than recorded into or descended through: this scanner has no
+   * full FEEL grammar, so a value it cannot structurally account for must contribute no grant,
+   * rather than a grant at a guessed (and possibly wrong, shallower, attacker-reachable) path. A
+   * discriminator's own value is likewise recorded only when it is an immediate, standalone string
+   * literal -- a computed value such as {@code attackerPrefix + "createLink"} is only as fixed as
+   * {@code attackerPrefix}, process-controlled, allows, so it is treated as opaque rather than as a
+   * literal declaration of {@code "createLink"}.
    *
-   * <p>The discriminator's own value is recorded as a declaration only when it is an immediate,
-   * standalone string literal -- nothing but whitespace between the {@code :} and the opening
-   * {@code "}, and nothing but whitespace between the closing {@code "} and the entry's terminating
-   * {@code ,}/{@code }}/{@code ]}. This scanner has no FEEL grammar of its own, so without that
-   * check a computed value such as {@code attackerPrefix + "createLink"} would read as if {@code
-   * "createLink"} were the whole, fixed value the model declares, when the real bound value is only
-   * as fixed as {@code attackerPrefix} -- process-controlled -- allows.
+   * <p>A source that does not fully parse this way (a syntax this scanner does not model appears on
+   * the direct path to a discriminator, or the input is not a {@code "="}-prefixed FEEL expression
+   * at all) contributes no declarations at all for that input, rather than a partial result.
    */
-  private static List<Declaration> findDeclarations(String source) {
-    if (source == null || source.isEmpty()) {
+  private static List<Declaration> findDeclarations(String rawSource) {
+    if (rawSource == null) {
       return List.of();
     }
+    String trimmed = rawSource.strip();
+    if (!trimmed.startsWith("=")) {
+      return List.of();
+    }
+    var parser = new FeelLiteralParser(trimmed.substring(1));
     List<Declaration> found = new ArrayList<>();
-    Deque<Frame> frames = new ArrayDeque<>();
-    frames.push(new Frame(List.of(), false));
-    String pendingKey = null;
-    boolean pendingKeyValueIsBareSoFar = false;
-    Declaration pendingCandidate = null;
+    boolean ok = parser.parseValue(List.of(), found);
+    if (!ok || !parser.atEnd()) {
+      return List.of();
+    }
+    return found;
+  }
 
-    int i = 0;
-    int n = source.length();
-    while (i < n) {
-      char c = source.charAt(i);
-      if (c == '/' && i + 1 < n && source.charAt(i + 1) == '/') {
-        pendingCandidate = null;
-        while (i < n && source.charAt(i) != '\n') {
+  /**
+   * A minimal recursive-descent parser for the safe FEEL subset {@link #findDeclarations}
+   * recognizes. See that method's javadoc for the grammar and the safety rationale.
+   */
+  private static final class FeelLiteralParser {
+
+    private final String s;
+    private final int n;
+    private int i;
+
+    FeelLiteralParser(String s) {
+      this.s = s;
+      this.n = s.length();
+      this.i = 0;
+    }
+
+    boolean atEnd() {
+      skipWs();
+      return i >= n;
+    }
+
+    boolean parseValue(List<String> path, List<Declaration> found) {
+      char c = peek();
+      if (c == '{') {
+        return parseContextLiteral(path, found);
+      }
+      if (c == '[') {
+        return parseListLiteral(path, found);
+      }
+      if (matchesKeywordAt("if")) {
+        i += 2;
+        return parseIfThenElse(path, found);
+      }
+      if (matchesKeywordAt("for")) {
+        i += 3;
+        return parseForReturn(path, found);
+      }
+      return skipOpaqueValue();
+    }
+
+    private boolean parseContextLiteral(List<String> path, List<Declaration> found) {
+      i++; // consume '{'
+      if (tryConsumeChar('}')) {
+        return true;
+      }
+      while (true) {
+        String key = parseKey();
+        if (key == null || !tryConsumeChar(':')) {
+          return false;
+        }
+        if (IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(key) && peek() == '"') {
+          int save = i;
+          String value = parseStringLiteral();
+          char after = peek();
+          if (after == ',' || after == '}') {
+            found.add(new Declaration(value, path));
+          } else {
+            i = save;
+            if (!skipOpaqueValue()) {
+              return false;
+            }
+          }
+        } else if (!parseValue(appendKey(path, key), found)) {
+          return false;
+        }
+        if (tryConsumeChar(',')) {
+          continue;
+        }
+        if (tryConsumeChar('}')) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    private boolean parseListLiteral(List<String> path, List<Declaration> found) {
+      i++; // consume '['
+      if (tryConsumeChar(']')) {
+        return true;
+      }
+      while (true) {
+        // Array elements share the array's own path -- an array never pushes a further segment,
+        // matching IntrinsicFunctionUtil's walk.
+        if (!parseValue(path, found)) {
+          return false;
+        }
+        if (tryConsumeChar(',')) {
+          continue;
+        }
+        if (tryConsumeChar(']')) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    private boolean parseIfThenElse(List<String> path, List<Declaration> found) {
+      if (!skipUntilKeyword("then") || !tryConsumeKeyword("then")) {
+        return false;
+      }
+      if (!parseValue(path, found)) {
+        return false;
+      }
+      if (!tryConsumeKeyword("else")) {
+        return false;
+      }
+      return parseValue(path, found);
+    }
+
+    private boolean parseForReturn(List<String> path, List<Declaration> found) {
+      // Everything between "for" and "return" (one or more "ident in <expr>" iterators,
+      // comma-separated) is opaque to this parser; only the returned value matters, and it shares
+      // the for-loop's own path -- a for-loop's result is a list, which never pushes a segment.
+      if (!skipUntilKeyword("return") || !tryConsumeKeyword("return")) {
+        return false;
+      }
+      return parseValue(path, found);
+    }
+
+    /**
+     * Skips one value this parser does not otherwise recognize -- a number, boolean, null, string,
+     * bare variable reference, or arbitrary function-call/operator expression -- without recording
+     * anything from within it, stopping at the first unmatched {@code ,}/{@code then}/{@code else}
+     * or an unmatched closing {@code }}/{@code ]}/{@code )} at this value's own nesting depth.
+     */
+    private boolean skipOpaqueValue() {
+      int depth = 0;
+      while (i < n) {
+        if (skipWsOrCommentStep()) {
+          continue;
+        }
+        char c = s.charAt(i);
+        if (c == '"') {
+          skipQuotedSpan();
+          continue;
+        }
+        if (c == '{' || c == '[' || c == '(') {
+          depth++;
+          i++;
+          continue;
+        }
+        if (c == '}' || c == ']' || c == ')') {
+          if (depth == 0) {
+            return true;
+          }
+          depth--;
+          i++;
+          continue;
+        }
+        if (depth == 0 && (c == ',' || matchesKeywordAt("then") || matchesKeywordAt("else"))) {
+          return true;
+        }
+        i++;
+      }
+      return true;
+    }
+
+    /** Like {@link #skipOpaqueValue()}, but stops only at {@code stopKeyword} at depth 0. */
+    private boolean skipUntilKeyword(String stopKeyword) {
+      int depth = 0;
+      while (i < n) {
+        if (skipWsOrCommentStep()) {
+          continue;
+        }
+        char c = s.charAt(i);
+        if (c == '"') {
+          skipQuotedSpan();
+          continue;
+        }
+        if (c == '{' || c == '[' || c == '(') {
+          depth++;
+          i++;
+          continue;
+        }
+        if (c == '}' || c == ']' || c == ')') {
+          if (depth == 0) {
+            return false;
+          }
+          depth--;
+          i++;
+          continue;
+        }
+        if (depth == 0 && matchesKeywordAt(stopKeyword)) {
+          return true;
+        }
+        i++;
+      }
+      return false;
+    }
+
+    private String parseKey() {
+      skipWs();
+      if (i >= n) {
+        return null;
+      }
+      if (s.charAt(i) == '"') {
+        return parseStringLiteral();
+      }
+      if (isIdentifierStart(s.charAt(i))) {
+        int start = i;
+        i++;
+        while (i < n && isIdentifierPart(s.charAt(i))) {
           i++;
         }
-        continue;
+        return s.substring(start, i);
       }
-      if (c == '/' && i + 1 < n && source.charAt(i + 1) == '*') {
-        pendingCandidate = null;
+      return null;
+    }
+
+    /** Assumes the current character is the opening {@code "}. */
+    private String parseStringLiteral() {
+      i++;
+      StringBuilder text = new StringBuilder();
+      while (i < n && s.charAt(i) != '"') {
+        char ch = s.charAt(i);
+        if (ch == '\\' && i + 1 < n) {
+          text.append(s.charAt(i + 1));
+          i += 2;
+        } else {
+          text.append(ch);
+          i++;
+        }
+      }
+      if (i < n) {
+        i++;
+      }
+      return text.toString();
+    }
+
+    /** Assumes the current character is the opening {@code "}; discards the content. */
+    private void skipQuotedSpan() {
+      i++;
+      while (i < n && s.charAt(i) != '"') {
+        i += (s.charAt(i) == '\\' && i + 1 < n) ? 2 : 1;
+      }
+      if (i < n) {
+        i++;
+      }
+    }
+
+    private char peek() {
+      skipWs();
+      return i < n ? s.charAt(i) : '\0';
+    }
+
+    private boolean tryConsumeChar(char c) {
+      skipWs();
+      if (i < n && s.charAt(i) == c) {
+        i++;
+        return true;
+      }
+      return false;
+    }
+
+    private boolean tryConsumeKeyword(String keyword) {
+      skipWs();
+      if (!matchesKeywordAt(keyword)) {
+        return false;
+      }
+      i += keyword.length();
+      return true;
+    }
+
+    private boolean matchesKeywordAt(String keyword) {
+      if (i + keyword.length() > n || !s.regionMatches(i, keyword, 0, keyword.length())) {
+        return false;
+      }
+      if (i > 0 && isIdentifierPart(s.charAt(i - 1))) {
+        return false;
+      }
+      int after = i + keyword.length();
+      return after >= n || !isIdentifierPart(s.charAt(after));
+    }
+
+    private void skipWs() {
+      while (skipWsOrCommentStep()) {
+        // keep going
+      }
+    }
+
+    /** Skips one whitespace run or one comment starting at the current position, if present. */
+    private boolean skipWsOrCommentStep() {
+      if (i < n && Character.isWhitespace(s.charAt(i))) {
+        while (i < n && Character.isWhitespace(s.charAt(i))) {
+          i++;
+        }
+        return true;
+      }
+      if (i + 1 < n && s.charAt(i) == '/' && s.charAt(i + 1) == '/') {
+        while (i < n && s.charAt(i) != '\n') {
+          i++;
+        }
+        return true;
+      }
+      if (i + 1 < n && s.charAt(i) == '/' && s.charAt(i + 1) == '*') {
         i += 2;
-        while (i + 1 < n && !(source.charAt(i) == '*' && source.charAt(i + 1) == '/')) {
+        while (i + 1 < n && !(s.charAt(i) == '*' && s.charAt(i + 1) == '/')) {
           i++;
         }
         i = Math.min(i + 2, n);
-        continue;
+        return true;
       }
-      if (pendingCandidate != null && !Character.isWhitespace(c)) {
-        if (c == ',' || c == '}' || c == ']') {
-          found.add(pendingCandidate);
-        }
-        pendingCandidate = null;
-      }
-      if (c == '"') {
-        int j = i + 1;
-        StringBuilder text = new StringBuilder();
-        while (j < n && source.charAt(j) != '"') {
-          char ch = source.charAt(j);
-          if (ch == '\\' && j + 1 < n) {
-            text.append(source.charAt(j + 1));
-            j += 2;
-          } else {
-            text.append(ch);
-            j++;
-          }
-        }
-        i = j + 1;
-
-        Frame top = frames.peek();
-        if (top.isObject() && pendingKey == null) {
-          int k = i;
-          while (k < n && Character.isWhitespace(source.charAt(k))) {
-            k++;
-          }
-          if (k < n && source.charAt(k) == ':') {
-            pendingKey = text.toString();
-            pendingKeyValueIsBareSoFar = true;
-            i = k + 1;
-          }
-        } else if (pendingKey != null) {
-          if (pendingKeyValueIsBareSoFar
-              && IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(pendingKey)) {
-            pendingCandidate = new Declaration(text.toString(), top.path());
-          }
-          pendingKey = null;
-        }
-        continue;
-      }
-      if (c == '{' || c == '[') {
-        Frame parent = frames.peek();
-        List<String> childPath = parent.path();
-        if (pendingKey != null) {
-          childPath = new ArrayList<>(parent.path());
-          childPath.add(pendingKey);
-          pendingKey = null;
-        }
-        frames.push(new Frame(childPath, c == '{'));
-        i++;
-        continue;
-      }
-      if (c == '}' || c == ']') {
-        if (frames.size() > 1) {
-          frames.pop();
-        }
-        pendingKey = null;
-        i++;
-        continue;
-      }
-      if (c == ',') {
-        pendingKey = null;
-        i++;
-        continue;
-      }
-      if (pendingKey != null && !Character.isWhitespace(c)) {
-        pendingKeyValueIsBareSoFar = false;
-      }
-      i++;
+      return false;
     }
-    return found;
+
+    private static boolean isIdentifierStart(char c) {
+      return Character.isLetter(c) || c == '_';
+    }
+
+    private static boolean isIdentifierPart(char c) {
+      return Character.isLetterOrDigit(c) || c == '_';
+    }
+
+    private static List<String> appendKey(List<String> path, String key) {
+      List<String> extended = new ArrayList<>(path.size() + 1);
+      extended.addAll(path);
+      extended.add(key);
+      return extended;
+    }
   }
 
   private List<ZeebeInput> findInputs(BaseElement element) {
