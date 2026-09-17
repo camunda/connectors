@@ -335,6 +335,74 @@ class SnsWebhookExecutableTest {
         .hasMessageContaining("Request didn't match allow list");
   }
 
+  /**
+   * Regression test raised in PR review: the rejection exception message is also written to the
+   * connector's activity log (InboundWebhookRestController#L259 logs {@code Throwable#getMessage}
+   * verbatim), so it must not carry the configured allow list - only "not allowed"-level detail.
+   */
+  @Test
+  void triggerWebhook_RejectionException_DoesNotLeakAllowListContents() throws Exception {
+    final var configuredAllowListArn = "arn:aws:sns:eu-central-1:999999999999:SecretInternalTopic";
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", configuredAllowListArn))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    // The header-based prefilter runs before signature verification, so it must also see the
+    // rejected topic - otherwise it would throw first, using the (allowed) default header.
+    headers.put("x-amz-sns-topic-arn", OTHER_TOPIC_ARN);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN)
+        .hasMessageNotContaining(configuredAllowListArn);
+  }
+
+  /**
+   * Regression test raised in PR review: the first {@code checkMessageAllowListed} call receives
+   * the caller-controlled header before signature verification, so a CR/LF in it must not reach the
+   * exception message (log injection, CWE-117) that {@code InboundWebhookRestController} writes to
+   * the activity log.
+   */
+  @Test
+  void triggerWebhook_UnlistedHeaderWithCrlf_SanitizesTopicInExceptionMessage() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    final var injectedTopicArn = OTHER_TOPIC_ARN + "\r\nFORGED LOG LINE";
+    headers.put("x-amz-sns-topic-arn", injectedTopicArn);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN)
+        .hasMessageContaining("FORGED LOG LINE")
+        .hasMessageNotContaining("\r")
+        .hasMessageNotContaining("\n");
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {TOPIC_ARN, OTHER_TOPIC_ARN})
   void triggerWebhook_SubscriptionUnlistedTopic_DoesNotConfirm(String headerTopicArn)
