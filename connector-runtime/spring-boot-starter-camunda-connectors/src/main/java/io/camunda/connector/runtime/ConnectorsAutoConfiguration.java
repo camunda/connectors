@@ -461,8 +461,7 @@ public class ConnectorsAutoConfiguration {
     // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
     // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
     // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
-    // model actually declares remain in the tree. See
-    // docs/superpowers/specs/2026-09-17-intrinsic-function-allow-list.md.
+    // model actually declares remain in the tree. See security-testing-findings#275.
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     var jacksonModuleDocumentDeserializer =

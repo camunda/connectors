@@ -42,7 +42,11 @@ public class ProcessDefinitionModelCache {
   private static final int XML_FETCH_MAX_RETRIES = 3;
   private static final Duration XML_FETCH_INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
 
-  /** See {@link ProcessDefinitionSecretKeyCache}'s identical constant for the reasoning. */
+  /**
+   * Reserves time after the XML fetch/retry completes for whatever the caller still needs to do
+   * before its own deadline (parsing the model, then the consumer's own extraction pass), so the
+   * fetch itself doesn't consume the entire budget and leave none for that remaining work.
+   */
   private static final Duration XML_FETCH_DEADLINE_SAFETY_MARGIN = Duration.ofSeconds(5);
 
   private final String physicalTenantId;

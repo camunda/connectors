@@ -55,6 +55,29 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
       </bpmn:definitions>
       """;
 
+  // Mirrors the Microsoft 365 Mail connector's real sendMail attachments shape: the "body" input's
+  // FEEL source declares base64 three levels under its own target -- "body" -> "message" ->
+  // "attachments" (array, adds no segment of its own) -> "contentBytes" -- not at "body" itself.
+  private static final String NESTED_ATTACHMENT_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="mail_task" name="Mail">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input
+                    source="={&quot;message&quot;:{&quot;attachments&quot;: for document in attachments return {&quot;contentBytes&quot;:{&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}}}}"
+                    target="body" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
   private ProcessDefinitionModelCache modelCacheReturning(String xml) {
     var modelCache = mock(ProcessDefinitionModelCache.class);
     var model = Bpmn.readModelFromStream(new ByteArrayInputStream(xml.getBytes()));
@@ -111,6 +134,24 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
                 42L, "no_such_element", Instant.now().plusSeconds(30)));
 
     assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aFunctionCallNestedInsideAContextAndListLiteralIsAllowedAtItsFullNestedPath() {
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a",
+            modelCacheReturning(NESTED_ATTACHMENT_XML),
+            new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "mail_task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .contains(
+            new AllowedIntrinsicFunction(
+                "base64", List.of("body", "message", "attachments", "contentBytes")));
   }
 
   @Test
