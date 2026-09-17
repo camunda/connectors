@@ -35,6 +35,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SNS Inbound", type = "io.camunda:aws-sns-webhook:1")
 @ElementTemplate(
@@ -42,7 +44,7 @@ import java.util.Optional;
     id = "io.camunda.connectors.AWSSNS.inbound.v1",
     name = "SNS HTTPS Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
     keywords = {
@@ -78,6 +80,7 @@ import java.util.Optional;
           templateNameOverride = "SNS HTTPS Receive Task Connector")
     })
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
+  private static final Logger LOG = LoggerFactory.getLogger(SnsWebhookExecutable.class);
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";
 
   private final ObjectMapper objectMapper;
@@ -141,9 +144,18 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         Map.of("snsEventType", "Notification"));
   }
 
+  // A null securitySubscriptionAllowedFor (hand-authored BPMN, or a diagram built on an older
+  // template) is treated the same as "specific": only an explicit "any" skips the allow list.
   private void checkMessageAllowListed(String topicArn) throws Exception {
-    if (SubscriptionAllowListFlag.specific.equals(props.securitySubscriptionAllowedFor())
+    if (!SubscriptionAllowListFlag.any.equals(props.securitySubscriptionAllowedFor())
         && !props.topicsAllowListParsed().contains(topicArn)) {
+      // Deliberately omits the allow-list contents and any request payload: operators get enough
+      // to see the attempt (subscription id, rejected topic) without this becoming a config or
+      // data leak.
+      LOG.error(
+          "Rejected SNS message for subscription '{}': topic '{}' is not allow-listed",
+          props.context(),
+          topicArn);
       throw new Exception(
           "Request didn't match allow list. Allow list: "
               + props.topicsAllowListParsed()

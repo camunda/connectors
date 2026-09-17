@@ -20,6 +20,7 @@ import com.amazonaws.services.sns.message.SnsNotification;
 import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.amazonaws.services.sns.message.SnsUnknownMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -238,9 +239,13 @@ class SnsWebhookExecutableTest {
     assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
+  /**
+   * Regression test for security-testing-findings#263, clause 3: {@code topicsAllowList} must be
+   * required (non-empty) whenever the mode isn't explicitly "any" - this must fail fast at
+   * activation, not silently accept every topic at runtime.
+   */
   @Test
-  void triggerWebhook_SubscriptionAllowListEmpty_RaiseException() throws Exception {
-    // Configure connector
+  void activate_SpecificModeWithoutAllowList_FailsValidation() {
     Map<String, Object> actualBPMNProperties =
         Map.of(
             "inbound",
@@ -250,22 +255,84 @@ class SnsWebhookExecutableTest {
 
     ctx = createConnectorContext(actualBPMNProperties);
 
-    // Configure payload
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clauses 2+3: a {@code null}
+   * securitySubscriptionAllowedFor (hand-authored BPMN, or a diagram built on an older element
+   * template) is treated the same as "specific" and therefore also requires a non-empty allow list
+   * at activation - it must not fall back to the permissive "any" behaviour.
+   */
+  @Test
+  void activate_NullSecuritySubscriptionAllowedForWithoutAllowList_FailsValidation() {
+    Map<String, Object> actualBPMNProperties = Map.of("inbound", Map.of("context", "snstest"));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clause 2: a {@code null}
+   * securitySubscriptionAllowedFor must still deny an unauthorized topic at request time, not just
+   * at activation - i.e. null is "specific", never "any".
+   */
+  @Test
+  void triggerWebhook_NullSecuritySubscriptionAllowedFor_UnauthorizedTopicIsRejected()
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of("inbound", Map.of("context", "snstest", "topicsAllowList", TOPIC_ARN))));
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
-    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
-    when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
-        .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
-
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
     when(messageManager.parseMessage(any())).thenReturn(confirmation);
 
-    // when & then
-    testObject.activate(ctx);
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list");
+    verify(confirmation, never()).confirmSubscription();
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clause 1: the allow list must be enforced
+   * "not only for SnsNotification" - a Notification (not just a SubscriptionConfirmation) from an
+   * unauthorized, signature-verified topic must be rejected too.
+   */
+  @Test
+  void triggerWebhook_NotificationFromUnauthorizedTopic_RaisesException() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "Notification");
+    final var notification = mock(SnsNotification.class);
+    when(notification.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            NOTIFICATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(notification);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list");
   }
 
   @ParameterizedTest
