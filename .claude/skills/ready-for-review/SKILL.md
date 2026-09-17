@@ -37,6 +37,12 @@ Do NOT remove:
 
 Remove qualifying comments (and, if a comment was the only content of a block, remove the whole now-empty block cleanly). Don't touch code logic or surrounding formatting. Print a summary table of what was removed (File | Line(s) | Comment). If nothing qualifies, say so and change nothing.
 
+These are working-tree edits only. Stage them now — `git add` the specific files touched, not `git add -A` — so they carry through the squash in step 2:
+
+```
+git add <files touched above>
+```
+
 ### 2. Squash all commits into one
 
 Show the user the current commit log first and **stop for confirmation** before rewriting anything — this is a hard-to-reverse operation:
@@ -45,13 +51,13 @@ Show the user the current commit log first and **stop for confirmation** before 
 git log "$BASE"...HEAD --oneline
 ```
 
-After confirmation, snapshot the diff for a safety check, then squash:
+After confirmation, snapshot the diff for a safety check, then squash. Hash against the *staged/working tree* state, not `HEAD`, since `git reset --soft` leaves the index untouched and the comment removals from step 1 are staged but not yet committed:
 
 ```
-TREE_BEFORE=$(git diff "$BASE"...HEAD | sha256sum)
+TREE_BEFORE=$(git diff "$BASE" | sha256sum)
 git reset --soft $(git merge-base "$BASE" HEAD)
 git commit -m "<message>"
-TREE_AFTER=$(git diff "$BASE"...HEAD | sha256sum)
+TREE_AFTER=$(git diff "$BASE" HEAD | sha256sum)
 ```
 
 Infer `<message>` from the overall diff/branch name if the user hasn't given one; ask only if genuinely ambiguous. If `$TREE_BEFORE` != `$TREE_AFTER`, stop and report the mismatch — do not proceed — and point to `git reflog` for recovery.
