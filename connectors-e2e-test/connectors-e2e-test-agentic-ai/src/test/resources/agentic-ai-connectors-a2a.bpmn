@@ -303,7 +303,7 @@
             <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
             <zeebe:property name="inbound.auth.type" value="APIKEY" />
             <zeebe:property name="inbound.auth.apiKey" value="e2e-test-api-key" />
-            <zeebe:property name="inbound.auth.apiKeyLocator" value="=request.headers.Authorization" />
+            <zeebe:property name="inbound.auth.apiKeyLocator" value="=request.headers.authorization" />
             <zeebe:property name="activationCondition" value="=is defined(request.body.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], request.body.status.state))" />
             <zeebe:property name="correlationKeyExpression" value="=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (&#34;-&#34; + request.headers.`x-a2a-notification-token`) else &#34;&#34;)" />
             <zeebe:property name="deduplicationModeManualFlag" value="false" />

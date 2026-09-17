@@ -59,12 +59,19 @@ class HttpWebhookExecutableTest {
     return Map.of(
         "type", "APIKEY",
         "apiKey", API_KEY,
-        "apiKeyLocator", "=request.headers.Authorization");
+        // The real runtime lower-cases every incoming header name before FEEL evaluation (see
+        // InboundWebhookRestController), so the locator must match the lower-cased key even though
+        // the client sends "Authorization".
+        "apiKeyLocator", "=request.headers.authorization");
   }
 
-  /** Request headers carrying the API key expected by {@link #apiKeyAuth()}. */
+  /**
+   * Request headers carrying the API key expected by {@link #apiKeyAuth()}. Keyed lower-case to
+   * match what {@code WebhookProcessingPayload} actually contains at runtime (the controller
+   * lower-cases every incoming header name before a connector ever sees it).
+   */
   private static Map<String, String> headersWithApiKey(String contentType) {
-    return Map.of(HEADER_CONTENT_TYPE, contentType, "Authorization", API_KEY);
+    return Map.of(HEADER_CONTENT_TYPE, contentType, "authorization", API_KEY);
   }
 
   private WebhookResult triggerSimpleWebhook() {

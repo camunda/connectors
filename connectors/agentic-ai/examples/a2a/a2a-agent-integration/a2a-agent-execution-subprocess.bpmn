@@ -171,7 +171,9 @@
           <zeebe:property name="inbound.context" value="31761c21-8a04-4569-aad0-eb9bb601d729" />
           <zeebe:property name="inbound.clientResponse" value="=internal_clientResponse" />
           <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
-          <zeebe:property name="inbound.auth.type" value="NONE" />
+          <zeebe:property name="inbound.auth.type" value="BASIC" />
+          <zeebe:property name="inbound.auth.username" value="myuser" />
+          <zeebe:property name="inbound.auth.password" value="mypassword" />
           <zeebe:property name="activationCondition" value="=is defined(request.body.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], request.body.status.state))" />
           <zeebe:property name="correlationKeyExpression" value="=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (&#34;-&#34; + request.headers.`x-a2a-notification-token`) else &#34;&#34;)" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />

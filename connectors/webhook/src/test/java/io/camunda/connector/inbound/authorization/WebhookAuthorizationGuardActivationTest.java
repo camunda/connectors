@@ -8,14 +8,23 @@ package io.camunda.connector.inbound.authorization;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityBuilder;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
+import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -105,16 +114,32 @@ class WebhookAuthorizationGuardActivationTest {
   }
 
   @Test
-  void activate_unauthenticatedCombinationWithOperatorOptIn_isAllowed() {
+  void activate_unauthenticatedCombinationWithOperatorOptIn_isAllowedAndLogsWarning() {
     System.setProperty(WebhookAuthorizationGuard.ALLOW_UNAUTHENTICATED_PROPERTY, "true");
-    var ctx =
-        contextWith(
-            Map.of(
-                "auth",
-                Map.of("type", "NONE"),
-                "shouldValidateHmac",
-                HMACSwitchCustomerChoice.disabled.name()));
+    InboundConnectorContext context = mock(InboundConnectorContext.class);
+    AtomicReference<Activity> loggedActivity = new AtomicReference<>();
+    doAnswer(
+            invocation -> {
+              Consumer<ActivityBuilder> consumer = invocation.getArgument(0);
+              ActivityBuilder builder = Activity.newBuilder();
+              consumer.accept(builder);
+              loggedActivity.set(builder.build());
+              return null;
+            })
+        .when(context)
+        .log(any(Consumer.class));
 
-    assertThat(catchException(() -> new HttpWebhookExecutable().activate(ctx))).isNull();
+    var exception =
+        catchException(
+            () ->
+                WebhookAuthorizationGuard.rejectUnauthenticatedActivation(
+                    context, new WebhookAuthorization.None(), HMACSwitchCustomerChoice.disabled));
+
+    assertThat(exception).isNull();
+    assertThat(loggedActivity.get()).isNotNull();
+    assertThat(loggedActivity.get().severity()).isEqualTo(Severity.WARNING);
+    assertThat(loggedActivity.get().tag()).isEqualTo("webhook-authorization");
+    assertThat(loggedActivity.get().message())
+        .contains(WebhookAuthorizationGuard.ALLOW_UNAUTHENTICATED_PROPERTY);
   }
 }

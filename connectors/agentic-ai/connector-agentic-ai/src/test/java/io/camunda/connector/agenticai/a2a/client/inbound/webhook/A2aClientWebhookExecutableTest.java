@@ -62,7 +62,10 @@ class A2aClientWebhookExecutableTest {
       Map.of(
           "type", "APIKEY",
           "apiKey", API_KEY,
-          "apiKeyLocator", "=request.headers.Authorization");
+          // The real runtime lower-cases every incoming header name before FEEL evaluation (see
+          // InboundWebhookRestController), so the locator must match the lower-cased key even
+          // though the client sends "Authorization".
+          "apiKeyLocator", "=request.headers.authorization");
   private static final String TASK_JSON =
       """
           {
@@ -103,9 +106,13 @@ class A2aClientWebhookExecutableTest {
             });
   }
 
+  /**
+   * Keyed lower-case to match what {@code WebhookProcessingPayload} actually contains at runtime
+   * (the controller lower-cases every incoming header name before a connector ever sees it).
+   */
   private static Map<String, String> headersWithApiKey() {
     return Map.of(
-        HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString(), "Authorization", API_KEY);
+        HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString(), "authorization", API_KEY);
   }
 
   @Test
@@ -364,7 +371,7 @@ class A2aClientWebhookExecutableTest {
             MediaType.JSON_UTF_8.toString(),
             "X-Custom-Header",
             "customValue",
-            "Authorization",
+            "authorization",
             API_KEY);
     Map<String, String> params = Map.of("param1", "value1", "param2", "value2");
 

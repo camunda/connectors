@@ -57,7 +57,7 @@ public final class WebhookAuthorizationGuard {
    * Fails activation when {@code auth} and {@code shouldValidateHmac} combine into a fully
    * unauthenticated webhook, unless the operator opted in via {@link
    * #ALLOW_UNAUTHENTICATED_PROPERTY} — in which case activation proceeds but a WARNING activity is
-   * logged so the exposure surfaces in Manage & Run.
+   * logged so the exposure surfaces in Manage &amp; Run.
    */
   public static void rejectUnauthenticatedActivation(
       InboundConnectorContext context,
