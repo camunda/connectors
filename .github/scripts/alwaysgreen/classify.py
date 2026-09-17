@@ -460,12 +460,13 @@ class Blame:
     in camunda/camunda once already (camunda/camunda#63373).
     """
 
-    #: Login to request review from; None when only a bot could be identified.
+    #: Candidate to request review from, if a relevance verdict allows it; None when
+    #: only a bot could be identified.
     reviewer: str | None
-    #: Login to name in the PR body, even when it is a bot.
+    #: Candidate to name in the PR body, if a relevance verdict allows it; may be a bot.
     author: str | None
     pr_number: int | None
-    #: How the reviewer was resolved, for the job summary.
+    #: How the candidate was resolved, for the job summary.
     via: str
 
 
@@ -475,7 +476,13 @@ def resolve_blame(
     prs: list[dict],
     lookup_pr: Any = None,
 ) -> Blame:
-    """Resolve the author of the change that broke the run.
+    """Resolve candidate attribution for the run's head commit.
+
+    This identifies whoever authored the PR associated with the tested commit, which
+    is not the same as finding who broke the run: see `Blame` for what each `via`
+    case does and does not establish. Naming the result publicly or requesting its
+    review is conditional on a separate relevance verdict (`blame_relevant` in
+    `fix-meta.json`), not on this function succeeding.
 
     `lookup_pr` is an optional callable taking a PR number and returning a PR
     dict, used to follow a backport PR to its original. Injected so this stays
