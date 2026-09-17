@@ -96,6 +96,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfi
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
@@ -758,7 +759,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           super(
               mock(AgenticAiHttpProxySupport.class),
               mock(AnthropicMessageRequestConverter.class),
-              mock(AnthropicMessageResponseConverter.class));
+              mock(AnthropicMessageResponseConverter.class),
+              mock(OAuthClientCredentialsTokenResolver.class));
         }
 
         @Override
@@ -781,7 +783,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiFoundryCredentialResolver.class));
+              mock(OpenAiFoundryCredentialResolver.class),
+              mock(OAuthClientCredentialsTokenResolver.class));
         }
 
         @Override

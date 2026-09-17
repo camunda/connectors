@@ -51,7 +51,8 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
         () -> {
           try {
             return secretKeyCache.getSecretKeys(
-                new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
+                new SecretKeyContext(
+                    context.processDefinitionKey(), context.elementId(), context.deadline()));
           } catch (RuntimeException e) {
             // realCause walks to the root of the chain, not just one level: the client can wrap
             // the actual failure in its own generic exception type before it ever reaches here,

@@ -221,6 +221,29 @@ class PollingRuntimePropertiesCredentialValidationTest {
         .isEqualTo("http://localhost:8085/other-path");
   }
 
+  @Test
+  void malformedInlineUrlIsRejectedWhenCredentialIsBound() {
+    String properties =
+        """
+        {
+          "url": "not-a-url",
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("Must be a http(s) URL");
+  }
+
   /**
    * An OAuth credential need not carry a URL (see {@code
    * RestAuthenticationConfiguration#requiresUrl}), so binding one with neither an inline URL nor an

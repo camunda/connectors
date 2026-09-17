@@ -32,7 +32,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     configurations = {AwsCredentialConfiguration.class},
     description = "Invoke an external agent running in AWS Bedrock AgentCore Runtime",
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),

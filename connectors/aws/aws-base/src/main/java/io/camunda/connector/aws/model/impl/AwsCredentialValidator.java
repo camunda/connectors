@@ -105,9 +105,15 @@ public class AwsCredentialValidator implements ConfigurationValidator<AwsCredent
         StsClient.builder()
             .credentialsProvider(
                 CredentialsProviderSupportV2.credentialsProvider(configuration.authentication()))
-            .region(Region.of(configuration.region()))
+            .region(resolveValidationRegion(configuration.region()))
             .build()) {
       sts.getCallerIdentity();
     }
+  }
+
+  static Region resolveValidationRegion(String region) {
+    // Credential validation runs before any connector-specific override is available. AWS's global
+    // STS endpoint can validate the identity without assigning a default service region.
+    return region == null || region.isBlank() ? Region.AWS_GLOBAL : Region.of(region);
   }
 }

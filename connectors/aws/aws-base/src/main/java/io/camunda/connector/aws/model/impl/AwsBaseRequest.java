@@ -7,6 +7,8 @@
 package io.camunda.connector.aws.model.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
@@ -29,8 +31,9 @@ public class AwsBaseRequest {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
       description =
-          "Choose a reusable AWS credential, or configure one-time authentication parameters"
-              + " below.")
+          "Select a saved AWS credential with an optional default region, or enter authentication"
+              + " details and a region below.")
+  @FEEL
   @Valid
   private AwsCredentialConfiguration awsCredential;
 
@@ -50,9 +53,8 @@ public class AwsBaseRequest {
               isEmpty = NullableBoolean.TRUE))
   private AwsAuthentication authentication;
 
-  // Hidden and un-required (via the isEmpty condition) once a credential is chosen above: the
-  // bound credential's own region always wins (see getConfiguration()), so leaving `region`
-  // visible and required here would force a value that's silently discarded.
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen. In that case,
+  // the template-only regionOverride below renders in its place.
   @NestedProperties(
       condition =
           @TemplateProperty.PropertyCondition(
@@ -60,6 +62,26 @@ public class AwsBaseRequest {
               isEmpty = NullableBoolean.TRUE))
   @TemplateProperty(group = "configuration")
   private AwsBaseConfiguration configuration;
+
+  // Template-only twin of `configuration.region`, shown when a credential is selected. The engine
+  // still writes the existing `configuration.region` input, which Jackson binds into
+  // AwsBaseConfiguration; this field is never populated.
+  @JsonIgnore
+  @TemplateProperty(
+      id = "regionOverride",
+      group = "configuration",
+      label = "Region",
+      feel = FeelMode.optional,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "configuration.region"),
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "awsCredential",
+              isEmpty = NullableBoolean.FALSE),
+      description =
+          "Overrides the default region in the selected credential. Required when the credential"
+              + " has no default region.")
+  private String regionOverride;
 
   public AwsCredentialConfiguration getAwsCredential() {
     return awsCredential;
@@ -107,16 +129,19 @@ public class AwsBaseRequest {
     return awsCredential != null ? null : authentication;
   }
 
-  /**
-   * When a credential is bound, its region drives the configuration; the inline endpoint (if any)
-   * is preserved.
-   */
+  /** A nonblank inline region overrides the credential's default region. */
   public AwsBaseConfiguration getConfiguration() {
     if (awsCredential == null) {
       return configuration;
     }
+    String inlineRegion = configuration != null ? configuration.region() : null;
+    String credentialRegion = awsCredential.region();
+    String region =
+        inlineRegion != null && !inlineRegion.isBlank()
+            ? inlineRegion
+            : credentialRegion != null && !credentialRegion.isBlank() ? credentialRegion : null;
     String endpoint = configuration != null ? configuration.endpoint() : null;
-    return new AwsBaseConfiguration(awsCredential.region(), endpoint);
+    return new AwsBaseConfiguration(region, endpoint);
   }
 
   public void setConfiguration(final AwsBaseConfiguration configuration) {

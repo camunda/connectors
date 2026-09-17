@@ -17,6 +17,7 @@ public class AwsUtils {
       final AwsConfiguration configuration, final String region) {
     return Optional.ofNullable(configuration)
         .map(AwsConfiguration::region)
+        .filter(str -> !str.isBlank())
         .or(() -> Optional.ofNullable(region))
         .filter(str -> !str.isBlank())
         .orElseThrow(

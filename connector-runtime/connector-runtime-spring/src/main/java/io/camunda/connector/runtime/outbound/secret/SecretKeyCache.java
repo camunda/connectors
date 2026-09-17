@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
+import java.time.Instant;
 import java.util.List;
 
 public interface SecretKeyCache {
@@ -24,5 +25,5 @@ public interface SecretKeyCache {
 
   List<Secret> getSecretKeys(SecretKeyContext secretKeyContext);
 
-  record SecretKeyContext(long processDefinitionKey, String elementId) {}
+  record SecretKeyContext(long processDefinitionKey, String elementId, Instant deadline) {}
 }
