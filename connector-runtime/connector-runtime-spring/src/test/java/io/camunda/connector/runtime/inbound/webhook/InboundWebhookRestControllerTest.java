@@ -273,7 +273,7 @@ class InboundWebhookRestControllerTest {
     var controller = new InboundWebhookRestController(registry);
 
     var responseEntityHolder = new AtomicReference<ResponseEntity<?>>();
-    var loggedMessages =
+    var loggedEvents =
         logsOf(
             () -> {
               try {
@@ -290,11 +290,16 @@ class InboundWebhookRestControllerTest {
     assertThat(responseEntity.getStatusCode().value()).isEqualTo(401);
     assertThat(responseEntity.getBody()).isNull();
 
-    assertThat(loggedMessages)
-        .isNotEmpty()
+    assertThat(loggedEvents).isNotEmpty();
+    assertThat(loggedEvents)
         .noneMatch(
-            message ->
-                message.contains("secret leak reason") || message.contains("SUPER_SECRET_VALUE"));
+            event ->
+                event.getFormattedMessage().contains("secret leak reason")
+                    || event.getFormattedMessage().contains("SUPER_SECRET_VALUE"));
+    // getFormattedMessage() excludes an attached throwable, so a regression to
+    // LOG.warn("...", e) would still pass the assertion above while the throwable (message and
+    // stack trace) carried the secret when actually rendered — assert no event carries one.
+    assertThat(loggedEvents).noneMatch(event -> event.getThrowableProxy() != null);
 
     assertThat(latestActivity(activityLogRegistry, executableId).message())
         .doesNotContain("secret leak reason")
@@ -337,7 +342,7 @@ class InboundWebhookRestControllerTest {
     var controller = new InboundWebhookRestController(registry);
 
     var responseEntityHolder = new AtomicReference<ResponseEntity<?>>();
-    var loggedMessages =
+    var loggedEvents =
         logsOf(
             () -> {
               try {
@@ -356,10 +361,16 @@ class InboundWebhookRestControllerTest {
     var body = (GenericErrorResponse) responseEntity.getBody();
     assertThat(body.reason()).doesNotContain("secret leak reason").doesNotContain("SUPER_SECRET");
 
-    assertThat(loggedMessages)
-        .isNotEmpty()
+    assertThat(loggedEvents).isNotEmpty();
+    assertThat(loggedEvents)
         .noneMatch(
-            message -> message.contains("secret leak reason") || message.contains("SUPER_SECRET"));
+            event ->
+                event.getFormattedMessage().contains("secret leak reason")
+                    || event.getFormattedMessage().contains("SUPER_SECRET"));
+    // getFormattedMessage() excludes an attached throwable, so a regression to
+    // LOG.warn("...", e) would still pass the assertion above while the throwable (message and
+    // stack trace) carried the secret when actually rendered — assert no event carries one.
+    assertThat(loggedEvents).noneMatch(event -> event.getThrowableProxy() != null);
 
     // The activity itself (retained for later query, independent of the SLF4J re-emission above)
     // must not carry the secret either.
@@ -369,10 +380,15 @@ class InboundWebhookRestControllerTest {
   }
 
   /**
-   * Every message emitted, while {@code action} runs, by the loggers of the given classes,
-   * formatted as it would be written.
+   * Every event emitted, while {@code action} runs, by the loggers of the given classes.
+   *
+   * <p>Returns the raw {@link ILoggingEvent}s rather than pre-extracting {@code
+   * getFormattedMessage()}: that method excludes an attached throwable, so a caller must also
+   * assert {@code getThrowableProxy()} is null to catch a regression to {@code LOG.warn(msg, e)} —
+   * the message-only string would otherwise still look clean while the throwable (message and stack
+   * trace) carries the leaked detail when actually rendered.
    */
-  private static List<String> logsOf(Runnable action, Class<?>... loggerClasses) {
+  private static List<ILoggingEvent> logsOf(Runnable action, Class<?>... loggerClasses) {
     var loggers =
         Arrays.stream(loggerClasses).map(c -> (Logger) LoggerFactory.getLogger(c)).toList();
     var appenders = loggers.stream().map(logger -> new ListAppender<ILoggingEvent>()).toList();
@@ -388,10 +404,7 @@ class InboundWebhookRestControllerTest {
         appenders.get(i).stop();
       }
     }
-    return appenders.stream()
-        .flatMap(appender -> appender.list.stream())
-        .map(ILoggingEvent::getFormattedMessage)
-        .toList();
+    return appenders.stream().flatMap(appender -> appender.list.stream()).toList();
   }
 
   private static io.camunda.connector.api.inbound.Activity latestActivity(
