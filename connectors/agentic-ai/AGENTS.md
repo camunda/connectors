@@ -158,6 +158,7 @@ specifics.
 ### Element-template guidance
 
 - Keep visible property descriptions to one short line. Move decision help and documentation links into the tooltip; reserve the description for a concise `Note:` or `Warning:` that must remain visible.
+- Exception: displaying the prompt caching status under the model may require a longer visible description. Review this workaround before it goes live.
 
 ### Building & testing
 
