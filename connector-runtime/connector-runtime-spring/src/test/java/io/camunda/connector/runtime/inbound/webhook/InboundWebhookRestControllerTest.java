@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -217,6 +218,133 @@ class InboundWebhookRestControllerTest {
 
     // legacy 2-segment route 404s: the flag registers only under the composite key
     mockMvc.perform(post("/inbound/myPath")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void shouldAcceptBodyExactlyAtSizeLimit() throws Exception {
+    var registration = registerWebhook("sizePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxRequestBodyBytes = 8;
+
+    var response =
+        controller.inbound("sizePath", new HashMap<>(), requestTo("sizePath", "12345678"));
+
+    // Reaches correlation, which the stub rejects with 422 — proving the body was accepted
+    // rather than rejected for size.
+    assertThat(response.getStatusCode().value()).isEqualTo(422);
+  }
+
+  @Test
+  void shouldRejectOversizedBodyWithoutInvokingConnector() throws Exception {
+    var registration = registerWebhook("oversizePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxRequestBodyBytes = 8;
+
+    var response =
+        controller.inbound("oversizePath", new HashMap<>(), requestTo("oversizePath", "123456789"));
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldReturnNotFoundWithoutReadingBodyForUnknownPath() throws Exception {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+
+    var request = new ThrowingBodyMockHttpServletRequest();
+    request.setRequestURI("/inbound/doesNotExist");
+    request.setMethod("POST");
+    request.setContent("irrelevant".getBytes(StandardCharsets.UTF_8));
+
+    var response = controller.inbound("doesNotExist", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void shouldRateLimitSecondRequestToSamePath() throws Exception {
+    var registration = registerWebhook("ratePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.rateLimitEnabled = true;
+    // Effectively one permit total for the lifetime of this test.
+    controller.rateLimitPermitsPerSecond = 0.0001;
+
+    var first = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
+    var second = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
+
+    // First request passes the rate limit and reaches correlation, which the stub rejects
+    // with 422; the second is throttled before the body is even read.
+    assertThat(first.getStatusCode().value()).isEqualTo(422);
+    assertThat(second.getStatusCode().value()).isEqualTo(429);
+  }
+
+  @Test
+  void shouldNotRateLimitWhenDisabled() throws Exception {
+    var registration = registerWebhook("rateDisabledPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.rateLimitEnabled = false;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+
+    var first =
+        controller.inbound(
+            "rateDisabledPath", new HashMap<>(), requestTo("rateDisabledPath", "body"));
+    var second =
+        controller.inbound(
+            "rateDisabledPath", new HashMap<>(), requestTo("rateDisabledPath", "body"));
+
+    assertThat(first.getStatusCode().value()).isEqualTo(422);
+    assertThat(second.getStatusCode().value()).isEqualTo(422);
+  }
+
+  private static MockHttpServletRequest requestTo(String path, String body) {
+    var request = new MockHttpServletRequest();
+    request.setRequestURI("/inbound/" + path);
+    request.setMethod("POST");
+    request.setContent(body.getBytes(StandardCharsets.UTF_8));
+    return request;
+  }
+
+  private record WebhookRegistration(
+      WebhookConnectorRegistry registry, WebhookConnectorExecutable executable) {}
+
+  private static WebhookRegistration registerWebhook(String path) throws Exception {
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class))).thenReturn(webhookResult);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenThrow(new ConnectorInputException("invalid input"));
+
+    var details = webhookDefinition("processA", 1, path);
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+    return new WebhookRegistration(registry, executable);
+  }
+
+  /**
+   * Proves clause 2 of the remediation: for an unregistered path, the controller must not touch the
+   * request body at all before returning 404.
+   */
+  private static class ThrowingBodyMockHttpServletRequest extends MockHttpServletRequest {
+    @Override
+    public jakarta.servlet.ServletInputStream getInputStream() {
+      throw new AssertionError("Request body must not be read for an unregistered webhook path");
+    }
   }
 
   private static io.camunda.connector.api.inbound.Activity latestActivity(

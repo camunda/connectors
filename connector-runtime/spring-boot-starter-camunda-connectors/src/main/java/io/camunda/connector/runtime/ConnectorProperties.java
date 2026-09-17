@@ -33,8 +33,30 @@ public record ConnectorProperties(
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
-  /** Configuration for the inbound webhook connector. */
-  public record Webhook(boolean enabled, boolean appendPhysicalTenantAndTenantToPath) {}
+  /**
+   * Configuration for the inbound webhook connector.
+   *
+   * @param maxRequestBodyBytes Maximum size, in bytes, of an inbound webhook request body read into
+   *     memory before authentication runs. Requests whose body exceeds this limit are rejected with
+   *     413 Payload Too Large. Default is 10 MB (10485760).
+   * @param rateLimit Per-registered-webhook inbound rate limit, enforced before the request body is
+   *     read.
+   */
+  public record Webhook(
+      boolean enabled,
+      boolean appendPhysicalTenantAndTenantToPath,
+      long maxRequestBodyBytes,
+      RateLimit rateLimit) {}
+
+  /**
+   * Per-registered-webhook inbound rate limit.
+   *
+   * @param enabled Whether the rate limit is enforced. Default is {@code true}.
+   * @param permitsPerSecond Maximum sustained requests per second allowed for a single registered
+   *     webhook. Requests beyond this rate are rejected with 429 Too Many Requests. Default is
+   *     1000; deployments that know their expected per-webhook traffic can tune this down.
+   */
+  public record RateLimit(boolean enabled, double permitsPerSecond) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(
