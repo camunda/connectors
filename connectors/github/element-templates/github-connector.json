@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 13,
+  "version": 14,
   "engines": {
-    "camunda": "^8.10"
+    "camunda": "^8.7"
   },
   "description": "Manage GitHub issues, branches, releases, and more",
   "keywords": [
@@ -478,17 +478,6 @@
       }
     },
     {
-      "type": "Hidden",
-      "label": "Type",
-      "id": "authenticationType",
-      "group": "authentication",
-      "value": "bearer",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.type"
-      }
-    },
-    {
       "label": "Authentication type",
       "id": "authentication.authType",
       "group": "authentication",
@@ -506,7 +495,7 @@
       ],
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.authType"
+        "name": "githubAuthType"
       }
     },
     {
@@ -520,7 +509,7 @@
       "value": "",
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.pat"
+        "name": "githubPat"
       },
       "constraints": {
         "notEmpty": false
@@ -541,7 +530,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.githubAppPrivateKey"
+        "name": "githubAppPrivateKey"
       },
       "constraints": {
         "notEmpty": false
@@ -562,7 +551,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.githubAppAppId"
+        "name": "githubAppAppId"
       },
       "constraints": {
         "notEmpty": false
@@ -583,7 +572,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.githubAppInstallationId"
+        "name": "githubAppInstallationId"
       },
       "constraints": {
         "notEmpty": false
@@ -594,9 +583,20 @@
       }
     },
     {
+      "type": "Hidden",
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "value": "bearer",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
       "group": "authentication",
       "type": "Hidden",
-      "value": "= if authentication.authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[authentication.githubAppPrivateKey,authentication.githubAppAppId,authentication.githubAppInstallationId]} else authentication.pat",
+      "value": "= if githubAuthType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]} else githubPat",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.token"
@@ -3962,7 +3962,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "13",
+      "value": "14",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",

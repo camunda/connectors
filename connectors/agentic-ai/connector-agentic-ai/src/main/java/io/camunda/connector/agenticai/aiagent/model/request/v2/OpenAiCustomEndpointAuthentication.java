@@ -18,15 +18,18 @@ import jakarta.validation.constraints.NotBlank;
  * Authentication strategies for OpenAI's {@code custom}-backend endpoint. Unlike Anthropic, there
  * is no genuine no-auth option here: the openai-java SDK requires a credential source to build a
  * client at all, so an apparent "no auth" choice would silently send a placeholder credential
- * instead of actually sending nothing. API key is therefore the only, required variant today,
- * modeled as a sealed interface rather than a flat {@code @NotBlank String apiKey} field to stay
- * consistent with the backend-subtype wrapping convention used throughout this provider's config.
+ * instead of actually sending nothing. Modeled as a sealed interface rather than a flat
+ * {@code @NotBlank String apiKey} field to stay consistent with the backend-subtype wrapping
+ * convention used throughout this provider's config.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = OpenAiCustomEndpointAuthentication.ApiKeyAuthentication.class,
-      name = "apiKey")
+      name = "apiKey"),
+  @JsonSubTypes.Type(
+      value = OAuthClientCredentialsAuthentication.class,
+      name = OAuthClientCredentialsAuthentication.TYPE)
 })
 @TemplateDiscriminatorProperty(
     label = "Authentication",
@@ -34,7 +37,9 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "apiKey",
     description = "Authentication for the compatible API.")
-public sealed interface OpenAiCustomEndpointAuthentication {
+public sealed interface OpenAiCustomEndpointAuthentication
+    permits OpenAiCustomEndpointAuthentication.ApiKeyAuthentication,
+        OAuthClientCredentialsAuthentication {
 
   @TemplateSubType(id = "apiKey", label = "API key")
   record ApiKeyAuthentication(
