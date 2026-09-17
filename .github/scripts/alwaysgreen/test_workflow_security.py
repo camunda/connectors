@@ -159,14 +159,19 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
             change={
                 "owner": "camunda",
                 "repo": "connectors",
-                "root_cause": "Ruled out @octocat's PR; the login selector moved.",
-                "fix": "Updated the selector, per @camunda/test-automation-team.",
+                # GitHub's mention parser takes any non-word character as a boundary, so
+                # punctuation-prefixed forms notify exactly like a space-prefixed one.
+                "root_cause": "Ruled-out-@octocat, (@octocat), .@octocat: selector moved.",
+                "fix": "Updated it, per @camunda/test-automation-team. No email@example.com.",
             },
         ),
     )
-    assert "`@octocat`" in body
+    assert body.count("`@octocat`") == 3
     assert "`@camunda/test-automation-team`" in body
-    assert re.search(r"(?<![`\w])@[A-Za-z0-9]", body) is None
+    assert "email@example.com" in body  # an email is not a mention; leave it alone
+    # Nothing left that GitHub would still parse as a mention: start of line or any
+    # non-word character before the @, matching its own boundary rule.
+    assert re.search(r"(?m)(?:^|[^A-Za-z0-9_`])@[A-Za-z0-9]", body) is None
     assert "--add-reviewer" not in gh_calls
 
 
