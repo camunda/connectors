@@ -53,6 +53,7 @@ import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
@@ -94,6 +95,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @AutoConfigureMockMvc
 public class HttpTests {
 
