@@ -106,12 +106,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.19</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.20</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.19</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.54.20</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.19</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.54.20</version.aws-sdk-secretsmanager>
 
     <version.google-api-client>2.9.1</version.google-api-client>
 
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-16</version.zstd-jni>
+    <version.zstd-jni>1.5.7-17</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
