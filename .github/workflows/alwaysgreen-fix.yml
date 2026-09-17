@@ -756,8 +756,19 @@ jobs:
           KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
         run: |
           set -euo pipefail
-          root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json)
-          fix=$(jq -r '.change.fix' /tmp/fix-meta.json)
+          # GitHub notifies on every @login in a PR body, including one inside a sentence
+          # explaining that the person was ruled out, and .change.root_cause/.change.fix are
+          # untrusted agent output rendered verbatim below. FIX-AGENT.md tells the agent not
+          # to name anyone itself, but that is an instruction, not an enforcement: defang
+          # mention-shaped tokens here so the gated "Breaking-change author" line stays the
+          # only thing in this body that can notify a human. Emails keep their @ (the
+          # preceding character must not be one that can appear in a local part), and
+          # /tmp/fix-meta.json keeps the agent's wording verbatim for the run artifact.
+          defang_mentions() {
+            sed -E 's,(^|[^A-Za-z0-9._%+-])@([A-Za-z0-9][A-Za-z0-9-]*(/[A-Za-z0-9_-]+)?),\1`@\2`,g'
+          }
+          root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json | defang_mentions)
+          fix=$(jq -r '.change.fix' /tmp/fix-meta.json | defang_mentions)
 
           # The agent's own "Zeroth check" verdict (FIX-AGENT.md), not just whether a
           # blame author/reviewer was resolved at all: a merge that merely triggered this

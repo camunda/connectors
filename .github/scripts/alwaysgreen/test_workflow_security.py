@@ -1,5 +1,6 @@
 """Static security invariants for the privileged AlwaysGreen workflows."""
 
+import json
 import os
 import re
 import subprocess
@@ -64,6 +65,109 @@ def _run_validate_inputs(tmp_path: Path, **overrides: str):
     }
     env.update(overrides)
     return subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
+
+
+def _run_publish(workdir: Path, meta: dict, **overrides: str):
+    """Execute the publish step against stubbed `gh`/`git`, returning body and gh calls.
+
+    The step writes to fixed `/tmp` paths and shells out to `gh` and `git`; both are
+    redirected into `workdir` so the real gating logic — not a copy of it — decides what
+    lands in the PR body and whether a review is requested.
+    """
+    script = _script(FIX, "Publish validated patch", "Write job summary")
+    script = script.replace("/tmp/", f"{workdir}/")
+
+    bin_dir = workdir / "bin"
+    bin_dir.mkdir(parents=True)
+    gh_calls = workdir / "gh-calls.txt"
+    (bin_dir / "gh").write_text(
+        "#!/usr/bin/env bash\n"
+        f'printf "%s\\n" "$*" >> "{gh_calls}"\n'
+        'case "$1 $2" in\n'
+        '  "pr list") echo "[]" ;;\n'
+        '  "pr create") echo "https://github.com/camunda/connectors/pull/123" ;;\n'
+        "esac\n"
+    )
+    (bin_dir / "git").write_text("#!/usr/bin/env bash\nexit 0\n")
+    for stub in ("gh", "git"):
+        (bin_dir / stub).chmod(0o755)
+
+    (workdir / "agent-workspace/connectors").mkdir(parents=True)
+    (workdir / "fix-meta.json").write_text(json.dumps(meta))
+    (workdir / "fingerprints.json").write_text('["a1b2c3d4"]')
+
+    env = os.environ | {
+        "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+        "GH_TOKEN": "x",
+        "REPO": "camunda/connectors",
+        "REPO_NAME": "connectors",
+        "BASE_REF": "main",
+        "BRANCH": "fix/alwaysgreen-sm-smoke-e2e-1",
+        "COMMIT_TYPE": "fix",
+        "SURFACE": "sm-smoke-e2e",
+        "FAILING_RUN_URL": "https://github.com/camunda/connectors/actions/runs/123",
+        "TRIAGE_RUN_URL": "https://github.com/camunda/connectors/actions/runs/456",
+        "BLAME_AUTHOR": "octocat",
+        "BLAME_REVIEWER": "octocat",
+        "FIX_LABEL": "alwaysgreen-fix",
+        "KEY_LABEL": "ag-key:connectors:main:sm-smoke-e2e",
+    }
+    env.update(overrides)
+    result = subprocess.run(
+        ["bash", "-c", script], cwd=workdir, env=env, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    return (workdir / "pr-body.md").read_text(), gh_calls.read_text()
+
+
+def _change(**overrides) -> dict:
+    meta = {
+        "surface": "sm-smoke-e2e",
+        "category": "test",
+        "change": {
+            "owner": "camunda",
+            "repo": "connectors",
+            "root_cause": "The login selector moved.",
+            "fix": "Updated the selector.",
+        },
+    }
+    meta.update(overrides)
+    return meta
+
+
+def test_publish_notifies_the_blamed_author_only_on_a_true_verdict(tmp_path):
+    # BLAME_AUTHOR only names whichever PR's merge produced the tested commit, so both
+    # notification paths — the body mention and the review request — must follow the
+    # agent's blame_relevant verdict, and must stay silent when it is absent.
+    for case, verdict, notified in (
+        ("true", {"blame_relevant": True}, True),
+        ("false", {"blame_relevant": False}, False),
+        ("absent", {}, False),
+    ):
+        body, gh_calls = _run_publish(tmp_path / case, _change(**verdict))
+        assert ("- Breaking-change author: @octocat" in body) is notified, case
+        assert ("--add-reviewer" in gh_calls) is notified, case
+
+
+def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
+    # fix-meta.json is untrusted agent output rendered verbatim into the body, so a
+    # mention in its prose would notify the very person the gate above skipped.
+    body, gh_calls = _run_publish(
+        tmp_path / "prose",
+        _change(
+            blame_relevant=False,
+            change={
+                "owner": "camunda",
+                "repo": "connectors",
+                "root_cause": "Ruled out @octocat's PR; the login selector moved.",
+                "fix": "Updated the selector, per @camunda/test-automation-team.",
+            },
+        ),
+    )
+    assert "`@octocat`" in body
+    assert "`@camunda/test-automation-team`" in body
+    assert re.search(r"(?<![`\w])@[A-Za-z0-9]", body) is None
+    assert "--add-reviewer" not in gh_calls
 
 
 def test_privileged_workflows_are_not_directly_dispatchable():

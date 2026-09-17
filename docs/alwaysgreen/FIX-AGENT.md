@@ -139,22 +139,28 @@ commit whatsoever. See `Blame`'s docstring in `classify.py` for the exact cases.
 them as leads, never verdicts — this is exactly the mistake that pinged an uninvolved author
 in camunda/camunda once already (camunda/camunda#63373).
 
-Before running the intended/regression test below, check whether `blame-pr.json`'s file list
-has any plausible connection to the failing surface (e.g. a Zeebe engine test fix blamed for
-a Tasklist frontend failure has none). If it doesn't, that test does not apply — the real
-cause predates this commit and simply surfaced on the run it happened to trigger, or no
-commit-level attribution exists at all. Say so explicitly in the PR body, and go find the
-real cause the normal way (recent commits touching the failing component, git history for
-the affected path).
+Before running the intended/regression test below, check whether `blame-pr.json`'s `files`
+list has any plausible connection to the failing surface (e.g. a Zeebe engine test fix
+blamed for a Tasklist frontend failure has none). If it doesn't, that test does not apply —
+the real cause predates this commit and simply surfaced on the run it happened to trigger,
+or no commit-level attribution exists at all. Say so explicitly in the PR body, and fall
+back to the evidence you actually have: the failure artifacts under `./.alwaysgreen-data/`
+and the current state of the checked-out sources. You cannot widen the search through
+history — the repositories are cloned `--depth 1` and you have no `Bash` tool, so there is
+no `git log` and no earlier revision to compare against. When those sources cannot establish
+the cause on their own, that is a `category: "not-determined"` result with the evidence
+written up, not a guess pinned to the blamed PR.
 
 Record the verdict as `"blame_relevant": true` or `false` in `./fix-meta.json` (omit only
 when `blame-pr.json` is empty, i.e. no blame PR was supplied at all). The workflow reads this
 field, defaulting to "not relevant" when it is absent or anything other than `true`, before
 mentioning the blamed author in the PR body or requesting their review — see "Result
-manifest" below. Never name the blamed author yourself, anywhere in the PR body: naming an
-uninvolved person still notifies them via GitHub's mention handling even inside a sentence
-explaining they are not the cause, and the mention is the workflow's job, gated on this
-verdict, not yours.
+manifest" below. Never name the blamed author yourself, anywhere in `root_cause` or `fix`:
+naming an uninvolved person still notifies them via GitHub's mention handling even inside a
+sentence explaining they are not the cause, and the mention is the workflow's job, gated on
+this verdict, not yours. The workflow defuses any `@login` it finds in your prose by
+wrapping it in backticks, so writing one only makes the body read oddly — refer to the PR
+by number instead.
 
 The discriminator is whether the product still agrees with itself, once the zeroth check
 above has confirmed the blamed PR is at least plausibly connected. Read what
