@@ -21,11 +21,18 @@ import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFac
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFunctionAllowListCache;
 
 /**
- * Unlike {@link ConfigurableSecretFilterFactory}, there is no {@code LAX} mode: a security
- * allow-list that fails open on a BPMN-fetch/parse error would silently re-open exactly the hole
- * this mechanism exists to close, which is a materially different risk than a secret failing to
- * resolve. {@code ENABLED} always fails closed, propagating the cache's exception to the caller —
- * matching {@code SecretFilterMode.STRICT}'s behavior with no lenient alternative offered.
+ * Unlike {@link ConfigurableSecretFilterFactory}, there is no {@code LAX} mode, and {@code
+ * DISABLED} does not mean {@code allowAll()}. A security allow-list that fails open — whether on a
+ * BPMN-fetch/parse error or because an operator turned the mechanism off — would silently re-open
+ * security-testing-findings#275's exact hole, which is a materially different risk than an
+ * over-permissive secret resolution: an intrinsic-function call is an RCE-class primitive
+ * (arbitrary document read/link-minting), not a leak. {@code DISABLED} therefore means "stop
+ * consulting the deployed BPMN model and refuse every call instead" (mirroring the interim,
+ * pre-allow-list fix's own posture) — a safe, permanent kill switch for a topology that cannot
+ * reach the BPMN-fetch endpoint (e.g. a self-managed deployment without it), not a way back to
+ * unconditional dispatch. {@code ENABLED} (the default) always fails closed on a fetch/parse error
+ * too, propagating the cache's exception to the caller — matching {@code SecretFilterMode.STRICT}'s
+ * behavior with no lenient alternative offered.
  */
 public class ConfigurableIntrinsicFunctionAllowListFactory
     implements IntrinsicFunctionAllowListFactory {
@@ -43,7 +50,7 @@ public class ConfigurableIntrinsicFunctionAllowListFactory
   @Override
   public IntrinsicFunctionAllowList create(IntrinsicFunctionAllowListContext context) {
     return switch (mode) {
-      case DISABLED -> IntrinsicFunctionAllowList.allowAll();
+      case DISABLED -> IntrinsicFunctionAllowList.allowNone();
       case ENABLED ->
           IntrinsicFunctionAllowList.allowOnly(allowListCache.getAllowedFunctions(context));
     };
