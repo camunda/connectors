@@ -261,6 +261,10 @@ public class InboundWebhookRestController {
                   // (see buildErrorResponse for the same rationale on the HTTP response/app log).
                   builder.withMessage(
                       "Webhook processing failed: FEEL expression evaluation failed");
+                } else if (e instanceof WebhookSecurityException) {
+                  // Same rationale: an auth handler's failure detail may carry a resolved secret
+                  // (see handleWebhookConnectorException, which withholds it from the response).
+                  builder.withMessage("Webhook processing failed: security check failed");
                 } else {
                   builder.withMessage("Webhook processing failed", e);
                 }
@@ -568,7 +572,10 @@ public class InboundWebhookRestController {
     // "no message" response with e.getMessage() — silently undoing this exclusion for every
     // security failure (e.g. a sanitized-but-still-informative auth failure message).
     if (e instanceof WebhookSecurityException) {
-      LOG.warn("Webhook failed with security-related exception", e);
+      // e (message and stack trace) must not be logged either: it carries whatever an auth
+      // handler put in its failure result, which may echo a resolved secret (see the FEEL
+      // branches above and in buildErrorResponse for the same rationale).
+      LOG.warn("Webhook failed with security-related exception");
       // no message will be included for security reasons
       response = ResponseEntity.status(status).body(null);
     } else if (status.is5xxServerError()) {

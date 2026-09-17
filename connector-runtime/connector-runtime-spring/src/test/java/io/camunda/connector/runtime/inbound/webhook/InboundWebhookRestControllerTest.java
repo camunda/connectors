@@ -231,8 +231,7 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
-  void webhookSecurityException_neverIncludesMessageInResponseEvenThoughStatusIs4xx()
-      throws Exception {
+  void webhookSecurityException_neverIncludesMessageInResponseOrLogs() throws Exception {
     // Regression test for a PR review finding on
     // https://github.com/camunda/security-testing-findings/issues/265: WebhookSecurityException
     // is documented as "no message will be included for security reasons", but the 401/403 it
@@ -241,6 +240,13 @@ class InboundWebhookRestControllerTest {
     // null-body response with e.getMessage(), silently defeating the stated exclusion for every
     // security failure (e.g. an auth handler's sanitized-but-still-informative failure message,
     // or worse, one that had not yet been sanitized).
+    //
+    // A first version of this test only checked the response; a reviewer correctly pointed out
+    // that processWebhook's catch-all activity log (and its ActivityLogRegistry re-emission via
+    // SLF4J) and handleWebhookConnectorException's own LOG.warn(..., e) both still embedded the
+    // exception's message, so the marker below leaked through those two paths even though the
+    // response body was already empty. All three surfaces are asserted here now.
+    var activityLogRegistry = new ActivityLogRegistry();
     var executable = mock(WebhookConnectorExecutable.class);
     when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenThrow(
@@ -249,6 +255,7 @@ class InboundWebhookRestControllerTest {
 
     var correlationHandler = mock(InboundCorrelationHandler.class);
     var details = webhookDefinition("processA", 1, "myPath");
+    var executableId = ExecutableId.fromDeduplicationId(details.deduplicationId());
     var context =
         new InboundConnectorContextImpl(
             new NullSecretProvider(),
@@ -257,21 +264,41 @@ class InboundWebhookRestControllerTest {
             correlationHandler,
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
-            new ActivityLogRegistry(),
+            activityLogRegistry,
             mock(CamundaClient.class));
 
     var registry = new WebhookConnectorRegistry();
-    registry.register(
-        new RegisteredExecutable.Activated(
-            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+    registry.register(new RegisteredExecutable.Activated(executable, context, executableId));
 
     var controller = new InboundWebhookRestController(registry);
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
+    var responseEntityHolder = new AtomicReference<ResponseEntity<?>>();
+    var loggedMessages =
+        logsOf(
+            () -> {
+              try {
+                responseEntityHolder.set(
+                    controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest()));
+              } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+              }
+            },
+            InboundWebhookRestController.class,
+            ActivityLogRegistry.class);
+    var responseEntity = responseEntityHolder.get();
 
     assertThat(responseEntity.getStatusCode().value()).isEqualTo(401);
     assertThat(responseEntity.getBody()).isNull();
+
+    assertThat(loggedMessages)
+        .isNotEmpty()
+        .noneMatch(
+            message ->
+                message.contains("secret leak reason") || message.contains("SUPER_SECRET_VALUE"));
+
+    assertThat(latestActivity(activityLogRegistry, executableId).message())
+        .doesNotContain("secret leak reason")
+        .doesNotContain("SUPER_SECRET_VALUE");
   }
 
   @Test
