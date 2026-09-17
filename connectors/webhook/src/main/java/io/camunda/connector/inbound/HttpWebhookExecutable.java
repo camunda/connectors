@@ -175,9 +175,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
-    LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
-
     authenticate(payload);
+
+    // payload.toString() renders unredacted headers, query params and the raw body (see
+    // HttpServletRequestWebhookProcessingPayload) — the controller's own request logger redacts
+    // sensitive headers/params before logging for exactly this reason, so this trace statement
+    // must not do the same with the full payload, even now that it runs after authentication.
+    LOGGER.trace(
+        "Triggered webhook with context {} and method {}", props.context(), payload.method());
 
     var mappedRequest = mapRequest(payload);
     // The response is resolved per request from the element that actually matched (element-scoped),
