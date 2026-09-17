@@ -9,6 +9,14 @@ name: AI Agent CPT Tests (PR)
 # that file's build-image job also feeds trigger-sm-e2e/trigger-saas-e2e, which gate only on
 # build-image producing a version - reusing it here would arm both on every labeled PR.
 #
+# Deliberately `labeled` only, not `labeled, synchronize`: a same-repo PR still gets full Vault +
+# OPENAI_API_KEY/Vertex-service-account credentials once the label is present, and unlike a fork,
+# nothing stops the PR author (or anyone else with push access to that branch) from pushing new
+# code afterwards. Auto-re-running on every later push would hand a live credential-bearing run to
+# whatever code lands on the next push, with no further human look - re-triggering only on the
+# `labeled` event means a maintainer has to deliberately remove and re-apply the label (reviewing
+# the new commits first) to arm another run.
+#
 # Build and test share a single job: the bundle image is built with `load: true` (never pushed),
 # so it's only ever available to this job's own Docker daemon - no push/pull round trip, no
 # Harbor login/push happens in this job (the ARTIFACTORY_USR/ARTIFACTORY_PSW secrets it does
@@ -16,15 +24,13 @@ name: AI Agent CPT Tests (PR)
 # left behind in the registry.
 on:
   pull_request:
-    types: [ labeled, synchronize ]
+    types: [ labeled ]
 
-# Scoped to the PR number + a suffix that collapses onto one shared value ("cpt") for both
-# cost-bearing trigger shapes - the label being applied, and a push while it's already present -
-# so either one cancels an in-flight run started by the other. Matches the job's own `if:`
-# condition below for what counts as a real CPT trigger. Any other labeled event keeps its own
-# label name as the suffix, so it lands in a separate group and never touches a real CPT run.
+# Scoped to the PR number + the label name, so a re-labeling event gets its own group and cancels
+# any run still in flight for that PR - there's only one trigger shape now (the label being
+# applied), so this no longer needs to reconcile a separate `synchronize` case with it.
 concurrency:
-  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'ai-agent-model-e2e-test' || (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test'))) && 'cpt' || (github.event.label.name || github.event.action) }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
   cancel-in-progress: true
 
 permissions:
@@ -42,13 +48,12 @@ jobs:
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
     # account to unvetted fork code before review). Mirrors BUILD_PR_DOCKER_IMAGES.yml's gate,
     # not NIGHTLY_E2E.yml's - that one has an operator-precedence bug where the fork check
-    # doesn't apply on `synchronize` (see #8234).
+    # doesn't apply on `synchronize` (see #8234). Moot here anyway since this workflow doesn't
+    # listen for `synchronize` at all - see the top-of-file note on why.
     if: |
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository && (
-        github.event.label.name == 'ai-agent-model-e2e-test' ||
-        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test'))
-      )
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
       - uses: actions/checkout@v7
         with:
