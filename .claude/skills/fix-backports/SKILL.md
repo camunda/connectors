@@ -1,6 +1,6 @@
 ---
 name: fix-backports
-description: Resolve a backport PR whose cherry-pick conflicted, or sweep every open backport PR in the repo and fix the ones that are broken. Use when asked to fix a backport, given a link to a "Backport failed" comment, or asked to fix/clear all open backports.
+description: Resolve a backport PR whose cherry-pick conflicted, or sweep every open backport PR in the repo and fix the ones that are broken. Use when asked to fix a backport, given a link to a conflicted backport draft PR or its resolve-conflicts comment, or asked to fix/clear all open backports.
 ---
 
 # Fix conflicted backports
