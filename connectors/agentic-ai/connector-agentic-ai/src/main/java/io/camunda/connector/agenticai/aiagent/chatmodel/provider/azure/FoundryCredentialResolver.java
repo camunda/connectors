@@ -72,11 +72,6 @@ public class FoundryCredentialResolver {
         tokenCredential, scopeFor(null, authentication.entraIdScope()));
   }
 
-  /**
-   * An explicit {@code scopeOverride} wins outright. Otherwise the scope follows the Azure cloud
-   * {@code authorityHost} points at: an unset/blank host, or one that isn't {@link
-   * AzureAuthorityHosts#AZURE_GOVERNMENT}, is Azure Public Cloud.
-   */
   private static String scopeFor(@Nullable String authorityHost, @Nullable String scopeOverride) {
     if (scopeOverride != null && !scopeOverride.isBlank()) {
       return scopeOverride;

@@ -175,9 +175,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * Delegates to the Anthropic SDK's own {@link FoundryBackend}, which owns base-URL normalization
-   * (appending {@code /anthropic} if missing) and per-request authorization; this method never sees
-   * a raw token or credential.
+   * Delegates to the Anthropic SDK's own {@link FoundryBackend}. The SDK owns base-URL
+   * normalization (appending {@code /anthropic} if missing) and per-request authorization.
    */
   private static void applyFoundryBackend(
       AnthropicOkHttpClient.Builder builder,

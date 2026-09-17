@@ -42,9 +42,7 @@ import org.jspecify.annotations.Nullable;
  * {@link ChatModelFactory} for the native OpenAI provider's {@code openai-api} (API key), {@code
  * foundry} (Microsoft Foundry / Azure OpenAI) and {@code custom} (OpenAI-compatible endpoint)
  * backends, for both the Responses and Chat Completions API families. Client construction is folded
- * in here rather than a separate client-factory class; the openai-java {@link
- * com.openai.credential.Credential} each {@code foundry} authentication variant needs is built in
- * {@link #applyFoundryBackend}.
+ * in here rather than a separate client-factory class.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
