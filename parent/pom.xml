@@ -108,12 +108,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.19</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.55.0</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.19</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.55.0</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.19</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.55.0</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.73.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.71.0</version.google-genai>
+    <version.google-genai>1.72.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -156,7 +156,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.11.3</version.lz4-java>
 
-    <version.microsoft-graph>6.69.0</version.microsoft-graph>
+    <version.microsoft-graph>6.70.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
     <version.azure-cosmos>4.82.0</version.azure-cosmos>
 
@@ -170,7 +170,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-16</version.zstd-jni>
+    <version.zstd-jni>1.5.7-17</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
@@ -768,7 +768,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.9.1</version>
+        <version>10.10</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
