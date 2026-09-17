@@ -119,8 +119,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .jobLeaseToken(ensureJobLeaseToken(jobContext))
             .history(
                 List.of(
-                    configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
-                        .model(configuration.chatModel().model())));
+                    configurationHistoryItem(
+                        configuration, FIRST_ITERATION, OffsetDateTime.now())));
 
     try {
       final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
@@ -247,6 +247,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .loopIteration(iterationKey)
         .producedAt(producedAt)
         .provider(configuration.chatModel().descriptiveProvider())
+        .model(configuration.chatModel().model())
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
         .tools(toolMapper.mapTools(configuration.toolDefinitions()))
