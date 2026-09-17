@@ -27,13 +27,13 @@ import java.util.Set;
  * inherited by a descendant path. A secret's text can be interpolated into a larger value another,
  * deeper field then reads — so {@code Secret} deliberately authorizes at-or-beneath the declared
  * path. An intrinsic-function call has no equivalent: {@code
- * ProcessDefinitionIntrinsicFunctionAllowListCache} always declares a function at the exact {@code
- * zeebe:input} target whose evaluated value <em>is</em> that call, in full, never a path some other
- * field merely reads from. Every shipped element template (checked directly) declares a call this
- * way; none nests one intrinsic-function literal inside another's {@code params}, so exact matching
- * costs nothing today. A prefix grant, in contrast, would authorize a same-named call arriving from
- * an entirely different, attacker-sourced {@code zeebe:input} whose target merely happens to extend
- * a declared one (e.g. a declaration at {@code authentication.token} would also authorize one
+ * ProcessDefinitionIntrinsicFunctionAllowListCache} declares a function at the exact path its
+ * literal occupies once bound — the owning {@code zeebe:input}'s own target, plus however deep that
+ * literal is nested inside the input's FEEL object/array literal (e.g. an email attachment's {@code
+ * contentBytes}, several levels under the input's target) — never a path some other field merely
+ * reads from. A prefix grant, in contrast, would authorize a same-named call arriving from an
+ * entirely different, attacker-sourced {@code zeebe:input} whose target merely happens to extend a
+ * declared one (e.g. a declaration at {@code authentication.token} would also authorize one
  * injected at {@code authentication.token.extra}) — the same failure mode this class exists to
  * close, one level removed.
  */
