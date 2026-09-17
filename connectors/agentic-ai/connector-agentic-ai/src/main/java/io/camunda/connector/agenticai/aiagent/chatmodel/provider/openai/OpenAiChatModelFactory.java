@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -44,6 +45,12 @@ import org.jspecify.annotations.Nullable;
  * provider-shape-agnostic.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
+
+  /**
+   * openai-java requires a credential source to build a client at all; this is sent as a
+   * placeholder {@code Authorization} header for {@link NoAuthentication} custom backends.
+   */
+  private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiApiFamilyStrategy completionsStrategy;
@@ -151,6 +158,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     builder.baseUrl(connection.endpoint());
 
     switch (connection.authentication()) {
+      case NoAuthentication ignored -> builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY);
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
           builder.credential(

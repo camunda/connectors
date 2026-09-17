@@ -54,6 +54,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -254,6 +255,19 @@ class OpenAiChatModelFactoryClientTest {
     verify(
         postRequestedFor(urlPathEqualTo("/responses"))
             .withHeader("Authorization", equalTo("Bearer custom-secret-key")));
+  }
+
+  @Test
+  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("Authorization", equalTo("Bearer not-required")));
   }
 
   @Test
