@@ -99,7 +99,7 @@ public class ConnectorResultHandler {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
-      verifyNoForbiddenLiterals(responseContent);
+      verifyResultVariableHasNoForbiddenLiterals(responseContent);
       outputVariables.put(resultVariableName, responseContent);
     }
 
@@ -329,11 +329,16 @@ public class ConnectorResultHandler {
   }
 
   /**
-   * Serializes with {@link #documentSerializingObjectMapper} (not {@link #objectMapper}) so a
+   * Named distinctly from {@link #verifyNoForbiddenLiterals(String)} rather than overloading it —
+   * both take unrelated static types at their one respective call site each, but CodeQL flags an
+   * {@code Object}/{@code String} overload pair as confusable overloading regardless, so a distinct
+   * name is clearer for a reader too, not just quieter for the scanner.
+   *
+   * <p>Serializes with {@link #documentSerializingObjectMapper} (not {@link #objectMapper}) so a
    * resolved {@link io.camunda.connector.api.document.Document} in {@code responseContent} doesn't
    * silently serialize as {@code {}} and hide a forbidden literal nested under it.
    */
-  private void verifyNoForbiddenLiterals(Object responseContent) {
+  private void verifyResultVariableHasNoForbiddenLiterals(Object responseContent) {
     try {
       verifyNoForbiddenLiterals(
           documentSerializingObjectMapper.writeValueAsString(responseContent));
