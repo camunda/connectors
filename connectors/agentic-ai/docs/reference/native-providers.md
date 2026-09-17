@@ -163,12 +163,16 @@ name (`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating
 ### Backends
 
 `OpenAiCustomBackend` is the only variant exposing user-configurable
-`headers`/`queryParameters`/`bodyProperties` — no no-auth option, because the SDK client builder
-requires a credential source to build at all. Overrides merge additively per-key via
+`headers`/`queryParameters`/`bodyProperties`. Overrides merge additively per-key via
 `OpenAiRequestCustomizations` (shared between both converters). Its
-`OpenAiCustomEndpointAuthentication` sealed interface supports `apiKey` (static) and
+`OpenAiCustomEndpointAuthentication` sealed interface supports `none`, `apiKey` (static), and
 `OAuthClientCredentialsAuthentication` (OAuth 2.0 client-credentials flow, for OpenAI-compatible API
-gateways that require it): `OpenAiChatModelFactory.applyCustomBackend` wraps the shared
+gateways that require it). Unlike Anthropic, `none` is not genuinely credential-less: the openai-java
+client builder requires some credential source to build at all, so `applyCustomBackend` sends a
+placeholder `apiKey` for this variant, surfacing on the wire only as a fixed `Authorization: Bearer
+not-required` header, which self-hosted no-auth servers (LM Studio, Ollama, etc.) ignore.
+
+For OAuth, `OpenAiChatModelFactory.applyCustomBackend` wraps the shared
 `OAuthClientCredentialsTokenResolver` (`connector-commons/http-client`, backed by the same
 `OAuthService`/`OAuthTokenCache` the HTTP connector uses) as a `com.openai.credential.BearerTokenCredential`
 supplier via `builder.credential(...)`, invoked fresh on every request — the same mechanism
