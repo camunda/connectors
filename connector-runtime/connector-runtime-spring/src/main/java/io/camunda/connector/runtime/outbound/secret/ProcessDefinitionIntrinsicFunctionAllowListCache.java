@@ -133,9 +133,17 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
    * only when descending from an object literal into the value of one of its keys -- whether that
    * value is itself an object, an array, or a scalar -- and an array's own elements do not push a
    * further segment. FEEL control-flow keywords ({@code if}/{@code then}/{@code else}/{@code
-   * for}/{@code in}/{@code return}) and everything else outside of {@code {}}, {@code []}, quoted
-   * strings and the {@code :}/{@code ,} separators is skipped as opaque text; none of it
-   * corresponds to an object-literal key.
+   * for}/{@code in}/{@code return}), {@code //} and {@code /* *&#47;} comments, and everything else
+   * outside of {@code {}}, {@code []}, quoted strings and the {@code :}/{@code ,} separators is
+   * skipped as opaque text; none of it corresponds to an object-literal key.
+   *
+   * <p>The discriminator's own value is recorded as a declaration only when it is an immediate,
+   * standalone string literal -- nothing but whitespace between the {@code :} and the opening
+   * {@code "}, and nothing but whitespace between the closing {@code "} and the entry's terminating
+   * {@code ,}/{@code }}/{@code ]}. This scanner has no FEEL grammar of its own, so without that
+   * check a computed value such as {@code attackerPrefix + "createLink"} would read as if {@code
+   * "createLink"} were the whole, fixed value the model declares, when the real bound value is only
+   * as fixed as {@code attackerPrefix} -- process-controlled -- allows.
    */
   private static List<Declaration> findDeclarations(String source) {
     if (source == null || source.isEmpty()) {
@@ -145,11 +153,35 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     Deque<Frame> frames = new ArrayDeque<>();
     frames.push(new Frame(List.of(), false));
     String pendingKey = null;
+    boolean pendingKeyValueIsBareSoFar = false;
+    Declaration pendingCandidate = null;
 
     int i = 0;
     int n = source.length();
     while (i < n) {
       char c = source.charAt(i);
+      if (c == '/' && i + 1 < n && source.charAt(i + 1) == '/') {
+        pendingCandidate = null;
+        while (i < n && source.charAt(i) != '\n') {
+          i++;
+        }
+        continue;
+      }
+      if (c == '/' && i + 1 < n && source.charAt(i + 1) == '*') {
+        pendingCandidate = null;
+        i += 2;
+        while (i + 1 < n && !(source.charAt(i) == '*' && source.charAt(i + 1) == '/')) {
+          i++;
+        }
+        i = Math.min(i + 2, n);
+        continue;
+      }
+      if (pendingCandidate != null && !Character.isWhitespace(c)) {
+        if (c == ',' || c == '}' || c == ']') {
+          found.add(pendingCandidate);
+        }
+        pendingCandidate = null;
+      }
       if (c == '"') {
         int j = i + 1;
         StringBuilder text = new StringBuilder();
@@ -173,11 +205,13 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
           }
           if (k < n && source.charAt(k) == ':') {
             pendingKey = text.toString();
+            pendingKeyValueIsBareSoFar = true;
             i = k + 1;
           }
         } else if (pendingKey != null) {
-          if (IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(pendingKey)) {
-            found.add(new Declaration(text.toString(), top.path()));
+          if (pendingKeyValueIsBareSoFar
+              && IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(pendingKey)) {
+            pendingCandidate = new Declaration(text.toString(), top.path());
           }
           pendingKey = null;
         }
@@ -207,6 +241,9 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
         pendingKey = null;
         i++;
         continue;
+      }
+      if (pendingKey != null && !Character.isWhitespace(c)) {
+        pendingKeyValueIsBareSoFar = false;
       }
       i++;
     }
