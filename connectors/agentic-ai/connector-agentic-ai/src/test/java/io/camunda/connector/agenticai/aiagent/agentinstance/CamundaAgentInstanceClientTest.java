@@ -553,10 +553,18 @@ class CamundaAgentInstanceClientTest {
 
     private AgentConfiguration configuration(
         String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
+      return configuration(systemPrompt, tools, maxModelCalls, "gpt-4o");
+    }
+
+    private AgentConfiguration configuration(
+        String systemPrompt,
+        List<ToolDefinition> tools,
+        @Nullable Integer maxModelCalls,
+        String model) {
       return new AgentConfiguration(
               new OpenAiProviderConfiguration(
                   new OpenAiProviderConfiguration.OpenAiConnection(
-                      null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+                      null, null, new OpenAiProviderConfiguration.OpenAiModel(model, null))),
               new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
               null,
               null,
@@ -727,7 +735,7 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
-      assertThat(configurationItem.getModel()).isNull();
+      assertThat(configurationItem.getModel()).isEqualTo("gpt-4o");
       assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
@@ -806,6 +814,27 @@ class CamundaAgentInstanceClientTest {
       final var configurationItem = historyCaptor.getValue().get(0);
       assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
       assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(20);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWithUpdatedModelWhenModelChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of(), null, "gpt-4o");
+      final var configuration = configuration("Be nice.", List.of(), null, "gpt-5.5");
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      final var configurationItem = historyCaptor.getValue().get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      assertThat(configurationItem.getModel()).isEqualTo("gpt-5.5");
     }
 
     @Test
