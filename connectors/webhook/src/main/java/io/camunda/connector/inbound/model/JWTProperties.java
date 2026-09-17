@@ -54,7 +54,11 @@ public record JWTProperties(
         List<String> requiredPermissions) {
   public JWTProperties {
     Objects.requireNonNull(jwkUrl);
-    Objects.requireNonNull(issuer, "issuer is required for JWT webhook authorization");
-    Objects.requireNonNull(audience, "audience is required for JWT webhook authorization");
+    if (issuer == null || issuer.isBlank()) {
+      throw new IllegalArgumentException("issuer is required for JWT webhook authorization");
+    }
+    if (audience == null || audience.isBlank()) {
+      throw new IllegalArgumentException("audience is required for JWT webhook authorization");
+    }
   }
 }

@@ -397,8 +397,73 @@ public class JWTAuthHandlerTest {
     assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
   }
 
+  @Test
+  public void jwtCheckNullExpiryClaimTest() {
+    // given: exp is present but its JSON value is null, unlike jwtCheckMissingExpiryTest where
+    // the claim is absent entirely.
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers = Map.of("Authorization", "Bearer " + generateTokenWithRawExpClaim(null));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
+  @Test
+  public void jwtCheckNonNumericExpiryClaimTest() {
+    // given: exp is present but not a numeric timestamp.
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            List.of("admin"));
+    var headers = Map.of("Authorization", "Bearer " + generateTokenWithRawExpClaim("never"));
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    // when
+    var verificationResult = handler.checkAuthorization(payload);
+
+    // then
+    assertThat(verificationResult).isInstanceOf(InvalidCredentials.class);
+  }
+
   private static Date futureExpiry() {
     return new Date(System.currentTimeMillis() + 3600000);
+  }
+
+  /**
+   * Mints a token whose `exp` claim is set to the given raw value (including {@code null}), unlike
+   * {@link #generateToken} which can only omit the claim entirely.
+   */
+  private String generateTokenWithRawExpClaim(Object rawExpValue) {
+    Jwk jwk = new TestJwkProvider().get("c6f8386d31b98b77d83bba35a457aef4");
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("iss", "https://idp.local");
+    claims.put("aud", "api1");
+    claims.put("sub", "5be86359073c434bad2da3932222dabe");
+    claims.put("roles", List.of("admin", "superadmin"));
+    claims.put("admin", true);
+    claims.put("exp", rawExpValue);
+    JWTCreator.Builder builder =
+        JWT.create()
+            .withPayload(claims)
+            .withHeader(Map.of("kid", "c6f8386d31b98b77d83bba35a457aef4"));
+    return builder.sign(Algorithm.RSA256(new TestRSAKeyProvider(jwk)));
   }
 
   /**

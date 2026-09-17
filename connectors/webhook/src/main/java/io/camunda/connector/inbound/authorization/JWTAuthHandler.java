@@ -124,7 +124,7 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
                     return JWT.require(algorithm)
                         .withIssuer(jwtProperties.issuer())
                         .withAudience(jwtProperties.audience())
-                        .withClaimPresence("exp")
+                        .withClaim("exp", (claim, decoded) -> claim.asInstant() != null)
                         .build();
                   } catch (InvalidPublicKeyException e) {
                     LOGGER.warn("Token verification failed: {}", e.getMessage());
