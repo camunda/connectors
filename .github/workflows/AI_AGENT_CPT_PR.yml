@@ -50,10 +50,8 @@ jobs:
       matrix: ${{ steps.registry.outputs.matrix }}
     if: |
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository && (
-        github.event.label.name == 'ai-agent-cpt' ||
-        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-cpt'))
-      )
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
       - uses: actions/checkout@v7
         with:
