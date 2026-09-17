@@ -36,8 +36,7 @@ public record CustomProviderConfiguration(
     @TemplateProperty(
             group = "model",
             label = "Model",
-            description =
-                "<b>Note:</b> Prompt caching, if supported, is configured in custom code.",
+            description = "Note: Prompt caching, if supported, is configured in custom code.",
             tooltip = "Identifies the model to use.",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,

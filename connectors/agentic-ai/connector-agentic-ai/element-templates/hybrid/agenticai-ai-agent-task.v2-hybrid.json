@@ -2263,7 +2263,6 @@
   }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2279,6 +2278,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Identifies the model to use. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
@@ -2421,7 +2421,6 @@
   }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2437,6 +2436,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Identifies the model or inference profile to use. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
     "placeholder" : "us.amazon.nova-2-lite-v1:0",
     "type" : "String"
   }, {
@@ -2460,7 +2460,7 @@
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "<b>Note:</b> Prompt caching is automatic and not configurable.",
+    "description" : "Note: Prompt caching is automatic and not configurable.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2572,7 +2572,7 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "<b>Note:</b> Prompt caching is automatic and not configurable.",
+    "description" : "Note: Prompt caching is automatic and not configurable.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2650,7 +2650,7 @@
   }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "<b>Note:</b> Prompt caching, if supported, is configured in custom code.",
+    "description" : "Note: Prompt caching, if supported, is configured in custom code.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
