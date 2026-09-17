@@ -52,8 +52,8 @@ public final class IntrinsicFunctionUtil {
                   + " process data.");
         }
       }
-      node.fields()
-          .forEachRemaining(
+      node.properties()
+          .forEach(
               entry -> {
                 var childPath = new ArrayList<>(fieldPath);
                 childPath.add(entry.getKey());
