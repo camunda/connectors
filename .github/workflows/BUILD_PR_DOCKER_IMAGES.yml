@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [ labeled, synchronize ]
 
+# Workflow-level default; the job below declares the same, explicit permissions.
+permissions:
+  contents: read
+
 # One run per PR + trigger; a new push (or re-add of the label) cancels the in-flight
 # build, but unrelated labeled events (e.g. deploy-preview) get their own group and
 # don't cancel a running image build.
@@ -13,12 +17,16 @@ concurrency:
 
 jobs:
   build-images:
-    name: Build & publish PR Docker images
-    # gcp runner to match the heavier Maven + multi-arch Docker build in DEPLOY_SNAPSHOTS
-    runs-on: gcp-core-2-default
+    name: Build PR Docker image artifacts
+    # Untrusted stage: builds the PR author's own code. No secrets are available here
+    # and this never runs on a self-hosted runner - see PUBLISH_PR_DOCKER_IMAGES.yml for
+    # the privileged publish stage, which runs from the workflow definition on the
+    # default branch (workflow_run) so a PR can't rewrite its own privileged job.
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
-    # Skip fork PRs: pull_request runs from forks don't get repository secrets (Vault/registry creds).
+    # Skip fork PRs: pull_request runs from forks don't get repository secrets, and this
+    # feature has never been offered to forks.
     if: |
       github.event.pull_request.state != 'closed' &&
       !startsWith(github.head_ref, 'fix/alwaysgreen-') &&
@@ -37,31 +45,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false # we rely on step outputs, no need for environment variables
-          secrets: |
-            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
-            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_HARBOR_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
-            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
-
-      - name: Generate a GitHub token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
-          private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-
       - name: Restore cache
         uses: actions/cache@v6
         continue-on-error: true # cache failures should not fail the build
@@ -76,25 +59,12 @@ jobs:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
 
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
-      - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
-        with:
-          githubServer: false
-          servers: |
-            [{
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
-               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
-             }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
-
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: '24'
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
 
       # Skip tests AND checks: we just need runnable images, not verification
       - name: Package Connectors (skip tests & checks)
@@ -102,98 +72,28 @@ jobs:
           PROJECTS: apps/connector-runtime-application,apps/bundle/default-bundle,apps/bundle/camunda-saas-bundle
         run: ./mvnw -B compile generate-sources package -DskipTests -DskipChecks --projects "${PROJECTS}" --also-make
 
-      - name: Compute image tag
-        id: tag
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+      - name: Record project version
         run: |
           set -euo pipefail
           BASE_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${BASE_VERSION%-SNAPSHOT}"
-          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
-          echo "::notice::PR image tag: ${TAG}"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "${BASE_VERSION}" > pr-build-version.txt
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      # Only the built jars (plus the version marker) cross the trust boundary into the
+      # privileged publish workflow - never the source tree, never a container image, and
+      # never the PR head SHA (the publish workflow derives that solely from its own
+      # trusted workflow_run event metadata, not from anything this job produces).
+      # pr-build-version.txt sits at the workspace root so upload-artifact's
+      # common-ancestor path is the repo root, preserving the apps/.../target/ layout the
+      # publish job expects.
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
         with:
-          platforms: 'arm64,arm'
-
-      - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Harbor
-        uses: docker/login-action@v4
-        with:
-          registry: registry.camunda.cloud
-          username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
-          password: ${{ steps.secrets.outputs.CI_HARBOR_PSW }}
-
-      - name: Login to Minimus
-        uses: docker/login-action@v4
-        with:
-          registry: reg.mini.dev
-          username: minimus
-          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
-
-      - name: Build and Push Docker Image - connector-runtime
-        uses: docker/build-push-action@v7
-        with:
-          context: apps/connector-runtime-application/
-          push: true
-          tags: registry.camunda.cloud/team-connectors/connectors:${{ steps.tag.outputs.tag }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image - bundle-default
-        uses: docker/build-push-action@v7
-        with:
-          context: apps/bundle/default-bundle/
-          push: true
-          # Second tag only for previews (PREVIEW-ENV-DEPLOY.yml deploys it)
-          tags: |
-            registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
-            ${{ (github.event.label.name == 'deploy-preview' || contains(github.event.pull_request.labels.*.name, 'deploy-preview')) && format('registry.camunda.cloud/team-connectors/connectors-bundle:pr-{0}', github.event.pull_request.head.sha) || '' }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image - bundle-saas
-        uses: docker/build-push-action@v7
-        with:
-          context: apps/bundle/camunda-saas-bundle/
-          push: true
-          tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ steps.tag.outputs.tag }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      # github-script (Node) instead of gh CLI: the gcp runner has no gh binary
-      - name: Comment image tags on PR
-        uses: actions/github-script@v9
-        with:
-          github-token: ${{ steps.app-token.outputs.token }}
-          script: |
-            const tag = '${{ steps.tag.outputs.tag }}';
-            const reg = 'registry.camunda.cloud/team-connectors';
-            const body = [
-              ':whale: PR Docker images published to Harbor:',
-              '- `' + reg + '/connectors:' + tag + '`',
-              '- `' + reg + '/connectors-bundle:' + tag + '`',
-              '- `' + reg + '/connectors-bundle-saas:' + tag + '`',
-              '',
-              '**To use the SaaS bundle on a cluster:**',
-              '',
-              '_GCP cluster:_',
-              '```',
-              'europe-docker.pkg.dev/camunda-saas-registry/harbor/team-connectors/connectors-bundle-saas:' + tag,
-              '```',
-              '_AWS cluster (replace `<WORKER_REGION>`, e.g. `eu-central-1`):_',
-              '```',
-              '390403865336.dkr.ecr.<WORKER_REGION>.amazonaws.com/team-connectors/connectors-bundle-saas:' + tag,
-              '```',
-            ].join('\n');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ github.event.pull_request.number }},
-              body,
-            });
+          name: pr-docker-build-jars
+          path: |
+            apps/connector-runtime-application/target/*-with-dependencies.jar
+            apps/bundle/default-bundle/target/*-with-dependencies.jar
+            apps/bundle/camunda-saas-bundle/target/*-with-dependencies.jar
+            pr-build-version.txt
+          if-no-files-found: error
+          retention-days: 1
