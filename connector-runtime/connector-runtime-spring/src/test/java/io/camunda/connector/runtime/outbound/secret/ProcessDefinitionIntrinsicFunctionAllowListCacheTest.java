@@ -155,6 +155,77 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aConcatenatedDiscriminatorValueIsNotRecordedAsAnAllowedDeclaration() {
+    // A dynamic prefix (a process-variable reference the scanner cannot evaluate) makes the real
+    // bound function name only as fixed as that variable's runtime value -- not the literal
+    // "createLink" text this source happens to end with. Without requiring the discriminator's
+    // value to be an immediate, standalone string literal, the scanner would misread this as a
+    // fixed declaration of "createLink".
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;camunda.function.type&quot;: attackerPrefix + &quot;createLink&quot;,&quot;params&quot;:[]}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aDiscriminatorInsideACommentIsNotRecordedAsAnAllowedDeclaration() {
+    // A "//" or "/* */" comment is opaque FEEL text, not a live literal -- text that merely
+    // mentions the discriminator inside a comment must not grant anything.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="=/* {&quot;camunda.function.type&quot;:&quot;createLink&quot;} */ hookResult"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
   void twoPhysicalTenantsSharingOneCacheDoNotLeakAllowedFunctionsBetweenEachOther() {
     var sharedCache = new ConcurrentMapCache("allow-list");
     var cacheForTenantA =
