@@ -177,6 +177,33 @@ class HMACVerifierTest {
   }
 
   @Test
+  void verifySignature_WhenSkewCalculationWouldOverflow_ShouldThrowException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // A timestamp crafted so that (now - timestamp) overflows Long, and Math.abs() of the
+    // overflowed result is itself negative (the classic Long.MIN_VALUE quirk) — naive arithmetic
+    // would let this compare as "within tolerance" and bypass the staleness check entirely.
+    long now = 1_700_000_000L;
+    long overflowingTimestamp = Long.MIN_VALUE + now;
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.BODY, HMACScope.TIMESTAMP},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            TOLERANCE_SECONDS,
+            fixedClock(now));
+
+    WebhookProcessingPayload payload =
+        signedPayload(
+            overflowingTimestamp, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(WebhookSecurityException.class)
+        .hasMessageContaining("tolerance");
+  }
+
+  @Test
   void verifySignature_WhenDefaultScopeWithoutTimestamp_IgnoresTimestampHeader()
       throws NoSuchAlgorithmException, InvalidKeyException {
     // Deliberate design choice: TIMESTAMP is an additive, opt-in scope (per the issue's own

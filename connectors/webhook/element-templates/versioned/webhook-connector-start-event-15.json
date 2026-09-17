@@ -194,40 +194,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "inbound.hmacTimestampHeader",
-    "label" : "HMAC timestamp header",
-    "description" : "Name of the header attribute carrying the request timestamp. Required when HMAC scopes include 'timestamp'",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "inbound.hmacTimestampHeader",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.shouldValidateHmac",
-      "equals" : "enabled",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.hmacToleranceSeconds",
-    "label" : "HMAC timestamp tolerance (seconds)",
-    "description" : "Maximum allowed difference, in seconds, between the signed timestamp and the current time. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
-    "optional" : true,
-    "value" : "300",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "inbound.hmacToleranceSeconds",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.shouldValidateHmac",
-      "equals" : "enabled",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "inbound.auth.type",
     "label" : "Authorization type",
     "description" : "Choose the authorization type",

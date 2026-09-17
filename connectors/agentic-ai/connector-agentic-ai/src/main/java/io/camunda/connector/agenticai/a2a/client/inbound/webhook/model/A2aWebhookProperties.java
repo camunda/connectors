@@ -105,7 +105,7 @@ public record A2aWebhookProperties(
             id = "hmacTimestampHeader",
             label = "HMAC timestamp header",
             description =
-                "Name of the header attribute carrying the request timestamp. Required when HMAC scopes include 'timestamp'",
+                "Name of the header attribute carrying the request timestamp, as a base-10 Unix epoch timestamp in seconds (not milliseconds, not ISO-8601). The signed material is '<timestamp>:<bytes selected by the other HMAC scopes>'. Required when HMAC scopes include 'timestamp'",
             group = "authentication",
             feel = FeelMode.optional,
             optional = true,

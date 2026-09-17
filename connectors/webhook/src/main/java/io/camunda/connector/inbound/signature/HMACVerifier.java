@@ -111,8 +111,16 @@ public class HMACVerifier {
     int toleranceSeconds =
         hmacToleranceSeconds != null ? hmacToleranceSeconds : DEFAULT_HMAC_TOLERANCE_SECONDS;
     long nowEpochSeconds = clock.instant().getEpochSecond();
-    long skewSeconds = Math.abs(nowEpochSeconds - timestampEpochSeconds);
-    if (skewSeconds > toleranceSeconds) {
+    boolean withinTolerance;
+    try {
+      long skewSeconds = Math.absExact(Math.subtractExact(nowEpochSeconds, timestampEpochSeconds));
+      withinTolerance = skewSeconds <= toleranceSeconds;
+    } catch (ArithmeticException e) {
+      // The skew arithmetic overflowed, which only happens for a timestamp far enough outside
+      // the long range to be nonsensical; treat it the same as any other out-of-tolerance value.
+      withinTolerance = false;
+    }
+    if (!withinTolerance) {
       throw new WebhookSecurityException(
           401,
           Reason.INVALID_SIGNATURE,
