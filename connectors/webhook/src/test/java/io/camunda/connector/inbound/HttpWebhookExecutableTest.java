@@ -35,13 +35,36 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+/**
+ * Fixtures here use API-key authorization (a legitimately secure, non-permissive default) rather
+ * than 'auth: NONE', so these unrelated tests (body parsing, HTTP methods, response resolution)
+ * exercise the same activation path as production instead of relying on the
+ * security-testing-findings#266 operator opt-out. The opt-out itself, and the rejection of the
+ * fully unauthenticated combination, are covered by {@link
+ * io.camunda.connector.inbound.authorization.WebhookAuthorizationGuardActivationTest}.
+ */
 class HttpWebhookExecutableTest {
+
+  private static final String API_KEY = "test-webhook-api-key";
 
   private HttpWebhookExecutable testObject;
 
   @BeforeEach
   void beforeEach() {
     testObject = new HttpWebhookExecutable();
+  }
+
+  /** A non-permissive 'auth' fixture: real API-key authorization, not 'None'. */
+  private static Map<String, Object> apiKeyAuth() {
+    return Map.of(
+        "type", "APIKEY",
+        "apiKey", API_KEY,
+        "apiKeyLocator", "=request.headers.Authorization");
+  }
+
+  /** Request headers carrying the API key expected by {@link #apiKeyAuth()}. */
+  private static Map<String, String> headersWithApiKey(String contentType) {
+    return Map.of(HEADER_CONTENT_TYPE, contentType, "Authorization", API_KEY);
   }
 
   private WebhookResult triggerSimpleWebhook() {
@@ -51,17 +74,14 @@ class HttpWebhookExecutableTest {
                 Map.of(
                     "inbound",
                     Map.of(
-                        "context",
-                        "webhookContext",
-                        "method",
-                        "any",
-                        "auth",
-                        Map.of("type", "NONE"))))
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", apiKeyAuth())))
             .build();
     testObject.activate(ctx);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
     return testObject.triggerWebhook(payload);
   }
@@ -166,7 +186,7 @@ class HttpWebhookExecutableTest {
                 Map.of(
                     "context", "webhookContext",
                     "method", "any",
-                    "auth", Map.of("type", "NONE"))))
+                    "auth", apiKeyAuth())))
         .definition(definition)
         .build();
   }
@@ -181,12 +201,12 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -208,14 +228,14 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "responseExpression",
                         "=if request.body.key != null then {body: request.body.key} else null")))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -238,14 +258,14 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "responseExpression",
                         "=if request.body.key != null then {body: request.body.key} else null")))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn(("[ \"test1\", \"test2\" ]").getBytes(StandardCharsets.UTF_8));
 
@@ -267,14 +287,14 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "responseExpression",
                         "=if request.body.key != null then {body: request.body.key} else null")))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn(
             ("[{\"key\": \"value\"}, {\"key\": \"value\"}]").getBytes(StandardCharsets.UTF_8));
@@ -295,11 +315,11 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, FORM_DATA_CONTENT_TYPE));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey(FORM_DATA_CONTENT_TYPE));
     Mockito.when(payload.rawBody())
         .thenReturn("key1=value1&key2=value2".getBytes(StandardCharsets.UTF_8));
 
@@ -320,11 +340,11 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/geo+json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/geo+json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -344,12 +364,11 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/octet-stream"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/octet-stream"));
     Mockito.when(payload.rawBody())
         .thenReturn("Zm9sbG93IHRoZSB3aGl0ZSByYWJiaXQ=".getBytes(StandardCharsets.UTF_8));
 
@@ -368,11 +387,11 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "get",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.post.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -528,6 +547,8 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_VerificationExpression_ReturnsChallenge() {
+    // verify() never consults authorization, so activation only needs a non-permissive 'auth' to
+    // pass the security-testing-findings#266 activation guard.
     final var verificationExpression =
         "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
     InboundConnectorContext ctx =
@@ -541,7 +562,7 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "verificationExpression",
                         verificationExpression)))
             .build();
@@ -574,7 +595,7 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "verificationExpression",
                         verificationExpression)))
             .build();
@@ -607,7 +628,7 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "verificationExpression",
                         verificationExpression)))
             .build();
@@ -642,7 +663,7 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "verificationExpression",
                         verificationExpression)))
             .build();
@@ -676,7 +697,7 @@ class HttpWebhookExecutableTest {
                         "method",
                         "any",
                         "auth",
-                        Map.of("type", "NONE"),
+                        apiKeyAuth(),
                         "verificationExpression",
                         verificationExpression)))
             .build();
@@ -706,12 +727,12 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/xml"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("application/xml"));
     Mockito.when(payload.rawBody())
         .thenReturn(
             "<request><id>123</id><status>active</status></request>"
@@ -734,12 +755,12 @@ class HttpWebhookExecutableTest {
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", apiKeyAuth())))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "text/xml"));
+    Mockito.when(payload.headers()).thenReturn(headersWithApiKey("text/xml"));
     Mockito.when(payload.rawBody())
         .thenReturn("<?xml version=\"1.0\"?><data>test</data>".getBytes(StandardCharsets.UTF_8));
 

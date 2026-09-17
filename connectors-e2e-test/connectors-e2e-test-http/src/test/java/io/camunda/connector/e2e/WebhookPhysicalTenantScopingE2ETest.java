@@ -138,7 +138,11 @@ class WebhookPhysicalTenantScopingE2ETest {
       executor.schedule(
           () -> {
             try {
-              future.complete(mockMvc.perform(post(scopedUrl).header("THEHEADER", "THEVALUE")));
+              future.complete(
+                  mockMvc.perform(
+                      post(scopedUrl)
+                          .header("THEHEADER", "THEVALUE")
+                          .header("Authorization", "e2e-test-api-key")));
             } catch (Exception e) {
               future.completeExceptionally(e);
             }

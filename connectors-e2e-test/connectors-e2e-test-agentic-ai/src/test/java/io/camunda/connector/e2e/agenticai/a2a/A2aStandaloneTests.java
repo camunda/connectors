@@ -73,6 +73,21 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
   private static final String POLLING_ELEMENT_ID = "Wait_For_Completion_Polling";
 
+  /**
+   * Matches {@code inbound.auth.apiKey} in the fixture BPMN's default authorization config
+   * (security-testing-findings#266: the webhook no longer activates with no authorization
+   * configured). Tests that reconfigure the element's auth type away from API key (Basic) don't
+   * need this; tests that only layer HMAC or a correlation token on top still do, since API-key
+   * authorization stays active alongside them.
+   */
+  private static final String API_KEY = "e2e-test-api-key";
+
+  private static final Map<String, String> API_KEY_HEADERS = Map.of("Authorization", API_KEY);
+
+  private static Map<String, String> withApiKeyHeader(String headerName, String headerValue) {
+    return Map.of("Authorization", API_KEY, headerName, headerValue);
+  }
+
   @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
 
@@ -136,12 +151,14 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
+        API_KEY_HEADERS,
         100);
 
     // Post completed state - should activate webhook
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
+        API_KEY_HEADERS,
         300);
 
     awaitProcessCompletion(zeebeTest);
@@ -173,7 +190,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
-        Map.of("X-A2A-Notification-Token", token),
+        withApiKeyHeader("X-A2A-Notification-Token", token),
         100);
 
     // Post completed state with invalid token - should NOT activate webhook
@@ -183,14 +200,14 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             testFileContent("travel-agent-response-completed.json")
                 .get()
                 .replaceAll("ctx-001", "ctx-002")),
-        Map.of("X-A2A-Notification-Token", "invalid-token"),
+        withApiKeyHeader("X-A2A-Notification-Token", "invalid-token"),
         300);
 
     // Post completed state - should activate webhook
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
-        Map.of("X-A2A-Notification-Token", token),
+        withApiKeyHeader("X-A2A-Notification-Token", token),
         500);
 
     awaitProcessCompletion(zeebeTest);
@@ -274,7 +291,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
-        Map.of(
+        withApiKeyHeader(
             "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
         100);
 
@@ -285,7 +302,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             testFileContent("travel-agent-response-completed.json")
                 .get()
                 .replaceAll("ctx-001", "ctx-002")),
-        Map.of(
+        withApiKeyHeader(
             "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
         300);
 
@@ -293,7 +310,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
-        Map.of(
+        withApiKeyHeader(
             "X-HMAC-Signature", "1fe75a1c849df2aacb18952f187938b64edff510f341c9ab55df03783aee85a0"),
         500);
 

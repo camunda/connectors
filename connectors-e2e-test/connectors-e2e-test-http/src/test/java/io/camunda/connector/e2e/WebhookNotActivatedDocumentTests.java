@@ -148,7 +148,8 @@ public class WebhookNotActivatedDocumentTests {
                           .part(
                               new MockPart(
                                   "param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
-                          .header("THEHEADER", "THEVALUE")));
+                          .header("THEHEADER", "THEVALUE")
+                          .header("Authorization", "e2e-test-api-key")));
             } catch (Exception e) {
               future.completeExceptionally(e);
             }

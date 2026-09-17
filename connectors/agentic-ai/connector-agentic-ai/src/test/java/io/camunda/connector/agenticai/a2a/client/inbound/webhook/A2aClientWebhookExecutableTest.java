@@ -42,11 +42,27 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+/**
+ * Fixtures here use API-key authorization (a legitimately secure, non-permissive default) rather
+ * than 'auth: NONE' wherever the test actually reaches the authorization check, so these unrelated
+ * tests (request mapping, HMAC verification, basic auth) exercise the same activation path as
+ * production instead of relying on the security-testing-findings#266 operator opt-out. The
+ * HMAC-enabled tests keep 'auth: NONE' deliberately: HMAC verification alone is already a
+ * non-permissive combination, so the activation guard does not fire for them either. The opt-out
+ * itself, and the rejection of the fully unauthenticated combination, are covered by {@link
+ * A2aWebhookAuthorizationGuardActivationTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class A2aClientWebhookExecutableTest {
 
   private static final String HMAC_HEADER = "HMAC-Signature-Header";
+  private static final String API_KEY = "test-a2a-webhook-api-key";
+  private static final Map<String, Object> API_KEY_AUTH =
+      Map.of(
+          "type", "APIKEY",
+          "apiKey", API_KEY,
+          "apiKeyLocator", "=request.headers.Authorization");
   private static final String TASK_JSON =
       """
           {
@@ -87,6 +103,11 @@ class A2aClientWebhookExecutableTest {
             });
   }
 
+  private static Map<String, String> headersWithApiKey() {
+    return Map.of(
+        HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString(), "Authorization", API_KEY);
+  }
+
   @Test
   void triggerWebhook_ValidA2aTask_ReturnsMappedRequest() {
     InboundConnectorContext ctx =
@@ -97,13 +118,12 @@ class A2aClientWebhookExecutableTest {
                     Map.of(
                         "context", "a2aWebhookContext",
                         "clientResponse", "=task",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", API_KEY_AUTH)))
             .build();
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn(HttpMethods.post.name());
-    when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    when(payload.headers()).thenReturn(headersWithApiKey());
     when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
 
     webhookExecutable.activate(ctx);
@@ -127,10 +147,11 @@ class A2aClientWebhookExecutableTest {
                     Map.of(
                         "context", "a2aWebhookContext",
                         "clientResponse", "=task",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", API_KEY_AUTH)))
             .build();
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headersWithApiKey());
     when(payload.rawBody()).thenReturn("invalid json".getBytes(StandardCharsets.UTF_8));
 
     webhookExecutable.activate(ctx);
@@ -237,15 +258,14 @@ class A2aClientWebhookExecutableTest {
                         "clientResponse",
                         "=task",
                         "auth",
-                        Map.of("type", "NONE"),
+                        API_KEY_AUTH,
                         "shouldValidateHmac",
                         disabled.name())))
             .build();
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn(HttpMethods.post.name());
-    when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    when(payload.headers()).thenReturn(headersWithApiKey());
     when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
 
     webhookExecutable.activate(ctx);
@@ -335,7 +355,7 @@ class A2aClientWebhookExecutableTest {
                     Map.of(
                         "context", "a2aWebhookContext",
                         "clientResponse", "=task",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", API_KEY_AUTH)))
             .build();
 
     Map<String, String> headers =
@@ -343,7 +363,9 @@ class A2aClientWebhookExecutableTest {
             HttpHeaders.CONTENT_TYPE,
             MediaType.JSON_UTF_8.toString(),
             "X-Custom-Header",
-            "customValue");
+            "customValue",
+            "Authorization",
+            API_KEY);
     Map<String, String> params = Map.of("param1", "value1", "param2", "value2");
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);

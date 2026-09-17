@@ -25,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
+import io.camunda.connector.inbound.authorization.WebhookAuthorizationGuard;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 15,
+    version = 16,
     inputDataClass = {
       WebhookConnectorPropertiesWrapper.class,
       DynamicWebhookPropertiesWrapper.class
@@ -130,6 +131,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     rejectDeprecatedResponseBodyExpression(context);
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
+    WebhookAuthorizationGuard.rejectUnauthenticatedActivation(
+        context, props.auth(), props.shouldValidateHmac());
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
