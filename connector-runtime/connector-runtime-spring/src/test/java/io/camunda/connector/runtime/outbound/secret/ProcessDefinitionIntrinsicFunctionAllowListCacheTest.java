@@ -226,6 +226,78 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aBareUnquotedContextKeyStillComputesTheCorrectNestedPath() {
+    // FEEL context literals commonly use bare (unquoted) keys, e.g. {result: {...}} rather than
+    // {"result": {...}}. The declaration must still be recorded at "result", not at the input's
+    // own target -- the exact-path invariant depends on it being scoped correctly either way.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={result: {&quot;camunda.function.type&quot;: &quot;base64&quot;, &quot;params&quot;:[content]}}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .containsExactly(new AllowedIntrinsicFunction("base64", List.of("body", "result")));
+  }
+
+  @Test
+  void aDeclarationWrappedInAFunctionCallContributesNoGrant() {
+    // append([], {...}) demonstrates why this parser refuses to guess: naive comma/bracket
+    // tracking would clear key state at the comma between append's own arguments and record the
+    // call at the input's own target instead of "outer" -- a wrong, shallower, attacker-reachable
+    // grant. A construct this parser does not model must contribute nothing, not a wrong path.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;outer&quot;: append([], {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]})}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
   void twoPhysicalTenantsSharingOneCacheDoNotLeakAllowedFunctionsBetweenEachOther() {
     var sharedCache = new ConcurrentMapCache("allow-list");
     var cacheForTenantA =
