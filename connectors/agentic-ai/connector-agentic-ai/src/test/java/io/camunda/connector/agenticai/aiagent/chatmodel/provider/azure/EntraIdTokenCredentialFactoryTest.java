@@ -7,12 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
+import com.azure.core.util.HttpClientOptions;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -20,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class EntraIdTokenCredentialFactoryTest {
 
@@ -136,5 +141,24 @@ class EntraIdTokenCredentialFactoryTest {
     factory.managedIdentity(null, Duration.ofSeconds(5));
 
     verifyNoInteractions(httpProxySupport);
+  }
+
+  @Test
+  void installsTheConfiguredTimeoutAsConnectAndResponseTimeout() {
+    final var timeout = Duration.ofSeconds(5);
+    final var httpClientOptionsCaptor = ArgumentCaptor.forClass(HttpClientOptions.class);
+
+    try (var httpClient = mockStatic(HttpClient.class)) {
+      httpClient
+          .when(() -> HttpClient.createDefault(any(HttpClientOptions.class)))
+          .thenReturn(mock(HttpClient.class));
+
+      factory.clientCredentials("tenant-id", "client-id", "client-secret", null, timeout);
+
+      httpClient.verify(() -> HttpClient.createDefault(httpClientOptionsCaptor.capture()));
+    }
+
+    assertThat(httpClientOptionsCaptor.getValue().getConnectTimeout()).isEqualTo(timeout);
+    assertThat(httpClientOptionsCaptor.getValue().getResponseTimeout()).isEqualTo(timeout);
   }
 }

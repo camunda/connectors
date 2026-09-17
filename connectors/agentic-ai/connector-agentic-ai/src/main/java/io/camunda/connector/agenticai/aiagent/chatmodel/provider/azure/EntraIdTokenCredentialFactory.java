@@ -49,10 +49,12 @@ import org.jspecify.annotations.Nullable;
  * token exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
  * Duration)}.
  *
- * <p>The caller's configured request timeout bounds the token exchange as well as the model call
- * itself, so a slow Entra ID endpoint or IMDS cannot stall a request past its budget. Because the
- * timeout is baked into the credential's HTTP client, it is part of the cache key: two otherwise
- * identical configurations with different timeouts get their own credential.
+ * <p>The caller's configured request timeout reaches the token exchange as well as the model call
+ * itself, applied as the credential HTTP client's connect and response timeout. That is a
+ * per-attempt bound, not an overall deadline: azure-identity's own retries start a fresh attempt,
+ * so a retrying token exchange can outlast a single timeout. Because the timeout is baked into the
+ * credential's HTTP client, it is also part of the cache key: two otherwise identical
+ * configurations with different timeouts get their own credential.
  */
 public class EntraIdTokenCredentialFactory {
 
