@@ -63,33 +63,6 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final IntrinsicFunctionAllowList intrinsicFunctionAllowList;
   private @Nullable JsonNode jsonWithSecrets = null;
 
-  /**
-   * Source-compatibility overload for existing callers compiled before the intrinsic-function
-   * allow-list was introduced. Defaults to {@link IntrinsicFunctionAllowList#allowNone()} —
-   * deliberately the secure default, not {@code allowAll()}: the one production caller ({@code
-   * SpringConnectorJobHandler}) always uses the 7-arg constructor with a real per-job allow-list,
-   * so nothing production-relevant depends on this overload dispatching a {@code
-   * camunda.function.type} call at all. A caller that genuinely needs one (e.g. a test exercising
-   * legitimate dispatch) should pass an explicit {@link IntrinsicFunctionAllowList} via the 7-arg
-   * constructor instead of relying on this default.
-   */
-  public JobHandlerContext(
-      final ActivatedJob job,
-      final SecretProvider secretProvider,
-      final ValidationProvider validationProvider,
-      final DocumentFactory documentFactory,
-      final ObjectMapper objectMapper,
-      final SecretFilter secretFilter) {
-    this(
-        job,
-        secretProvider,
-        validationProvider,
-        documentFactory,
-        objectMapper,
-        secretFilter,
-        IntrinsicFunctionAllowList.allowNone());
-  }
-
   public JobHandlerContext(
       final ActivatedJob job,
       final SecretProvider secretProvider,
