@@ -200,7 +200,9 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         || topicArnParts[3].isBlank()
         || topicArnParts[4].isBlank()
         || topicArnParts[5].isBlank()) {
-      throw new Exception("Invalid SNS topic ARN header: " + topicArn);
+      // This runs unconditionally, in every mode including "any", before checkMessageAllowListed
+      // has a chance to reject anything - sanitize here too (log injection, CWE-117).
+      throw new Exception("Invalid SNS topic ARN header: " + sanitizeForLog(topicArn));
     }
     return topicArnParts[3];
   }

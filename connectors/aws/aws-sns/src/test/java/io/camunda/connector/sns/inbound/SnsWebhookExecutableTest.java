@@ -479,6 +479,34 @@ class SnsWebhookExecutableTest {
     verify(snsClientSupplier, never()).messageManager(anyString());
   }
 
+  /**
+   * Regression test raised in PR review: {@code extractRegionFromTopicArnHeader} runs
+   * unconditionally in every mode, including "any" - where {@code checkMessageAllowListed} never
+   * gets a chance to sanitize anything - so its own "Invalid SNS topic ARN header" exception must
+   * sanitize the header independently (log injection, CWE-117).
+   */
+  @Test
+  void triggerWebhook_MalformedTopicArnHeaderWithCrlf_AnyMode_SanitizesExceptionMessage()
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "any"))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-topic-arn", "garbage\r\nFORGED LOG LINE");
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Invalid SNS topic ARN header")
+        .hasMessageContaining("FORGED LOG LINE")
+        .hasMessageNotContaining("\r")
+        .hasMessageNotContaining("\n");
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"any", "specific"})
   void triggerWebhook_SubscriptionTopicMismatch_ConfirmsWhenVerifiedTopicAllowed(String allowedFor)
