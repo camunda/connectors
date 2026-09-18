@@ -449,6 +449,161 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aDeclarationIsNotGrantedWhenASiblingBranchHasANonStandaloneDiscriminatorValue() {
+    // security-testing-findings#275, T4: the "else" branch's discriminator value is a bare
+    // identifier (attackerControlledFunctionName), not an immediate string literal -- its own
+    // shape is therefore unverifiable, and that opacity must be recorded at the enclosing object's
+    // own path (not a sub-path under the discriminator key, which no declaration is ever recorded
+    // at) so mergeSiblings catches the "then" branch's declaration at that same path too. The
+    // regression this guards: a gate on the value being a quoted string, checked BEFORE any
+    // attempt to parse it as a standalone literal, previously skipped this whole handling for a
+    // bare identifier and fell through to the generic object-key path, marking the wrong (deeper)
+    // path opaque -- letting the "then" branch's declaration survive unshadowed.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="=if flag then {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]} else {&quot;camunda.function.type&quot;: attackerControlledFunctionName,&quot;params&quot;:[]}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aLiteralDeclarationIsNotGrantedWhenALaterInputOverwritesTheExactSameTargetPath() {
+    // security-testing-findings#275, T3: zeebe:input mappings evaluate in declaration order, and a
+    // later mapping whose target equals an earlier one's replaces whatever the earlier one
+    // produced there. Without shadowing, this cache would grant a function at a path the runtime
+    // tree no longer actually holds it at, letting a second, dynamic (attacker-reachable) input
+    // silently inherit the earlier declaration's grant.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}"
+                      target="body" />
+                  <zeebe:input source="=attackerControlledValue" target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aNestedLiteralDeclarationIsNotGrantedWhenALaterInputOverwritesAShallowerParentPath() {
+    // Same as above, but the later, dynamic input overwrites a shallower ancestor of the
+    // declaration's own path -- replacing the whole subtree the declaration's object literal was
+    // nested under, not just its exact path.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;x&quot;: {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}}"
+                      target="body" />
+                  <zeebe:input source="=attackerControlledValue" target="body.x" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aLiteralDeclarationIsStillGrantedWhenALaterInputOnlyWritesADeeperSiblingPath() {
+    // A later input writing beneath the declaration's own path only adds a sibling field to the
+    // object that already carries the discriminator literal -- it cannot overwrite the
+    // "camunda.function.type" key itself (a zeebe:input target's dotted segments address nested
+    // map paths, never the literal's own single, dotted-named object key), so the earlier
+    // declaration is still trustworthy. This locks in the shadowing fix's deliberately narrower
+    // scope: it only covers a later input writing to the exact same (or a shallower) path.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}"
+                      target="body" />
+                  <zeebe:input source="=someExtra" target="body.extra" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .containsExactly(new AllowedIntrinsicFunction("createLink", List.of("body")));
+  }
+
+  @Test
   void twoPhysicalTenantsSharingOneCacheDoNotLeakAllowedFunctionsBetweenEachOther() {
     var sharedCache = new ConcurrentMapCache("allow-list");
     var cacheForTenantA =

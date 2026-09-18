@@ -103,17 +103,51 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     return result;
   }
 
+  /**
+   * {@code zeebe:input} mappings evaluate in declaration order, each against the output the ones
+   * before it already built, so a later mapping whose target is at or above an earlier one's
+   * <em>replaces</em> whatever that earlier mapping produced there -- the same "effective writer"
+   * semantics {@code ProcessDefinitionSecretKeyCache} already applies for secrets. A declaration is
+   * therefore trusted only if no later input's target is a prefix of (or equal to) its own full
+   * bound path: a later, dynamic write to the same path is exactly as capable of producing an
+   * attacker-shaped value there as any other unverifiable position this cache already refuses to
+   * trust, and the earlier declaration was never what the runtime tree actually ends up holding.
+   * Unlike the secrets cache, this does not follow a later input's own FEEL expression back to an
+   * earlier input it merely *reads* (rather than overwrites) -- that is a separate, tracked
+   * follow-up; this only covers a later input writing to the exact same (or a shallower) path.
+   */
   private List<AllowedIntrinsicFunction> extractFromInputs(List<ZeebeInput> inputs) {
-    List<AllowedIntrinsicFunction> result = new ArrayList<>();
+    List<List<String>> targetPaths = new ArrayList<>();
+    List<List<Declaration>> declarationsByInput = new ArrayList<>();
     for (ZeebeInput input : inputs) {
-      List<String> targetPath = Arrays.asList(input.getTarget().split("\\."));
-      for (Declaration declaration : findDeclarations(input.getSource())) {
+      targetPaths.add(Arrays.asList(input.getTarget().split("\\.")));
+      declarationsByInput.add(findDeclarations(input.getSource()));
+    }
+    List<AllowedIntrinsicFunction> result = new ArrayList<>();
+    for (int idx = 0; idx < inputs.size(); idx++) {
+      List<String> targetPath = targetPaths.get(idx);
+      for (Declaration declaration : declarationsByInput.get(idx)) {
         List<String> fullPath = new ArrayList<>(targetPath);
         fullPath.addAll(declaration.path());
+        if (isShadowedByALaterInput(fullPath, targetPaths, idx + 1)) {
+          continue;
+        }
         result.add(new AllowedIntrinsicFunction(declaration.functionName(), fullPath));
       }
     }
     return result;
+  }
+
+  private static boolean isShadowedByALaterInput(
+      List<String> fullPath, List<List<String>> targetPaths, int fromIndexInclusive) {
+    for (int later = fromIndexInclusive; later < targetPaths.size(); later++) {
+      List<String> laterTarget = targetPaths.get(later);
+      if (laterTarget.size() <= fullPath.size()
+          && fullPath.subList(0, laterTarget.size()).equals(laterTarget)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private record Declaration(String functionName, List<String> path) {}
@@ -244,16 +278,24 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
         if (key == null || !tryConsumeChar(':')) {
           return false;
         }
-        if (IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(key) && peek() == '"') {
+        if (IntrinsicFunctionModel.DISCRIMINATOR_KEY.equals(key)) {
           int save = i;
-          String value = parseStringLiteral();
-          char after = peek();
-          if (after == ',' || after == '}') {
+          boolean standalone = false;
+          String value = null;
+          if (peek() == '"') {
+            value = parseStringLiteral();
+            char after = peek();
+            standalone = after == ',' || after == '}';
+          }
+          if (standalone) {
             found.add(new Declaration(value, path));
           } else {
-            // Not an immediate, standalone literal (e.g. string concatenation) -- the object's own
-            // shape at this path is therefore not fixed either, since whatever this key's real
-            // computed value turns out to be is part of that shape.
+            // Not an immediate, standalone string literal -- a bare reference, a concatenation, a
+            // number, anything else. The object's own shape at this path is therefore not fixed
+            // either: whether this object even carries the discriminator name a sibling
+            // alternative's literal declares is itself unverifiable, so the object's own path (not
+            // a sub-path under the discriminator key, which no declaration is ever recorded at
+            // anyway) is what must be marked opaque for mergeSiblings to catch it.
             i = save;
             opaque.add(path);
             if (!skipOpaqueValue()) {
