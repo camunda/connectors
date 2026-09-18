@@ -27,6 +27,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
+import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookOutputExample;
@@ -34,6 +35,7 @@ import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -51,7 +53,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 15,
+    version = 16,
     inputDataClass = {
       WebhookConnectorPropertiesWrapper.class,
       DynamicWebhookPropertiesWrapper.class
@@ -130,10 +132,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     rejectDeprecatedResponseBodyExpression(context);
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
+    rejectMissingHmacTimestampHeader(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
-            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
+            props.hmacScopes(),
+            props.hmacHeader(),
+            props.hmacSecret(),
+            props.hmacAlgorithm(),
+            props.hmacTimestampHeader(),
+            props.hmacToleranceSeconds());
     context.reportHealth(Health.up());
   }
 
@@ -170,6 +178,26 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
               + "Replace it with 'responseExpression', which returns a full HTTP response, e.g. "
               + "'={body: ..., statusCode: 200, headers: {...}}'. See "
               + "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/ for details.");
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC authentication is enabled with the {@code
+   * timestamp} scope but no {@code hmacTimestampHeader} is configured to read it from — that
+   * combination can never pass verification, so it's rejected at deploy time rather than on every
+   * request.
+   */
+  private static void rejectMissingHmacTimestampHeader(WebhookConnectorProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    boolean timestampHeaderConfigured =
+        props.hmacTimestampHeader() != null && !props.hmacTimestampHeader().isBlank();
+    if (enabled.equals(props.shouldValidateHmac())
+        && timestampScopeSelected
+        && !timestampHeaderConfigured) {
+      throw new ConnectorInputException(
+          "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
+              + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
     }
   }
 
