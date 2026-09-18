@@ -24,11 +24,13 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
+import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMethodFilter;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.filter.FormContentFilter;
+import org.springframework.web.filter.HiddenHttpMethodFilter;
 
 /**
  * Exercises the explicit-vs-inferred resolution of {@code
@@ -119,6 +121,34 @@ class WebhookConnectorConfigurationTest {
   void formContentFilterConflictCheckPassesWithNoFiltersAtAll() {
     // Matches spring.mvc.formcontent.filter.enabled=false: no FormContentFilter bean at all.
     var check = configuration.webhookFormContentFilterConflictCheck(List.of());
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void hiddenHttpMethodFilterConflictCheckFailsFastOnIncompatibleCustomFilter() {
+    var check =
+        configuration.webhookHiddenHttpMethodFilterConflictCheck(
+            List.of(new HiddenHttpMethodFilter(), new WebhookExcludingHiddenHttpMethodFilter("")));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("HiddenHttpMethodFilter");
+  }
+
+  @Test
+  void hiddenHttpMethodFilterConflictCheckPassesWithOnlyTheWebhookExcludingFilter() {
+    var check =
+        configuration.webhookHiddenHttpMethodFilterConflictCheck(
+            List.of(new WebhookExcludingHiddenHttpMethodFilter("")));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void hiddenHttpMethodFilterConflictCheckPassesWithNoFiltersAtAll() {
+    // Matches the default spring.mvc.hiddenmethod.filter.enabled=false: no bean registered.
+    var check = configuration.webhookHiddenHttpMethodFilterConflictCheck(List.of());
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }

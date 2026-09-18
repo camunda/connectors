@@ -20,6 +20,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
+import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMethodFilter;
 import java.util.List;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.filter.FormContentFilter;
+import org.springframework.web.filter.HiddenHttpMethodFilter;
 
 @Configuration
 @Import(InboundWebhookRestController.class)
@@ -55,6 +57,20 @@ public class WebhookConnectorConfiguration {
   }
 
   /**
+   * Replaces Spring Boot's auto-configured {@code HiddenHttpMethodFilter} the same way {@link
+   * #formContentFilter} replaces its {@code FormContentFilter}, for the same reason: see {@link
+   * WebhookExcludingHiddenHttpMethodFilter}. Gated by the same property Spring Boot's own
+   * auto-configured filter is (off by default, unlike {@code FormContentFilter}'s), so this bean
+   * only exists when an operator has actually opted into hidden-method overriding.
+   */
+  @Bean
+  @ConditionalOnProperty(name = "spring.mvc.hiddenmethod.filter.enabled", havingValue = "true")
+  public HiddenHttpMethodFilter hiddenHttpMethodFilter(
+      @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath) {
+    return new WebhookExcludingHiddenHttpMethodFilter(dispatcherServletPath);
+  }
+
+  /**
    * Fails startup with a clear error if some other {@code FormContentFilter} bean is also
    * registered (e.g. a downstream application defining its own under a different bean name): that
    * filter has no reason to know about {@code /inbound/**} and would still fully buffer webhook
@@ -65,24 +81,49 @@ public class WebhookConnectorConfiguration {
   @Bean
   InitializingBean webhookFormContentFilterConflictCheck(
       List<FormContentFilter> formContentFilters) {
-    return () -> {
-      var incompatible =
-          formContentFilters.stream()
-              .filter(f -> !(f instanceof WebhookExcludingFormContentFilter))
-              .map(f -> f.getClass().getName())
-              .toList();
-      if (!incompatible.isEmpty()) {
-        throw new IllegalStateException(
-            "Found FormContentFilter bean(s) that are not WebhookExcludingFormContentFilter: "
-                + incompatible
-                + ". Such a filter still runs before path resolution, the webhook rate limit and"
-                + " the body-size guard, and would fully buffer PUT/DELETE"
-                + " application/x-www-form-urlencoded bodies to /inbound/** with no size limit,"
-                + " defeating this security fix. Either remove the custom filter or have it"
-                + " extend WebhookExcludingFormContentFilter (or otherwise skip /inbound/**"
-                + " itself).");
-      }
-    };
+    return () ->
+        checkNoConflictingFilter(
+            formContentFilters, WebhookExcludingFormContentFilter.class, "FormContentFilter");
+  }
+
+  /**
+   * Same conflict check as {@link #webhookFormContentFilterConflictCheck}, for {@code
+   * HiddenHttpMethodFilter} instead: see {@link WebhookExcludingHiddenHttpMethodFilter} for why an
+   * unrelated one is just as much of a bypass.
+   */
+  @Bean
+  InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
+      List<HiddenHttpMethodFilter> hiddenHttpMethodFilters) {
+    return () ->
+        checkNoConflictingFilter(
+            hiddenHttpMethodFilters,
+            WebhookExcludingHiddenHttpMethodFilter.class,
+            "HiddenHttpMethodFilter");
+  }
+
+  private static void checkNoConflictingFilter(
+      List<?> filters, Class<?> webhookAwareType, String filterName) {
+    var incompatible =
+        filters.stream()
+            .filter(f -> !webhookAwareType.isInstance(f))
+            .map(f -> f.getClass().getName())
+            .toList();
+    if (!incompatible.isEmpty()) {
+      throw new IllegalStateException(
+          "Found "
+              + filterName
+              + " bean(s) that are not "
+              + webhookAwareType.getSimpleName()
+              + ": "
+              + incompatible
+              + ". Such a filter still runs before path resolution, the webhook rate limit and"
+              + " the body-size guard, and would fully buffer PUT/DELETE/POST"
+              + " application/x-www-form-urlencoded bodies to /inbound/** with no size limit,"
+              + " defeating this security fix. Either remove the custom filter or have it"
+              + " extend "
+              + webhookAwareType.getSimpleName()
+              + " (or otherwise skip /inbound/** itself).");
+    }
   }
 
   /**
