@@ -24,6 +24,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
@@ -48,20 +51,25 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,9 +91,88 @@ public class InboundWebhookRestController {
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
+  /**
+   * Maximum number of bytes read into memory for an inbound webhook request body. Requests whose
+   * body exceeds this are rejected with 413 before the excess is buffered. Package-private so tests
+   * can tighten it instead of sending multi-megabyte payloads.
+   */
+  @Value("${camunda.connector.webhook.max-request-body-bytes:10485760}") // 10 MB
+  int maxRequestBodyBytes = 10 * 1024 * 1024;
+
+  @Value("${camunda.connector.webhook.rate-limit.enabled:true}")
+  boolean rateLimitEnabled = true;
+
+  @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
+  double rateLimitPermitsPerSecond = 1000;
+
+  /**
+   * How long an idle {@link RateLimiter} entry survives in {@link #rateLimitersByExecutable} before
+   * being reclaimed. Also the bound {@link #validateWebhookConfig} enforces against {@link
+   * #rateLimitPermitsPerSecond}: a configured rate slower than one permit per this duration would
+   * let a webhook go idle long enough to be reclaimed, then have its very next request replaced
+   * with a fresh limiter that immediately grants a burst permit -- repeatable indefinitely,
+   * exceeding the configured sustained rate. Package-private so tests can reference it instead of
+   * duplicating the value.
+   */
+  static final Duration RATE_LIMITER_IDLE_EXPIRY = Duration.ofHours(1);
+
+  /**
+   * Keyed by the resolved connector's {@link ExecutableId}, not by the raw request path, so an
+   * unauthenticated caller can never add entries by probing paths. A redeployment mints a new
+   * {@link ExecutableId} (it is derived from the deduplication id, which includes the
+   * process-definition key), so the entry set isn't just "currently registered webhooks" either.
+   *
+   * <p>Bounded by inactivity only ({@code expireAfterAccess}), deliberately with no {@code
+   * maximumSize}: a size cap evicts under pressure regardless of whether the evicted entry is still
+   * in active use, which would let an attacker (or ordinary redeployment churn) reset a
+   * still-active webhook's accumulated rate-limit state by minting enough distinct {@link
+   * ExecutableId}s to push it out of the cache — defeating the limiter it's supposed to enforce.
+   * Every request against an active webhook refreshes its entry's access time, so it is never
+   * reclaimed while in use; only entries genuinely idle for the whole window are, bounding
+   * long-term growth from obsolete, no-longer-deployed webhooks instead. Package-private (and
+   * non-final) so tests can substitute a short-lived cache instead of waiting out the real
+   * duration.
+   */
+  Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
+      CacheBuilder.newBuilder().expireAfterAccess(RATE_LIMITER_IDLE_EXPIRY).build();
+
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  @PostConstruct
+  void validateWebhookConfig() {
+    if (maxRequestBodyBytes < 0) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.max-request-body-bytes must not be negative, but was: "
+              + maxRequestBodyBytes);
+    }
+    if (rateLimitEnabled
+        && !(Double.isFinite(rateLimitPermitsPerSecond) && rateLimitPermitsPerSecond > 0)) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
+              + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
+              + rateLimitPermitsPerSecond);
+    }
+    if (rateLimitEnabled
+        && Double.isFinite(rateLimitPermitsPerSecond)
+        && rateLimitPermitsPerSecond > 0) {
+      double secondsPerPermit = 1.0 / rateLimitPermitsPerSecond;
+      if (secondsPerPermit > RATE_LIMITER_IDLE_EXPIRY.getSeconds()) {
+        throw new IllegalStateException(
+            "camunda.connector.webhook.rate-limit.permits-per-second is too low: at "
+                + rateLimitPermitsPerSecond
+                + " permits/second, accumulating one permit takes "
+                + secondsPerPermit
+                + "s, longer than the "
+                + RATE_LIMITER_IDLE_EXPIRY.getSeconds()
+                + "s a webhook's rate limiter survives while idle. A caller who waits out that"
+                + " idle window would get a fresh limiter that immediately grants a burst permit,"
+                + " repeatable indefinitely -- exceeding the configured sustained rate. Configure"
+                + " a higher rate or disable rate limiting.");
+      }
+    }
   }
 
   protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
@@ -184,36 +271,70 @@ public class InboundWebhookRestController {
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
+
+    // Resolve the path to a registered webhook before touching the body at all: an unknown path
+    // must 404 without allocating anything for the (unauthenticated, unbounded) request body.
+    if (connectorOpt.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    var connector = connectorOpt.get();
+
+    // Throttle before reading the body too, so a flood against a *known* path can't force
+    // repeated full-body allocation or downstream HMAC/correlation work either.
+    if (rateLimitEnabled && !acquireRateLimitPermit(connector)) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
     // Body must be read before any call that triggers form-parameter parsing (e.g.
     // getParameterMap).
     // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
     // getParameterMap() is invoked, which would leave rawBody empty and break HMAC verification.
-    byte[] bodyAsByteArray = httpServletRequest.getInputStream().readAllBytes();
+    byte[] bodyAsByteArray = readBoundedBody(httpServletRequest);
+    if (bodyAsByteArray == null) {
+      return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+    }
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
-    return connectorOpt
-        .map(
-            connector -> {
-              // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
-              // “store HTTP request headers using the original case for the header name rather
-              // than forcing it to lower case.”
-              // This breaks some webhook connectors that expect lowercase headers in expressions.
-              var lowercaseHeaders =
-                  headers.entrySet().stream()
-                      .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
-              Optional.ofNullable(httpServletRequest.getContentType())
-                  .ifPresent(
-                      contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
-              WebhookProcessingPayload payload =
-                  new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest,
-                      params,
-                      lowercaseHeaders,
-                      bodyAsByteArray,
-                      getParts(httpServletRequest));
-              return processWebhook(connector, payload);
-            })
-        .orElseGet(() -> ResponseEntity.notFound().build());
+    // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
+    // “store HTTP request headers using the original case for the header name rather
+    // than forcing it to lower case.”
+    // This breaks some webhook connectors that expect lowercase headers in expressions.
+    var lowercaseHeaders =
+        headers.entrySet().stream()
+            .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
+    Optional.ofNullable(httpServletRequest.getContentType())
+        .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
+    WebhookProcessingPayload payload =
+        new HttpServletRequestWebhookProcessingPayload(
+            httpServletRequest,
+            params,
+            lowercaseHeaders,
+            bodyAsByteArray,
+            getParts(httpServletRequest));
+    return processWebhook(connector, payload);
+  }
+
+  /**
+   * Reads at most {@link #maxRequestBodyBytes} of the request body. Returns {@code null}, without
+   * buffering more than a single byte past the limit, when the body is larger than that.
+   */
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+    var inputStream = httpServletRequest.getInputStream();
+    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (inputStream.read() != -1) {
+      return null;
+    }
+    return body;
+  }
+
+  boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
+    try {
+      return rateLimitersByExecutable
+          .get(connector.id(), () -> RateLimiter.create(rateLimitPermitsPerSecond))
+          .tryAcquire();
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Failed to create rate limiter", e);
+    }
   }
 
   private ResponseEntity<?> processWebhook(

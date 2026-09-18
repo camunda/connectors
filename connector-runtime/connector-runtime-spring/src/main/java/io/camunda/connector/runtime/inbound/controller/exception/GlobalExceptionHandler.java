@@ -20,12 +20,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   @ExceptionHandler(DataNotFoundException.class)
   public ResponseEntity<String> handleNotFound(DataNotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+  }
+
+  /**
+   * Spring's multipart resolver throws this when {@code spring.servlet.multipart.max-file-size} /
+   * {@code max-request-size} is exceeded, before any handler (including the webhook controller's
+   * own body-size check) runs. Without this, it would otherwise fall through to {@link
+   * #handleGenericException}, returning 500 with the exception message in the body instead of the
+   * empty 413 that a caller sending an oversized body should get.
+   */
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<Void> handleMaxUploadSizeExceeded() {
+    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
   }
 
   @ExceptionHandler(Exception.class)

@@ -33,8 +33,41 @@ public record ConnectorProperties(
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
-  /** Configuration for the inbound webhook connector. */
-  public record Webhook(boolean enabled, boolean appendPhysicalTenantAndTenantToPath) {}
+  /**
+   * Configuration for the inbound webhook connector.
+   *
+   * @param maxRequestBodyBytes Maximum size, in bytes, of a <b>non-multipart</b> inbound webhook
+   *     request body read into memory before authentication runs. Requests whose body exceeds this
+   *     limit are rejected with 413 Payload Too Large. Default is 10 MB (10485760). {@code
+   *     int}-typed to match the underlying {@code InputStream.readNBytes(int)} call it configures.
+   *     Does not apply to {@code multipart/form-data}: Spring's {@code DispatcherServlet} parses
+   *     multipart bodies before the handler runs, so that traffic is bounded separately by {@code
+   *     spring.servlet.multipart.max-file-size} / {@code max-request-size} instead.
+   * @param rateLimit Per-registered-webhook inbound rate limit, enforced for every request that
+   *     reaches the webhook handler — including {@code multipart/form-data} once Spring has
+   *     finished parsing it. It is not applied any earlier than that: a multipart request within
+   *     the separate multipart size limits still consumes a permit, just after Spring's own
+   *     multipart body allocation for that request rather than before it.
+   */
+  public record Webhook(
+      boolean enabled,
+      boolean appendPhysicalTenantAndTenantToPath,
+      int maxRequestBodyBytes,
+      RateLimit rateLimit) {}
+
+  /**
+   * Per-registered-webhook inbound rate limit, enforced for every request that reaches the webhook
+   * handler. Unlike {@link Webhook#maxRequestBodyBytes}, {@code multipart/form-data} is <b>not</b>
+   * exempt from this: a multipart request that Spring successfully parses (within the separate
+   * {@code spring.servlet.multipart.*} limits) still reaches the handler and consumes a permit
+   * here, just after that parsing rather than before it.
+   *
+   * @param enabled Whether the rate limit is enforced. Default is {@code true}.
+   * @param permitsPerSecond Maximum sustained requests per second allowed for a single registered
+   *     webhook. Requests beyond this rate are rejected with 429 Too Many Requests. Default is
+   *     1000; deployments that know their expected per-webhook traffic can tune this down.
+   */
+  public record RateLimit(boolean enabled, double permitsPerSecond) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(
