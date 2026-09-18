@@ -38,14 +38,15 @@ public record ConnectorProperties(
    *
    * @param maxRequestBodyBytes Maximum size, in bytes, of an inbound webhook request body read into
    *     memory before authentication runs. Requests whose body exceeds this limit are rejected with
-   *     413 Payload Too Large. Default is 10 MB (10485760).
+   *     413 Payload Too Large. Default is 10 MB (10485760). {@code int}-typed to match the
+   *     underlying {@code InputStream.readNBytes(int)} call it configures.
    * @param rateLimit Per-registered-webhook inbound rate limit, enforced before the request body is
    *     read.
    */
   public record Webhook(
       boolean enabled,
       boolean appendPhysicalTenantAndTenantToPath,
-      long maxRequestBodyBytes,
+      int maxRequestBodyBytes,
       RateLimit rateLimit) {}
 
   /**

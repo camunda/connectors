@@ -248,7 +248,10 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
-  void shouldReturnNotFoundWithoutReadingBodyForUnknownPath() throws Exception {
+  void shouldReturnNotFoundWithoutReadingRawBodyForUnknownNonMultipartPath() throws Exception {
+    // Scoped to non-multipart: multipart/form-data is parsed by Spring's DispatcherServlet
+    // (checkMultipart) before the handler — and therefore before this path lookup — regardless of
+    // this fix, bounded by Spring's own multipart limits rather than by this controller.
     var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
 
     var request = new ThrowingBodyMockHttpServletRequest();
@@ -337,8 +340,8 @@ class InboundWebhookRestControllerTest {
   }
 
   /**
-   * Proves clause 2 of the remediation: for an unregistered path, the controller must not touch the
-   * request body at all before returning 404.
+   * Proves clause 2 of the remediation: for an unregistered non-multipart path, the controller must
+   * not touch the raw request body stream at all before returning 404.
    */
   private static class ThrowingBodyMockHttpServletRequest extends MockHttpServletRequest {
     @Override

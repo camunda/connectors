@@ -24,6 +24,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -54,14 +56,16 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementConte
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,15 +106,29 @@ public class InboundWebhookRestController {
   double rateLimitPermitsPerSecond = 1000;
 
   /**
-   * Keyed by the resolved connector's {@link ExecutableId}, not by the raw request path: the map
-   * can only grow to the number of registered webhooks, never to the number of distinct paths an
-   * unauthenticated caller can send requests to.
+   * Keyed by the resolved connector's {@link ExecutableId}, not by the raw request path, so an
+   * unauthenticated caller can never grow this beyond the entries evicted below by probing paths. A
+   * redeployment mints a new {@link ExecutableId} (it is derived from the deduplication id, which
+   * includes the process-definition key), so the entry set isn't just "currently registered
+   * webhooks" either — bounded size and eviction on inactivity keep this from growing unboundedly
+   * over the controller's lifetime as webhooks are redeployed.
    */
-  private final Map<ExecutableId, RateLimiter> rateLimitersByExecutable = new ConcurrentHashMap<>();
+  private final Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
+      CacheBuilder.newBuilder().maximumSize(10_000).expireAfterAccess(Duration.ofHours(1)).build();
 
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  @PostConstruct
+  void validateRateLimitConfig() {
+    if (rateLimitEnabled && rateLimitPermitsPerSecond <= 0) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be positive when "
+              + "camunda.connector.webhook.rate-limit.enabled is true, but was: "
+              + rateLimitPermitsPerSecond);
+    }
   }
 
   protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
@@ -266,9 +284,13 @@ public class InboundWebhookRestController {
   }
 
   private boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
-    return rateLimitersByExecutable
-        .computeIfAbsent(connector.id(), id -> RateLimiter.create(rateLimitPermitsPerSecond))
-        .tryAcquire();
+    try {
+      return rateLimitersByExecutable
+          .get(connector.id(), () -> RateLimiter.create(rateLimitPermitsPerSecond))
+          .tryAcquire();
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Failed to create rate limiter", e);
+    }
   }
 
   private ResponseEntity<?> processWebhook(
