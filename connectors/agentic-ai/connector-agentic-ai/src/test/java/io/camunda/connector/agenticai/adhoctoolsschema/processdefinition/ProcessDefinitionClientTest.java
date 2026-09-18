@@ -72,6 +72,26 @@ class ProcessDefinitionClientTest {
     verifyNoInteractions(tenantAClient);
   }
 
+  /**
+   * The classifier used here retries every exception, so an unroutable physical tenant resolved
+   * inside the retry would be re-attempted through the whole backoff even though no attempt can
+   * change the tenant mapping.
+   */
+  @Test
+  void failsImmediatelyWithoutRetryingWhenThePhysicalTenantCannotBeRouted() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.forPhysicalTenant("tenantc"))
+        .thenThrow(new IllegalStateException("No CamundaClient configured for physical tenant"));
+
+    assertThatThrownBy(
+            () ->
+                new ProcessDefinitionClient(selector, RETRIES_CONFIGURATION)
+                    .getProcessDefinitionXml("tenantc", PROCESS_DEFINITION_KEY))
+        .isInstanceOf(IllegalStateException.class);
+
+    verify(selector, times(1)).forPhysicalTenant("tenantc");
+  }
+
   @Test
   void shouldReturnXmlOnSuccessfulFirstAttempt() {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY))

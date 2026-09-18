@@ -35,13 +35,12 @@ public class ProcessDefinitionClient {
    */
   public String getProcessDefinitionXml(
       @Nullable String physicalTenantId, Long processDefinitionKey) {
+    // resolved outside the retry: an unroutable physical tenant is a configuration error, and this
+    // classifier retries every exception, so leaving it inside would burn the whole backoff on a
+    // mapping no attempt can change
+    final var camundaClient = clientSelector.forPhysicalTenant(physicalTenantId);
     return CamundaApiRetry.execute(
-        () ->
-            clientSelector
-                .forPhysicalTenant(physicalTenantId)
-                .newProcessDefinitionGetXmlRequest(processDefinitionKey)
-                .send()
-                .join(),
+        () -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join(),
         ErrorClassifier.onAllExceptions(),
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),

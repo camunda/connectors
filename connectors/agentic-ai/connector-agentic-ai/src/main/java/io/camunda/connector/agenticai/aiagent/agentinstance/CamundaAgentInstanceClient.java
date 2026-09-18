@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceLimits;
@@ -92,8 +93,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   @Override
   public AgentInstanceKey create(AgentExecutionContext agentExecutionContext) {
+    // resolved before the retry so an unroutable physical tenant surfaces as the configuration
+    // error it is, rather than as a failure to create the agent instance
+    final var camundaClient = clientSelector.forJob(agentExecutionContext.jobContext());
     return CamundaApiRetry.execute(
-        () -> executeCreate(agentExecutionContext),
+        () -> executeCreate(camundaClient, agentExecutionContext),
         AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
@@ -101,7 +105,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         sleeper);
   }
 
-  private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
+  private AgentInstanceKey executeCreate(
+      CamundaClient camundaClient, AgentExecutionContext agentExecutionContext) {
     final var jobContext = agentExecutionContext.jobContext();
     final long elementInstanceKey = jobContext.getElementInstanceKey();
     final var configuration = agentExecutionContext.configuration();
@@ -112,8 +117,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().descriptiveProvider());
 
     final var command =
-        clientSelector
-            .forJob(jobContext)
+        camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
             .jobKey(jobContext.getJobKey())
@@ -354,9 +358,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
       List<AgentInstanceHistoryItem> historyItems) {
+    final var camundaClient = clientSelector.forJob(executionContext.jobContext());
     CamundaApiRetry.execute(
         () -> {
-          executeBatchedUpdate(executionContext, agentInstanceKey, status, historyItems);
+          executeBatchedUpdate(
+              camundaClient, executionContext, agentInstanceKey, status, historyItems);
           return null;
         },
         AgentInstanceErrorClassifier.INSTANCE,
@@ -367,6 +373,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   private void executeBatchedUpdate(
+      CamundaClient camundaClient,
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
@@ -378,8 +385,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         historyItems.size());
     final JobContext jobContext = executionContext.jobContext();
     UpdateAgentInstanceCommandStep2 cmd =
-        clientSelector
-            .forJob(jobContext)
+        camundaClient
             .newUpdateAgentInstanceCommand(agentInstanceKey)
             .elementInstanceKey(jobContext.getElementInstanceKey());
 
