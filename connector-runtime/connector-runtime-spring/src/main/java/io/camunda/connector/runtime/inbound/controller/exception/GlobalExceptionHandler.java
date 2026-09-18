@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
    * empty 413 that a caller sending an oversized body should get.
    */
   @ExceptionHandler(MaxUploadSizeExceededException.class)
-  public ResponseEntity<Void> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+  public ResponseEntity<Void> handleMaxUploadSizeExceeded() {
     return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
   }
 
