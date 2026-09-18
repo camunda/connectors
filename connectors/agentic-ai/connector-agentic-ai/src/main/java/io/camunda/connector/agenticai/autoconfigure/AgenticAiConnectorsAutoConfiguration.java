@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aClientPollingConfiguration;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.configuration.A2aClientWebhookConfiguration;
@@ -75,6 +74,7 @@ import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -142,11 +142,11 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
-      CamundaClient camundaClient,
+      PhysicalTenantClientSelector clientSelector,
       AdHocToolElementParameterExtractor parameterExtractor) {
     final var processDefinitionClient =
         new ProcessDefinitionClient(
-            camundaClient, configuration.tools().processDefinition().retries());
+            clientSelector, configuration.tools().processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             processDefinitionClient, parameterExtractor);
@@ -205,12 +205,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceClient aiAgentInstanceClient(
-      CamundaClient camundaClient,
+      PhysicalTenantClientSelector clientSelector,
       AgenticAiConnectorsConfigurationProperties configuration,
       AgentInstanceHistoryMapper historyMapper,
       AgentInstanceToolMapper toolMapper) {
     return new CamundaAgentInstanceClient(
-        camundaClient,
+        clientSelector,
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
         historyMapper,
@@ -241,8 +241,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   public CamundaDocumentConversationStore aiAgentCamundaDocumentConversationStore(
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
+      PhysicalTenantClientSelector clientSelector,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+    return new CamundaDocumentConversationStore(
+        documentFactory, documentStore, clientSelector, objectMapper);
   }
 
   @Bean

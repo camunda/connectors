@@ -18,8 +18,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfigu
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,17 +36,48 @@ public class CamundaDocumentConversationStore implements ConversationStore {
 
   public static final String TYPE = "camunda-document";
 
-  private final DocumentFactory documentFactory;
-  private final CamundaDocumentStore documentStore;
+  private final DocumentFactory singleTenantDocumentFactory;
+  private final CamundaDocumentStore singleTenantDocumentStore;
+  private final PhysicalTenantClientSelector clientSelector;
   private final CamundaDocumentConversationSerializer conversationSerializer;
+  private final Map<String, TenantDocuments> documentsByPhysicalTenantId =
+      new ConcurrentHashMap<>();
 
   public CamundaDocumentConversationStore(
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
+      PhysicalTenantClientSelector clientSelector,
       ObjectMapper objectMapper) {
-    this.documentFactory = documentFactory;
-    this.documentStore = documentStore;
+    this.singleTenantDocumentFactory = documentFactory;
+    this.singleTenantDocumentStore = documentStore;
+    this.clientSelector = clientSelector;
     this.conversationSerializer = new CamundaDocumentConversationSerializer(objectMapper);
+  }
+
+  private record TenantDocuments(DocumentFactory factory, CamundaDocumentStore store) {}
+
+  /**
+   * Conversation memory documents have to be written to, read from and deleted on the cluster the
+   * job runs against, so they are resolved per physical tenant rather than through the single
+   * document beans picked at startup.
+   *
+   * <p>With one tenant the injected beans are used as they are, so overriding {@code
+   * documentFactory}/{@code documentStore} (an in-memory store in tests, for instance) keeps
+   * working. Applying such an override to every tenant of a genuine multi-cluster runtime would put
+   * every tenant's memory through the same store instead of its own.
+   */
+  private TenantDocuments documentsFor(AgentExecutionContext executionContext) {
+    if (clientSelector.servesSinglePhysicalTenant()) {
+      return new TenantDocuments(singleTenantDocumentFactory, singleTenantDocumentStore);
+    }
+    final @Nullable String physicalTenantId = executionContext.jobContext().getPhysicalTenantId();
+    final var client = clientSelector.forPhysicalTenant(physicalTenantId);
+    return documentsByPhysicalTenantId.computeIfAbsent(
+        physicalTenantId,
+        id -> {
+          var store = new CamundaDocumentStoreImpl(client, id);
+          return new TenantDocuments(new DocumentFactoryImpl(store), store);
+        });
   }
 
   @Override
@@ -62,8 +99,13 @@ public class CamundaDocumentConversationStore implements ConversationStore {
               .formatted(config != null ? config.getClass().getName() : "null"));
     }
 
+    final var documents = documentsFor(executionContext);
     return new CamundaDocumentConversationSession(
-        documentConfig, documentFactory, documentStore, conversationSerializer, executionContext);
+        documentConfig,
+        documents.factory(),
+        documents.store(),
+        conversationSerializer,
+        executionContext);
   }
 
   @Override
@@ -81,7 +123,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
     var document = ctx.document();
     if (document.reference() instanceof CamundaDocumentReference camundaDocumentReference) {
       try {
-        documentStore.deleteDocument(camundaDocumentReference);
+        documentsFor(executionContext).store().deleteDocument(camundaDocumentReference);
       } catch (Exception e) {
         LOGGER.warn(
             "Failed to delete orphaned document after job completion failure: {}",

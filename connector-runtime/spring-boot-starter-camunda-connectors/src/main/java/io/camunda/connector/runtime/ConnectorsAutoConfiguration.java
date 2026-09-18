@@ -143,8 +143,12 @@ public class ConnectorsAutoConfiguration {
   @Bean
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
-  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
-    return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient).build();
+  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return FeelExpressionEvaluatorBuilder.camundaClient(
+            PhysicalTenantClients.defaultClient(
+                camundaClientProvider, "camundaClientFeelExpressionEvaluator"))
+        .build();
   }
 
   /**
@@ -201,8 +205,9 @@ public class ConnectorsAutoConfiguration {
       Optional<List<SecretProvider>> secretProviderBeans,
       @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) MeterRegistry meterRegistry) {
+    CamundaClient legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     LegacySecretMode legacyMode = LegacySecretMode.parse(legacyModeProperty);
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
@@ -403,9 +408,10 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper connectorObjectMapper(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       DocumentFactory legacyDocumentFactory,
       FeelExpressionEvaluator feelExpressionEvaluator) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
