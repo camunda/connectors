@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
@@ -98,5 +100,31 @@ public class BaseKafkaTest {
 
   String getBootstrapServers() {
     return kafkaContainer.getBootstrapServers().replace("PLAINTEXT://", "");
+  }
+
+  String createConnectionCredential() {
+    var name = "kafkaCredential_" + UUID.randomUUID().toString().replace("-", "");
+    camundaClient
+        .newGloballyScopedClusterVariableCreateRequest()
+        .create(
+            name,
+            Map.of(
+                "bootstrapServers", getBootstrapServers(),
+                "username", "test-user",
+                "password", "test-password"))
+        .send()
+        .join();
+    Awaitility.await("Kafka credential available to FEEL")
+        .atMost(Duration.ofSeconds(30))
+        .until(
+            () ->
+                camundaClient
+                        .newEvaluateExpressionCommand()
+                        .expression("=camunda.vars.env." + name)
+                        .send()
+                        .join()
+                        .getResult()
+                    != null);
+    return "=camunda.vars.env." + name;
   }
 }
