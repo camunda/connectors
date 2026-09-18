@@ -6,23 +6,19 @@
  */
 package io.camunda.connector.microsoft.common.auth;
 
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "Bearer token", id = "token")
-public record BearerAuthentication(
-    @NotBlank
+@Configuration(
+    id = "io.camunda.connectors:microsoft-entra:1",
+    version = 1,
+    name = "Microsoft Entra ID")
+public record MicrosoftEntraConfiguration(
+    @Valid
+        @NotNull
         @TemplateProperty(
-            id = "bearer.token",
             group = "authentication",
-            label = "Bearer token",
-            secret = true)
-        String token)
-    implements MicrosoftAuthentication {
-
-  @Override
-  public String toString() {
-    return "BearerAuthentication{token='[REDACTED]'}";
-  }
-}
+            description = "Choose the authentication mechanism this credential provides.")
+        MicrosoftAuthentication authentication) {}

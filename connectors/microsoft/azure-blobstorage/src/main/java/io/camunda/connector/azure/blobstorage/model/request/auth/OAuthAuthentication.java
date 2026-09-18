@@ -37,7 +37,8 @@ public record OAuthAuthentication(
             group = "authentication",
             tooltip =
                 "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         @NotBlank
         String clientSecret,
     @FEEL
@@ -51,4 +52,11 @@ public record OAuthAuthentication(
     implements Authentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "oAuth-client-credentials-flow";
+
+  @Override
+  public String toString() {
+    return String.format(
+        "OAuthAuthentication{tenantId='%s', clientId='%s', clientSecret='%s', accountUrl='%s'}",
+        tenantId, clientId, "[REDACTED]", accountUrl);
+  }
 }

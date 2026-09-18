@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Microsoft Teams Outbound Connector",
-  "id" : "io.camunda.connectors.MSTeams.v1-hybrid",
+  "name" : "Microsoft Teams Outbound Connector",
+  "id" : "io.camunda.connectors.MSTeams.v1",
   "description" : "Create, update, and send a message to your Microsoft Teams",
   "keywords" : [ "create chat", "get chat by ID", "list chats", "list chat members", "send message in chat", "list messages in chat", "create channel", "get channel", "list channels", "send message to channel", "list channel messages", "list message replies", "list members", "chat", "messaging", "team", "channel", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 10,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -43,14 +40,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:connector-microsoft-teams:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.type",
     "label" : "Conversation type",
@@ -149,18 +144,6 @@
       "value" : "listMembersInChannel"
     } ]
   }, {
-    "id" : "authenticationConfiguration",
-    "label" : "Microsoft Entra ID credential",
-    "description" : "Choose a reusable Microsoft Entra ID credential, or configure one-time authentication parameters below.",
-    "optional" : true,
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authenticationConfiguration",
-      "type" : "zeebe:input"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:microsoft-entra:1"
-  }, {
     "id" : "authentication.type",
     "label" : "Type",
     "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
@@ -169,11 +152,6 @@
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : true,
-      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -200,18 +178,11 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "token",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "token",
+      "type" : "simple"
     },
-    "type" : "String",
-    "secret" : true
+    "type" : "String"
   }, {
     "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
@@ -226,15 +197,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -251,15 +216,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -276,19 +235,12 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
     },
     "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-    "type" : "String",
-    "secret" : true
+    "type" : "String"
   }, {
     "id" : "authentication.refresh.token",
     "label" : "Refresh token",
@@ -303,18 +255,11 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
     },
-    "type" : "String",
-    "secret" : true
+    "type" : "String"
   }, {
     "id" : "authentication.refresh.clientId",
     "label" : "Client ID",
@@ -329,15 +274,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -354,15 +293,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -376,19 +309,12 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "authenticationConfiguration",
-        "isEmpty" : true,
-        "type" : "simple"
-      } ]
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
     },
     "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
-    "type" : "String",
-    "secret" : true
+    "type" : "String"
   }, {
     "id" : "data.createChat.chatType",
     "label" : "Chat type",
@@ -1804,7 +1730,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "9",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -2063,173 +1989,6 @@
       "data.type" : "channel",
       "data.channelMethod" : "listMembersInChannel"
     }
-  } ],
-  "configurationTemplates" : [ {
-    "id" : "io.camunda.connectors:microsoft-entra:1",
-    "kind" : "CREDENTIAL",
-    "version" : 1,
-    "name" : "Microsoft Entra ID",
-    "properties" : [ {
-      "id" : "authentication.type",
-      "label" : "Type",
-      "description" : "Choose the authentication mechanism this credential provides.",
-      "value" : "clientCredentials",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.type",
-        "type" : "property"
-      },
-      "type" : "Dropdown",
-      "choices" : [ {
-        "name" : "Bearer token",
-        "value" : "token"
-      }, {
-        "name" : "Client credentials",
-        "value" : "clientCredentials"
-      }, {
-        "name" : "Refresh token",
-        "value" : "refresh"
-      } ]
-    }, {
-      "id" : "authentication.bearer.token",
-      "label" : "Bearer token",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.token",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "token",
-        "type" : "simple"
-      },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.credentials.clientId",
-      "label" : "Client ID",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientId",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      },
-      "type" : "String"
-    }, {
-      "id" : "authentication.credentials.tenantId",
-      "label" : "Tenant ID",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.tenantId",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      },
-      "type" : "String"
-    }, {
-      "id" : "authentication.credentials.clientSecret",
-      "label" : "Client secret",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientSecret",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      },
-      "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.refresh.token",
-      "label" : "Refresh token",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.token",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.refresh.clientId",
-      "label" : "Client ID",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientId",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      },
-      "type" : "String"
-    }, {
-      "id" : "authentication.refresh.tenantId",
-      "label" : "Tenant ID",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.tenantId",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      },
-      "type" : "String"
-    }, {
-      "id" : "authentication.refresh.clientSecret",
-      "label" : "Client secret",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientSecret",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "refresh",
-        "type" : "simple"
-      },
-      "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
-      "type" : "String",
-      "secret" : true
-    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIGhlaWdodD0nMTgnIHdpZHRoPScxOCcgdmlld0JveD0nLTMzNC4zMjQ5NSAtNTE4LjMzMzUgMjg5Ny40ODI5IDMxMTAuMDAxJz4KICAgIDxwYXRoIGQ9J00xNTU0LjYzNyA3NzcuNWg1NzUuNzEzYzU0LjM5MSAwIDk4LjQ4MyA0NC4wOTIgOTguNDgzIDk4LjQ4M3Y1MjQuMzk4YzAgMTk5LjkwMS0xNjIuMDUxIDM2MS45NTItMzYxLjk1MiAzNjEuOTUyaC0xLjcxMWMtMTk5LjkwMS4wMjgtMzYxLjk3NS0xNjItMzYyLjAwNC0zNjEuOTAxVjgyOC45NzFjLjAwMS0yOC40MjcgMjMuMDQ1LTUxLjQ3MSA1MS40NzEtNTEuNDcxeicKICAgICAgICAgIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMjMzLjI1JyBjeT0nNDQwLjU4MycgY3g9JzE5NDMuNzUnIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMzM2LjkxNycgY3k9JzMzNi45MTcnIGN4PScxMjE4LjA4MycgZmlsbD0nIzdCODNFQicvPgogICAgPHBhdGggZD0nTTE2NjcuMzIzIDc3Ny41SDcxNy4wMWMtNTMuNzQzIDEuMzMtOTYuMjU3IDQ1LjkzMS05NS4wMSA5OS42NzZ2NTk4LjEwNWMtNy41MDUgMzIyLjUxOSAyNDcuNjU3IDU5MC4xNiA1NzAuMTY3IDU5OC4wNTMgMzIyLjUxLTcuODkzIDU3Ny42NzEtMjc1LjUzNCA1NzAuMTY3LTU5OC4wNTNWODc3LjE3NmMxLjI0NS01My43NDUtNDEuMjY4LTk4LjM0Ni05NS4wMTEtOTkuNjc2eicKICAgICAgICAgIGZpbGw9JyM3QjgzRUInLz4KICAgIDxwYXRoIGQ9J00xMjQ0IDc3Ny41djgzOC4xNDVjLS4yNTggMzguNDM1LTIzLjU0OSA3Mi45NjQtNTkuMDkgODcuNTk4YTkxLjg1NiA5MS44NTYgMCAwMS0zNS43NjUgNy4yNTdINjY3LjYxM2MtNi43MzgtMTcuMTA1LTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODcgNjMxLjI4NyAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMScvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djg4OS45NzhhOTEuODAyIDkxLjgwMiAwIDAxLTcuMjU3IDM1Ljc2NWMtMTQuNjM0IDM1LjU0MS00OS4xNjMgNTguODMzLTg3LjU5OCA1OS4wOUg2OTEuOTc1Yy04LjgxMi0xNy4xMDUtMTcuMTA1LTM0LjIxLTI0LjM2Mi01MS44MzMtNy4yNTctMTcuNjIzLTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODIgNjMxLjI4MiAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1aC00NDcuODRBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExNDAuMzMzIDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1SDY0OS40NzJBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTEyNDQgNTA5LjUyMnYxNjMuMjc1Yy04LjgxMi41MTgtMTcuMTA1IDEuMDM3LTI1LjkxNyAxLjAzNy04LjgxMiAwLTE3LjEwNS0uNTE4LTI1LjkxNy0xLjAzN2EyODQuNDcyIDI4NC40NzIgMCAwMS01MS44MzMtOC4yOTNjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzYTI4OC4wMiAyODguMDIgMCAwMS0xNi41ODctNTEuODMzaDI1OC42NDhjNTIuMzA1LjE5OCA5NC42NTcgNDIuNTQ5IDk0Ljg1NiA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjEnLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTQwLjMzMyA1NjEuMzU1djEwMy4xNDhjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzaDEzOC4zOTVjNTIuMzA1LjE5OSA5NC42NTYgNDIuNTUxIDk0Ljg1NSA5NC44NTV6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDEgMCAwIC0xIDAgMjA3NS4zMzMpJyB5Mj0nMzk0LjI2MScgeDI9Jzk0Mi4yMzQnIHkxPScxNjgzLjA3MycgeDE9JzE5OC4wOTknCiAgICAgICAgICAgICAgICAgICAgZ3JhZGllbnRVbml0cz0ndXNlclNwYWNlT25Vc2UnIGlkPSdhJz4KICAgICAgICA8c3RvcCBvZmZzZXQ9JzAnIHN0b3AtY29sb3I9JyM1YTYyYzMnLz4KICAgICAgICA8c3RvcCBvZmZzZXQ9Jy41JyBzdG9wLWNvbG9yPScjNGQ1NWJkJy8+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScxJyBzdG9wLWNvbG9yPScjMzk0MGFiJy8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHBhdGggZD0nTTk1LjAxIDQ2Ni41aDk1MC4zMTJjNTIuNDczIDAgOTUuMDEgNDIuNTM4IDk1LjAxIDk1LjAxdjk1MC4zMTJjMCA1Mi40NzMtNDIuNTM4IDk1LjAxLTk1LjAxIDk1LjAxSDk1LjAxYy01Mi40NzMgMC05NS4wMS00Mi41MzgtOTUuMDEtOTUuMDFWNTYxLjUxYzAtNTIuNDcyIDQyLjUzOC05NS4wMSA5NS4wMS05NS4wMXonCiAgICAgICAgICBmaWxsPSd1cmwoI2EpJy8+CiAgICA8cGF0aCBkPSdNODIwLjIxMSA4MjguMTkzaC0xODkuOTd2NTE3LjI5N2gtMTIxLjAzVjgyOC4xOTNIMzIwLjEyM1Y3MjcuODQ0aDUwMC4wODh6JyBmaWxsPScjRkZGJy8+Cjwvc3ZnPg=="
