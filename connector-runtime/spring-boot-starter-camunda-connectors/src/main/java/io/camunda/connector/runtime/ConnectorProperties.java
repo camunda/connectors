@@ -43,8 +43,11 @@ public record ConnectorProperties(
    *     Does not apply to {@code multipart/form-data}: Spring's {@code DispatcherServlet} parses
    *     multipart bodies before the handler runs, so that traffic is bounded separately by {@code
    *     spring.servlet.multipart.max-file-size} / {@code max-request-size} instead.
-   * @param rateLimit Per-registered-webhook inbound rate limit for <b>non-multipart</b> requests,
-   *     enforced before the request body is read.
+   * @param rateLimit Per-registered-webhook inbound rate limit, enforced for every request that
+   *     reaches the webhook handler — including {@code multipart/form-data} once Spring has
+   *     finished parsing it. It is not applied any earlier than that: a multipart request within
+   *     the separate multipart size limits still consumes a permit, just after Spring's own
+   *     multipart body allocation for that request rather than before it.
    */
   public record Webhook(
       boolean enabled,
@@ -53,10 +56,11 @@ public record ConnectorProperties(
       RateLimit rateLimit) {}
 
   /**
-   * Per-registered-webhook inbound rate limit for <b>non-multipart</b> requests. Like {@link
-   * Webhook#maxRequestBodyBytes}, this does not apply to {@code multipart/form-data}: that traffic
-   * bypasses this check entirely, since Spring parses it before the handler (and this rate check)
-   * ever runs, and is bounded only by the separate multipart size limits.
+   * Per-registered-webhook inbound rate limit, enforced for every request that reaches the webhook
+   * handler. Unlike {@link Webhook#maxRequestBodyBytes}, {@code multipart/form-data} is <b>not</b>
+   * exempt from this: a multipart request that Spring successfully parses (within the separate
+   * {@code spring.servlet.multipart.*} limits) still reaches the handler and consumes a permit
+   * here, just after that parsing rather than before it.
    *
    * @param enabled Whether the rate limit is enforced. Default is {@code true}.
    * @param permitsPerSecond Maximum sustained requests per second allowed for a single registered
