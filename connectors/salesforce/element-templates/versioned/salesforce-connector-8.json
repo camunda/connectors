@@ -19,7 +19,7 @@
     "account"
   ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/",
-  "version" : 9,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -230,7 +230,7 @@
     {
       "id" : "apiVersion",
       "label" : "Salesforce API version",
-      "value" : "v67.0",
+      "value" : "v58.0",
       "constraints" : {
         "notEmpty" : true
       },
@@ -745,7 +745,7 @@
       "id" : "version",
       "label" : "Version",
       "description" : "Version of the element template",
-      "value" : "9",
+      "value" : "8",
       "group" : "connector",
       "binding" : {
         "key" : "elementTemplateVersion",
