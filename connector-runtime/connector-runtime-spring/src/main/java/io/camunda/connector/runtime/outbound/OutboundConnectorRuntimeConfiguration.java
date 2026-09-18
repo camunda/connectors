@@ -62,6 +62,7 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import java.net.URI;
@@ -365,9 +366,11 @@ public class OutboundConnectorRuntimeConfiguration {
    *       camunda.connector.broker.monitoring.port}.
    * </ul>
    *
-   * <p>This scalar bean monitors the brokers of a single {@code CamundaClient} (whichever is
-   * {@code @Primary} when several physical tenants are configured) and is kept for backward
-   * compatibility with runtimes injecting/overriding it directly. The {@code /outbound} endpoints
+   * <p>This scalar bean monitors the brokers of a single {@code CamundaClient} and is kept for
+   * backward compatibility with runtimes injecting/overriding it directly. Which one that is
+   * depends on how many are configured: the sole client, the one designated {@code
+   * camunda.clients.<name>.primary=true}, or — with several and none designated — the first, logged
+   * as a warning by {@link PhysicalTenantClients#defaultClient}. The {@code /outbound} endpoints
    * instead go through the per-physical-tenant map built by {@link
    * #buildBrokerJobStreamClientsByPhysicalTenantId}, which monitors every engine's brokers.
    */
