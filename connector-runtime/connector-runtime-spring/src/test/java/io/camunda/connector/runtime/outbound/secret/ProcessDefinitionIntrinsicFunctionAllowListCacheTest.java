@@ -339,6 +339,80 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aDeclarationIsNotGrantedWhenAnOpaqueSiblingArrayElementSharesItsPath() {
+    // Array elements never push a further path segment, so every element competes for the exact
+    // same bound path -- exactly like a conditional's branches. If one element is a literal
+    // declaring createLink and a sibling element is a bare reference, the runtime walk cannot tell
+    // which array index actually produced the value it finds there; the bare reference could, at
+    // runtime, independently evaluate to something matching the declared shape.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="=[{&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}, attackerValue]"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aDeclarationIsNotGrantedWhenAnOpaqueValueSharesItsPathInASiblingBranch() {
+    // A top-level-only "is this branch's own shape verifiable" check would wrongly pass both
+    // branches here (both are context literals), missing that "then"'s own "x" key holds an
+    // opaque, process-controlled reference at the exact path "else" declares createLink at. When
+    // "then" runs, the runtime value at target.x is whatever "payload" evaluates to -- which could,
+    // in principle, be crafted to match the shape "else" would have put there.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="=if flag then {x: payload} else {x: {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
   void aDeclarationWrappedInAFunctionCallContributesNoGrant() {
     // append([], {...}) demonstrates why this parser refuses to guess: naive comma/bracket
     // tracking would clear key state at the comma between append's own arguments and record the
