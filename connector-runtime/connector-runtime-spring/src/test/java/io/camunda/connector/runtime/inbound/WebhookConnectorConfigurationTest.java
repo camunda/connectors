@@ -146,6 +146,20 @@ class WebhookConnectorConfigurationTest {
   }
 
   @Test
+  void formContentFilterConflictCheckIgnoresDisabledFilterRegistrationBean() {
+    // Spring Boot never installs a disabled registration bean in the servlet container, so it
+    // poses no risk regardless of what filter it wraps.
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.setEnabled(false);
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
   void formContentFilterConflictCheckPassesWithNoFiltersAtAll() {
     // Matches spring.mvc.formcontent.filter.enabled=false: no FormContentFilter bean at all.
     var check = configuration.webhookFormContentFilterConflictCheck(List.of(), List.of());
@@ -176,6 +190,18 @@ class WebhookConnectorConfigurationTest {
     assertThatThrownBy(check::afterPropertiesSet)
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("HiddenHttpMethodFilter");
+  }
+
+  @Test
+  void hiddenHttpMethodFilterConflictCheckIgnoresDisabledFilterRegistrationBean() {
+    var registration = new FilterRegistrationBean<>(new HiddenHttpMethodFilter());
+    registration.setEnabled(false);
+    var check =
+        configuration.webhookHiddenHttpMethodFilterConflictCheck(
+            List.of(new WebhookExcludingHiddenHttpMethodFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
 
   @Test

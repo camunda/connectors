@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -90,6 +91,40 @@ class InboundWebhookRestControllerTest {
     controller.rateLimitPermitsPerSecond = Double.NaN;
 
     assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldFailFastOnRateLimitSlowerThanOnePermitPerIdleExpiry() {
+    // Regression test: a rate slower than one permit per RATE_LIMITER_IDLE_EXPIRY would let a
+    // webhook go idle long enough for its limiter entry to be reclaimed, then have the next
+    // request replace it with a fresh limiter that immediately grants a burst permit --
+    // repeatable indefinitely, exceeding the configured sustained rate.
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldAllowRateLimitOfExactlyOnePermitPerIdleExpiry() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds();
+
+    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
+  }
+
+  @Test
+  void shouldAllowSlowRateLimitWhenRateLimitingIsDisabled() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = false;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
+
+    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
   }
 
   @Test

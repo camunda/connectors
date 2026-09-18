@@ -106,6 +106,17 @@ public class InboundWebhookRestController {
   double rateLimitPermitsPerSecond = 1000;
 
   /**
+   * How long an idle {@link RateLimiter} entry survives in {@link #rateLimitersByExecutable} before
+   * being reclaimed. Also the bound {@link #validateWebhookConfig} enforces against {@link
+   * #rateLimitPermitsPerSecond}: a configured rate slower than one permit per this duration would
+   * let a webhook go idle long enough to be reclaimed, then have its very next request replaced
+   * with a fresh limiter that immediately grants a burst permit -- repeatable indefinitely,
+   * exceeding the configured sustained rate. Package-private so tests can reference it instead of
+   * duplicating the value.
+   */
+  static final Duration RATE_LIMITER_IDLE_EXPIRY = Duration.ofHours(1);
+
+  /**
    * Keyed by the resolved connector's {@link ExecutableId}, not by the raw request path, so an
    * unauthenticated caller can never add entries by probing paths. A redeployment mints a new
    * {@link ExecutableId} (it is derived from the deduplication id, which includes the
@@ -123,7 +134,7 @@ public class InboundWebhookRestController {
    * duration.
    */
   Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
-      CacheBuilder.newBuilder().expireAfterAccess(Duration.ofHours(1)).build();
+      CacheBuilder.newBuilder().expireAfterAccess(RATE_LIMITER_IDLE_EXPIRY).build();
 
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
@@ -143,6 +154,24 @@ public class InboundWebhookRestController {
           "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
               + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
               + rateLimitPermitsPerSecond);
+    }
+    if (rateLimitEnabled
+        && Double.isFinite(rateLimitPermitsPerSecond)
+        && rateLimitPermitsPerSecond > 0) {
+      double secondsPerPermit = 1.0 / rateLimitPermitsPerSecond;
+      if (secondsPerPermit > RATE_LIMITER_IDLE_EXPIRY.getSeconds()) {
+        throw new IllegalStateException(
+            "camunda.connector.webhook.rate-limit.permits-per-second is too low: at "
+                + rateLimitPermitsPerSecond
+                + " permits/second, accumulating one permit takes "
+                + secondsPerPermit
+                + "s, longer than the "
+                + RATE_LIMITER_IDLE_EXPIRY.getSeconds()
+                + "s a webhook's rate limiter survives while idle. A caller who waits out that"
+                + " idle window would get a fresh limiter that immediately grants a burst permit,"
+                + " repeatable indefinitely -- exceeding the configured sustained rate. Configure"
+                + " a higher rate or disable rate limiting.");
+      }
     }
   }
 

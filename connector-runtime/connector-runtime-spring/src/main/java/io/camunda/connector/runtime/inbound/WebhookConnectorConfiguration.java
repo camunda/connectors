@@ -120,6 +120,9 @@ public class WebhookConnectorConfiguration {
    * #webhookFormContentFilterConflictCheck}) therefore silently misses a {@code FormContentFilter}
    * registered this way -- so those must be unwrapped via {@code getFilter()} and included
    * explicitly.
+   *
+   * <p>A registration with {@code setEnabled(false)} is skipped: Spring Boot never installs it in
+   * the servlet container, so it poses no risk regardless of what it wraps.
    */
   private static List<Filter> allFiltersOfType(
       List<? extends Filter> directBeans,
@@ -127,8 +130,9 @@ public class WebhookConnectorConfiguration {
       Class<? extends Filter> type) {
     var result = new ArrayList<Filter>(directBeans);
     filterRegistrations.stream()
+        .filter(AbstractFilterRegistrationBean::isEnabled)
         .map(AbstractFilterRegistrationBean::getFilter)
-        .filter(type::isInstance)
+        .filter(filter -> type.isInstance(filter))
         .forEach(result::add);
     return result;
   }
