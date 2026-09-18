@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.client.api.response.ActivatedJob;
@@ -30,6 +31,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
@@ -180,6 +182,14 @@ class IntrinsicFunctionAllowListEndToEndTest {
 
   private JobHandlerContext contextFor(
       String modelXml, String variablesJson, IntrinsicFunctionAllowListMode mode) {
+    return contextFor(modelXml, variablesJson, mode, ConnectorsObjectMapperSupplier.getCopy());
+  }
+
+  private JobHandlerContext contextFor(
+      String modelXml,
+      String variablesJson,
+      IntrinsicFunctionAllowListMode mode,
+      ObjectMapper objectMapper) {
     var modelCache =
         new ProcessDefinitionModelCache(
             "tenant-a", clientReturningXml(modelXml), new ConcurrentMapCache("models"));
@@ -202,7 +212,7 @@ class IntrinsicFunctionAllowListEndToEndTest {
         mock(SecretProvider.class),
         mock(ValidationProvider.class),
         mock(DocumentFactory.class),
-        ConnectorsObjectMapperSupplier.getCopy(),
+        objectMapper,
         SecretFilter.allowAll(),
         allowList);
   }
@@ -224,17 +234,26 @@ class IntrinsicFunctionAllowListEndToEndTest {
   }
 
   @Test
-  void theGithubStyleDeclaredCallIsNotBlockedByTheGate() {
-    // The model declares base64 at "body". This mapper (ConnectorsObjectMapperSupplier.getCopy(),
-    // with no document module registered) never actually dispatches the call — proving that isn't
-    // this test's job; it proves the allow-list gate itself doesn't refuse a declared call before
-    // binding even reaches that point, unlike theWebhookExploitShapeIsRefused above.
-    String variablesJson = "{\"body\": \"placeholder\"}";
-    var context = contextFor(GITHUB_STYLE_MODEL_XML, variablesJson);
+  void theGithubStyleDeclaredCallIsNotBlockedByTheGateAndActuallyDispatches() {
+    // Unlike the other tests in this class, this one uses TestObjectMapperSupplier.INSTANCE — the
+    // same shape ConnectorsAutoConfiguration wires in production, with
+    // DefaultIntrinsicFunctionExecutor
+    // live — rather than a bare mapper with no document module at all. The model declares base64 at
+    // "body", and the job's own variables already carry the discriminator there (mirroring what
+    // Zeebe's own FEEL evaluation of the model's "={"camunda.function.type":"base64",...}" produces
+    // at runtime): this proves the full chain end to end, not just that the gate doesn't throw.
+    String variablesJson =
+        "{\"body\": {\"camunda.function.type\":\"base64\",\"params\":[\"Hello World\"]}}";
+    var context =
+        contextFor(
+            GITHUB_STYLE_MODEL_XML,
+            variablesJson,
+            IntrinsicFunctionAllowListMode.ENABLED,
+            TestObjectMapperSupplier.INSTANCE);
 
     var result = context.bindVariables(TargetType.class);
 
-    assertThat(result.body()).isEqualTo("placeholder");
+    assertThat(result.body()).isEqualTo("SGVsbG8gV29ybGQ=");
   }
 
   @Test

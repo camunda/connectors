@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.cache.Cache;
 
 /**
@@ -142,6 +143,17 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
    * <p>A source that does not fully parse this way (a syntax this scanner does not model appears on
    * the direct path to a discriminator, or the input is not a {@code "="}-prefixed FEEL expression
    * at all) contributes no declarations at all for that input, rather than a partial result.
+   *
+   * <p>A declaration is trustworthy only if nothing else that could occupy the exact same bound
+   * path is itself unverifiable. Whenever a conditional or list literal offers more than one way to
+   * reach a given path (its branches, or its elements -- an array never pushes a further path
+   * segment, so every element competes for the same path), every one of those alternatives is
+   * parsed into its own path-tagged set of "opaque" positions -- places this parser could not pin
+   * to a fixed shape -- before any of their declarations are trusted. A declaration is discarded if
+   * its own path is at or beneath any opaque position contributed by <em>any</em> sibling
+   * alternative, including a sibling of an sibling several levels up: an opaque value can evaluate
+   * to any JSON value at runtime, including one that happens to match a declaration nominally
+   * reachable through a completely different branch or element.
    */
   private static List<Declaration> findDeclarations(String rawSource) {
     if (rawSource == null) {
@@ -153,7 +165,8 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     }
     var parser = new FeelLiteralParser(trimmed.substring(1));
     List<Declaration> found = new ArrayList<>();
-    boolean ok = parser.parseValue(List.of(), found);
+    Set<List<String>> opaque = new HashSet<>();
+    boolean ok = parser.parseValue(List.of(), found, opaque);
     if (!ok || !parser.atEnd()) {
       return List.of();
     }
@@ -181,26 +194,47 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       return i >= n;
     }
 
-    boolean parseValue(List<String> path, List<Declaration> found) {
+    /**
+     * Parses the value at the current position into {@code path}-tagged declarations and opaque
+     * positions. A quoted string, a number, and {@code true}/{@code false}/{@code null} are
+     * immutable scalars -- always exactly what they say, regardless of any surrounding process data
+     * -- so parsing them never adds to {@code opaque}. Anything this parser has no further grammar
+     * for (a bare identifier, a function call, an operator expression) could evaluate to any JSON
+     * value at runtime, so {@code path} itself is recorded as opaque.
+     */
+    boolean parseValue(List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       char c = peek();
       if (c == '{') {
-        return parseContextLiteral(path, found);
+        return parseContextLiteral(path, found, opaque);
       }
       if (c == '[') {
-        return parseListLiteral(path, found);
+        return parseListLiteral(path, found, opaque);
+      }
+      if (c == '"') {
+        skipQuotedSpan();
+        return true;
+      }
+      if (c == '-' || Character.isDigit(c)) {
+        skipNumberLiteral();
+        return true;
+      }
+      if (tryConsumeKeyword("true") || tryConsumeKeyword("false") || tryConsumeKeyword("null")) {
+        return true;
       }
       if (matchesKeywordAt("if")) {
         i += 2;
-        return parseIfThenElse(path, found);
+        return parseIfThenElse(path, found, opaque);
       }
       if (matchesKeywordAt("for")) {
         i += 3;
-        return parseForReturn(path, found);
+        return parseForReturn(path, found, opaque);
       }
+      opaque.add(path);
       return skipOpaqueValue();
     }
 
-    private boolean parseContextLiteral(List<String> path, List<Declaration> found) {
+    private boolean parseContextLiteral(
+        List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       i++; // consume '{'
       if (tryConsumeChar('}')) {
         return true;
@@ -217,12 +251,16 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
           if (after == ',' || after == '}') {
             found.add(new Declaration(value, path));
           } else {
+            // Not an immediate, standalone literal (e.g. string concatenation) -- the object's own
+            // shape at this path is therefore not fixed either, since whatever this key's real
+            // computed value turns out to be is part of that shape.
             i = save;
+            opaque.add(path);
             if (!skipOpaqueValue()) {
               return false;
             }
           }
-        } else if (!parseValue(appendKey(path, key), found)) {
+        } else if (!parseValue(appendKey(path, key), found, opaque)) {
           return false;
         }
         if (tryConsumeChar(',')) {
@@ -235,101 +273,153 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       }
     }
 
-    private boolean parseListLiteral(List<String> path, List<Declaration> found) {
+    /**
+     * Every element shares the array's own path -- an array never pushes a further path segment,
+     * matching {@link IntrinsicFunctionUtil}'s walk -- so sibling elements are exactly as much in
+     * competition for that path as a conditional's branches are: each element is parsed into its
+     * own temporary (declarations, opaque) pair first, then a declaration from any element is kept
+     * only if no element's opaque set (its own, or any other element's) reaches at or beneath that
+     * declaration's path.
+     */
+    private boolean parseListLiteral(
+        List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       i++; // consume '['
       if (tryConsumeChar(']')) {
         return true;
       }
+      List<List<Declaration>> perElementFound = new ArrayList<>();
+      List<Set<List<String>>> perElementOpaque = new ArrayList<>();
       while (true) {
-        // Array elements share the array's own path -- an array never pushes a further segment,
-        // matching IntrinsicFunctionUtil's walk.
-        if (!parseValue(path, found)) {
+        List<Declaration> elementFound = new ArrayList<>();
+        Set<List<String>> elementOpaque = new HashSet<>();
+        if (!parseValue(path, elementFound, elementOpaque)) {
           return false;
         }
+        perElementFound.add(elementFound);
+        perElementOpaque.add(elementOpaque);
         if (tryConsumeChar(',')) {
           continue;
         }
         if (tryConsumeChar(']')) {
-          return true;
+          break;
         }
         return false;
       }
+      mergeSiblings(perElementFound, perElementOpaque, found, opaque);
+      return true;
     }
 
     /**
-     * A declaration in one branch of a conditional grants nothing unless <em>both</em> branches are
-     * themselves statically verifiable shapes -- a literal, a context/list literal, or another
-     * conditional recursively satisfying this same rule. If either branch is instead a bare
-     * variable reference, a function call, or any other expression this parser cannot pin to a
-     * fixed shape, that branch's real value at runtime could be anything -- including a value that
-     * happens to match the other branch's declared {@code (functionName, path)} shape. The shipped
-     * GitHub template hits exactly this: {@code if githubAuthType = "github_app" then
+     * A declaration in one branch of a conditional grants nothing unless every alternative that
+     * could occupy the same path -- the other branch included -- is itself free of any opaque
+     * position at or above that path. The shipped GitHub template is exactly this: {@code if
+     * githubAuthType = "github_app" then
      * {"camunda.function.type":"createGithubAppInstallationToken", ...} else githubPat} declares
      * the call in the {@code then} branch, but {@code githubPat} (bound from a separate, possibly
-     * process-controlled input) is not a verifiable shape, so neither branch's declarations are
-     * trusted -- discarding both, rather than granting one based on which branch merely happens to
-     * contain the literal text.
+     * process-controlled input) is opaque at the branch's own path, so the {@code then} branch's
+     * declaration -- reachable at that exact same path when the {@code else} branch runs instead --
+     * is not trusted either.
      */
-    private boolean parseIfThenElse(List<String> path, List<Declaration> found) {
+    private boolean parseIfThenElse(
+        List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       if (!skipUntilKeyword("then") || !tryConsumeKeyword("then")) {
         return false;
       }
-      boolean thenIsVerifiable = nextValueIsAVerifiableShape();
-      List<Declaration> thenDeclarations = new ArrayList<>();
-      if (!parseValue(path, thenDeclarations)) {
+      List<Declaration> thenFound = new ArrayList<>();
+      Set<List<String>> thenOpaque = new HashSet<>();
+      if (!parseValue(path, thenFound, thenOpaque)) {
         return false;
       }
       if (!tryConsumeKeyword("else")) {
         return false;
       }
-      boolean elseIsVerifiable = nextValueIsAVerifiableShape();
-      List<Declaration> elseDeclarations = new ArrayList<>();
-      if (!parseValue(path, elseDeclarations)) {
+      List<Declaration> elseFound = new ArrayList<>();
+      Set<List<String>> elseOpaque = new HashSet<>();
+      if (!parseValue(path, elseFound, elseOpaque)) {
         return false;
       }
-      if (thenIsVerifiable && elseIsVerifiable) {
-        found.addAll(thenDeclarations);
-        found.addAll(elseDeclarations);
-      }
+      mergeSiblings(List.of(thenFound, elseFound), List.of(thenOpaque, elseOpaque), found, opaque);
       return true;
     }
 
     /**
-     * Whether the value at the current position is one this parser can pin to a fixed shape: a
-     * context/list literal, a quoted string, a number, {@code true}/{@code false}/{@code null}, or
-     * another conditional or {@code for} loop (each recursively verified the same way when parsed).
-     * Anything else -- a bare identifier, a function call, an operator expression -- could evaluate
-     * to any JSON value at runtime.
+     * Combines declarations and opaque positions gathered independently from several mutually
+     * exclusive alternatives (a conditional's branches, or a list literal's elements): every
+     * alternative's opaque positions are unioned first, then a declaration from any alternative is
+     * added to {@code found} only if no unioned opaque position is a prefix of (at, or beneath)
+     * that declaration's own path -- and the unioned set is always propagated to {@code opaque}, so
+     * an enclosing conditional or list sees this whole construct's unverifiable positions too.
      */
-    private boolean nextValueIsAVerifiableShape() {
-      char c = peek();
-      return c == '{'
-          || c == '['
-          || c == '"'
-          || c == '-'
-          || Character.isDigit(c)
-          || matchesKeywordAt("if")
-          || matchesKeywordAt("for")
-          || matchesKeywordAt("true")
-          || matchesKeywordAt("false")
-          || matchesKeywordAt("null");
+    private static void mergeSiblings(
+        List<List<Declaration>> perAlternativeFound,
+        List<Set<List<String>>> perAlternativeOpaque,
+        List<Declaration> found,
+        Set<List<String>> opaque) {
+      Set<List<String>> allOpaque = new HashSet<>();
+      for (Set<List<String>> s : perAlternativeOpaque) {
+        allOpaque.addAll(s);
+      }
+      for (List<Declaration> alternativeFound : perAlternativeFound) {
+        for (Declaration d : alternativeFound) {
+          if (allOpaque.stream().noneMatch(op -> isPrefixOf(op, d.path()))) {
+            found.add(d);
+          }
+        }
+      }
+      opaque.addAll(allOpaque);
     }
 
-    private boolean parseForReturn(List<String> path, List<Declaration> found) {
+    private static boolean isPrefixOf(List<String> prefix, List<String> path) {
+      return prefix.size() <= path.size() && path.subList(0, prefix.size()).equals(prefix);
+    }
+
+    private boolean parseForReturn(
+        List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       // Everything between "for" and "return" (one or more "ident in <expr>" iterators,
       // comma-separated) is opaque to this parser; only the returned value matters, and it shares
       // the for-loop's own path -- a for-loop's result is a list, which never pushes a segment.
+      // There is only one return template applied to every iteration, so there is no sibling
+      // alternative to reconcile against here.
       if (!skipUntilKeyword("return") || !tryConsumeKeyword("return")) {
         return false;
       }
-      return parseValue(path, found);
+      return parseValue(path, found, opaque);
+    }
+
+    private void skipNumberLiteral() {
+      if (i < n && s.charAt(i) == '-') {
+        i++;
+      }
+      while (i < n && Character.isDigit(s.charAt(i))) {
+        i++;
+      }
+      if (i < n && s.charAt(i) == '.') {
+        i++;
+        while (i < n && Character.isDigit(s.charAt(i))) {
+          i++;
+        }
+      }
+      if (i < n && (s.charAt(i) == 'e' || s.charAt(i) == 'E')) {
+        int mark = i;
+        i++;
+        if (i < n && (s.charAt(i) == '+' || s.charAt(i) == '-')) {
+          i++;
+        }
+        if (i < n && Character.isDigit(s.charAt(i))) {
+          while (i < n && Character.isDigit(s.charAt(i))) {
+            i++;
+          }
+        } else {
+          i = mark;
+        }
+      }
     }
 
     /**
-     * Skips one value this parser does not otherwise recognize -- a number, boolean, null, string,
-     * bare variable reference, or arbitrary function-call/operator expression -- without recording
-     * anything from within it, stopping at the first unmatched {@code ,}/{@code then}/{@code else}
-     * or an unmatched closing {@code }}/{@code ]}/{@code )} at this value's own nesting depth.
+     * Skips one value this parser does not otherwise recognize -- a bare variable reference, or an
+     * arbitrary function-call/operator expression -- without recording anything from within it,
+     * stopping at the first unmatched {@code ,}/{@code then}/{@code else} or an unmatched closing
+     * {@code }}/{@code ]}/{@code )} at this value's own nesting depth.
      */
     private boolean skipOpaqueValue() {
       int depth = 0;
