@@ -452,6 +452,10 @@ public class ConnectorsAutoConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
+    // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
+    // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
+    // model actually declares remain in the tree. See security-testing-findings#275.
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     var jacksonModuleDocumentDeserializer =
