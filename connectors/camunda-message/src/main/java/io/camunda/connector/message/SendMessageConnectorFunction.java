@@ -20,6 +20,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.runtime.app.CamundaClientContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,17 +69,20 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOG = LoggerFactory.getLogger(SendMessageConnectorFunction.class);
 
-  CamundaClient camundaClient;
+  private final PhysicalTenantClientSelector clientSelector;
 
   public SendMessageConnectorFunction() {
     super();
-    this.camundaClient = CamundaClientContext.getCamundaClient();
+    this.clientSelector = CamundaClientContext.getPhysicalTenantClientSelector();
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
 
     SendMessageRequest messageRequest = context.bindVariables(SendMessageRequest.class);
+    // a message correlates only on the cluster the process instance lives on, which is the cluster
+    // this job was activated from
+    CamundaClient camundaClient = clientSelector.forJob(context.getJobContext());
     LOG.debug(
         "Invoke send message connector with name {} and correlation key {}",
         messageRequest.messageName(),
@@ -87,13 +91,13 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     switch (messageRequest.correlationType()) {
       case SendMessageRequest.CorrelationType.Publish publish -> {
         PublishMessageResponse publishMessageResponse =
-            publishMessageWithBuffer(messageRequest, publish);
+            publishMessageWithBuffer(camundaClient, messageRequest, publish);
         LOG.debug("message published with messageKey {}", publishMessageResponse.getMessageKey());
         return publishMessageResponse;
       }
       case SendMessageRequest.CorrelationType.CorrelateWithResult correlateWithResult -> {
         CorrelateMessageResponse correlateMessageResponse =
-            correlateMessageWithResponse(messageRequest);
+            correlateMessageWithResponse(camundaClient, messageRequest);
         LOG.debug(
             "message correlated with message key {} and process instance key {}",
             correlateMessageResponse.getMessageKey(),
@@ -104,7 +108,9 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
   }
 
   private PublishMessageResponse publishMessageWithBuffer(
-      SendMessageRequest messageRequest, SendMessageRequest.CorrelationType.Publish publish) {
+      CamundaClient camundaClient,
+      SendMessageRequest messageRequest,
+      SendMessageRequest.CorrelationType.Publish publish) {
     PublishMessageCommandStep3 publishMessageCommand;
     PublishMessageCommandStep2 step2 =
         camundaClient.newPublishMessageCommand().messageName(messageRequest.messageName());
@@ -133,7 +139,8 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     return publishMessageResponse;
   }
 
-  private CorrelateMessageResponse correlateMessageWithResponse(SendMessageRequest messageRequest) {
+  private CorrelateMessageResponse correlateMessageWithResponse(
+      CamundaClient camundaClient, SendMessageRequest messageRequest) {
     CorrelateMessageCommandStep2 correlateMessageCommand =
         camundaClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
     CorrelateMessageCommandStep3 correlateMessageCommandStep3;
