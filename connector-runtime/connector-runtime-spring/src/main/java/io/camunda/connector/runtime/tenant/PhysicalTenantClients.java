@@ -117,7 +117,8 @@ public final class PhysicalTenantClients {
    */
   static String readPhysicalTenantIdOrNull(CamundaClient client) {
     try {
-      return client.getConfiguration().getPhysicalTenantId();
+      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      return physicalTenantId == null || physicalTenantId.isBlank() ? null : physicalTenantId;
     } catch (RuntimeException e) {
       return null;
     }

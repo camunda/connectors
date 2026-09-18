@@ -66,7 +66,7 @@ class PhysicalTenantClientSelectorTest {
   }
 
   @Test
-  void failsForAJobWithoutAPhysicalTenantWhenSeveralClientsAreConfigured() {
+  void failsForAJobWithoutAPhysicalTenantWhenEveryConfiguredClientHasOne() {
     var selector =
         new PhysicalTenantClientSelector(
             clientProvider(
@@ -74,6 +74,52 @@ class PhysicalTenantClientSelectorTest {
 
     assertThatThrownBy(() -> selector.forJob(jobOfPhysicalTenant(null)))
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  /**
+   * A runtime can pair a cluster configured without a physical tenant with physical-tenant-scoped
+   * ones. Jobs from that first cluster carry no physical tenant either, so it needs a route of its
+   * own — handing them to one of the scoped clients would read and write on the wrong cluster.
+   */
+  @Test
+  void routesJobsWithoutAPhysicalTenantToTheClientConfiguredWithoutOne() {
+    var untenanted = clientWithPhysicalTenantId(null);
+    var tenantA = clientWithPhysicalTenantId("tenanta");
+    var selector = new PhysicalTenantClientSelector(clientProvider(untenanted, tenantA));
+
+    assertThat(selector.forJob(jobOfPhysicalTenant(null))).isSameAs(untenanted);
+    assertThat(selector.forJob(jobOfPhysicalTenant("tenanta"))).isSameAs(tenantA);
+  }
+
+  /**
+   * The single-client shortcut counts configured clients, not routable ones: a mixed topology whose
+   * untenanted client was not counted would enable it and send every job to the same cluster.
+   */
+  @Test
+  void doesNotServeASinglePhysicalTenantWhenOnlyOneOfSeveralClientsCarriesATenantId() {
+    var selector =
+        new PhysicalTenantClientSelector(
+            clientProvider(
+                clientWithPhysicalTenantId(null), clientWithPhysicalTenantId("tenanta")));
+
+    assertThat(selector.servesSinglePhysicalTenant()).isFalse();
+  }
+
+  @Test
+  void servesASinglePhysicalTenantWithOneConfiguredClient() {
+    var selector =
+        new PhysicalTenantClientSelector(clientProvider(clientWithPhysicalTenantId("tenanta")));
+
+    assertThat(selector.servesSinglePhysicalTenant()).isTrue();
+  }
+
+  @Test
+  void treatsABlankConfiguredPhysicalTenantIdAsAbsent() {
+    var blank = clientWithPhysicalTenantId("  ");
+    var tenantA = clientWithPhysicalTenantId("tenanta");
+    var selector = new PhysicalTenantClientSelector(clientProvider(blank, tenantA));
+
+    assertThat(selector.forJob(jobOfPhysicalTenant(null))).isSameAs(blank);
   }
 
   @Test
@@ -120,7 +166,7 @@ class PhysicalTenantClientSelectorTest {
   }
 
   @Test
-  void failsClearlyWhenSeveralClientsAreConfiguredWithoutAnyPhysicalTenantId() {
+  void failsClearlyWhenSeveralClientsAreConfiguredWithoutAPhysicalTenantId() {
     var selector =
         new PhysicalTenantClientSelector(
             clientProvider(clientWithPhysicalTenantId(null), clientWithPhysicalTenantId(null)));
@@ -128,6 +174,19 @@ class PhysicalTenantClientSelectorTest {
     assertThatThrownBy(() -> selector.forJob(jobOfPhysicalTenant("tenanta")))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("physical-tenant-id");
+  }
+
+  @Test
+  void namesTheConfiguredPhysicalTenantsWhenAJobsTenantIsUnknown() {
+    var selector =
+        new PhysicalTenantClientSelector(
+            clientProvider(
+                clientWithPhysicalTenantId(null), clientWithPhysicalTenantId("tenanta")));
+
+    assertThatThrownBy(() -> selector.forJob(jobOfPhysicalTenant("tenantc")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("tenanta")
+        .hasMessageContaining("without a physical tenant");
   }
 
   @Test

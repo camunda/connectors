@@ -36,9 +36,13 @@ import org.springframework.beans.factory.ObjectProvider;
  *
  * <p>Clients are keyed by their own configured {@code physical-tenant-id} rather than by their
  * {@code camunda.clients.<name>} bean name, because the configured ID is what the engine reports on
- * an activated job. A single configured client always wins regardless of the requested tenant: a
- * single-cluster runtime activates jobs that carry no physical tenant at all, and routing them to
- * the one client it has is the only sensible answer.
+ * an activated job. A client configured without one keeps an explicit route of its own, so jobs
+ * from its cluster — which carry no physical tenant either — reach it instead of being handed to
+ * some other tenant's client. Two such clients cannot be told apart and are rejected.
+ *
+ * <p>A lone configured client always wins, whatever the job reports: a single-cluster runtime
+ * activates jobs that carry no physical tenant at all, and routing them to the one client it has is
+ * the only sensible answer.
  *
  * <p>The mapping is built on first use rather than in the constructor, since some client test
  * doubles (e.g. the {@code camunda-process-test-spring} proxy) defer real initialization until the
@@ -46,13 +50,22 @@ import org.springframework.beans.factory.ObjectProvider;
  */
 public class PhysicalTenantClientSelector {
 
+  /**
+   * Route of a client configured without a physical tenant. Not a possible tenant ID of its own:
+   * both a job's and a client's blank physical tenant are normalized to {@code null} before they
+   * are keyed.
+   */
+  private static final String NO_PHYSICAL_TENANT = "";
+
   private final ObjectProvider<CamundaClient> camundaClientProvider;
 
-  private volatile Map<String, CamundaClient> clientsByPhysicalTenantId;
+  private volatile Clients clients;
 
   public PhysicalTenantClientSelector(ObjectProvider<CamundaClient> camundaClientProvider) {
     this.camundaClientProvider = camundaClientProvider;
   }
+
+  private record Clients(List<CamundaClient> candidates, Map<String, CamundaClient> byRoute) {}
 
   /** Selects the client for the physical tenant the given job was activated from. */
   public CamundaClient forJob(JobContext jobContext) {
@@ -64,80 +77,83 @@ public class PhysicalTenantClientSelector {
    * using an overridable single-client bean (an in-memory document store in tests, say) in that
    * case, and only build its own per-tenant instances when there is genuinely more than one cluster
    * to serve — mirroring how the runtime treats its own per-physical-tenant maps.
+   *
+   * <p>Counts configured clients, not resolvable routes: were it the latter, a topology whose
+   * clients do not all carry a physical tenant could enable the shortcut while still serving
+   * several clusters, and send every job to whichever one happens to be routable.
    */
   public boolean servesSinglePhysicalTenant() {
-    return clients().size() == 1;
+    return clients().candidates().size() == 1;
   }
 
   /**
-   * Selects the client configured for {@code physicalTenantId}, or the only configured client when
-   * there is just one.
+   * Selects the client configured for {@code physicalTenantId} — or the client configured without
+   * one when {@code physicalTenantId} is absent, or the only configured client when there is just
+   * one.
    *
    * @throws IllegalStateException when no client serves that physical tenant, rather than falling
    *     back to another tenant's client and silently reading or writing on the wrong cluster
    */
   public CamundaClient forPhysicalTenant(String physicalTenantId) {
-    var clients = clients();
-    if (clients.size() == 1) {
-      return clients.values().iterator().next();
+    var resolved = clients();
+    if (resolved.candidates().size() == 1) {
+      return resolved.candidates().getFirst();
     }
-    var client = physicalTenantId == null ? null : clients.get(physicalTenantId);
+    var client = resolved.byRoute().get(route(physicalTenantId));
     if (client == null) {
       throw new IllegalStateException(
           "No CamundaClient configured for physical tenant '"
               + physicalTenantId
               + "'; configured physical tenants: "
-              + new TreeSet<>(clients.keySet()));
+              + describeRoutes(resolved.byRoute().keySet()));
     }
     return client;
   }
 
-  private Map<String, CamundaClient> clients() {
-    var resolved = clientsByPhysicalTenantId;
+  private static String route(String physicalTenantId) {
+    return physicalTenantId == null || physicalTenantId.isBlank()
+        ? NO_PHYSICAL_TENANT
+        : physicalTenantId;
+  }
+
+  private static String describeRoutes(java.util.Set<String> routes) {
+    var named = new TreeSet<>(routes);
+    boolean hasUntenanted = named.remove(NO_PHYSICAL_TENANT);
+    return hasUntenanted ? named + " plus one client without a physical tenant" : named.toString();
+  }
+
+  private Clients clients() {
+    var resolved = clients;
     if (resolved == null) {
       synchronized (this) {
-        resolved = clientsByPhysicalTenantId;
+        resolved = clients;
         if (resolved == null) {
-          clientsByPhysicalTenantId = resolved = resolveClients();
+          clients = resolved = resolveClients();
         }
       }
     }
     return resolved;
   }
 
-  /**
-   * A client whose physical tenant ID cannot be read is kept only when it is the sole candidate:
-   * there it is reachable through the single-client rule above, whereas among several clients it
-   * could never be addressed by a job's physical tenant anyway.
-   */
-  private Map<String, CamundaClient> resolveClients() {
+  private Clients resolveClients() {
     List<CamundaClient> candidates = camundaClientProvider.orderedStream().toList();
     if (candidates.isEmpty()) {
       throw new IllegalStateException("No CamundaClient configured");
     }
-    Map<String, CamundaClient> byPhysicalTenantId = new LinkedHashMap<>();
+    Map<String, CamundaClient> byRoute = new LinkedHashMap<>();
     for (CamundaClient candidate : candidates) {
-      var physicalTenantId = PhysicalTenantClients.readPhysicalTenantIdOrNull(candidate);
-      if (physicalTenantId == null) {
-        if (candidates.size() == 1) {
-          byPhysicalTenantId.put("", candidate);
-        }
-        continue;
-      }
-      if (byPhysicalTenantId.putIfAbsent(physicalTenantId, candidate) != null) {
+      var route = route(PhysicalTenantClients.readPhysicalTenantIdOrNull(candidate));
+      if (byRoute.putIfAbsent(route, candidate) != null) {
         throw new IllegalStateException(
-            "Multiple CamundaClients resolve to the same physical tenant ID '"
-                + physicalTenantId
-                + "'; each configured client must have a unique physical-tenant-id");
+            NO_PHYSICAL_TENANT.equals(route)
+                ? "Several CamundaClients are configured without a physical-tenant-id, so the "
+                    + "cluster a job came from cannot be told apart; set "
+                    + "camunda.clients.<name>.physical-tenant-id on all but at most one of them"
+                : "Multiple CamundaClients resolve to the same physical tenant ID '"
+                    + route
+                    + "'; each configured client must have a unique physical-tenant-id");
       }
     }
-    if (byPhysicalTenantId.isEmpty()) {
-      throw new IllegalStateException(
-          "None of the "
-              + candidates.size()
-              + " configured CamundaClients has a physical-tenant-id; set "
-              + "camunda.clients.<name>.physical-tenant-id so jobs can be routed to their cluster");
-    }
-    return byPhysicalTenantId;
+    return new Clients(candidates, byRoute);
   }
 }
