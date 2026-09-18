@@ -32,7 +32,10 @@ import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFu
  * reach the BPMN-fetch endpoint (e.g. a self-managed deployment without it), not a way back to
  * unconditional dispatch. {@code ENABLED} (the default) always fails closed on a fetch/parse error
  * too, propagating the cache's exception to the caller — matching {@code SecretFilterMode.STRICT}'s
- * behavior with no lenient alternative offered.
+ * behavior with no lenient alternative offered. That fetch is deferred to the first {@code
+ * isAllowed} call via {@link LazyLoadingIntrinsicFunctionAllowList} rather than done eagerly here,
+ * so a job whose variables never contain an intrinsic-function call never pays for it — see that
+ * class's javadoc.
  */
 public class ConfigurableIntrinsicFunctionAllowListFactory
     implements IntrinsicFunctionAllowListFactory {
@@ -52,7 +55,8 @@ public class ConfigurableIntrinsicFunctionAllowListFactory
     return switch (mode) {
       case DISABLED -> IntrinsicFunctionAllowList.allowNone();
       case ENABLED ->
-          IntrinsicFunctionAllowList.allowOnly(allowListCache.getAllowedFunctions(context));
+          new LazyLoadingIntrinsicFunctionAllowList(
+              () -> allowListCache.getAllowedFunctions(context));
     };
   }
 
