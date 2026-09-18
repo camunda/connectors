@@ -40,11 +40,11 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SNS Inbound", type = "io.camunda:aws-sns-webhook:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.AWSSNS.inbound.v1",
     name = "SNS HTTPS Connector",
     icon = "icon.svg",
-    version = 7,
+    version = 8,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
     keywords = {
