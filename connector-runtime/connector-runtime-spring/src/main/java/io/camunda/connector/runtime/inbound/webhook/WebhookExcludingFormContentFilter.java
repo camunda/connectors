@@ -32,11 +32,12 @@ import org.springframework.web.util.UrlPathHelper;
  * so without this override, a request in that shape would be fully buffered regardless of the
  * target path being registered, bypassing every guard this fix adds.
  *
- * <p>Registering a bean of this type (in {@link WebhookConnectorConfiguration}) replaces Spring
- * Boot's own, since it is only auto-configured when no {@code FormContentFilter} bean already
- * exists. Skipping this filter for webhook paths is also correct independent of the security
- * concern: webhook connectors need the untouched raw body (e.g. for HMAC verification), the same
- * reason {@link InboundWebhookRestController} already avoids {@code getParameterMap()} for POST.
+ * <p>Registering a bean of this type (in {@link
+ * io.camunda.connector.runtime.inbound.WebhookConnectorConfiguration}) replaces Spring Boot's own,
+ * since it is only auto-configured when no {@code FormContentFilter} bean already exists. Skipping
+ * this filter for webhook paths is also correct independent of the security concern: webhook
+ * connectors need the untouched raw body (e.g. for HMAC verification), the same reason {@link
+ * InboundWebhookRestController} already avoids {@code getParameterMap()} for POST.
  *
  * <p>Implements {@link Ordered} directly (rather than extending Spring Boot's {@code
  * OrderedFormContentFilter}, which {@code spring-boot-servlet} isn't on this module's classpath
