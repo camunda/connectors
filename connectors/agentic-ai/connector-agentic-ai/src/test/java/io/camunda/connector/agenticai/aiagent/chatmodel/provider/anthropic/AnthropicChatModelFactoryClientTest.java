@@ -42,6 +42,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEn
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -51,6 +55,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +109,10 @@ class AnthropicChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -312,6 +321,7 @@ class AnthropicChatModelFactoryClientTest {
       AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
     final var factory =
         new AnthropicChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),

@@ -41,6 +41,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -49,6 +53,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +126,10 @@ class GeminiChatModelFactoryClientTest {
           + "\n\n";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @Test
   void hiddenEndpointOverrideRedirectsRequestAndKeepsApiKeyHeaderAndSseQueryParam(
@@ -181,6 +190,7 @@ class GeminiChatModelFactoryClientTest {
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, String endpoint) {
     final var factory =
         new GeminiChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new GeminiContentRequestConverter(new GeminiContentConverter(objectMapper)),
             new GeminiContentResponseConverter());
