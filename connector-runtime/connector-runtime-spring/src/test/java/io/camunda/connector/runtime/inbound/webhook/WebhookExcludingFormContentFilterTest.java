@@ -63,6 +63,16 @@ class WebhookExcludingFormContentFilterTest {
   }
 
   @Test
+  void shouldNotFilterWebhookPathWithExplicitRootServletMapping() throws Exception {
+    // Simulates spring.mvc.servlet.path=/ (an explicit, rather than default, root mapping):
+    // stripping a literal "/" prefix would remove the leading slash from every path, breaking
+    // the exclusion match ("/inbound/myPath" -> "inbound/myPath").
+    var filterUnderRootServletPath = new WebhookExcludingFormContentFilter("/");
+    assertThat(filterUnderRootServletPath.shouldNotFilter(putFormRequest("/inbound/myPath")))
+        .isTrue();
+  }
+
+  @Test
   void shouldStillFilterNonWebhookPathWithFormUrlEncodedPut() throws Exception {
     // Everywhere else in the app, ordinary FormContentFilter behavior must be unaffected: a
     // PUT/DELETE with a form-urlencoded body outside /inbound/** must still be parsed as before.

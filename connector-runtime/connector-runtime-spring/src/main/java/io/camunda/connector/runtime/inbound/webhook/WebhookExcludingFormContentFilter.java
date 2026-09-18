@@ -68,9 +68,14 @@ public class WebhookExcludingFormContentFilter extends FormContentFilter impleme
 
   /**
    * @param servletPath the configured {@code spring.mvc.servlet.path}, or {@code ""} if unset.
+   *     {@code "/"} (an explicit root mapping) is normalized to {@code ""}: {@code
+   *     getPathWithinApplication} already returns paths starting with {@code "/"}, so treating a
+   *     literal {@code "/"} as the prefix to strip would remove that leading slash from every path
+   *     (turning {@code "/inbound/foo"} into {@code "inbound/foo"}), breaking the exclusion match
+   *     below for this configuration.
    */
   public WebhookExcludingFormContentFilter(String servletPath) {
-    this.servletPath = servletPath == null ? "" : servletPath;
+    this.servletPath = (servletPath == null || servletPath.equals("/")) ? "" : servletPath;
   }
 
   @Override
