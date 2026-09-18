@@ -19,15 +19,27 @@ package io.camunda.connector.runtime.inbound;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.filter.FormContentFilter;
 
 @Configuration
 @Import(InboundWebhookRestController.class)
 public class WebhookConnectorConfiguration {
+
+  /**
+   * Replaces Spring Boot's auto-configured {@code FormContentFilter} (Spring Boot backs off once a
+   * bean of that type already exists) with one that skips {@code /inbound/**}. See {@link
+   * WebhookExcludingFormContentFilter} for why.
+   */
+  @Bean
+  public FormContentFilter formContentFilter() {
+    return new WebhookExcludingFormContentFilter();
+  }
 
   /**
    * When the property is unset, infers the flag from the configured client count: multiple {@code
