@@ -61,6 +61,7 @@ import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import java.net.URI;
@@ -229,6 +230,18 @@ public class OutboundConnectorRuntimeConfiguration {
         functionRegistrations(beanFactory),
         providerRegistrations(beanFactory),
         environment::getProperty);
+  }
+
+  /**
+   * Lets connectors that call the orchestration cluster while handling a job reach that job's own
+   * cluster instead of a single one picked at startup. Registered here rather than in a connector's
+   * own auto-configuration so every connector routes the same way.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public PhysicalTenantClientSelector physicalTenantClientSelector(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return new PhysicalTenantClientSelector(camundaClientProvider);
   }
 
   @Bean

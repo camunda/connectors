@@ -103,16 +103,23 @@ public final class PhysicalTenantClients {
     return client;
   }
 
-  /**
-   * Reads the client's configured physical tenant ID for logging, tolerating the case where its
-   * configuration cannot be read at all — some test doubles defer real initialization until a test
-   * container is ready and throw if queried during Spring context startup.
-   */
   private static String readPhysicalTenantIdIfAvailable(CamundaClient client) {
+    var physicalTenantId = readPhysicalTenantIdOrNull(client);
+    return physicalTenantId != null ? physicalTenantId : "unknown";
+  }
+
+  /**
+   * Reads the client's own configured physical tenant ID, tolerating the case where its
+   * configuration cannot be read at all — some test doubles defer real initialization until a test
+   * container is ready and throw if queried during Spring context startup. Returns {@code null}
+   * when the client has no physical tenant configured, matching {@code
+   * JobContext#getPhysicalTenantId()} for a job that carries none.
+   */
+  static String readPhysicalTenantIdOrNull(CamundaClient client) {
     try {
       return client.getConfiguration().getPhysicalTenantId();
     } catch (RuntimeException e) {
-      return "unknown";
+      return null;
     }
   }
 
