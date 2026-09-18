@@ -45,7 +45,7 @@ public class MessageProcessor {
                           .withMessage(
                               "No matching activation condition. Discarding unmatched email: "
                                   + message.id()));
-              yield ShouldPostprocess.NO;
+              yield ShouldPostprocess.YES;
             }
             context.log(
                 activity ->
@@ -55,7 +55,7 @@ public class MessageProcessor {
                         .withMessage(
                             "No matching activation condition. Not discarding unmatched email: "
                                 + message.id()));
-            yield ShouldPostprocess.YES;
+            yield ShouldPostprocess.NO;
           }
           case ActivationCheckResult.Failure.TooManyMatchingElements tooMany -> {
             context.log(
