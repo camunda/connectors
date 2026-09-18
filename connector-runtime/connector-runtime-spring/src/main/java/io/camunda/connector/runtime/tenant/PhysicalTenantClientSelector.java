@@ -60,6 +60,16 @@ public class PhysicalTenantClientSelector {
   }
 
   /**
+   * Whether exactly one client is configured, so every job resolves to it. Lets a collaborator keep
+   * using an overridable single-client bean (an in-memory document store in tests, say) in that
+   * case, and only build its own per-tenant instances when there is genuinely more than one cluster
+   * to serve — mirroring how the runtime treats its own per-physical-tenant maps.
+   */
+  public boolean servesSinglePhysicalTenant() {
+    return clients().size() == 1;
+  }
+
+  /**
    * Selects the client configured for {@code physicalTenantId}, or the only configured client when
    * there is just one.
    *

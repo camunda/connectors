@@ -6,29 +6,42 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.common.util.retry.ErrorClassifier;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import org.jspecify.annotations.Nullable;
 
 public class ProcessDefinitionClient {
   private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_XML_FETCH_ERROR =
       "AD_HOC_SUB_PROCESS_XML_FETCH_ERROR";
 
-  private final CamundaClient camundaClient;
+  private final PhysicalTenantClientSelector clientSelector;
   private final RetriesProperties retriesProperties;
 
-  public ProcessDefinitionClient(CamundaClient camundaClient, RetriesProperties retriesProperties) {
-    this.camundaClient = camundaClient;
+  public ProcessDefinitionClient(
+      PhysicalTenantClientSelector clientSelector, RetriesProperties retriesProperties) {
+    this.clientSelector = clientSelector;
     this.retriesProperties = retriesProperties;
   }
 
-  public String getProcessDefinitionXml(Long processDefinitionKey) {
+  /**
+   * Reads the definition XML from the cluster serving {@code physicalTenantId}. Definition keys are
+   * only unique within one cluster, so reading through any other one would resolve a different
+   * definition, or none at all.
+   */
+  public String getProcessDefinitionXml(
+      @Nullable String physicalTenantId, Long processDefinitionKey) {
     return CamundaApiRetry.execute(
-        () -> camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join(),
+        () ->
+            clientSelector
+                .forPhysicalTenant(physicalTenantId)
+                .newProcessDefinitionGetXmlRequest(processDefinitionKey)
+                .send()
+                .join(),
         ErrorClassifier.onAllExceptions(),
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),

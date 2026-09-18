@@ -6,12 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -69,6 +72,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigura
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -140,7 +144,39 @@ class CamundaAgentInstanceClientTest {
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
-            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper, toolMapper);
+            singleTenant(camundaClient),
+            RETRIES_CONFIGURATION,
+            recordedSleeps::add,
+            historyMapper,
+            toolMapper);
+  }
+
+  @Test
+  void createsTheAgentInstanceOnTheClusterTheJobWasActivatedFrom() {
+    final var tenantAClient = mock(CamundaClient.class);
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    final var executionContext = TestAgentExecutionContext.ofPhysicalTenant("tenanta");
+    when(selector.forJob(executionContext.jobContext())).thenReturn(tenantAClient);
+    when(tenantAClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
+    when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+        .thenReturn(createCommandStep2);
+    when(createCommandStep2.jobKey(JOB_KEY)).thenReturn(createCommandStep3);
+    when(createCommandStep3.jobLeaseToken(DEFAULT_LEASE_TOKEN)).thenReturn(createCommandStep4);
+    when(createCommandStep4.history(anyList())).thenReturn(createCommandStep5);
+    when(createCommandStep5.execute()).thenReturn(response);
+    when(response.getAgentInstanceKey()).thenReturn(AGENT_INSTANCE_KEY);
+
+    final var key =
+        new CamundaAgentInstanceClient(
+                selector,
+                RETRIES_CONFIGURATION,
+                recordedSleeps::add,
+                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceToolMapper(gatewayToolHandlers))
+            .create(executionContext);
+
+    assertThat(key.value()).isEqualTo(AGENT_INSTANCE_KEY);
+    verifyNoInteractions(camundaClient);
   }
 
   private void givenCreateCommand() {
@@ -1350,6 +1386,12 @@ class CamundaAgentInstanceClientTest {
 
     public static TestAgentExecutionContext withoutLeaseToken() {
       return new TestAgentExecutionContext(new LimitsConfiguration(10), null);
+    }
+
+    public static TestAgentExecutionContext ofPhysicalTenant(String physicalTenantId) {
+      var context = new TestAgentExecutionContext(new LimitsConfiguration(10));
+      context.jobContext.setPhysicalTenantId(physicalTenantId);
+      return context;
     }
 
     public static TestAgentExecutionContext withChatModel(ChatModelConfiguration chatModel) {

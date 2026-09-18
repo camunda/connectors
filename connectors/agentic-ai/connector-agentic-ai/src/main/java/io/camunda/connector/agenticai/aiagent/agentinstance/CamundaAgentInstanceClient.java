@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceLimits;
@@ -35,6 +34,7 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,19 +71,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
               + "instance with key '\\d+' with an agent instance, but it is already associated "
               + "with agent instance with key '(?<existingAgentInstanceKey>\\d+)'\\.");
 
-  private final CamundaClient camundaClient;
+  private final PhysicalTenantClientSelector clientSelector;
   private final RetriesProperties retriesProperties;
   private final Sleeper sleeper;
   private final AgentInstanceHistoryMapper historyMapper;
   private final AgentInstanceToolMapper toolMapper;
 
   public CamundaAgentInstanceClient(
-      CamundaClient camundaClient,
+      PhysicalTenantClientSelector clientSelector,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
       AgentInstanceHistoryMapper historyMapper,
       AgentInstanceToolMapper toolMapper) {
-    this.camundaClient = camundaClient;
+    this.clientSelector = clientSelector;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
     this.historyMapper = historyMapper;
@@ -112,7 +112,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().descriptiveProvider());
 
     final var command =
-        camundaClient
+        clientSelector
+            .forJob(jobContext)
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
             .jobKey(jobContext.getJobKey())
@@ -377,7 +378,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         historyItems.size());
     final JobContext jobContext = executionContext.jobContext();
     UpdateAgentInstanceCommandStep2 cmd =
-        camundaClient
+        clientSelector
+            .forJob(jobContext)
             .newUpdateAgentInstanceCommand(agentInstanceKey)
             .elementInstanceKey(jobContext.getElementInstanceKey());
 

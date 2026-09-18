@@ -49,7 +49,9 @@ public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
     final var request = context.bindVariables(AdHocToolsSchemaRequest.class);
     final var elements =
         toolElementsResolver.resolveToolElements(
-            context.getJobContext().getProcessDefinitionKey(), request.data().containerElementId());
+            context.getJobContext().getPhysicalTenantId(),
+            context.getJobContext().getProcessDefinitionKey(),
+            request.data().containerElementId());
 
     return toolsSchemaResolver.resolveAdHocToolsSchema(elements);
   }
