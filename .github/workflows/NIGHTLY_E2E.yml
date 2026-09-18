@@ -2,6 +2,12 @@ name: E2E test run
 
 on:
   workflow_dispatch:
+    inputs:
+      run-real-llm-cpt:
+        description: 'Run only the Anthropic Foundry real-provider CPT'
+        required: false
+        type: boolean
+        default: false
   schedule: # Run nightly
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
   pull_request:
@@ -18,11 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
     if: |
-      github.event_name != 'pull_request' ||
+      inputs.run-real-llm-cpt != true &&
+      (github.event_name != 'pull_request' ||
       (!startsWith(github.head_ref, 'fix/alwaysgreen-') &&
        github.event.pull_request.head.repo.fork == false &&
        ((github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
-        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests'))))
+        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests')))))
     outputs:
       branches: ${{ steps.set-branches.outputs.branches }}
     steps:
@@ -57,9 +64,10 @@ jobs:
   run-real-llm-cpt:
     name: Real LLM CPT
     if: |
-      github.event_name == 'pull_request' &&
+      (github.event_name == 'workflow_dispatch' && inputs.run-real-llm-cpt) ||
+      (github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.fork == false &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'real-llm-e2e'
+      github.event.label.name == 'real-llm-e2e')
     uses: ./.github/workflows/REAL_LLM_CPT.yml
     secrets: inherit
