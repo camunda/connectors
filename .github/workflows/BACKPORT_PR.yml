@@ -55,5 +55,6 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           experimental: >
             {
-              "detect_merge_method": true
+              "detect_merge_method": true,
+              "conflict_resolution": "draft_commit_conflicts"
             }
