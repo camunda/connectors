@@ -21,11 +21,14 @@ import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMethodFilter;
+import jakarta.servlet.Filter;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.web.servlet.AbstractFilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -71,19 +74,24 @@ public class WebhookConnectorConfiguration {
   }
 
   /**
-   * Fails startup with a clear error if some other {@code FormContentFilter} bean is also
-   * registered (e.g. a downstream application defining its own under a different bean name): that
+   * Fails startup with a clear error if some other {@code FormContentFilter} filter is also
+   * registered (e.g. a downstream application defining its own under a different bean name, or
+   * wrapping one in a {@code FilterRegistrationBean} instead of exposing it as a plain bean): that
    * filter has no reason to know about {@code /inbound/**} and would still fully buffer webhook
    * PUT/DELETE bodies before this fix's guards run, silently defeating it. Rather than fail open
    * (letting an unrelated filter quietly reintroduce the vulnerability) or fail closed on a
-   * bean-name collision only, this checks every {@code FormContentFilter} bean by type.
+   * bean-name collision only, this checks every {@code FormContentFilter}, by type, found either as
+   * a plain bean or wrapped in a registration bean.
    */
   @Bean
   InitializingBean webhookFormContentFilterConflictCheck(
-      List<FormContentFilter> formContentFilters) {
+      List<FormContentFilter> formContentFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
     return () ->
         checkNoConflictingFilter(
-            formContentFilters, WebhookExcludingFormContentFilter.class, "FormContentFilter");
+            allFiltersOfType(formContentFilters, filterRegistrations, FormContentFilter.class),
+            WebhookExcludingFormContentFilter.class,
+            "FormContentFilter");
   }
 
   /**
@@ -93,16 +101,40 @@ public class WebhookConnectorConfiguration {
    */
   @Bean
   InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
-      List<HiddenHttpMethodFilter> hiddenHttpMethodFilters) {
+      List<HiddenHttpMethodFilter> hiddenHttpMethodFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
     return () ->
         checkNoConflictingFilter(
-            hiddenHttpMethodFilters,
+            allFiltersOfType(
+                hiddenHttpMethodFilters, filterRegistrations, HiddenHttpMethodFilter.class),
             WebhookExcludingHiddenHttpMethodFilter.class,
             "HiddenHttpMethodFilter");
   }
 
+  /**
+   * {@code FilterRegistrationBean} (and its siblings, e.g. {@code
+   * DelegatingFilterProxyRegistrationBean}) registers a wrapped filter directly with the servlet
+   * container; the bean visible to Spring is the registration bean itself, of type {@code
+   * AbstractFilterRegistrationBean}, never the wrapped filter's own type. A {@code
+   * List<FormContentFilter>} injection point (as used by {@link
+   * #webhookFormContentFilterConflictCheck}) therefore silently misses a {@code FormContentFilter}
+   * registered this way -- so those must be unwrapped via {@code getFilter()} and included
+   * explicitly.
+   */
+  private static List<Filter> allFiltersOfType(
+      List<? extends Filter> directBeans,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations,
+      Class<? extends Filter> type) {
+    var result = new ArrayList<Filter>(directBeans);
+    filterRegistrations.stream()
+        .map(AbstractFilterRegistrationBean::getFilter)
+        .filter(type::isInstance)
+        .forEach(result::add);
+    return result;
+  }
+
   private static void checkNoConflictingFilter(
-      List<?> filters, Class<?> webhookAwareType, String filterName) {
+      List<Filter> filters, Class<?> webhookAwareType, String filterName) {
     var incompatible =
         filters.stream()
             .filter(f -> !webhookAwareType.isInstance(f))
@@ -112,7 +144,7 @@ public class WebhookConnectorConfiguration {
       throw new IllegalStateException(
           "Found "
               + filterName
-              + " bean(s) that are not "
+              + "(s) that are not "
               + webhookAwareType.getSimpleName()
               + ": "
               + incompatible

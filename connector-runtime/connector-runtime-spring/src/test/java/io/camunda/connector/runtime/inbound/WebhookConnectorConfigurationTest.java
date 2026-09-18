@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.web.servlet.AbstractFilterRegistrationBean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
 
@@ -101,7 +103,22 @@ class WebhookConnectorConfigurationTest {
   void formContentFilterConflictCheckFailsFastOnIncompatibleCustomFilter() {
     var check =
         configuration.webhookFormContentFilterConflictCheck(
-            List.of(new FormContentFilter(), new WebhookExcludingFormContentFilter("")));
+            List.of(new FormContentFilter(), new WebhookExcludingFormContentFilter("")), List.of());
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
+  }
+
+  @Test
+  void formContentFilterConflictCheckFailsFastOnIncompatibleFilterRegistrationBean() {
+    // The custom filter is never exposed as a plain FormContentFilter bean at all here -- only
+    // wrapped in a FilterRegistrationBean, which is how it would actually be registered.
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(
+                new FilterRegistrationBean<>(new FormContentFilter())));
 
     assertThatThrownBy(check::afterPropertiesSet)
         .isInstanceOf(IllegalStateException.class)
@@ -112,7 +129,18 @@ class WebhookConnectorConfigurationTest {
   void formContentFilterConflictCheckPassesWithOnlyTheWebhookExcludingFilter() {
     var check =
         configuration.webhookFormContentFilterConflictCheck(
-            List.of(new WebhookExcludingFormContentFilter("")));
+            List.of(new WebhookExcludingFormContentFilter("")), List.of());
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckIgnoresUnrelatedFilterRegistrationBeans() {
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(
+                new FilterRegistrationBean<>(new HiddenHttpMethodFilter())));
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
@@ -120,7 +148,7 @@ class WebhookConnectorConfigurationTest {
   @Test
   void formContentFilterConflictCheckPassesWithNoFiltersAtAll() {
     // Matches spring.mvc.formcontent.filter.enabled=false: no FormContentFilter bean at all.
-    var check = configuration.webhookFormContentFilterConflictCheck(List.of());
+    var check = configuration.webhookFormContentFilterConflictCheck(List.of(), List.of());
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
@@ -129,7 +157,21 @@ class WebhookConnectorConfigurationTest {
   void hiddenHttpMethodFilterConflictCheckFailsFastOnIncompatibleCustomFilter() {
     var check =
         configuration.webhookHiddenHttpMethodFilterConflictCheck(
-            List.of(new HiddenHttpMethodFilter(), new WebhookExcludingHiddenHttpMethodFilter("")));
+            List.of(new HiddenHttpMethodFilter(), new WebhookExcludingHiddenHttpMethodFilter("")),
+            List.of());
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("HiddenHttpMethodFilter");
+  }
+
+  @Test
+  void hiddenHttpMethodFilterConflictCheckFailsFastOnIncompatibleFilterRegistrationBean() {
+    var check =
+        configuration.webhookHiddenHttpMethodFilterConflictCheck(
+            List.of(new WebhookExcludingHiddenHttpMethodFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(
+                new FilterRegistrationBean<>(new HiddenHttpMethodFilter())));
 
     assertThatThrownBy(check::afterPropertiesSet)
         .isInstanceOf(IllegalStateException.class)
@@ -140,7 +182,7 @@ class WebhookConnectorConfigurationTest {
   void hiddenHttpMethodFilterConflictCheckPassesWithOnlyTheWebhookExcludingFilter() {
     var check =
         configuration.webhookHiddenHttpMethodFilterConflictCheck(
-            List.of(new WebhookExcludingHiddenHttpMethodFilter("")));
+            List.of(new WebhookExcludingHiddenHttpMethodFilter("")), List.of());
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
@@ -148,7 +190,7 @@ class WebhookConnectorConfigurationTest {
   @Test
   void hiddenHttpMethodFilterConflictCheckPassesWithNoFiltersAtAll() {
     // Matches the default spring.mvc.hiddenmethod.filter.enabled=false: no bean registered.
-    var check = configuration.webhookHiddenHttpMethodFilterConflictCheck(List.of());
+    var check = configuration.webhookHiddenHttpMethodFilterConflictCheck(List.of(), List.of());
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
