@@ -192,6 +192,20 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void resultVariableAllowsABenignStringValueThatHappensToMatchTheForbiddenLiteral() {
+    // security-testing-findings#275, T10: the literal appears only as a plain STRING VALUE here,
+    // never as an object key, so it can never reach the intrinsic-function executor (which only
+    // ever looks for the discriminator as a key). The previous substring-over-serialized-JSON
+    // check flagged this anyway, rejecting an entirely benign HTTP response body.
+    Object responseContent = Map.of("message", "camunda.function.type");
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(responseContent, "hookResult", null, null);
+
+    assertThat(result).containsEntry("hookResult", responseContent);
+  }
+
+  @Test
   void resultVariableAllowsADocumentReferenceWithoutTreatingItAsForbidden() {
     // A plain document reference must not be mistaken for the forbidden intrinsic-function
     // literal — only IntrinsicFunctionModel.DISCRIMINATOR_KEY is blocked, not document references.
