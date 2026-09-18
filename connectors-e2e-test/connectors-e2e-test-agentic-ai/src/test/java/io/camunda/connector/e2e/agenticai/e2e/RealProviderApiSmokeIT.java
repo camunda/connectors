@@ -494,7 +494,7 @@ class RealProviderApiSmokeIT {
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
             anthropicFoundryV2(
-                "claude-sonnet-5",
+                envOrDefault("ANTHROPIC_FOUNDRY_MODEL", "claude-sonnet-4-6"),
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),

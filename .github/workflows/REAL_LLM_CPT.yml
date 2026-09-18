@@ -1,0 +1,84 @@
+name: Real LLM CPT
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  anthropic-foundry:
+    name: Anthropic Foundry API-key CPT
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'real-llm-e2e'))
+    runs-on: gcp-core-8-default
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25.0.4+101.0.LTS'
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Import Maven and Foundry credentials
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTIC_AI_AZURE_FOUNDRY_ENDPOINT | ANTHROPIC_FOUNDRY_ENDPOINT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTIC_AI_AZURE_FOUNDRY_API_KEY | ANTHROPIC_FOUNDRY_API_KEY;
+
+      - name: Run Anthropic Foundry real-provider CPT
+        env:
+          CI_NEXUS_USR: ${{ steps.secrets.outputs.CI_NEXUS_USR }}
+          CI_NEXUS_PSW: ${{ steps.secrets.outputs.CI_NEXUS_PSW }}
+          RUN_NATIVE_LLM_E2E: true
+          ANTHROPIC_FOUNDRY_ENDPOINT: ${{ steps.secrets.outputs.ANTHROPIC_FOUNDRY_ENDPOINT }}
+          ANTHROPIC_FOUNDRY_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_FOUNDRY_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          settings_file="$RUNNER_TEMP/settings.xml"
+          trap 'rm -f "$settings_file"' EXIT
+          cat > "$settings_file" <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>camunda-nexus</id>
+                <username>${CI_NEXUS_USR}</username>
+                <password>${CI_NEXUS_PSW}</password>
+              </server>
+            </servers>
+            <mirrors>
+              <mirror>
+                <id>camunda-nexus</id>
+                <url>https://repository.nexus.camunda.cloud/content/groups/internal/</url>
+                <mirrorOf>*,!confluent,!shibboleth</mirrorOf>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
+          ./mvnw --batch-mode --settings "$settings_file" \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -am \
+            -Dtest=RealProviderApiSmokeIT#toolCallLoopSurfacesPlantedFact \
+            -Dsurefire.failIfNoSpecifiedTests=false test
