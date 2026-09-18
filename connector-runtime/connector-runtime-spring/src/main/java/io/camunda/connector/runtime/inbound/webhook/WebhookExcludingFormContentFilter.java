@@ -20,6 +20,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.FormContentFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 /**
  * Spring Boot registers a {@code FormContentFilter} by default (unless {@code
@@ -49,6 +50,14 @@ public class WebhookExcludingFormContentFilter extends FormContentFilter impleme
   /** Matches {@code OrderedFormContentFilter.DEFAULT_ORDER} in spring-boot-servlet. */
   private static final int ORDER = -9900;
 
+  /**
+   * Resolves the path relative to the application (stripping any servlet context path) the same way
+   * Spring's own {@code HandlerMapping} infrastructure does — a raw {@code request.getRequestURI()}
+   * check would miss webhook requests entirely under a non-root {@code
+   * server.servlet.context-path}, since it includes that prefix.
+   */
+  private static final UrlPathHelper URL_PATH_HELPER = new UrlPathHelper();
+
   @Override
   public int getOrder() {
     return ORDER;
@@ -56,7 +65,7 @@ public class WebhookExcludingFormContentFilter extends FormContentFilter impleme
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-    return request.getRequestURI().startsWith(WEBHOOK_PATH_PREFIX)
+    return URL_PATH_HELPER.getPathWithinApplication(request).startsWith(WEBHOOK_PATH_PREFIX)
         || super.shouldNotFilter(request);
   }
 }

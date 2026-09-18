@@ -22,6 +22,7 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -35,8 +36,17 @@ public class WebhookConnectorConfiguration {
    * Replaces Spring Boot's auto-configured {@code FormContentFilter} (Spring Boot backs off once a
    * bean of that type already exists) with one that skips {@code /inbound/**}. See {@link
    * WebhookExcludingFormContentFilter} for why.
+   *
+   * <p>Gated by the same property Spring Boot's own auto-configured filter is, so an operator who
+   * explicitly disabled form-content parsing entirely ({@code
+   * spring.mvc.formcontent.filter.enabled=false}) keeps that setting effective instead of this bean
+   * reinstalling the filter (just narrower) for every non-webhook endpoint.
    */
   @Bean
+  @ConditionalOnProperty(
+      name = "spring.mvc.formcontent.filter.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
   public FormContentFilter formContentFilter() {
     return new WebhookExcludingFormContentFilter();
   }
