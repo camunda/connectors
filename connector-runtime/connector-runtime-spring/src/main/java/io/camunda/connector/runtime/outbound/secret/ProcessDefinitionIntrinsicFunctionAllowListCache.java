@@ -256,17 +256,63 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       }
     }
 
+    /**
+     * A declaration in one branch of a conditional grants nothing unless <em>both</em> branches are
+     * themselves statically verifiable shapes -- a literal, a context/list literal, or another
+     * conditional recursively satisfying this same rule. If either branch is instead a bare
+     * variable reference, a function call, or any other expression this parser cannot pin to a
+     * fixed shape, that branch's real value at runtime could be anything -- including a value that
+     * happens to match the other branch's declared {@code (functionName, path)} shape. The shipped
+     * GitHub template hits exactly this: {@code if githubAuthType = "github_app" then
+     * {"camunda.function.type":"createGithubAppInstallationToken", ...} else githubPat} declares
+     * the call in the {@code then} branch, but {@code githubPat} (bound from a separate, possibly
+     * process-controlled input) is not a verifiable shape, so neither branch's declarations are
+     * trusted -- discarding both, rather than granting one based on which branch merely happens to
+     * contain the literal text.
+     */
     private boolean parseIfThenElse(List<String> path, List<Declaration> found) {
       if (!skipUntilKeyword("then") || !tryConsumeKeyword("then")) {
         return false;
       }
-      if (!parseValue(path, found)) {
+      boolean thenIsVerifiable = nextValueIsAVerifiableShape();
+      List<Declaration> thenDeclarations = new ArrayList<>();
+      if (!parseValue(path, thenDeclarations)) {
         return false;
       }
       if (!tryConsumeKeyword("else")) {
         return false;
       }
-      return parseValue(path, found);
+      boolean elseIsVerifiable = nextValueIsAVerifiableShape();
+      List<Declaration> elseDeclarations = new ArrayList<>();
+      if (!parseValue(path, elseDeclarations)) {
+        return false;
+      }
+      if (thenIsVerifiable && elseIsVerifiable) {
+        found.addAll(thenDeclarations);
+        found.addAll(elseDeclarations);
+      }
+      return true;
+    }
+
+    /**
+     * Whether the value at the current position is one this parser can pin to a fixed shape: a
+     * context/list literal, a quoted string, a number, {@code true}/{@code false}/{@code null}, or
+     * another conditional or {@code for} loop (each recursively verified the same way when parsed).
+     * Anything else -- a bare identifier, a function call, an operator expression -- could evaluate
+     * to any JSON value at runtime.
+     */
+    private boolean nextValueIsAVerifiableShape() {
+      char c = peek();
+      return c == '{'
+          || c == '['
+          || c == '"'
+          || c == '-'
+          || Character.isDigit(c)
+          || matchesKeywordAt("if")
+          || matchesKeywordAt("for")
+          || matchesKeywordAt("true")
+          || matchesKeywordAt("false")
+          || matchesKeywordAt("null");
     }
 
     private boolean parseForReturn(List<String> path, List<Declaration> found) {
