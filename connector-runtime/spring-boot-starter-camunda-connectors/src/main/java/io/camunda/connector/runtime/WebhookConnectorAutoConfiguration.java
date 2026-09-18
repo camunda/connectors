@@ -23,12 +23,17 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 @AutoConfiguration
-@AutoConfigureBefore(InboundConnectorsAutoConfiguration.class)
+// Also before WebMvcAutoConfiguration: WebhookConnectorConfiguration's formContentFilter bean
+// (see its javadoc) must be registered before WebMvcAutoConfiguration's own
+// @ConditionalOnMissingBean(FormContentFilter.class)-gated one evaluates, or the two collide by
+// bean name instead of Spring Boot correctly backing off its own.
+@AutoConfigureBefore({InboundConnectorsAutoConfiguration.class, WebMvcAutoConfiguration.class})
 @ConditionalOnProperty(
     prefix = "camunda.connector.webhook",
     name = "enabled",
