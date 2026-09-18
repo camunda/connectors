@@ -15,7 +15,7 @@
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
   },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
-  "version": 6,
+  "version": 5,
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -72,7 +72,7 @@
       "label": "Allow to receive messages from topic(s)",
       "description": "Control which topic(s) is allowed to start a process",
       "optional": false,
-      "value": "specific",
+      "value": "any",
       "group": "subscription",
       "binding": {
         "name": "inbound.securitySubscriptionAllowedFor",
@@ -94,10 +94,7 @@
       "id": "inbound.topicsAllowList",
       "label": "Topic ARN(s)",
       "description": "Topics that allow to publish messages",
-      "optional": false,
-      "constraints": {
-        "notEmpty": true
-      },
+      "optional": true,
       "feel": "optional",
       "group": "subscription",
       "binding": {

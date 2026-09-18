@@ -35,14 +35,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SNS Inbound", type = "io.camunda:aws-sns-webhook:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.AWSSNS.inbound.v1",
     name = "SNS HTTPS Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 8,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
     keywords = {
@@ -78,6 +80,7 @@ import java.util.Optional;
           templateNameOverride = "SNS HTTPS Receive Task Connector")
     })
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
+  private static final Logger LOG = LoggerFactory.getLogger(SnsWebhookExecutable.class);
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";
 
   private final ObjectMapper objectMapper;
@@ -141,15 +144,32 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         Map.of("snsEventType", "Notification"));
   }
 
+  // A null securitySubscriptionAllowedFor (hand-authored BPMN, or a diagram built on an older
+  // template) is treated the same as "specific": only an explicit "any" skips the allow list.
   private void checkMessageAllowListed(String topicArn) throws Exception {
-    if (SubscriptionAllowListFlag.specific.equals(props.securitySubscriptionAllowedFor())
+    if (!SubscriptionAllowListFlag.any.equals(props.securitySubscriptionAllowedFor())
         && !props.topicsAllowListParsed().contains(topicArn)) {
+      // The first call site passes the caller-controlled header, before signature verification,
+      // so this value is not yet trustworthy: strip CR/LF before it reaches any log line (log
+      // injection, CWE-117). context is only @NotBlank-validated (no CR/LF restriction) and is
+      // sanitized here too, for the same reason.
+      String sanitizedTopicArn = sanitizeForLog(topicArn);
+      String sanitizedContext = sanitizeForLog(props.context());
+      // Deliberately omits the allow-list contents and any request payload in both the log and
+      // the exception message below (InboundWebhookRestController logs the exception message
+      // into the connector's activity log): operators get enough to see the attempt (subscription
+      // id, rejected topic) without this becoming a config or data leak.
+      LOG.error(
+          "Rejected SNS message for subscription '{}': topic '{}' is not allow-listed",
+          sanitizedContext,
+          sanitizedTopicArn);
       throw new Exception(
-          "Request didn't match allow list. Allow list: "
-              + props.topicsAllowListParsed()
-              + ". Request coming from "
-              + topicArn);
+          "Request didn't match allow list. Request coming from " + sanitizedTopicArn);
     }
+  }
+
+  private static String sanitizeForLog(String value) {
+    return value == null ? null : value.replaceAll("[\r\n]", "_");
   }
 
   @Override
@@ -180,7 +200,9 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         || topicArnParts[3].isBlank()
         || topicArnParts[4].isBlank()
         || topicArnParts[5].isBlank()) {
-      throw new Exception("Invalid SNS topic ARN header: " + topicArn);
+      // This runs unconditionally, in every mode including "any", before checkMessageAllowListed
+      // has a chance to reject anything - sanitize here too (log injection, CWE-117).
+      throw new Exception("Invalid SNS topic ARN header: " + sanitizeForLog(topicArn));
     }
     return topicArnParts[3];
   }
