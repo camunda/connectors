@@ -204,7 +204,15 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     if (!ok || !parser.atEnd()) {
       return List.of();
     }
-    return found;
+    // FEEL permits duplicate context keys, evaluated in order with the later entry overriding the
+    // earlier one -- e.g. {x: {"camunda.function.type":"createLink",...}, x: attackerValue}. A
+    // straight-line parse (unlike a conditional's branches or a list's elements) records both the
+    // earlier declaration and the later opaque marking directly into these same shared `found` and
+    // `opaque` sets, with no equivalent of mergeSiblings to reconcile them against each other
+    // afterward. This final filter is that reconciliation, applied once over the whole parse.
+    return found.stream()
+        .filter(d -> opaque.stream().noneMatch(op -> FeelLiteralParser.isPrefixOf(op, d.path())))
+        .toList();
   }
 
   /**
