@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -53,7 +54,7 @@ import org.camunda.feel.api.FeelEngineBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
-import org.springframework.cache.concurrent.ConcurrentMapCache;
+import org.springframework.cache.caffeine.CaffeineCache;
 
 public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSecretKeyCache.class);
@@ -96,7 +97,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    *     {@code ConcurrentMapCache}, which most cache implementations delegate to) rejects that as a
    *     recursive update. Production wiring ({@code OutboundConnectorRuntimeConfiguration}) always
    *     passes a separately-built {@link ProcessDefinitionModelCache}; this convenience overload is
-   *     the one path that needs its own.
+   *     the one path that needs its own — bounded the same way {@code
+   *     OutboundConnectorRuntimeConfiguration#bpmnModelCacheStore} bounds the production one
+   *     (default max size 1000), rather than a raw, never-evicting {@code ConcurrentMapCache}: this
+   *     public constructor is still reachable from a long-running deployment wired outside this
+   *     module's own Spring configuration, e.g. a caller still compiled against the original
+   *     single-tenant shape.
    */
   public ProcessDefinitionSecretKeyCache(
       String physicalTenantId, CamundaClient camundaClient, Cache cache) {
@@ -105,7 +111,8 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         new ProcessDefinitionModelCache(
             physicalTenantId,
             camundaClient,
-            new ConcurrentMapCache("bpmnModel-" + physicalTenantId)),
+            new CaffeineCache(
+                "bpmnModel-" + physicalTenantId, Caffeine.newBuilder().maximumSize(1000).build())),
         cache);
   }
 
