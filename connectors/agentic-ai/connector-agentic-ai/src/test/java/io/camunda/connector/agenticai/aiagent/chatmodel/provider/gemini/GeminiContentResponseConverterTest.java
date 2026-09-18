@@ -24,6 +24,8 @@ import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.GenerateContentResponsePromptFeedback;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import com.google.genai.types.Part;
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -32,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -41,6 +44,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 
 /**
  * Response objects are real SDK types built through their AutoValue builders (same approach as
@@ -55,6 +59,8 @@ class GeminiContentResponseConverterTest {
       Base64.getEncoder().encodeToString(THOUGHT_SIGNATURE);
 
   private final GeminiContentResponseConverter converter = new GeminiContentResponseConverter();
+  private final AgentInstanceHistoryMapper historyMapper =
+      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   // ---------------------------------------------------------------------------------------------
   // content mapping
@@ -404,14 +410,41 @@ class GeminiContentResponseConverterTest {
                 EXECUTION_TIME)
             .assistantMessage();
 
-    assertThat(assistantMessage.content())
-        .containsExactly(
-            new ReasoningContent(
-                GOOGLE_GEMINI_ID,
-                Map.of("thought", true),
-                "Let me think it through",
-                Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64)),
-            TextContent.textContent("the answer"));
+    assertThat(assistantMessage.content()).hasSize(2);
+    assertThat(assistantMessage.content().get(0))
+        .isInstanceOfSatisfying(
+            ReasoningContent.class,
+            reasoning -> {
+              assertThat(reasoning.provider()).isEqualTo(GOOGLE_GEMINI_ID);
+              assertThat(reasoning.text()).isEqualTo("Let me think it through");
+              assertThat(reasoning.metadata())
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64);
+              assertThat(reasoning.payload())
+                  .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                  .containsEntry("thought", true)
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE);
+            });
+    assertThat(assistantMessage.content().get(1)).isEqualTo(TextContent.textContent("the answer"));
+
+    assertThat(historyMapper.assistantContent(assistantMessage))
+        .satisfiesExactly(
+            item ->
+                assertThat(item)
+                    .isInstanceOfSatisfying(
+                        AgentInstanceHistoryContent.ObjectContent.class,
+                        object ->
+                            assertThat(object.getObject())
+                                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                                .containsEntry("camunda.agenticai.content.type", "reasoning")
+                                .containsEntry("text", "Let me think it through")
+                                .extractingByKey(
+                                    "payload", org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                                .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE)),
+            item ->
+                assertThat(item)
+                    .isInstanceOfSatisfying(
+                        AgentInstanceHistoryContent.TextContent.class,
+                        text -> assertThat(text.getText()).isEqualTo("the answer")));
   }
 
   @Test
@@ -447,17 +480,33 @@ class GeminiContentResponseConverterTest {
     final var thoughtPart =
         Part.builder().thought(true).thoughtSignature(THOUGHT_SIGNATURE).build();
 
-    assertThat(
-            converter
-                .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
-                .assistantMessage()
-                .content())
-        .containsExactly(
-            new ReasoningContent(
-                GOOGLE_GEMINI_ID,
-                Map.of("thought", true),
-                null,
-                Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64)));
+    final var assistantMessage =
+        converter
+            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
+            .assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ReasoningContent.class,
+            reasoning -> {
+              assertThat(reasoning.text()).isNull();
+              assertThat(reasoning.payload())
+                  .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                  .containsEntry("thought", true)
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE);
+            });
+
+    assertThat(historyMapper.assistantContent(assistantMessage).getFirst())
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                    .doesNotContainKey("text")
+                    .containsEntry("camunda.agenticai.content.type", "reasoning")
+                    .extractingByKey("payload", org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                    .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE));
   }
 
   @Test

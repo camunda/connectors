@@ -153,18 +153,33 @@ public class GeminiContentConverter {
     if (rc.text() != null) {
       builder.text(rc.text());
     }
-    final byte @Nullable [] signature = thoughtSignature(rc.metadata());
+    final byte @Nullable [] signature = thoughtSignature(rc);
     if (signature != null) {
       builder.thoughtSignature(signature);
     }
     return builder.build();
   }
 
+  private byte @Nullable [] thoughtSignature(ReasoningContent reasoningContent) {
+    final Object payloadValue =
+        reasoningContent.payload() instanceof Map<?, ?> map
+            ? map.get(THOUGHT_SIGNATURE_METADATA_KEY)
+            : null;
+    // Keep the metadata fallback so Gemini accepts the next request after process instance
+    // migration.
+    return payloadValue != null
+        ? decodeThoughtSignature(payloadValue)
+        : thoughtSignature(reasoningContent.metadata());
+  }
+
   private byte @Nullable [] thoughtSignature(@Nullable Map<String, Object> metadata) {
     if (metadata == null) {
       return null;
     }
-    final Object value = metadata.get(THOUGHT_SIGNATURE_METADATA_KEY);
+    return decodeThoughtSignature(metadata.get(THOUGHT_SIGNATURE_METADATA_KEY));
+  }
+
+  private byte @Nullable [] decodeThoughtSignature(@Nullable Object value) {
     if (value == null) {
       return null;
     }

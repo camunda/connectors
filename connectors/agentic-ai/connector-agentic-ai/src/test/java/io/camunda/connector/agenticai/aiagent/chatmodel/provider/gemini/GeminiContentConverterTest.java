@@ -164,7 +164,7 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsReasoningContentToThoughtPartWithSignatureRoundTrip() {
+    void replaysThoughtSignatureFromLegacyMetadataAfterProcessInstanceMigration() {
       final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
       final var metadata =
           Map.<String, Object>of(
@@ -184,6 +184,28 @@ class GeminiContentConverterTest {
       assertThat(part.thought()).contains(true);
       assertThat(part.text()).contains("Let me think it through");
       assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
+    }
+
+    @Test
+    void replaysThoughtSignatureFromPersistedReasoningPayload() {
+      final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
+      final var payload =
+          Map.<String, Object>of(
+              "thought",
+              true,
+              "thoughtSignature",
+              Base64.getEncoder().encodeToString(signatureBytes));
+
+      final var parts =
+          converter.toParts(
+              List.of(
+                  new ReasoningContent(
+                      GOOGLE_GEMINI_ID, payload, "Let me think it through", null)));
+
+      assertThat(parts)
+          .singleElement()
+          .satisfies(
+              part -> assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(signatureBytes));
     }
 
     @Test
