@@ -53,3 +53,13 @@ jobs:
     with:
       branch: ${{ matrix.branch }}
     secrets: inherit
+
+  run-real-llm-cpt:
+    name: Real LLM CPT
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'real-llm-e2e'
+    uses: ./.github/workflows/REAL_LLM_CPT.yml
+    secrets: inherit

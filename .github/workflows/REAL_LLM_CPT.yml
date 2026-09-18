@@ -1,6 +1,7 @@
 name: Real LLM CPT
 
 on:
+  workflow_call:
   workflow_dispatch:
   pull_request:
     types: [labeled, synchronize, reopened]
@@ -13,6 +14,7 @@ jobs:
     name: Anthropic Foundry API-key CPT
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.labels.*.name, 'real-llm-e2e'))
     runs-on: gcp-core-8-default
