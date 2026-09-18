@@ -7,6 +7,45 @@ and how to add a provider at all live in
 [`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
+## Reusable model credentials
+
+AI Agent v2 template version 2 offers optional reusable credentials for native model connections,
+including the hybrid templates. Empty choosers expose inline authentication and connection fields,
+so users can configure models in c8run without a credential-creation UI.
+Provider, backend, API family, model, and request options remain local to the
+task. New templates default to OpenAI, Responses, and a custom endpoint. Custom provider beans and
+conversation-memory connections are not part of this credential support.
+
+`AgenticAiCredentialConfigurations` declares seven schemas: Anthropic API, OpenAI API, Microsoft
+Foundry, AI Gateway, Bedrock API key, Google Gemini API, and Vertex AI. Bedrock IAM instead reuses
+the shared `AwsCredentialConfiguration`. `AwsAuthentication` selects between the IAM and
+Bedrock API-key credential families; each exposes exactly one chooser. The existing authentication
+component type is retained for constructor and accessor compatibility.
+
+The provider configuration accessors prefer the selected credential over inline fallback fields.
+Gateway endpoints and Bedrock endpoints/regions can be overridden locally; a Bedrock region is
+required from either the credential or the task. The AI Gateway credential contains an endpoint
+and an authentication selector for API key or OAuth 2.0 client credentials, and works with either
+the Anthropic or OpenAI protocol. It reuses `OpenAiCustomEndpointAuthentication` for the two shared
+authentication options: Anthropic adapts the API-key variant to its protocol-specific type and
+uses `OAuthClientCredentialsAuthentication` unchanged. The existing factories and shared token
+resolver handle token acquisition and caching. The same OAuth fields are exposed inline when the
+gateway chooser is empty; Anthropic also exposes its no-auth option inline.
+Custom backend constructors select the effective authentication before cascading validation, so
+obsolete inline defaults cannot invalidate a selected credential and inline OAuth still receives
+its normal field validation.
+
+The previous v2 template version is archived unchanged; deploying old templates does not require
+credentials. See [ADR-0008](../../../../docs/adr/ADR-0008-ai-agent-v2-reusable-credentials.md) for
+the optional-credential UI decision.
+
+Endpoint and Bedrock region fields have mutually exclusive template-only variants for required
+inline input and optional overrides, all bound to the existing `endpoint` or `region` input.
+Their `@JsonIgnore` components are not separate runtime values. Bedrock region conditions include
+the active authentication family so an inactive family's leftover credential cannot hide the region
+field. Constructor overloads retain the pre-existing signatures when record components are reordered
+or added for template generation.
+
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
@@ -61,8 +100,10 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
-backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
-(static credentials, API key, or the default credentials chain) and an optional custom endpoint.
+backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`,
+and an optional custom endpoint. The authentication resolves a shared AWS IAM credential or a
+Bedrock API-key credential, while retaining static credentials, API keys, and the default
+credentials chain from older inline jobs.
 
 ### HTTP overrides
 

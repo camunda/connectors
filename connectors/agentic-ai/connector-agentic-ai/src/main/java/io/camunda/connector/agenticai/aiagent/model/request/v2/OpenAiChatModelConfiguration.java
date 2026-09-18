@@ -19,11 +19,18 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AiGatewayCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.MicrosoftFoundryCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.OpenAiApiCredential;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -33,6 +40,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = OpenAiChatModelConfiguration.OPENAI_ID, label = "OpenAI")
@@ -238,7 +246,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       label = "Backend",
       group = "provider",
       name = "type",
-      defaultValue = OPENAI_API_ID,
+      defaultValue = CUSTOM_ID,
       description = "Specify how the OpenAI API is reached.")
   public sealed interface OpenAiBackend {
 
@@ -265,31 +273,40 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record OpenAiApiConnection(
-          @NotBlank
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "OpenAI API key",
-                  type = TemplateProperty.PropertyType.String,
+                  label = "OpenAI API credential",
+                  type = PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip =
+                      "Choose a reusable OpenAI API credential, or configure connection and authentication below.")
+              @Valid
+              @Nullable OpenAiApiCredential credential,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  secret = true,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @TemplateProperty(
                   group = "provider",
                   label = "Organization ID",
-                  description =
-                      "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
-                  type = TemplateProperty.PropertyType.String,
+                  optional = true,
                   feel = FeelMode.optional,
-                  optional = true)
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable String organizationId,
           @TemplateProperty(
                   group = "provider",
                   label = "Project ID",
-                  description =
-                      "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
-                  type = TemplateProperty.PropertyType.String,
+                  optional = true,
                   feel = FeelMode.optional,
-                  optional = true)
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
               @Nullable String projectId,
           @HttpUrl
               @TemplateProperty(
@@ -324,6 +341,44 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
+
+        public OpenAiApiConnection(
+            String apiKey,
+            @Nullable String organizationId,
+            @Nullable String projectId,
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties) {
+          this(
+              null,
+              apiKey,
+              organizationId,
+              projectId,
+              endpoint,
+              headers,
+              queryParameters,
+              bodyProperties);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "An OpenAI API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          return apiKey() != null && !apiKey().isBlank();
+        }
+
+        public @Nullable String apiKey() {
+          return credential != null ? credential.apiKey() : apiKey;
+        }
+
+        public @Nullable String organizationId() {
+          return credential != null ? credential.organizationId() : organizationId;
+        }
+
+        public @Nullable String projectId() {
+          return credential != null ? credential.projectId() : projectId;
+        }
 
         @Override
         public String toString() {
@@ -362,20 +417,30 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record FoundryBackend(
-          @NotBlank
-              @HttpUrl
-              @TemplateProperty(
+          @TemplateProperty(
                   group = "provider",
-                  label = "API endpoint",
-                  description = "Base URL of the Microsoft Foundry / Azure OpenAI resource.",
+                  label = "Microsoft Foundry credential",
+                  type = PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
                   tooltip =
-                      "The full resource endpoint, e.g. <code>https://your-resource.openai.azure.com</code> "
-                          + "or a Foundry endpoint such as <code>https://your-resource.services.ai.azure.com</code>.",
-                  type = TemplateProperty.PropertyType.String,
+                      "Choose a reusable Microsoft Foundry credential, or configure connection and authentication below.")
+              @Valid
+              @Nullable MicrosoftFoundryCredential credential,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Resource endpoint",
                   feel = FeelMode.optional,
-                  placeholder = "https://your-resource.openai.azure.com",
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String endpoint,
+                  constraints =
+                      @TemplateProperty.PropertyConstraints(
+                          notEmpty = true,
+                          pattern =
+                              @TemplateProperty.Pattern(
+                                  value = "^https?://.+",
+                                  message = "Must be an HTTP or HTTPS URL")),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String endpoint,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "API version",
@@ -387,7 +452,10 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable String apiVersion,
-          @Valid @NotNull FoundryAuthentication authentication,
+          @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable FoundryAuthentication authentication,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "HTTP headers",
@@ -413,6 +481,83 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
+
+        public FoundryBackend(
+            String endpoint,
+            @Nullable String apiVersion,
+            FoundryAuthentication authentication,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties) {
+          this(
+              null, endpoint, apiVersion, authentication, headers, queryParameters, bodyProperties);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message =
+                "A Microsoft Foundry endpoint is required from the credential or element template")
+        public boolean isEndpointPresent() {
+          String effectiveEndpoint = credential != null ? credential.endpoint() : endpoint;
+          return effectiveEndpoint != null && !effectiveEndpoint.isBlank();
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message =
+                "Microsoft Foundry authentication is required from the credential or element template")
+        public boolean isAuthenticationPresent() {
+          return credential != null ? credential.authentication() != null : authentication != null;
+        }
+
+        public String endpoint() {
+          return Objects.requireNonNull(credential != null ? credential.endpoint() : endpoint);
+        }
+
+        public FoundryAuthentication authentication() {
+          return Objects.requireNonNull(
+              credential != null ? credential.authentication() : authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "Microsoft Foundry authentication fields must not be blank")
+        public boolean isAuthenticationValid() {
+          FoundryAuthentication effectiveAuthentication =
+              credential != null ? credential.authentication() : authentication;
+          if (effectiveAuthentication == null) {
+            return false;
+          }
+          return switch (effectiveAuthentication) {
+            case FoundryAuthentication.ApiKeyAuthentication apiKey ->
+                apiKey.apiKey() != null && !apiKey.apiKey().isBlank();
+            case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
+                clientCredentials.clientId() != null
+                    && !clientCredentials.clientId().isBlank()
+                    && clientCredentials.clientSecret() != null
+                    && !clientCredentials.clientSecret().isBlank()
+                    && clientCredentials.tenantId() != null
+                    && !clientCredentials.tenantId().isBlank();
+            case FoundryAuthentication.ManagedIdentityAuthentication ignored -> true;
+          };
+        }
+
+        @JsonIgnore
+        @AssertFalse(message = "Managed identity authentication is not supported on SaaS")
+        public boolean isManagedIdentityUsedInSaaS() {
+          return ConnectorUtils.isSaaS()
+              && (credential != null ? credential.authentication() : authentication)
+                  instanceof FoundryAuthentication.ManagedIdentityAuthentication;
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "Must be an HTTP or HTTPS URL")
+        public boolean isEndpointHttpUrl() {
+          String effectiveEndpoint = credential != null ? credential.endpoint() : endpoint;
+          return effectiveEndpoint == null
+              || effectiveEndpoint.isBlank()
+              || effectiveEndpoint.matches("^https?://.+");
+        }
 
         @Override
         public String toString() {
@@ -457,6 +602,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               @TemplateProperty(
                   group = "provider",
                   label = "API key",
+                  secret = true,
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -484,6 +630,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               @TemplateProperty(
                   group = "provider",
                   label = "Client secret",
+                  secret = true,
                   description = "Microsoft Entra ID application client secret.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
@@ -590,18 +737,46 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record CustomBackend(
-          @NotBlank
-              @HttpUrl
-              @TemplateProperty(
+          @TemplateProperty(
+                  group = "provider",
+                  label = "AI Gateway credential",
+                  type = PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "credential"),
+                  tooltip =
+                      "Choose a reusable AI Gateway credential, or configure connection and authentication below.")
+              @Valid
+              @Nullable AiGatewayCredential credential,
+          @TemplateProperty(
                   group = "provider",
                   label = "API endpoint",
-                  description =
-                      "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+                  tooltip =
+                      "The gateway endpoint. <code>/chat/completions</code> or <code>/responses</code> is appended depending on the selected API.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.openai.com/v1",
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String endpoint,
+                  constraints =
+                      @TemplateProperty.PropertyConstraints(
+                          notEmpty = true,
+                          pattern =
+                              @TemplateProperty.Pattern(
+                                  value = "^https?://.+",
+                                  message = "Must be an HTTP or HTTPS URL")),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable String endpoint,
+          @JsonIgnore
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint override",
+                  feel = FeelMode.optional,
+                  tooltip =
+                      "Overrides the reusable credential's gateway endpoint. The selected API path is appended automatically.",
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.FALSE))
+              @Nullable String endpointOverride,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "Headers",
@@ -624,7 +799,73 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @Valid @NotNull OpenAiCustomEndpointAuthentication authentication) {
+          @Valid
+              @NestedProperties(
+                  condition =
+                      @PropertyCondition(property = "credential", isEmpty = NullableBoolean.TRUE))
+              @Nullable OpenAiCustomEndpointAuthentication authentication) {
+
+        public CustomBackend {
+          if (credential != null) {
+            authentication = credential.authentication();
+          }
+        }
+
+        public CustomBackend(
+            @Nullable AiGatewayCredential credential,
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties,
+            @Nullable OpenAiCustomEndpointAuthentication authentication) {
+          this(
+              credential, endpoint, null, headers, queryParameters, bodyProperties, authentication);
+        }
+
+        public CustomBackend(
+            String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties,
+            OpenAiCustomEndpointAuthentication authentication) {
+          this(null, endpoint, headers, queryParameters, bodyProperties, authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message = "An AI Gateway endpoint is required from the credential or element template")
+        public boolean isEndpointPresent() {
+          String effectiveEndpoint =
+              endpoint != null && !endpoint.isBlank()
+                  ? endpoint
+                  : credential != null ? credential.endpoint() : null;
+          return effectiveEndpoint != null && !effectiveEndpoint.isBlank();
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+            message =
+                "AI Gateway authentication is required from the credential or element template")
+        public boolean isAuthenticationPresent() {
+          return credential != null || authentication != null;
+        }
+
+        public String endpoint() {
+          return Objects.requireNonNull(
+              endpoint != null && !endpoint.isBlank()
+                  ? endpoint
+                  : credential != null ? credential.endpoint() : endpoint);
+        }
+
+        public OpenAiCustomEndpointAuthentication authentication() {
+          return Objects.requireNonNull(authentication);
+        }
+
+        @JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "Must be an HTTP or HTTPS URL")
+        public boolean isEndpointHttpUrl() {
+          return !isEndpointPresent() || endpoint().matches("^https?://.+");
+        }
 
         @Override
         public String toString() {

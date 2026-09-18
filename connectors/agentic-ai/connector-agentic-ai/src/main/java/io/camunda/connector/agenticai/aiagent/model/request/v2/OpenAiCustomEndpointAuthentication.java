@@ -53,6 +53,7 @@ public sealed interface OpenAiCustomEndpointAuthentication
           @TemplateProperty(
               group = "provider",
               label = "API key",
+              secret = true,
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

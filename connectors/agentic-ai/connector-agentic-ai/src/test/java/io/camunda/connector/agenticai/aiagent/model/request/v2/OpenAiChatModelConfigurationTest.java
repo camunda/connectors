@@ -78,8 +78,11 @@ class OpenAiChatModelConfigurationTest {
     assertThat(violations)
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.openai.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.openai.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "An OpenAI API key is required from the credential or element template");
             });
   }
 
@@ -91,7 +94,7 @@ class OpenAiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.endpoint");
+                  .isEqualTo("openai.backend.custom.endpointHttpUrl");
               assertThat(v.getMessage()).isEqualTo("Must be an HTTP or HTTPS URL");
             });
   }
@@ -113,8 +116,10 @@ class OpenAiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("openai.backend.custom.endpointPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "An AI Gateway endpoint is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
@@ -553,14 +558,17 @@ class OpenAiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.foundry.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("openai.backend.foundry.endpointPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Microsoft Foundry endpoint is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.foundry.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("openai.backend.foundry.authenticationValid");
+              assertThat(v.getMessage())
+                  .isEqualTo("Microsoft Foundry authentication fields must not be blank");
             });
   }
 

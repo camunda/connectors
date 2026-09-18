@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.BasicCredentials;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
@@ -31,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AgenticAiCredentialConfigurations.AiGatewayCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -45,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCreden
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -58,6 +61,9 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Exercises {@link AnthropicChatModelFactory}'s {@code custom}-backend and proxy wiring through its
@@ -174,8 +180,17 @@ class AnthropicChatModelFactoryClientTest {
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
   }
 
-  @Test
-  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+  @ParameterizedTest
+  @CsvSource({
+    "false, BASIC_AUTH_HEADER",
+    "false, CREDENTIALS_BODY",
+    "true, BASIC_AUTH_HEADER",
+    "true, CREDENTIALS_BODY"
+  })
+  void customBackendResolvesOAuthClientCredentialsBearerToken(
+      boolean reusable,
+      OAuthClientCredentialsAuthentication.ClientAuthenticationMethod clientAuthentication,
+      WireMockRuntimeInfo wireMock) {
     stubFor(
         post(urlPathEqualTo("/oauth/token"))
             .willReturn(
@@ -190,44 +205,84 @@ class AnthropicChatModelFactoryClientTest {
                         }
                         """)));
 
+    var authentication =
+        new OAuthClientCredentialsAuthentication(
+            wireMock.getHttpBaseUrl() + "/oauth/token",
+            "client-123",
+            "secret-123",
+            "https://gateway.example",
+            clientAuthentication,
+            "inference");
     executeAgainst(
         new AnthropicCustomBackend(
             new AnthropicCustomBackend.CustomBackend(
-                wireMock.getHttpBaseUrl(),
+                reusable ? null : authentication,
+                reusable
+                    ? new AiGatewayCredential(wireMock.getHttpBaseUrl(), authentication)
+                    : null,
+                reusable ? null : wireMock.getHttpBaseUrl(),
                 null,
                 null,
-                null,
-                new OAuthClientCredentialsAuthentication(
-                    wireMock.getHttpBaseUrl() + "/oauth/token",
-                    "client-123",
-                    "secret-123",
-                    null,
-                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
-                        .BASIC_AUTH_HEADER,
-                    null))));
+                null)));
 
+    var tokenRequest =
+        postRequestedFor(urlPathEqualTo("/oauth/token"))
+            .withFormParam("grant_type", equalTo("client_credentials"))
+            .withFormParam("audience", equalTo("https://gateway.example"))
+            .withFormParam("scope", equalTo("inference"));
+    switch (clientAuthentication) {
+      case BASIC_AUTH_HEADER ->
+          tokenRequest.withBasicAuth(new BasicCredentials("client-123", "secret-123"));
+      case CREDENTIALS_BODY ->
+          tokenRequest
+              .withFormParam("client_id", equalTo("client-123"))
+              .withFormParam("client_secret", equalTo("secret-123"));
+    }
+    verify(1, tokenRequest);
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
             .withHeader("Authorization", equalTo("Bearer oauth-access-token"))
             .withoutHeader("x-api-key"));
   }
 
-  @Test
-  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"credentials","accessKey":"AKIAEXAMPLE","secretKey":"secretExampleKey"}
+        """,
+        """
+        {"type":"awsIam","awsCredential":{"authentication":{"type":"credentials","accessKey":"AKIAEXAMPLE","secretKey":"secretExampleKey"}}}
+        """
+      })
+  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(
+      String authentication, WireMockRuntimeInfo wireMock) throws Exception {
     executeAgainstBedrock(
         wireMock,
-        new AwsAuthentication.AwsStaticCredentialsAuthentication(
-            "AKIAEXAMPLE", "secretExampleKey"));
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authentication, AwsAuthentication.class));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
-            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/.*")));
   }
 
-  @Test
-  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        """
+        {"type":"apiKey","apiKey":"bedrock-secret-key"}
+        """,
+        """
+        {"type":"bedrockApiKey","bedrockApiKeyCredential":{"apiKey":"bedrock-secret-key","region":"eu-central-1"}}
+        """
+      })
+  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(
+      String authentication, WireMockRuntimeInfo wireMock) throws Exception {
     executeAgainstBedrock(
-        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+        wireMock,
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(authentication, AwsAuthentication.class));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))

@@ -16,6 +16,13 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -38,6 +45,9 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * E2E coverage for HTTP transport timeouts on all chat model providers that we configure HTTP
@@ -117,11 +127,20 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   @Nested
   class OpenAiTests {
 
-    @Test
-    void processCompletesWhenResponseArrivesWithinSocketTimeout() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void processCompletesWhenResponseArrivesWithinSocketTimeout(boolean inline) {
       OpenAiCompletionsChatModelStubs.stubConversation(
           Turn.text(AGENT_RESPONSE_TEXT, 10, 20).withRequestDelay(RESPONSE_DELAY_BELOW_TIMEOUT));
-      runPositiveCase(openAiProvider());
+      runPositiveCase(
+          openAiProvider()
+              .andThen(
+                  template ->
+                      inline
+                          ? template
+                              .property("provider.openai.backend.openai.credential", "")
+                              .property("provider.openai.backend.openai.apiKey", "dummy")
+                          : template));
     }
 
     @Test
@@ -135,16 +154,99 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   @Nested
   class BedrockTest {
 
-    @Test
-    void processCompletesWhenResponseArrivesWithinSocketTimeout() {
+    @ParameterizedTest
+    @ValueSource(strings = {"credential", "inline-iam", "inline-api-key"})
+    void processCompletesWhenResponseArrivesWithinSocketTimeout(String source) {
       stubBedrock(RESPONSE_DELAY_BELOW_TIMEOUT);
-      runPositiveCase(bedrockProvider());
+      runPositiveCase(
+          bedrockProvider()
+              .andThen(
+                  template ->
+                      switch (source) {
+                        case "inline-iam" ->
+                            template
+                                .property("provider.bedrock.authentication.awsCredential", "")
+                                .property(
+                                    "provider.bedrock.authentication.inlineAuthentication.type",
+                                    "credentials")
+                                .property(
+                                    "provider.bedrock.authentication.inlineAuthentication.accessKey",
+                                    "dummy")
+                                .property(
+                                    "provider.bedrock.authentication.inlineAuthentication.secretKey",
+                                    "dummy")
+                                .property("provider.bedrock.region", "us-east-1");
+                        case "inline-api-key" ->
+                            template
+                                .property("provider.bedrock.authentication.type", "bedrockApiKey")
+                                .property("provider.bedrock.authentication.apiKey", "dummy")
+                                .property("provider.bedrock.apiKeyRegion", "us-east-1");
+                        case "credential" -> template;
+                        default ->
+                            throw new IllegalArgumentException(
+                                "Unknown authentication source: " + source);
+                      }));
     }
 
     @Test
     void raisesIncidentWhenResponseExceedsSocketTimeout() {
       stubBedrock(RESPONSE_DELAY_ABOVE_TIMEOUT);
       runNegativeCase(bedrockProvider());
+    }
+  }
+
+  @Nested
+  class CompatibleEndpointTests {
+
+    @ParameterizedTest
+    @CsvSource({
+      "anthropic,apiKey",
+      "anthropic,oauth-client-credentials-flow",
+      "openai,apiKey",
+      "openai,oauth-client-credentials-flow"
+    })
+    void compatibleEndpointWorksWithInlineAuthentication(String provider, String authentication) {
+      if (provider.equals("anthropic")) {
+        stubAnthropic(Duration.ZERO);
+      } else {
+        OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(AGENT_RESPONSE_TEXT, 10, 20));
+      }
+      stubFor(
+          post(urlPathEqualTo("/oauth/token"))
+              .willReturn(okJson("{\"access_token\":\"inline-oauth-token\",\"expires_in\":3600}")));
+      String prefix = "provider." + provider + ".backend.custom";
+      runPositiveCase(
+          template ->
+              template
+                  .property("provider.type", provider)
+                  .property("provider." + provider + ".backend.type", "custom")
+                  .property("provider.openai.api.type", "completions")
+                  .property(
+                      prefix + ".endpoint",
+                      wireMock.getHttpBaseUrl() + (provider.equals("openai") ? "/v1" : ""))
+                  .property(prefix + ".authentication.type", authentication)
+                  .property(prefix + ".authentication.apiKey", "dummy")
+                  .property(
+                      prefix + ".authentication.oauthTokenEndpoint",
+                      wireMock.getHttpBaseUrl() + "/oauth/token")
+                  .property(prefix + ".authentication.clientId", "client-" + provider)
+                  .property(prefix + ".authentication.clientSecret", "secret")
+                  .property("provider." + provider + ".model.model", "test-model"));
+      verify(
+          authentication.equals("apiKey") ? 0 : 1,
+          postRequestedFor(urlPathEqualTo("/oauth/token")));
+      verify(
+          postRequestedFor(
+                  urlPathEqualTo(
+                      provider.equals("anthropic") ? "/v1/messages" : "/v1/chat/completions"))
+              .withHeader(
+                  authentication.equals("apiKey") && provider.equals("anthropic")
+                      ? "x-api-key"
+                      : "Authorization",
+                  equalTo(
+                      authentication.equals("apiKey")
+                          ? (provider.equals("anthropic") ? "dummy" : "Bearer dummy")
+                          : "Bearer inline-oauth-token")));
     }
   }
 
@@ -204,9 +306,11 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("retryCount", "1")
             .property("provider.type", "anthropic")
             .property("provider.anthropic.backend.type", "custom")
-            .property("provider.anthropic.backend.custom.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.anthropic.backend.custom.authentication.type", "apiKey")
-            .property("provider.anthropic.backend.custom.authentication.apiKey", "dummy")
+            .property(
+                "provider.anthropic.backend.custom.credential",
+                "={endpoint: \""
+                    + wireMock.getHttpBaseUrl()
+                    + "\", authentication: {type: \"apiKey\", apiKey: \"dummy\"}}")
             .property("provider.anthropic.model.model", "claude-3-5-sonnet")
             .property("provider.anthropic.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
@@ -219,7 +323,7 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.openai.api.type", "completions")
             .property("provider.openai.backend.type", "openai-api")
             .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.openai.backend.openai.apiKey", "dummy")
+            .property("provider.openai.backend.openai.credential", "={apiKey: \"dummy\"}")
             .property("provider.openai.model.model", "test-model")
             .property("provider.openai.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
@@ -229,11 +333,12 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
         template
             .property("retryCount", "1")
             .property("provider.type", "bedrock")
-            .property("provider.bedrock.region", "us-east-1")
+            .property("provider.bedrock.iamRegionOverride", "us-east-1")
             .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.bedrock.authentication.type", "credentials")
-            .property("provider.bedrock.authentication.accessKey", "dummy")
-            .property("provider.bedrock.authentication.secretKey", "dummy")
+            .property("provider.bedrock.authentication.type", "awsIam")
+            .property(
+                "provider.bedrock.authentication.awsCredential",
+                "={authentication: {type: \"credentials\", accessKey: \"dummy\", secretKey: \"dummy\"}}")
             .property("provider.bedrock.model.model", "test-model")
             .property("provider.bedrock.timeouts.timeout", MODEL_TIMEOUT.toString());
   }

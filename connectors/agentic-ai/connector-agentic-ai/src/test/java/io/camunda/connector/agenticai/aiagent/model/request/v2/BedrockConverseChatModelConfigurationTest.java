@@ -156,8 +156,9 @@ class BedrockConverseChatModelConfigurationTest {
     assertThat(violations)
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.regionPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("An AWS region is required from the credential or element template");
             })
         .anySatisfy(
             v -> {

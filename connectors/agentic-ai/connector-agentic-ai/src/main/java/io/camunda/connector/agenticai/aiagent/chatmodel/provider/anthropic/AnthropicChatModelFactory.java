@@ -28,6 +28,7 @@ import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTok
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -146,18 +147,45 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       backendBuilder.baseUrl(awsBedrockMantle.endpoint());
     }
 
-    switch (awsBedrockMantle.authentication()) {
+    applyBedrockAuthentication(backendBuilder, awsBedrockMantle.authentication());
+
+    builder.backend(backendBuilder.build());
+  }
+
+  private static void applyBedrockAuthentication(
+      BedrockMantleBackend.Builder backendBuilder, AwsAuthentication authentication) {
+    if (authentication.awsCredentialConfiguration() != null) {
+      applyAwsCredential(backendBuilder, authentication.awsCredentialConfiguration());
+      return;
+    }
+    if (authentication.effectiveApiKey() != null) {
+      backendBuilder.apiKey(authentication.effectiveApiKey());
+      return;
+    }
+
+    switch (authentication.effectiveIamAuthentication()) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
           backendBuilder
               .awsAccessKey(staticAuth.accessKey())
               .awsSecretAccessKey(staticAuth.secretKey());
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication() ->
           backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
-      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          backendBuilder.apiKey(apiKeyAuth.apiKey());
+      case null, default ->
+          throw new IllegalArgumentException("No AWS IAM authentication configured");
     }
+  }
 
-    builder.backend(backendBuilder.build());
+  private static void applyAwsCredential(
+      BedrockMantleBackend.Builder builder,
+      io.camunda.connector.aws.model.impl.AwsCredentialConfiguration credential) {
+    switch (credential.authentication()) {
+      case io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication
+              staticAuth ->
+          builder.awsAccessKey(staticAuth.accessKey()).awsSecretAccessKey(staticAuth.secretKey());
+      case io.camunda.connector.aws.model.impl.AwsAuthentication
+              .AwsDefaultCredentialsChainAuthentication() ->
+          builder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
+    }
   }
 
   /**
@@ -171,7 +199,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       case AnthropicApiBackend apiBackend -> Optional.ofNullable(apiBackend.anthropic().endpoint());
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           Optional.ofNullable(awsBedrockMantleBackend.awsBedrockMantle().endpoint());
-      case AnthropicCustomBackend custom -> Optional.of(custom.custom().endpoint());
+      case AnthropicCustomBackend custom ->
+          Optional.of(Objects.requireNonNull(custom.custom().endpoint()));
     };
   }
 }

@@ -133,21 +133,46 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
    */
   private static void applyAuthentication(
       AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
-    switch (authentication) {
+    if (authentication.awsCredentialConfiguration() != null) {
+      applyAwsCredential(authentication.awsCredentialConfiguration(), builder);
+      return;
+    }
+    if (authentication.effectiveApiKey() != null) {
+      builder
+          .tokenProvider(StaticTokenProvider.create(authentication::effectiveApiKey))
+          .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
+      return;
+    }
+
+    switch (authentication.effectiveIamAuthentication()) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
           builder
               .credentialsProvider(
                   StaticCredentialsProvider.create(
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          // Native "Bedrock API keys" support: a bearer token, not sigv4 credentials. Without the
-          // pin, sigv4 stays ahead of httpBearerAuth (the SDK's default order) and the token would
-          // never be sent.
+      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication() ->
           builder
-              .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
-              .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+              .credentialsProvider(DefaultCredentialsProvider.builder().build())
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
+      case null, default ->
+          throw new IllegalArgumentException("No AWS IAM authentication configured");
+    }
+  }
+
+  private static void applyAwsCredential(
+      io.camunda.connector.aws.model.impl.AwsCredentialConfiguration credential,
+      BedrockRuntimeAsyncClientBuilder builder) {
+    switch (credential.authentication()) {
+      case io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication
+              staticAuth ->
+          builder
+              .credentialsProvider(
+                  StaticCredentialsProvider.create(
+                      AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
+      case io.camunda.connector.aws.model.impl.AwsAuthentication
+              .AwsDefaultCredentialsChainAuthentication() ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));

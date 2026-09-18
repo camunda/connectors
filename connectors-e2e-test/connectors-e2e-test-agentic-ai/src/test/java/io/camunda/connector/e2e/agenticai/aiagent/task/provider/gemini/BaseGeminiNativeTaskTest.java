@@ -59,7 +59,8 @@ abstract class BaseGeminiNativeTaskTest extends BaseAgentTaskTest {
         .property("provider.googleGemini.backend.type", "google-gemini-api")
         .property(
             "provider.googleGemini.backend.googleGeminiApi.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.googleGemini.backend.googleGeminiApi.apiKey", "dummy")
+        .property(
+            "provider.googleGemini.backend.googleGeminiApi.credential", "={apiKey: \"dummy\"}")
         .property("provider.googleGemini.model.model", defaultModel());
   }
 

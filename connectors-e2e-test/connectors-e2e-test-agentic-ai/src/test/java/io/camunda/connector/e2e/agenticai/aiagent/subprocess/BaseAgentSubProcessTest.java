@@ -94,7 +94,7 @@ public abstract class BaseAgentSubProcessTest extends BaseAgentTest {
         .property("provider.openai.api.type", "completions")
         .property("provider.openai.backend.type", "openai-api")
         .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openai.backend.openai.apiKey", "dummy")
+        .property("provider.openai.backend.openai.credential", "={apiKey: \"dummy\"}")
         .property("provider.openai.model.model", "test-model");
   }
 

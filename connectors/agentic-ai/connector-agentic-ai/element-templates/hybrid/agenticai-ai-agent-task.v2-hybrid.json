@@ -5,7 +5,7 @@
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -99,7 +99,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "anthropic",
+    "value" : "openai",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
@@ -149,16 +149,12 @@
       "value" : "custom"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.anthropic.apiKey",
-    "label" : "Anthropic API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.anthropic.backend.anthropic.credential",
+    "label" : "Anthropic API credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.anthropic.apiKey",
+      "name" : "provider.anthropic.backend.anthropic.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -172,7 +168,39 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "tooltip" : "Choose a reusable Anthropic API credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-anthropic-api-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.anthropic.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.anthropic.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.anthropic.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "anthropic-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.anthropic.backend.anthropic.endpoint",
     "label" : "API endpoint",
@@ -195,17 +223,13 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.region",
-    "label" : "AWS region",
-    "description" : "Specify the AWS region (example: <code>eu-west-1</code>).",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+    "label" : "Authentication family",
+    "description" : "Choose AWS IAM credentials or an Amazon Bedrock API key.",
+    "value" : "awsIam",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.region",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -219,6 +243,344 @@
         "type" : "simple"
       } ]
     },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "AWS IAM",
+      "value" : "awsIam"
+    }, {
+      "name" : "Amazon Bedrock API key",
+      "value" : "bedrockApiKey"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+    "label" : "AWS credential",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Choose a reusable AWS credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.type",
+    "label" : "AWS IAM authentication",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Specify the one-time AWS IAM authentication strategy.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.inlineAuthentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+    "label" : "Amazon Bedrock API key credential",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Choose a reusable Amazon Bedrock API key credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.region",
+    "label" : "AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "eu-west-1",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.apiKeyRegion",
+    "label" : "AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "eu-west-1",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.iamRegionOverride",
+    "label" : "AWS region override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's region. Required if the AWS credential has no default region.",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.apiKeyRegionOverride",
+    "label" : "AWS region override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's region.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.awsBedrockMantle.endpoint",
@@ -244,139 +606,12 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
+    "id" : "provider.anthropic.backend.custom.credential",
+    "label" : "AI Gateway credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "aws-bedrock-mantle",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
-      "name" : "API key",
-      "value" : "apiKey"
-    }, {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    } ]
-  }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
-    "label" : "Access key",
-    "description" : "AWS IAM access key.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "aws-bedrock-mantle",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
-    "label" : "Secret key",
-    "description" : "AWS IAM secret key.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "aws-bedrock-mantle",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "aws-bedrock-mantle",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend.custom.endpoint",
-    "label" : "API endpoint",
-    "description" : "Base URL of the Anthropic-compatible API.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.custom.endpoint",
+      "name" : "provider.anthropic.backend.custom.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -390,9 +625,9 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "<code>/v1/messages</code> is appended automatically.",
-    "placeholder" : "https://api.anthropic.com",
-    "type" : "String"
+    "tooltip" : "Choose a reusable AI Gateway credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-gateway-credential:1"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.type",
     "label" : "Authentication",
@@ -405,6 +640,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -444,6 +683,10 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -453,7 +696,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
@@ -475,6 +719,10 @@
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -507,6 +755,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -537,6 +789,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -563,6 +819,10 @@
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -593,6 +853,10 @@
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -629,6 +893,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -639,6 +907,68 @@
       } ]
     },
     "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.endpoint",
+    "label" : "API endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^https?://.+",
+        "message" : "Must be an HTTP or HTTPS URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The gateway endpoint. <code>/v1/messages</code> is appended automatically.",
+    "placeholder" : "https://api.anthropic.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.endpointOverride",
+    "label" : "API endpoint override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.credential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's gateway endpoint. <code>/v1/messages</code> is appended automatically.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
@@ -658,9 +988,208 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.bedrock.authentication.type",
+    "label" : "Authentication family",
+    "description" : "Choose AWS IAM credentials or an Amazon Bedrock API key.",
+    "value" : "awsIam",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "AWS IAM",
+      "value" : "awsIam"
+    }, {
+      "name" : "Amazon Bedrock API key",
+      "value" : "bedrockApiKey"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.awsCredential",
+    "label" : "AWS credential",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Choose a reusable AWS credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.bedrock.authentication.inlineAuthentication.type",
+    "label" : "AWS IAM authentication",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.inlineAuthentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Specify the one-time AWS IAM authentication strategy.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.inlineAuthentication.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.inlineAuthentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.inlineAuthentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.bedrock.authentication.inlineAuthentication.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.inlineAuthentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.inlineAuthentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+    "label" : "Amazon Bedrock API key credential",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Choose a reusable Amazon Bedrock API key credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
+  }, {
+    "id" : "provider.bedrock.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
     "id" : "provider.bedrock.region",
     "label" : "AWS region",
-    "description" : "Specify the AWS region (example: <code>eu-west-1</code>).",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -672,10 +1201,105 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
     },
+    "placeholder" : "eu-west-1",
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.apiKeyRegion",
+    "label" : "AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "eu-west-1",
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.iamRegionOverride",
+    "label" : "AWS region override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's region. Required if the AWS credential has no default region.",
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.apiKeyRegionOverride",
+    "label" : "AWS region override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "bedrockApiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's region.",
     "type" : "String"
   }, {
     "id" : "provider.bedrock.endpoint",
@@ -692,110 +1316,6 @@
       "property" : "provider.type",
       "equals" : "bedrock",
       "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
-      "name" : "API key",
-      "value" : "apiKey"
-    }, {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    } ]
-  }, {
-    "id" : "provider.bedrock.authentication.accessKey",
-    "label" : "Access key",
-    "description" : "AWS IAM access key.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.accessKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.authentication.secretKey",
-    "label" : "Secret key",
-    "description" : "AWS IAM secret key.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.secretKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
-        "type" : "simple"
-      } ]
     },
     "type" : "String"
   }, {
@@ -842,7 +1362,7 @@
     "id" : "provider.openai.backend.type",
     "label" : "Backend",
     "description" : "Specify how the OpenAI API is reached.",
-    "value" : "openai-api",
+    "value" : "custom",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.type",
@@ -865,16 +1385,12 @@
       "value" : "custom"
     } ]
   }, {
-    "id" : "provider.openai.backend.openai.apiKey",
-    "label" : "OpenAI API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.backend.openai.credential",
+    "label" : "OpenAI API credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.openai.apiKey",
+      "name" : "provider.openai.backend.openai.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -888,11 +1404,42 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "tooltip" : "Choose a reusable OpenAI API credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-openai-api-credential:1"
+  }, {
+    "id" : "provider.openai.backend.openai.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.openai.organizationId",
     "label" : "Organization ID",
-    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -902,6 +1449,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -915,7 +1466,6 @@
   }, {
     "id" : "provider.openai.backend.openai.projectId",
     "label" : "Project ID",
-    "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -925,6 +1475,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -957,17 +1511,12 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.openai.backend.foundry.endpoint",
-    "label" : "API endpoint",
-    "description" : "Base URL of the Microsoft Foundry / Azure OpenAI resource.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.backend.foundry.credential",
+    "label" : "Microsoft Foundry credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.foundry.endpoint",
+      "name" : "provider.openai.backend.foundry.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -981,8 +1530,41 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The full resource endpoint, e.g. <code>https://your-resource.openai.azure.com</code> or a Foundry endpoint such as <code>https://your-resource.services.ai.azure.com</code>.",
-    "placeholder" : "https://your-resource.openai.azure.com",
+    "tooltip" : "Choose a reusable Microsoft Foundry credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-microsoft-foundry-credential:1"
+  }, {
+    "id" : "provider.openai.backend.foundry.endpoint",
+    "label" : "Resource endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^https?://.+",
+        "message" : "Must be an HTTP or HTTPS URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
     "type" : "String"
   }, {
     "id" : "provider.openai.backend.foundry.authentication.type",
@@ -996,6 +1578,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1035,6 +1621,10 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1044,7 +1634,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.foundry.authentication.clientId",
     "label" : "Client ID",
@@ -1063,6 +1654,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1095,6 +1690,10 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1104,7 +1703,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.foundry.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1123,6 +1723,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1152,6 +1756,10 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1176,6 +1784,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1205,6 +1817,10 @@
         "equals" : "managedIdentity",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1231,6 +1847,10 @@
         "equals" : "managedIdentity",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.foundry.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "foundry",
         "type" : "simple"
@@ -1242,17 +1862,12 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.openai.backend.custom.endpoint",
-    "label" : "API endpoint",
-    "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.backend.custom.credential",
+    "label" : "AI Gateway credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.custom.endpoint",
+      "name" : "provider.openai.backend.custom.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1266,7 +1881,70 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Choose a reusable AI Gateway credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-gateway-credential:1"
+  }, {
+    "id" : "provider.openai.backend.custom.endpoint",
+    "label" : "API endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^https?://.+",
+        "message" : "Must be an HTTP or HTTPS URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The gateway endpoint. <code>/chat/completions</code> or <code>/responses</code> is appended depending on the selected API.",
     "placeholder" : "https://api.openai.com/v1",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.endpointOverride",
+    "label" : "API endpoint override",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Overrides the reusable credential's gateway endpoint. The selected API path is appended automatically.",
     "type" : "String"
   }, {
     "id" : "provider.openai.backend.custom.authentication.type",
@@ -1280,6 +1958,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -1319,6 +2001,10 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -1328,7 +2014,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
@@ -1350,6 +2037,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1382,6 +2073,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -1412,6 +2107,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -1438,6 +2137,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1468,6 +2171,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1502,6 +2209,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.credential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -1556,16 +2267,12 @@
       "value" : "google-vertex-ai"
     } ]
   }, {
-    "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
-    "label" : "Gemini API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.googleGemini.backend.googleGeminiApi.credential",
+    "label" : "Google Gemini API credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+      "name" : "provider.googleGemini.backend.googleGeminiApi.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1579,7 +2286,39 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "tooltip" : "Choose a reusable Google Gemini API credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-google-gemini-api-credential:1"
+  }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleGeminiApi.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.googleGemini.backend.googleGeminiApi.endpoint",
     "label" : "API endpoint",
@@ -1602,17 +2341,12 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.googleGemini.backend.googleVertexAi.projectId",
-    "label" : "Project ID",
-    "description" : "Specify Google Cloud project ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.googleGemini.backend.googleVertexAi.credential",
+    "label" : "Vertex AI credential",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleGemini.backend.googleVertexAi.projectId",
+      "name" : "provider.googleGemini.backend.googleVertexAi.credential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1626,11 +2360,41 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Choose a reusable Vertex AI credential, or configure connection and authentication below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-vertex-ai-credential:1"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.projectId",
+    "label" : "Project ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
     "type" : "String"
   }, {
     "id" : "provider.googleGemini.backend.googleVertexAi.region",
     "label" : "Region",
-    "description" : "Specify the region where AI inference should take place",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1643,6 +2407,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.type",
         "equals" : "google-vertex-ai",
         "type" : "simple"
@@ -1686,6 +2454,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.type",
         "equals" : "google-vertex-ai",
         "type" : "simple"
@@ -1723,6 +2495,10 @@
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       }, {
+        "property" : "provider.googleGemini.backend.googleVertexAi.credential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.type",
         "equals" : "google-vertex-ai",
         "type" : "simple"
@@ -1732,7 +2508,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.googleGemini.timeouts.timeout",
     "label" : "Timeout",
@@ -3440,7 +4217,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -3526,6 +4303,601 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda:agentic-ai-anthropic-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Anthropic API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Api key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-openai-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenAI API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Api key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "organizationId",
+      "label" : "Organization ID",
+      "group" : "connection",
+      "binding" : {
+        "name" : "organizationId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "projectId",
+      "label" : "Project ID",
+      "group" : "connection",
+      "binding" : {
+        "name" : "projectId",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-microsoft-foundry-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Microsoft Foundry Credential",
+    "properties" : [ {
+      "id" : "endpoint",
+      "label" : "Resource endpoint",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^https?://.+",
+          "message" : "Must be an HTTP or HTTPS URL"
+        }
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "endpoint",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Microsoft Foundry authentication strategy.",
+      "value" : "apiKey",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "API key",
+        "value" : "apiKey"
+      }, {
+        "name" : "Entra ID: Client credentials",
+        "value" : "clientCredentials"
+      }, {
+        "name" : "Entra ID: Managed identity (Hybrid/Self-Managed only)",
+        "value" : "managedIdentity"
+      } ]
+    }, {
+      "id" : "authentication.apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.apiKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "description" : "Microsoft Entra ID application (client) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "description" : "Microsoft Entra ID application client secret.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.tenantId",
+      "label" : "Tenant ID",
+      "description" : "Microsoft Entra ID tenant (directory) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.tenantId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.authorityHost",
+      "label" : "Authority host",
+      "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.authorityHost",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.entraIdScope",
+      "label" : "Entra ID scope",
+      "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.entraIdScope",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    }, {
+      "id" : "authentication.managedIdentity.clientId",
+      "label" : "Client ID",
+      "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.managedIdentity.entraIdScope",
+      "label" : "Entra ID scope",
+      "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.entraIdScope",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-gateway-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "AI Gateway Credential",
+    "properties" : [ {
+      "id" : "endpoint",
+      "label" : "Gateway endpoint",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^https?://.+",
+          "message" : "Must be an HTTP or HTTPS URL"
+        }
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "endpoint",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Authentication for the compatible API.",
+      "value" : "apiKey",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "API key",
+        "value" : "apiKey"
+      }, {
+        "name" : "OAuth 2.0",
+        "value" : "oauth-client-credentials-flow"
+      } ]
+    }, {
+      "id" : "authentication.apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.apiKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.oauthTokenEndpoint",
+      "label" : "OAuth 2.0 token endpoint",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+          "message" : "Must be a http(s) URL"
+        }
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.oauthTokenEndpoint",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "The OAuth token endpoint",
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "Your application's client ID from the OAuth client",
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.audience",
+      "label" : "Audience",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.audience",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "The unique identifier of the target API you want to access",
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientAuthentication",
+      "label" : "Client authentication",
+      "value" : "BASIC_AUTH_HEADER",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.clientAuthentication",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Send as Basic Auth header",
+        "value" : "BASIC_AUTH_HEADER"
+      }, {
+        "name" : "Send client credentials in body",
+        "value" : "CREDENTIALS_BODY"
+      } ]
+    }, {
+      "id" : "authentication.scopes",
+      "label" : "Scopes",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.scopes",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-bedrock-api-key-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Amazon Bedrock API Key Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "region",
+      "label" : "AWS region",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "region",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-google-gemini-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Gemini API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Gemini API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-vertex-ai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Vertex AI Credential",
+    "properties" : [ {
+      "id" : "projectId",
+      "label" : "Project ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "projectId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "region",
+      "label" : "Region",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "region",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Enterprise Agent Platform (Vertex AI) authentication strategy.",
+      "value" : "serviceAccountCredentials",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Service account credentials",
+        "value" : "serviceAccountCredentials"
+      }, {
+        "name" : "Application default credentials (Hybrid/Self-Managed only)",
+        "value" : "applicationDefaultCredentials"
+      } ]
+    }, {
+      "id" : "authentication.jsonKey",
+      "label" : "JSON key of the service account",
+      "description" : "This is the key of the service account in JSON format.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "authentication.jsonKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:aws-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 2,
+    "name" : "AWS Credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "value" : "credentials",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+        "value" : "defaultCredentialsChain"
+      }, {
+        "name" : "Credentials",
+        "value" : "credentials"
+      } ]
+    }, {
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.accessKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.secretKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "region",
+      "label" : "Default region",
+      "description" : "Used when a connector does not specify a region override.",
+      "group" : "configuration",
+      "binding" : {
+        "name" : "region",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K"

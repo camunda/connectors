@@ -14,13 +14,25 @@ than or equal to the Camunda version you are running. The `engines.camunda`
 field in each JSON file captures the same information (e.g. `^8.9` means
 "requires Camunda 8.9 or later").
 
-For example, if you are on Camunda 8.9, use the AI Agent template version `7`;
-if you are on Camunda 8.10, use version `11`.
+For example, on Camunda 8.9, use AI Agent (v1) template version `7`;
+on Camunda 8.10, use AI Agent (v2) template version `2`.
 
 ## AI Agent connectors
 
-See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
+See the [AI Agent connector documentation](https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
+
+The current v2 templates offer optional reusable credentials for model connections. Leave the
+credential chooser empty to configure authentication and connection settings inline, including in
+c8run without creating a credential. Selecting a credential hides the inline fallback fields and
+makes the credential authoritative. Provider, backend, API, and model settings remain local to the task.
+Gateway endpoints and Bedrock endpoints/regions can still be overridden per task; gateway endpoints
+and Bedrock regions are required inline when no credential supplies them. Older templates remain
+supported by the runtime; v1 templates are unchanged.
+Custom provider beans and conversation-memory connections are outside this credential support.
+AI Gateway credentials offer API-key or OAuth 2.0 client-credentials authentication in one
+credential type, shared by the Anthropic and OpenAI custom backends. Both methods are also available
+inline. Anthropic additionally offers an inline no-auth option.
 
 ### AI Agent Task
 
@@ -30,7 +42,7 @@ Camunda 8.10, AI Agent Task (v1) is deprecated in favor of (v2).
 
 | Connector                      | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Task (v2)             | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
+| AI Agent Task (v2)             | 8.10 | 2  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
 | AI Agent Task (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | AI Agent Task (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
 | AI Agent Task (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
@@ -44,7 +56,7 @@ deprecated in favor of (v2).
 
 | Connector                             | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Sub-process (v2)             | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
+| AI Agent Sub-process (v2)             | 8.10 | 2  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
 | AI Agent Sub-process (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | AI Agent Sub-process (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
