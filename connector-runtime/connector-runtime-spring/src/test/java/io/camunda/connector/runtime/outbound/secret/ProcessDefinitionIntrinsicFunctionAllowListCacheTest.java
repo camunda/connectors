@@ -449,6 +449,45 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aDeclarationIsNotGrantedWhenAnEarlierDuplicateContextKeyIsOverriddenByALaterOpaqueOne() {
+    // FEEL permits duplicate context keys, evaluated in order with the later entry overriding the
+    // earlier one -- unlike a conditional's branches or a list's elements (reconciled via
+    // mergeSiblings), a straight-line parse of one context literal records both the earlier
+    // declaration and the later opaque marking directly into the same shared found/opaque sets,
+    // with nothing to reconcile them against each other before returning. Without that final
+    // reconciliation, the discarded "x" declaration below would survive even though "x"'s actual
+    // runtime value comes from the later, process-controlled duplicate key.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={x: {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}, x: attackerValue}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
   void aDeclarationIsNotGrantedWhenASiblingBranchHasANonStandaloneDiscriminatorValue() {
     // security-testing-findings#275, T4: the "else" branch's discriminator value is a bare
     // identifier (attackerControlledFunctionName), not an immediate string literal -- its own
