@@ -36,6 +36,7 @@ public final class NumberProperty extends Property {
       PropertyCondition condition,
       String tooltip,
       Object exampleValue,
+      Boolean editable,
       Boolean secret) {
     super(
         name,
@@ -54,6 +55,7 @@ public final class NumberProperty extends Property {
         exampleValue,
         null,
         TYPE,
+        editable,
         secret);
   }
 
@@ -89,6 +91,7 @@ public final class NumberProperty extends Property {
           condition,
           tooltip,
           exampleValue,
+          editable,
           secret);
     }
   }

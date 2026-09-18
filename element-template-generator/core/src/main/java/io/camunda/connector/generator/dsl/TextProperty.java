@@ -38,6 +38,7 @@ public final class TextProperty extends Property {
       String placeholder,
       Object exampleValue,
       String language,
+      Boolean editable,
       Boolean secret) {
     super(
         name,
@@ -56,6 +57,7 @@ public final class TextProperty extends Property {
         exampleValue,
         language,
         TYPE,
+        editable,
         secret);
   }
 
@@ -96,6 +98,7 @@ public final class TextProperty extends Property {
           placeholder,
           exampleValue,
           language,
+          editable,
           secret);
     }
   }
