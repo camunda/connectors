@@ -1,0 +1,269 @@
+---
+name: Publish PR Docker Images
+on:
+  workflow_run:
+    workflows: [ "Build PR Docker Images" ]
+    types: [ completed ]
+
+# Workflow-level default; the job below declares its own, wider, explicit permissions.
+permissions:
+  contents: read
+
+# One queue per PR, but never cancel an in-flight publish: a stray "Build PR Docker
+# Images" completion for an unrelated label event on the same PR (whose build job was
+# skipped) would otherwise cancel a real, in-progress registry push.
+concurrency:
+  group: publish-pr-docker-images-${{ github.event.workflow_run.pull_requests[0].number }}
+  cancel-in-progress: false
+
+jobs:
+  publish-images:
+    name: Publish PR Docker images
+    # Privileged stage: this workflow's definition is always read from the default
+    # branch (workflow_run semantics), so a PR editing this file cannot change what
+    # runs here. It never checks out or executes PR-controlled build logic - it only
+    # takes the jars built by the untrusted job, builds the (fixed-shape) Dockerfiles
+    # from the default branch around them, and pushes.
+    runs-on: gcp-core-2-default
+    # Only handle runs that actually built (skipped/failed builds mean the label/fork/
+    # alwaysgreen guard in BUILD_PR_DOCKER_IMAGES.yml didn't match, or the build itself
+    # failed), and only for same-repo (non-fork) pull_request runs -
+    # workflow_run.pull_requests is only populated for those, matching the fork
+    # exclusion in the build workflow.
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    permissions:
+      contents: read
+      actions: read # required to download an artifact from another workflow run
+      pull-requests: write # required to comment on the PR with GITHUB_TOKEN
+    steps:
+      # github-script (Node) instead of gh CLI: the gcp runner has no gh binary
+      #
+      # This step is the sole gate before anything privileged runs (Vault import,
+      # registry login, publish). It re-resolves the PR live via the API rather than
+      # trusting anything the untrusted build job produced, and requires the PR's
+      # CURRENT head to exactly match the workflow_run's head_sha - the head SHA used
+      # everywhere below (including the pr-<sha> preview tag) comes exclusively from
+      # `context.payload.workflow_run.head_sha`, trusted GitHub-computed metadata about
+      # which commit was actually built, never from repo/artifact content. A stale run
+      # (PR advanced since the build), a mismatched run, a closed PR, or a fork PR stops
+      # here before any secret is touched.
+      #
+      # It also independently requires the live PR to carry `docker-images-required` or
+      # `deploy-preview` right now. BUILD_PR_DOCKER_IMAGES.yml's own label check cannot be
+      # trusted as authorization: that workflow is `pull_request`-triggered, so its
+      # definition (including its `if:` condition) is read from the PR's own branch and
+      # is PR-editable content (`.github/**/*.yml` has no required CODEOWNERS review). A
+      # same-repository PR author could otherwise strip that gate in their own PR and
+      # force a successful build-job run - carrying no secrets itself - purely to make
+      # this trusted workflow believe it was authorized. Re-checking the label here,
+      # against the live PR rather than anything the untrusted run produced, closes that
+      # bypass regardless of what the source workflow's condition says.
+      - name: Resolve and verify PR context
+        id: pr
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const workflowRun = context.payload.workflow_run;
+            const headSha = workflowRun.head_sha;
+            if (!/^[0-9a-f]{40}$/.test(headSha || '')) {
+              core.setFailed(`workflow_run.head_sha is missing or malformed: ${headSha}`);
+              return;
+            }
+
+            const prNumber = workflowRun.pull_requests[0]?.number;
+            if (!prNumber) {
+              core.setFailed(`no associated pull request on workflow run ${workflowRun.id}`);
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const sameRepoFullName = `${context.repo.owner}/${context.repo.repo}`;
+            if (!pr.head.repo || pr.head.repo.full_name !== sameRepoFullName) {
+              core.setFailed(`PR #${prNumber} head repo is not ${sameRepoFullName}; refusing to publish`);
+              return;
+            }
+            if (pr.state !== 'open') {
+              core.setFailed(`PR #${prNumber} is not open (state=${pr.state}); skipping publish`);
+              return;
+            }
+            if (pr.head.sha !== headSha) {
+              core.setFailed(
+                `PR #${prNumber} current head (${pr.head.sha}) no longer matches the ` +
+                `workflow_run that was built (${headSha}); stale run, refusing to publish`
+              );
+              return;
+            }
+
+            const labelNames = pr.labels.map((label) => label.name);
+            const isAuthorized = labelNames.includes('docker-images-required') || labelNames.includes('deploy-preview');
+            if (!isAuthorized) {
+              core.setFailed(
+                `PR #${prNumber} does not currently carry docker-images-required or ` +
+                `deploy-preview; refusing to import secrets or publish`
+              );
+              return;
+            }
+
+            const deployPreview = labelNames.includes('deploy-preview');
+            core.setOutput('number', String(prNumber));
+            core.setOutput('deploy_preview', String(deployPreview));
+            core.setOutput('head_sha', headSha);
+
+      - uses: actions/checkout@v7
+        with:
+          # No `ref:` - workflow_run always checks out the default branch, never the
+          # PR head, so the Dockerfiles/start.sh built here are never PR-controlled.
+          persist-credentials: false
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: pr-docker-build-jars
+          path: pr-build-artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage build outputs
+        id: stage
+        run: |
+          set -euo pipefail
+          for dir in \
+            apps/connector-runtime-application/target \
+            apps/bundle/default-bundle/target \
+            apps/bundle/camunda-saas-bundle/target
+          do
+            mkdir -p "${dir}"
+            find "pr-build-artifacts/${dir}" -maxdepth 1 -name '*-with-dependencies.jar' -exec cp -t "${dir}" {} +
+          done
+
+          BASE_VERSION=$(cat pr-build-artifacts/pr-build-version.txt)
+          if ! [[ "${BASE_VERSION}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::unexpected characters in project version: ${BASE_VERSION}"
+            exit 1
+          fi
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute image tag
+        id: tag
+        env:
+          BASE_VERSION: ${{ steps.stage.outputs.base_version }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${RUN_ID}-a${RUN_ATTEMPT}"
+          echo "::notice::PR image tag: ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_HARBOR_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: 'arm64,arm'
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Harbor
+        uses: docker/login-action@v4
+        with:
+          registry: registry.camunda.cloud
+          username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
+          password: ${{ steps.secrets.outputs.CI_HARBOR_PSW }}
+
+      - name: Login to Minimus
+        uses: docker/login-action@v4
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
+
+      - name: Build and Push Docker Image - connector-runtime
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/connector-runtime-application/
+          push: true
+          tags: registry.camunda.cloud/team-connectors/connectors:${{ steps.tag.outputs.tag }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image - bundle-default
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/bundle/default-bundle/
+          push: true
+          # Second tag only for previews (PREVIEW-ENV-DEPLOY.yml deploys it)
+          tags: |
+            registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+            ${{ steps.pr.outputs.deploy_preview == 'true' && format('registry.camunda.cloud/team-connectors/connectors-bundle:pr-{0}', steps.pr.outputs.head_sha) || '' }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image - bundle-saas
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/bundle/camunda-saas-bundle/
+          push: true
+          tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ steps.tag.outputs.tag }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      # github-script (Node) instead of gh CLI: the gcp runner has no gh binary
+      # Values are passed via `env:` (read through process.env below) rather than
+      # templated directly into the script, so they can't break out of the JS source.
+      - name: Comment image tags on PR
+        uses: actions/github-script@v9
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = process.env.IMAGE_TAG;
+            const reg = 'registry.camunda.cloud/team-connectors';
+            const body = [
+              ':whale: PR Docker images published to Harbor:',
+              '- `' + reg + '/connectors:' + tag + '`',
+              '- `' + reg + '/connectors-bundle:' + tag + '`',
+              '- `' + reg + '/connectors-bundle-saas:' + tag + '`',
+              '',
+              '**To use the SaaS bundle on a cluster:**',
+              '',
+              '_GCP cluster:_',
+              '```',
+              'europe-docker.pkg.dev/camunda-saas-registry/harbor/team-connectors/connectors-bundle-saas:' + tag,
+              '```',
+              '_AWS cluster (replace `<WORKER_REGION>`, e.g. `eu-central-1`):_',
+              '```',
+              '390403865336.dkr.ecr.<WORKER_REGION>.amazonaws.com/team-connectors/connectors-bundle-saas:' + tag,
+              '```',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body,
+            });
