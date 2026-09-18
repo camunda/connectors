@@ -262,6 +262,83 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aConditionalDeclarationIsNotGrantedWhenTheOtherBranchIsNotAVerifiableShape() {
+    // Mirrors the shipped GitHub template's actual auth-token binding exactly: the "then" branch
+    // declares createGithubAppInstallationToken as a literal, but the "else" branch is a bare
+    // reference to "githubPat" -- a separate, possibly process-controlled input's bound value. If
+    // the "else" branch is active at runtime (PAT auth mode), the field's real value is whatever
+    // that other input produced -- which could, in principle, itself be crafted to match this
+    // declared (function, path) shape. Neither branch's declaration can be trusted, since which one
+    // actually reached this field at runtime cannot be recovered once the tree is bound.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input source="=githubPat" target="githubPat" />
+                  <zeebe:input
+                      source="=if githubAuthType = &quot;github_app&quot; then {&quot;camunda.function.type&quot;:&quot;createGithubAppInstallationToken&quot;,&quot;params&quot;:[key]} else githubPat"
+                      target="authentication.token" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aConditionalDeclarationIsStillGrantedWhenBothBranchesAreVerifiableShapes() {
+    // The counterpart to the test above: a plain string fallback (not a bare reference) is itself
+    // a verifiable, fixed shape, so this legitimate declaration -- the exact form
+    // HttpTests#intrinsicFunctionBase64InBearerToken exercises end-to-end -- must still be granted.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="=if true then {&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[&quot;Hello World&quot;]} else &quot;fallback&quot;"
+                      target="authentication.token" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .containsExactly(
+            new AllowedIntrinsicFunction("base64", List.of("authentication", "token")));
+  }
+
+  @Test
   void aDeclarationWrappedInAFunctionCallContributesNoGrant() {
     // append([], {...}) demonstrates why this parser refuses to guess: naive comma/bracket
     // tracking would clear key state at the comma between append's own arguments and record the

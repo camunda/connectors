@@ -118,6 +118,30 @@ class IntrinsicFunctionAllowListEndToEndTest {
       </bpmn:definitions>
       """;
 
+  // The actual conditional shape GitHub's shipped template uses: the "then" branch declares
+  // createGithubAppInstallationToken as a literal, but the "else" branch is a bare reference to
+  // "githubPat" -- bound by a separate, earlier zeebe:input -- rather than a fixed fallback shape.
+  private static final String GITHUB_AUTH_MODEL_XML_WITH_UNVERIFIABLE_ELSE_BRANCH =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="http_task" name="HTTP">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input source="=githubPat" target="githubPat" />
+                <zeebe:input
+                    source="=if githubAuthType = &quot;github_app&quot; then {&quot;camunda.function.type&quot;:&quot;createGithubAppInstallationToken&quot;,&quot;params&quot;:[key]} else githubPat"
+                    target="authentication.token" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
   // Mirrors the Microsoft 365 Mail connector's actual sendMail attachments binding shape: the
   // "body" input's FEEL source is a nested context/list literal that declares base64 three levels
   // under the input's own target ("body" -> "message" -> "attachments" (array) -> "contentBytes"),
@@ -255,6 +279,26 @@ class IntrinsicFunctionAllowListEndToEndTest {
     assertThatThrownBy(() -> context.bindVariables(TargetType.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createLink");
+  }
+
+  @Test
+  void aCallDeclaredOnlyInABranchWithAnUnverifiableSiblingIsRefusedEvenWhenThatBranchRuns() {
+    // The exploit this closes: an attacker who can influence the value "githubPat" ultimately
+    // resolves to (a separate, process-controlled input) crafts it to look exactly like the
+    // literal the "then" branch declares. Since the model text does contain that literal
+    // somewhere, a branch-insensitive allow-list would grant it at "authentication.token"
+    // regardless of which branch actually produced the runtime value -- this proves it does not.
+    String variablesJson =
+        """
+        {"authentication": {"token":
+          {"camunda.function.type":"createGithubAppInstallationToken",
+           "params":["attacker-key","attacker-app","attacker-installation"]}}}
+        """;
+    var context = contextFor(GITHUB_AUTH_MODEL_XML_WITH_UNVERIFIABLE_ELSE_BRANCH, variablesJson);
+
+    assertThatThrownBy(() -> context.bindVariables(AuthTargetType.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("createGithubAppInstallationToken");
   }
 
   @Test
