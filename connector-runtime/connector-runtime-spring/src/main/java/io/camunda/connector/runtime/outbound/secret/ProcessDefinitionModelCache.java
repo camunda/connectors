@@ -23,6 +23,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -80,7 +81,12 @@ public class ProcessDefinitionModelCache {
 
   private BpmnModelInstance fetchAndParse(long processDefinitionKey, Instant deadline) {
     String bpmnXml = fetchBpmnXmlWithRetry(processDefinitionKey, deadline);
-    return Bpmn.readModelFromStream(new ByteArrayInputStream(bpmnXml.getBytes()));
+    // The XML declaration on every deployed BPMN file names UTF-8 explicitly (Bpmn.writeModelToXX
+    // always emits it); encoding the fetched String back to bytes with the platform default
+    // charset instead would corrupt non-ASCII characters (element/process names, etc.) on any JVM
+    // whose default isn't UTF-8.
+    return Bpmn.readModelFromStream(
+        new ByteArrayInputStream(bpmnXml.getBytes(StandardCharsets.UTF_8)));
   }
 
   private String fetchBpmnXmlWithRetry(long processDefinitionKey, Instant deadline) {

@@ -65,6 +65,33 @@ class ProcessDefinitionModelCacheTest {
   }
 
   @Test
+  void parsesNonAsciiElementNamesWithoutCorruptionRegardlessOfThePlatformDefaultCharset() {
+    // Regression test: encoding the fetched XML String back to bytes with the JVM's platform
+    // default charset (rather than the UTF-8 the XML declaration itself names) would corrupt any
+    // non-ASCII character on a JVM whose default isn't UTF-8.
+    var xmlWithNonAsciiName =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" name="Bewerbungsprüfung — 日本語" isExecutable="true">
+            <bpmn:startEvent id="start" />
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var client = clientReturning(xmlWithNonAsciiName);
+    var cache =
+        new ProcessDefinitionModelCache(
+            "tenant-a", client, new ConcurrentMapCache("models"), Duration.ofMillis(1));
+
+    var model = cache.getModel(42L, Instant.now().plusSeconds(30));
+
+    assertThat(model.getModelElementsByType(io.camunda.zeebe.model.bpmn.instance.Process.class))
+        .extracting(io.camunda.zeebe.model.bpmn.instance.Process::getName)
+        .containsExactly("Bewerbungsprüfung — 日本語");
+  }
+
+  @Test
   void fetchesOnlyOncePerProcessDefinitionKeyAcrossRepeatedCalls() {
     var client = clientReturning(SIMPLE_PROCESS_XML);
     var cache =
