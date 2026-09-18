@@ -19,7 +19,7 @@
     "account"
   ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/",
-  "version" : 8,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -206,7 +206,7 @@
         "name" : "salesforceInteractionType",
         "type" : "zeebe:input"
       },
-      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch any combination of Salesforce REST API calls into a single request.",
+      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.",
       "type" : "Dropdown",
       "choices" : [
         {
@@ -220,10 +220,6 @@
         {
           "name" : "Apex REST",
           "value" : "apexRest"
-        },
-        {
-          "name" : "Composite Request",
-          "value" : "composite"
         }
       ]
     },
@@ -244,8 +240,7 @@
         "property" : "salesforceOperationType",
         "oneOf" : [
           "sObject",
-          "soqlQuery",
-          "composite"
+          "soqlQuery"
         ],
         "type" : "simple"
       },
@@ -617,110 +612,6 @@
       "type" : "String"
     },
     {
-      "id" : "allOrNone",
-      "label" : "All or none",
-      "value" : true,
-      "feel" : "optional",
-      "group" : "operation",
-      "binding" : {
-        "name" : "allOrNone",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "tooltip" : "Roll back all sub-requests if any of them fails. If disabled, sub-requests are processed independently.",
-      "type" : "Boolean"
-    },
-    {
-      "id" : "collateSubrequests",
-      "label" : "Collate subrequests",
-      "value" : false,
-      "feel" : "optional",
-      "group" : "operation",
-      "binding" : {
-        "name" : "collateSubrequests",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "tooltip" : "Batch compatible subrequests together where possible.",
-      "type" : "Boolean"
-    },
-    {
-      "id" : "compositeRequest",
-      "label" : "Subrequests",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "required",
-      "group" : "operation",
-      "binding" : {
-        "name" : "compositeRequest",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "tooltip" : "FEEL list of subrequests, each a context with \"method\", \"url\", \"referenceId\", and optional \"body\" entries. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite.htm\" target=\"_blank\">Composite API reference</a>. Reference an earlier subrequest's result by its \"referenceId\" in a later subrequest's \"url\" or \"body\".",
-      "type" : "Text"
-    },
-    {
-      "id" : "methodComposite",
-      "label" : "Method",
-      "value" : "post",
-      "group" : "operation",
-      "binding" : {
-        "name" : "method",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "urlComposite",
-      "label" : "URL",
-      "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/composite\"",
-      "group" : "operation",
-      "binding" : {
-        "name" : "url",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "bodyComposite",
-      "label" : "Request body",
-      "value" : "={\n  allOrNone: allOrNone,\n  collateSubrequests: collateSubrequests,\n  compositeRequest: compositeRequest\n}",
-      "group" : "operation",
-      "binding" : {
-        "name" : "body",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "composite",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
       "id" : "connectionTimeoutInSeconds",
       "label" : "Connection timeout",
       "optional" : true,
@@ -745,7 +636,7 @@
       "id" : "version",
       "label" : "Version",
       "description" : "Version of the element template",
-      "value" : "8",
+      "value" : "7",
       "group" : "connector",
       "binding" : {
         "key" : "elementTemplateVersion",
@@ -888,17 +779,6 @@
         "invoke apex"
       ],
       "presetId" : "apexRest"
-    },
-    {
-      "name" : "Composite request",
-      "description" : "Batch any combination of Salesforce REST API calls into a single request",
-      "keywords" : [
-        "composite request",
-        "batch request",
-        "bulk operations",
-        "multiple sub-requests"
-      ],
-      "presetId" : "composite"
     }
   ],
   "presets" : [
@@ -940,12 +820,6 @@
       "id" : "apexRest",
       "properties" : {
         "salesforceOperationType" : "apexRest"
-      }
-    },
-    {
-      "id" : "composite",
-      "properties" : {
-        "salesforceOperationType" : "composite"
       }
     }
   ],
