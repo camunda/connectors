@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -58,6 +59,23 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class InboundWebhookRestControllerTest {
+
+  @Test
+  void shouldFailFastOnNegativeMaxRequestBodyBytes() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.maxRequestBodyBytes = -1;
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldFailFastOnNonFiniteRateLimit() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = Double.NaN;
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
 
   @Test
   void shouldLogRequestDetailsWithRedactionAndTruncation() throws Exception {

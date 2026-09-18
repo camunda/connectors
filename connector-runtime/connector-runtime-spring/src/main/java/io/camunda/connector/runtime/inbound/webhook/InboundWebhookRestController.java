@@ -122,11 +122,17 @@ public class InboundWebhookRestController {
   }
 
   @PostConstruct
-  void validateRateLimitConfig() {
-    if (rateLimitEnabled && rateLimitPermitsPerSecond <= 0) {
+  void validateWebhookConfig() {
+    if (maxRequestBodyBytes < 0) {
       throw new IllegalStateException(
-          "camunda.connector.webhook.rate-limit.permits-per-second must be positive when "
-              + "camunda.connector.webhook.rate-limit.enabled is true, but was: "
+          "camunda.connector.webhook.max-request-body-bytes must not be negative, but was: "
+              + maxRequestBodyBytes);
+    }
+    if (rateLimitEnabled
+        && !(Double.isFinite(rateLimitPermitsPerSecond) && rateLimitPermitsPerSecond > 0)) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
+              + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
               + rateLimitPermitsPerSecond);
     }
   }
