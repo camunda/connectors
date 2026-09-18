@@ -26,6 +26,7 @@ import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
@@ -49,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLException;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -634,6 +636,26 @@ public class CustomApacheHttpClientTest {
       assertThat(e.getMessage())
           .contains(
               "The request timed out. Please try increasing the read and connection timeouts.");
+    }
+
+    @Test
+    public void shouldReturn408WithRootCause_whenConnectionIsResetByPeer(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      ConnectorException e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpClient.execute(request, ResponseMappers.asString()));
+      assertThat(e.getErrorCode()).isEqualTo(String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT));
+      assertThat(e.getMessage())
+          .isEqualTo(
+              "An error occurred while executing the request, or the connection was aborted: "
+                  + "Connection reset");
+      assertThat(e.getCause()).isInstanceOf(IOException.class);
     }
   }
 
@@ -1397,6 +1419,39 @@ public class CustomApacheHttpClientTest {
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.entity()).isEqualTo("New location");
+    }
+  }
+
+  @Nested
+  class SslTests {
+    private static final WireMockServer httpsServer =
+        new WireMockServer(options().dynamicPort().dynamicHttpsPort());
+
+    @BeforeAll
+    static void startHttpsServer() {
+      httpsServer.start();
+      httpsServer.stubFor(get("/path").willReturn(ok().withBody("secure")));
+    }
+
+    @AfterAll
+    static void stopHttpsServer() {
+      httpsServer.stop();
+    }
+
+    @Test
+    public void shouldReturnSslError_whenServerCertificateIsNotTrusted() {
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl("https://localhost:" + httpsServer.httpsPort() + "/path");
+
+      ConnectorException e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpClient.execute(request, ResponseMappers.asString()));
+      assertThat(e.getErrorCode()).isEqualTo("SSL_ERROR");
+      assertThat(e.getMessage()).contains("A TLS/SSL error occurred");
+      assertThat(e.getMessage()).contains("certification path");
+      assertThat(e.getCause()).isInstanceOf(SSLException.class);
     }
   }
 }
