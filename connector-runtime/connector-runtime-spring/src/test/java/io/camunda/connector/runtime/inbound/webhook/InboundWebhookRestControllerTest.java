@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.google.common.cache.CacheBuilder;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -56,6 +57,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -328,6 +330,51 @@ class InboundWebhookRestControllerTest {
 
     assertThat(first.getStatusCode().value()).isEqualTo(422);
     assertThat(second.getStatusCode().value()).isEqualTo(422);
+  }
+
+  @Test
+  void shouldPreserveActiveLimiterStateAcrossChurnBeyondFormerCapacity() {
+    // Regression test: the rate-limiter cache used to have a maximumSize(10_000), which could
+    // evict a still-active webhook's limiter under capacity pressure, silently resetting its
+    // accumulated rate-limit state. It's now bounded by inactivity only, so an active entry must
+    // survive churning through far more distinct executables than that former cap.
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = 0.0001; // effectively one permit for this test's life
+
+    var active = activatedWithId(ExecutableId.fromDeduplicationId("active-webhook"));
+    assertThat(controller.acquireRateLimitPermit(active)).isTrue();
+    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
+
+    for (int i = 0; i < 10_050; i++) {
+      controller.acquireRateLimitPermit(
+          activatedWithId(ExecutableId.fromDeduplicationId("churn-" + i)));
+    }
+
+    // Still exhausted: churning past the old 10,000-entry cap did not reset the active bucket.
+    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
+  }
+
+  @Test
+  void shouldEventuallyReclaimObsoleteLimiterEntries() throws Exception {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    // Swap in a short-lived cache so reclamation can be observed without waiting out the real
+    // one-hour default.
+    controller.rateLimitersByExecutable =
+        CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMillis(20)).build();
+
+    var obsolete = activatedWithId(ExecutableId.fromDeduplicationId("obsolete-webhook"));
+    controller.acquireRateLimitPermit(obsolete);
+    assertThat(controller.rateLimitersByExecutable.asMap()).containsKey(obsolete.id());
+
+    Thread.sleep(50);
+    controller.rateLimitersByExecutable.cleanUp();
+
+    assertThat(controller.rateLimitersByExecutable.asMap()).doesNotContainKey(obsolete.id());
+  }
+
+  private static RegisteredExecutable.Activated activatedWithId(ExecutableId id) {
+    return new RegisteredExecutable.Activated(null, null, id);
   }
 
   private static MockHttpServletRequest requestTo(String path, String body) {

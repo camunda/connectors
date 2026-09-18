@@ -36,12 +36,15 @@ public record ConnectorProperties(
   /**
    * Configuration for the inbound webhook connector.
    *
-   * @param maxRequestBodyBytes Maximum size, in bytes, of an inbound webhook request body read into
-   *     memory before authentication runs. Requests whose body exceeds this limit are rejected with
-   *     413 Payload Too Large. Default is 10 MB (10485760). {@code int}-typed to match the
-   *     underlying {@code InputStream.readNBytes(int)} call it configures.
-   * @param rateLimit Per-registered-webhook inbound rate limit, enforced before the request body is
-   *     read.
+   * @param maxRequestBodyBytes Maximum size, in bytes, of a <b>non-multipart</b> inbound webhook
+   *     request body read into memory before authentication runs. Requests whose body exceeds this
+   *     limit are rejected with 413 Payload Too Large. Default is 10 MB (10485760). {@code
+   *     int}-typed to match the underlying {@code InputStream.readNBytes(int)} call it configures.
+   *     Does not apply to {@code multipart/form-data}: Spring's {@code DispatcherServlet} parses
+   *     multipart bodies before the handler runs, so that traffic is bounded separately by {@code
+   *     spring.servlet.multipart.max-file-size} / {@code max-request-size} instead.
+   * @param rateLimit Per-registered-webhook inbound rate limit for <b>non-multipart</b> requests,
+   *     enforced before the request body is read.
    */
   public record Webhook(
       boolean enabled,
@@ -50,7 +53,10 @@ public record ConnectorProperties(
       RateLimit rateLimit) {}
 
   /**
-   * Per-registered-webhook inbound rate limit.
+   * Per-registered-webhook inbound rate limit for <b>non-multipart</b> requests. Like {@link
+   * Webhook#maxRequestBodyBytes}, this does not apply to {@code multipart/form-data}: that traffic
+   * bypasses this check entirely, since Spring parses it before the handler (and this rate check)
+   * ever runs, and is bounded only by the separate multipart size limits.
    *
    * @param enabled Whether the rate limit is enforced. Default is {@code true}.
    * @param permitsPerSecond Maximum sustained requests per second allowed for a single registered

@@ -107,14 +107,23 @@ public class InboundWebhookRestController {
 
   /**
    * Keyed by the resolved connector's {@link ExecutableId}, not by the raw request path, so an
-   * unauthenticated caller can never grow this beyond the entries evicted below by probing paths. A
-   * redeployment mints a new {@link ExecutableId} (it is derived from the deduplication id, which
-   * includes the process-definition key), so the entry set isn't just "currently registered
-   * webhooks" either — bounded size and eviction on inactivity keep this from growing unboundedly
-   * over the controller's lifetime as webhooks are redeployed.
+   * unauthenticated caller can never add entries by probing paths. A redeployment mints a new
+   * {@link ExecutableId} (it is derived from the deduplication id, which includes the
+   * process-definition key), so the entry set isn't just "currently registered webhooks" either.
+   *
+   * <p>Bounded by inactivity only ({@code expireAfterAccess}), deliberately with no {@code
+   * maximumSize}: a size cap evicts under pressure regardless of whether the evicted entry is still
+   * in active use, which would let an attacker (or ordinary redeployment churn) reset a
+   * still-active webhook's accumulated rate-limit state by minting enough distinct {@link
+   * ExecutableId}s to push it out of the cache — defeating the limiter it's supposed to enforce.
+   * Every request against an active webhook refreshes its entry's access time, so it is never
+   * reclaimed while in use; only entries genuinely idle for the whole window are, bounding
+   * long-term growth from obsolete, no-longer-deployed webhooks instead. Package-private (and
+   * non-final) so tests can substitute a short-lived cache instead of waiting out the real
+   * duration.
    */
-  private final Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
-      CacheBuilder.newBuilder().maximumSize(10_000).expireAfterAccess(Duration.ofHours(1)).build();
+  Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
+      CacheBuilder.newBuilder().expireAfterAccess(Duration.ofHours(1)).build();
 
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
@@ -289,7 +298,7 @@ public class InboundWebhookRestController {
     return body;
   }
 
-  private boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
+  boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
     try {
       return rateLimitersByExecutable
           .get(connector.id(), () -> RateLimiter.create(rateLimitPermitsPerSecond))
