@@ -3979,7 +3979,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "14",
+      "value": "15",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
