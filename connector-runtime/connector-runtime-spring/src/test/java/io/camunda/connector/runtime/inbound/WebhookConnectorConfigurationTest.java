@@ -17,13 +17,18 @@
 package io.camunda.connector.runtime.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.web.filter.FormContentFilter;
 
 /**
  * Exercises the explicit-vs-inferred resolution of {@code
@@ -88,5 +93,33 @@ class WebhookConnectorConfigurationTest {
     var result = configuration.webhookConnectorRegistry(null, providerFor(null));
 
     assertThat(result.appendsPhysicalTenantAndTenantToPath()).isFalse();
+  }
+
+  @Test
+  void formContentFilterConflictCheckFailsFastOnIncompatibleCustomFilter() {
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new FormContentFilter(), new WebhookExcludingFormContentFilter("")));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
+  }
+
+  @Test
+  void formContentFilterConflictCheckPassesWithOnlyTheWebhookExcludingFilter() {
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new WebhookExcludingFormContentFilter("")));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckPassesWithNoFiltersAtAll() {
+    // Matches spring.mvc.formcontent.filter.enabled=false: no FormContentFilter bean at all.
+    var check = configuration.webhookFormContentFilterConflictCheck(List.of());
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
   }
 }

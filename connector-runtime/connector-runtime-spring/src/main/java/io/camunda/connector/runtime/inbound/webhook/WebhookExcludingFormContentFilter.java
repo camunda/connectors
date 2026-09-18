@@ -43,21 +43,35 @@ import org.springframework.web.util.UrlPathHelper;
  * OrderedFormContentFilter}, which {@code spring-boot-servlet} isn't on this module's classpath
  * for) with the same order value Spring Boot's own auto-configured filter uses, so this runs at the
  * same point in the filter chain that it would have.
+ *
+ * <p>Deliberately does <b>not</b> use {@code UrlPathHelper.getPathWithinServletMapping}: for the
+ * common case (Spring Boot's default {@code DispatcherServlet} registration, mapped to the
+ * servlet-spec "default servlet" pattern {@code "/"}), that method's legacy per-servlet-mapping
+ * logic returns an empty string rather than the full path, since the servlet spec treats a {@code
+ * "/"} mapping as consuming the entire path into {@code servletPath} with a {@code null pathInfo} —
+ * which would have silently broken the exclusion for the default configuration this fix must
+ * protect. Instead, this only strips the context path (via {@code getPathWithinApplication}, which
+ * has no such quirk) and, if configured, {@code spring.mvc.servlet.path} explicitly and predictably
+ * as a plain string prefix.
  */
 public class WebhookExcludingFormContentFilter extends FormContentFilter implements Ordered {
 
-  private static final String WEBHOOK_PATH_PREFIX = "/inbound/";
+  private static final String WEBHOOK_PATH = "/inbound";
+  private static final String WEBHOOK_PATH_PREFIX = WEBHOOK_PATH + "/";
 
   /** Matches {@code OrderedFormContentFilter.DEFAULT_ORDER} in spring-boot-servlet. */
   private static final int ORDER = -9900;
 
-  /**
-   * Resolves the path relative to the application (stripping any servlet context path) the same way
-   * Spring's own {@code HandlerMapping} infrastructure does — a raw {@code request.getRequestURI()}
-   * check would miss webhook requests entirely under a non-root {@code
-   * server.servlet.context-path}, since it includes that prefix.
-   */
   private static final UrlPathHelper URL_PATH_HELPER = new UrlPathHelper();
+
+  private final String servletPath;
+
+  /**
+   * @param servletPath the configured {@code spring.mvc.servlet.path}, or {@code ""} if unset.
+   */
+  public WebhookExcludingFormContentFilter(String servletPath) {
+    this.servletPath = servletPath == null ? "" : servletPath;
+  }
 
   @Override
   public int getOrder() {
@@ -66,7 +80,12 @@ public class WebhookExcludingFormContentFilter extends FormContentFilter impleme
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-    return URL_PATH_HELPER.getPathWithinApplication(request).startsWith(WEBHOOK_PATH_PREFIX)
+    String path = URL_PATH_HELPER.getPathWithinApplication(request);
+    if (!servletPath.isEmpty() && path.startsWith(servletPath)) {
+      path = path.substring(servletPath.length());
+    }
+    return path.equals(WEBHOOK_PATH)
+        || path.startsWith(WEBHOOK_PATH_PREFIX)
         || super.shouldNotFilter(request);
   }
 }

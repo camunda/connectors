@@ -20,6 +20,8 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
+import java.util.List;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -47,8 +49,40 @@ public class WebhookConnectorConfiguration {
       name = "spring.mvc.formcontent.filter.enabled",
       havingValue = "true",
       matchIfMissing = true)
-  public FormContentFilter formContentFilter() {
-    return new WebhookExcludingFormContentFilter();
+  public FormContentFilter formContentFilter(
+      @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath) {
+    return new WebhookExcludingFormContentFilter(dispatcherServletPath);
+  }
+
+  /**
+   * Fails startup with a clear error if some other {@code FormContentFilter} bean is also
+   * registered (e.g. a downstream application defining its own under a different bean name): that
+   * filter has no reason to know about {@code /inbound/**} and would still fully buffer webhook
+   * PUT/DELETE bodies before this fix's guards run, silently defeating it. Rather than fail open
+   * (letting an unrelated filter quietly reintroduce the vulnerability) or fail closed on a
+   * bean-name collision only, this checks every {@code FormContentFilter} bean by type.
+   */
+  @Bean
+  InitializingBean webhookFormContentFilterConflictCheck(
+      List<FormContentFilter> formContentFilters) {
+    return () -> {
+      var incompatible =
+          formContentFilters.stream()
+              .filter(f -> !(f instanceof WebhookExcludingFormContentFilter))
+              .map(f -> f.getClass().getName())
+              .toList();
+      if (!incompatible.isEmpty()) {
+        throw new IllegalStateException(
+            "Found FormContentFilter bean(s) that are not WebhookExcludingFormContentFilter: "
+                + incompatible
+                + ". Such a filter still runs before path resolution, the webhook rate limit and"
+                + " the body-size guard, and would fully buffer PUT/DELETE"
+                + " application/x-www-form-urlencoded bodies to /inbound/** with no size limit,"
+                + " defeating this security fix. Either remove the custom filter or have it"
+                + " extend WebhookExcludingFormContentFilter (or otherwise skip /inbound/**"
+                + " itself).");
+      }
+    };
   }
 
   /**

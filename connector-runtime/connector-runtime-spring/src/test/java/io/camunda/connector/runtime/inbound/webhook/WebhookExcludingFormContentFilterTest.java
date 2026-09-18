@@ -24,11 +24,20 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 class WebhookExcludingFormContentFilterTest {
 
-  private final WebhookExcludingFormContentFilter filter = new WebhookExcludingFormContentFilter();
+  private final WebhookExcludingFormContentFilter filter =
+      new WebhookExcludingFormContentFilter("");
 
   @Test
   void shouldNotFilterLegacyWebhookPath() throws Exception {
     assertThat(filter.shouldNotFilter(putFormRequest("/inbound/myPath"))).isTrue();
+  }
+
+  @Test
+  void shouldNotFilterExactWebhookRootPath() throws Exception {
+    // "/inbound" (no trailing segment) doesn't match any @RequestMapping, but FormContentFilter
+    // runs before routing decides that -- it must still be excluded, or a form-urlencoded
+    // PUT/DELETE to exactly this URL is fully buffered before the eventual 404.
+    assertThat(filter.shouldNotFilter(putFormRequest("/inbound"))).isTrue();
   }
 
   @Test
@@ -42,6 +51,15 @@ class WebhookExcludingFormContentFilterTest {
     var request = putFormRequest("/inbound/myPath");
     request.setMethod("DELETE");
     assertThat(filter.shouldNotFilter(request)).isTrue();
+  }
+
+  @Test
+  void shouldNotFilterWebhookPathUnderNonRootServletMapping() throws Exception {
+    // Simulates spring.mvc.servlet.path=/api: DispatcherServlet itself is mapped under /api,
+    // a prefix getPathWithinApplication alone (context path only) would never strip.
+    var filterUnderServletPath = new WebhookExcludingFormContentFilter("/api");
+    assertThat(filterUnderServletPath.shouldNotFilter(putFormRequest("/api/inbound/myPath")))
+        .isTrue();
   }
 
   @Test
