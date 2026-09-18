@@ -73,16 +73,35 @@ class ConfigurableIntrinsicFunctionAllowListFactoryTest {
   }
 
   @Test
+  void enabledModeDoesNotConsultTheCacheUntilAnIntrinsicFunctionCallIsActuallyChecked() {
+    // IntrinsicFunctionUtil's bound-tree walk only calls isAllowed when a job's variables actually
+    // contain a camunda.function.type discriminator somewhere. Consulting the cache -- and so
+    // fetching/parsing the deployed BPMN model -- inside create() itself would pay that cost for
+    // every job, including the overwhelming majority that never use an intrinsic function at all.
+    var allowListCache = mock(ProcessDefinitionIntrinsicFunctionAllowListCache.class);
+    var factory =
+        new ConfigurableIntrinsicFunctionAllowListFactory(
+            IntrinsicFunctionAllowListMode.ENABLED, allowListCache);
+
+    factory.create(context);
+
+    verifyNoInteractions(allowListCache);
+  }
+
+  @Test
   void enabledModeFailsClosedWhenTheCacheThrows() {
     var allowListCache = mock(ProcessDefinitionIntrinsicFunctionAllowListCache.class);
     when(allowListCache.getAllowedFunctions(context))
         .thenThrow(new RuntimeException("BPMN fetch failed"));
+    var allowList =
+        new ConfigurableIntrinsicFunctionAllowListFactory(
+                IntrinsicFunctionAllowListMode.ENABLED, allowListCache)
+            .create(context);
 
     assertThatThrownBy(
             () ->
-                new ConfigurableIntrinsicFunctionAllowListFactory(
-                        IntrinsicFunctionAllowListMode.ENABLED, allowListCache)
-                    .create(context))
+                allowList.isAllowed(
+                    new IntrinsicFunctionAllowList.Call("createLink", List.of("body"))))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("BPMN fetch failed");
   }
