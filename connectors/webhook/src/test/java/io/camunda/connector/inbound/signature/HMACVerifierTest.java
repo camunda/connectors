@@ -57,6 +57,27 @@ class HMACVerifierTest {
   }
 
   @Test
+  void verifySignature_WhenUsingLegacyFourArgConstructor_ShouldNotThrowException() {
+    // Source/binary compatibility: code compiled against the pre-timestamp constructor must keep
+    // working unchanged.
+    HMACVerifier verifier =
+        new HMACVerifier(new HMACScope[] {HMACScope.BODY}, "X-HMAC-Sig", SECRET, sha_256);
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                "fa431d91a69beb76186b3b082c5bb87bab0702769d65761af2361cbf3a17cc09"));
+    when(payload.rawBody()).thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    assertThatCode(() -> verifier.verifySignature(payload)).doesNotThrowAnyException();
+  }
+
+  @Test
   void verifySignature_WhenSignatureDoesNotMatch_ShouldThrowException() {
     HMACVerifier verifier =
         new HMACVerifier(

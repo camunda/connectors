@@ -23,6 +23,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Arrays;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 public record A2aWebhookProperties(
     @TemplateProperty(
@@ -111,7 +112,7 @@ public record A2aWebhookProperties(
             optional = true,
             condition =
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
-        String hmacTimestampHeader,
+        @Nullable String hmacTimestampHeader,
     @TemplateProperty(
             id = "hmacToleranceSeconds",
             label = "HMAC timestamp tolerance (seconds)",
@@ -126,6 +127,33 @@ public record A2aWebhookProperties(
         @Min(1)
         Integer hmacToleranceSeconds,
     @Valid @NotNull WebhookAuthorization auth) {
+
+  /**
+   * Legacy constructor retained for source/binary compatibility with existing connector code built
+   * against the pre-timestamp eight-argument constructor. Disables timestamp validation (no {@code
+   * hmacTimestampHeader}), matching the pre-existing behavior exactly.
+   */
+  public A2aWebhookProperties(
+      String context,
+      String clientResponse,
+      HMACSwitchCustomerChoice shouldValidateHmac,
+      String hmacSecret,
+      String hmacHeader,
+      HMACAlgoCustomerChoice hmacAlgorithm,
+      HMACScope[] hmacScopes,
+      WebhookAuthorization auth) {
+    this(
+        context,
+        clientResponse,
+        shouldValidateHmac,
+        hmacSecret,
+        hmacHeader,
+        hmacAlgorithm,
+        hmacScopes,
+        null,
+        HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS,
+        auth);
+  }
 
   public A2aWebhookProperties(A2aWebhookPropertiesWrapper wrapper) {
     this(

@@ -33,6 +33,19 @@ public class HMACVerifier {
   private final Integer hmacToleranceSeconds;
   private final Clock clock;
 
+  /**
+   * Legacy constructor retained for source/binary compatibility with existing connector code built
+   * against the pre-timestamp four-argument constructor. Disables timestamp validation (no {@code
+   * hmacTimestampHeader}), matching the pre-existing behavior exactly.
+   */
+  public HMACVerifier(
+      HMACScope[] hmacScopes,
+      String hmacHeader,
+      String hmacSecret,
+      HMACAlgoCustomerChoice hmacAlgorithm) {
+    this(hmacScopes, hmacHeader, hmacSecret, hmacAlgorithm, null, null);
+  }
+
   public HMACVerifier(
       HMACScope[] hmacScopes,
       String hmacHeader,

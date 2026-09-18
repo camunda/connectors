@@ -140,6 +140,35 @@ public record WebhookConnectorProperties(
             optional = true)
         Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
 
+  /**
+   * Legacy constructor retained for source/binary compatibility with existing connector code built
+   * against the pre-timestamp nine-argument constructor. Disables timestamp validation (no {@code
+   * hmacTimestampHeader}), matching the pre-existing behavior exactly.
+   */
+  public WebhookConnectorProperties(
+      String method,
+      String context,
+      HMACSwitchCustomerChoice shouldValidateHmac,
+      String hmacSecret,
+      String hmacHeader,
+      HMACAlgoCustomerChoice hmacAlgorithm,
+      HMACScope[] hmacScopes,
+      WebhookAuthorization auth,
+      Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
+    this(
+        method,
+        context,
+        shouldValidateHmac,
+        hmacSecret,
+        hmacHeader,
+        hmacAlgorithm,
+        hmacScopes,
+        null,
+        HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS,
+        auth,
+        verificationExpression);
+  }
+
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
         wrapper.inbound.method != null ? wrapper.inbound.method : HttpMethods.any.name(),
