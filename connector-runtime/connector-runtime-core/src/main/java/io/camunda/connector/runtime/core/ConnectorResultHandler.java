@@ -38,7 +38,6 @@ import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -46,7 +45,6 @@ import org.jspecify.annotations.Nullable;
 public class ConnectorResultHandler {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
-  public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
   private final FeelExpressionEvaluator feelExpressionEvaluator =
       new LocalFeelExpressionEvaluator();
@@ -353,17 +351,56 @@ public class ConnectorResultHandler {
     }
   }
 
+  /**
+   * A substring search over the serialized text would flag any string <em>value</em> that happens
+   * to contain {@code camunda.function.type} too — a benign response body like {@code
+   * {"message":"camunda.function.type"}} has no discriminator object anywhere in it, but would
+   * still fail the job. Walking the parsed tree for the discriminator as an actual object key
+   * (mirroring {@link io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionUtil}'s own
+   * bound-tree walk) rejects only what could actually reach the live intrinsic-function executor.
+   */
   private void verifyNoForbiddenLiterals(String json) {
-    FORBIDDEN_LITERALS.forEach(
-        literal -> {
-          if (json.contains(literal)) {
-            throw new ConnectorInputException(
-                new FeelEngineWrapperException(
-                    String.format(
-                        "The connector result contains a forbidden literal '%s'.", literal),
-                    literal,
-                    json));
-          }
-        });
+    JsonNode tree;
+    try {
+      tree = objectMapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              "Failed to parse the connector result to verify it contains no forbidden literals.",
+              null,
+              json,
+              e));
+    }
+    if (containsForbiddenDiscriminatorKey(tree)) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "The connector result contains a forbidden literal '%s'.",
+                  IntrinsicFunctionModel.DISCRIMINATOR_KEY),
+              IntrinsicFunctionModel.DISCRIMINATOR_KEY,
+              json));
+    }
+  }
+
+  private static boolean containsForbiddenDiscriminatorKey(JsonNode node) {
+    if (node.isObject()) {
+      if (node.has(IntrinsicFunctionModel.DISCRIMINATOR_KEY)) {
+        return true;
+      }
+      for (JsonNode child : node) {
+        if (containsForbiddenDiscriminatorKey(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (node.isArray()) {
+      for (JsonNode child : node) {
+        if (containsForbiddenDiscriminatorKey(child)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
