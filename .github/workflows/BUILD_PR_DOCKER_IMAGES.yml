@@ -22,7 +22,7 @@ jobs:
     # and this never runs on a self-hosted runner - see PUBLISH_PR_DOCKER_IMAGES.yml for
     # the privileged publish stage, which runs from the workflow definition on the
     # default branch (workflow_run) so a PR can't rewrite its own privileged job.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     # Skip fork PRs: pull_request runs from forks don't get repository secrets, and this
