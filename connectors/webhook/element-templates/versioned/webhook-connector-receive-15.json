@@ -1,19 +1,18 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Webhook Boundary Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
+  "name" : "Webhook Receive Task Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorReceive.v1",
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 16,
+  "version" : 15,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "appliesTo" : [ "bpmn:ReceiveTask" ],
   "elementType" : {
-    "value" : "bpmn:BoundaryEvent",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:ReceiveTask"
   },
   "engines" : {
     "camunda" : "^8.3"
@@ -303,46 +302,6 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.jwkUrl",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.auth.jwt.issuer",
-    "label" : "Issuer",
-    "description" : "Expected value of the JWT 'iss' claim",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.jwt.issuer",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.auth.jwt.audience",
-    "label" : "Audience",
-    "description" : "Expected value of the JWT 'aud' claim",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.jwt.audience",
       "type" : "zeebe:property"
     },
     "condition" : {

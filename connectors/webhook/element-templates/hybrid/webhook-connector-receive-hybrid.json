@@ -5,7 +5,7 @@
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 15,
+  "version" : 16,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -307,6 +307,46 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.jwkUrl",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.jwt.issuer",
+    "label" : "Issuer",
+    "description" : "Expected value of the JWT 'iss' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.issuer",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.jwt.audience",
+    "label" : "Audience",
+    "description" : "Expected value of the JWT 'aud' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.audience",
       "type" : "zeebe:property"
     },
     "condition" : {
