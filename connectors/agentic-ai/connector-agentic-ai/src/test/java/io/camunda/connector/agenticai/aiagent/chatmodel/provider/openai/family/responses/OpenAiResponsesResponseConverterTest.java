@@ -14,6 +14,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.responses.Response;
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -22,12 +24,14 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 /**
  * {@link Response} and its output items are response-side vendor SDK models: their generated {@code
@@ -42,6 +46,8 @@ class OpenAiResponsesResponseConverterTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final OpenAiResponsesResponseConverter converter =
       new OpenAiResponsesResponseConverter(objectMapper);
+  private final AgentInstanceHistoryMapper historyMapper =
+      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   private static Response responseFromJson(String json) {
     try {
@@ -219,6 +225,21 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(payload).containsEntry("type", "reasoning");
     assertThat(payload).containsEntry("encrypted_content", "encrypted-blob");
     assertThat(payload).doesNotContainKey("summary");
+
+    assertThat(historyMapper.assistantContent(result.assistantMessage()).getFirst())
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                    .containsExactlyInAnyOrderEntriesOf(
+                        Map.of(
+                            "camunda.agenticai.content.type",
+                            "reasoning",
+                            "text",
+                            "Thinking about it",
+                            "payload",
+                            payload)));
   }
 
   @Test
@@ -239,6 +260,15 @@ class OpenAiResponsesResponseConverterTest {
     @SuppressWarnings("unchecked")
     final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
     assertThat(payload).containsEntry("id", "rs_2");
+
+    assertThat(historyMapper.assistantContent(result.assistantMessage()).getFirst())
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                    .containsExactlyInAnyOrderEntriesOf(
+                        Map.of("camunda.agenticai.content.type", "reasoning", "payload", payload)));
   }
 
   @Test

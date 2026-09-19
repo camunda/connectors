@@ -1813,12 +1813,14 @@ tool calls the mapper resolves it from the namespaced name via `GatewayToolHandl
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
 gateway element id parsed from the namespaced name.
 
-Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
-`DocumentContent` → a document reference block (Camunda documents only; external document references
-currently fall back to an object/text block — see follow-ups), and the additive `ReasoningContent` /
-`ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
-provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
-path yet).
+Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
+`DocumentContent` → a Camunda document reference block. External document references currently fall
+back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
+`camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
+persisted. Replay-critical provider values must therefore live in `payload`. Gemini duplicates
+`thoughtSignature` there while retaining the metadata fallback for migrated instances.
+`ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
+(`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet).
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job

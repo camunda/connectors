@@ -271,15 +271,9 @@ public class GeminiContentResponseConverter {
     return withoutText.isEmpty() ? null : new ProviderContent(GOOGLE_GEMINI_ID, raw, null);
   }
 
-  /**
-   * Splits a thinking part into the three places {@link GeminiContentConverter#toParts(List)} reads
-   * it back from on replay: the thinking text into {@code text}, the {@code thoughtSignature}
-   * base64-encoded into {@code metadata}, and whatever remains of the raw part into {@code payload}
-   * so nothing is dropped.
-   */
+  /** Preserves the raw part for replay while lifting readable thinking text. */
   private ReasoningContent toReasoningContent(Part part) {
     final Map<String, Object> raw = new LinkedHashMap<>(rawPart(part));
-    raw.remove("thoughtSignature");
 
     final String text = part.text().filter(StringUtils::hasText).orElse(null);
     if (text != null) {
