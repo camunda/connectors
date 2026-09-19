@@ -1819,8 +1819,8 @@ back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagg
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
 persisted. Replay-critical provider values must therefore live in `payload`. Gemini duplicates
 `thoughtSignature` there while retaining the metadata fallback for migrated instances.
-`ProviderContent` maps to its raw provider payload (`AgentInstanceHistoryMapper`; neither content
-type is produced by the LangChain4j path yet).
+`ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
+(`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet).
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job
