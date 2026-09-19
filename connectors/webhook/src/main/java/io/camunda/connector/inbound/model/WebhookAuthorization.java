@@ -32,7 +32,7 @@ import java.util.function.Function;
     label = "Authorization type",
     group = "authorization",
     description = "Choose the authorization type",
-    defaultValue = "NONE")
+    defaultValue = "APIKEY")
 public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth, JwtAuth {
 
   @TemplateSubType(id = "NONE", label = "None")

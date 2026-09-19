@@ -19,8 +19,8 @@
           <zeebe:input source="notification" target="data.connectorMode.operation.settings.responseRetrievalMode.type" />
           <zeebe:input source="http://localhost:8085/inbound/my-webhook-id" target="data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl" />
           <zeebe:input source="=uuid()" target="data.connectorMode.operation.settings.responseRetrievalMode.token" />
-          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes" />
-          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.credentials" />
+          <zeebe:input source="=[&#34;Basic&#34;]" target="data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes" />
+          <zeebe:input source="bXl1c2VyOm15cGFzc3dvcmQ=" target="data.connectorMode.operation.settings.responseRetrievalMode.credentials" />
           <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
           <zeebe:input source="PT1M" target="data.connectorMode.operation.settings.timeout" />
         </zeebe:ioMapping>
@@ -64,7 +64,9 @@
           <zeebe:property name="inbound.context" value="my-webhook-id" />
           <zeebe:property name="inbound.clientResponse" value="=internal_clientResponse" />
           <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
-          <zeebe:property name="inbound.auth.type" value="NONE" />
+          <zeebe:property name="inbound.auth.type" value="BASIC" />
+          <zeebe:property name="inbound.auth.username" value="myuser" />
+          <zeebe:property name="inbound.auth.password" value="mypassword" />
           <zeebe:property name="activationCondition" value="=is defined(request.body.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], request.body.status.state))" />
           <zeebe:property name="correlationKeyExpression" value="=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (&#34;-&#34; + request.headers.`x-a2a-notification-token`) else &#34;&#34;)" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />

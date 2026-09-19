@@ -14,7 +14,9 @@
                     <zeebe:property name="inbound.method" value="any" />
                     <zeebe:property name="inbound.context" value="testId" />
                     <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
-                    <zeebe:property name="inbound.auth.type" value="NONE" />
+                    <zeebe:property name="inbound.auth.type" value="APIKEY" />
+                    <zeebe:property name="inbound.auth.apiKey" value="e2e-test-api-key" />
+                    <zeebe:property name="inbound.auth.apiKeyLocator" value="=request.headers.authorization" />
                     <zeebe:property name="activationCondition" value="<ACTIVATION_CONDITION>" />
                     <zeebe:property name="inbound.responseExpression" value="={body: {documents: documents, someField: &#34;someValue&#34; }}" />
                     <zeebe:property name="consumeUnmatchedEvents" value="true" />

@@ -162,7 +162,10 @@ public class AgentTaskA2aIntegrationTests extends BaseAgentTaskTest {
         zeebeTest, WEBHOOK_ELEMENT_ID, importSchedulers, inboundConnectorTestHelper);
 
     postWithDelay(
-        webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
+        webhookUrl,
+        testFileContent("exchange-rate-agent-webhook-payload.json").get(),
+        Map.of("Authorization", "e2e-test-api-key"),
+        100);
 
     awaitProcessCompletion(zeebeTest);
 

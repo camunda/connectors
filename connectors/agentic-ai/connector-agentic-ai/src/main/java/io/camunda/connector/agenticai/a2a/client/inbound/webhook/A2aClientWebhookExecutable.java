@@ -28,6 +28,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
+import io.camunda.connector.inbound.authorization.WebhookAuthorizationGuard;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
@@ -38,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.webhook.v0",
-    version = 0,
+    version = 1,
     name = "A2A Client Webhook Connector (early access)",
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
@@ -92,6 +93,8 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     this.context = context;
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
+    WebhookAuthorizationGuard.rejectUnauthenticatedActivation(
+        context, props.auth(), props.shouldValidateHmac());
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(

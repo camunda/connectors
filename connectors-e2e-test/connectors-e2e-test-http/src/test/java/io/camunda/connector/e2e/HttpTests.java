@@ -555,7 +555,8 @@ public class HttpTests {
                 multipart(mockUrl)
                     .part(new MockPart("param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
                     .part(new MockPart("param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
-                    .header("THEHEADER", "THEVALUE"))
+                    .header("THEHEADER", "THEVALUE")
+                    .header("Authorization", "e2e-test-api-key"))
             .andExpect(status().isOk())
             .andReturn();
 
