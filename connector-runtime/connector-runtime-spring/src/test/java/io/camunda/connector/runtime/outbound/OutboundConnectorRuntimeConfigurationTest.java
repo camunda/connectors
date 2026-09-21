@@ -240,7 +240,8 @@ class OutboundConnectorRuntimeConfigurationTest {
 
     var secretKeyCacheStore = configuration.secretKeyCacheStore(true, 1000);
     var secretKeyCache =
-        configuration.secretKeyCache(client, bpmnModelCacheStore, secretKeyCacheStore);
+        configuration.secretKeyCache(
+            clientProvider(client), bpmnModelCacheStore, secretKeyCacheStore);
     secretKeyCache.getSecretKeys(new SecretKeyContext(42L, "start", Instant.now().plusSeconds(30)));
 
     verify(client, times(1)).newProcessDefinitionGetXmlRequest(42L);
