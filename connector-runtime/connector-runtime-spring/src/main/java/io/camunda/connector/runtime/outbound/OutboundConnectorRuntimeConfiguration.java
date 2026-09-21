@@ -509,10 +509,12 @@ public class OutboundConnectorRuntimeConfiguration {
   /**
    * Builds its own {@link ProcessDefinitionModelCache} backed by the shared, bounded {@code
    * bpmnModelCacheStore} rather than going through {@link ProcessDefinitionSecretKeyCache}'s {@code
-   * (String, CamundaClient, Cache)} convenience constructor, which allocates its own unbounded,
-   * never-evicting model cache — fine for the test-only convenience that constructor exists for,
-   * but this bean is real production wiring for the legacy scalar single-{@code CamundaClient}
-   * configuration and must not grow without the configured {@code bpmn-model.cache.max-size} limit.
+   * (String, CamundaClient, Cache)} convenience constructor, which allocates its own separate,
+   * fixed-size ({@code maximumSize(1000)}) model cache — fine for the convenience that constructor
+   * exists for, but this bean is real production wiring for the legacy scalar single-{@code
+   * CamundaClient} configuration and should share the one model cache every other consumer draws
+   * from, sized by the configured {@code bpmn-model.cache.max-size} limit, rather than fetch and
+   * parse the same model a second time into a cache of its own.
    */
   @Bean
   public SecretKeyCache secretKeyCache(
