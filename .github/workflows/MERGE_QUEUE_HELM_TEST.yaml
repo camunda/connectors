@@ -654,7 +654,12 @@ jobs:
           overwrite: true
 
       - name: Add debugging guidance on failure
-        if: steps.wait-downstream.outcome == 'failure'
+        # `always() &&` is load-bearing: an `if` with no status-check function
+        # gets an implicit `success()`, and the waiter having failed is exactly
+        # when that is false -- so without it this step is skipped on the only
+        # path it exists for, and the timeout the loop reports lands with no
+        # guidance attached.
+        if: always() && steps.wait-downstream.outcome == 'failure'
         run: |
           DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
           COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
