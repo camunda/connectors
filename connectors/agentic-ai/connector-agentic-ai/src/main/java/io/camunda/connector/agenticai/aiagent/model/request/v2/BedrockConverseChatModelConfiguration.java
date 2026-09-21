@@ -127,8 +127,8 @@ public record BedrockConverseChatModelConfiguration(
           @TemplateProperty(
               group = "model",
               label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
+              tooltip =
+                  "Specify the model ID or inference profile ID. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",
