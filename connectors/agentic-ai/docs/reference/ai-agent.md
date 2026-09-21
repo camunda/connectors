@@ -1784,9 +1784,9 @@ lease-fenced `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
-- An `ASSISTANT` item's content blocks are ordered `text` → `reasoning` → `object` → `document` →
-  everything else (stable within each group), regardless of the order the model produced them in
-  (`AgentInstanceHistoryMapper.assistantContent`). An assistant message with neither text/object/etc.
+- An `ASSISTANT` item's content blocks preserve the order the model produced them in because
+  `AgentInstanceHistoryMapper.assistantContent` maps the source list directly. An assistant message
+  with neither text/object/etc.
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
 
