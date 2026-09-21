@@ -15,7 +15,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
@@ -208,6 +211,32 @@ class OpenAiChatModelFactoryClientTest {
     verify(
         postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
             .withHeader("api-key", equalTo("foundry-secret-key")));
+  }
+
+  @Test
+  void forwardsTheConfiguredTimeoutToTheFoundryCredentialResolver(WireMockRuntimeInfo wireMock) {
+    final var timeout = Duration.ofSeconds(7);
+    final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
+    when(foundryCredentialResolver.bearerTokenSupplier(
+            any(FoundryAuthentication.ClientCredentialsAuthentication.class), eq(timeout)))
+        .thenReturn(() -> "client-credentials-token");
+
+    executeAgainst(
+        foundryCredentialResolver,
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-id", "client-secret", "tenant-id", null, null),
+                null,
+                null,
+                null)),
+        timeout);
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withHeader("Authorization", equalTo("Bearer client-credentials-token")));
   }
 
   @Test
@@ -430,9 +459,38 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   private void executeAgainst(
+      FoundryCredentialResolver foundryCredentialResolver,
+      OpenAiBackend backend,
+      @Nullable Duration timeout) {
+    executeAgainst(
+        httpProxySupport,
+        new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+        backend,
+        foundryCredentialResolver,
+        timeout);
+  }
+
+  private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiChatModelConfiguration.OpenAiApi api,
       OpenAiBackend backend) {
+    executeAgainst(
+        httpProxySupport,
+        api,
+        backend,
+        new FoundryCredentialResolver(
+            new EntraIdTokenCredentialFactory(
+                httpProxySupport,
+                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+        null);
+  }
+
+  private void executeAgainst(
+      AgenticAiHttpProxySupport httpProxySupport,
+      OpenAiChatModelConfiguration.OpenAiApi api,
+      OpenAiBackend backend,
+      FoundryCredentialResolver foundryCredentialResolver,
+      @Nullable Duration timeout) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
@@ -446,15 +504,15 @@ class OpenAiChatModelFactoryClientTest {
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
                 OpenAiResponsesStreamAssembler.accumulating()),
-            new FoundryCredentialResolver(
-                new EntraIdTokenCredentialFactory(
-                    httpProxySupport,
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+            foundryCredentialResolver,
             oAuthClientCredentialsTokenResolver());
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(
-                api, backend, new OpenAiModel(MODEL_ID), null));
+                api,
+                backend,
+                new OpenAiModel(MODEL_ID),
+                timeout != null ? new TimeoutConfiguration(timeout) : null));
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));

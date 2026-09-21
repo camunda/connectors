@@ -370,6 +370,11 @@ non-default scope.
 `FoundryCredentialResolver` resolves an Entra ID variant into a plain `Supplier<String>` (no vendor SDK
 type), pairing the `TokenCredential` from `EntraIdTokenCredentialFactory` with the scope above. It
 caches no token itself: the supplier is invoked per request and relies on the credential's own cache.
+The supplier reads the token straight off the credential (`getTokenSync`). azure-identity's
+`AuthenticationUtil.getBearerTokenSupplier` is deliberately not used: it obtains the token by sending
+a throwaway HTTP request to `www.example.com` and reading the `Authorization` header back off it,
+which would put an outbound call to an unrelated host on every LLM request and bypass the
+credential's own proxy configuration.
 
 ### Credential caching and proxy behavior
 
@@ -390,3 +395,14 @@ exchange with `login.microsoftonline.com` goes through the same proxy as the mod
 than bypassing it. Managed identity is deliberately excluded: its token request targets the
 link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via
 an internet-facing egress proxy.
+
+The connection's configured `timeout` reaches the token exchange as well as the model call, so a
+slow Entra ID endpoint or IMDS cannot stall a request indefinitely. It is applied as the credential
+HTTP client's connect and response timeout, for both Entra ID variants, which makes it a per-attempt
+rather than an overall deadline: each phase may consume it in full, and azure-identity's own retries
+start a fresh attempt, so a retrying token exchange can outlast a single `timeout`. Because it is baked
+into that client, it is part of the credential cache key: two otherwise identical configurations with
+different timeouts get their own credential rather than silently sharing whichever was built first.
+When no connection timeout is supplied, the factories use the configured
+`chat-model.api.default-timeout`; therefore the credential still receives a configured HTTP client
+even when no proxy is present.
