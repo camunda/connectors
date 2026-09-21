@@ -27,6 +27,17 @@
     <version.anthropic-java>2.64.0</version.anthropic-java>
     <version.openai-java>4.65.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
+    <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
+         A template whose id has no entry here keeps the generator's own default
+         (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
+         legacy <thinking> XML scaffold that DEFAULT_SYSTEM_PROMPT (the v2 default) dropped in
+         favor of each provider's native reasoning/thinking configuration. -->
+    <systemPromptOverrides>
+io.camunda.connectors.agenticai.aiagent.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.jobworker.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+    </systemPromptOverrides>
   </properties>
 
   <licenses>
@@ -688,6 +699,10 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -734,6 +749,10 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -767,6 +786,10 @@
                 <property>
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -806,6 +829,10 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -839,6 +866,10 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -878,6 +909,10 @@
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -903,6 +938,10 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -933,6 +972,10 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
