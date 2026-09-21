@@ -284,6 +284,7 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "anthropic-foundry-v2/" + model,
+        RealLlmProviderGroup.ANTHROPIC,
         List.of("ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_ENDPOINT"),
         Map.of(
             "provider.type",
@@ -307,6 +308,7 @@ class RealProviderApiSmokeIT {
   static ProviderConfig anthropicFoundryClientCredentialsV2(String model) {
     return new ProviderConfig(
         "anthropic-foundry-client-credentials-v2/" + model,
+        RealLlmProviderGroup.ANTHROPIC,
         List.of(
             "ANTHROPIC_FOUNDRY_ENDPOINT",
             "ANTHROPIC_FOUNDRY_TENANT_ID",
