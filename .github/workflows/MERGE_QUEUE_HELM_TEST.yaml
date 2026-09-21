@@ -451,11 +451,14 @@ jobs:
 
           # Bound the wait by wall clock rather than by a tick count. A tick
           # is not a fixed cost: a poll whose `gh_api_with_retry` exhausts its
-          # backoff burns up to 62s on top of the 30s tick, so counting ticks
-          # says nothing about how long this step runs (100 ticks is ~50min at
-          # best and ~153min at worst). Only an absolute deadline keeps the
-          # loop -- not the runner -- the thing that ends the wait, which is
-          # what lets the timeout path below report a reason.
+          # backoff burns up to 62s on top of the 30s tick. So a tick count
+          # sized to the budget below -- 100 ticks for 50min -- would say
+          # nothing about how long the step actually runs: ~50min at best,
+          # ~153min at worst. (These figures describe the budget this job
+          # uses today, not the tick loop that used to be here.) Only an
+          # absolute deadline keeps the loop -- not the runner -- the thing
+          # that ends the wait, which is what lets the timeout path below
+          # report a reason.
           #
           # Size this off the runs the budget can actually bind on: the ones
           # still in progress when it expires, which are overwhelmingly the
