@@ -164,14 +164,22 @@ public class OpenAiResponsesResponseConverter {
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
     for (final ResponseOutputMessage.Content messageContent : message.content()) {
+      // Some models (observed: Qwen3 served through LM Studio's /v1/responses endpoint) emit a
+      // whitespace-only output_text/refusal part alongside a function_call item in the same
+      // response -- TextContent forbids blank text, so a blank part carries no information to
+      // preserve and is dropped rather than crashing the call (camunda/connectors#8895).
       messageContent
           .outputText()
-          .ifPresent(text -> content.add(TextContent.textContent(text.text())));
+          .map(text -> text.text())
+          .filter(StringUtils::hasText)
+          .ifPresent(text -> content.add(TextContent.textContent(text)));
       // A refusal has no dedicated domain content type; kept as TextContent so it survives into
       // ContentFilteredException's partial result instead of being dropped (see hasRefusal).
       messageContent
           .refusal()
-          .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
+          .map(refusal -> refusal.refusal())
+          .filter(StringUtils::hasText)
+          .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
     }
   }
 

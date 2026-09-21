@@ -141,6 +141,49 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
+    // Observed with Qwen3 served through LM Studio's /v1/responses endpoint
+    // (camunda/connectors#8895):
+    // a message item with a whitespace-only output_text part alongside a function_call item in the
+    // same response. TextContent forbids blank text, so the blank part carries no information to
+    // preserve and is dropped rather than crashing the call.
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "   ", "annotations": []}
+                ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+  }
+
+  @Test
   void throwsContentFilteredExceptionForRefusal() {
     assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
         .isInstanceOfSatisfying(
@@ -151,6 +194,33 @@ class OpenAiResponsesResponseConverterTest {
               assertThat(assistantMessage.content())
                   .containsExactly(TextContent.textContent("I can't help with that."));
               assertThat(assistantMessage.toolCalls()).isEmpty();
+            });
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForBlankRefusalWithNoTextContent() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "refusal", "refusal": "   "}
+                ]
+              }
+            ]
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              assertThat(e.partialResult()).isNotNull();
+              assertThat(e.partialResult().assistantMessage().content()).isEmpty();
             });
   }
 
