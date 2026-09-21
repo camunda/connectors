@@ -271,7 +271,7 @@ public class GeminiContentResponseConverter {
     return withoutText.isEmpty() ? null : new ProviderContent(GOOGLE_GEMINI_ID, raw, null);
   }
 
-  /** Preserves the raw part for replay while lifting readable thinking text. */
+  /** Preserves the raw part for durable history while lifting readable thinking text. */
   private ReasoningContent toReasoningContent(Part part) {
     final Map<String, Object> raw = new LinkedHashMap<>(rawPart(part));
 

@@ -1817,8 +1817,10 @@ Content blocks map by type: `TextContent` → text, `ObjectContent` → object (
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
-persisted. Replay-critical provider values must therefore remain in `payload`. Gemini also stores
-`thoughtSignature` in `metadata`, following the established convention used to replay it.
+persisted. Replay-critical provider values must therefore remain durably preserved in `payload`.
+For Gemini, the raw payload retains `thoughtSignature`, while the response converter also places a
+base64 copy in transient `Content.metadata()` for the request converter to use during in-memory
+replay. `AgentInstanceHistoryMapper` does not persist that metadata.
 `ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
 (`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet).
 

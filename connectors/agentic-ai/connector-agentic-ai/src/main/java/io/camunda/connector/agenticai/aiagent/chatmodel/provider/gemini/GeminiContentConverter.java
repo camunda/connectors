@@ -43,8 +43,10 @@ public class GeminiContentConverter {
 
   /**
    * Metadata key under which the Gemini {@code thoughtSignature} is stored on {@link Content}
-   * metadata, base64-encoded as a {@link String}. The response converter writes this key and {@link
-   * #toParts(List)} reads it back to restore the signature on replay.
+   * metadata, base64-encoded as a {@link String}. This metadata is a transient in-memory replay
+   * source: the response converter writes this key and {@link #toParts(List)} reads it back to
+   * restore the signature on replay. The raw signature remains in the provider payload for durable
+   * history.
    */
   public static final String THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
 
