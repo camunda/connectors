@@ -9,9 +9,10 @@ name: AI Agent CPT Tests (PR)
 # This listens only for `labeled`, not `synchronize`, so later pushes require a maintainer to review
 # the new commits and re-apply the label before another credential-bearing run starts.
 #
-# The image-backed E2E class and three in-process provider groups are separate matrix legs. The
-# matrix is capped to one leg at a time to avoid several self-hosted runners doing the same Maven
-# bootstrap concurrently.
+# The image-backed E2E class and in-process provider groups are separate matrix legs. The Bedrock
+# document test is split out because the combined Bedrock shard is long enough to hit runner
+# interruptions during teardown. The matrix is capped to one leg at a time to avoid several
+# self-hosted runners doing the same Maven bootstrap concurrently.
 on:
   pull_request:
     types: [ labeled ]
@@ -56,7 +57,12 @@ jobs:
             maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
           - name: Bedrock real-provider CPT
             provider-group: bedrock
-            test-classes: RealProviderApiSmokeIT,DocumentToolCallResultsIT
+            test-classes: RealProviderApiSmokeIT
+            build-bundle: false
+            maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
+          - name: Bedrock document CPT
+            provider-group: bedrock
+            test-classes: DocumentToolCallResultsIT
             build-bundle: false
             maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
     # Fork PRs get no secrets from `pull_request` by design. Never widen this to
