@@ -142,11 +142,7 @@ class OpenAiResponsesResponseConverterTest {
 
   @Test
   void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
-    // Observed with Qwen3 served through LM Studio's /v1/responses endpoint
-    // (camunda/connectors#8895):
-    // a message item with a whitespace-only output_text part alongside a function_call item in the
-    // same response. TextContent forbids blank text, so the blank part carries no information to
-    // preserve and is dropped rather than crashing the call.
+    // A blank output_text part alongside a function_call must not crash TextContent.
     final Response response =
         baseResponse(
             """

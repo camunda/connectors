@@ -122,9 +122,7 @@ public class AnthropicMessageResponseConverter {
 
   private @Nullable Content toContent(ContentBlock block) {
     if (block.isText()) {
-      // Some models emit a whitespace-only text block alongside a tool_use block in the same turn
-      // -- TextContent forbids blank text, so a blank block carries no information to preserve and
-      // is dropped rather than crashing the call (camunda/connectors#8895).
+      // Blank text carries no information; skip it instead of failing TextContent.
       final String text = block.text().orElseThrow().text();
       return StringUtils.hasText(text) ? TextContent.textContent(text) : null;
     } else if (block.isThinking()) {

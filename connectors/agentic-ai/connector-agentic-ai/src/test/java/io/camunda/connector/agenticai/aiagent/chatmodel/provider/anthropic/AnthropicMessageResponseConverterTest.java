@@ -105,9 +105,7 @@ class AnthropicMessageResponseConverterTest {
 
   @Test
   void mapsBlankTextBlockAlongsideToolUseToNoTextContent() {
-    // Some models emit a whitespace-only text block alongside a tool_use block in the same turn --
-    // TextContent forbids blank text, so the blank block carries no information to preserve and is
-    // dropped rather than crashing the call (camunda/connectors#8895).
+    // A blank text block alongside a tool_use block must not crash TextContent.
     final var message =
         message(
             """
