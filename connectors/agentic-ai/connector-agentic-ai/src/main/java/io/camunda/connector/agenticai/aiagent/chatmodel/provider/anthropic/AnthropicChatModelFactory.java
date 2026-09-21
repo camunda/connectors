@@ -195,8 +195,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
           backendBuilder
               .awsAccessKey(staticAuth.accessKey())
               .awsSecretAccessKey(staticAuth.secretKey());
-      case AwsAuthentication.AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication
-              ignored ->
+      case AwsAuthentication.AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication(
+              ) ->
           backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
     }
   }

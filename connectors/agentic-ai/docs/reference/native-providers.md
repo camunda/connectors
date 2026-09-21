@@ -448,6 +448,9 @@ rather than an overall deadline: each phase may consume it in full, and azure-id
 start a fresh attempt, so a retrying token exchange can outlast a single `timeout`. Because it is baked
 into that client, it is part of the credential cache key: two otherwise identical configurations with
 different timeouts get their own credential rather than silently sharing whichever was built first.
+When no connection timeout is supplied, the factories use the configured
+`chat-model.api.default-timeout`; therefore the credential still receives a configured HTTP client
+even when no proxy is present.
 
 ## AWS credentials
 
@@ -468,6 +471,3 @@ any bound credential. `AwsApiKeyAuthentication` is Bedrock's own bearer API key,
 unrelated to IAM, with its own dedicated `io.camunda:agentic-ai-bedrock-api-key-credential:1`
 credential (`apiKey` only). See [ADR 015](../adr/015-v2-provider-credential-templates.md) for the
 general rationale.
-When no connection timeout is supplied, the factories use the configured
-`chat-model.api.default-timeout`; therefore the credential still receives a configured HTTP client
-even when no proxy is present.

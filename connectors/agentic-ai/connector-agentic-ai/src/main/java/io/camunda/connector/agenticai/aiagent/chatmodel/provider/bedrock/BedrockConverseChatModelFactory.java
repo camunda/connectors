@@ -168,8 +168,8 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
                   StaticCredentialsProvider.create(
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication
-              ignored ->
+      case AwsAuthentication.AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication(
+              ) ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));

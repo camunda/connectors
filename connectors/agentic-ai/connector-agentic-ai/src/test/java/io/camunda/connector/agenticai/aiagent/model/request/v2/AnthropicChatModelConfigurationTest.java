@@ -643,6 +643,13 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
+  void bedrockApiKeyCredentialRedactsSecretInToString() {
+    assertThat(new BedrockApiKeyCredential("bedrock-secret-key").toString())
+        .doesNotContain("bedrock-secret-key")
+        .isEqualTo("BedrockApiKeyCredential{apiKey=[REDACTED]}");
+  }
+
+  @Test
   void requiredBedrockFieldsAreEnforced() {
     final var config =
         new AnthropicChatModelConfiguration(
