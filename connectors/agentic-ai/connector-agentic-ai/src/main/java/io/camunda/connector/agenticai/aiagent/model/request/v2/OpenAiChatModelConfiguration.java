@@ -507,11 +507,9 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
           @TemplateProperty(
               group = "model",
               label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
               tooltip =
-                  "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, "
-                      + "but can be chosen freely when the deployment is created.",
+                  "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, "
+                      + "but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",

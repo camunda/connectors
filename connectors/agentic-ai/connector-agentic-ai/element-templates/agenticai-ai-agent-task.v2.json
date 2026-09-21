@@ -2612,7 +2612,6 @@
   }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2628,7 +2627,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
@@ -2771,7 +2770,6 @@
   }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2787,6 +2785,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID or inference profile ID. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
     "placeholder" : "us.amazon.nova-2-lite-v1:0",
     "type" : "String"
   }, {
@@ -2810,7 +2809,6 @@
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2826,7 +2824,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
@@ -2922,7 +2920,6 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2938,6 +2935,7 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
@@ -2999,7 +2997,6 @@
   }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "Identifier of the model to use.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -3015,6 +3012,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
