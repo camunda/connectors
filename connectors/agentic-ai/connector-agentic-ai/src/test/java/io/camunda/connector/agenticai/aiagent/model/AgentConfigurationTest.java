@@ -144,7 +144,7 @@ class AgentConfigurationTest {
     void changedBackendYieldsDifferentFingerprintEvenWithSameProviderModelAndPrompt() {
       final var apiBackend =
           new OpenAiApiBackend(
-              new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+              new OpenAiApiConnection(null, "sk-test", null, null, null, null, null, null));
       final var customBackend =
           new OpenAiCustomBackend(
               new CustomBackend(

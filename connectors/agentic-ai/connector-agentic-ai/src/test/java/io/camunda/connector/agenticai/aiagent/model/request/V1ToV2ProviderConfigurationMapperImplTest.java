@@ -181,7 +181,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                 new OpenAiCompletionsApi(new CompletionsParameters(2048, null, 0.7, 0.8)),
                 new OpenAiApiBackend(
                     new OpenAiApiConnection(
-                        "openai-key", "org-1", "proj-1", null, null, null, null)),
+                        null, "openai-key", "org-1", "proj-1", null, null, null, null)),
                 new OpenAiModel("gpt-4o"),
                 new TimeoutConfiguration(Duration.ofSeconds(45))));
 

@@ -1203,6 +1203,29 @@
       "value" : "custom"
     } ]
   }, {
+    "id" : "provider.openai.backend.openai.openAiApiCredential",
+    "label" : "OpenAI API credential",
+    "description" : "Select a saved OpenAI API credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.openAiApiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-openai-api-credential:1"
+  }, {
     "id" : "provider.openai.backend.openai.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
@@ -1217,6 +1240,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -1240,6 +1267,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -1263,6 +1294,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -3944,6 +3979,44 @@
       "group" : "provider",
       "binding" : {
         "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-openai-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenAI API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "OpenAI API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "organizationId",
+      "label" : "Organization ID",
+      "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "organizationId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "projectId",
+      "label" : "Project ID",
+      "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "projectId",
         "type" : "property"
       },
       "type" : "String"

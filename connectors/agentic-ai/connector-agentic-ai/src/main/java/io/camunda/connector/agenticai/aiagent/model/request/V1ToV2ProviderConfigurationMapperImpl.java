@@ -130,6 +130,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
             new OpenAiCompletionsApi(completionsParametersOf(model.parameters())),
             new OpenAiApiBackend(
                 new OpenAiApiConnection(
+                    null,
                     authentication.apiKey(),
                     authentication.organizationId(),
                     authentication.projectId(),

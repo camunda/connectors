@@ -170,7 +170,8 @@ class OpenAiChatModelFactoryTest {
         new OpenAiChatModelConfiguration.OpenAiConnection(
             new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
             new OpenAiApiBackend(
-                new OpenAiApiConnection("sk-openai-test", null, null, null, null, null, null)),
+                new OpenAiApiConnection(
+                    null, "sk-openai-test", null, null, null, null, null, null)),
             new OpenAiModel(modelId),
             timeouts));
   }
@@ -180,7 +181,8 @@ class OpenAiChatModelFactoryTest {
         new OpenAiChatModelConfiguration.OpenAiConnection(
             new OpenAiCompletionsApi(new CompletionsParameters(null, null, null, null)),
             new OpenAiApiBackend(
-                new OpenAiApiConnection("sk-openai-test", null, null, null, null, null, null)),
+                new OpenAiApiConnection(
+                    null, "sk-openai-test", null, null, null, null, null, null)),
             new OpenAiModel(modelId),
             null));
   }

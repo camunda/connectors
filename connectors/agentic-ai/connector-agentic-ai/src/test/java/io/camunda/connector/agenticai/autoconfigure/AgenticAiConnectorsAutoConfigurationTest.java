@@ -434,7 +434,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend(
                         new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend
                             .OpenAiApiConnection(
-                            "sk-openai-test", null, null, null, null, null, null)),
+                            null, "sk-openai-test", null, null, null, null, null, null)),
                     new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
                     null)),
             OpenAiChatModelFactory.class),

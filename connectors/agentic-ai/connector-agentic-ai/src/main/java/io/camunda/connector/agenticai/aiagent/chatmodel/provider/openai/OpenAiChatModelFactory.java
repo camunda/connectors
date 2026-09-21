@@ -147,13 +147,13 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private static void applyApiBackend(
       OpenAIOkHttpClient.Builder builder, OpenAiApiBackend apiBackend) {
     final var openai = apiBackend.openai();
-    builder.apiKey(openai.apiKey());
+    builder.apiKey(openai.effectiveApiKey());
 
-    if (openai.organizationId() != null && !openai.organizationId().isBlank()) {
-      builder.organization(openai.organizationId());
+    if (openai.effectiveOrganizationId() != null && !openai.effectiveOrganizationId().isBlank()) {
+      builder.organization(openai.effectiveOrganizationId());
     }
-    if (openai.projectId() != null && !openai.projectId().isBlank()) {
-      builder.project(openai.projectId());
+    if (openai.effectiveProjectId() != null && !openai.effectiveProjectId().isBlank()) {
+      builder.project(openai.effectiveProjectId());
     }
     if (openai.endpoint() != null) {
       builder.baseUrl(openai.endpoint());

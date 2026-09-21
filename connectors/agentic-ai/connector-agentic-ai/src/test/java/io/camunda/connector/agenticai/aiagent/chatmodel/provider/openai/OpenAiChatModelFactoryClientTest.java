@@ -159,6 +159,7 @@ class OpenAiChatModelFactoryClientTest {
     executeAgainst(
         new OpenAiApiBackend(
             new OpenAiApiConnection(
+                null,
                 "openai-api-secret-key",
                 "org-test",
                 "proj-test",
@@ -179,6 +180,7 @@ class OpenAiChatModelFactoryClientTest {
     executeAgainst(
         new OpenAiApiBackend(
             new OpenAiApiConnection(
+                null,
                 "openai-api-secret-key",
                 null,
                 null,

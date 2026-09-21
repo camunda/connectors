@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChat
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FOUNDRY_ID;
 import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -24,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -262,14 +264,26 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record OpenAiApiConnection(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "OpenAI API credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "openAiApiCredential"),
+                  description = "Select a saved OpenAI API credential, or enter the fields below.")
+              @Nullable OpenAiApiCredential openAiApiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "OpenAI API key",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @TemplateProperty(
                   group = "provider",
                   label = "Organization ID",
@@ -277,7 +291,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                       "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  optional = true)
+                  optional = true,
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
               @Nullable String organizationId,
           @TemplateProperty(
                   group = "provider",
@@ -286,7 +304,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                       "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  optional = true)
+                  optional = true,
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
               @Nullable String projectId,
           @HttpUrl
               @TemplateProperty(
@@ -322,9 +344,38 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        /** The OpenAI API key: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveApiKey() {
+          return openAiApiCredential != null ? openAiApiCredential.apiKey() : apiKey;
+        }
+
+        /** The organization ID: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveOrganizationId() {
+          return openAiApiCredential != null
+              ? openAiApiCredential.organizationId()
+              : organizationId;
+        }
+
+        /** The project ID: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveProjectId() {
+          return openAiApiCredential != null ? openAiApiCredential.projectId() : projectId;
+        }
+
+        @JsonIgnore
+        @AssertTrue(message = "OpenAI API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          String effective = effectiveApiKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "OpenAiApiConnection{apiKey=[REDACTED], organizationId="
+          return "OpenAiApiConnection{openAiApiCredential="
+              + openAiApiCredential
+              + ", apiKey=[REDACTED], organizationId="
               + organizationId
               + ", projectId="
               + projectId

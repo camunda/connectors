@@ -77,9 +77,93 @@ class OpenAiChatModelConfigurationTest {
     assertThat(violations)
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.openai.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.openai.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("OpenAI API key is required from the credential or element template");
             });
+  }
+
+  @Test
+  void openAiApiBackendRejectsMissingApiKeyAndCredential() {
+    final var config =
+        configuration(
+            responsesApi(),
+            new OpenAiApiBackend(
+                new OpenAiApiConnection(null, null, null, null, null, null, null, null)),
+            "gpt-5.5");
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.openai.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("OpenAI API key is required from the credential or element template");
+            });
+  }
+
+  @Test
+  void openAiApiBackendResolvesFieldsFromCredentialWithNoViolations() {
+    final var config =
+        configuration(
+            responsesApi(),
+            new OpenAiApiBackend(
+                new OpenAiApiConnection(
+                    new OpenAiApiCredential(
+                        "sk-from-credential", "org-from-credential", "proj-from-credential"),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)),
+            "gpt-5.5");
+
+    assertThat(validator.validate(config)).isEmpty();
+    final OpenAiApiConnection connection = ((OpenAiApiBackend) config.openai().backend()).openai();
+    assertThat(connection.effectiveApiKey()).isEqualTo("sk-from-credential");
+    assertThat(connection.effectiveOrganizationId()).isEqualTo("org-from-credential");
+    assertThat(connection.effectiveProjectId()).isEqualTo("proj-from-credential");
+  }
+
+  @Test
+  void deserialisesOpenAiApiBackendWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "openai-api",
+              "openai": {
+                "openAiApiCredential": {
+                  "apiKey": "sk-from-credential",
+                  "organizationId": "org-from-credential",
+                  "projectId": "proj-from-credential"
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    final OpenAiApiConnection connection = ((OpenAiApiBackend) parsed.openai().backend()).openai();
+    assertThat(connection.effectiveApiKey()).isEqualTo("sk-from-credential");
+    assertThat(connection.effectiveOrganizationId()).isEqualTo("org-from-credential");
+    assertThat(connection.effectiveProjectId()).isEqualTo("proj-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -134,6 +218,7 @@ class OpenAiChatModelConfigurationTest {
   void redactsHeadersAndQueryParametersAndBodyPropertiesInToString() {
     final var connection =
         new OpenAiApiConnection(
+            null,
             "sk-secret",
             null,
             null,
@@ -635,7 +720,7 @@ class OpenAiChatModelConfigurationTest {
 
   private static OpenAiApiBackend openAiApiBackend(String apiKey) {
     return new OpenAiApiBackend(
-        new OpenAiApiConnection(apiKey, null, null, null, null, null, null));
+        new OpenAiApiConnection(null, apiKey, null, null, null, null, null, null));
   }
 
   private static OpenAiCustomBackend customBackend(String endpoint) {

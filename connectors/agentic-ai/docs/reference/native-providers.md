@@ -221,6 +221,13 @@ which is also why the Entra ID token scope is fixed per Azure cloud rather than 
 through the SDK's dedicated `azureServiceVersion(...)` builder method; the unified surface otherwise
 uses implicit versioning.
 
+### Credentials
+
+`openai-api` supports a saved `io.camunda:agentic-ai-openai-api-credential:1` credential (`apiKey`,
+`organizationId`, `projectId` — all three together); the escape hatches (`endpoint`/`headers`/
+`queryParameters`/`bodyProperties`) stay inline and always visible regardless. See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
+
 ### Reasoning effort
 
 One nullable `OpenAiEffort` enum per family. Completions maps it to `reasoningEffort` (input-only; no

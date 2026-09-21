@@ -70,7 +70,7 @@ class OpenAiResponsesStrategyTest {
           new OpenAiConnection(
               new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
               new OpenAiApiBackend(
-                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                  new OpenAiApiConnection(null, "sk-test", null, null, null, null, null, null)),
               new OpenAiModel("gpt-5"),
               null));
 

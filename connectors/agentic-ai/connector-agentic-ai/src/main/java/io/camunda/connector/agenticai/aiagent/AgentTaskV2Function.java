@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiCredential;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -38,7 +39,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = AgentProcessVariables.AGENT_RESPONSE,
-    configurations = {AnthropicApiCredential.class},
+    configurations = {AnthropicApiCredential.class, OpenAiApiCredential.class},
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(

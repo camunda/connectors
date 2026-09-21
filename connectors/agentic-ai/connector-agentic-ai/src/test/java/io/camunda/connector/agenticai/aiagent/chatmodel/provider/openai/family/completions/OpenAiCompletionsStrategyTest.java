@@ -73,7 +73,7 @@ class OpenAiCompletionsStrategyTest {
           new OpenAiConnection(
               new OpenAiCompletionsApi(new CompletionsParameters(null, null, null, null)),
               new OpenAiApiBackend(
-                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                  new OpenAiApiConnection(null, "sk-test", null, null, null, null, null, null)),
               new OpenAiModel("gpt-4o"),
               null));
 

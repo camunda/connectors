@@ -35,6 +35,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConver
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2ApiCredentialWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
@@ -87,7 +88,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         new BedrockConverseV1WireFormatFixture(),
         new BedrockConverseV2WireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture(),
-        new OpenAiResponsesV2WireFormatFixture());
+        new OpenAiResponsesV2WireFormatFixture(),
+        new OpenAiResponsesV2ApiCredentialWireFormatFixture());
   }
 
   /**
