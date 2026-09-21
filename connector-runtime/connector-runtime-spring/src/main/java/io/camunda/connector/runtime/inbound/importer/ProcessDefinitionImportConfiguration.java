@@ -21,6 +21,8 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -50,13 +52,14 @@ public class ProcessDefinitionImportConfiguration {
       matchIfMissing = true)
   public ImportSchedulers messageSubscriptionSearch(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit,
       Importers importers,
       ProcessStateManager processStateManager,
       @Value("${camunda.connector.polling.active-versions-enabled:true}")
           boolean activeVersionsPollingEnabled) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     var searchQueryClientsByPhysicalTenantId =
         PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
             registry, legacyCamundaClient, legacySearchQueryClient, limit);

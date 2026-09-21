@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,7 +78,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   void setUp() throws IOException {
     final var procsssDefinitionClient =
         new ProcessDefinitionClient(
-            camundaClient,
+            singleTenant(camundaClient),
             new AgenticAiConnectorsConfigurationProperties.RetriesProperties(
                 4, Duration.ofMillis(500)));
     final var toolElementsResolver =
