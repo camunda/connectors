@@ -358,13 +358,13 @@
     "type" : "Configuration",
     "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
     "label" : "AWS IAM authentication",
     "description" : "Specify the one-time AWS IAM authentication strategy.",
     "value" : "credentials",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -395,7 +395,7 @@
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.accessKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -405,12 +405,12 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.accessKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {
@@ -434,7 +434,7 @@
     "type" : "String",
     "secret" : true
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.secretKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -444,12 +444,12 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.secretKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {
@@ -1271,13 +1271,13 @@
     "type" : "Configuration",
     "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
-    "id" : "provider.bedrock.authentication.method.type",
+    "id" : "provider.bedrock.authentication.awsIam.type",
     "label" : "AWS IAM authentication",
     "description" : "Specify the one-time AWS IAM authentication strategy.",
     "value" : "credentials",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.method.type",
+      "name" : "provider.bedrock.authentication.awsIam.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1304,7 +1304,7 @@
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.bedrock.authentication.method.accessKey",
+    "id" : "provider.bedrock.authentication.awsIam.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -1314,12 +1314,12 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.method.accessKey",
+      "name" : "provider.bedrock.authentication.awsIam.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.method.type",
+        "property" : "provider.bedrock.authentication.awsIam.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {
@@ -1339,7 +1339,7 @@
     "type" : "String",
     "secret" : true
   }, {
-    "id" : "provider.bedrock.authentication.method.secretKey",
+    "id" : "provider.bedrock.authentication.awsIam.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -1349,12 +1349,12 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.method.secretKey",
+      "name" : "provider.bedrock.authentication.awsIam.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.method.type",
+        "property" : "provider.bedrock.authentication.awsIam.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {

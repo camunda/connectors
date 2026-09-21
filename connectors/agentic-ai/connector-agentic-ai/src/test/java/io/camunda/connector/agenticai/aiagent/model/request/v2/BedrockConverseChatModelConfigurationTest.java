@@ -52,7 +52,7 @@ class BedrockConverseChatModelConfigurationTest {
             "region": "eu-central-1",
             "authentication": {
               "type": "awsIam",
-              "method": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+              "awsIam": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
             },
             "model": {
               "model": "us.amazon.nova-2-lite-v1:0",
@@ -142,8 +142,8 @@ class BedrockConverseChatModelConfigurationTest {
     final var authentication =
         (AwsAuthentication.AwsIamAuthentication) parsed.bedrock().authentication();
     assertThat(authentication.awsCredential()).isNotNull();
-    assertThat(authentication.method()).isNull();
-    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.awsIam()).isNull();
+    assertThat(authentication.getAwsIamWhenNoCredentialBound()).isNull();
     assertThat(authentication.isAuthenticationPresent()).isTrue();
 
     final String reserialised = mapper.writeValueAsString(parsed);
@@ -331,7 +331,7 @@ class BedrockConverseChatModelConfigurationTest {
   void iamAuthenticationPresentWhenOnlyCredentialBound() {
     final var authentication = iamCredential(staticAwsCredential());
 
-    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.getAwsIamWhenNoCredentialBound()).isNull();
     assertThat(authentication.isAuthenticationPresent()).isTrue();
     assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
   }
@@ -353,7 +353,7 @@ class BedrockConverseChatModelConfigurationTest {
             new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
                 "inline-access", "inline-secret"));
 
-    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.getAwsIamWhenNoCredentialBound()).isNull();
     assertThat(authentication.isAuthenticationPresent()).isTrue();
     assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
   }

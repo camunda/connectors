@@ -231,9 +231,10 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.type", "bedrock")
             .property("provider.bedrock.region", "us-east-1")
             .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.bedrock.authentication.type", "credentials")
-            .property("provider.bedrock.authentication.accessKey", "dummy")
-            .property("provider.bedrock.authentication.secretKey", "dummy")
+            .property("provider.bedrock.authentication.type", "awsIam")
+            .property("provider.bedrock.authentication.awsIam.type", "credentials")
+            .property("provider.bedrock.authentication.awsIam.accessKey", "dummy")
+            .property("provider.bedrock.authentication.awsIam.secretKey", "dummy")
             .property("provider.bedrock.model.model", "test-model")
             .property("provider.bedrock.timeouts.timeout", MODEL_TIMEOUT.toString());
   }

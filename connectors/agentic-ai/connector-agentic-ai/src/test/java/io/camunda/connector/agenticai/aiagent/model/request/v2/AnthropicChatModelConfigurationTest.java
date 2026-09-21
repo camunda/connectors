@@ -566,7 +566,7 @@ class AnthropicChatModelConfigurationTest {
                 "region": "eu-central-1",
                 "authentication": {
                   "type": "awsIam",
-                  "method": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+                  "awsIam": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
                 }
               }
             },
@@ -743,7 +743,7 @@ class AnthropicChatModelConfigurationTest {
   void bedrockIamAuthenticationPresentWhenOnlyCredentialBound() {
     final var authentication = iamCredential(staticAwsCredential());
 
-    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.getAwsIamWhenNoCredentialBound()).isNull();
     assertThat(authentication.isAuthenticationPresent()).isTrue();
     assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
   }
@@ -765,7 +765,7 @@ class AnthropicChatModelConfigurationTest {
             new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
                 "inline-access", "inline-secret"));
 
-    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.getAwsIamWhenNoCredentialBound()).isNull();
     assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
   }
 

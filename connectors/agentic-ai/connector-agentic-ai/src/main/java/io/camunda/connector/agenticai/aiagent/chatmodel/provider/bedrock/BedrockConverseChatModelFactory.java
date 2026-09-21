@@ -160,7 +160,7 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
       return;
     }
 
-    switch (Objects.requireNonNull(iam.method())) {
+    switch (Objects.requireNonNull(iam.awsIam())) {
       case AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication
               staticAuth ->
           builder

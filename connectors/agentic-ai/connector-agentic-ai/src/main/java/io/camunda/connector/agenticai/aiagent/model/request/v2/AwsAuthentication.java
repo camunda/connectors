@@ -57,21 +57,21 @@ public sealed interface AwsAuthentication {
                   @TemplateProperty.PropertyCondition(
                       property = "awsCredential",
                       isEmpty = TemplateProperty.NullableBoolean.TRUE))
-          @Nullable AwsIamAuthenticationMethod method)
+          @Nullable AwsIamAuthenticationMethod awsIam)
       implements AwsAuthentication {
 
-    /** The one-time {@link #method}, but only when no credential is bound. */
+    /** The one-time {@link #awsIam}, but only when no credential is bound. */
     @JsonIgnore
     @Valid
-    public @Nullable AwsIamAuthenticationMethod getMethodWhenNoCredentialBound() {
-      return awsCredential != null ? null : method;
+    public @Nullable AwsIamAuthenticationMethod getAwsIamWhenNoCredentialBound() {
+      return awsCredential != null ? null : awsIam;
     }
 
     @JsonIgnore
     @AssertTrue(
         message = "AWS IAM authentication is required from the credential or element template")
     public boolean isAuthenticationPresent() {
-      return awsCredential != null || method != null;
+      return awsCredential != null || awsIam != null;
     }
 
     @JsonIgnore
@@ -82,12 +82,12 @@ public sealed interface AwsAuthentication {
             io.camunda.connector.aws.model.impl.AwsAuthentication
                 .AwsDefaultCredentialsChainAuthentication;
       }
-      return method instanceof AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication;
+      return awsIam instanceof AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication;
     }
 
     @Override
     public String toString() {
-      return "AwsIamAuthentication{awsCredential=" + awsCredential + ", method=" + method + "}";
+      return "AwsIamAuthentication{awsCredential=" + awsCredential + ", awsIam=" + awsIam + "}";
     }
   }
 
