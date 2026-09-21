@@ -98,7 +98,7 @@ class GeminiChatModelConfigurationTest {
   void googleGeminiApiRedactsApiKeyInToString() {
     final var backend =
         new GeminiApiBackend(
-            new GeminiApiBackend.GoogleGeminiApi("gm-super-secret", "https://example.com"));
+            new GeminiApiBackend.GoogleGeminiApi(null, "gm-super-secret", "https://example.com"));
 
     final String toString = backend.toString();
     assertThat(toString).doesNotContain("gm-super-secret");
@@ -110,7 +110,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("  ", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "  ", null)),
                 new GeminiModel("gemini-3-pro-preview", null),
                 null));
 
@@ -120,9 +120,78 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("Gemini API key is required from the credential or element template");
             });
+  }
+
+  @Test
+  void geminiApiBackendRejectsMissingApiKeyAndCredential() {
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, null, null)),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("Gemini API key is required from the credential or element template");
+            });
+  }
+
+  @Test
+  void geminiApiBackendResolvesApiKeyFromCredentialWithNoViolations() {
+    final var credential = new GoogleGeminiApiCredential("gm-from-credential");
+    final var googleGeminiApi = new GeminiApiBackend.GoogleGeminiApi(credential, null, null);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(googleGeminiApi),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+  }
+
+  @Test
+  void deserialisesGoogleGeminiApiCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-gemini-api",
+              "googleGeminiApi": {
+                "googleGeminiApiCredential": { "apiKey": "gm-from-credential" }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+    assertThat(validator.validate(parsed)).isEmpty();
+
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    final GeminiApiBackend.GoogleGeminiApi googleGeminiApi =
+        ((GeminiApiBackend) gemini.googleGemini().backend()).googleGeminiApi();
+    assertThat(googleGeminiApi.googleGeminiApiCredential())
+        .isEqualTo(new GoogleGeminiApiCredential("gm-from-credential"));
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -132,7 +201,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -155,7 +224,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -169,7 +238,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -191,7 +260,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -205,7 +274,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -226,7 +295,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -238,7 +307,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", null),
                 null));
 
@@ -250,7 +319,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("  ", null),
                 null));
 

@@ -505,7 +505,7 @@ class GeminiChatModelFactoryTest {
       @Nullable String endpoint, @Nullable Duration timeout) {
     return new GeminiChatModelConfiguration(
         new GeminiConnection(
-            new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
+            new GeminiApiBackend(new GoogleGeminiApi(null, API_KEY, endpoint)),
             new GeminiModel(MODEL_ID, null),
             timeout != null ? new TimeoutConfiguration(timeout) : null));
   }

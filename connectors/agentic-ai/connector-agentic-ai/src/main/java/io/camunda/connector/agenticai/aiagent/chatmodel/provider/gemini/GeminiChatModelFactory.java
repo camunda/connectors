@@ -124,7 +124,7 @@ public class GeminiChatModelFactory implements ChatModelFactory {
 
     switch (backend) {
       case GeminiApiBackend apiBackend ->
-          clientBuilder.apiKey(apiBackend.googleGeminiApi().apiKey());
+          clientBuilder.apiKey(apiBackend.googleGeminiApi().effectiveApiKey());
       case GeminiVertexAiBackend vertexAiBackend ->
           applyVertexAiBackend(clientBuilder, vertexAiBackend);
     }

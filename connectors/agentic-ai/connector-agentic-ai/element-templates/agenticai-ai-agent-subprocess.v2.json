@@ -1929,6 +1929,29 @@
       "value" : "google-vertex-ai"
     } ]
   }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+    "label" : "Gemini API credential",
+    "description" : "Select a saved Gemini API credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-google-gemini-api-credential:1"
+  }, {
     "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
     "label" : "Gemini API key",
     "optional" : false,
@@ -1943,6 +1966,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.type",
         "equals" : "google-gemini-api",
         "type" : "simple"
@@ -4017,6 +4044,24 @@
       "group" : "provider",
       "binding" : {
         "name" : "projectId",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-google-gemini-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Gemini API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Gemini API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
         "type" : "property"
       },
       "type" : "String"

@@ -274,9 +274,9 @@ An over-length request is rejected outright with an HTTP 400 (`BadRequestExcepti
 
 ## Gemini
 
-One backend today, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
-Google GenAI Java SDK's Developer API. A second backend, `google-vertex-ai`, is added on a stacked
-branch and shares every converter described below unchanged.
+Two backends, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
+Google GenAI Java SDK's Developer API and `GeminiBackend.GeminiVertexAiBackend`
+(`google-vertex-ai`), sharing every converter described below unchanged.
 
 ### Backends
 
@@ -284,6 +284,12 @@ branch and shares every converter described below unchanged.
 custom-backend variant (no user-configurable headers/query params, unlike Anthropic/OpenAI's
 `*CustomBackend`). `descriptiveProvider()` reports this backend too, e.g.
 `google-gemini/google-vertex-ai`.
+
+### Credentials
+
+`google-gemini-api` supports a saved `io.camunda:agentic-ai-google-gemini-api-credential:1`
+credential (`apiKey` only); the `endpoint` escape hatch stays inline and always visible regardless.
+See [ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning
 

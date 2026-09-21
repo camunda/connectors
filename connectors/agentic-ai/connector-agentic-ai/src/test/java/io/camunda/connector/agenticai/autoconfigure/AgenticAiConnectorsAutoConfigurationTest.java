@@ -378,7 +378,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             new GeminiChatModelConfiguration(
                 new GeminiConnection(
                     new GeminiApiBackend(
-                        new GeminiApiBackend.GoogleGeminiApi("test-api-key", null)),
+                        new GeminiApiBackend.GoogleGeminiApi(null, "test-api-key", null)),
                     new GeminiModel("gemini-3-pro-preview", null),
                     null)),
             GeminiChatModelFactory.class),
