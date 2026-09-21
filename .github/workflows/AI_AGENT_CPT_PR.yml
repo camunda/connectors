@@ -9,8 +9,9 @@ name: AI Agent CPT Tests (PR)
 # This listens only for `labeled`, not `synchronize`, so later pushes require a maintainer to review
 # the new commits and re-apply the label before another credential-bearing run starts.
 #
-# The image-backed E2E class and three in-process provider groups run in parallel. Only the
-# image-backed leg builds the default bundle; the other legs avoid paying that cost.
+# The image-backed E2E class and three in-process provider groups are separate matrix legs. The
+# matrix is capped to one leg at a time to avoid several self-hosted runners doing the same Maven
+# bootstrap concurrently.
 on:
   pull_request:
     types: [ labeled ]
@@ -35,6 +36,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - name: AI Agent bundle E2E
