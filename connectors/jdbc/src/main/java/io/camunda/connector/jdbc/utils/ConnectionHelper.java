@@ -13,6 +13,8 @@ import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,23 +24,41 @@ public class ConnectionHelper {
 
   public static Connection openConnection(JdbcRequest request) {
     SupportedDatabase database = request.database();
-    String driverClassName = database.getDriverClassName();
     try {
       LOG.debug("Executing JDBC request: {}", request);
-      LOG.debug("Loading JDBC driver: {}", driverClassName);
-      Class.forName(driverClassName);
       JdbcConnection connection = resolveConnection(request);
-      Connection conn =
-          DriverManager.getConnection(
-              ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-              connection.getProperties());
-      LOG.debug("Connection established for Database {}: {}", database, conn);
-      return conn;
+      return connect(database, connection, connection.getProperties());
     } catch (ClassNotFoundException e) {
-      throw new ConnectorException("Cannot find class: " + driverClassName);
+      throw new ConnectorException("Cannot find class: " + database.getDriverClassName());
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
+  }
+
+  /**
+   * Throws the driver's own exceptions rather than wrapping them in {@link ConnectorException}, so
+   * that a caller can classify a failure on {@link SQLException#getSQLState()}.
+   */
+  public static Connection openConnection(
+      SupportedDatabase database, JdbcConnection connection, Duration loginTimeout)
+      throws ClassNotFoundException, SQLException {
+    Properties properties = connection.getProperties();
+    LoginTimeoutProperties.applyTo(properties, database, loginTimeout);
+    return connect(database, connection, properties);
+  }
+
+  private static Connection connect(
+      SupportedDatabase database, JdbcConnection connection, Properties properties)
+      throws ClassNotFoundException, SQLException {
+    String driverClassName = database.getDriverClassName();
+    LOG.debug("Loading JDBC driver: {}", driverClassName);
+    Class.forName(driverClassName);
+    Connection conn =
+        DriverManager.getConnection(
+            ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
+            properties);
+    LOG.debug("Connection established for Database {}: {}", database, conn);
+    return conn;
   }
 
   /**

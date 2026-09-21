@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.http.Headers;
@@ -212,6 +214,21 @@ class AnthropicChatModelTest {
   }
 
   @Test
+  void propagatesConnectorExceptionFromFailedTokenExchangeUnwrapped() {
+    final var tokenExchangeFailure =
+        new ConnectorException("OAUTH_TOKEN_EXCHANGE_FAILED", "invalid_client");
+
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages()).thenThrow(tokenExchangeFailure);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten the OAuth interceptor's
+    // ConnectorException (with its own error code and response variables) into a generic
+    // FAILED_MODEL_CALL, losing the token-exchange diagnostics.
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(tokenExchangeFailure);
+  }
+
+  @Test
   void closesUnderlyingClient() {
     api.close();
 
@@ -219,11 +236,18 @@ class AnthropicChatModelTest {
   }
 
   @Test
-  void closeLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+  void closeLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
-    api.close();
+    var events = logsOf(AnthropicChatModel.class, api::close);
 
     verify(client).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage()).isEqualTo("Failed to close AnthropicClient");
+            });
   }
 }

@@ -41,7 +41,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +55,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +109,10 @@ class AnthropicChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -170,6 +181,44 @@ class AnthropicChatModelFactoryClientTest {
                 wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
+  }
+
+  @Test
+  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "oauth-access-token",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    executeAgainst(
+        new AnthropicCustomBackend(
+            new AnthropicCustomBackend.CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new OAuthClientCredentialsAuthentication(
+                    wireMock.getHttpBaseUrl() + "/oauth/token",
+                    "client-123",
+                    "secret-123",
+                    null,
+                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
+                        .BASIC_AUTH_HEADER,
+                    null))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer oauth-access-token"))
+            .withoutHeader("x-api-key"));
   }
 
   @Test
@@ -257,6 +306,13 @@ class AnthropicChatModelFactoryClientTest {
     }
   }
 
+  private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return new OAuthClientCredentialsTokenResolver(
+        new io.camunda.connector.http.client.authentication.OAuthService(),
+        new io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache(),
+        new io.camunda.connector.http.client.client.apache.CustomApacheHttpClient());
+  }
+
   private void executeAgainst(AnthropicBackend backend) {
     executeAgainst(httpProxySupport, backend);
   }
@@ -265,9 +321,11 @@ class AnthropicChatModelFactoryClientTest {
       AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
     final var factory =
         new AnthropicChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
-            new AnthropicMessageResponseConverter(objectMapper));
+            new AnthropicMessageResponseConverter(objectMapper),
+            oAuthClientCredentialsTokenResolver());
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));

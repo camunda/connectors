@@ -12,7 +12,7 @@ on:
       - '!main'
       - '!gh-readonly-queue/**'
   merge_group:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
 
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
 # letting push and pull_request events cancel each other. Merge-queue runs
@@ -25,7 +25,7 @@ concurrency:
 jobs:
   run-tests:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - uses: actions/setup-node@v7.0.0
         with:
@@ -117,7 +117,7 @@ jobs:
       # the `process-classes` phase (element-template-generator-maven-plugin),
       # writing them back into each connector's element-templates/ source dir.
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
+        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C '-P!autoFormat'
 
       # Fail if the regenerated templates differ from what's committed. This is a
       # diff check only — CI never commits or modifies files. Versioned snapshots
@@ -194,7 +194,7 @@ jobs:
 
   check-javadoc:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -228,7 +228,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -268,14 +268,14 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
 
       - name: Check Javadoc
-        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly
+        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
   check-format:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -309,7 +309,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -349,7 +349,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
 
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly

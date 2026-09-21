@@ -27,6 +27,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Set;
@@ -154,7 +155,7 @@ class PhysicalTenantIdResolutionTest {
 
   @Test
   void buildDocumentFactoriesByPhysicalTenantId_usesManuallySuppliedOverrideForASingleClient() {
-    // simulates the @Primary DocumentFactory test-spy pattern used by WebhookActivatedDocumentTests
+    // Simulates an application supplying its own primary DocumentFactory.
     var registry = mock(CamundaClientRegistry.class);
     var client = clientWithPhysicalTenantId("tenant");
     when(registry.clientNames()).thenReturn(Set.of("default"));
@@ -203,5 +204,36 @@ class PhysicalTenantIdResolutionTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("tenant-a")
         .hasMessageContaining("tenant-b");
+  }
+
+  @Test
+  void searchQueryClientFactory_keepsAManuallySuppliedOverrideForASingleClient() {
+    // The factory is what a CamundaClientLifecycleAware consumer (ImportSchedulers) applies when it
+    // rebuilds one entry for a restarted client. It must honour the same single-client override
+    // rule as the startup snapshot, or a restart would silently swap an E2E suite's @MockitoBean
+    // SearchQueryClient for a real one mid-test.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("default"));
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+
+    var factory =
+        PhysicalTenantIds.searchQueryClientFactory(registry, overrideSearchQueryClient, 200);
+
+    assertThat(factory.apply(clientWithPhysicalTenantId("tenant")))
+        .isSameAs(overrideSearchQueryClient);
+  }
+
+  @Test
+  void searchQueryClientFactory_ignoresTheOverrideWhenSeveralClientsAreConfigured() {
+    // Mirrors the startup rule: applying one override to every physical tenant would have each
+    // tenant's search silently query through the same client.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-a", "engine-b"));
+
+    var factory =
+        PhysicalTenantIds.searchQueryClientFactory(registry, mock(SearchQueryClient.class), 200);
+
+    assertThat(factory.apply(clientWithPhysicalTenantId("tenanta")))
+        .isInstanceOf(SearchQueryClientImpl.class);
   }
 }

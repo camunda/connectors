@@ -215,6 +215,7 @@ class OpenAiChatModelConfigurationTest {
 
     assertThat(parsed).isInstanceOf(OpenAiChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("openai");
+    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/openai-api");
     assertThat(parsed.model()).isEqualTo("gpt-5.5");
 
     final OpenAiChatModelConfiguration openai = (OpenAiChatModelConfiguration) parsed;
@@ -307,6 +308,7 @@ class OpenAiChatModelConfigurationTest {
         (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.openai().backend()).isInstanceOf(OpenAiCustomBackend.class);
+    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/custom");
     final OpenAiCustomBackend custom = (OpenAiCustomBackend) parsed.openai().backend();
     assertThat(custom.custom().endpoint()).isEqualTo("https://custom.example.com/v1");
     assertThat(custom.custom().headers()).containsEntry("X-Custom-Header", "value");
@@ -315,6 +317,105 @@ class OpenAiChatModelConfigurationTest {
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesCustomBackendWithOAuthClientCredentialsAuthAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://custom.example.com/v1",
+                "authentication": {
+                  "type": "oauth-client-credentials-flow",
+                  "oauthTokenEndpoint": "https://auth.example.com/oauth/token",
+                  "clientId": "client-123",
+                  "clientSecret": "secret-123",
+                  "scopes": "read:llm"
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final OpenAiCustomBackend custom = (OpenAiCustomBackend) parsed.openai().backend();
+    assertThat(custom.custom().authentication())
+        .isEqualTo(
+            new OAuthClientCredentialsAuthentication(
+                "https://auth.example.com/oauth/token",
+                "client-123",
+                "secret-123",
+                null,
+                OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                "read:llm"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void oAuthClientCredentialsAuthenticationRedactsSecretsInToString() {
+    final var auth =
+        new OAuthClientCredentialsAuthentication(
+            "https://auth.example.com/oauth/token",
+            "client-123",
+            "super-secret-value",
+            null,
+            OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+            null);
+
+    assertThat(auth.toString())
+        .contains("clientId=[REDACTED]", "clientSecret=[REDACTED]")
+        .doesNotContain("client-123", "super-secret-value");
+  }
+
+  @Test
+  void requiredOAuthClientCredentialsFieldsAreEnforced() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                completionsApi(),
+                new OpenAiCustomBackend(
+                    new CustomBackend(
+                        "https://custom.example.com",
+                        null,
+                        null,
+                        null,
+                        new OAuthClientCredentialsAuthentication("", "", "", null, null, null))),
+                new OpenAiModel("gpt-5.5"),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.oauthTokenEndpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.clientId");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.authentication.clientSecret");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            });
   }
 
   @Test
@@ -358,6 +459,7 @@ class OpenAiChatModelConfigurationTest {
         (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.openai().backend()).isInstanceOf(OpenAiFoundryBackend.class);
+    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/foundry");
     final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
     assertThat(foundry.foundry().endpoint()).isEqualTo("https://my-resource.openai.azure.com");
     assertThat(foundry.foundry().authentication())

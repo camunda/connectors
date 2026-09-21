@@ -36,10 +36,9 @@ import java.util.Optional;
 public class HttpCommonRequest {
 
   /**
-   * Shared by every URL property built on this model, inline or credential-override. Matches the
-   * empty string too: the override field is optional, and without that alternative Modeler's
-   * client-side pattern check rejects a blank value even though {@code notEmpty} correctly allows
-   * it - requiredness and shape are two different constraints.
+   * Shared by runtime validation and required inline URL properties. Matches the empty string so
+   * Modeler reports requiredness through {@code notEmpty} instead of also reporting a pattern
+   * violation.
    */
   @TemplateProperty(ignore = true)
   public static final String URL_PATTERN = "^($|=|(http://|https://|secrets|\\{\\{).*$)";
@@ -84,7 +83,9 @@ public class HttpCommonRequest {
   // Template-only twin of `url`, bound to the same `url` input and shown in its place once a
   // credential is chosen: there the URL may come from the credential, so the inline value is an
   // optional override rather than a required field. Never populated - the engine writes a single
-  // `url` input, which Jackson binds to the field above.
+  // `url` input, which Jackson binds to the field above. Keep this twin constraint-free: Modeler's
+  // field validator applies patterns to an undefined optional value, while runtime validation still
+  // applies the URL pattern to the actual `url` field.
   @JsonIgnore
   @TemplateProperty(
       id = "urlOverride",
@@ -97,10 +98,6 @@ public class HttpCommonRequest {
           @PropertyCondition(
               property = "authenticationConfiguration",
               isEmpty = NullableBoolean.FALSE),
-      constraints =
-          @TemplateProperty.PropertyConstraints(
-              pattern =
-                  @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)),
       description =
           "Overrides the URL carried by the selected credential. Required when the credential"
               + " carries none, as an OAuth credential need not.")

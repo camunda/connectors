@@ -34,11 +34,11 @@ import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.grpc.Status;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,8 +60,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.enabled=false",
     })
-@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestExceptionZeebeTest {
@@ -69,6 +69,8 @@ class WebhookControllerTestExceptionZeebeTest {
   @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
 
   @MockitoBean private CamundaClient camundaClient;
+
+  @MockitoBean private OutboundConnectorFactory outboundConnectorFactory;
 
   @Autowired private SecretProviderAggregator secretProvider;
 

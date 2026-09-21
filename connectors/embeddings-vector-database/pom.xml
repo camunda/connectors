@@ -247,6 +247,33 @@
 
   <build>
     <plugins>
+      <!-- GHSA-xjjv-qfjr-95c3 guard: dd-plist is pinned to 1.30 in parent/pom.xml (see
+           version.ddplist). Which dd-plist that pin overrides is governed by version.apache-tika
+           below, not by version.langchain4j: this module excludes langchain4j's Tika artifacts and
+           declares tika-parsers-standard-package itself, so tika-parser-apple-module - and with it
+           dd-plist - comes from this property. The reminder therefore has to live here, where the
+           property is defined; a requireProperty in parent/pom.xml would fail every other module,
+           which does not define it. combine.children="append" keeps the parent's rules in place. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules combine.children="append">
+            <requireProperty>
+              <property>version.apache-tika</property>
+              <regex>^3\.3\.2$</regex>
+              <regexMessage>
+version.apache-tika was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
+If the new Tika version's tika-parser-apple-module pulls dd-plist &gt;= 1.30 (confirm with
+`mvn dependency:tree -Dincludes=com.googlecode.plist:dd-plist -pl connectors/embeddings-vector-database`,
+not just the property), remove the version.ddplist property and the dd-plist dependencyManagement
+entry from parent/pom.xml, and this enforcer rule.
+See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
+              </regexMessage>
+            </requireProperty>
+          </rules>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>

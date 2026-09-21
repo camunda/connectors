@@ -28,8 +28,10 @@ import io.camunda.connector.runtime.instances.service.DefaultInstanceForwardingS
 import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
 import java.net.http.HttpClient;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.restclient.RestTemplateBuilder;
@@ -40,6 +42,7 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import tools.jackson.databind.json.JsonMapper;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseOutboundMultiInstancesTest {
 
   static final String TYPE_1 = "io.camunda:http-json:1";
@@ -69,14 +72,14 @@ abstract class BaseOutboundMultiInstancesTest {
   ConfigurableApplicationContext context1;
   ConfigurableApplicationContext context2;
 
-  @AfterEach
+  @AfterAll
   void tearDown() {
     if (context1 != null) context1.close();
     if (context2 != null) context2.close();
   }
 
-  @BeforeEach
-  void init() {
+  @BeforeAll
+  void startApplications() {
     context1 =
         new SpringApplicationBuilder(TestConnectorRuntimeApplication.class)
             .properties(
@@ -84,7 +87,9 @@ abstract class BaseOutboundMultiInstancesTest {
                 "spring.application.name=instance1",
                 "camunda.connector.hostname=instance1",
                 "camunda.connector.headless.serviceurl=http://whatever:8080",
-                "camunda.connector.broker.monitoring.enabled=false")
+                "camunda.connector.broker.monitoring.enabled=false",
+                "camunda.connector.polling.enabled=false",
+                "camunda.connector.webhook.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)
@@ -108,7 +113,9 @@ abstract class BaseOutboundMultiInstancesTest {
                 "spring.application.name=instance2",
                 "camunda.connector.hostname=instance2",
                 "camunda.connector.headless.serviceurl=http://whatever:8080",
-                "camunda.connector.broker.monitoring.enabled=false")
+                "camunda.connector.broker.monitoring.enabled=false",
+                "camunda.connector.polling.enabled=false",
+                "camunda.connector.webhook.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)
@@ -124,7 +131,11 @@ abstract class BaseOutboundMultiInstancesTest {
                                   instanceForwardingHttpClient, "instance2"));
                 })
             .run();
+  }
 
+  @BeforeEach
+  void init() {
+    Mockito.reset(connectorFactory1, connectorFactory2);
     // instance1: TYPE_1 (enabled), TYPE_2 (enabled), TYPE_DISABLED_IN_INSTANCE_1 (disabled)
     when(connectorFactory1.getRuntimeConfigurations())
         .thenReturn(

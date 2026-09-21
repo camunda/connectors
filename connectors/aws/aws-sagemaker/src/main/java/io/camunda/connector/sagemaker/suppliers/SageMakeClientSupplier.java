@@ -13,8 +13,8 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 public class SageMakeClientSupplier {
 
-  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, and a missing
-  // region falls through to the SDK's default chain instead of throwing NullPointerException.
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is honored and an effective
+  // region is required.
   public SageMakerRuntimeClient getSyncClient(final SageMakerRequest request) {
     return AwsClientSupport.createClient(SageMakerRuntimeClient.builder(), request);
   }

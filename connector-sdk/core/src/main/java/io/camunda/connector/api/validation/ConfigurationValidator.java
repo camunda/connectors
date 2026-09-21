@@ -32,8 +32,11 @@ package io.camunda.connector.api.validation;
  *
  * <p>The runtime resolves a stored configuration instance, deserializes it into {@code T}, and
  * calls {@link #validate(Object)}. Implementations return {@link
- * ConfigurationValidationResult#success()} or {@link ConfigurationValidationResult#failure(String,
- * String)}; a thrown exception is mapped to a failure by the runtime.
+ * ConfigurationValidationResult#success()}, {@link
+ * ConfigurationValidationResult#failure(ConfigurationValidationResult.ErrorCode, String) failure},
+ * or {@link ConfigurationValidationResult#unsupported() unsupported} when the configuration carries
+ * nothing that can be checked out-of-band; a thrown exception is mapped to a failure by the
+ * runtime.
  *
  * @param <T> the configuration type this validator handles
  */

@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -44,12 +45,19 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
-    return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new AnthropicChatModelFactory(
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        requestConverter,
+        responseConverter,
+        oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
@@ -89,8 +97,10 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
@@ -104,17 +114,24 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
-        httpProxySupport, completionsStrategy, responsesStrategy, openAiFoundryCredentialResolver);
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        completionsStrategy,
+        responsesStrategy,
+        openAiFoundryCredentialResolver,
+        oAuthClientCredentialsTokenResolver);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public GeminiChatModelFactory aiAgentGeminiChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new GeminiContentConverter(objectMapper);
     final var requestConverter = new GeminiContentRequestConverter(contentConverter);
     final var responseConverter = new GeminiContentResponseConverter();
-    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new GeminiChatModelFactory(
+        configuration.aiagent().chatModel(), httpProxySupport, requestConverter, responseConverter);
   }
 }

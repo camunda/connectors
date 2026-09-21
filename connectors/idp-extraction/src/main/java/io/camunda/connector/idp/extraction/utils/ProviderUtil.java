@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.idp.extraction.utils;
 
+import static io.camunda.connector.aws.AwsUtils.extractRegionOrDefault;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import io.camunda.connector.idp.extraction.client.ai.AzureAiFoundryClient;
 import io.camunda.connector.idp.extraction.client.ai.AzureOpenAiClient;
@@ -57,7 +59,9 @@ public class ProviderUtil {
         AwsCredentialsProvider credentialsProvider =
             AwsUtil.credentialsProvider(aws.getAuthentication());
         yield new AwsTextrtactExtractionClient(
-            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
+            credentialsProvider,
+            extractRegionOrDefault(aws.getConfiguration(), null),
+            aws.getS3BucketName());
       }
       case AzureProvider azure ->
           new AzureDocumentIntelligenceExtractionClient(
@@ -114,7 +118,9 @@ public class ProviderUtil {
         AwsCredentialsProvider credentialsProvider =
             AwsUtil.credentialsProvider(aws.getAuthentication());
         yield new AwsTextrtactExtractionClient(
-            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
+            credentialsProvider,
+            extractRegionOrDefault(aws.getConfiguration(), null),
+            aws.getS3BucketName());
       }
       case GcpProvider gcp -> {
         DocumentAiRequestConfiguration config =
@@ -196,7 +202,9 @@ public class ProviderUtil {
         AwsCredentialsProvider credentialsProvider =
             AwsUtil.credentialsProvider(aws.getAuthentication());
         yield new BedrockAiClient(
-            credentialsProvider, aws.getConfiguration().region(), input.converseData());
+            credentialsProvider,
+            extractRegionOrDefault(aws.getConfiguration(), null),
+            input.converseData());
       }
       case OpenAiProvider openAi ->
           new OpenAiClient(

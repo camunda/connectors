@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
@@ -53,8 +54,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
@@ -120,6 +126,10 @@ class OpenAiChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+  private final ChatModelProperties chatModelProperties =
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -255,6 +265,19 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   @Test
+  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("Authorization", equalTo("Bearer not-required")));
+  }
+
+  @Test
   void customBackendAppliesHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new OpenAiCustomBackend(
@@ -269,6 +292,43 @@ class OpenAiChatModelFactoryClientTest {
         postRequestedFor(urlPathEqualTo("/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "oauth-access-token",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new OAuthClientCredentialsAuthentication(
+                    wireMock.getHttpBaseUrl() + "/oauth/token",
+                    "client-123",
+                    "secret-123",
+                    null,
+                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
+                        .BASIC_AUTH_HEADER,
+                    null))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("Authorization", equalTo("Bearer oauth-access-token")));
   }
 
   @Test
@@ -350,6 +410,13 @@ class OpenAiChatModelFactoryClientTest {
     }
   }
 
+  private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return new OAuthClientCredentialsTokenResolver(
+        new io.camunda.connector.http.client.authentication.OAuthService(),
+        new io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache(),
+        new io.camunda.connector.http.client.client.apache.CustomApacheHttpClient());
+  }
+
   private void executeAgainst(OpenAiBackend backend) {
     executeAgainst(
         httpProxySupport,
@@ -368,6 +435,7 @@ class OpenAiChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
+            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
@@ -380,7 +448,8 @@ class OpenAiChatModelFactoryClientTest {
             new OpenAiFoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     httpProxySupport,
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+            oAuthClientCredentialsTokenResolver());
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(
