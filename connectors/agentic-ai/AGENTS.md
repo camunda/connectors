@@ -192,12 +192,11 @@ Real-provider / real-LLM acceptance coverage for this module lives in
     - `RealProviderApiSmokeIT` for the OpenAI provider group
     - `RealProviderApiSmokeIT` for the Vertex provider group
     - `RealProviderApiSmokeIT` for the Bedrock provider group
-    - `DocumentToolCallResultsIT` for Bedrock document handling
 
    The workflow is label-triggered only; later pushes require the label to be re-applied. Fork PRs do
    not receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
    for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
-   changed. Matrix execution is capped to one leg at a time (`max-parallel: 1`) because each leg has
+   changed. Matrix execution is capped below full parallelism (`max-parallel: 2`) because each leg has
    its own runner and repeats checkout, Vault imports, tool setup, and Maven bootstrap.
 2. **Provider capabilities**: `RealProviderApiSmokeIT.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
@@ -253,11 +252,10 @@ as full provider coverage.
 
 `DocumentToolCallResultsIT` is not part of the default `it-real-llm` Maven profile because it needs
 Bedrock judge credentials in addition to the provider credentials. The PR workflow opts into it
-explicitly with `-Dit.test` and keeps the Bedrock document run separate from the Bedrock smoke run so
-each CI shard stays short enough for the self-hosted runner. Do not add it back to the default profile
-unless every existing `-Pit-real-llm` caller also imports those judge credentials. Run it locally by
-selecting it explicitly and setting the judge credentials plus whichever provider credentials you want
-its rows to exercise:
+explicitly with `-Dit.test` for the shards that support document assertions. Do not add it back to the
+default profile unless every existing `-Pit-real-llm` caller also imports those judge credentials.
+Run it locally by selecting it explicitly and setting the judge credentials plus whichever provider
+credentials you want its rows to exercise:
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
