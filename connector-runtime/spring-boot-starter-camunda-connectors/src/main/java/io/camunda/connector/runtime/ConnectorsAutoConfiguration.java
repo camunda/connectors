@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
@@ -403,6 +404,19 @@ public class ConnectorsAutoConfiguration {
                 new JacksonModuleDocumentSerializer()));
   }
 
+  /**
+   * This mapper's consumers (inbound context/correlation binding, agentic-ai's AI-provider/MCP/A2A
+   * message and tool-call converters, the app-wide HTTP JSON converter, ...) all bind data that
+   * arrived as external payload, not a model author's FEEL text -- the same "cannot tell trusted
+   * model text from payload data" situation {@link DisabledIntrinsicFunctionExecutor} documents.
+   * None of them run an {@link
+   * io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList} check first the way the
+   * one path that legitimately dispatches live does ({@code JobHandlerContext}, built from the
+   * separate {@code outboundConnectorObjectMapper} below). Auditing every current and future
+   * consumer of a shared, unqualified bean for that gate individually doesn't scale; disabling
+   * dispatch here, at the one place all of them draw from, does (security-testing-findings#275,
+   * closing the general case behind the specific HTTP and agentic-ai instances found first).
+   */
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
@@ -413,8 +427,7 @@ public class ConnectorsAutoConfiguration {
       FeelExpressionEvaluator feelExpressionEvaluator) {
     var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    // default intrinsic function contains a pointer of the copy
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var functionExecutor = new DisabledIntrinsicFunctionExecutor();
 
     // The deserializer module contains the function executor, which contains the pointer of the
     // object mapper
