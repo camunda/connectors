@@ -69,6 +69,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -318,13 +319,19 @@ public class AgenticAiConnectorsAutoConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
     return new JobWorkerAgentExecutionContextFactoryImpl(
-        secretProvider, validationProvider, documentFactory, objectMapper, secretFilterFactory);
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
   }
 
   @Bean

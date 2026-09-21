@@ -52,6 +52,7 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
@@ -99,7 +100,8 @@ class SpringConnectorJobHandlerTest {
             mock(DocumentFactory.class),
             TestObjectMapperSupplier.INSTANCE,
             call,
-            job -> SecretFilter.allowAll());
+            job -> SecretFilter.allowAll(),
+            IntrinsicFunctionAllowListFactory.disabled());
       }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(

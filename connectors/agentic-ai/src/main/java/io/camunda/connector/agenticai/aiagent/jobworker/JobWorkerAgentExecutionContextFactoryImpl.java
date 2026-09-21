@@ -14,6 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentReques
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -28,18 +30,21 @@ public class JobWorkerAgentExecutionContextFactoryImpl
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public JobWorkerAgentExecutionContextFactoryImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   @Override
@@ -51,9 +56,21 @@ public class JobWorkerAgentExecutionContextFactoryImpl
                 job.getProcessDefinitionKey(),
                 job.getElementId(),
                 Instant.ofEpochMilli(job.getDeadline())));
+    final var intrinsicFunctionAllowList =
+        intrinsicFunctionAllowListFactory.create(
+            new IntrinsicFunctionAllowListContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     final JobHandlerContext context =
         new JobHandlerContext(
-            job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
+            job,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter,
+            intrinsicFunctionAllowList);
     try {
       final var request = context.bindVariables(JobWorkerAgentRequest.class);
       return new JobWorkerAgentExecutionContext(jobClient, job, request);

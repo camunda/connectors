@@ -29,7 +29,10 @@ import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -276,6 +279,70 @@ class AgentResponseHandlerTest {
       // then
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isNull();
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+  }
+
+  /**
+   * security-testing-findings#275, PR review thread PRRT_kwDOIGZYus6kVTwr: {@code
+   * ConnectorsAutoConfiguration#connectorObjectMapper} -- the mapper actually injected here in
+   * production -- registers {@link JacksonModuleDocumentDeserializer}, unlike the bare {@code new
+   * ObjectMapper()} the rest of this test class uses. These tests wire a mapper the same way
+   * (document module present, {@link DisabledIntrinsicFunctionExecutor} as its function executor,
+   * matching the fixed production wiring) to prove that an LLM-generated {@code responseText}
+   * shaped like a {@code camunda.function.type} call cannot reach the executor through {@link
+   * AgentResponseHandlerImpl#createResponse}, while an ordinary JSON response still parses
+   * correctly through the same, document-module-equipped mapper.
+   */
+  @Nested
+  class ProductionMapperWiring {
+
+    private AgentResponseHandler handlerWithDocumentModuleMapper() {
+      var documentModuleObjectMapper =
+          new ObjectMapper()
+              .registerModule(
+                  new JacksonModuleDocumentDeserializer(
+                      mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+      return new AgentResponseHandlerImpl(documentModuleObjectMapper);
+    }
+
+    @Test
+    void doesNotDispatchAnIntrinsicFunctionFoundInTheModelResponseText() {
+      // given - an LLM response shaped exactly like the discriminator object this cache/executor
+      // dispatches for a model-declared FEEL literal; here it arrives as ordinary response text,
+      // which no allow-list check ever covers.
+      String exploitJson = "{\"camunda.function.type\":\"base64\",\"params\":[\"test\"]}";
+      when(executionContext.response())
+          .thenReturn(
+              new OutboundConnectorResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false));
+
+      // then - the executor refuses rather than returning "dGVzdA==" (base64("test")), which
+      // would prove the function actually ran.
+      assertThatThrownBy(
+              () ->
+                  handlerWithDocumentModuleMapper()
+                      .createResponse(
+                          executionContext,
+                          AGENT_CONTEXT,
+                          assistantMessage(exploitJson),
+                          TOOL_CALLS))
+          .isInstanceOf(UnsupportedOperationException.class)
+          .hasMessageContaining("Intrinsic function dispatch is disabled");
+    }
+
+    @Test
+    void stillParsesOrdinaryJsonResponseTextThroughTheDocumentModuleEquippedMapper() {
+      when(executionContext.response())
+          .thenReturn(
+              new OutboundConnectorResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false));
+
+      var response =
+          handlerWithDocumentModuleMapper()
+              .createResponse(
+                  executionContext, AGENT_CONTEXT, assistantMessage(HAIKU_JSON), TOOL_CALLS);
+
       assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
     }
   }

@@ -156,12 +156,14 @@
       <artifactId>jsr305</artifactId>
     </dependency>
 
-    <!-- Test -->
+    <!-- Needed to check the camunda.function.type discriminator in the intrinsic-function
+         allow-list cache (security-testing-findings#275) -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
-      <scope>test</scope>
     </dependency>
+
+    <!-- Test -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
