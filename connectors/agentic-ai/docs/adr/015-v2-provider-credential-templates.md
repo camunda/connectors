@@ -68,8 +68,9 @@ property paths more than necessary.
 
 ## Decision Outcome
 
-Chosen option 4. This change applies it to Anthropic, OpenAI, and Gemini (`google-gemini-api` and
-`google-vertex-ai`). Concretely:
+Chosen option 4. This change applies it to Anthropic, OpenAI, Gemini (`google-gemini-api` and
+`google-vertex-ai`), Microsoft Foundry (shared by Anthropic's and OpenAI's Foundry backends), and
+AWS (Bedrock Converse and Anthropic's AWS Bedrock Mantle backend). Concretely:
 
 * Every credential sibling field is named distinctly and prefixed by provider/backend/variant
   (e.g. `anthropicApiCredential`), matching the one precedent already in the codebase
@@ -81,18 +82,25 @@ Chosen option 4. This change applies it to Anthropic, OpenAI, and Gemini (`googl
 * Once a credential is selected, it is authoritative for every field it wraps: the effective value
   always comes from the credential, never a mix of the credential and the diagram's own inline
   values for that same field.
+* Microsoft Foundry's `clientCredentials` variant gets a dedicated
+  `io.camunda:agentic-ai-foundry-client-credentials-credential:1` wrapping client ID, client
+  secret, and tenant ID. Its `authorityHost` travels with the credential too — it identifies which
+  Entra ID authority the credential's identity belongs to, unlike an `endpoint` override, which
+  stays diagram-level. `entraIdScope` stays a diagram-level override, not part of the credential.
+* AWS refines option 4 rather than applying it as-is: gating the whole `AwsAuthentication` variant
+  the way every other provider's authentication variant is gated would put "default credentials
+  chain" at two sibling levels at once, since the reused `io.camunda:aws-credential:1` already
+  carries its own static-keys-vs-default-chain choice internally. Instead, AWS introduces a
+  genuine two-level nested discriminator: an outer authentication-family choice ("AWS IAM" vs.
+  "AWS Bedrock API key"), with the credential-or-inline choice, and inline's own
+  static-vs-default-chain choice, nested only inside the IAM family. The Bedrock API-key family
+  gets its own dedicated `io.camunda:agentic-ai-bedrock-api-key-credential:1`, since the shared AWS
+  credential doesn't cover it. The shared credential's own "default region" field is never
+  consulted — both Bedrock backends' own `region` field stays always required regardless of which
+  credential, if any, is bound.
 
 ## Follow-up
 
 * Anthropic's and OpenAI's `custom` backends are intentionally not covered yet: whether an
   `endpoint` belongs inside a credential there, or stays a per-diagram concern even when the
   authentication is saved, is still open.
-* Bedrock Converse and Anthropic's AWS Bedrock Mantle backend are deferred to a follow-up change.
-  They're expected to apply the same option 4, reusing the existing shared AWS credential
-  (`io.camunda:aws-credential:1`) and its established region-override behavior (a template-only
-  override field bound to the same region property, shown only once a credential is chosen) rather
-  than inventing a parallel resolution mechanism — the same approach every other AWS-backed
-  connector in this repository already uses — plus a dedicated credential for the Bedrock API-key
-  authentication variant, which the shared AWS credential doesn't cover.
-* Microsoft Foundry (shared by Anthropic's and OpenAI's Foundry backends) is deferred to the same
-  follow-up change.
