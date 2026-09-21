@@ -63,6 +63,25 @@ def agentType = binding.hasVariable('agentType') ? agentType : null
 def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
 def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
 
+// optional: "templateId=file" tuples (one per line) of default-system-prompt deviations, keyed by
+// the derived template's own id (this script always assigns the derived template's id from the
+// templateId property above, so that is the stable lookup key here, not the source template's own
+// id). A template whose id has no entry keeps the source template's default. Duplicated in
+// transform-ai-agent-task-template.groovy since each script is invoked as a standalone gmavenplus
+// execution.
+def systemPromptOverrides = binding.hasVariable('systemPromptOverrides') ? systemPromptOverrides : null
+def systemPromptOverrideFileById = [:]
+((String) (systemPromptOverrides ?: "")).eachLine { line ->
+    line = line.trim()
+    if (!line) return
+    def parts = line.split('=', 2)
+    if (parts.length == 2) {
+        systemPromptOverrideFileById[parts[0].trim()] = parts[1].trim()
+    }
+}
+def systemPromptOverrideFile = systemPromptOverrideFileById[(String) templateId]
+def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -175,6 +194,10 @@ def updatedProperties = []
 
     if (property.tooltip) {
         property.tooltip = replaceDocumentationLinks(property.tooltip)
+    }
+
+    if (systemPromptDefault && property.id == "data.systemPrompt.prompt") {
+        property.value = '="' + systemPromptDefault + '"'
     }
 
     // Update specific property values and bindings
