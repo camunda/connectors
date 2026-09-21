@@ -42,12 +42,9 @@ import org.jspecify.annotations.Nullable;
 public class GeminiContentConverter {
 
   /**
-   * Metadata key under which the Gemini {@code thoughtSignature} is stored on a {@link
-   * ReasoningContent}'s {@link Content#metadata()}, base64-encoded as a {@link String}.
-   *
-   * <p>The response converter writes this exact key when it first extracts the signature from a
-   * live response; {@link #toParts(List)} reads it back here to restore the signature verbatim on
-   * replay, which Gemini 3 requires for follow-up tool-calling requests.
+   * Field name used for Gemini {@code thoughtSignature} values. For {@link ReasoningContent}, the
+   * response converter stores the raw signature in {@link ReasoningContent#payload()}, and {@link
+   * #toParts(List)} reads exclusively from that durable payload on replay.
    */
   public static final String THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
 
@@ -187,7 +184,7 @@ public class GeminiContentConverter {
     }
     throw new ConnectorException(
         ERROR_CODE_FAILED_MODEL_CALL,
-        "Unsupported %s metadata value type '%s'"
+        "Unsupported %s value type '%s'"
             .formatted(THOUGHT_SIGNATURE_METADATA_KEY, value.getClass().getSimpleName()));
   }
 

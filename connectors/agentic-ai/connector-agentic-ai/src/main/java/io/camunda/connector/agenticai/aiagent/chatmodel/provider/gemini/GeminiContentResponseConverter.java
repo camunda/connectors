@@ -285,10 +285,11 @@ public class GeminiContentResponseConverter {
 
   /**
    * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()}, flat under {@link
-   * GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY} — the exact shape {@link
-   * GeminiContentConverter#toParts(List)} reads back on replay. No provider namespace is needed
-   * here (unlike on a {@link ToolCall}): every {@link Content} carrying this already names its
-   * provider as a first-class field.
+   * GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY}. On {@link ReasoningContent}, this is a
+   * duplicate compatibility and observability copy, not the replay source: {@link
+   * GeminiContentConverter#toParts(List)} reads the signature exclusively from the raw payload. No
+   * provider namespace is needed here (unlike on a {@link ToolCall}): every {@link Content}
+   * carrying this already names its provider as a first-class field.
    */
   private @Nullable Map<String, Object> thoughtSignatureMetadata(Part part) {
     return part.thoughtSignature()
