@@ -96,7 +96,10 @@ public class AnthropicMessageResponseConverter {
       if (block.isToolUse()) {
         toolCalls.add(toToolCall(block.toolUse().orElseThrow()));
       } else {
-        content.add(toContent(block));
+        final Content converted = toContent(block);
+        if (converted != null) {
+          content.add(converted);
+        }
       }
     }
 
@@ -117,9 +120,13 @@ public class AnthropicMessageResponseConverter {
         .build();
   }
 
-  private Content toContent(ContentBlock block) {
+  private @Nullable Content toContent(ContentBlock block) {
     if (block.isText()) {
-      return TextContent.textContent(block.text().orElseThrow().text());
+      // Some models emit a whitespace-only text block alongside a tool_use block in the same turn
+      // -- TextContent forbids blank text, so a blank block carries no information to preserve and
+      // is dropped rather than crashing the call (camunda/connectors#8895).
+      final String text = block.text().orElseThrow().text();
+      return StringUtils.hasText(text) ? TextContent.textContent(text) : null;
     } else if (block.isThinking()) {
       return toReasoningContent(block);
     } else if (block.isRedactedThinking()) {
