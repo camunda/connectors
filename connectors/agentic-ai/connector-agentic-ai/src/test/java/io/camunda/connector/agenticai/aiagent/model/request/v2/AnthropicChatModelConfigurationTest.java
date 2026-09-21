@@ -728,7 +728,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(foundryBackend.foundry().endpoint())
         .isEqualTo("https://your-resource.services.ai.azure.com");
     assertThat(foundryBackend.foundry().authentication())
-        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"));
+        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -766,10 +766,111 @@ class AnthropicChatModelConfigurationTest {
     assertThat(foundryBackend.foundry().authentication())
         .isEqualTo(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null));
+                null, "client-id", "client-secret", "tenant-id", null, null));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryApiKeyAuthWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://your-resource.services.ai.azure.com",
+                "authentication": {
+                  "type": "apiKey",
+                  "foundryApiKeyCredential": { "apiKey": "foundry-secret-from-credential" }
+                }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    final AnthropicFoundryBackend foundryBackend =
+        (AnthropicFoundryBackend) parsed.anthropic().backend();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication) foundryBackend.foundry().authentication())
+                .effectiveApiKey())
+        .isEqualTo("foundry-secret-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryClientCredentialsAuthWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://your-resource.services.ai.azure.com",
+                "authentication": {
+                  "type": "clientCredentials",
+                  "foundryClientCredentialsCredential": {
+                    "clientId": "client-from-credential",
+                    "clientSecret": "secret-from-credential",
+                    "tenantId": "tenant-from-credential",
+                    "authorityHost": "https://login.microsoftonline.us/"
+                  }
+                }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    final AnthropicFoundryBackend foundryBackend =
+        (AnthropicFoundryBackend) parsed.anthropic().backend();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            foundryBackend.foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void foundryCredentialsRedactSecretsInToString() {
+    assertThat(new FoundryApiKeyCredential("foundry-secret-key").toString())
+        .doesNotContain("foundry-secret-key")
+        .isEqualTo("FoundryApiKeyCredential{apiKey=[REDACTED]}");
+
+    final String clientCredentialsToString =
+        new FoundryClientCredentialsCredential(
+                "client-id",
+                "client-secret-value",
+                "tenant-id",
+                "https://login.microsoftonline.us/")
+            .toString();
+    assertThat(clientCredentialsToString)
+        .doesNotContain("client-secret-value")
+        .contains("clientId=client-id", "clientSecret=[REDACTED]", "tenantId=tenant-id");
   }
 
   @Test
@@ -780,7 +881,7 @@ class AnthropicChatModelConfigurationTest {
                 new AnthropicFoundryBackend(
                     new AnthropicFoundryBackend.FoundryBackend(
                         "",
-                        new FoundryAuthentication.ApiKeyAuthentication("  "),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "  "),
                         null,
                         null,
                         null)),
@@ -799,9 +900,134 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.foundry.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.foundry.authentication.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Microsoft Foundry API key is required from the credential or element"
+                          + " template");
             });
+  }
+
+  @Test
+  void foundryApiBackendResolvesApiKeyFromCredentialWithNoViolations() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ApiKeyAuthentication(
+                new FoundryApiKeyCredential("foundry-secret-from-credential"), null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication)
+                    ((AnthropicFoundryBackend) config.anthropic().backend())
+                        .foundry()
+                        .authentication())
+                .effectiveApiKey())
+        .isEqualTo("foundry-secret-from-credential");
+  }
+
+  @Test
+  void foundryApiBackendCredentialTakesPrecedenceOverInlineApiKey() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ApiKeyAuthentication(
+                new FoundryApiKeyCredential("from-credential"), "from-inline"));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication)
+                    ((AnthropicFoundryBackend) config.anthropic().backend())
+                        .foundry()
+                        .authentication())
+                .effectiveApiKey())
+        .isEqualTo("from-credential");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationResolvesFromCredentialWithNoViolations() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryClientCredentialsCredential(
+                    "client-from-credential",
+                    "secret-from-credential",
+                    "tenant-from-credential",
+                    "https://login.microsoftonline.us/"),
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((AnthropicFoundryBackend) config.anthropic().backend()).foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationCredentialTakesPrecedenceOverInlineFields() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryClientCredentialsCredential(
+                    "client-from-credential",
+                    "secret-from-credential",
+                    "tenant-from-credential",
+                    "https://login.microsoftonline.us/"),
+                "client-inline",
+                "secret-inline",
+                "tenant-inline",
+                "https://login.microsoftonline.com/",
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((AnthropicFoundryBackend) config.anthropic().backend()).foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationFallsBackToInlineAuthorityHostWithoutCredential() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
+                "client-inline",
+                "secret-inline",
+                "tenant-inline",
+                "https://login.microsoftonline.com/",
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((AnthropicFoundryBackend) config.anthropic().backend()).foundry().authentication();
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.com/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationRejectsMissingFieldsAndCredential() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                null, null, null, null, null, null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains(
+            "Microsoft Foundry client ID, client secret and tenant ID are required from the"
+                + " credential or element template");
   }
 
   @Test

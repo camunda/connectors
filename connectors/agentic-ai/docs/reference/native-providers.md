@@ -40,8 +40,9 @@ request. Authentication config and Entra ID token handling are shared with the O
 
 `anthropic-api` supports a saved `io.camunda:agentic-ai-anthropic-api-credential:1` credential
 (`apiKey` only); the escape hatches (`endpoint`/`headers`/`queryParameters`/`bodyProperties`) stay
-inline and always visible regardless. See [ADR 015](../adr/015-v2-provider-credential-templates.md)
-for the general rationale.
+inline and always visible regardless. `foundry`'s credentials are shared with OpenAI — see
+[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials). See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning
 
@@ -225,7 +226,9 @@ uses implicit versioning.
 
 `openai-api` supports a saved `io.camunda:agentic-ai-openai-api-credential:1` credential (`apiKey`,
 `organizationId`, `projectId` — all three together); the escape hatches (`endpoint`/`headers`/
-`queryParameters`/`bodyProperties`) stay inline and always visible regardless. See
+`queryParameters`/`bodyProperties`) stay inline and always visible regardless. `foundry`'s credentials
+are shared with Anthropic — see
+[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials). See
 [ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning effort
@@ -376,6 +379,18 @@ final wrapping into its vendor SDK's credential type, since those types are vend
 `provider.<provider>.backend.foundry.authentication.*`. `ManagedIdentityAuthentication` is blocked on
 SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
 tenant.
+
+### Foundry credentials
+
+`ApiKeyAuthentication` supports a saved `io.camunda:agentic-ai-foundry-api-key-credential:1`
+credential (`apiKey` only). `ClientCredentialsAuthentication` supports a saved
+`io.camunda:agentic-ai-foundry-client-credentials-credential:1` credential (`clientId`,
+`clientSecret`, `tenantId`, `authorityHost`). `authorityHost` travels with this credential rather than
+staying inline like the other escape hatches: it identifies which Entra ID authority the credential's
+identity belongs to, so it's part of the credential's own identity, not diagram-level configuration.
+`entraIdScope` and the `foundry.endpoint` escape hatch stay inline and always visible regardless.
+`ManagedIdentityAuthentication` has no scalars to save. See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Entra ID token scope
 

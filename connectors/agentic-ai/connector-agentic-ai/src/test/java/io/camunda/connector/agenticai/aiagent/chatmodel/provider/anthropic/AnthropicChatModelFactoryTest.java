@@ -115,7 +115,8 @@ class AnthropicChatModelFactoryTest {
         customConfig(MODEL_ID),
         bedrockConfig(
             MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")),
-        foundryConfig(MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication("foundry-key")));
+        foundryConfig(
+            MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-key")));
   }
 
   @Test
@@ -127,7 +128,7 @@ class AnthropicChatModelFactoryTest {
             foundryConfig(
                 MODEL_ID,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null)));
+                    null, "client-id", "client-secret", "tenant-id", null, null)));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();

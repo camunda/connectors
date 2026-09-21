@@ -479,16 +479,13 @@
       "value" : "managedIdentity"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.foundry.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
+    "label" : "Foundry API key credential",
+    "description" : "Select a saved Microsoft Foundry API key credential, or enter an API key below.",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.foundry.authentication.apiKey",
+      "name" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -506,7 +503,69 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-api-key-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+    "label" : "Foundry Entra ID client credentials credential",
+    "description" : "Select a saved Microsoft Foundry Entra ID client credentials credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1"
   }, {
     "id" : "provider.anthropic.backend.foundry.authentication.clientId",
     "label" : "Client ID",
@@ -523,6 +582,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -553,6 +616,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -566,7 +633,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.anthropic.backend.foundry.authentication.tenantId",
     "label" : "Tenant ID",
@@ -583,6 +651,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -610,6 +682,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1390,16 +1466,13 @@
       "value" : "managedIdentity"
     } ]
   }, {
-    "id" : "provider.openai.backend.foundry.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
+    "label" : "Foundry API key credential",
+    "description" : "Select a saved Microsoft Foundry API key credential, or enter an API key below.",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.foundry.authentication.apiKey",
+      "name" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1417,7 +1490,69 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-api-key-credential:1"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+    "label" : "Foundry Entra ID client credentials credential",
+    "description" : "Select a saved Microsoft Foundry Entra ID client credentials credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1"
   }, {
     "id" : "provider.openai.backend.foundry.authentication.clientId",
     "label" : "Client ID",
@@ -1434,6 +1569,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1464,6 +1603,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1477,7 +1620,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.foundry.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1494,6 +1638,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1521,6 +1669,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -4112,6 +4264,81 @@
       "group" : "provider",
       "binding" : {
         "name" : "jsonKey",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-foundry-api-key-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Microsoft Foundry API Key Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Microsoft Foundry Entra ID Client Credentials Credential",
+    "properties" : [ {
+      "id" : "clientId",
+      "label" : "Client ID",
+      "description" : "Microsoft Entra ID application (client) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "clientId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "clientSecret",
+      "label" : "Client secret",
+      "description" : "Microsoft Entra ID application client secret.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "clientSecret",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "tenantId",
+      "label" : "Tenant ID",
+      "description" : "Microsoft Entra ID tenant (directory) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "tenantId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authorityHost",
+      "label" : "Authority host",
+      "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authorityHost",
         "type" : "property"
       },
       "type" : "String"

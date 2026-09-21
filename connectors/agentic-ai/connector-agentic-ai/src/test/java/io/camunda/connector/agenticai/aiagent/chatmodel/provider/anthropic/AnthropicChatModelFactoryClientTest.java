@@ -236,7 +236,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 // FoundryBackend appends "/anthropic/v1/messages", matched by setUp()'s pattern.
                 wireMock.getHttpBaseUrl(),
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 null,
                 null,
                 null)));
@@ -252,7 +252,7 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 Map.of("X-Hidden-Header", "hidden-value"),
                 Map.of("hidden-param", "hidden-value"),
                 Map.of("hidden_field", "hidden_value"))));
@@ -277,7 +277,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)));
@@ -323,7 +323,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)),
@@ -346,7 +346,7 @@ class AnthropicChatModelFactoryClientTest {
           new AnthropicFoundryBackend(
               new AnthropicFoundryBackend.FoundryBackend(
                   "http://192.0.2.1:1",
-                  new FoundryAuthentication.ApiKeyAuthentication("direct-secret-key"),
+                  new FoundryAuthentication.ApiKeyAuthentication(null, "direct-secret-key"),
                   null,
                   null,
                   null)));

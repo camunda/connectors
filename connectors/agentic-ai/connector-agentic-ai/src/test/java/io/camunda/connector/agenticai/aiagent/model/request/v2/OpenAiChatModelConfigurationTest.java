@@ -547,7 +547,7 @@ class OpenAiChatModelConfigurationTest {
     final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
     assertThat(foundry.foundry().endpoint()).isEqualTo("https://my-resource.openai.azure.com");
     assertThat(foundry.foundry().authentication())
-        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-123"));
+        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-123"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -585,10 +585,110 @@ class OpenAiChatModelConfigurationTest {
     assertThat(foundry.foundry().authentication())
         .isEqualTo(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-123", "secret-123", "tenant-123", null, null));
+                null, "client-123", "secret-123", "tenant-123", null, null));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryApiKeyAuthWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://my-resource.openai.azure.com",
+                "authentication": {
+                  "type": "apiKey",
+                  "foundryApiKeyCredential": { "apiKey": "foundry-secret-from-credential" }
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication) foundry.foundry().authentication())
+                .effectiveApiKey())
+        .isEqualTo("foundry-secret-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryClientCredentialsAuthWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://my-resource.openai.azure.com",
+                "authentication": {
+                  "type": "clientCredentials",
+                  "foundryClientCredentialsCredential": {
+                    "clientId": "client-from-credential",
+                    "clientSecret": "secret-from-credential",
+                    "tenantId": "tenant-from-credential",
+                    "authorityHost": "https://login.microsoftonline.us/"
+                  }
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication) foundry.foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void foundryCredentialsRedactSecretsInToString() {
+    assertThat(new FoundryApiKeyCredential("foundry-secret-key").toString())
+        .doesNotContain("foundry-secret-key")
+        .isEqualTo("FoundryApiKeyCredential{apiKey=[REDACTED]}");
+
+    final String clientCredentialsToString =
+        new FoundryClientCredentialsCredential(
+                "client-id",
+                "client-secret-value",
+                "tenant-id",
+                "https://login.microsoftonline.us/")
+            .toString();
+    assertThat(clientCredentialsToString)
+        .doesNotContain("client-secret-value")
+        .contains("clientId=client-id", "clientSecret=[REDACTED]", "tenantId=tenant-id");
   }
 
   @Test
@@ -599,7 +699,7 @@ class OpenAiChatModelConfigurationTest {
                 "https://my-resource.openai.azure.com",
                 null,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-123", "secret-super-secret", "tenant-123", null, null),
+                    null, "client-123", "secret-super-secret", "tenant-123", null, null),
                 Map.of("Authorization", "Bearer secret"),
                 Map.of("api-version", "2026-01-01"),
                 Map.of("large_field", "large_value")));
@@ -624,7 +724,7 @@ class OpenAiChatModelConfigurationTest {
                     new FoundryBackend(
                         "",
                         null,
-                        new FoundryAuthentication.ApiKeyAuthentication("  "),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "  "),
                         null,
                         null,
                         null)),
@@ -643,9 +743,130 @@ class OpenAiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.foundry.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("openai.backend.foundry.authentication.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "A Microsoft Foundry API key is required from the credential or element"
+                          + " template");
             });
+  }
+
+  @Test
+  void foundryApiBackendResolvesApiKeyFromCredentialWithNoViolations() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ApiKeyAuthentication(
+                new FoundryApiKeyCredential("foundry-secret-from-credential"), null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication)
+                    ((OpenAiFoundryBackend) config.openai().backend()).foundry().authentication())
+                .effectiveApiKey())
+        .isEqualTo("foundry-secret-from-credential");
+  }
+
+  @Test
+  void foundryApiBackendCredentialTakesPrecedenceOverInlineApiKey() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ApiKeyAuthentication(
+                new FoundryApiKeyCredential("from-credential"), "from-inline"));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(
+            ((FoundryAuthentication.ApiKeyAuthentication)
+                    ((OpenAiFoundryBackend) config.openai().backend()).foundry().authentication())
+                .effectiveApiKey())
+        .isEqualTo("from-credential");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationResolvesFromCredentialWithNoViolations() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryClientCredentialsCredential(
+                    "client-from-credential",
+                    "secret-from-credential",
+                    "tenant-from-credential",
+                    "https://login.microsoftonline.us/"),
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((OpenAiFoundryBackend) config.openai().backend()).foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationCredentialTakesPrecedenceOverInlineFields() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryClientCredentialsCredential(
+                    "client-from-credential",
+                    "secret-from-credential",
+                    "tenant-from-credential",
+                    "https://login.microsoftonline.us/"),
+                "client-inline",
+                "secret-inline",
+                "tenant-inline",
+                "https://login.microsoftonline.com/",
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((OpenAiFoundryBackend) config.openai().backend()).foundry().authentication();
+    assertThat(authentication.effectiveClientId()).isEqualTo("client-from-credential");
+    assertThat(authentication.effectiveClientSecret()).isEqualTo("secret-from-credential");
+    assertThat(authentication.effectiveTenantId()).isEqualTo("tenant-from-credential");
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.us/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationFallsBackToInlineAuthorityHostWithoutCredential() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
+                "client-inline",
+                "secret-inline",
+                "tenant-inline",
+                "https://login.microsoftonline.com/",
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    final var authentication =
+        (FoundryAuthentication.ClientCredentialsAuthentication)
+            ((OpenAiFoundryBackend) config.openai().backend()).foundry().authentication();
+    assertThat(authentication.effectiveAuthorityHost())
+        .isEqualTo("https://login.microsoftonline.com/");
+  }
+
+  @Test
+  void foundryClientCredentialsAuthenticationRejectsMissingFieldsAndCredential() {
+    final var config =
+        foundryConfig(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                null, null, null, null, null, null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains(
+            "Microsoft Foundry client ID, client secret and tenant ID are required from the"
+                + " credential or element template");
   }
 
   @Test

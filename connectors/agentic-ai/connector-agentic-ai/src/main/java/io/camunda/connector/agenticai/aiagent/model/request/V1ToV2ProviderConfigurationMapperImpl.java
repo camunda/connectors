@@ -268,10 +268,11 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
       AzureOpenAiProviderConfiguration.AzureAuthentication authentication) {
     return switch (authentication) {
       case AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication apiKey ->
-          new FoundryAuthentication.ApiKeyAuthentication(apiKey.apiKey());
+          new FoundryAuthentication.ApiKeyAuthentication(null, apiKey.apiKey());
       case AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication
               clientCredentials ->
           new FoundryAuthentication.ClientCredentialsAuthentication(
+              null,
               clientCredentials.clientId(),
               clientCredentials.clientSecret(),
               clientCredentials.tenantId(),

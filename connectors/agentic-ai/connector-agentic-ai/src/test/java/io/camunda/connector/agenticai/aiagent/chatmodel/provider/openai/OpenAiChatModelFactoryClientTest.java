@@ -202,7 +202,7 @@ class OpenAiChatModelFactoryClientTest {
             new FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 null,
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 null,
                 null,
                 null)));
@@ -229,7 +229,7 @@ class OpenAiChatModelFactoryClientTest {
                 wireMock.getHttpBaseUrl(),
                 null,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)),
@@ -279,7 +279,7 @@ class OpenAiChatModelFactoryClientTest {
                 wireMock.getHttpBaseUrl(),
                 null,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)),
@@ -297,7 +297,7 @@ class OpenAiChatModelFactoryClientTest {
             new FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 null,
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("custom-query-param", "query-value"),
                 null)));
@@ -319,7 +319,7 @@ class OpenAiChatModelFactoryClientTest {
             new FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 "2025-03-01-preview",
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 null,
                 null,
                 null)));

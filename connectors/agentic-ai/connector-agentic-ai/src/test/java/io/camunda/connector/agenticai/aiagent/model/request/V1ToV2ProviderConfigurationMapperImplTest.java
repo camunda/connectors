@@ -531,7 +531,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     new FoundryBackend(
                         "https://my-resource.openai.azure.com",
                         null,
-                        new FoundryAuthentication.ApiKeyAuthentication("azure-api-key"),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "azure-api-key"),
                         null,
                         null,
                         null)),
@@ -563,6 +563,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "https://my-resource.openai.azure.com",
                         null,
                         new FoundryAuthentication.ClientCredentialsAuthentication(
+                            null,
                             "client-id",
                             "client-secret",
                             "tenant-id",
@@ -597,7 +598,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     new FoundryBackend(
                         "https://my-resource.openai.azure.com",
                         null,
-                        new FoundryAuthentication.ApiKeyAuthentication("azure-api-key"),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "azure-api-key"),
                         null,
                         null,
                         null)),

@@ -12,6 +12,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryApiKeyCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryClientCredentialsCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleGeminiApiCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleVertexAiCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiCredential;
@@ -45,7 +47,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       AnthropicApiCredential.class,
       OpenAiApiCredential.class,
       GoogleGeminiApiCredential.class,
-      GoogleVertexAiCredential.class
+      GoogleVertexAiCredential.class,
+      FoundryApiKeyCredential.class,
+      FoundryClientCredentialsCredential.class
     },
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),

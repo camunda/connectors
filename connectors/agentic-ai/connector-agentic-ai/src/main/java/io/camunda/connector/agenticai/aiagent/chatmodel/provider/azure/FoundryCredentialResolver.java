@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentica
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
@@ -56,15 +57,15 @@ public class FoundryCredentialResolver {
    */
   public Supplier<String> bearerTokenSupplier(
       ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {
+    final var authorityHost = authentication.effectiveAuthorityHost();
     final var tokenCredential =
         entraIdTokenCredentialFactory.clientCredentials(
-            authentication.tenantId(),
-            authentication.clientId(),
-            authentication.clientSecret(),
-            authentication.authorityHost(),
+            Objects.requireNonNull(authentication.effectiveTenantId()),
+            Objects.requireNonNull(authentication.effectiveClientId()),
+            Objects.requireNonNull(authentication.effectiveClientSecret()),
+            authorityHost,
             timeout);
-    return tokenSupplier(
-        tokenCredential, scopeFor(authentication.authorityHost(), authentication.entraIdScope()));
+    return tokenSupplier(tokenCredential, scopeFor(authorityHost, authentication.entraIdScope()));
   }
 
   /**

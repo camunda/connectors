@@ -198,7 +198,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
     switch (foundry.authentication()) {
       case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
-          backendBuilder.apiKey(apiKeyAuth.apiKey());
+          backendBuilder.apiKey(Objects.requireNonNull(apiKeyAuth.effectiveApiKey()));
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           backendBuilder.bearerTokenSupplier(
               foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout));

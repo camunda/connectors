@@ -39,6 +39,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -214,7 +215,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
     switch (foundry.authentication()) {
       case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
-          builder.credential(AzureApiKeyCredential.create(apiKeyAuth.apiKey()));
+          builder.credential(
+              AzureApiKeyCredential.create(Objects.requireNonNull(apiKeyAuth.effectiveApiKey())));
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           builder.credential(
               BearerTokenCredential.create(
