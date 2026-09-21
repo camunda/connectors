@@ -44,15 +44,17 @@ public class WebhookConnectorAutoConfiguration {
   // @RequestBody/@ResponseBody in the whole app, not just the webhook controller (which reads its
   // own inbound payload as raw bytes and never goes through this converter at all). The
   // @ConnectorsObjectMapper this bean used to inject also carries live camunda.function.type
-  // dispatch (DefaultIntrinsicFunctionExecutor) with no allow-list gate of its own -- that mapper
-  // is safe only at its one other call site (JobHandlerContext), which always runs
-  // IntrinsicFunctionAllowList first. Reusing it here let ANY @RequestBody binding in the app
-  // (e.g. ConfigurationValidationRestController's credentialRef, a plain String field) dispatch an
-  // arbitrary registered intrinsic function during JSON binding, before any application code --
-  // let alone an allow-list check -- ever ran (security-testing-findings#275's exact bypass, on a
-  // third path). This bean only ever needed document *serialization* for response bodies, so it
-  // builds its own mapper with just that, rather than reusing a mapper built for a different,
-  // allow-list-protected purpose.
+  // dispatch (DefaultIntrinsicFunctionExecutor) with no allow-list gate of its own. Its other
+  // consumers each bind a specific, known-shape payload from a context where that's already
+  // accounted for; an app-wide HTTP converter is different; it accepts an arbitrary request body
+  // for ANY current or future @RequestBody-bound field, with no way to know in general whether
+  // whatever consumes that field guards against live dispatch. Reusing it here let ANY
+  // @RequestBody binding in the app (e.g. ConfigurationValidationRestController's credentialRef, a
+  // plain String field) dispatch an arbitrary registered intrinsic function during JSON binding,
+  // before any application code -- let alone an allow-list check -- ever ran
+  // (security-testing-findings#275's exact bypass, on a third path). This bean only ever needed
+  // document *serialization* for response bodies, so it builds its own mapper with just that,
+  // rather than reusing a mapper built for a different, allow-list-protected purpose.
   @Bean
   @ConditionalOnMissingBean
   public MappingJackson2HttpMessageConverter jackson2HttpMessageConverter() {
