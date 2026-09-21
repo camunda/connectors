@@ -160,7 +160,7 @@ class OpenAiCompletionsResponseConverterTest {
     final ChatCompletion completion =
         baseCompletion(
             """
-            {"role": "assistant", "content": null, "refusal": "   "}
+            {"role": "assistant", "content": null, "refusal": "\\n\\n"}
             """);
 
     assertThatThrownBy(() -> converter.toResult(completion, Duration.ofMillis(100)))

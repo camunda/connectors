@@ -115,7 +115,7 @@ class AnthropicMessageResponseConverterTest {
               "role": "assistant",
               "type": "message",
               "content": [
-                {"type": "text", "text": "   "},
+                {"type": "text", "text": "\\n\\n"},
                 {"type": "tool_use", "id": "toolu_1", "name": "get_weather", "input": {"city": "Berlin"}}
               ],
               "stop_reason": "tool_use",

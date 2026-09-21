@@ -153,7 +153,7 @@ class OpenAiResponsesResponseConverterTest {
                 "role": "assistant",
                 "status": "completed",
                 "content": [
-                  {"type": "output_text", "text": "   ", "annotations": []}
+                  {"type": "output_text", "text": "\\n\\n", "annotations": []}
                 ]
               },
               {
@@ -205,7 +205,7 @@ class OpenAiResponsesResponseConverterTest {
                 "role": "assistant",
                 "status": "completed",
                 "content": [
-                  {"type": "refusal", "refusal": "   "}
+                  {"type": "refusal", "refusal": "\\n\\n"}
                 ]
               }
             ]
