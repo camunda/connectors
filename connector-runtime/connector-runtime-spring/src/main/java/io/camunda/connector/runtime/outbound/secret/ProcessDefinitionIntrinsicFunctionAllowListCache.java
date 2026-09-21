@@ -381,22 +381,13 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       if (!skipUntilKeyword("then") || !tryConsumeKeyword("then")) {
         return false;
       }
-      List<Declaration> thenFound = new ArrayList<>();
-      Set<List<String>> thenOpaque = new HashSet<>();
-      if (!parseValue(path, thenFound, thenOpaque)) {
+      if (!parseValue(path, found, new HashSet<>())) {
         return false;
       }
       if (!tryConsumeKeyword("else")) {
         return false;
       }
-      List<Declaration> elseFound = new ArrayList<>();
-      Set<List<String>> elseOpaque = new HashSet<>();
-      if (!parseValue(path, elseFound, elseOpaque)) {
-        return false;
-      }
-      found.addAll(thenFound);
-      found.addAll(elseFound);
-      return true;
+      return parseValue(path, found, new HashSet<>());
     }
 
     /**
