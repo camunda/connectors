@@ -12,13 +12,19 @@ import static org.mockito.Mockito.mock;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
+import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.Smtp;
 import jakarta.mail.Session;
+import java.time.Duration;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class JakartaUtilsTest {
 
@@ -181,5 +187,65 @@ class JakartaUtilsTest {
     assertEquals("true", session.getProperties().get("mail.imaps.auth").toString());
     assertEquals("true", session.getProperties().get("mail.imaps.ssl.enable").toString());
     assertNull(session.getProperties().get("mail.imaps.starttls.enable"));
+  }
+
+  /**
+   * The timeout overload is the only thing standing between a silent server and an indefinitely
+   * blocked validation request, so the property names and the millisecond unit are pinned here.
+   */
+  @ParameterizedTest
+  @MethodSource("timeoutBoundedSessions")
+  void testCreateSessionAppliesTimeoutsToTheProtocolInUse(
+      Configuration configuration, String protocolPrefix) {
+    // Given
+    Authentication auth = mock(SimpleAuthentication.class);
+    JakartaUtils factory = new JakartaUtils();
+
+    // When
+    Session session = factory.createSession(configuration, auth, Duration.ofSeconds(7));
+
+    // Then
+    assertEquals(
+        "7000", session.getProperties().get("mail." + protocolPrefix + ".connectiontimeout"));
+    assertEquals("7000", session.getProperties().get("mail." + protocolPrefix + ".timeout"));
+    assertEquals("7000", session.getProperties().get("mail." + protocolPrefix + ".writetimeout"));
+  }
+
+  private static Stream<Arguments> timeoutBoundedSessions() {
+    return Stream.of(
+        Arguments.of(new SmtpConfig("smtp.example.com", 587, CryptographicProtocol.TLS), "smtp"),
+        Arguments.of(new SmtpConfig("smtp.example.com", 25, CryptographicProtocol.NONE), "smtp"),
+        Arguments.of(new ImapConfig("imap.example.com", 993, CryptographicProtocol.TLS), "imaps"),
+        Arguments.of(new ImapConfig("imap.example.com", 143, CryptographicProtocol.NONE), "imap"),
+        Arguments.of(new Pop3Config("pop.example.com", 995, CryptographicProtocol.SSL), "pop3s"),
+        Arguments.of(new Pop3Config("pop.example.com", 110, CryptographicProtocol.NONE), "pop3"));
+  }
+
+  /**
+   * Job execution keeps its previous behaviour on the plain overload: no connect and no write
+   * timeout. Not "no timeouts at all" - IMAP has always carried a 10s read timeout, asserted here
+   * so the overload cannot start or stop setting it unnoticed.
+   */
+  @Test
+  void testCreateSessionWithoutTimeoutLeavesConnectAndWriteTimeoutsUnset() {
+    // Given
+    Authentication auth = mock(SimpleAuthentication.class);
+    JakartaUtils factory = new JakartaUtils();
+
+    // When
+    Session smtpSession =
+        factory.createSession(
+            new SmtpConfig("smtp.example.com", 587, CryptographicProtocol.TLS), auth);
+    Session imapSession =
+        factory.createSession(
+            new ImapConfig("imap.example.com", 993, CryptographicProtocol.TLS), auth);
+
+    // Then
+    assertNull(smtpSession.getProperties().get("mail.smtp.connectiontimeout"));
+    assertNull(smtpSession.getProperties().get("mail.smtp.writetimeout"));
+    assertNull(smtpSession.getProperties().get("mail.smtp.timeout"));
+    assertNull(imapSession.getProperties().get("mail.imaps.connectiontimeout"));
+    assertNull(imapSession.getProperties().get("mail.imaps.writetimeout"));
+    assertEquals("10000", imapSession.getProperties().get("mail.imaps.timeout"));
   }
 }
