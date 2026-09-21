@@ -114,7 +114,10 @@ public class OpenAiCompletionsResponseConverter {
     // A refusal has no dedicated domain content type; kept as TextContent so the declination stays
     // visible in the partial result once toResult() throws ContentFilteredException for it (see
     // hasRefusal).
-    message.refusal().ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
+    message
+        .refusal()
+        .filter(refusal -> !refusal.isBlank())
+        .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
 
     final List<ToolCall> toolCalls = new ArrayList<>();
     message

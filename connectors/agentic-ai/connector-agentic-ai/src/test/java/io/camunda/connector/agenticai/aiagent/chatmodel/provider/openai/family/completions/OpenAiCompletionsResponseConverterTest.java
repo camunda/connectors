@@ -156,6 +156,23 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
+  void throwsContentFilteredExceptionForBlankRefusalWithNoTextContent() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": null, "refusal": "   "}
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              assertThat(e.partialResult()).isNotNull();
+              assertThat(e.partialResult().assistantMessage().content()).isEmpty();
+            });
+  }
+
+  @Test
   void mapsToolCallsToToolCall() {
     final ChatCompletion completion =
         completionWithFinishReason(
