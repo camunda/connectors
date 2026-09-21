@@ -90,19 +90,19 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    *     belongs to. Mixed into the (shared, bounded) cache key so that two physical tenants whose
    *     {@code processDefinitionKey} values happen to collide don't return each other's secret keys
    *     — mirrors the equivalent fix for {@code ProcessDefinitionInspector} on the inbound side.
-   *     <p>The model layer gets its own dedicated cache here rather than reusing {@code cache}:
+   *     <p>The model layer gets its own dedicated, bounded {@link CaffeineCache} here — a {@code
+   *     maximumSize(1000)}, the same default {@code OutboundConnectorRuntimeConfiguration
+   *     #bpmnModelCacheStore} uses for the production path — rather than reusing {@code cache}:
    *     {@code cache.get(secretMapKey, () -> ...)}'s loader calls back into {@code
    *     modelCache.getModel(...)}, which would call {@code cache.get(modelKey, ...)} on the exact
-   *     same underlying map if the two shared one instance — a real map-backed {@link Cache} (e.g.
-   *     {@code ConcurrentMapCache}, which most cache implementations delegate to) rejects that as a
-   *     recursive update. Production wiring ({@code OutboundConnectorRuntimeConfiguration}) always
-   *     passes a separately-built {@link ProcessDefinitionModelCache}; this convenience overload is
-   *     the one path that needs its own — bounded the same way {@code
-   *     OutboundConnectorRuntimeConfiguration#bpmnModelCacheStore} bounds the production one
-   *     (default max size 1000), rather than a raw, never-evicting {@code ConcurrentMapCache}: this
-   *     public constructor is still reachable from a long-running deployment wired outside this
-   *     module's own Spring configuration, e.g. a caller still compiled against the original
-   *     single-tenant shape.
+   *     same underlying map if the two shared one instance — a real map-backed {@link Cache}
+   *     rejects that as a recursive update. Production wiring ({@code
+   *     OutboundConnectorRuntimeConfiguration}) always passes a separately-built {@link
+   *     ProcessDefinitionModelCache}, so this convenience overload's own model cache only matters
+   *     for a caller that constructs this class directly — still reachable from a long-running
+   *     deployment wired outside this module's own Spring configuration, e.g. one still compiled
+   *     against the original single-tenant shape — which is why it must be bounded rather than a
+   *     raw, never-evicting map.
    */
   public ProcessDefinitionSecretKeyCache(
       String physicalTenantId, CamundaClient camundaClient, Cache cache) {
