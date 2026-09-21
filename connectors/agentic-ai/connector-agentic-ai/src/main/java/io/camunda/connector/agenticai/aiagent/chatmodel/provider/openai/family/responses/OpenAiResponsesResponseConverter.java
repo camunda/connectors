@@ -17,6 +17,8 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseOutputRefusal;
+import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
@@ -170,14 +172,14 @@ public class OpenAiResponsesResponseConverter {
       // preserve and is dropped rather than crashing the call (camunda/connectors#8895).
       messageContent
           .outputText()
-          .map(text -> text.text())
+          .map(ResponseOutputText::text)
           .filter(StringUtils::hasText)
           .ifPresent(text -> content.add(TextContent.textContent(text)));
       // A refusal has no dedicated domain content type; kept as TextContent so it survives into
       // ContentFilteredException's partial result instead of being dropped (see hasRefusal).
       messageContent
           .refusal()
-          .map(refusal -> refusal.refusal())
+          .map(ResponseOutputRefusal::refusal)
           .filter(StringUtils::hasText)
           .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
     }
