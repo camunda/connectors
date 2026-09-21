@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-17</version.zstd-jni>
+    <version.zstd-jni>1.5.7-18</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
