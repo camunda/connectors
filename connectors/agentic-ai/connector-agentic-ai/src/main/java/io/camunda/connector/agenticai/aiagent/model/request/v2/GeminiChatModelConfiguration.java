@@ -217,8 +217,8 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
           @TemplateProperty(
               group = "model",
               label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
+              tooltip =
+                  "Specify the model ID. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",
