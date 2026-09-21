@@ -301,12 +301,15 @@ class IntrinsicFunctionAllowListEndToEndTest {
   }
 
   @Test
-  void aCallDeclaredOnlyInABranchWithAnUnverifiableSiblingIsRefusedEvenWhenThatBranchRuns() {
-    // The exploit this closes: an attacker who can influence the value "githubPat" ultimately
-    // resolves to (a separate, process-controlled input) crafts it to look exactly like the
-    // literal the "then" branch declares. Since the model text does contain that literal
-    // somewhere, a branch-insensitive allow-list would grant it at "authentication.token"
-    // regardless of which branch actually produced the runtime value -- this proves it does not.
+  void aCallDeclaredOnlyInABranchWithAnUnverifiableSiblingIsNoLongerRefused() {
+    // security-testing-findings#275 follow-up on PR #8991 (camunda/connectors#9046): the
+    // cross-branch check this test used to prove closed a gap has been reverted, as a deliberate,
+    // accepted relaxation -- it broke the shipped GitHub template's own auth-mode conditional
+    // (this exact shape) without protecting against a real case, since createLink -- the one
+    // function whose params can reference another tenant's/process's data -- is not declared by
+    // any shipped template, and createGithubAppInstallationToken only mints a credential scoped
+    // to whatever the declaring branch's own params already name. The gate now grants this
+    // declaration regardless of the "else" branch's shape, so binding no longer throws.
     String variablesJson =
         """
         {"authentication": {"token":
@@ -315,9 +318,14 @@ class IntrinsicFunctionAllowListEndToEndTest {
         """;
     var context = contextFor(GITHUB_AUTH_MODEL_XML_WITH_UNVERIFIABLE_ELSE_BRANCH, variablesJson);
 
-    assertThatThrownBy(() -> context.bindVariables(AuthTargetType.class))
-        .isInstanceOf(ConnectorInputException.class)
-        .hasMessageContaining("createGithubAppInstallationToken");
+    var result = context.bindVariables(AuthTargetType.class);
+
+    // The bare mapper this test uses (no document module registered) never dispatches the
+    // function regardless of the gate -- it just binds the discriminator node as an ordinary
+    // nested map, which is enough to prove the gate itself no longer refuses this shape.
+    assertThat(result.authentication())
+        .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+        .containsKey("token");
   }
 
   @Test

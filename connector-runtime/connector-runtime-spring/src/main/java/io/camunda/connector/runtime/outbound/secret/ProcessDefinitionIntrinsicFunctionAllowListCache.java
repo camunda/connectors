@@ -179,15 +179,13 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
    * at all) contributes no declarations at all for that input, rather than a partial result.
    *
    * <p>A declaration is trustworthy only if nothing else that could occupy the exact same bound
-   * path is itself unverifiable. Whenever a conditional or list literal offers more than one way to
-   * reach a given path (its branches, or its elements -- an array never pushes a further path
-   * segment, so every element competes for the same path), every one of those alternatives is
-   * parsed into its own path-tagged set of "opaque" positions -- places this parser could not pin
-   * to a fixed shape -- before any of their declarations are trusted. A declaration is discarded if
-   * its own path is at or beneath any opaque position contributed by <em>any</em> sibling
-   * alternative, including a sibling of an sibling several levels up: an opaque value can evaluate
-   * to any JSON value at runtime, including one that happens to match a declaration nominally
-   * reachable through a completely different branch or element.
+   * path is itself unverifiable. This still applies to a list literal's elements (an array never
+   * pushes a further path segment, so every element competes for the same path) and to a
+   * straight-line context literal's duplicate keys: every alternative is parsed into its own
+   * path-tagged set of "opaque" positions before any of their declarations are trusted, and a
+   * declaration is discarded if its own path is at or beneath any opaque position contributed by
+   * <em>any</em> sibling alternative. It deliberately does <b>not</b> apply across a conditional's
+   * {@code then}/{@code else} branches -- see {@link FeelLiteralParser#parseIfThenElse} for why.
    */
   private static List<Declaration> findDeclarations(String rawSource) {
     if (rawSource == null) {
@@ -206,10 +204,10 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     }
     // FEEL permits duplicate context keys, evaluated in order with the later entry overriding the
     // earlier one -- e.g. {x: {"camunda.function.type":"createLink",...}, x: attackerValue}. A
-    // straight-line parse (unlike a conditional's branches or a list's elements) records both the
-    // earlier declaration and the later opaque marking directly into these same shared `found` and
-    // `opaque` sets, with no equivalent of mergeSiblings to reconcile them against each other
-    // afterward. This final filter is that reconciliation, applied once over the whole parse.
+    // straight-line parse (unlike a list's elements) records both the earlier declaration and the
+    // later opaque marking directly into these same shared `found` and `opaque` sets, with no
+    // equivalent of mergeSiblings to reconcile them against each other afterward. This final
+    // filter is that reconciliation, applied once over the whole parse.
     return found.stream()
         .filter(d -> opaque.stream().noneMatch(op -> FeelLiteralParser.isPrefixOf(op, d.path())))
         .toList();
@@ -326,9 +324,9 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     /**
      * Every element shares the array's own path -- an array never pushes a further path segment,
      * matching {@link IntrinsicFunctionUtil}'s walk -- so sibling elements are exactly as much in
-     * competition for that path as a conditional's branches are: each element is parsed into its
-     * own temporary (declarations, opaque) pair first, then a declaration from any element is kept
-     * only if no element's opaque set (its own, or any other element's) reaches at or beneath that
+     * competition for that path as a duplicate context key is: each element is parsed into its own
+     * temporary (declarations, opaque) pair first, then a declaration from any element is kept only
+     * if no element's opaque set (its own, or any other element's) reaches at or beneath that
      * declaration's path.
      */
     private boolean parseListLiteral(
@@ -360,15 +358,23 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     }
 
     /**
-     * A declaration in one branch of a conditional grants nothing unless every alternative that
-     * could occupy the same path -- the other branch included -- is itself free of any opaque
-     * position at or above that path. The shipped GitHub template is exactly this: {@code if
-     * githubAuthType = "github_app" then
-     * {"camunda.function.type":"createGithubAppInstallationToken", ...} else githubPat} declares
-     * the call in the {@code then} branch, but {@code githubPat} (bound from a separate, possibly
-     * process-controlled input) is opaque at the branch's own path, so the {@code then} branch's
-     * declaration -- reachable at that exact same path when the {@code else} branch runs instead --
-     * is not trusted either.
+     * A declaration in either branch of a conditional is granted unconditionally, regardless of
+     * whether the other branch is itself a verifiable shape. This is a deliberate, accepted
+     * relaxation (security-testing-findings#275 follow-up on PR #8991, tracked for documentation in
+     * camunda/connectors#9046): the cross-branch opacity check this replaced (which used to route
+     * through {@link #mergeSiblings}, the same way {@link #parseListLiteral} still does) rejected
+     * the shipped GitHub template's own {@code createGithubAppInstallationToken} auth-mode
+     * conditional and its base64-upload conditional, in both cases because the *other* branch was a
+     * bare reference to a separate input this parser has no way to verify. In practice this check
+     * was never protecting against the case it was built for: {@code createLink} -- the one
+     * intrinsic function whose parameters can be pointed at another tenant's/process's data -- is
+     * not declared by any shipped element template today, and every other intrinsic function
+     * (base64, getText, getJson, createGithubAppInstallationToken) only transforms or mints
+     * credentials scoped to values the template author already wrote into that same branch, so an
+     * attacker steering which branch runs gains nothing beyond what that branch's own author put
+     * there. Neither branch's own opaque positions are surfaced to an enclosing construct either:
+     * this conditional, once parsed, is fully resolved from the perspective of anything wrapping it
+     * (a list element, a duplicate key, an outer conditional).
      */
     private boolean parseIfThenElse(
         List<String> path, List<Declaration> found, Set<List<String>> opaque) {
@@ -388,17 +394,19 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       if (!parseValue(path, elseFound, elseOpaque)) {
         return false;
       }
-      mergeSiblings(List.of(thenFound, elseFound), List.of(thenOpaque, elseOpaque), found, opaque);
+      found.addAll(thenFound);
+      found.addAll(elseFound);
       return true;
     }
 
     /**
      * Combines declarations and opaque positions gathered independently from several mutually
-     * exclusive alternatives (a conditional's branches, or a list literal's elements): every
-     * alternative's opaque positions are unioned first, then a declaration from any alternative is
-     * added to {@code found} only if no unioned opaque position is a prefix of (at, or beneath)
-     * that declaration's own path -- and the unioned set is always propagated to {@code opaque}, so
-     * an enclosing conditional or list sees this whole construct's unverifiable positions too.
+     * exclusive alternatives (a list literal's elements -- a conditional's branches no longer go
+     * through this, see {@link #parseIfThenElse}): every alternative's opaque positions are unioned
+     * first, then a declaration from any alternative is added to {@code found} only if no unioned
+     * opaque position is a prefix of (at, or beneath) that declaration's own path -- and the
+     * unioned set is always propagated to {@code opaque}, so an enclosing conditional or list sees
+     * this whole construct's unverifiable positions too.
      */
     private static void mergeSiblings(
         List<List<Declaration>> perAlternativeFound,

@@ -262,14 +262,16 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
-  void aConditionalDeclarationIsNotGrantedWhenTheOtherBranchIsNotAVerifiableShape() {
+  void aConditionalDeclarationIsGrantedEvenWhenTheOtherBranchIsNotAVerifiableShape() {
     // Mirrors the shipped GitHub template's actual auth-token binding exactly: the "then" branch
     // declares createGithubAppInstallationToken as a literal, but the "else" branch is a bare
-    // reference to "githubPat" -- a separate, possibly process-controlled input's bound value. If
-    // the "else" branch is active at runtime (PAT auth mode), the field's real value is whatever
-    // that other input produced -- which could, in principle, itself be crafted to match this
-    // declared (function, path) shape. Neither branch's declaration can be trusted, since which one
-    // actually reached this field at runtime cannot be recovered once the tree is bound.
+    // reference to "githubPat" -- a separate, possibly process-controlled input's bound value.
+    // security-testing-findings#275 follow-up on PR #8991 (camunda/connectors#9046): the
+    // cross-branch check that used to reject this exact shape was reverted -- it broke this
+    // shipped template without protecting against a real case, since createLink (the one
+    // function whose params can reference another tenant's data) is not declared by any shipped
+    // template, and every other function only acts on values the declaring branch's own author
+    // wrote. The declaration is now granted regardless of the other branch's shape.
     var xml =
         """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -298,7 +300,10 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         cache.getAllowedFunctions(
             new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
 
-    assertThat(allowed).isEmpty();
+    assertThat(allowed)
+        .containsExactly(
+            new AllowedIntrinsicFunction(
+                "createGithubAppInstallationToken", List.of("authentication", "token")));
   }
 
   @Test
@@ -376,12 +381,12 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
-  void aDeclarationIsNotGrantedWhenAnOpaqueValueSharesItsPathInASiblingBranch() {
-    // A top-level-only "is this branch's own shape verifiable" check would wrongly pass both
-    // branches here (both are context literals), missing that "then"'s own "x" key holds an
-    // opaque, process-controlled reference at the exact path "else" declares createLink at. When
-    // "then" runs, the runtime value at target.x is whatever "payload" evaluates to -- which could,
-    // in principle, be crafted to match the shape "else" would have put there.
+  void aDeclarationIsGrantedEvenWhenAnOpaqueValueSharesItsPathInASiblingBranch() {
+    // "then"'s own "x" key holds an opaque, process-controlled reference ("payload") at the exact
+    // path "else" declares createLink at. security-testing-findings#275 follow-up on PR #8991
+    // (camunda/connectors#9046): reverted -- a conditional's branches no longer reconcile against
+    // each other, so "else"'s declaration is granted regardless of what "then" holds at the same
+    // path.
     var xml =
         """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -409,7 +414,8 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         cache.getAllowedFunctions(
             new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
 
-    assertThat(allowed).isEmpty();
+    assertThat(allowed)
+        .containsExactly(new AllowedIntrinsicFunction("createLink", List.of("body", "x")));
   }
 
   @Test
@@ -488,16 +494,15 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
-  void aDeclarationIsNotGrantedWhenASiblingBranchHasANonStandaloneDiscriminatorValue() {
-    // security-testing-findings#275, T4: the "else" branch's discriminator value is a bare
-    // identifier (attackerControlledFunctionName), not an immediate string literal -- its own
-    // shape is therefore unverifiable, and that opacity must be recorded at the enclosing object's
-    // own path (not a sub-path under the discriminator key, which no declaration is ever recorded
-    // at) so mergeSiblings catches the "then" branch's declaration at that same path too. The
-    // regression this guards: a gate on the value being a quoted string, checked BEFORE any
-    // attempt to parse it as a standalone literal, previously skipped this whole handling for a
-    // bare identifier and fell through to the generic object-key path, marking the wrong (deeper)
-    // path opaque -- letting the "then" branch's declaration survive unshadowed.
+  void aDeclarationIsGrantedEvenWhenASiblingBranchHasANonStandaloneDiscriminatorValue() {
+    // The "else" branch's discriminator value is a bare identifier
+    // (attackerControlledFunctionName),
+    // not an immediate string literal, so its own object contributes no declaration -- the
+    // standalone-literal requirement inside a single object literal is unchanged. What *did* change
+    // (security-testing-findings#275 follow-up on PR #8991, camunda/connectors#9046): a
+    // conditional's branches no longer reconcile against each other at all, so this no longer
+    // matters for the "then" branch's own declaration either way -- it's granted regardless of
+    // what the "else" branch looks like.
     var xml =
         """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -525,7 +530,8 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         cache.getAllowedFunctions(
             new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
 
-    assertThat(allowed).isEmpty();
+    assertThat(allowed)
+        .containsExactly(new AllowedIntrinsicFunction("createLink", List.of("body")));
   }
 
   @Test
