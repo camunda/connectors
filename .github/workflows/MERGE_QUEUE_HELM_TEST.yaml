@@ -574,6 +574,21 @@ jobs:
 
               echo "Locked onto downstream run id: $RUN_ID"
               echo "downstream_run_url=https://github.com/$TARGET_REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
+
+              # Re-check before falling through to the status request below.
+              # Every other iteration reaches it with the loop's own deadline
+              # check immediately behind it, but this one has an unbounded
+              # `gh api` in between: the run-list call can start inside the
+              # budget and return outside it. Starting a fresh unbounded call
+              # on a spent budget is what hands the kill back to the runner --
+              # a hang there only has the 10min of job-timeout headroom to
+              # land in, and past that the job dies as `cancelled` with no
+              # timeout report. The run url is already written above, so the
+              # report still carries the link.
+              if (( $(date +%s) >= WAIT_DEADLINE )); then
+                echo "Deadline reached while locking onto run $RUN_ID; reporting the timeout instead of starting another poll." >&2
+                break
+              fi
             fi
 
             RUN_JSON="" RC=0
