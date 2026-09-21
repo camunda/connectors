@@ -28,6 +28,9 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
@@ -59,6 +62,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private final ConnectorsOutboundMetrics connectorsOutboundMetrics;
   private final MetricsRecorder metricsRecorder = new DefaultNoopMetricsRecorder();
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public AiAgentJobWorkerHandlerImpl(
       final JobWorkerAgentExecutionContextFactory executionContextFactory,
@@ -67,7 +71,8 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler,
       final ConnectorResultHandler connectorResultHandler,
       final ConnectorsOutboundMetrics connectorsOutboundMetrics,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
     this.exceptionHandlingStrategy = exceptionHandlingStrategy;
@@ -75,6 +80,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     this.connectorResultHandler = connectorResultHandler;
     this.connectorsOutboundMetrics = connectorsOutboundMetrics;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   @Override
@@ -90,10 +96,17 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
                 job.getProcessDefinitionKey(),
                 job.getElementId(),
                 Instant.ofEpochMilli(job.getDeadline())));
+    final IntrinsicFunctionAllowList intrinsicFunctionAllowList =
+        intrinsicFunctionAllowListFactory.create(
+            new IntrinsicFunctionAllowListContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     // kept for the error paths: a secret rotated since the input was bound no longer reads back,
     // and the value an error message carries is the one substituted then
     final List<String> capturedSecrets = new ArrayList<>();
-    final var agentResult = getAgentResult(jobClient, job, secretFilter, capturedSecrets);
+    final var agentResult =
+        getAgentResult(jobClient, job, secretFilter, intrinsicFunctionAllowList, capturedSecrets);
 
     try {
       Optional<ConnectorError> optionalConnectorError =
@@ -126,6 +139,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final JobClient jobClient,
       final ActivatedJob job,
       final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList,
       final List<String> capturedSecrets) {
     Duration retryBackoff = null;
     try {
@@ -133,7 +147,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
 
       final var executionContext =
           executionContextFactory.createExecutionContext(
-              jobClient, job, secretFilter, capturedSecrets::addAll);
+              jobClient, job, secretFilter, intrinsicFunctionAllowList, capturedSecrets::addAll);
       final var completion = agentRequestHandler.handleRequest(executionContext);
 
       return new AgentSuccessResult(completion);

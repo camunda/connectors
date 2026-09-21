@@ -50,6 +50,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
@@ -132,7 +133,7 @@ class AiAgentJobWorkerHandlerTest {
     Mockito.lenient()
         .when(
             executionContextFactory.createExecutionContext(
-                eq(camundaClient), eq(job), any(SecretFilter.class), any()))
+                eq(camundaClient), eq(job), any(SecretFilter.class), any(), any()))
         .thenReturn(executionContext);
 
     final var outboundConnectorExceptionHandler =
@@ -149,7 +150,8 @@ class AiAgentJobWorkerHandlerTest {
             outboundConnectorExceptionHandler,
             connectorResultHandler,
             connectorsOutboundMetrics,
-            SecretFilterFactory.disabled());
+            SecretFilterFactory.disabled(),
+            IntrinsicFunctionAllowListFactory.disabled());
 
     stubFor(post(urlPathEqualTo("/v2/jobs/123456/completion")).willReturn(jsonResponse("{}", 200)));
     stubFor(
@@ -636,10 +638,10 @@ class AiAgentJobWorkerHandlerTest {
     // captured at bind time can redact the message the connector actually produced
     namesSecret("rotated-value");
     when(executionContextFactory.createExecutionContext(
-            eq(camundaClient), eq(job), any(SecretFilter.class), any()))
+            eq(camundaClient), eq(job), any(SecretFilter.class), any(), any()))
         .thenAnswer(
             invocation -> {
-              invocation.<Consumer<List<String>>>getArgument(3).accept(List.of("bound-value"));
+              invocation.<Consumer<List<String>>>getArgument(4).accept(List.of("bound-value"));
               throw new RuntimeException("api rejected bound-value");
             });
 

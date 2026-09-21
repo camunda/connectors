@@ -28,6 +28,7 @@ import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -83,7 +84,8 @@ public class OutboundConnectorRuntimeConfiguration {
       ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -93,7 +95,8 @@ public class OutboundConnectorRuntimeConfiguration {
         documentFactory,
         objectMapper,
         outboundMetrics,
-        secretFilterFactory);
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
   }
 
   @Bean

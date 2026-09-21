@@ -39,6 +39,9 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.*;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -82,6 +85,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ConnectorResultHandler connectorResultHandler;
 
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public SpringConnectorJobHandler(
       ConnectorsOutboundMetrics outboundMetrics,
@@ -92,7 +96,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       DefaultNoopMetricsRecorder defaultNoopMetricsRecorder,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
@@ -105,6 +110,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.connectorsOutboundMetrics = outboundMetrics;
     this.defaultNoopMetricsRecorder = defaultNoopMetricsRecorder;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   private SecretProvider getSecretProvider() {
@@ -130,7 +136,13 @@ public class SpringConnectorJobHandler implements JobHandler {
                   job.getProcessDefinitionKey(),
                   job.getElementId(),
                   Instant.ofEpochMilli(job.getDeadline())));
-      internalHandle(client, job, secretFilter);
+      var intrinsicFunctionAllowList =
+          intrinsicFunctionAllowListFactory.create(
+              new IntrinsicFunctionAllowListContext(
+                  job.getProcessDefinitionKey(),
+                  job.getElementId(),
+                  Instant.ofEpochMilli(job.getDeadline())));
+      internalHandle(client, job, secretFilter, intrinsicFunctionAllowList);
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailure(job);
       LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
@@ -138,7 +150,10 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   public void internalHandle(
-      final JobClient client, final ActivatedJob job, final SecretFilter secretFilter) {
+      final JobClient client,
+      final ActivatedJob job,
+      final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList) {
     LOGGER.info(
         "Received job: {} of type: {} for tenant: {}",
         job.getKey(),
@@ -151,7 +166,8 @@ public class SpringConnectorJobHandler implements JobHandler {
             validationProvider,
             documentFactory,
             objectMapper,
-            secretFilter);
+            secretFilter,
+            intrinsicFunctionAllowList);
     ConnectorResult result = getConnectorResult(job, context, secretFilter);
     processFinalResult(client, job, context, result, secretFilter);
   }
