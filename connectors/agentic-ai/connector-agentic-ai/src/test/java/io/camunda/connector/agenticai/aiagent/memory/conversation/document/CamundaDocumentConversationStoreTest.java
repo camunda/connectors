@@ -126,6 +126,32 @@ class CamundaDocumentConversationStoreTest {
     verifyNoInteractions(documentFactory, documentStore);
   }
 
+  /**
+   * A cluster configured without a physical tenant can be served alongside tenant-scoped ones, and
+   * its own jobs carry no physical tenant either. Memory for those jobs still has to resolve.
+   */
+  @Test
+  void servesAJobWithoutAPhysicalTenantWhileSeveralClustersAreServed() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.servesSinglePhysicalTenant()).thenReturn(false);
+    when(selector.forPhysicalTenant(null)).thenReturn(mock(CamundaClient.class));
+    when(executionContext.jobContext().getPhysicalTenantId()).thenReturn(null);
+
+    final var multiTenantStore =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, selector, objectMapper);
+
+    try (var session = multiTenantStore.createSession(executionContext, AgentContext.empty())) {
+      assertThat(session).isNotNull();
+    }
+    // resolved once and cached, rather than rebuilt per job
+    try (var session = multiTenantStore.createSession(executionContext, AgentContext.empty())) {
+      assertThat(session).isNotNull();
+    }
+
+    verifyNoInteractions(documentFactory, documentStore);
+  }
+
   @Test
   void failsRatherThanStoringAJobsMemoryOnAnotherTenantsClusterWhenItsTenantIsUnknown() {
     final var selector = mock(PhysicalTenantClientSelector.class);

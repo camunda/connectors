@@ -36,6 +36,12 @@ public class CamundaDocumentConversationStore implements ConversationStore {
 
   public static final String TYPE = "camunda-document";
 
+  /**
+   * Cache key of the cluster configured without a physical tenant. Not a possible tenant ID of its
+   * own: a blank physical tenant is normalized to {@code null} both on a job and on a client.
+   */
+  private static final String NO_PHYSICAL_TENANT = "";
+
   private final DocumentFactory singleTenantDocumentFactory;
   private final CamundaDocumentStore singleTenantDocumentStore;
   private final PhysicalTenantClientSelector clientSelector;
@@ -65,6 +71,11 @@ public class CamundaDocumentConversationStore implements ConversationStore {
    * documentFactory}/{@code documentStore} (an in-memory store in tests, for instance) keeps
    * working. Applying such an override to every tenant of a genuine multi-cluster runtime would put
    * every tenant's memory through the same store instead of its own.
+   *
+   * <p>A cluster configured without a physical tenant can be served alongside tenant-scoped ones,
+   * and its jobs carry no physical tenant either. Those are cached under {@link
+   * #NO_PHYSICAL_TENANT} because the map rejects a null key, while the store itself still receives
+   * the real, nullable ID — it is what the store checks a document's own physical tenant against.
    */
   private TenantDocuments documentsFor(AgentExecutionContext executionContext) {
     if (clientSelector.servesSinglePhysicalTenant()) {
@@ -73,9 +84,9 @@ public class CamundaDocumentConversationStore implements ConversationStore {
     final @Nullable String physicalTenantId = executionContext.jobContext().getPhysicalTenantId();
     final var client = clientSelector.forPhysicalTenant(physicalTenantId);
     return documentsByPhysicalTenantId.computeIfAbsent(
-        physicalTenantId,
-        id -> {
-          var store = new CamundaDocumentStoreImpl(client, id);
+        physicalTenantId == null ? NO_PHYSICAL_TENANT : physicalTenantId,
+        cacheKey -> {
+          var store = new CamundaDocumentStoreImpl(client, physicalTenantId);
           return new TenantDocuments(new DocumentFactoryImpl(store), store);
         });
   }
