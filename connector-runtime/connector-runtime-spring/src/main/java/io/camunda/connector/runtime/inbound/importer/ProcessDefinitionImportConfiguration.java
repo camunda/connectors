@@ -59,15 +59,15 @@ public class ProcessDefinitionImportConfiguration {
       ProcessStateManager processStateManager,
       @Value("${camunda.connector.polling.active-versions-enabled:true}")
           boolean activeVersionsPollingEnabled) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     var searchQueryClientsByPhysicalTenantId =
         PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-            registry,
-            PhysicalTenantClients.legacyClient(camundaClientProvider),
-            legacySearchQueryClient,
-            limit);
+            registry, legacyCamundaClient, legacySearchQueryClient, limit);
     return new ImportSchedulers(
         processStateManager,
         searchQueryClientsByPhysicalTenantId,
+        PhysicalTenantIds.buildPhysicalTenantIdByClientName(registry, legacyCamundaClient),
+        PhysicalTenantIds.searchQueryClientFactory(registry, legacySearchQueryClient, limit),
         importers,
         activeVersionsPollingEnabled);
   }

@@ -16,6 +16,7 @@ import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.kafka.model.KafkaConnectionConfiguration;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.function.Function;
@@ -27,11 +28,12 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Kafka Consumer", type = "io.camunda:connector-kafka-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.kafka",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 7,
+    version = 8,
+    configurations = {KafkaConnectionConfiguration.class},
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     keywords = {
@@ -43,9 +45,9 @@ import org.slf4j.LoggerFactory;
       "stream data"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
       @ElementTemplate.PropertyGroup(id = "schema", label = "Schema")
     },

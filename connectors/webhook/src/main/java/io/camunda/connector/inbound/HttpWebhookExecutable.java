@@ -175,15 +175,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
-    LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
+    authenticate(payload);
 
-    validateHttpMethod(payload);
-    verifyHmac(payload);
-
-    var authResult = authChecker.checkAuthorization(payload);
-    if (authResult instanceof Failure failureResult) {
-      throw failureResult.toException();
-    }
+    // payload.toString() renders unredacted headers, query params and the raw body (see
+    // HttpServletRequestWebhookProcessingPayload) — the controller's own request logger redacts
+    // sensitive headers/params before logging for exactly this reason, so this trace statement
+    // must not do the same with the full payload, even now that it runs after authentication.
+    LOGGER.trace(
+        "Triggered webhook with context {} and method {}", props.context(), payload.method());
 
     var mappedRequest = mapRequest(payload);
     // The response is resolved per request from the element that actually matched (element-scoped),
@@ -213,6 +212,23 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     return null;
   }
 
+  /**
+   * Validates HTTP method, HMAC signature and authorization. Called unconditionally from both
+   * {@link #verify(WebhookProcessingPayload)} and {@link #triggerWebhook(WebhookProcessingPayload)}
+   * so neither entry point can reach the FEEL engine (verification expression or response mapping)
+   * before an unauthenticated caller is rejected. Matches {@code SlackInboundWebhookExecutable}'s
+   * ordering.
+   */
+  private void authenticate(WebhookProcessingPayload payload) {
+    validateHttpMethod(payload);
+    verifyHmac(payload);
+
+    var authResult = authChecker.checkAuthorization(payload);
+    if (authResult instanceof Failure failureResult) {
+      throw failureResult.toException();
+    }
+  }
+
   private void validateHttpMethod(WebhookProcessingPayload payload) {
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
@@ -236,6 +252,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookHttpResponse verify(WebhookProcessingPayload payload) {
+    authenticate(payload);
+
     WebhookHttpResponse result = null;
     if (props.verificationExpression() != null) {
       result =
