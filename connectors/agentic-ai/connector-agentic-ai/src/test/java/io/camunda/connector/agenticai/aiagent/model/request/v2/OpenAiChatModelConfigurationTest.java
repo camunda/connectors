@@ -131,6 +131,40 @@ class OpenAiChatModelConfigurationTest {
   }
 
   @Test
+  void openAiApiBackendCredentialTakesPrecedenceOverInlineFields() {
+    final var config =
+        configuration(
+            responsesApi(),
+            new OpenAiApiBackend(
+                new OpenAiApiConnection(
+                    new OpenAiApiCredential(
+                        "sk-from-credential", "org-from-credential", "proj-from-credential"),
+                    "sk-inline",
+                    "org-inline",
+                    "proj-inline",
+                    null,
+                    null,
+                    null,
+                    null)),
+            "gpt-5.5");
+
+    assertThat(validator.validate(config)).isEmpty();
+    final OpenAiApiConnection connection = ((OpenAiApiBackend) config.openai().backend()).openai();
+    assertThat(connection.effectiveApiKey()).isEqualTo("sk-from-credential");
+    assertThat(connection.effectiveOrganizationId()).isEqualTo("org-from-credential");
+    assertThat(connection.effectiveProjectId()).isEqualTo("proj-from-credential");
+  }
+
+  @Test
+  void openAiApiCredentialRedactsSecretInToString() {
+    final String toString = new OpenAiApiCredential("sk-secret", "org-1", "proj-1").toString();
+    assertThat(toString)
+        .doesNotContain("sk-secret")
+        .isEqualTo(
+            "OpenAiApiCredential{apiKey=[REDACTED], organizationId=org-1, projectId=proj-1}");
+  }
+
+  @Test
   void deserialisesOpenAiApiBackendWithCredentialAndRoundTrips() throws Exception {
     final String json =
         """

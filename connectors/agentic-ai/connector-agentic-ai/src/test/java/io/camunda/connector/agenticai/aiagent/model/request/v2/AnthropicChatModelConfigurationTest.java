@@ -385,6 +385,34 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
+  void anthropicApiBackendCredentialTakesPrecedenceOverInlineApiKey() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi(
+                        new AnthropicApiCredential("sk-ant-from-credential"),
+                        "sk-ant-inline",
+                        null,
+                        null,
+                        null,
+                        null)),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(((AnthropicApiBackend) config.anthropic().backend()).anthropic().effectiveApiKey())
+        .isEqualTo("sk-ant-from-credential");
+  }
+
+  @Test
+  void anthropicApiCredentialRedactsSecretInToString() {
+    assertThat(new AnthropicApiCredential("sk-ant-secret").toString())
+        .doesNotContain("sk-ant-secret")
+        .isEqualTo("AnthropicApiCredential{apiKey=[REDACTED]}");
+  }
+
+  @Test
   void deserialisesAnthropicApiBackendWithCredentialAndRoundTrips() throws Exception {
     final String json =
         """

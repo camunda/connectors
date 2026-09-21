@@ -163,6 +163,28 @@ class GeminiChatModelConfigurationTest {
   }
 
   @Test
+  void geminiApiBackendCredentialTakesPrecedenceOverInlineApiKey() {
+    final var credential = new GoogleGeminiApiCredential("gm-from-credential");
+    final var googleGeminiApi = new GeminiApiBackend.GoogleGeminiApi(credential, "gm-inline", null);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(googleGeminiApi),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+  }
+
+  @Test
+  void googleGeminiApiCredentialRedactsSecretInToString() {
+    assertThat(new GoogleGeminiApiCredential("gm-secret").toString())
+        .doesNotContain("gm-secret")
+        .isEqualTo("GoogleGeminiApiCredential{apiKey=[REDACTED]}");
+  }
+
+  @Test
   void deserialisesGoogleGeminiApiCredentialAndRoundTrips() throws Exception {
     final String json =
         """
@@ -501,6 +523,24 @@ class GeminiChatModelConfigurationTest {
 
     assertThat(validator.validate(config)).isEmpty();
     assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsCredentialTakesPrecedenceOverInlineJsonKey() {
+    final var credential = new GoogleVertexAiCredential("key-from-credential");
+    final var authentication =
+        new ServiceAccountCredentialsAuthentication(credential, "key-inline");
+    final var config = vertexAiChatModelConfiguration(authentication);
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+  }
+
+  @Test
+  void googleVertexAiCredentialRedactsSecretInToString() {
+    assertThat(new GoogleVertexAiCredential("key-secret").toString())
+        .doesNotContain("key-secret")
+        .isEqualTo("GoogleVertexAiCredential{jsonKey=[REDACTED]}");
   }
 
   @Test
