@@ -42,9 +42,9 @@ import org.jspecify.annotations.Nullable;
 public class GeminiContentConverter {
 
   /**
-   * Field name used for Gemini {@code thoughtSignature} values. For {@link ReasoningContent}, the
-   * response converter stores the raw signature in {@link ReasoningContent#payload()}, and {@link
-   * #toParts(List)} reads exclusively from that durable payload on replay.
+   * Metadata key under which the Gemini {@code thoughtSignature} is stored on {@link Content}
+   * metadata, base64-encoded as a {@link String}. The response converter writes this key and {@link
+   * #toParts(List)} reads it back to restore the signature on replay.
    */
   public static final String THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
 
@@ -150,19 +150,11 @@ public class GeminiContentConverter {
     if (rc.text() != null) {
       builder.text(rc.text());
     }
-    final byte @Nullable [] signature = thoughtSignature(rc);
+    final byte @Nullable [] signature = thoughtSignature(rc.metadata());
     if (signature != null) {
       builder.thoughtSignature(signature);
     }
     return builder.build();
-  }
-
-  private byte @Nullable [] thoughtSignature(ReasoningContent reasoningContent) {
-    final Object payloadValue =
-        reasoningContent.payload() instanceof Map<?, ?> map
-            ? map.get(THOUGHT_SIGNATURE_METADATA_KEY)
-            : null;
-    return decodeThoughtSignature(payloadValue);
   }
 
   private byte @Nullable [] thoughtSignature(@Nullable Map<String, Object> metadata) {

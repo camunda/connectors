@@ -411,7 +411,8 @@ class GeminiContentResponseConverterTest {
             reasoning -> {
               assertThat(reasoning.provider()).isEqualTo(GOOGLE_GEMINI_ID);
               assertThat(reasoning.text()).isEqualTo("Let me think it through");
-              assertThat(reasoning.metadata()).isNull();
+              assertThat(reasoning.metadata())
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64);
               assertThat(reasoning.payload())
                   .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
                   .containsEntry("thought", true)
@@ -435,7 +436,7 @@ class GeminiContentResponseConverterTest {
             .assistantMessage()
             .content();
 
-    // Round trip through the request-direction converter using the raw provider payload.
+    // Round trip through the request-direction converter using the established metadata contract.
     final var replayed = new GeminiContentConverter(new ObjectMapper()).toParts(content);
 
     assertThat(replayed)

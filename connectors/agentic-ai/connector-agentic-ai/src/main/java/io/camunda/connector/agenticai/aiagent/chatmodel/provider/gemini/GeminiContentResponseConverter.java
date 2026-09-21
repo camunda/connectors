@@ -280,13 +280,13 @@ public class GeminiContentResponseConverter {
       raw.remove("text");
     }
 
-    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, null);
+    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, thoughtSignatureMetadata(part));
   }
 
   /**
-   * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()} for text parts, flat
-   * under {@link GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY}. Text parts do not preserve
-   * the raw provider payload, so their signature must remain in metadata for replay.
+   * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()}, flat under {@link
+   * GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY} — the shape {@link
+   * GeminiContentConverter#toParts(List)} reads back on replay.
    */
   private @Nullable Map<String, Object> thoughtSignatureMetadata(Part part) {
     return part.thoughtSignature()
