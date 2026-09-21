@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,19 +72,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
               + "instance with key '\\d+' with an agent instance, but it is already associated "
               + "with agent instance with key '(?<existingAgentInstanceKey>\\d+)'\\.");
 
-  private final CamundaClient camundaClient;
+  private final PhysicalTenantClientSelector clientSelector;
   private final RetriesProperties retriesProperties;
   private final Sleeper sleeper;
   private final AgentInstanceHistoryMapper historyMapper;
   private final AgentInstanceToolMapper toolMapper;
 
   public CamundaAgentInstanceClient(
-      CamundaClient camundaClient,
+      PhysicalTenantClientSelector clientSelector,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
       AgentInstanceHistoryMapper historyMapper,
       AgentInstanceToolMapper toolMapper) {
-    this.camundaClient = camundaClient;
+    this.clientSelector = clientSelector;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
     this.historyMapper = historyMapper;
@@ -92,8 +93,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   @Override
   public AgentInstanceKey create(AgentExecutionContext agentExecutionContext) {
+    // resolved before the retry so an unroutable physical tenant surfaces as the configuration
+    // error it is, rather than as a failure to create the agent instance
+    final var camundaClient = clientSelector.forJob(agentExecutionContext.jobContext());
     return CamundaApiRetry.execute(
-        () -> executeCreate(agentExecutionContext),
+        () -> executeCreate(camundaClient, agentExecutionContext),
         AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
@@ -101,7 +105,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         sleeper);
   }
 
-  private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
+  private AgentInstanceKey executeCreate(
+      CamundaClient camundaClient, AgentExecutionContext agentExecutionContext) {
     final var jobContext = agentExecutionContext.jobContext();
     final long elementInstanceKey = jobContext.getElementInstanceKey();
     final var configuration = agentExecutionContext.configuration();
@@ -353,9 +358,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
       List<AgentInstanceHistoryItem> historyItems) {
+    final var camundaClient = clientSelector.forJob(executionContext.jobContext());
     CamundaApiRetry.execute(
         () -> {
-          executeBatchedUpdate(executionContext, agentInstanceKey, status, historyItems);
+          executeBatchedUpdate(
+              camundaClient, executionContext, agentInstanceKey, status, historyItems);
           return null;
         },
         AgentInstanceErrorClassifier.INSTANCE,
@@ -366,6 +373,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   private void executeBatchedUpdate(
+      CamundaClient camundaClient,
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
