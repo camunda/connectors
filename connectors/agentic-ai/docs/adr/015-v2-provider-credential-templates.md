@@ -29,15 +29,13 @@ support without care risks either leaking those escape-hatch fields into the sav
 dialog, or restructuring the existing discriminated backend/authentication unions and their
 property paths more than necessary.
 
-The c8run bundle also offers no low-code credential-creation flow, so every template must remain
-fully configurable inline, without provisioning a saved credential, even after this change.
-
 ## Decision Drivers
 
 * Let a credential's authentication fields be entered once and reused across diagrams; ease
   rotation.
-* Keep inline configuration available on every backend — c8run has no low-code credential-creation
-  flow, and existing diagrams that configure everything inline must keep working unchanged.
+* Keep inline configuration available on every backend, matching every other connector that
+  supports credential templates — existing diagrams that configure everything inline must keep
+  working unchanged.
 * Don't leak escape-hatch fields (endpoint, headers, query parameters, body properties) into the
   saved-credential dialog — they are diagram-level configuration, not part of the credential.
 * Don't restructure existing discriminated unions (backend choice, authentication-type choice) or
