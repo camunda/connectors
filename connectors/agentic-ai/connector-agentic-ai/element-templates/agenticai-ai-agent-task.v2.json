@@ -4164,7 +4164,8 @@
         "name" : "apiKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda:agentic-ai-openai-api-credential:1",
@@ -4182,7 +4183,8 @@
         "name" : "apiKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "organizationId",
       "label" : "Organization ID",
@@ -4220,7 +4222,8 @@
         "name" : "apiKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda:agentic-ai-google-vertex-ai-credential:1",
@@ -4239,7 +4242,8 @@
         "name" : "jsonKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda:agentic-ai-foundry-api-key-credential:1",

@@ -23,6 +23,7 @@ public record GoogleGeminiApiCredential(
             label = "Gemini API key",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,
+            secret = true,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String apiKey) {
 

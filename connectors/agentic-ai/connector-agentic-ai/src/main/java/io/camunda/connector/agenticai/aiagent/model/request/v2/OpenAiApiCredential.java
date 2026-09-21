@@ -24,6 +24,7 @@ public record OpenAiApiCredential(
             label = "OpenAI API key",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,
+            secret = true,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String apiKey,
     @TemplateProperty(

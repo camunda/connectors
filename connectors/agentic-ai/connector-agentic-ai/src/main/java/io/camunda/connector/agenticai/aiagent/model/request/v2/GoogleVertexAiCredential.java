@@ -26,6 +26,7 @@ public record GoogleVertexAiCredential(
             label = "JSON key of the service account",
             description = "This is the key of the service account in JSON format.",
             feel = FeelMode.optional,
+            secret = true,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String jsonKey) {
 
