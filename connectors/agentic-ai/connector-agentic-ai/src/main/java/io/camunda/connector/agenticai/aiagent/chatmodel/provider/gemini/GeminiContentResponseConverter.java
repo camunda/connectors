@@ -280,16 +280,13 @@ public class GeminiContentResponseConverter {
       raw.remove("text");
     }
 
-    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, thoughtSignatureMetadata(part));
+    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, null);
   }
 
   /**
-   * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()}, flat under {@link
-   * GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY}. On {@link ReasoningContent}, this is a
-   * duplicate compatibility and observability copy, not the replay source: {@link
-   * GeminiContentConverter#toParts(List)} reads the signature exclusively from the raw payload. No
-   * provider namespace is needed here (unlike on a {@link ToolCall}): every {@link Content}
-   * carrying this already names its provider as a first-class field.
+   * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()} for text parts, flat
+   * under {@link GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY}. Text parts do not preserve
+   * the raw provider payload, so their signature must remain in metadata for replay.
    */
   private @Nullable Map<String, Object> thoughtSignatureMetadata(Part part) {
     return part.thoughtSignature()
