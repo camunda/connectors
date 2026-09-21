@@ -1,29 +1,16 @@
 name: AI Agent CPT Tests (PR)
 
-# Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI + AWS Bedrock, see #8234) on a
-# PR before it reaches the merge queue, gated by the `ai-agent-model-e2e-test` label so it isn't
-# triggered accidentally. Named for the capability being verified (real-LLM AI Agent model E2E
-# coverage), not the underlying test-framework acronym, so it stays meaningful if that framework
-# changes.
+# Runs real-LLM AI Agent E2E coverage on a PR before it reaches the merge queue, gated by the
+# `ai-agent-model-e2e-test` label so it isn't triggered accidentally.
 #
-# Deliberately a standalone workflow rather than adding `pull_request` to MERGE_QUEUE_HELM_TEST.yaml:
-# that file's build-image job also feeds trigger-sm-e2e/trigger-saas-e2e, which gate only on
-# build-image producing a version - reusing it here would arm both on every labeled PR.
+# This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
+# feeds unrelated SM/SaaS E2E triggers.
 #
-# Deliberately `labeled` only, not `labeled, synchronize`: a same-repo PR still gets full Vault +
-# OPENAI_API_KEY/Vertex-service-account credentials once the label is present, and unlike a fork,
-# nothing stops the PR author (or anyone else with push access to that branch) from pushing new
-# code afterwards. Auto-re-running on every later push would hand a live credential-bearing run to
-# whatever code lands on the next push, with no further human look - re-triggering only on the
-# `labeled` event means a maintainer has to deliberately remove and re-apply the label (reviewing
-# the new commits first) to arm another run.
+# This listens only for `labeled`, not `synchronize`, so later pushes require a maintainer to review
+# the new commits and re-apply the label before another credential-bearing run starts.
 #
 # The image-backed E2E class and three in-process provider groups run in parallel. Only the
-# image-backed leg builds the default bundle; the other legs avoid paying that cost. That bundle
-# image is built with `load: true` (never pushed), so it's only ever available to this job's own
-# Docker daemon - no push/pull round trip, no Harbor login/push happens in this job (the
-# ARTIFACTORY_USR/ARTIFACTORY_PSW secrets it does import are only used for Maven/Nexus auth, not
-# for Docker registry access), and no orphan tags left behind in the registry.
+# image-backed leg builds the default bundle; the other legs avoid paying that cost.
 on:
   pull_request:
     types: [ labeled ]
@@ -70,12 +57,8 @@ jobs:
             test-classes: RealProviderApiSmokeIT,DocumentToolCallResultsIT
             build-bundle: false
             maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
-    # Fork PRs get no secrets from `pull_request` by design (never widen this to
-    # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
-    # account to unvetted fork code before review). Mirrors BUILD_PR_DOCKER_IMAGES.yml's gate,
-    # not NIGHTLY_E2E.yml's - that one has an operator-precedence bug where the fork check
-    # doesn't apply on `synchronize` (see #8234). Moot here anyway since this workflow doesn't
-    # listen for `synchronize` at all - see the top-of-file note on why.
+    # Fork PRs get no secrets from `pull_request` by design. Never widen this to
+    # `pull_request_target`, which would expose Vault-backed credentials to unvetted fork code.
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -85,6 +68,7 @@ jobs:
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       # Everything below is gated so a labeled PR touching no agentic-ai files pays for neither
       # the bundle build nor any real-provider calls in any matrix leg.
@@ -223,7 +207,7 @@ jobs:
       # `npm install --global element-templates-cli`.
       - name: Install element templates CLI
         if: steps.changes.outputs.ai == 'true'
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
 
       - name: Install reactor dependencies (skip tests and checks)
         if: steps.changes.outputs.ai == 'true'
@@ -249,7 +233,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          BASE_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BASE_VERSION=$(./mvnw --batch-mode help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${BASE_VERSION%-SNAPSHOT}"
           TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           echo "::notice::Local image tag: ${TAG}"
