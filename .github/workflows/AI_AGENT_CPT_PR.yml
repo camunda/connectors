@@ -169,7 +169,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
