@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 15,
+  "version": 14,
   "engines": {
     "camunda": "^8.7"
   },
@@ -596,27 +596,10 @@
     {
       "group": "authentication",
       "type": "Hidden",
-      "value": "= {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]}",
+      "value": "= if githubAuthType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]} else githubPat",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.token"
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
-      }
-    },
-    {
-      "group": "authentication",
-      "type": "Hidden",
-      "value": "=githubPat",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.token"
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "pat"
       }
     },
     {
@@ -3979,7 +3962,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "15",
+      "value": "14",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",

@@ -21,12 +21,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
+import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -191,5 +198,52 @@ class OutboundConnectorRuntimeConfigurationTest {
         configuration.documentFactoriesByPhysicalTenantId(registry, clientProvider(), null);
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
+  }
+
+  private static final String SIMPLE_PROCESS_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:startEvent id="start" />
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
+  private static CamundaClient clientReturning(String xml) {
+    var client = mock(CamundaClient.class);
+    var request = mock(ProcessDefinitionGetXmlRequest.class);
+    when(client.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(request);
+    when(request.execute()).thenReturn(xml);
+    return client;
+  }
+
+  /**
+   * Regression: {@code secretKeyCache()} used to build its {@link ProcessDefinitionSecretKeyCache}
+   * via the {@code (String, CamundaClient, Cache)} convenience constructor, which allocates its own
+   * unbounded, never-evicting model cache instead of using the shared, bounded {@code
+   * bpmnModelCacheStore} every other consumer goes through. Proven here the same way {@link
+   * ProcessDefinitionModelCacheTest#fetchesOnlyOncePerProcessDefinitionKeyAcrossRepeatedCalls}
+   * proves the model layer's own caching: pre-warm the shared store exactly as another consumer
+   * (e.g. the intrinsic-function allow-list cache) would for the same physical tenant and process
+   * definition key, then confirm this bean's {@code SecretKeyCache} finds that same cached model
+   * instead of fetching its own copy.
+   */
+  @Test
+  void
+      secretKeyCache_reusesTheSharedBoundedBpmnModelCache_ratherThanAllocatingItsOwnUnboundedOne() {
+    var client = clientReturning(SIMPLE_PROCESS_XML);
+    var bpmnModelCacheStore = configuration.bpmnModelCacheStore(true, 1000);
+    new ProcessDefinitionModelCache("default", client, bpmnModelCacheStore.cache())
+        .getModel(42L, Instant.now().plusSeconds(30));
+
+    var secretKeyCacheStore = configuration.secretKeyCacheStore(true, 1000);
+    var secretKeyCache =
+        configuration.secretKeyCache(
+            clientProvider(client), bpmnModelCacheStore, secretKeyCacheStore);
+    secretKeyCache.getSecretKeys(new SecretKeyContext(42L, "start", Instant.now().plusSeconds(30)));
+
+    verify(client, times(1)).newProcessDefinitionGetXmlRequest(42L);
   }
 }
