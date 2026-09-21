@@ -30,8 +30,6 @@ import com.anthropic.models.messages.ServerToolUsage;
 import com.anthropic.models.messages.ToolUseBlock;
 import com.anthropic.models.messages.Usage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
@@ -41,13 +39,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 class AnthropicMessageResponseConverterTest {
 
@@ -56,8 +52,6 @@ class AnthropicMessageResponseConverterTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AnthropicMessageResponseConverter converter =
       new AnthropicMessageResponseConverter(objectMapper);
-  private final AgentInstanceHistoryMapper historyMapper =
-      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   private static Message message(String json) {
     try {
@@ -186,28 +180,6 @@ class AnthropicMessageResponseConverterTest {
                 "Let me think it through",
                 null),
             TextContent.textContent("the answer"));
-
-    assertThat(historyMapper.assistantContent(assistantMessage))
-        .satisfiesExactly(
-            item ->
-                assertThat(item)
-                    .isInstanceOfSatisfying(
-                        AgentInstanceHistoryContent.ObjectContent.class,
-                        object ->
-                            assertThat(object.getObject())
-                                .isEqualTo(
-                                    Map.of(
-                                        "camunda.agenticai.content.type",
-                                        "reasoning",
-                                        "text",
-                                        "Let me think it through",
-                                        "payload",
-                                        Map.of("type", "thinking", "signature", "sig-123")))),
-            item ->
-                assertThat(item)
-                    .isInstanceOfSatisfying(
-                        AgentInstanceHistoryContent.TextContent.class,
-                        text -> assertThat(text.getText()).isEqualTo("the answer")));
   }
 
   @Test
@@ -303,18 +275,6 @@ class AnthropicMessageResponseConverterTest {
                 null,
                 null),
             TextContent.textContent("the answer"));
-
-    assertThat(historyMapper.assistantContent(assistantMessage).getFirst())
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object ->
-                assertThat(object.getObject())
-                    .isEqualTo(
-                        Map.of(
-                            "camunda.agenticai.content.type",
-                            "reasoning",
-                            "payload",
-                            Map.of("type", "redacted_thinking", "data", "encrypted-blob"))));
   }
 
   @Test

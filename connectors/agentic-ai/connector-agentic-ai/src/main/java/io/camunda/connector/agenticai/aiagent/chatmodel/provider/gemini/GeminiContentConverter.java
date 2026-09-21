@@ -165,11 +165,7 @@ public class GeminiContentConverter {
         reasoningContent.payload() instanceof Map<?, ?> map
             ? map.get(THOUGHT_SIGNATURE_METADATA_KEY)
             : null;
-    // Keep the metadata fallback so Gemini accepts the next request after process instance
-    // migration.
-    return payloadValue != null
-        ? decodeThoughtSignature(payloadValue)
-        : thoughtSignature(reasoningContent.metadata());
+    return decodeThoughtSignature(payloadValue);
   }
 
   private byte @Nullable [] thoughtSignature(@Nullable Map<String, Object> metadata) {

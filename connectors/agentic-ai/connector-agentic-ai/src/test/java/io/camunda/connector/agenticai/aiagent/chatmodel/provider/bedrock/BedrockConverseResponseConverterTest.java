@@ -11,8 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
@@ -23,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -35,7 +32,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointBlock;
@@ -66,8 +62,6 @@ class BedrockConverseResponseConverterTest {
   private final BedrockConverseResponseConverter converter = new BedrockConverseResponseConverter();
   private final BedrockConverseContentConverter contentConverter =
       new BedrockConverseContentConverter(new ObjectMapper());
-  private final AgentInstanceHistoryMapper historyMapper =
-      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   private static ConverseResponse response(
       List<ContentBlock> content, StopReason stopReason, TokenUsage usage) {
@@ -312,24 +306,6 @@ class BedrockConverseResponseConverterTest {
     final var reasoningText = (Map<String, Object>) payload.get("reasoningText");
     assertThat(reasoningText).containsEntry("signature", "sig-123").doesNotContainKey("text");
     assertThat(content.get(1)).isEqualTo(TextContent.textContent("done"));
-
-    assertThat(historyMapper.assistantContent(assistantMessage))
-        .satisfiesExactly(
-            item ->
-                assertThat(item)
-                    .isInstanceOfSatisfying(
-                        AgentInstanceHistoryContent.ObjectContent.class,
-                        object ->
-                            assertThat(object.getObject())
-                                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
-                                .containsEntry("camunda.agenticai.content.type", "reasoning")
-                                .containsEntry("text", "Let me think it through")
-                                .containsEntry("payload", payload)),
-            item ->
-                assertThat(item)
-                    .isInstanceOfSatisfying(
-                        AgentInstanceHistoryContent.TextContent.class,
-                        text -> assertThat(text.getText()).isEqualTo("done")));
   }
 
   @Test
@@ -353,15 +329,6 @@ class BedrockConverseResponseConverterTest {
     @SuppressWarnings("unchecked")
     final var payload = (Map<String, Object>) reasoningContent.payload();
     assertThat(payload).containsOnlyKeys("redactedContent");
-
-    assertThat(historyMapper.assistantContent(assistantMessage).getFirst())
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object ->
-                assertThat(object.getObject())
-                    .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
-                    .containsExactlyInAnyOrderEntriesOf(
-                        Map.of("camunda.agenticai.content.type", "reasoning", "payload", payload)));
   }
 
   @Test

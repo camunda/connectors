@@ -215,7 +215,7 @@ public class AgentInstanceHistoryMapper {
   private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {
     final var historyObject = new LinkedHashMap<String, Object>();
     historyObject.put("camunda.agenticai.content.type", "reasoning");
-    if (reasoningContent.text() != null) {
+    if (StringUtils.isNotBlank(reasoningContent.text())) {
       historyObject.put("text", reasoningContent.text());
     }
     historyObject.put("payload", reasoningContent.payload());

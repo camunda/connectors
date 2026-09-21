@@ -164,29 +164,6 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void replaysThoughtSignatureFromLegacyMetadataAfterProcessInstanceMigration() {
-      final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
-      final var metadata =
-          Map.<String, Object>of(
-              "thoughtSignature", Base64.getEncoder().encodeToString(signatureBytes));
-
-      final var parts =
-          converter.toParts(
-              List.of(
-                  new ReasoningContent(
-                      GOOGLE_GEMINI_ID,
-                      Map.of("type", "thought"),
-                      "Let me think it through",
-                      metadata)));
-
-      assertThat(parts).hasSize(1);
-      final var part = parts.get(0);
-      assertThat(part.thought()).contains(true);
-      assertThat(part.text()).contains("Let me think it through");
-      assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
-    }
-
-    @Test
     void replaysThoughtSignatureFromPersistedReasoningPayload() {
       final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
       final var payload =
@@ -227,36 +204,31 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsReasoningContentWithRawByteArraySignaturePassesThrough() {
+    void mapsReasoningContentWithRawByteArraySignatureInPayloadPassesThrough() {
       final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
-      final var metadata = Map.<String, Object>of("thoughtSignature", signatureBytes);
+      final var payload =
+          Map.<String, Object>of("type", "thought", "thoughtSignature", signatureBytes);
 
       final var parts =
           converter.toParts(
               List.of(
                   new ReasoningContent(
-                      GOOGLE_GEMINI_ID,
-                      Map.of("type", "thought"),
-                      "Let me think it through",
-                      metadata)));
+                      GOOGLE_GEMINI_ID, payload, "Let me think it through", null)));
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
     }
 
     @Test
-    void throwsForUnsupportedThoughtSignatureMetadataValueType() {
-      final var metadata = Map.<String, Object>of("thoughtSignature", 42);
+    void throwsForUnsupportedThoughtSignaturePayloadValueType() {
+      final var payload = Map.<String, Object>of("type", "thought", "thoughtSignature", 42);
 
       assertThatThrownBy(
               () ->
                   converter.toParts(
                       List.of(
                           new ReasoningContent(
-                              GOOGLE_GEMINI_ID,
-                              Map.of("type", "thought"),
-                              "Let me think it through",
-                              metadata))))
+                              GOOGLE_GEMINI_ID, payload, "Let me think it through", null))))
           .isInstanceOf(ConnectorException.class)
           .hasMessageContaining("thoughtSignature")
           .hasMessageContaining("Integer");
