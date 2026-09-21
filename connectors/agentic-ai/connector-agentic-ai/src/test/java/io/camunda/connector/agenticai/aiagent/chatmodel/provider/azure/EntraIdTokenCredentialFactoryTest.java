@@ -7,12 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
+import com.azure.core.util.HttpClientOptions;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -20,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class EntraIdTokenCredentialFactoryTest {
 
@@ -31,32 +36,36 @@ class EntraIdTokenCredentialFactoryTest {
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalClientCredentialsConfig() {
-    final var first = factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
-    final var second = factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
+    final var first =
+        factory.clientCredentials("tenant-id", "client-id", "client-secret", null, null);
+    final var second =
+        factory.clientCredentials("tenant-id", "client-id", "client-secret", null, null);
 
     assertThat(second).isSameAs(first);
   }
 
   @Test
   void buildsDistinctTokenCredentialsForDifferentClientCredentialsConfig() {
-    final var first = factory.clientCredentials("tenant-id", "client-one", "secret-one", null);
-    final var second = factory.clientCredentials("tenant-id", "client-two", "secret-two", null);
+    final var first =
+        factory.clientCredentials("tenant-id", "client-one", "secret-one", null, null);
+    final var second =
+        factory.clientCredentials("tenant-id", "client-two", "secret-two", null, null);
 
     assertThat(second).isNotSameAs(first);
   }
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalManagedIdentityConfig() {
-    final var first = factory.managedIdentity("user-assigned-id");
-    final var second = factory.managedIdentity("user-assigned-id");
+    final var first = factory.managedIdentity("user-assigned-id", null);
+    final var second = factory.managedIdentity("user-assigned-id", null);
 
     assertThat(second).isSameAs(first);
   }
 
   @Test
   void buildsDistinctTokenCredentialsForDifferentManagedIdentityConfig() {
-    final var systemAssigned = factory.managedIdentity(null);
-    final var userAssigned = factory.managedIdentity("user-assigned-id");
+    final var systemAssigned = factory.managedIdentity(null, null);
+    final var userAssigned = factory.managedIdentity("user-assigned-id", null);
 
     assertThat(userAssigned).isNotSameAs(systemAssigned);
   }
@@ -68,7 +77,7 @@ class EntraIdTokenCredentialFactoryTest {
     when(httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS))
         .thenReturn(Optional.of(proxyOptions));
 
-    factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
+    factory.clientCredentials("tenant-id", "client-id", "client-secret", null, null);
 
     verify(httpProxySupport).azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS);
   }
@@ -77,8 +86,79 @@ class EntraIdTokenCredentialFactoryTest {
   void doesNotRouteManagedIdentityTokenExchangeThroughTheProxy() {
     // IMDS lives at a link-local address (or an environment-provided local sidecar endpoint),
     // neither of which is reachable via an internet-facing egress proxy.
-    factory.managedIdentity(null);
+    factory.managedIdentity(null, null);
 
     verifyNoInteractions(httpProxySupport);
+  }
+
+  @Test
+  void reusesTheSameTokenCredentialForAnIdenticalClientCredentialsTimeout() {
+    final var first =
+        factory.clientCredentials(
+            "tenant-id", "client-id", "client-secret", null, Duration.ofSeconds(5));
+    final var second =
+        factory.clientCredentials(
+            "tenant-id", "client-id", "client-secret", null, Duration.ofSeconds(5));
+
+    assertThat(second).isSameAs(first);
+  }
+
+  @Test
+  void buildsDistinctTokenCredentialsForDifferentClientCredentialsTimeouts() {
+    // the timeout is baked into the credential's HTTP client, so two otherwise identical
+    // configurations must not share one cached credential.
+    final var shortTimeout =
+        factory.clientCredentials(
+            "tenant-id", "client-id", "client-secret", null, Duration.ofSeconds(5));
+    final var longTimeout =
+        factory.clientCredentials(
+            "tenant-id", "client-id", "client-secret", null, Duration.ofSeconds(30));
+
+    assertThat(longTimeout).isNotSameAs(shortTimeout);
+  }
+
+  @Test
+  void buildsDistinctTokenCredentialsWhenOnlyOneClientCredentialsConfigHasATimeout() {
+    final var untimed =
+        factory.clientCredentials("tenant-id", "client-id", "client-secret", null, null);
+    final var timed =
+        factory.clientCredentials(
+            "tenant-id", "client-id", "client-secret", null, Duration.ofSeconds(5));
+
+    assertThat(timed).isNotSameAs(untimed);
+  }
+
+  @Test
+  void buildsDistinctTokenCredentialsForDifferentManagedIdentityTimeouts() {
+    final var shortTimeout = factory.managedIdentity("user-assigned-id", Duration.ofSeconds(5));
+    final var longTimeout = factory.managedIdentity("user-assigned-id", Duration.ofSeconds(30));
+
+    assertThat(longTimeout).isNotSameAs(shortTimeout);
+  }
+
+  @Test
+  void doesNotRouteATimedManagedIdentityTokenExchangeThroughTheProxy() {
+    factory.managedIdentity(null, Duration.ofSeconds(5));
+
+    verifyNoInteractions(httpProxySupport);
+  }
+
+  @Test
+  void installsTheConfiguredTimeoutAsConnectAndResponseTimeout() {
+    final var timeout = Duration.ofSeconds(5);
+    final var httpClientOptionsCaptor = ArgumentCaptor.forClass(HttpClientOptions.class);
+
+    try (var httpClient = mockStatic(HttpClient.class)) {
+      httpClient
+          .when(() -> HttpClient.createDefault(any(HttpClientOptions.class)))
+          .thenReturn(mock(HttpClient.class));
+
+      factory.clientCredentials("tenant-id", "client-id", "client-secret", null, timeout);
+
+      httpClient.verify(() -> HttpClient.createDefault(httpClientOptionsCaptor.capture()));
+    }
+
+    assertThat(httpClientOptionsCaptor.getValue().getConnectTimeout()).isEqualTo(timeout);
+    assertThat(httpClientOptionsCaptor.getValue().getResponseTimeout()).isEqualTo(timeout);
   }
 }
