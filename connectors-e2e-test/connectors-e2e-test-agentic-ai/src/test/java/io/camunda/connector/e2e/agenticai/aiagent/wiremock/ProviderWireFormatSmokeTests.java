@@ -28,14 +28,12 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2ApiCredentialWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2WireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2ApiCredentialWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
@@ -84,12 +82,10 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         new OpenAiCompletionsV2WireFormatFixture(),
         new AnthropicMessagesV1WireFormatFixture(),
         new AnthropicMessagesV2WireFormatFixture(),
-        new AnthropicMessagesV2ApiCredentialWireFormatFixture(),
         new BedrockConverseV1WireFormatFixture(),
         new BedrockConverseV2WireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture(),
-        new OpenAiResponsesV2WireFormatFixture(),
-        new OpenAiResponsesV2ApiCredentialWireFormatFixture());
+        new OpenAiResponsesV2WireFormatFixture());
   }
 
   /**
