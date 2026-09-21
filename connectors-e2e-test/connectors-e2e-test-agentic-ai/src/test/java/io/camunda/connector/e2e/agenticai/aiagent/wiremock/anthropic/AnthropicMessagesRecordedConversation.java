@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,7 +64,8 @@ public final class AnthropicMessagesRecordedConversation {
         new ArrayList<>(
             findAll(
                 postRequestedFor(
-                    urlPathEqualTo(StreamingAnthropicMessagesSseChatModelStubs.MESSAGES_PATH))));
+                    urlPathMatching(
+                        ".*" + StreamingAnthropicMessagesSseChatModelStubs.MESSAGES_PATH))));
 
     loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
 
