@@ -5,7 +5,7 @@
   "description" : "Polls endpoint at regular intervals",
   "keywords" : [ "poll", "polling", "HTTP", "REST", "wait for response", "check status", "periodic request", "HTTP callback" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
-  "version" : 9,
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -265,6 +265,7 @@
         "message" : "Must be a http(s) URL"
       }
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
@@ -421,6 +422,7 @@
         "message" : "Must be a http(s) URL"
       }
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",

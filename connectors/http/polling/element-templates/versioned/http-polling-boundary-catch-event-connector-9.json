@@ -1,18 +1,18 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "HTTP Polling Intermediate Catch Event Connector",
-  "id" : "io.camunda.connectors.http.Polling",
+  "name" : "HTTP Polling Boundary Catch Event Connector",
+  "id" : "io.camunda.connectors.http.Polling.Boundary",
   "description" : "Polls endpoint at regular intervals",
   "keywords" : [ "poll", "polling", "HTTP", "REST", "wait for response", "check status", "periodic request", "HTTP callback" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
-  "version" : 10,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "appliesTo" : [ "bpmn:BoundaryEvent" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
+    "value" : "bpmn:BoundaryEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
@@ -265,7 +265,6 @@
         "message" : "Must be a http(s) URL"
       }
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
@@ -422,7 +421,6 @@
         "message" : "Must be a http(s) URL"
       }
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
