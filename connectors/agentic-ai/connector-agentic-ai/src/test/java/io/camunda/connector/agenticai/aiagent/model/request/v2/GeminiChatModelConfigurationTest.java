@@ -372,7 +372,8 @@ class GeminiChatModelConfigurationTest {
     assertThat(vertexAi.region()).isEqualTo("us-central1");
     assertThat(vertexAi.endpoint()).isNull();
     assertThat(vertexAi.authentication())
-        .isEqualTo(new ServiceAccountCredentialsAuthentication("{\"type\":\"service_account\"}"));
+        .isEqualTo(
+            new ServiceAccountCredentialsAuthentication(null, "{\"type\":\"service_account\"}"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -415,17 +416,21 @@ class GeminiChatModelConfigurationTest {
 
   @Test
   void serviceAccountCredentialsAuthenticationRedactsJsonKeyInToString() {
-    final var authentication = new ServiceAccountCredentialsAuthentication("super-secret-key");
+    final var authentication =
+        new ServiceAccountCredentialsAuthentication(null, "super-secret-key");
 
     final String toString = authentication.toString();
 
     assertThat(toString).doesNotContain("super-secret-key");
-    assertThat(toString).isEqualTo("ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}");
+    assertThat(toString)
+        .isEqualTo(
+            "ServiceAccountCredentialsAuthentication{googleVertexAiCredential=null,"
+                + " jsonKey=[REDACTED]}");
   }
 
   @Test
   void vertexAiBackendRejectsBlankProjectIdAndRegion() {
-    final var authentication = new ServiceAccountCredentialsAuthentication("key-json");
+    final var authentication = new ServiceAccountCredentialsAuthentication(null, "key-json");
     final var backendWithBlanks =
         new GeminiVertexAiBackend(new GoogleVertexAi("  ", "  ", null, authentication));
 
@@ -453,7 +458,7 @@ class GeminiChatModelConfigurationTest {
   @Test
   void vertexAiServiceAccountCredentialsRejectsBlankJsonKey() {
     final var config =
-        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("  "));
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication(null, "  "));
 
     final var violations = validator.validate(config);
 
@@ -461,9 +466,79 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Vertex AI service account JSON key is required from the credential or"
+                          + " element template");
             });
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsRejectsMissingJsonKeyAndCredential() {
+    final var config =
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication(null, null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Vertex AI service account JSON key is required from the credential or"
+                          + " element template");
+            });
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsResolvesJsonKeyFromCredentialWithNoViolations() {
+    final var credential = new GoogleVertexAiCredential("key-from-credential");
+    final var authentication = new ServiceAccountCredentialsAuthentication(credential, null);
+    final var config = vertexAiChatModelConfiguration(authentication);
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+  }
+
+  @Test
+  void deserialisesGoogleVertexAiCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-vertex-ai",
+              "googleVertexAi": {
+                "projectId": "my-project",
+                "region": "us-central1",
+                "authentication": {
+                  "type": "serviceAccountCredentials",
+                  "googleVertexAiCredential": { "jsonKey": "key-from-credential" }
+                }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+    assertThat(validator.validate(parsed)).isEmpty();
+
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    final GoogleVertexAi vertexAi =
+        ((GeminiVertexAiBackend) gemini.googleGemini().backend()).googleVertexAi();
+    final var authentication = (ServiceAccountCredentialsAuthentication) vertexAi.authentication();
+    assertThat(authentication.googleVertexAiCredential())
+        .isEqualTo(new GoogleVertexAiCredential("key-from-credential"));
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -490,7 +565,8 @@ class GeminiChatModelConfigurationTest {
   @Test
   void validVertexAiConfigurationHasNoViolations() {
     final var config =
-        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("key-json"));
+        vertexAiChatModelConfiguration(
+            new ServiceAccountCredentialsAuthentication(null, "key-json"));
 
     assertThat(validator.validate(config)).isEmpty();
   }

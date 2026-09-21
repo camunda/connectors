@@ -219,18 +219,51 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
     sealed interface GoogleVertexAiAuthentication {
       @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
       record ServiceAccountCredentialsAuthentication(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "Vertex AI credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "googleVertexAiCredential"),
+                  description =
+                      "Select a saved Vertex AI credential, or enter a service account JSON key"
+                          + " below.")
+              @Nullable GoogleVertexAiCredential googleVertexAiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "JSON key of the service account",
                   description = "This is the key of the service account in JSON format.",
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String jsonKey)
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "googleVertexAiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String jsonKey)
           implements GoogleVertexAiAuthentication {
+
+        /** The service-account JSON key: from the bound credential if present, else inline. */
+        @JsonIgnore
+        public @Nullable String effectiveJsonKey() {
+          return googleVertexAiCredential != null ? googleVertexAiCredential.jsonKey() : jsonKey;
+        }
+
+        @JsonIgnore
+        @AssertTrue(
+            message =
+                "Vertex AI service account JSON key is required from the credential or element"
+                    + " template")
+        public boolean isJsonKeyPresent() {
+          String effective = effectiveJsonKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}";
+          return "ServiceAccountCredentialsAuthentication{googleVertexAiCredential="
+              + googleVertexAiCredential
+              + ", jsonKey=[REDACTED]}";
         }
       }
 

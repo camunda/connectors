@@ -637,7 +637,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "us-central1",
                         null,
                         new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-                            "{\"type\":\"service_account\"}"))),
+                            null, "{\"type\":\"service_account\"}"))),
                 new GeminiModel(
                     "gemini-3-pro-preview",
                     new GeminiModelParameters(
@@ -702,7 +702,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "us-central1",
                         null,
                         new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-                            "{\"type\":\"service_account\"}"))),
+                            null, "{\"type\":\"service_account\"}"))),
                 new GeminiModel("gemini-3-pro-preview", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 

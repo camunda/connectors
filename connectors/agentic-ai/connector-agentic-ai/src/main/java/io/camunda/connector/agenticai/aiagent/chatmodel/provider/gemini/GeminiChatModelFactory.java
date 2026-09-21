@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -210,7 +211,8 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       // application default credentials it resolves itself and passes these through verbatim,
       // so without this the token request fails with invalid_scope.
       return ServiceAccountCredentials.fromStream(
-              new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)))
+              new ByteArrayInputStream(
+                  Objects.requireNonNull(sac.effectiveJsonKey()).getBytes(StandardCharsets.UTF_8)))
           .createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     } catch (IOException e) {
       throw new ConnectorInputException(

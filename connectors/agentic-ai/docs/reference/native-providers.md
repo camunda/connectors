@@ -289,7 +289,10 @@ custom-backend variant (no user-configurable headers/query params, unlike Anthro
 
 `google-gemini-api` supports a saved `io.camunda:agentic-ai-google-gemini-api-credential:1`
 credential (`apiKey` only); the `endpoint` escape hatch stays inline and always visible regardless.
-See [ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
+`google-vertex-ai`'s `serviceAccountCredentials` authentication supports a saved
+`io.camunda:agentic-ai-google-vertex-ai-credential:1` credential (`jsonKey` only);
+`applicationDefaultCredentials` has no scalars to save. See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning
 

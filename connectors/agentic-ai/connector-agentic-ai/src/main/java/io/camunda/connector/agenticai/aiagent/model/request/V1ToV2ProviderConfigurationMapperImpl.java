@@ -315,7 +315,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
                   .ServiceAccountCredentialsAuthentication
               serviceAccount ->
           new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-              serviceAccount.jsonKey());
+              null, serviceAccount.jsonKey());
       case GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication
                   .ApplicationDefaultCredentialsAuthentication
               ignored ->

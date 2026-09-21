@@ -335,7 +335,7 @@ class GeminiChatModelFactoryTest {
 
       final var clientBuilder =
           createVertexAiChatModel(
-              vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}")));
+              vertexConfig(null, new ServiceAccountCredentialsAuthentication(null, "{}")));
 
       verify(clientBuilder).credentials(scopedSac);
     }
@@ -427,7 +427,7 @@ class GeminiChatModelFactoryTest {
       assertThatThrownBy(
               () ->
                   factory.create(
-                      vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
+                      vertexConfig(null, new ServiceAccountCredentialsAuthentication(null, "{}"))))
           .isInstanceOf(ConnectorInputException.class)
           .hasMessageContaining("Authentication failed for provided service account credentials");
     }

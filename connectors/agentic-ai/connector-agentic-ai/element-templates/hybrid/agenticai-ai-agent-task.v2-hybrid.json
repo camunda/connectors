@@ -2081,6 +2081,33 @@
       "value" : "applicationDefaultCredentials"
     } ]
   }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+    "label" : "Vertex AI credential",
+    "description" : "Select a saved Vertex AI credential, or enter a service account JSON key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-google-vertex-ai-credential:1"
+  }, {
     "id" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
     "label" : "JSON key of the service account",
     "description" : "This is the key of the service account in JSON format.",
@@ -2096,6 +2123,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
@@ -4040,6 +4071,25 @@
       "group" : "provider",
       "binding" : {
         "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-google-vertex-ai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Vertex AI Credential",
+    "properties" : [ {
+      "id" : "jsonKey",
+      "label" : "JSON key of the service account",
+      "description" : "This is the key of the service account in JSON format.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "jsonKey",
         "type" : "property"
       },
       "type" : "String"
