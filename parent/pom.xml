@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.6.28</version>
+  <version>8.6.29</version>
   <packaging>pom</packaging>
 
   <name>Camunda Connector Parent</name>
@@ -71,7 +71,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.6.28</version.zeebe>
-    <version.feel-engine>1.22.0</version.feel-engine>
+    <version.feel-engine>1.22.1</version.feel-engine>
     <version.spring-zeebe>8.5.23</version.spring-zeebe>
     <version.identity>8.6.20</version.identity>
 
@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.16</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.55.1</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -132,10 +132,17 @@ limitations under the License.</license.inlineheader>
          4.1.x line and covers all 7 netty CVEs (4.1.136 fixes CVE-2026-55831/55833/56745/56819/
          59901; 4.1.137.Final additionally fixes CVE-2026-62243/75595). -->
     <version.netty>4.2.18.Final</version.netty>
-    <version.amqp-client>5.35.0</version.amqp-client>
-    <version.lz4-java>1.11.2</version.lz4-java>
+    <version.amqp-client>5.36.0</version.amqp-client>
+    <version.lz4-java>1.11.3</version.lz4-java>
 
-    <version.microsoft-graph>6.69.0</version.microsoft-graph>
+    <!-- CVE-2026-87795: zstd-jni transitive override — kafka-clients 3.9.2 ships zstd-jni 1.5.6-4,
+         below the 1.5.7-14 that fixes the ZstdDictCompress out-of-bounds read. Unlike stable/8.7+,
+         this branch has no box-java-sdk, so kafka-clients is the only path bringing zstd-jni into
+         the bundles. Remove once kafka-clients ships zstd-jni >= 1.5.7-14.
+         Ref: https://github.com/luben/zstd-jni/security/advisories -->
+    <version.zstd-jni>1.5.7-18</version.zstd-jni>
+
+    <version.microsoft-graph>6.70.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
 
     <version.bouncycastle.bcpkix>1.86</version.bouncycastle.bcpkix>
@@ -159,8 +166,8 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
-    <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
+    <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>4.6</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
@@ -506,6 +513,14 @@ limitations under the License.</license.inlineheader>
         <version>${version.lz4-java}</version>
       </dependency>
 
+      <!-- CVE-2026-87795: override zstd-jni transitive version brought in by kafka-clients.
+           Remove once kafka-clients ships zstd-jni >= 1.5.7-14. -->
+      <dependency>
+        <groupId>com.github.luben</groupId>
+        <artifactId>zstd-jni</artifactId>
+        <version>${version.zstd-jni}</version>
+      </dependency>
+
       <!-- Override amqp-client transitive version brought in by spring-boot-dependencies.
            Remove once spring-boot-dependencies manages com.rabbitmq:amqp-client >= 5.34.0 (see
            the property comment above for why 5.34.0, not 5.33.1). -->
@@ -835,16 +850,23 @@ limitations under the License.</license.inlineheader>
               <configuration>
                 <skip>false</skip>
                 <rules>
-                  <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
-                       check whether the lz4-java override can be removed (see version.lz4-java). -->
+                  <!-- CVE-2026-59949 / CVE-2026-87795 guard: fails if kafka-clients is bumped, as
+                       a reminder to check whether the lz4-java and zstd-jni overrides can be
+                       removed (see version.lz4-java and version.zstd-jni). Both overrides exist
+                       only because kafka-clients 3.9.2 ships those two transitives below their
+                       fixed versions, so one guard on this property covers both. -->
                   <requireProperty>
                     <property>version.kafka-clients</property>
                     <regex>^3\.9\.2$</regex>
                     <regexMessage>
-version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
-If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
-the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 and zstd-jni
+CVE-2026-87795 overrides can be removed.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property
+and the lz4-java dependencyManagement entry. If it ships zstd-jni &gt;= 1.5.7-14, remove the
+version.zstd-jni property and the zstd-jni dependencyManagement entry. Once both are gone, remove
+this enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
+     https://github.com/luben/zstd-jni/security/advisories
                     </regexMessage>
                   </requireProperty>
                   <!-- CVE-2026-69219 / CVE-2026-69220 guard: fails if version.spring-boot is
