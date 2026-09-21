@@ -263,7 +263,7 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       }
       if (matchesKeywordAt("if")) {
         i += 2;
-        return parseIfThenElse(path, found, opaque);
+        return parseIfThenElse(path, found);
       }
       if (matchesKeywordAt("for")) {
         i += 3;
@@ -376,8 +376,7 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
      * this conditional, once parsed, is fully resolved from the perspective of anything wrapping it
      * (a list element, a duplicate key, an outer conditional).
      */
-    private boolean parseIfThenElse(
-        List<String> path, List<Declaration> found, Set<List<String>> opaque) {
+    private boolean parseIfThenElse(List<String> path, List<Declaration> found) {
       if (!skipUntilKeyword("then") || !tryConsumeKeyword("then")) {
         return false;
       }

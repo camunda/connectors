@@ -48,8 +48,7 @@ public final class IntrinsicFunctionUtil {
                   + functionName
                   + "' at '"
                   + String.join(".", fieldPath)
-                  + "' is not declared in the deployed process model and cannot be dispatched from"
-                  + " process data.");
+                  + "' is not allowed by the runtime intrinsic-function policy.");
         }
       }
       node.properties()
