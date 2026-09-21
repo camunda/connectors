@@ -296,6 +296,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.github.a2asdk</groupId>
@@ -652,7 +657,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-          <includeDependencies>io.camunda.connector:connector-webhook</includeDependencies>
+          <includeDependencies>io.camunda.connector:connector-webhook,io.camunda.connector:connector-aws-base</includeDependencies>
         </configuration>
       </plugin>
       <plugin>

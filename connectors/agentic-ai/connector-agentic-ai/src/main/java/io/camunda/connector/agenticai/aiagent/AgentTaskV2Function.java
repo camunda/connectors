@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockApiKeyCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryApiKeyCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryClientCredentialsCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleGeminiApiCredential;
@@ -19,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleVertexAiCre
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiCredential;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
@@ -49,7 +51,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       GoogleGeminiApiCredential.class,
       GoogleVertexAiCredential.class,
       FoundryApiKeyCredential.class,
-      FoundryClientCredentialsCredential.class
+      FoundryClientCredentialsCredential.class,
+      AwsCredentialConfiguration.class,
+      BedrockApiKeyCredential.class
     },
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),

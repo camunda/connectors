@@ -416,8 +416,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new BedrockConverseConnection(
                 "eu-west-1",
                 "https://vpce.example",
-                new AwsAuthentication.AwsStaticCredentialsAuthentication(
-                    "AKIA-access", "secret-key"),
+                new AwsAuthentication.AwsIamAuthentication(
+                    null,
+                    new AwsAuthentication.AwsIamAuthenticationMethod
+                        .AwsStaticCredentialsAuthentication("AKIA-access", "secret-key")),
                 null,
                 null,
                 null,
@@ -447,8 +449,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new BedrockConverseConnection(
                 "us-east-1",
                 null,
-                new AwsAuthentication.AwsStaticCredentialsAuthentication(
-                    "AKIA-access", "secret-key"),
+                new AwsAuthentication.AwsIamAuthentication(
+                    null,
+                    new AwsAuthentication.AwsIamAuthenticationMethod
+                        .AwsStaticCredentialsAuthentication("AKIA-access", "secret-key")),
                 null,
                 null,
                 null,
@@ -473,7 +477,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
         .isEqualTo(
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA-access", "secret-key"));
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                    "AKIA-access", "secret-key")));
   }
 
   @Test
@@ -490,7 +497,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
     final var result = mapper.map(source);
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
-        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-api-key"));
+        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-api-key"));
   }
 
   @Test
@@ -507,7 +514,11 @@ class V1ToV2ProviderConfigurationMapperImplTest {
     final var result = mapper.map(source);
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
-        .isEqualTo(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+        .isEqualTo(
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()));
   }
 
   @Test

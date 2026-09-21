@@ -56,7 +56,10 @@ class BedrockConverseRequestConverterTest {
         new BedrockConverseConnection(
             REGION,
             null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()),
             null,
             null,
             null,
@@ -73,7 +76,10 @@ class BedrockConverseRequestConverterTest {
         new BedrockConverseConnection(
             REGION,
             null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()),
             headers,
             queryParameters,
             bodyProperties,

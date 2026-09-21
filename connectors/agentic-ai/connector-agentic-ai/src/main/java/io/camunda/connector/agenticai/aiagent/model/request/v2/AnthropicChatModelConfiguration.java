@@ -249,8 +249,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
         public boolean isDefaultCredentialsChainUsedInSaaS() {
           return ConnectorUtils.isSaaS()
-              && authentication
-                  instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+              && authentication instanceof AwsAuthentication.AwsIamAuthentication iam
+              && iam.usesDefaultCredentialsChain();
         }
 
         @Override

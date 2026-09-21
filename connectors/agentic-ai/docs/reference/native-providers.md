@@ -41,7 +41,9 @@ request. Authentication config and Entra ID token handling are shared with the O
 `anthropic-api` supports a saved `io.camunda:agentic-ai-anthropic-api-credential:1` credential
 (`apiKey` only); the escape hatches (`endpoint`/`headers`/`queryParameters`/`bodyProperties`) stay
 inline and always visible regardless. `foundry`'s credentials are shared with OpenAI — see
-[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials). See
+[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials).
+`aws-bedrock-mantle`'s credentials are shared with Bedrock Converse — see
+[AWS credentials](#aws-credentials). See
 [ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning
@@ -78,7 +80,12 @@ assistant message and metrics already built for the turn as the exception's `Par
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
 backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
-(static credentials, API key, or the default credentials chain) and an optional custom endpoint.
+(AWS IAM, or Bedrock's own bearer API key — see [AWS credentials](#aws-credentials)) and an optional
+custom endpoint.
+
+### Credentials
+
+Shared with Anthropic's `aws-bedrock-mantle` backend — see [AWS credentials](#aws-credentials).
 
 ### HTTP overrides
 
@@ -441,6 +448,26 @@ rather than an overall deadline: each phase may consume it in full, and azure-id
 start a fresh attempt, so a retrying token exchange can outlast a single `timeout`. Because it is baked
 into that client, it is part of the credential cache key: two otherwise identical configurations with
 different timeouts get their own credential rather than silently sharing whichever was built first.
+
+## AWS credentials
+
+Shared by [Bedrock Converse](#bedrock-converse) and Anthropic's `aws-bedrock-mantle` backend: both
+authenticate the same way, so `AwsAuthentication` (`model.request.v2`) is one sealed interface bound
+per provider at `provider.<provider>.backend.<...>.authentication.*`. It has two top-level families —
+`AwsIamAuthentication` and `AwsApiKeyAuthentication` — kept as separate variants rather than one flat
+list of options, for the same reason each has its own credential type below.
+
+`AwsIamAuthentication` either binds the same `io.camunda:aws-credential:1` credential the other AWS
+connectors already use, or takes static keys/the default credentials chain entered directly. That
+credential already carries its own static-keys-vs-default-chain choice internally
+(`AwsCredentialConfiguration.authentication`), so nesting the inline choice inside the IAM family
+(rather than flattening credential-or-inline and static-vs-default-chain into one three-way list)
+keeps "default credentials chain" reachable in exactly one place instead of two. The credential's own
+`region` field is never consulted here: both backends' own `region` stays required and independent of
+any bound credential. `AwsApiKeyAuthentication` is Bedrock's own bearer API key, structurally
+unrelated to IAM, with its own dedicated `io.camunda:agentic-ai-bedrock-api-key-credential:1`
+credential (`apiKey` only). See [ADR 015](../adr/015-v2-provider-credential-templates.md) for the
+general rationale.
 When no connection timeout is supplied, the factories use the configured
 `chat-model.api.default-timeout`; therefore the credential still receives a configured HTTP client
 even when no proxy is present.

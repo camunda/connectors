@@ -299,8 +299,8 @@
   }, {
     "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
+    "description" : "Choose AWS IAM credentials or an AWS Bedrock API key.",
+    "value" : "awsIam",
     "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
@@ -319,17 +319,78 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
+      "name" : "AWS IAM",
+      "value" : "awsIam"
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Select a saved AWS credential, or enter authentication details below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+    "label" : "AWS IAM authentication",
+    "description" : "Specify the one-time AWS IAM authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
     }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -339,13 +400,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -357,9 +426,10 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -369,13 +439,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.method.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -387,19 +465,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+    "label" : "Bedrock API key credential",
+    "description" : "Select a saved AWS Bedrock API key credential, or enter an API key below.",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -417,7 +492,43 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Bearer API key for AWS Bedrock.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.anthropic.backend.foundry.endpoint",
     "label" : "API endpoint",
@@ -1111,8 +1222,8 @@
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
+    "description" : "Choose AWS IAM credentials or an AWS Bedrock API key.",
+    "value" : "awsIam",
     "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.type",
@@ -1125,17 +1236,70 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
+      "name" : "AWS IAM",
+      "value" : "awsIam"
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Select a saved AWS credential, or enter authentication details below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.bedrock.authentication.method.type",
+    "label" : "AWS IAM authentication",
+    "description" : "Specify the one-time AWS IAM authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.method.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
     }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.bedrock.authentication.accessKey",
+    "id" : "provider.bedrock.authentication.method.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -1145,13 +1309,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.accessKey",
+      "name" : "provider.bedrock.authentication.method.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
+        "property" : "provider.bedrock.authentication.method.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -1159,9 +1331,10 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.bedrock.authentication.secretKey",
+    "id" : "provider.bedrock.authentication.method.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -1171,13 +1344,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.secretKey",
+      "name" : "provider.bedrock.authentication.method.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
+        "property" : "provider.bedrock.authentication.method.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -1185,7 +1366,31 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+    "label" : "Bedrock API key credential",
+    "description" : "Select a saved AWS Bedrock API key credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
   }, {
     "id" : "provider.bedrock.authentication.apiKey",
     "label" : "API key",
@@ -1202,6 +1407,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.bedrock.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
@@ -1211,7 +1420,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.bedrock.timeouts.timeout",
     "label" : "Timeout",
@@ -4346,6 +4556,98 @@
         "type" : "property"
       },
       "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:aws-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 2,
+    "name" : "AWS Credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "value" : "credentials",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+        "value" : "defaultCredentialsChain"
+      }, {
+        "name" : "Credentials",
+        "value" : "credentials"
+      } ]
+    }, {
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.accessKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.secretKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "region",
+      "label" : "Default region",
+      "description" : "Used when a connector does not specify a region override.",
+      "group" : "configuration",
+      "binding" : {
+        "name" : "region",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-bedrock-api-key-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "AWS Bedrock API Key Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "description" : "Bearer API key for AWS Bedrock.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {

@@ -564,7 +564,10 @@ class AnthropicChatModelConfigurationTest {
               "type": "aws-bedrock-mantle",
               "awsBedrockMantle": {
                 "region": "eu-central-1",
-                "authentication": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+                "authentication": {
+                  "type": "awsIam",
+                  "method": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+                }
               }
             },
             "model": { "model": "claude-sonnet-4-6" }
@@ -582,8 +585,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(bedrockBackend.awsBedrockMantle().region()).isEqualTo("eu-central-1");
     assertThat(bedrockBackend.awsBedrockMantle().endpoint()).isNull();
     assertThat(bedrockBackend.awsBedrockMantle().authentication())
-        .isEqualTo(
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
+        .isEqualTo(iamStatic("AKIA123", "secret123"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -617,7 +619,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(bedrockBackend.awsBedrockMantle().endpoint())
         .isEqualTo("https://vpce-example.vpce.amazonaws.com/anthropic");
     assertThat(bedrockBackend.awsBedrockMantle().authentication())
-        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+        .isEqualTo(apiKeyInline("bedrock-secret-key"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -625,8 +627,7 @@ class AnthropicChatModelConfigurationTest {
 
   @Test
   void bedrockStaticCredentialsAuthenticationRedactsSecretsInToString() {
-    final var auth =
-        new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123");
+    final var auth = iamStatic("AKIA123", "secret123");
 
     assertThat(auth.toString())
         .doesNotContain("AKIA123")
@@ -636,7 +637,7 @@ class AnthropicChatModelConfigurationTest {
 
   @Test
   void bedrockApiKeyAuthenticationRedactsApiKeyInToString() {
-    final var auth = new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key");
+    final var auth = apiKeyInline("bedrock-secret-key");
 
     assertThat(auth.toString()).doesNotContain("bedrock-secret-key").contains("[REDACTED]");
   }
@@ -648,12 +649,7 @@ class AnthropicChatModelConfigurationTest {
             new AnthropicConnection(
                 new AnthropicAwsBedrockMantleBackend(
                     new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
-                        "",
-                        null,
-                        new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""),
-                        null,
-                        null,
-                        null)),
+                        "", null, iamStatic("", ""), null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
@@ -668,14 +664,12 @@ class AnthropicChatModelConfigurationTest {
             })
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.accessKey");
+              assertThat(v.getPropertyPath().toString()).endsWith("accessKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             })
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.secretKey");
+              assertThat(v.getPropertyPath().toString()).endsWith("secretKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             });
   }
@@ -702,8 +696,7 @@ class AnthropicChatModelConfigurationTest {
   @Test
   void bedrockDefaultCredentialsChainRejectedOnSaaS() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
-    final var config =
-        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+    final var config = bedrockConfig(iamDefaultChain());
 
     assertThat(validator.validate(config))
         .extracting(ConstraintViolation::getMessage)
@@ -712,8 +705,84 @@ class AnthropicChatModelConfigurationTest {
 
   @Test
   void bedrockDefaultCredentialsChainAllowedWhenNotSaaS() {
+    final var config = bedrockConfig(iamDefaultChain());
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
+  void bedrockApiKeyAuthenticationRejectedWhenNeitherCredentialNorInlineKeyPresent() {
+    final var config = bedrockConfig(new AwsAuthentication.AwsApiKeyAuthentication(null, null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("An AWS Bedrock API key is required from the credential or element template");
+  }
+
+  @Test
+  void bedrockApiKeyAuthenticationPresentWhenOnlyCredentialBound() {
     final var config =
-        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+        bedrockConfig(
+            new AwsAuthentication.AwsApiKeyAuthentication(
+                new BedrockApiKeyCredential("credential-key"), null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
+  void bedrockApiKeyAuthenticationCredentialTakesPrecedenceOverInlineKey() {
+    final var authentication =
+        new AwsAuthentication.AwsApiKeyAuthentication(
+            new BedrockApiKeyCredential("credential-key"), "inline-key");
+
+    assertThat(authentication.effectiveApiKey()).isEqualTo("credential-key");
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
+  }
+
+  @Test
+  void bedrockIamAuthenticationPresentWhenOnlyCredentialBound() {
+    final var authentication = iamCredential(staticAwsCredential());
+
+    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.isAuthenticationPresent()).isTrue();
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
+  }
+
+  @Test
+  void bedrockIamAuthenticationRejectedWhenNeitherCredentialNorInlineMethodPresent() {
+    final var authentication = new AwsAuthentication.AwsIamAuthentication(null, null);
+
+    assertThat(validator.validate(bedrockConfig(authentication)))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS IAM authentication is required from the credential or element template");
+  }
+
+  @Test
+  void bedrockIamAuthenticationCredentialTakesPrecedenceOverInlineMethod() {
+    final var authentication =
+        new AwsAuthentication.AwsIamAuthentication(
+            staticAwsCredential(),
+            new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                "inline-access", "inline-secret"));
+
+    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
+  }
+
+  @Test
+  void bedrockBoundDefaultCredentialsChainRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config = bedrockConfig(iamCredential(defaultChainAwsCredential()));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS default credentials chain is not supported on SaaS");
+  }
+
+  @Test
+  void bedrockBoundStaticCredentialAllowedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config = bedrockConfig(iamCredential(staticAwsCredential()));
 
     assertThat(validator.validate(config)).isEmpty();
   }
@@ -726,6 +795,46 @@ class AnthropicChatModelConfigurationTest {
                     "eu-central-1", null, authentication, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamStatic(
+      String accessKey, String secretKey) {
+    return new AwsAuthentication.AwsIamAuthentication(
+        null,
+        new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+            accessKey, secretKey));
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamDefaultChain() {
+    return new AwsAuthentication.AwsIamAuthentication(
+        null,
+        new AwsAuthentication.AwsIamAuthenticationMethod
+            .AwsDefaultCredentialsChainAuthentication());
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamCredential(
+      io.camunda.connector.aws.model.impl.AwsCredentialConfiguration awsCredential) {
+    return new AwsAuthentication.AwsIamAuthentication(awsCredential, null);
+  }
+
+  private static AwsAuthentication.AwsApiKeyAuthentication apiKeyInline(String apiKey) {
+    return new AwsAuthentication.AwsApiKeyAuthentication(null, apiKey);
+  }
+
+  private static io.camunda.connector.aws.model.impl.AwsCredentialConfiguration
+      staticAwsCredential() {
+    return new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+        new io.camunda.connector.aws.model.impl.AwsAuthentication
+            .AwsStaticCredentialsAuthentication("AKIA-bound", "secret-bound"),
+        "eu-central-1");
+  }
+
+  private static io.camunda.connector.aws.model.impl.AwsCredentialConfiguration
+      defaultChainAwsCredential() {
+    return new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+        new io.camunda.connector.aws.model.impl.AwsAuthentication
+            .AwsDefaultCredentialsChainAuthentication(),
+        "eu-central-1");
   }
 
   @Test

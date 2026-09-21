@@ -359,8 +359,26 @@ class AnthropicChatModelFactoryClientTest {
   void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
         wireMock,
-        new AwsAuthentication.AwsStaticCredentialsAuthentication(
-            "AKIAEXAMPLE", "secretExampleKey"));
+        new AwsAuthentication.AwsIamAuthentication(
+            null,
+            new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                "AKIAEXAMPLE", "secretExampleKey")));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+  }
+
+  @Test
+  void bedrockBackendWithBoundAwsCredentialSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock,
+        new AwsAuthentication.AwsIamAuthentication(
+            new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+                new io.camunda.connector.aws.model.impl.AwsAuthentication
+                    .AwsStaticCredentialsAuthentication("AKIABOUND", "secretBoundKey"),
+                "eu-central-1"),
+            null));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
@@ -370,7 +388,7 @@ class AnthropicChatModelFactoryClientTest {
   @Test
   void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
-        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+        wireMock, new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-secret-key"));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))

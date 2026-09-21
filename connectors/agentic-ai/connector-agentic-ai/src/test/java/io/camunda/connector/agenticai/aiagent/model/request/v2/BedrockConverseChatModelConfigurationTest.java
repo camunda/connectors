@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
@@ -49,7 +50,10 @@ class BedrockConverseChatModelConfigurationTest {
           "type": "bedrock",
           "bedrock": {
             "region": "eu-central-1",
-            "authentication": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" },
+            "authentication": {
+              "type": "awsIam",
+              "method": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+            },
             "model": {
               "model": "us.amazon.nova-2-lite-v1:0",
               "parameters": {
@@ -74,9 +78,7 @@ class BedrockConverseChatModelConfigurationTest {
         (BedrockConverseChatModelConfiguration) parsed;
     assertThat(bedrock.bedrock().region()).isEqualTo("eu-central-1");
     assertThat(bedrock.bedrock().endpoint()).isNull();
-    assertThat(bedrock.bedrock().authentication())
-        .isEqualTo(
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
+    assertThat(bedrock.bedrock().authentication()).isEqualTo(iamStatic("AKIA123", "secret123"));
 
     final BedrockConverseModelParameters parameters = bedrock.bedrock().model().parameters();
     assertThat(parameters).isNotNull();
@@ -108,8 +110,73 @@ class BedrockConverseChatModelConfigurationTest {
         (BedrockConverseChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.bedrock().endpoint()).isEqualTo("https://vpce-example.vpce.amazonaws.com");
-    assertThat(parsed.bedrock().authentication())
-        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+    assertThat(parsed.bedrock().authentication()).isEqualTo(apiKeyInline("bedrock-secret-key"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesBedrockConfigurationWithBoundAwsCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "bedrock",
+          "bedrock": {
+            "region": "eu-central-1",
+            "authentication": {
+              "type": "awsIam",
+              "awsCredential": {
+                "authentication": { "type": "credentials", "accessKey": "AKIA-bound", "secretKey": "secret-bound" },
+                "region": "eu-central-1"
+              }
+            },
+            "model": { "model": "us.amazon.nova-2-lite-v1:0" }
+          }
+        }
+        """;
+
+    final BedrockConverseChatModelConfiguration parsed =
+        (BedrockConverseChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final var authentication =
+        (AwsAuthentication.AwsIamAuthentication) parsed.bedrock().authentication();
+    assertThat(authentication.awsCredential()).isNotNull();
+    assertThat(authentication.method()).isNull();
+    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.isAuthenticationPresent()).isTrue();
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesBedrockConfigurationWithBoundBedrockApiKeyCredentialAndRoundTrips()
+      throws Exception {
+    final String json =
+        """
+        {
+          "type": "bedrock",
+          "bedrock": {
+            "region": "eu-central-1",
+            "authentication": {
+              "type": "apiKey",
+              "bedrockApiKeyCredential": { "apiKey": "bedrock-bound-key" }
+            },
+            "model": { "model": "us.amazon.nova-2-lite-v1:0" }
+          }
+        }
+        """;
+
+    final BedrockConverseChatModelConfiguration parsed =
+        (BedrockConverseChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final var authentication =
+        (AwsAuthentication.AwsApiKeyAuthentication) parsed.bedrock().authentication();
+    assertThat(authentication.bedrockApiKeyCredential()).isNotNull();
+    assertThat(authentication.apiKey()).isNull();
+    assertThat(authentication.effectiveApiKey()).isEqualTo("bedrock-bound-key");
+    assertThat(authentication.isApiKeyPresent()).isTrue();
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -121,7 +188,7 @@ class BedrockConverseChatModelConfigurationTest {
         new BedrockConverseConnection(
             "eu-central-1",
             null,
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"),
+            iamStatic("AKIA123", "secret123"),
             Map.of("X-Custom-Header", "some-header-value"),
             Map.of("some-query-param", "some-query-value"),
             Map.of("some-body-param", "some-body-value"),
@@ -144,7 +211,7 @@ class BedrockConverseChatModelConfigurationTest {
             new BedrockConverseConnection(
                 "",
                 null,
-                new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""),
+                iamStatic("", ""),
                 null,
                 null,
                 null,
@@ -161,30 +228,54 @@ class BedrockConverseChatModelConfigurationTest {
             })
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.authentication.accessKey");
+              assertThat(v.getPropertyPath().toString()).endsWith("accessKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             })
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.authentication.secretKey");
+              assertThat(v.getPropertyPath().toString()).endsWith("secretKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             });
   }
 
   @Test
   void apiKeyAuthenticationRejectsBlankApiKey() {
-    final var config = bedrockConfig(new AwsAuthentication.AwsApiKeyAuthentication("  "));
+    final var config = bedrockConfig(apiKeyInline("  "));
 
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .extracting(ConstraintViolation::getMessage)
+        .contains("An AWS Bedrock API key is required from the credential or element template");
+  }
+
+  @Test
+  void apiKeyAuthenticationRejectedWhenNeitherCredentialNorInlineKeyPresent() {
+    final var config = bedrockConfig(new AwsAuthentication.AwsApiKeyAuthentication(null, null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("An AWS Bedrock API key is required from the credential or element template");
+  }
+
+  @Test
+  void apiKeyAuthenticationPresentWhenOnlyCredentialBound() {
+    final var config =
+        bedrockConfig(
+            new AwsAuthentication.AwsApiKeyAuthentication(
+                new BedrockApiKeyCredential("credential-key"), null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
+  void apiKeyAuthenticationCredentialTakesPrecedenceOverInlineKey() {
+    final var authentication =
+        new AwsAuthentication.AwsApiKeyAuthentication(
+            new BedrockApiKeyCredential("credential-key"), "inline-key");
+
+    assertThat(authentication.effectiveApiKey()).isEqualTo("credential-key");
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
   }
 
   @Test
@@ -194,7 +285,7 @@ class BedrockConverseChatModelConfigurationTest {
             new BedrockConverseConnection(
                 "eu-central-1",
                 null,
-                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                iamDefaultChain(),
                 null,
                 null,
                 null,
@@ -214,8 +305,7 @@ class BedrockConverseChatModelConfigurationTest {
   @Test
   void bedrockDefaultCredentialsChainRejectedOnSaaS() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
-    final var config =
-        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+    final var config = bedrockConfig(iamDefaultChain());
 
     assertThat(validator.validate(config))
         .extracting(ConstraintViolation::getMessage)
@@ -224,8 +314,7 @@ class BedrockConverseChatModelConfigurationTest {
 
   @Test
   void bedrockDefaultCredentialsChainAllowedWhenNotSaaS() {
-    final var config =
-        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+    final var config = bedrockConfig(iamDefaultChain());
 
     assertThat(validator.validate(config)).isEmpty();
   }
@@ -233,9 +322,72 @@ class BedrockConverseChatModelConfigurationTest {
   @Test
   void staticCredentialsAllowedOnSaaS() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
-    final var config =
-        bedrockConfig(
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
+    final var config = bedrockConfig(iamStatic("AKIA123", "secret123"));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
+  void iamAuthenticationPresentWhenOnlyCredentialBound() {
+    final var authentication = iamCredential(staticAwsCredential());
+
+    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.isAuthenticationPresent()).isTrue();
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
+  }
+
+  @Test
+  void iamAuthenticationRejectedWhenNeitherCredentialNorInlineMethodPresent() {
+    final var authentication = new AwsAuthentication.AwsIamAuthentication(null, null);
+
+    assertThat(validator.validate(bedrockConfig(authentication)))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS IAM authentication is required from the credential or element template");
+  }
+
+  @Test
+  void iamAuthenticationCredentialTakesPrecedenceOverInlineMethod() {
+    final var authentication =
+        new AwsAuthentication.AwsIamAuthentication(
+            staticAwsCredential(),
+            new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                "inline-access", "inline-secret"));
+
+    assertThat(authentication.getMethodWhenNoCredentialBound()).isNull();
+    assertThat(authentication.isAuthenticationPresent()).isTrue();
+    assertThat(validator.validate(bedrockConfig(authentication))).isEmpty();
+  }
+
+  @Test
+  void usesDefaultCredentialsChainTrueForInlineDefaultChain() {
+    assertThat(iamDefaultChain().usesDefaultCredentialsChain()).isTrue();
+  }
+
+  @Test
+  void usesDefaultCredentialsChainTrueForBoundDefaultChainCredential() {
+    assertThat(iamCredential(defaultChainAwsCredential()).usesDefaultCredentialsChain()).isTrue();
+  }
+
+  @Test
+  void usesDefaultCredentialsChainFalseForStaticCredentialsOrApiKey() {
+    assertThat(iamStatic("AKIA123", "secret123").usesDefaultCredentialsChain()).isFalse();
+    assertThat(iamCredential(staticAwsCredential()).usesDefaultCredentialsChain()).isFalse();
+  }
+
+  @Test
+  void boundDefaultCredentialsChainRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config = bedrockConfig(iamCredential(defaultChainAwsCredential()));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS default credentials chain is not supported on SaaS");
+  }
+
+  @Test
+  void boundStaticCredentialAllowedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config = bedrockConfig(iamCredential(staticAwsCredential()));
 
     assertThat(validator.validate(config)).isEmpty();
   }
@@ -297,10 +449,47 @@ class BedrockConverseChatModelConfigurationTest {
 
   @Test
   void validBedrockConfigurationHasNoViolations() {
-    final var config =
-        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+    final var config = bedrockConfig(iamDefaultChain());
 
     assertThat(validator.validate(config)).isEmpty();
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamStatic(
+      String accessKey, String secretKey) {
+    return new AwsAuthentication.AwsIamAuthentication(
+        null,
+        new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+            accessKey, secretKey));
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamDefaultChain() {
+    return new AwsAuthentication.AwsIamAuthentication(
+        null,
+        new AwsAuthentication.AwsIamAuthenticationMethod
+            .AwsDefaultCredentialsChainAuthentication());
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication iamCredential(
+      AwsCredentialConfiguration awsCredential) {
+    return new AwsAuthentication.AwsIamAuthentication(awsCredential, null);
+  }
+
+  private static AwsAuthentication.AwsApiKeyAuthentication apiKeyInline(String apiKey) {
+    return new AwsAuthentication.AwsApiKeyAuthentication(null, apiKey);
+  }
+
+  private static AwsCredentialConfiguration staticAwsCredential() {
+    return new AwsCredentialConfiguration(
+        new io.camunda.connector.aws.model.impl.AwsAuthentication
+            .AwsStaticCredentialsAuthentication("AKIA-bound", "secret-bound"),
+        "eu-central-1");
+  }
+
+  private static AwsCredentialConfiguration defaultChainAwsCredential() {
+    return new AwsCredentialConfiguration(
+        new io.camunda.connector.aws.model.impl.AwsAuthentication
+            .AwsDefaultCredentialsChainAuthentication(),
+        "eu-central-1");
   }
 
   private static BedrockConverseChatModelConfiguration bedrockConfig(
@@ -323,7 +512,7 @@ class BedrockConverseChatModelConfigurationTest {
         new BedrockConverseConnection(
             "eu-central-1",
             null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            iamDefaultChain(),
             null,
             null,
             null,

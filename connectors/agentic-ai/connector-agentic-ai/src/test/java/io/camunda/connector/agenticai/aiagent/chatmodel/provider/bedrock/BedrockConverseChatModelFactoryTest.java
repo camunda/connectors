@@ -161,7 +161,10 @@ class BedrockConverseChatModelFactoryTest {
   @Test
   void buildsClientWithStaticCredentials() {
     final var authentication =
-        new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret");
+        new AwsAuthentication.AwsIamAuthentication(
+            null,
+            new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                "AKIA", "secret"));
 
     testBuilder(
         bedrockConfig(authentication, null),
@@ -175,6 +178,46 @@ class BedrockConverseChatModelFactoryTest {
           final var credentials = credentialsProvider.resolveCredentials();
           assertThat(credentials.accessKeyId()).isEqualTo("AKIA");
           assertThat(credentials.secretAccessKey()).isEqualTo("secret");
+
+          assertPreferredAuthScheme(clientBuilder, SIGV4_SCHEME_ID);
+        });
+  }
+
+  @Test
+  void buildsClientWithBoundStaticCredential() {
+    final var authentication =
+        boundAwsCredentialAuth(
+            new io.camunda.connector.aws.model.impl.AwsAuthentication
+                .AwsStaticCredentialsAuthentication("AKIA-bound", "secret-bound"));
+
+    testBuilder(
+        bedrockConfig(authentication, null),
+        (clientBuilder) -> {
+          verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
+
+          final var credentialsProvider = credentialsProviderCaptor.getValue();
+          assertThat(credentialsProvider).isInstanceOf(StaticCredentialsProvider.class);
+          final var credentials = credentialsProvider.resolveCredentials();
+          assertThat(credentials.accessKeyId()).isEqualTo("AKIA-bound");
+          assertThat(credentials.secretAccessKey()).isEqualTo("secret-bound");
+
+          assertPreferredAuthScheme(clientBuilder, SIGV4_SCHEME_ID);
+        });
+  }
+
+  @Test
+  void buildsClientWithBoundDefaultCredentialsChain() {
+    final var authentication =
+        boundAwsCredentialAuth(
+            new io.camunda.connector.aws.model.impl.AwsAuthentication
+                .AwsDefaultCredentialsChainAuthentication());
+
+    testBuilder(
+        bedrockConfig(authentication, null),
+        (clientBuilder) -> {
+          verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
+          assertThat(credentialsProviderCaptor.getValue())
+              .isInstanceOf(DefaultCredentialsProvider.class);
 
           assertPreferredAuthScheme(clientBuilder, SIGV4_SCHEME_ID);
         });
@@ -195,7 +238,7 @@ class BedrockConverseChatModelFactoryTest {
 
   @Test
   void buildsClientWithApiKeyBearerAuthentication() {
-    final var authentication = new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key");
+    final var authentication = new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-key");
 
     testBuilder(
         bedrockConfig(authentication, null),
@@ -314,9 +357,19 @@ class BedrockConverseChatModelFactoryTest {
             REGION, endpoint, authentication, null, null, null, null, model()));
   }
 
-  private static AwsAuthentication.AwsDefaultCredentialsChainAuthentication
-      defaultCredentialsAuth() {
-    return new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
+  private static AwsAuthentication.AwsIamAuthentication defaultCredentialsAuth() {
+    return new AwsAuthentication.AwsIamAuthentication(
+        null,
+        new AwsAuthentication.AwsIamAuthenticationMethod
+            .AwsDefaultCredentialsChainAuthentication());
+  }
+
+  private static AwsAuthentication.AwsIamAuthentication boundAwsCredentialAuth(
+      io.camunda.connector.aws.model.impl.AwsAuthentication credentialAuthentication) {
+    return new AwsAuthentication.AwsIamAuthentication(
+        new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+            credentialAuthentication, REGION),
+        null);
   }
 
   private static BedrockConverseModel model() {

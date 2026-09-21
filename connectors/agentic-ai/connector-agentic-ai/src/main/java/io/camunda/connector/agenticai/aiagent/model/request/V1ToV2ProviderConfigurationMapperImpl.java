@@ -228,13 +228,18 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
     return switch (authentication) {
       case BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication
               staticCredentials ->
-          new AwsAuthentication.AwsStaticCredentialsAuthentication(
-              staticCredentials.accessKey(), staticCredentials.secretKey());
+          new AwsAuthentication.AwsIamAuthentication(
+              null,
+              new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                  staticCredentials.accessKey(), staticCredentials.secretKey()));
       case BedrockProviderConfiguration.AwsAuthentication.AwsApiKeyAuthentication apiKey ->
-          new AwsAuthentication.AwsApiKeyAuthentication(apiKey.apiKey());
+          new AwsAuthentication.AwsApiKeyAuthentication(null, apiKey.apiKey());
       case BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication
               ignored ->
-          new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
+          new AwsAuthentication.AwsIamAuthentication(
+              null,
+              new AwsAuthentication.AwsIamAuthenticationMethod
+                  .AwsDefaultCredentialsChainAuthentication());
     };
   }
 
