@@ -57,18 +57,64 @@ class CachingProcessDefinitionAdHocToolElementsResolverTest {
   @Test
   void returnsCachedValue() {
     final var resolvedElements = elements("element1");
-    when(delegate.resolveToolElements(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
+    when(delegate.resolveToolElements(null, PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
         .thenReturn(resolvedElements);
 
     final var response1 =
-        resolver.resolveToolElements(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+        resolver.resolveToolElements(null, PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
     final var response2 =
-        resolver.resolveToolElements(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+        resolver.resolveToolElements(null, PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
 
     assertThat(response1).isSameAs(response2).isSameAs(resolvedElements);
 
     verify(delegate, times(1))
-        .resolveToolElements(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+        .resolveToolElements(null, PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    verifyNoMoreInteractions(delegate);
+  }
+
+  /**
+   * Process definition keys are only unique within one orchestration cluster, so the same key
+   * identifies a different definition on each of them. Caching on the key alone would serve one
+   * physical tenant's tool elements to another.
+   */
+  @Test
+  void resolvesSeparatelyPerPhysicalTenantForTheSameProcessDefinitionKey() {
+    final var tenantAElements = elements("tenant-a-element");
+    final var tenantBElements = elements("tenant-b-element");
+    when(delegate.resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
+        .thenReturn(tenantAElements);
+    when(delegate.resolveToolElements("tenantb", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
+        .thenReturn(tenantBElements);
+
+    final var tenantA =
+        resolver.resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    final var tenantB =
+        resolver.resolveToolElements("tenantb", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+
+    assertThat(tenantA).isSameAs(tenantAElements);
+    assertThat(tenantB).isSameAs(tenantBElements);
+
+    verify(delegate, times(1))
+        .resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    verify(delegate, times(1))
+        .resolveToolElements("tenantb", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    verifyNoMoreInteractions(delegate);
+  }
+
+  @Test
+  void cachesPerPhysicalTenant() {
+    final var resolvedElements = elements("element1");
+    when(delegate.resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
+        .thenReturn(resolvedElements);
+
+    final var first =
+        resolver.resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    final var second =
+        resolver.resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+
+    assertThat(first).isSameAs(second).isSameAs(resolvedElements);
+    verify(delegate, times(1))
+        .resolveToolElements("tenanta", PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
     verifyNoMoreInteractions(delegate);
   }
 
@@ -79,19 +125,21 @@ class CachingProcessDefinitionAdHocToolElementsResolverTest {
     final var resolvedElements1 = elements("element1", "element3");
     final var resolvedElements2 = elements("element2");
 
-    when(delegate.resolveToolElements(cacheKey1.getLeft(), cacheKey1.getRight()))
+    when(delegate.resolveToolElements(null, cacheKey1.getLeft(), cacheKey1.getRight()))
         .thenReturn(resolvedElements1);
-    when(delegate.resolveToolElements(cacheKey2.getLeft(), cacheKey2.getRight()))
+    when(delegate.resolveToolElements(null, cacheKey2.getLeft(), cacheKey2.getRight()))
         .thenReturn(resolvedElements2);
 
-    final var response1 = resolver.resolveToolElements(cacheKey1.getLeft(), cacheKey1.getRight());
-    final var response2 = resolver.resolveToolElements(cacheKey2.getLeft(), cacheKey2.getRight());
+    final var response1 =
+        resolver.resolveToolElements(null, cacheKey1.getLeft(), cacheKey1.getRight());
+    final var response2 =
+        resolver.resolveToolElements(null, cacheKey2.getLeft(), cacheKey2.getRight());
 
     assertThat(response1).isNotSameAs(response2).isSameAs(resolvedElements1);
     assertThat(response2).isNotSameAs(response1).isSameAs(resolvedElements2);
 
-    verify(delegate, times(1)).resolveToolElements(cacheKey1.getLeft(), cacheKey1.getRight());
-    verify(delegate, times(1)).resolveToolElements(cacheKey2.getLeft(), cacheKey2.getRight());
+    verify(delegate, times(1)).resolveToolElements(null, cacheKey1.getLeft(), cacheKey1.getRight());
+    verify(delegate, times(1)).resolveToolElements(null, cacheKey2.getLeft(), cacheKey2.getRight());
     verifyNoMoreInteractions(delegate);
   }
 
@@ -100,7 +148,7 @@ class CachingProcessDefinitionAdHocToolElementsResolverTest {
   @ValueSource(longs = {0, -10})
   void throwsExceptionWhenProcessDefinitionKeyIsInvalid(Long processDefinitionKey) {
     assertThatThrownBy(
-            () -> resolver.resolveToolElements(processDefinitionKey, AD_HOC_SUB_PROCESS_ID_1))
+            () -> resolver.resolveToolElements(null, processDefinitionKey, AD_HOC_SUB_PROCESS_ID_1))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Process definition key must not be null or negative");
 
@@ -112,7 +160,7 @@ class CachingProcessDefinitionAdHocToolElementsResolverTest {
   @ValueSource(strings = {"   "})
   void throwsExceptionWhenAdHocSubProcessIdIsInvalid(String adHocSubProcessId) {
     assertThatThrownBy(
-            () -> resolver.resolveToolElements(PROCESS_DEFINITION_KEY_1, adHocSubProcessId))
+            () -> resolver.resolveToolElements(null, PROCESS_DEFINITION_KEY_1, adHocSubProcessId))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("adHocSubProcessId cannot be null or empty");
 
