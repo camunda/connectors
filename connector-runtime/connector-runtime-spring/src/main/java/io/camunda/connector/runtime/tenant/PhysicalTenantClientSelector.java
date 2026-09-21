@@ -140,9 +140,14 @@ public class PhysicalTenantClientSelector {
     if (candidates.isEmpty()) {
       throw new IllegalStateException("No CamundaClient configured");
     }
+    if (candidates.size() == 1) {
+      // no route to build: the sole client wins whatever the job reports, so its configuration
+      // need not be readable — which is what lets a not-yet-initialized client be used at all
+      return new Clients(candidates, Map.of());
+    }
     Map<String, CamundaClient> byRoute = new LinkedHashMap<>();
     for (CamundaClient candidate : candidates) {
-      var route = route(PhysicalTenantClients.readPhysicalTenantIdOrNull(candidate));
+      var route = route(readPhysicalTenantIdForRouting(candidate));
       if (byRoute.putIfAbsent(route, candidate) != null) {
         throw new IllegalStateException(
             NO_PHYSICAL_TENANT.equals(route)
@@ -155,5 +160,23 @@ public class PhysicalTenantClientSelector {
       }
     }
     return new Clients(candidates, byRoute);
+  }
+
+  /**
+   * Unlike the tolerant read used for logging, a failure here propagates. Treating an unreadable
+   * configuration as "no physical tenant" would let a tenant-scoped client claim the untenanted
+   * route, and since the mapping is resolved once and kept, that wrong route would stick: jobs
+   * without a physical tenant would go to that client's cluster while its own tenant stayed
+   * unroutable. Failing instead leaves nothing cached, so the next job resolves again.
+   */
+  private static String readPhysicalTenantIdForRouting(CamundaClient client) {
+    try {
+      return client.getConfiguration().getPhysicalTenantId();
+    } catch (RuntimeException e) {
+      throw new IllegalStateException(
+          "Cannot read the physical tenant of a configured CamundaClient, so jobs cannot be routed "
+              + "to their cluster yet; this resolves once the client is initialized",
+          e);
+    }
   }
 }

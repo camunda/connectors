@@ -153,6 +153,43 @@ class PhysicalTenantClientSelectorTest {
     assertThat(selector.forJob(jobOfPhysicalTenant(null))).isSameAs(uninitialized);
   }
 
+  /**
+   * Tolerating an unreadable configuration is only safe for a sole client, where nothing has to be
+   * told apart. Among several, treating one as untenanted would let a tenant-scoped client claim
+   * the untenanted route — and the mapping is resolved once and kept, so that would stick.
+   */
+  @Test
+  void refusesToRouteWhileAConfiguredClientsPhysicalTenantCannotBeRead() {
+    var unreadable = mock(CamundaClient.class);
+    when(unreadable.getConfiguration()).thenThrow(new RuntimeException("not initialized"));
+    var selector =
+        new PhysicalTenantClientSelector(
+            clientProvider(clientWithPhysicalTenantId("tenanta"), unreadable));
+
+    assertThatThrownBy(() -> selector.forJob(jobOfPhysicalTenant(null)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("physical tenant");
+  }
+
+  @Test
+  void resolvesOnceTheConfigurationBecomesReadableRatherThanCachingTheFailure() {
+    var config = mock(io.camunda.client.CamundaClientConfiguration.class);
+    when(config.getPhysicalTenantId()).thenReturn("tenantb");
+    var lateStarter = mock(CamundaClient.class);
+    when(lateStarter.getConfiguration())
+        .thenThrow(new RuntimeException("not initialized"))
+        .thenReturn(config);
+
+    var tenantA = clientWithPhysicalTenantId("tenanta");
+    var selector = new PhysicalTenantClientSelector(clientProvider(tenantA, lateStarter));
+
+    assertThatThrownBy(() -> selector.forJob(jobOfPhysicalTenant("tenantb")))
+        .isInstanceOf(IllegalStateException.class);
+
+    assertThat(selector.forJob(jobOfPhysicalTenant("tenantb"))).isSameAs(lateStarter);
+    assertThat(selector.forJob(jobOfPhysicalTenant("tenanta"))).isSameAs(tenantA);
+  }
+
   @Test
   void failsClearlyWhenTwoClientsClaimTheSamePhysicalTenant() {
     var selector =

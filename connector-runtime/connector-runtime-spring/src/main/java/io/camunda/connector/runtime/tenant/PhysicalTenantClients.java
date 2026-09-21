@@ -103,24 +103,19 @@ public final class PhysicalTenantClients {
     return client;
   }
 
-  private static String readPhysicalTenantIdIfAvailable(CamundaClient client) {
-    var physicalTenantId = readPhysicalTenantIdOrNull(client);
-    return physicalTenantId != null ? physicalTenantId : "unknown";
-  }
-
   /**
-   * Reads the client's own configured physical tenant ID, tolerating the case where its
-   * configuration cannot be read at all — some test doubles defer real initialization until a test
-   * container is ready and throw if queried during Spring context startup. Returns {@code null}
-   * when the client has no physical tenant configured, matching {@code
-   * JobContext#getPhysicalTenantId()} for a job that carries none.
+   * Reads the client's own configured physical tenant ID for a log message, tolerating both an
+   * unset one and a configuration that cannot be read at all — some test doubles defer real
+   * initialization until a test container is ready and throw if queried during Spring context
+   * startup. Only safe because nothing is decided on the result; routing reads it strictly instead,
+   * since there a misread would send a job to the wrong cluster.
    */
-  static String readPhysicalTenantIdOrNull(CamundaClient client) {
+  private static String readPhysicalTenantIdIfAvailable(CamundaClient client) {
     try {
       var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
-      return physicalTenantId == null || physicalTenantId.isBlank() ? null : physicalTenantId;
+      return physicalTenantId == null || physicalTenantId.isBlank() ? "unknown" : physicalTenantId;
     } catch (RuntimeException e) {
-      return null;
+      return "unknown";
     }
   }
 
