@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
@@ -230,13 +232,26 @@ class BedrockConverseChatModelTest {
   }
 
   @Test
-  void closeIsIdempotentAndLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+  void closeIsIdempotentAndLogsErrorInsteadOfThrowingWhenClientCloseFails() {
     doThrow(new RuntimeException("boom")).when(client).close();
 
-    api.close();
-    api.close();
+    var events =
+        logsOf(
+            BedrockConverseChatModel.class,
+            () -> {
+              api.close();
+              api.close();
+            });
 
     verify(client, times(2)).close();
+    assertThat(events).hasSize(2);
+    assertThat(events)
+        .allSatisfy(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close BedrockRuntimeAsyncClient");
+            });
   }
 
   private static AwsServiceException awsServiceException() {

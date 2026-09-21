@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -51,7 +52,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -96,6 +96,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfi
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
@@ -756,9 +757,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomAnthropicChatModelFactory() {
           super(
+              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(AnthropicMessageRequestConverter.class),
-              mock(AnthropicMessageResponseConverter.class));
+              mock(AnthropicMessageResponseConverter.class),
+              mock(OAuthClientCredentialsTokenResolver.class),
+              mock(FoundryCredentialResolver.class));
         }
 
         @Override
@@ -778,10 +782,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomOpenAiChatModelFactory() {
           super(
+              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiFoundryCredentialResolver.class));
+              mock(FoundryCredentialResolver.class),
+              mock(OAuthClientCredentialsTokenResolver.class));
         }
 
         @Override

@@ -94,7 +94,9 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
     }
 
     return toolElementsResolver.resolveToolElements(
-        jobContext.getProcessDefinitionKey(), toolsContainerElementId);
+        jobContext.getPhysicalTenantId(),
+        jobContext.getProcessDefinitionKey(),
+        toolsContainerElementId);
   }
 
   @Override

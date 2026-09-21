@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.model.StsException;
 
 class AwsCredentialValidatorTest {
@@ -26,6 +27,28 @@ class AwsCredentialValidatorTest {
     var result = validator.validate(VALID);
 
     assertThat(result.status()).isEqualTo(Status.SUCCESS);
+  }
+
+  @Test
+  void successWhenIdentityCheckPassesWithoutDefaultRegion() {
+    var validator = new AwsCredentialValidator(configuration -> {});
+    var configuration =
+        new AwsCredentialConfiguration(
+            new AwsStaticCredentialsAuthentication("access-key", "secret-key"), null);
+
+    assertThat(validator.validate(configuration).status()).isEqualTo(Status.SUCCESS);
+  }
+
+  @Test
+  void usesGlobalStsRegionWhenDefaultRegionIsMissing() {
+    assertThat(AwsCredentialValidator.resolveValidationRegion(null)).isEqualTo(Region.AWS_GLOBAL);
+    assertThat(AwsCredentialValidator.resolveValidationRegion(" ")).isEqualTo(Region.AWS_GLOBAL);
+  }
+
+  @Test
+  void usesCredentialDefaultRegionForStsWhenPresent() {
+    assertThat(AwsCredentialValidator.resolveValidationRegion("eu-central-1"))
+        .isEqualTo(Region.EU_CENTRAL_1);
   }
 
   @Test

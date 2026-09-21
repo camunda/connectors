@@ -17,6 +17,8 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseOutputRefusal;
+import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
@@ -98,7 +100,9 @@ public class OpenAiResponsesResponseConverter {
     return response.output().stream()
         .flatMap(item -> item.message().stream())
         .flatMap(message -> message.content().stream())
-        .anyMatch(content -> content.refusal().isPresent());
+        .flatMap(content -> content.refusal().stream())
+        .map(ResponseOutputRefusal::refusal)
+        .anyMatch(StringUtils::hasText);
   }
 
   /**
@@ -164,14 +168,19 @@ public class OpenAiResponsesResponseConverter {
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
     for (final ResponseOutputMessage.Content messageContent : message.content()) {
+      // Blank text/refusal carries no information; skip it instead of failing TextContent.
       messageContent
           .outputText()
-          .ifPresent(text -> content.add(TextContent.textContent(text.text())));
+          .map(ResponseOutputText::text)
+          .filter(StringUtils::hasText)
+          .ifPresent(text -> content.add(TextContent.textContent(text)));
       // A refusal has no dedicated domain content type; kept as TextContent so it survives into
       // ContentFilteredException's partial result instead of being dropped (see hasRefusal).
       messageContent
           .refusal()
-          .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
+          .map(ResponseOutputRefusal::refusal)
+          .filter(StringUtils::hasText)
+          .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
     }
   }
 

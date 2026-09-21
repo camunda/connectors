@@ -24,7 +24,7 @@ sometimes deferred to a job-completion listener depending on which connector fla
 in play — a distinction that existed only to decide whether a PATCH was safe to defer, not because the
 data itself differed.
 
-The engine gained a batched `history[]` list on the `UPDATE` command plus `jobKey`/`jobLease` and
+The engine gained a batched `history[]` list on the `UPDATE` command plus `jobKey`/`jobLeaseToken` and
 per-item `historyItemId` (camunda/camunda#58789, camunda/camunda#59714, camunda/camunda#59756), making it possible to collapse
 a turn's writes into one all-or-nothing, lease-fenced request. The question is how to restructure the
 connector's agent-instance client and handler around that primitive.
@@ -92,14 +92,14 @@ rejected before any model tokens are spent.
   Deferred below) even though the engine allows it, since only system prompt and tool list are tracked
   by the change-detection fingerprint today.
 * `create()` sends its configuration as a `CONFIGURATION` history item and is lease-fenced via
-  `jobKey`/`jobLease`, consistent with the turn updates. The separate create call still precedes the
+  `jobKey`/`jobLeaseToken`, consistent with the turn updates. The separate create call still precedes the
   first turn's `applyTurnStart`, so that turn's `CONFIGURATION` item remains (see Deferred below).
 
 ## Deferred
 
 **First-turn configuration redundancy (Req 1, partly closed).** `create()` now sends its
 configuration as a `CONFIGURATION` history item (model/provider/system prompt/tools) and forwards
-`jobKey`/`jobLease`, using the `history[]` batch the engine's create-instance API accepts
+`jobKey`/`jobLeaseToken`, using the `history[]` batch the engine's create-instance API accepts
 (camunda/camunda#59784) — the direct-fields create path is gone. Creation is kept as a standalone
 call, though: it is not folded into the first turn's `applyTurnStart`. `AgentMetadata` starts with
 an empty `configurationFingerprintHistory`, so the first turn's `applyTurnStart` finds no previous

@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
@@ -232,7 +232,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    timeout-minutes: 25
+    # Must stay above `wait-downstream`'s own 50min deadline. When this fires
+    # first the runner kills the step mid-poll, the job lands as `cancelled`,
+    # and the loop's timeout path never runs -- so the failure surfaces with
+    # no reason attached. Keep the loop as the timeout mechanism and this as
+    # the backstop for what a deadline cannot bound: a single `gh api` call
+    # that hangs indefinitely rather than returning an error to retry.
+    timeout-minutes: 60
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
     outputs:
@@ -242,6 +248,15 @@ jobs:
       # fire for the one event that supplies a PR to comment on.
       status: ${{ steps.job-status.outputs.status }}
     steps:
+      # The waiter's deadline has to be measured on the same clock as this
+      # job's `timeout-minutes`, which starts here -- not when the waiter
+      # step happens to begin. Checkout, Vault/token generation and the
+      # dispatch are all unbounded, so deriving the deadline from the
+      # waiter's own start would make "deadline < job timeout" an assumption
+      # about how long they take rather than a guarantee.
+      - name: Record job start
+        run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -352,6 +367,50 @@ jobs:
           TARGET_REPO="camunda/c8-cross-component-e2e-tests"
           WORKFLOW_FILE="playwright_saas_pr_trigger_connectors.yml"
 
+          # Bound the wait by wall clock rather than by a tick count. A tick
+          # is not a fixed cost: a poll whose `gh_api_with_retry` exhausts its
+          # backoff burns up to 62s on top of the 30s tick. So a tick count
+          # sized to the budget below -- 100 ticks for 50min -- would say
+          # nothing about how long the step actually runs: ~50min at best,
+          # ~153min at worst. (These figures describe the budget this job
+          # uses today, not the tick loop that used to be here.) Only an
+          # absolute deadline keeps the loop -- not the runner -- the thing
+          # that ends the wait, which is what lets the timeout path below
+          # report a reason.
+          #
+          # Size this off the runs the budget can actually bind on: the ones
+          # still in progress when it expires, which are overwhelmingly the
+          # long green ones. The all-runs distribution (median ~18min, p90
+          # ~33min, p95 ~38min) is dragged down by fast failures, whose median
+          # is ~6min and which can never reach any budget -- sizing off it
+          # under-states what a passing run costs. Over the 129 green
+          # downstream runs between 2026-09-03 and 2026-09-21 the median is
+          # ~20min, p90 ~33min and p95 ~44min, so 50min leaves 98.4% of them
+          # room to finish. Raise it if that suite grows, and keep the
+          # job-level `timeout-minutes` above it.
+          #
+          # Anchored to the job's start, not this step's, so the 10min of
+          # headroom below the job timeout cannot be eaten by a slow checkout
+          # or a hanging Vault call. The preamble normally costs seconds; if
+          # it ever costs more, the wait shortens instead of the runner
+          # killing the loop before it can report a timeout.
+          WAIT_DEADLINE=$(( ${JOB_STARTED_AT:-$(date +%s)} + 50 * 60 ))
+
+          # Never sleep past the deadline: both the loop condition and the
+          # retry backoff are only re-checked between sleeps, so an unguarded
+          # sleep is exactly how the overshoot creeps back in.
+          deadline_sleep() {
+            local want="$1" remaining
+            remaining=$(( WAIT_DEADLINE - $(date +%s) ))
+            if (( remaining <= 0 )); then
+              return 0
+            fi
+            if (( remaining > want )); then
+              remaining="$want"
+            fi
+            sleep "$remaining"
+          }
+
           gh_api_with_retry() {
             local endpoint="$1"
             local max_attempts="${2:-6}"
@@ -365,7 +424,17 @@ jobs:
                 return 0
               fi
 
-              if echo "$out" | grep -Eq 'HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF'; then
+              # Rate limiting is matched by message, not by status code. GitHub
+              # serves the primary limit as 403 and the secondary limit as 403
+              # or 429, and a plain 403 is the permanent case this function
+              # exists to separate out (a bad token, a repo the App cannot
+              # see). Matching `HTTP 403` wholesale would poll a dead token to
+              # the deadline instead of failing fast, so only the rate-limit
+              # wording -- and 429, which is never anything else -- is treated
+              # as transient. `abuse detection` is the same family: GitHub's
+              # older wording for the secondary limit, served as 403 and
+              # self-clearing, so it retries for the same reason.
+              if echo "$out" | grep -Eqi 'HTTP 429|rate limit|abuse detection|HTTP 500|HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF|tls: failed to verify certificate|x509: certificate|stream error|GOAWAY|broken pipe|no such host|connection refused'; then
                 if (( attempt >= max_attempts )); then
                   echo "gh api failed after ${attempt}/${max_attempts} attempts for $endpoint" >&2
                   echo "$out" >&2
@@ -373,44 +442,96 @@ jobs:
                 fi
                 echo "Transient gh/api error (attempt ${attempt}/${max_attempts}) for $endpoint:" >&2
                 echo "$out" >&2
-                sleep "$sleep_s"
+                deadline_sleep "$sleep_s"
+                # Do not start another attempt past the deadline. Once the
+                # clamped sleep has run the budget out, a further `gh api`
+                # could stall -- and a stalled call is the one thing a
+                # deadline cannot bound, which would hand the kill back to
+                # the runner and lose the timeout report.
+                if (( $(date +%s) >= WAIT_DEADLINE )); then
+                  echo "Deadline reached while retrying $endpoint; abandoning this poll." >&2
+                  return 1
+                fi
                 attempt=$((attempt + 1))
                 sleep_s=$((sleep_s * 2))
                 continue
               fi
 
+              # Exit code 2 marks a permanent error (bad token, renamed workflow
+              # file) so the caller fails fast instead of polling to the timeout,
+              # and is distinguishable from the retry-exhausted 1 above -- which
+              # must NOT end the wait, since a transient blip that outlasts the
+              # backoff is exactly what the next tick is for.
               echo "Non-retryable gh/api error for $endpoint:" >&2
               echo "$out" >&2
-              return 1
+              return 2
             done
           }
 
           RUN_ID=""
 
-          for _ in {1..80}; do
+          while (( $(date +%s) < WAIT_DEADLINE )); do
             if [[ -z "$RUN_ID" ]]; then
+              # Capture the API call separately from the jq parse. Piping it
+              # straight into jq under `set -o pipefail` made a retry-exhausted
+              # transient blip abort the whole step, so a 30s GitHub hiccup
+              # failed the merge-queue gate instead of being retried on the
+              # next tick. Only a permanent error (exit 2) aborts now.
+              RUNS_JSON="" RC=0
+              RUNS_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50")" || RC=$?
+              if (( RC == 2 )); then
+                exit 1
+              elif (( RC != 0 )); then
+                echo "Could not list downstream runs on this poll; retrying on the next tick." >&2
+                deadline_sleep 30
+                continue
+              fi
+
               RUN_ID=$(
-                gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50" \
-                | jq -r --arg c "$CORRELATION_ID" '
+                jq -r --arg c "$CORRELATION_ID" '
                     .workflow_runs
                     | map(select(.display_title != null and (.display_title | contains($c))))
                     | sort_by(.created_at)
                     | last
                     | .id // empty
-                  '
+                  ' <<<"$RUNS_JSON"
               )
 
               if [[ -z "$RUN_ID" ]]; then
                 echo "No downstream run found yet for correlation id. Sleeping..."
-                sleep 30
+                deadline_sleep 30
                 continue
               fi
 
               echo "Locked onto downstream run id: $RUN_ID"
               echo "downstream_run_url=https://github.com/$TARGET_REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
+
+              # Re-check before falling through to the status request below.
+              # Every other iteration reaches it with the loop's own deadline
+              # check immediately behind it, but this one has an unbounded
+              # `gh api` in between: the run-list call can start inside the
+              # budget and return outside it. Starting a fresh unbounded call
+              # on a spent budget is what hands the kill back to the runner --
+              # a hang there only has the 10min of job-timeout headroom to
+              # land in, and past that the job dies as `cancelled` with no
+              # timeout report. The run url is already written above, so the
+              # report still carries the link.
+              if (( $(date +%s) >= WAIT_DEADLINE )); then
+                echo "Deadline reached while locking onto run $RUN_ID; reporting the timeout instead of starting another poll." >&2
+                break
+              fi
             fi
 
-            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")"
+            RUN_JSON="" RC=0
+            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")" || RC=$?
+            if (( RC == 2 )); then
+              exit 1
+            elif (( RC != 0 )); then
+              echo "Could not read downstream run $RUN_ID on this poll; retrying on the next tick." >&2
+              deadline_sleep 30
+              continue
+            fi
+
             STATUS="$(jq -r .status <<<"$RUN_JSON")"
             CONCLUSION="$(jq -r .conclusion <<<"$RUN_JSON")"
             echo "Workflow run $RUN_ID status: $STATUS ($CONCLUSION)"
@@ -425,7 +546,7 @@ jobs:
               fi
             fi
 
-            sleep 30
+            deadline_sleep 30
           done
 
           echo "Timed out waiting for downstream workflow to complete."
@@ -479,7 +600,12 @@ jobs:
           overwrite: true
 
       - name: Add debugging guidance on failure
-        if: steps.wait-downstream.outcome == 'failure'
+        # `always() &&` is load-bearing: an `if` with no status-check function
+        # gets an implicit `success()`, and the waiter having failed is exactly
+        # when that is false -- so without it this step is skipped on the only
+        # path it exists for, and the timeout the loop reports lands with no
+        # guidance attached.
+        if: always() && steps.wait-downstream.outcome == 'failure'
         run: |
           DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
           COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
@@ -603,7 +729,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
-          java-version: "21.0.9"
+          java-version: "21.0.12+101.0.LTS"
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'

@@ -33,6 +33,9 @@ import org.springframework.boot.test.context.SpringBootTest;
  * wires one entry per configured physical tenant across all the per-physical-tenant beans — without
  * needing a live Zeebe broker, since {@code CamundaClient} construction (and therefore this whole
  * bean graph) is lazy and does not connect eagerly.
+ *
+ * <p>No client is designated primary here, so the context also covers the startup failure of #8977:
+ * every remaining single-{@code CamundaClient} injection point has to tolerate an ambiguous client.
  */
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
@@ -40,10 +43,6 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.clients.engine-a.mode=self-managed",
       "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
       "camunda.clients.engine-a.physical-tenant-id=tenanta",
-      // marks engine-a as @Primary so the (pre-existing, out-of-scope-for-#6962)
-      // single-CamundaClient-autowiring beans elsewhere (e.g. ConnectorsAutoConfiguration's FEEL
-      // evaluator) can still resolve unambiguously with two clients configured.
-      "camunda.clients.engine-a.primary=true",
       "camunda.clients.engine-b.mode=self-managed",
       "camunda.clients.engine-b.grpc-address=http://engine-b.internal:26500",
       "camunda.clients.engine-b.physical-tenant-id=tenantb",

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -74,6 +75,7 @@ class AnthropicChatModelConfigurationTest {
 
     assertThat(parsed).isInstanceOf(AnthropicChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("anthropic");
+    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/anthropic-api");
     assertThat(parsed.model()).isEqualTo("claude-sonnet-4-6");
 
     final AnthropicChatModelConfiguration anthropic = (AnthropicChatModelConfiguration) parsed;
@@ -156,6 +158,103 @@ class AnthropicChatModelConfigurationTest {
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesCustomBackendWithOAuthClientCredentialsAuthAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://custom.example.com",
+                "authentication": {
+                  "type": "oauth-client-credentials-flow",
+                  "oauthTokenEndpoint": "https://auth.example.com/oauth/token",
+                  "clientId": "client-123",
+                  "clientSecret": "secret-123",
+                  "scopes": "read:llm"
+                }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final AnthropicCustomBackend custom = (AnthropicCustomBackend) parsed.anthropic().backend();
+    assertThat(custom.custom().authentication())
+        .isEqualTo(
+            new OAuthClientCredentialsAuthentication(
+                "https://auth.example.com/oauth/token",
+                "client-123",
+                "secret-123",
+                null,
+                OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                "read:llm"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void oAuthClientCredentialsAuthenticationRedactsSecretsInToString() {
+    final var auth =
+        new OAuthClientCredentialsAuthentication(
+            "https://auth.example.com/oauth/token",
+            "client-123",
+            "super-secret-value",
+            null,
+            OAuthClientCredentialsAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+            null);
+
+    assertThat(auth.toString())
+        .contains("clientId=[REDACTED]", "clientSecret=[REDACTED]")
+        .doesNotContain("client-123", "super-secret-value");
+  }
+
+  @Test
+  void requiredOAuthClientCredentialsFieldsAreEnforced() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicCustomBackend(
+                    new AnthropicCustomBackend.CustomBackend(
+                        "https://custom.example.com",
+                        null,
+                        null,
+                        null,
+                        new OAuthClientCredentialsAuthentication("", "", "", null, null, null))),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.oauthTokenEndpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.clientId");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.clientSecret");
+              assertThat(v.getMessage()).isEqualTo("must not be empty");
+            });
   }
 
   @Test
@@ -370,6 +469,7 @@ class AnthropicChatModelConfigurationTest {
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicAwsBedrockMantleBackend.class);
+    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/aws-bedrock-mantle");
     final AnthropicAwsBedrockMantleBackend bedrockBackend =
         (AnthropicAwsBedrockMantleBackend) parsed.anthropic().backend();
     assertThat(bedrockBackend.awsBedrockMantle().region()).isEqualTo("eu-central-1");
@@ -517,6 +617,144 @@ class AnthropicChatModelConfigurationTest {
             new AnthropicAwsBedrockMantleBackend(
                 new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
                     "eu-central-1", null, authentication, null, null, null)),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null));
+  }
+
+  @Test
+  void deserialisesFoundryBackendWithApiKeyAuthAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://your-resource.services.ai.azure.com",
+                "authentication": { "type": "apiKey", "apiKey": "foundry-secret-key" }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicFoundryBackend.class);
+    final AnthropicFoundryBackend foundryBackend =
+        (AnthropicFoundryBackend) parsed.anthropic().backend();
+    assertThat(foundryBackend.foundry().endpoint())
+        .isEqualTo("https://your-resource.services.ai.azure.com");
+    assertThat(foundryBackend.foundry().authentication())
+        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryBackendWithClientCredentialsAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://your-resource.services.ai.azure.com",
+                "authentication": {
+                  "type": "clientCredentials",
+                  "clientId": "client-id",
+                  "clientSecret": "client-secret",
+                  "tenantId": "tenant-id"
+                }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final AnthropicFoundryBackend foundryBackend =
+        (AnthropicFoundryBackend) parsed.anthropic().backend();
+    assertThat(foundryBackend.foundry().authentication())
+        .isEqualTo(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                "client-id", "client-secret", "tenant-id", null, null));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void requiredFoundryFieldsAreEnforced() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicFoundryBackend(
+                    new AnthropicFoundryBackend.FoundryBackend(
+                        "",
+                        new FoundryAuthentication.ApiKeyAuthentication("  "),
+                        null,
+                        null,
+                        null)),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.foundry.endpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.foundry.authentication.apiKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
+  }
+
+  @Test
+  void foundryManagedIdentityRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config =
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("Managed identity authentication is not supported on SaaS");
+  }
+
+  @Test
+  void foundryManagedIdentityAllowedWhenNotSaaS() {
+    final var config =
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  private static AnthropicChatModelConfiguration foundryConfig(
+      FoundryAuthentication authentication) {
+    return new AnthropicChatModelConfiguration(
+        new AnthropicConnection(
+            new AnthropicFoundryBackend(
+                new AnthropicFoundryBackend.FoundryBackend(
+                    "https://your-resource.services.ai.azure.com",
+                    authentication,
+                    null,
+                    null,
+                    null)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }

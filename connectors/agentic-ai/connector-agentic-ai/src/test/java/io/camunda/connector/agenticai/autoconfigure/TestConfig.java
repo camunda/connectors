@@ -11,8 +11,11 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 
 class TestConfig {
@@ -23,8 +26,23 @@ class TestConfig {
   }
 
   @Bean
+  public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return mock(OAuthClientCredentialsTokenResolver.class);
+  }
+
+  @Bean
   public CamundaClient camundaClient() {
     return mock(CamundaClient.class);
+  }
+
+  /**
+   * Registered here rather than relying on the runtime auto-configuration, which this slice does
+   * not load.
+   */
+  @Bean
+  public PhysicalTenantClientSelector physicalTenantClientSelector(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return new PhysicalTenantClientSelector(camundaClientProvider);
   }
 
   @Bean

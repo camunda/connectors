@@ -34,9 +34,12 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.feel.jackson.JacksonModuleSecretReference;
 import io.camunda.connector.hostvalidator.CidrRange;
 import io.camunda.connector.hostvalidator.VerifiedHostValidator;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -140,8 +143,12 @@ public class ConnectorsAutoConfiguration {
   @Bean
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
-  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
-    return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient).build();
+  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return FeelExpressionEvaluatorBuilder.camundaClient(
+            PhysicalTenantClients.defaultClient(
+                camundaClientProvider, "camundaClientFeelExpressionEvaluator"))
+        .build();
   }
 
   /**
@@ -166,6 +173,17 @@ public class ConnectorsAutoConfiguration {
   }
 
   /**
+   * Resolves OAuth2 client-credentials access tokens, backed by the shared {@link OAuthTokenCache}.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver(
+      OAuthTokenCache oAuthTokenCache) {
+    return new OAuthClientCredentialsTokenResolver(
+        new OAuthService(), oAuthTokenCache, new CustomApacheHttpClient());
+  }
+
+  /**
    * Builds the aggregator every legacy ({@code {{secrets.X}}} and bare {@code secrets.X}) lookup
    * goes through; the outbound job path and the inbound binding path share this one bean. Under
    * {@link LegacySecretMode#OFF} none of the configured providers is consulted and every lookup
@@ -187,8 +205,9 @@ public class ConnectorsAutoConfiguration {
       Optional<List<SecretProvider>> secretProviderBeans,
       @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) MeterRegistry meterRegistry) {
+    CamundaClient legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     LegacySecretMode legacyMode = LegacySecretMode.parse(legacyModeProperty);
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
@@ -389,9 +408,10 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper connectorObjectMapper(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       DocumentFactory legacyDocumentFactory,
       FeelExpressionEvaluator feelExpressionEvaluator) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);

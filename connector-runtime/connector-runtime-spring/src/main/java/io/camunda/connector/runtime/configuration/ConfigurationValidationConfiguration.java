@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.configuration;
 
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNames;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.legacyClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
 
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -106,8 +108,9 @@ public class ConfigurationValidationConfiguration {
   @Bean
   public Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
-    return buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient);
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return buildFeelExpressionEvaluatorsByPhysicalTenantId(
+        registry, legacyClient(camundaClientProvider));
   }
 
   /**
@@ -125,10 +128,11 @@ public class ConfigurationValidationConfiguration {
       ValidationProvider validationProvider,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
+      ObjectProvider<CamundaClient> camundaClientProvider) {
     return new ConfigurationValidationService(
         configurationValidationRegistry,
-        buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient),
+        buildFeelExpressionEvaluatorsByPhysicalTenantId(
+            registry, legacyClient(camundaClientProvider)),
         validationProvider,
         objectMapper);
   }

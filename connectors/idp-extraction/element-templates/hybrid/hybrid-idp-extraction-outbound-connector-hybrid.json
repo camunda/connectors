@@ -168,7 +168,7 @@
   }, {
     "id" : "baseRequest.awsCredential",
     "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential, or configure one-time authentication parameters below.",
+    "description" : "Select a saved AWS credential with an optional default region, or enter authentication details and a region below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -521,6 +521,29 @@
       } ]
     },
     "type" : "Hidden"
+  }, {
+    "id" : "baseRequest.regionOverride",
+    "label" : "Region",
+    "description" : "Overrides the default region in the selected credential. Required when the credential has no default region.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : false,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "baseRequest.documentIntelligenceConfiguration.endpoint",
     "label" : "Azure Document Intelligence Endpoint",
@@ -906,7 +929,7 @@
   "configurationTemplates" : [ {
     "id" : "io.camunda:aws-credential:1",
     "kind" : "CREDENTIAL",
-    "version" : 1,
+    "version" : 2,
     "name" : "AWS Credential",
     "properties" : [ {
       "id" : "authentication.type",
@@ -966,10 +989,8 @@
       "secret" : true
     }, {
       "id" : "region",
-      "label" : "Region",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      "label" : "Default region",
+      "description" : "Used when a connector does not specify a region override.",
       "group" : "configuration",
       "binding" : {
         "name" : "region",

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -27,6 +28,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +58,8 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result =
+        configuration.searchQueryClientsByPhysicalTenantId(registry, clientProvider(), null, 200);
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -68,7 +71,8 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result =
+        configuration.searchQueryClientsByPhysicalTenantId(registry, clientProvider(), null, 200);
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -84,7 +88,8 @@ class PhysicalTenantIdResolutionTest {
         .thenThrow(new RuntimeException("client not initialized"));
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
+    var result =
+        configuration.searchQueryClientsByPhysicalTenantId(registry, clientProvider(), null, 200);
 
     assertThat(result).containsOnlyKeys("engine-c");
   }
@@ -101,7 +106,8 @@ class PhysicalTenantIdResolutionTest {
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
     var result =
-        configuration.searchQueryClientsByPhysicalTenantId(registry, legacyClient, null, 200);
+        configuration.searchQueryClientsByPhysicalTenantId(
+            registry, clientProvider(legacyClient), null, 200);
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
   }
@@ -118,7 +124,7 @@ class PhysicalTenantIdResolutionTest {
 
     var result =
         configuration.searchQueryClientsByPhysicalTenantId(
-            registry, null, overrideSearchQueryClient, 200);
+            registry, clientProvider(), overrideSearchQueryClient, 200);
 
     assertThat(result).containsOnly(Map.entry("tenant", overrideSearchQueryClient));
   }
@@ -132,7 +138,9 @@ class PhysicalTenantIdResolutionTest {
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
     assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+            () ->
+                configuration.searchQueryClientsByPhysicalTenantId(
+                    registry, clientProvider(), null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -147,14 +155,16 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-b")).thenReturn(clientB);
 
     assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
+            () ->
+                configuration.searchQueryClientsByPhysicalTenantId(
+                    registry, clientProvider(), null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }
 
   @Test
   void buildDocumentFactoriesByPhysicalTenantId_usesManuallySuppliedOverrideForASingleClient() {
-    // simulates the @Primary DocumentFactory test-spy pattern used by WebhookActivatedDocumentTests
+    // Simulates an application supplying its own primary DocumentFactory.
     var registry = mock(CamundaClientRegistry.class);
     var client = clientWithPhysicalTenantId("tenant");
     when(registry.clientNames()).thenReturn(Set.of("default"));
@@ -203,5 +213,36 @@ class PhysicalTenantIdResolutionTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("tenant-a")
         .hasMessageContaining("tenant-b");
+  }
+
+  @Test
+  void searchQueryClientFactory_keepsAManuallySuppliedOverrideForASingleClient() {
+    // The factory is what a CamundaClientLifecycleAware consumer (ImportSchedulers) applies when it
+    // rebuilds one entry for a restarted client. It must honour the same single-client override
+    // rule as the startup snapshot, or a restart would silently swap an E2E suite's @MockitoBean
+    // SearchQueryClient for a real one mid-test.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("default"));
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+
+    var factory =
+        PhysicalTenantIds.searchQueryClientFactory(registry, overrideSearchQueryClient, 200);
+
+    assertThat(factory.apply(clientWithPhysicalTenantId("tenant")))
+        .isSameAs(overrideSearchQueryClient);
+  }
+
+  @Test
+  void searchQueryClientFactory_ignoresTheOverrideWhenSeveralClientsAreConfigured() {
+    // Mirrors the startup rule: applying one override to every physical tenant would have each
+    // tenant's search silently query through the same client.
+    var registry = mock(CamundaClientRegistry.class);
+    when(registry.clientNames()).thenReturn(Set.of("engine-a", "engine-b"));
+
+    var factory =
+        PhysicalTenantIds.searchQueryClientFactory(registry, mock(SearchQueryClient.class), 200);
+
+    assertThat(factory.apply(clientWithPhysicalTenantId("tenanta")))
+        .isInstanceOf(SearchQueryClientImpl.class);
   }
 }

@@ -173,6 +173,9 @@
       "name" : "AWS Bedrock Mantle",
       "value" : "aws-bedrock-mantle"
     }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "value" : "foundry"
+    }, {
       "name" : "Custom / compatible endpoint",
       "value" : "custom"
     } ]
@@ -394,6 +397,291 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.backend.foundry.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Microsoft Foundry resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The full resource endpoint, e.g. <code>https://your-resource.services.ai.azure.com</code>.",
+    "placeholder" : "https://your-resource.services.ai.azure.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Microsoft Foundry authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Entra ID: Client credentials",
+      "value" : "clientCredentials"
+    }, {
+      "name" : "Entra ID: Managed identity (Hybrid/Self-Managed only)",
+      "value" : "managedIdentity"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Microsoft Entra ID application (client) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Microsoft Entra ID application client secret.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "Microsoft Entra ID tenant (directory) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+    "label" : "Client ID",
+    "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
     "description" : "Base URL of the Anthropic-compatible API.",
@@ -449,6 +737,9 @@
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.apiKey",
@@ -478,6 +769,192 @@
         "type" : "simple"
       } ]
     },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The OAuth token endpoint",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client ID from the OAuth client",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client secret from the OAuth client",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.audience",
+    "label" : "Audience",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The unique identifier of the target API you want to access",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.custom.authentication.scopes",
+    "label" : "Scopes",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.custom.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
@@ -1111,7 +1588,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "apiKey",
+    "value" : "none",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -1130,8 +1607,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "API key",
       "value" : "apiKey"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
     } ]
   }, {
     "id" : "provider.openai.backend.custom.authentication.apiKey",
@@ -1161,6 +1644,192 @@
         "type" : "simple"
       } ]
     },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The OAuth token endpoint",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client ID from the OAuth client",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client secret from the OAuth client",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.audience",
+    "label" : "Audience",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The unique identifier of the target API you want to access",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.scopes",
+    "label" : "Scopes",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
     "type" : "String"
   }, {
     "id" : "provider.openai.timeouts.timeout",
@@ -1568,6 +2237,72 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.anthropic.backend.foundry.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.anthropic.backend.custom.headers",
     "label" : "HTTP headers",
     "description" : "Map of HTTP headers to add to the request.",
@@ -1926,6 +2661,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
@@ -2123,6 +2859,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
