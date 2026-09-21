@@ -406,16 +406,17 @@ public class ConnectorsAutoConfiguration {
 
   /**
    * This mapper's consumers (inbound context/correlation binding, agentic-ai's AI-provider/MCP/A2A
-   * message and tool-call converters, the app-wide HTTP JSON converter, ...) all bind data that
-   * arrived as external payload, not a model author's FEEL text -- the same "cannot tell trusted
-   * model text from payload data" situation {@link DisabledIntrinsicFunctionExecutor} documents.
-   * None of them run an {@link
+   * message and tool-call converters, ...) all bind data that arrived as external payload, not a
+   * model author's FEEL text -- the same "cannot tell trusted model text from payload data"
+   * situation {@link DisabledIntrinsicFunctionExecutor} documents. None of them run an {@link
    * io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList} check first the way the
    * one path that legitimately dispatches live does ({@code JobHandlerContext}, built from the
    * separate {@code outboundConnectorObjectMapper} below). Auditing every current and future
    * consumer of a shared, unqualified bean for that gate individually doesn't scale; disabling
    * dispatch here, at the one place all of them draw from, does (security-testing-findings#275,
-   * closing the general case behind the specific HTTP and agentic-ai instances found first).
+   * closing the general case behind the specific agentic-ai instance found first -- the app-wide
+   * HTTP JSON converter that was an equivalent instance no longer even injects this bean, per its
+   * own javadoc).
    */
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
