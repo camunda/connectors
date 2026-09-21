@@ -96,14 +96,27 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record AnthropicApi(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "Anthropic API credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "anthropicApiCredential"),
+                  description =
+                      "Select a saved Anthropic API credential, or enter an API key below.")
+              @Nullable AnthropicApiCredential anthropicApiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "Anthropic API key",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "anthropicApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -138,9 +151,25 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        /** The Anthropic API key: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveApiKey() {
+          return anthropicApiCredential != null ? anthropicApiCredential.apiKey() : apiKey;
+        }
+
+        @JsonIgnore
+        @AssertTrue(
+            message = "Anthropic API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          String effective = effectiveApiKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "AnthropicApi{apiKey=[REDACTED], endpoint="
+          return "AnthropicApi{anthropicApiCredential="
+              + anthropicApiCredential
+              + ", apiKey=[REDACTED], endpoint="
               + endpoint
               + ", headers="
               + redactValues(headers)

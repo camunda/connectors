@@ -101,7 +101,12 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
                     new AnthropicApi(
-                        "anthropic-api-key", "https://custom.anthropic.example", null, null, null)),
+                        null,
+                        "anthropic-api-key",
+                        "https://custom.anthropic.example",
+                        null,
+                        null,
+                        null)),
                 new AnthropicChatModelConfiguration.AnthropicModel(
                     "claude-sonnet-4-6",
                     new AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters(
@@ -127,7 +132,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
         new AnthropicChatModelConfiguration(
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApi("anthropic-api-key", null, null, null, null)),
+                    new AnthropicApi(null, "anthropic-api-key", null, null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
@@ -151,7 +156,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
                     new AnthropicApi(
-                        "anthropic-api-key", "https://proxy.example.com", null, null, null)),
+                        null, "anthropic-api-key", "https://proxy.example.com", null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 

@@ -139,7 +139,7 @@ class AnthropicChatModelFactoryClientTest {
     executeAgainst(
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
-                "anthropic-api-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
+                null, "anthropic-api-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
@@ -151,6 +151,7 @@ class AnthropicChatModelFactoryClientTest {
     executeAgainst(
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
+                null,
                 "anthropic-api-secret-key",
                 wireMock.getHttpBaseUrl(),
                 Map.of("X-Hidden-Header", "hidden-value"),

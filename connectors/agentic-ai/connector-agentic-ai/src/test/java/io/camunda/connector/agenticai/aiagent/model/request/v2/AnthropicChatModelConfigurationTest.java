@@ -262,6 +262,7 @@ class AnthropicChatModelConfigurationTest {
     final var backend =
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
+                null,
                 "sk-ant-super-secret",
                 null,
                 Map.of("Authorization", "Bearer secret"),
@@ -304,13 +305,14 @@ class AnthropicChatModelConfigurationTest {
     final var backendWithEmptyMaps =
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
-                "sk-ant-super-secret", null, Map.of(), Map.of(), Map.of()));
+                null, "sk-ant-super-secret", null, Map.of(), Map.of(), Map.of()));
     assertThat(backendWithEmptyMaps.toString())
         .contains("headers={}", "queryParameters={}", "bodyProperties={}");
 
     final var backendWithNullMaps =
         new AnthropicApiBackend(
-            new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null, null, null, null));
+            new AnthropicApiBackend.AnthropicApi(
+                null, "sk-ant-super-secret", null, null, null, null));
     assertThat(backendWithNullMaps.toString())
         .contains("headers=null", "queryParameters=null", "bodyProperties=null");
   }
@@ -321,7 +323,7 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("  ", null, null, null, null)),
+                    new AnthropicApiBackend.AnthropicApi(null, "  ", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
@@ -331,9 +333,82 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.anthropic.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("anthropic.backend.anthropic.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Anthropic API key is required from the credential or element template");
             });
+  }
+
+  @Test
+  void anthropicApiBackendRejectsMissingApiKeyAndCredential() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi(null, null, null, null, null, null)),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.anthropic.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Anthropic API key is required from the credential or element template");
+            });
+  }
+
+  @Test
+  void anthropicApiBackendResolvesApiKeyFromCredentialWithNoViolations() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi(
+                        new AnthropicApiCredential("sk-ant-from-credential"),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(((AnthropicApiBackend) config.anthropic().backend()).anthropic().effectiveApiKey())
+        .isEqualTo("sk-ant-from-credential");
+  }
+
+  @Test
+  void deserialisesAnthropicApiBackendWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "anthropic-api",
+              "anthropic": { "anthropicApiCredential": { "apiKey": "sk-ant-from-credential" } }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    assertThat(((AnthropicApiBackend) parsed.anthropic().backend()).anthropic().effectiveApiKey())
+        .isEqualTo("sk-ant-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -345,7 +420,8 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                    new AnthropicApiBackend.AnthropicApi(
+                        null, "sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null));
 
@@ -373,7 +449,8 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                    new AnthropicApiBackend.AnthropicApi(
+                        null, "sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null));
 
@@ -398,7 +475,8 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                    new AnthropicApiBackend.AnthropicApi(
+                        null, "sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null));
 
@@ -411,7 +489,8 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                    new AnthropicApiBackend.AnthropicApi(
+                        null, "sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 

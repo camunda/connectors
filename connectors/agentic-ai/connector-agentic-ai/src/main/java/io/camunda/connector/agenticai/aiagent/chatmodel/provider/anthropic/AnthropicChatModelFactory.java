@@ -35,6 +35,7 @@ import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTok
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -126,7 +127,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
   private static void applyApiBackend(
       AnthropicOkHttpClient.Builder builder, AnthropicApiBackend apiBackend) {
-    builder.apiKey(apiBackend.anthropic().apiKey());
+    builder.apiKey(Objects.requireNonNull(apiBackend.anthropic().effectiveApiKey()));
 
     if (apiBackend.anthropic().endpoint() != null) {
       builder.baseUrl(apiBackend.anthropic().endpoint());

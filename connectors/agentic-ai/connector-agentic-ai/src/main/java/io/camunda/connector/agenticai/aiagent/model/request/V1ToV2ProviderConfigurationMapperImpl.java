@@ -110,6 +110,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
         new AnthropicChatModelConfiguration.AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApi(
+                    null,
                     connection.authentication().apiKey(),
                     toNativeAnthropicEndpoint(connection.endpoint()),
                     null,

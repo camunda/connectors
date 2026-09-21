@@ -36,6 +36,13 @@ Entra ID variant supplies `Authorization: Bearer <token>` from a `Supplier<Strin
 request. Authentication config and Entra ID token handling are shared with the OpenAI provider — see
 [Microsoft Foundry authentication](#microsoft-foundry-authentication).
 
+### Credentials
+
+`anthropic-api` supports a saved `io.camunda:agentic-ai-anthropic-api-credential:1` credential
+(`apiKey` only); the escape hatches (`endpoint`/`headers`/`queryParameters`/`bodyProperties`) stay
+inline and always visible regardless. See [ADR 015](../adr/015-v2-provider-credential-templates.md)
+for the general rationale.
+
 ### Reasoning
 
 `AnthropicModelParameters.thinking` (`ENABLED`/`ADAPTIVE`/`DISABLED`) maps onto the SDK's

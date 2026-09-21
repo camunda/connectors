@@ -204,7 +204,7 @@ class AnthropicChatModelFactoryTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel(modelId, null),
             timeouts));
   }
