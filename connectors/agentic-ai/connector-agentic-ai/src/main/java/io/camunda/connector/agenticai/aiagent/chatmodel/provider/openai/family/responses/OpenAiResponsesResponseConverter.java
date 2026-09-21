@@ -100,7 +100,9 @@ public class OpenAiResponsesResponseConverter {
     return response.output().stream()
         .flatMap(item -> item.message().stream())
         .flatMap(message -> message.content().stream())
-        .anyMatch(content -> content.refusal().isPresent());
+        .flatMap(content -> content.refusal().stream())
+        .map(ResponseOutputRefusal::refusal)
+        .anyMatch(StringUtils::hasText);
   }
 
   /**

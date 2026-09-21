@@ -194,7 +194,7 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
-  void throwsContentFilteredExceptionForBlankRefusalWithNoTextContent() {
+  void mapsBlankRefusalAlongsideFunctionCallToCompletedResult() {
     final Response response =
         baseResponse(
             """
@@ -207,17 +207,29 @@ class OpenAiResponsesResponseConverterTest {
                 "content": [
                   {"type": "refusal", "refusal": "\\n\\n"}
                 ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
               }
             ]
             """);
 
-    assertThatThrownBy(() -> converter.toResult(response, Duration.ofMillis(100)))
-        .isInstanceOfSatisfying(
-            ContentFilteredException.class,
-            e -> {
-              assertThat(e.partialResult()).isNotNull();
-              assertThat(e.partialResult().assistantMessage().content()).isEmpty();
-            });
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
   }
 
   private static Response responseWithRefusal() {

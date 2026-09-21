@@ -99,7 +99,7 @@ public class OpenAiCompletionsResponseConverter {
    * {@code content_filter} for a uniform "blocked" outcome.
    */
   private boolean hasRefusal(ChatCompletion.Choice choice) {
-    return choice.message().refusal().isPresent();
+    return choice.message().refusal().filter(refusal -> !refusal.isBlank()).isPresent();
   }
 
   private AssistantMessage toAssistantMessage(

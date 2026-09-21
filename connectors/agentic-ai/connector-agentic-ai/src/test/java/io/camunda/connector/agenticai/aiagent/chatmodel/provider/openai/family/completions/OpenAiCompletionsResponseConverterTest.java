@@ -156,20 +156,36 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
-  void throwsContentFilteredExceptionForBlankRefusalWithNoTextContent() {
+  void mapsBlankRefusalAlongsideToolCallToCompletedResult() {
     final ChatCompletion completion =
-        baseCompletion(
+        completionWithFinishReason(
+            "tool_calls",
             """
-            {"role": "assistant", "content": null, "refusal": "\\n\\n"}
+            {
+              "role": "assistant",
+              "content": null,
+              "refusal": "\\n\\n",
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {"name": "get_weather", "arguments": "{\\"city\\":\\"Berlin\\"}"}
+                }
+              ]
+            }
             """);
 
-    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofMillis(100)))
-        .isInstanceOfSatisfying(
-            ContentFilteredException.class,
-            e -> {
-              assertThat(e.partialResult()).isNotNull();
-              assertThat(e.partialResult().assistantMessage().content()).isEmpty();
-            });
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
   }
 
   @Test
