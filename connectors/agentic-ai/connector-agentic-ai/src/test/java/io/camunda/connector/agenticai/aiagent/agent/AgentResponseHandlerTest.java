@@ -36,7 +36,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.List;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -316,6 +319,65 @@ class AgentResponseHandlerTest {
       // then
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isNull();
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+  }
+
+  /**
+   * security-testing-findings#275, PR review thread PRRT_kwDOIGZYus6kVTwr: {@code
+   * ConnectorsAutoConfiguration#connectorObjectMapper} -- the mapper actually injected here in
+   * production -- registers {@link JacksonModuleDocumentDeserializer}, unlike the bare {@code new
+   * ObjectMapper()} the rest of this test class uses. These tests wire a mapper the same way
+   * (document module present, {@link DisabledIntrinsicFunctionExecutor} as its function executor,
+   * matching the fixed production wiring) to prove that an LLM-generated {@code responseText}
+   * shaped like a {@code camunda.function.type} call cannot reach the executor through {@link
+   * AgentResponseHandlerImpl#createResponse}, while an ordinary JSON response still parses
+   * correctly through the same, document-module-equipped mapper.
+   */
+  @Nested
+  class ProductionMapperWiring {
+
+    // Built inside each test, not as a field initializer: a @Nested class's field initializers
+    // run while constructing the instance, before MockitoExtension injects the outer
+    // gatewayToolHandlers mock, so a handler built here would permanently capture a null.
+    private AgentResponseHandler handlerWithDocumentModuleMapper() {
+      var documentModuleObjectMapper =
+          new ObjectMapper()
+              .registerModule(
+                  new JacksonModuleDocumentDeserializer(
+                      mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+      return new AgentResponseHandlerImpl(documentModuleObjectMapper, gatewayToolHandlers);
+    }
+
+    @Test
+    void doesNotDispatchAnIntrinsicFunctionFoundInTheModelResponseText() {
+      // given - an LLM response shaped exactly like the discriminator object this cache/executor
+      // dispatches for a model-declared FEEL literal; here it arrives as ordinary response text,
+      // which no allow-list check ever covers.
+      String exploitJson = "{\"camunda.function.type\":\"base64\",\"params\":[\"test\"]}";
+      var conversation =
+          conversationWith(
+              new AgentTaskResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(exploitJson));
+
+      // then - the executor refuses rather than returning "dGVzdA==" (base64("test")), which
+      // would prove the function actually ran.
+      assertThatThrownBy(() -> handlerWithDocumentModuleMapper().createResponse(conversation))
+          .isInstanceOf(UnsupportedOperationException.class)
+          .hasMessageContaining("Intrinsic function dispatch is disabled");
+    }
+
+    @Test
+    void stillParsesOrdinaryJsonResponseTextThroughTheDocumentModuleEquippedMapper() {
+      var conversation =
+          conversationWith(
+              new AgentTaskResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(HAIKU_JSON));
+
+      var response = handlerWithDocumentModuleMapper().createResponse(conversation);
+
       assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
     }
   }

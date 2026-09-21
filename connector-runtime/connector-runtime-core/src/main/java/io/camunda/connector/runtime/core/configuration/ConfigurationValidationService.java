@@ -51,6 +51,14 @@ import org.slf4j.LoggerFactory;
  * rejected rather than passed through, so the problem is reported here rather than as an
  * unexplained failure at the target.
  *
+ * <p><b>Intrinsic functions.</b> The injected {@code objectMapper} must never be one wired for live
+ * {@code camunda.function.type} dispatch: {@code credentialRef} is evaluated out of band, against
+ * the cluster, with no process or element scope this service could derive an allow-list from, so a
+ * caller-supplied reference that evaluates to a discriminator-shaped value would otherwise dispatch
+ * unconditionally (security-testing-findings#275's exact bypass, on a different path). Callers must
+ * pass a mapper built the way {@link io.camunda.connector.runtime.core.FeelEvaluationResultMapper}
+ * builds one for an ordinary FEEL evaluation result.
+ *
  * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so the
  * reference must be evaluated against the engine that holds it — each engine has its own {@code
  * camunda.vars.env.*} and its own secret stores. Evaluating against the wrong engine would silently
