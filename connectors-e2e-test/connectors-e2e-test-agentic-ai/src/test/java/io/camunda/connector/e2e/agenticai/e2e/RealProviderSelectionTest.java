@@ -27,6 +27,7 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 @ExtendWith(SystemStubsExtension.class)
 class RealProviderSelectionTest {
 
+  // Dummy PR touchpoint for validating the AI Agent CPT workflow trigger.
   @SystemStub private final EnvironmentVariables environment = new EnvironmentVariables();
 
   @Test
