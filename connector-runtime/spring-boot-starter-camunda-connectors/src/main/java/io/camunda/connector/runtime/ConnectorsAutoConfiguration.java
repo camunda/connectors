@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
@@ -143,8 +144,12 @@ public class ConnectorsAutoConfiguration {
   @Bean
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
-  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
-    return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient).build();
+  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return FeelExpressionEvaluatorBuilder.camundaClient(
+            PhysicalTenantClients.defaultClient(
+                camundaClientProvider, "camundaClientFeelExpressionEvaluator"))
+        .build();
   }
 
   /**
@@ -201,8 +206,9 @@ public class ConnectorsAutoConfiguration {
       Optional<List<SecretProvider>> secretProviderBeans,
       @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) MeterRegistry meterRegistry) {
+    CamundaClient legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     LegacySecretMode legacyMode = LegacySecretMode.parse(legacyModeProperty);
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
@@ -398,17 +404,31 @@ public class ConnectorsAutoConfiguration {
                 new JacksonModuleDocumentSerializer()));
   }
 
+  /**
+   * This mapper's consumers (inbound context/correlation binding, agentic-ai's AI-provider/MCP/A2A
+   * message and tool-call converters, ...) all bind data that arrived as external payload, not a
+   * model author's FEEL text -- the same "cannot tell trusted model text from payload data"
+   * situation {@link DisabledIntrinsicFunctionExecutor} documents. None of them run an {@link
+   * io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList} check first the way the
+   * one path that legitimately dispatches live does ({@code JobHandlerContext}, built from the
+   * separate {@code outboundConnectorObjectMapper} below). Auditing every current and future
+   * consumer of a shared, unqualified bean for that gate individually doesn't scale; disabling
+   * dispatch here, at the one place all of them draw from, does (security-testing-findings#275,
+   * closing the general case behind the specific agentic-ai instance found first -- the app-wide
+   * HTTP JSON converter that was an equivalent instance no longer even injects this bean, per its
+   * own javadoc).
+   */
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper connectorObjectMapper(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       DocumentFactory legacyDocumentFactory,
       FeelExpressionEvaluator feelExpressionEvaluator) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    // default intrinsic function contains a pointer of the copy
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var functionExecutor = new DisabledIntrinsicFunctionExecutor();
 
     // The deserializer module contains the function executor, which contains the pointer of the
     // object mapper
@@ -452,6 +472,10 @@ public class ConnectorsAutoConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
+    // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
+    // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
+    // model actually declares remain in the tree. See security-testing-findings#275.
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     var jacksonModuleDocumentDeserializer =

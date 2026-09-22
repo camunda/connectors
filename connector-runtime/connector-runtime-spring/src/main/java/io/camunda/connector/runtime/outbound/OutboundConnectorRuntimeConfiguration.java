@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.outbound;
 
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNames;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.defaultClient;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.legacyClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolvePhysicalTenantId;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
@@ -45,6 +47,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -53,12 +56,18 @@ import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListMode;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFunctionAllowListCache;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import java.net.URI;
@@ -68,6 +77,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -228,8 +238,21 @@ public class OutboundConnectorRuntimeConfiguration {
         environment::getProperty);
   }
 
+  /**
+   * Lets connectors that call the orchestration cluster while handling a job reach that job's own
+   * cluster instead of a single one picked at startup. Registered here rather than in a connector's
+   * own auto-configuration so every connector routes the same way.
+   */
   @Bean
-  public CamundaDocumentStore documentStore(CamundaClient camundaClient) {
+  @ConditionalOnMissingBean
+  public PhysicalTenantClientSelector physicalTenantClientSelector(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return new PhysicalTenantClientSelector(camundaClientProvider);
+  }
+
+  @Bean
+  public CamundaDocumentStore documentStore(ObjectProvider<CamundaClient> camundaClientProvider) {
+    var camundaClient = defaultClient(camundaClientProvider, "documentStore");
     return new CamundaDocumentStoreImpl(
         camundaClient, readPhysicalTenantIdIfAvailable(camundaClient));
   }
@@ -313,16 +336,17 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   public Map<String, CamundaDocumentStore> documentStoresByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
-    return buildDocumentStoresByPhysicalTenantId(registry, legacyCamundaClient);
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return buildDocumentStoresByPhysicalTenantId(registry, legacyClient(camundaClientProvider));
   }
 
   @Bean
   public Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) DocumentFactory documentFactory) {
-    return buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
+    return buildDocumentFactoriesByPhysicalTenantId(
+        registry, legacyClient(camundaClientProvider), documentFactory);
   }
 
   @Bean
@@ -347,9 +371,11 @@ public class OutboundConnectorRuntimeConfiguration {
    *       camunda.connector.broker.monitoring.port}.
    * </ul>
    *
-   * <p>This scalar bean monitors the brokers of a single {@code CamundaClient} (whichever is
-   * {@code @Primary} when several physical tenants are configured) and is kept for backward
-   * compatibility with runtimes injecting/overriding it directly. The {@code /outbound} endpoints
+   * <p>This scalar bean monitors the brokers of a single {@code CamundaClient} and is kept for
+   * backward compatibility with runtimes injecting/overriding it directly. Which one that is
+   * depends on how many are configured: the sole client, the one designated {@code
+   * camunda.clients.<name>.primary=true}, or — with several and none designated — the first, logged
+   * as a warning by {@link PhysicalTenantClients#defaultClient}. The {@code /outbound} endpoints
    * instead go through the per-physical-tenant map built by {@link
    * #buildBrokerJobStreamClientsByPhysicalTenantId}, which monitors every engine's brokers.
    */
@@ -359,7 +385,7 @@ public class OutboundConnectorRuntimeConfiguration {
       havingValue = "true",
       matchIfMissing = true)
   public BrokerJobStreamClient brokerJobStreamClient(
-      CamundaClient camundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @ConnectorsObjectMapper ObjectMapper mapper,
       @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
       @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
@@ -367,7 +393,8 @@ public class OutboundConnectorRuntimeConfiguration {
     if (!uris.isEmpty()) {
       return new BrokerJobStreamClient(uris, mapper);
     }
-    return new BrokerJobStreamClient(camundaClient, monitoringPort, mapper);
+    return new BrokerJobStreamClient(
+        defaultClient(camundaClientProvider, "brokerJobStreamClient"), monitoringPort, mapper);
   }
 
   private static List<URI> parseMonitoringAddresses(String addresses) {
@@ -444,11 +471,12 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorsService outboundConnectorsService(
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient,
       @ConnectorsObjectMapper ObjectMapper mapper,
       @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
       @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
+    var legacyCamundaClient = legacyClient(camundaClientProvider);
     return new OutboundConnectorsService(
         outboundConnectorConfigurationRegistry,
         physicalTenantIds(registry, legacyCamundaClient),
@@ -501,12 +529,27 @@ public class OutboundConnectorRuntimeConfiguration {
     }
   }
 
+  /**
+   * Builds its own {@link ProcessDefinitionModelCache} backed by the shared, bounded {@code
+   * bpmnModelCacheStore} rather than going through {@link ProcessDefinitionSecretKeyCache}'s {@code
+   * (String, CamundaClient, Cache)} convenience constructor, which allocates its own separate,
+   * fixed-size ({@code maximumSize(1000)}) model cache — fine for the convenience that constructor
+   * exists for, but this bean is real production wiring for the legacy scalar single-{@code
+   * CamundaClient} configuration and should share the one model cache every other consumer draws
+   * from, sized by the configured {@code bpmn-model.cache.max-size} limit, rather than fetch and
+   * parse the same model a second time into a cache of its own.
+   */
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
+      ObjectProvider<CamundaClient> camundaClientProvider,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      SecretKeyCacheHolder secretKeyCacheStore) {
+    var camundaClient = defaultClient(camundaClientProvider, "secretKeyCache");
+    String physicalTenantId = resolvePhysicalTenantIdOrDefault(camundaClient);
     return new ProcessDefinitionSecretKeyCache(
-        resolvePhysicalTenantIdOrDefault(camundaClient),
-        camundaClient,
+        physicalTenantId,
+        new ProcessDefinitionModelCache(
+            physicalTenantId, camundaClient, bpmnModelCacheStore.cache()),
         secretKeyCacheStore.cache());
   }
 
@@ -518,8 +561,15 @@ public class OutboundConnectorRuntimeConfiguration {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
   }
 
-  private static Map<String, SecretKeyCache> buildSecretKeyCachesByPhysicalTenantId(
-      CamundaClientRegistry registry, CamundaClient legacyCamundaClient, Cache sharedCache) {
+  /**
+   * Shared by both {@link ProcessDefinitionSecretKeyCache} and {@code
+   * ProcessDefinitionIntrinsicFunctionAllowListCache}, one instance per physical tenant, backed by
+   * one cache: a process definition's BPMN model is fetched and parsed once, regardless of how many
+   * static-analysis consumers need it, not once per consumer.
+   */
+  private static Map<String, ProcessDefinitionModelCache>
+      buildProcessDefinitionModelCachesByPhysicalTenantId(
+          CamundaClientRegistry registry, CamundaClient legacyCamundaClient, Cache sharedCache) {
     // Resolved once per client name (rather than via toMapByPhysicalTenantId, which would
     // recompute the same physical tenant ID a second time inside the value-mapper) and reused as
     // both the map key and the cache's own id.
@@ -532,7 +582,7 @@ public class OutboundConnectorRuntimeConfiguration {
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey,
-                e -> new ProcessDefinitionSecretKeyCache(e.getKey(), e.getValue(), sharedCache),
+                e -> new ProcessDefinitionModelCache(e.getKey(), e.getValue(), sharedCache),
                 (a, b) -> {
                   throw new IllegalStateException(
                       "Multiple CamundaClients resolve to the same physical tenant ID; "
@@ -540,13 +590,22 @@ public class OutboundConnectorRuntimeConfiguration {
                 }));
   }
 
+  private static Map<String, SecretKeyCache> buildSecretKeyCachesByPhysicalTenantId(
+      Map<String, ProcessDefinitionModelCache> modelCachesByPhysicalTenantId,
+      Cache secretMapCache) {
+    return modelCachesByPhysicalTenantId.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                e ->
+                    new ProcessDefinitionSecretKeyCache(e.getKey(), e.getValue(), secretMapCache)));
+  }
+
   private static Map<String, SecretFilterFactory> buildSecretFilterFactoriesByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      Cache secretKeyCacheStore,
+      Map<String, ProcessDefinitionModelCache> modelCachesByPhysicalTenantId,
+      Cache secretMapCache,
       SecretFilterMode secretFilterMode) {
-    return buildSecretKeyCachesByPhysicalTenantId(
-            registry, legacyCamundaClient, secretKeyCacheStore)
+    return buildSecretKeyCachesByPhysicalTenantId(modelCachesByPhysicalTenantId, secretMapCache)
         .entrySet()
         .stream()
         .collect(
@@ -555,24 +614,122 @@ public class OutboundConnectorRuntimeConfiguration {
                 e -> new ConfigurableSecretFilterFactory(secretFilterMode, e.getValue())));
   }
 
+  private static Map<String, IntrinsicFunctionAllowListFactory>
+      buildIntrinsicFunctionAllowListFactoriesByPhysicalTenantId(
+          Map<String, ProcessDefinitionModelCache> modelCachesByPhysicalTenantId,
+          Cache allowListMapCache,
+          IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode) {
+    return modelCachesByPhysicalTenantId.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                e -> {
+                  var allowListCache =
+                      new ProcessDefinitionIntrinsicFunctionAllowListCache(
+                          e.getKey(), e.getValue(), allowListMapCache);
+                  return new ConfigurableIntrinsicFunctionAllowListFactory(
+                      intrinsicFunctionAllowListMode, allowListCache);
+                }));
+  }
+
+  /** Wrapped in a holder for the same reason as {@link SecretKeyCacheHolder} — see its javadoc. */
   @Bean
-  public Map<String, SecretKeyCache> secretKeyCachesByPhysicalTenantId(
-      @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      SecretKeyCacheHolder secretKeyCacheStore) {
-    return buildSecretKeyCachesByPhysicalTenantId(
-        registry, legacyCamundaClient, secretKeyCacheStore.cache());
+  BpmnModelCacheHolder bpmnModelCacheStore(
+      @Value("${camunda.connector.bpmn-model.cache.enabled:true}") boolean cacheEnabled,
+      @Value("${camunda.connector.bpmn-model.cache.max-size:1000}") int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new BpmnModelCacheHolder(new NoOpCache("bpmnModel"));
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new BpmnModelCacheHolder(
+        new CaffeineCache("bpmnModel", Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
   @Bean
+  public Map<String, ProcessDefinitionModelCache> processDefinitionModelCachesByPhysicalTenantId(
+      @Autowired(required = false) CamundaClientRegistry registry,
+      ObjectProvider<CamundaClient> camundaClientProvider,
+      BpmnModelCacheHolder bpmnModelCacheStore) {
+    return buildProcessDefinitionModelCachesByPhysicalTenantId(
+        registry, legacyClient(camundaClientProvider), bpmnModelCacheStore.cache());
+  }
+
+  /**
+   * Takes the same raw {@code CamundaClientRegistry}/{@code CamundaClient} inputs as {@link
+   * #processDefinitionModelCachesByPhysicalTenantId} and rebuilds the model-cache map locally
+   * rather than declaring a {@code Map<String, ProcessDefinitionModelCache>}-typed parameter:
+   * Spring's autowiring special-cases any {@code Map<String, X>}-typed dependency — including a
+   * {@code @Bean} method parameter — by collecting individually-registered beans of type {@code X}
+   * keyed by name, not by resolving a single bean of the composite {@code Map} type. Since no
+   * individual {@code ProcessDefinitionModelCache} bean is ever registered (only the {@code Map}
+   * bean is), declaring the parameter that way would silently inject an empty map here. The rebuilt
+   * {@code ProcessDefinitionModelCache} instances still share the same underlying {@code
+   * bpmnModelCacheStore} cache as {@link #processDefinitionModelCachesByPhysicalTenantId}'s own
+   * instances, so a process definition's model is still fetched at most once regardless of which
+   * bean triggers the fetch.
+   */
+  @Bean
+  public Map<String, SecretKeyCache> secretKeyCachesByPhysicalTenantId(
+      @Autowired(required = false) CamundaClientRegistry registry,
+      ObjectProvider<CamundaClient> camundaClientProvider,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      SecretKeyCacheHolder secretKeyCacheStore) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyClient(camundaClientProvider), bpmnModelCacheStore.cache());
+    return buildSecretKeyCachesByPhysicalTenantId(
+        modelCachesByPhysicalTenantId, secretKeyCacheStore.cache());
+  }
+
+  /** See {@link #secretKeyCachesByPhysicalTenantId} for why this rebuilds the model-cache map. */
+  @Bean
   public Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
+      BpmnModelCacheHolder bpmnModelCacheStore,
       SecretKeyCacheHolder secretKeyCacheStore,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyClient(camundaClientProvider), bpmnModelCacheStore.cache());
     return buildSecretFilterFactoriesByPhysicalTenantId(
-        registry, legacyCamundaClient, secretKeyCacheStore.cache(), secretFilterMode);
+        modelCachesByPhysicalTenantId, secretKeyCacheStore.cache(), secretFilterMode);
+  }
+
+  @Bean
+  IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore(
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new IntrinsicFunctionAllowListCacheHolder(new NoOpCache("intrinsicFunctionAllowList"));
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new IntrinsicFunctionAllowListCacheHolder(
+        new CaffeineCache(
+            "intrinsicFunctionAllowList",
+            Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
+  }
+
+  /** See {@link #secretKeyCachesByPhysicalTenantId} for why this rebuilds the model-cache map. */
+  @Bean
+  public Map<String, IntrinsicFunctionAllowListFactory>
+      intrinsicFunctionAllowListFactoriesByPhysicalTenantId(
+          @Autowired(required = false) CamundaClientRegistry registry,
+          ObjectProvider<CamundaClient> camundaClientProvider,
+          BpmnModelCacheHolder bpmnModelCacheStore,
+          IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore,
+          @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
+              IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode) {
+    var modelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyClient(camundaClientProvider), bpmnModelCacheStore.cache());
+    return buildIntrinsicFunctionAllowListFactoriesByPhysicalTenantId(
+        modelCachesByPhysicalTenantId,
+        intrinsicFunctionAllowListCacheStore.cache(),
+        intrinsicFunctionAllowListMode);
   }
 
   /**
@@ -596,18 +753,33 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) DocumentFactory documentFactory,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCacheHolder secretKeyCacheStore,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore,
+      @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
+          IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
       Optional<MeterRegistry> meterRegistry) {
+    var legacyCamundaClient = legacyClient(camundaClientProvider);
     var documentFactoriesByPhysicalTenantId =
         buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
+    var processDefinitionModelCachesByPhysicalTenantId =
+        buildProcessDefinitionModelCachesByPhysicalTenantId(
+            registry, legacyCamundaClient, bpmnModelCacheStore.cache());
     var secretFilterFactoriesByPhysicalTenantId =
         buildSecretFilterFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, secretKeyCacheStore.cache(), secretFilterMode);
+            processDefinitionModelCachesByPhysicalTenantId,
+            secretKeyCacheStore.cache(),
+            secretFilterMode);
+    var intrinsicFunctionAllowListFactoriesByPhysicalTenantId =
+        buildIntrinsicFunctionAllowListFactoriesByPhysicalTenantId(
+            processDefinitionModelCachesByPhysicalTenantId,
+            intrinsicFunctionAllowListCacheStore.cache(),
+            intrinsicFunctionAllowListMode);
     var objectMappersByPhysicalTenantId =
         buildOutboundConnectorObjectMappersByPhysicalTenantId(
             documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
@@ -621,6 +793,7 @@ public class OutboundConnectorRuntimeConfiguration {
         objectMappersByPhysicalTenantId,
         metricsRecorder,
         secretFilterFactoriesByPhysicalTenantId,
+        intrinsicFunctionAllowListFactoriesByPhysicalTenantId,
         meterRegistry.orElse(null));
   }
 
@@ -659,6 +832,10 @@ public class OutboundConnectorRuntimeConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
+    // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
+    // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
+    // model actually declares remain in the tree. See security-testing-findings#275.
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     var jacksonModuleDocumentDeserializer =

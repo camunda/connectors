@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.*;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
+import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
@@ -34,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Hex;
@@ -953,6 +955,183 @@ class HttpWebhookExecutableTest {
     assertThat((Map) result.body()).containsEntry("challenge", "12345");
     assertThat(result.headers()).containsEntry("Content-Type", "application/camunda-bin");
     assertThat(result.headers()).hasSize(1);
+  }
+
+  /**
+   * Replaces the activated {@link HttpWebhookExecutable}'s compiled verification expression with a
+   * bare Mockito mock, so a test can assert on invocation counts against it directly — proving the
+   * FEEL evaluator was (or wasn't) reached, rather than inferring it from the exception thrown.
+   */
+  @SuppressWarnings("unchecked")
+  private static Function<Map<String, Object>, WebhookHttpResponse>
+      replaceVerificationExpressionWithMock(HttpWebhookExecutable executable) throws Exception {
+    var mockExpression =
+        (Function<Map<String, Object>, WebhookHttpResponse>) Mockito.mock(Function.class);
+    var propsField = HttpWebhookExecutable.class.getDeclaredField("props");
+    propsField.setAccessible(true);
+    var currentProps = (WebhookConnectorProperties) propsField.get(executable);
+    var replacedProps =
+        new WebhookConnectorProperties(
+            currentProps.method(),
+            currentProps.context(),
+            currentProps.shouldValidateHmac(),
+            currentProps.hmacSecret(),
+            currentProps.hmacHeader(),
+            currentProps.hmacAlgorithm(),
+            currentProps.hmacScopes(),
+            currentProps.auth(),
+            mockExpression);
+    propsField.set(executable, replacedProps);
+    return mockExpression;
+  }
+
+  @Test
+  void verify_HmacSignatureDidntMatch_RaisesExceptionBeforeEvaluatingExpression() throws Exception {
+    // Regression test for https://github.com/camunda/security-testing-findings/issues/265:
+    // verify() must authenticate before it ever applies the verification expression, so an
+    // unauthenticated caller can't reach the FEEL engine (or its response) via the verify path.
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecretKey",
+                        "hmacHeader",
+                        "X-HMAC-Sig",
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                "not-the-correct-signature"));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var mockExpression = replaceVerificationExpressionWithMock(testObject);
+
+    var exception = catchException(() -> testObject.verify(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+    // Explicit proof, not just an inference from the exception: the FEEL evaluator backing the
+    // verification expression was never invoked.
+    Mockito.verifyNoInteractions(mockExpression);
+  }
+
+  @Test
+  void verify_MissingApiKey_RaisesExceptionBeforeEvaluatingExpression() throws Exception {
+    // Same regression as above, for the authorization check rather than HMAC.
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "shouldValidateHmac",
+                        disabled.name(),
+                        "auth",
+                        Map.of(
+                            "type", "APIKEY",
+                            "apiKey", "myApiKey",
+                            "apiKeyLocator", "=request.headers.Authorization"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var mockExpression = replaceVerificationExpressionWithMock(testObject);
+
+    var exception = catchException(() -> testObject.verify(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+    // Explicit proof, not just an inference from the exception: the FEEL evaluator backing the
+    // verification expression was never invoked.
+    Mockito.verifyNoInteractions(mockExpression);
+  }
+
+  @Test
+  void verify_AuthenticatedCaller_StillEvaluatesExpression() {
+    // Counterpart to the two tests above: authentication must not swallow the legitimate
+    // verification-challenge use case once the caller is authenticated.
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecretKey",
+                        "hmacHeader",
+                        "X-HMAC-Sig",
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                // HMAC-SHA256("{\"challenge\": \"12345\"}", "mySecretKey")
+                "cfb128a772a03ce78ee13d88bfcddde870662d15043650c15fb8f24363806ac4"));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge", "12345");
   }
 
   @Test

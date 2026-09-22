@@ -6,26 +6,47 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
+import io.camunda.connector.kafka.model.KafkaConnectionConfiguration;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.model.schema.InboundSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public record KafkaConnectorProperties(
-    @NotNull
+    @FEEL
+        @Valid
         @TemplateProperty(
+            id = "kafkaConnectionConfiguration",
+            label = "Connection credential",
+            group = "authentication",
+            type = TemplateProperty.PropertyType.Configuration,
+            optional = true,
+            tooltip =
+                "Choose a reusable Kafka connection credential, or configure one-time connection parameters below.")
+        KafkaConnectionConfiguration kafkaConnectionConfiguration,
+    @TemplateProperty(
             group = "authentication",
             label = "Authentication type",
             defaultValue = "credentials",
+            condition =
+                @PropertyCondition(
+                    property = "kafkaConnectionConfiguration",
+                    isEmpty = NullableBoolean.TRUE),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             type = TemplateProperty.PropertyType.Dropdown,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
@@ -35,7 +56,13 @@ public record KafkaConnectorProperties(
             },
             tooltip = "Username/password or custom.")
         AuthenticationType authenticationType,
-    @Valid KafkaAuthentication authentication,
+    @Valid
+        @NestedProperties(
+            condition =
+                @PropertyCondition(
+                    property = "kafkaConnectionConfiguration",
+                    isEmpty = NullableBoolean.TRUE))
+        KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @TemplateProperty(
             group = "kafka",
@@ -52,7 +79,8 @@ public record KafkaConnectorProperties(
             label = "Additional properties",
             optional = true,
             feel = FeelMode.required,
-            tooltip = "Additional Kafka consumer properties in JSON.")
+            tooltip =
+                "Additional Kafka consumer properties in JSON. These can override brokers and authentication from a reusable credential.")
         Map<String, Object> additionalProperties,
     @FEEL
         @TemplateProperty(
@@ -78,6 +106,54 @@ public record KafkaConnectorProperties(
                 "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets.")
         AutoOffsetReset autoOffsetReset, // = AutoOffsetReset.NONE;
     @Valid InboundSchemaStrategy schemaStrategy) {
+
+  public KafkaConnectorProperties(
+      AuthenticationType authenticationType,
+      KafkaAuthentication authentication,
+      KafkaTopic topic,
+      String groupId,
+      Map<String, Object> additionalProperties,
+      List<Long> offsets,
+      AutoOffsetReset autoOffsetReset,
+      InboundSchemaStrategy schemaStrategy) {
+    this(
+        null,
+        authenticationType,
+        authentication,
+        topic,
+        groupId,
+        additionalProperties,
+        offsets,
+        autoOffsetReset,
+        schemaStrategy);
+  }
+
+  public KafkaAuthentication authentication() {
+    return kafkaConnectionConfiguration != null
+        ? kafkaConnectionConfiguration.toAuthentication()
+        : authentication;
+  }
+
+  public KafkaTopic topic() {
+    return kafkaConnectionConfiguration != null && topic != null
+        ? new KafkaTopic(kafkaConnectionConfiguration.bootstrapServers(), topic.topicName())
+        : topic;
+  }
+
+  @AssertTrue(message = "No bootstrap servers provided by the credential or the element template")
+  @JsonIgnore
+  public boolean isBootstrapServersPresent() {
+    var effectiveTopic = topic();
+    return effectiveTopic != null
+        && effectiveTopic.bootstrapServers() != null
+        && !effectiveTopic.bootstrapServers().isEmpty();
+  }
+
+  @AssertTrue(message = "An authentication type or a Kafka connection credential must be provided")
+  @JsonIgnore
+  public boolean isAuthenticationTypePresent() {
+    return kafkaConnectionConfiguration != null || authenticationType != null;
+  }
 
   @Override
   public @Valid InboundSchemaStrategy schemaStrategy() {

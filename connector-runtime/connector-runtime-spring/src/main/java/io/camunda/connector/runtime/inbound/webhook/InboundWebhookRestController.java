@@ -252,14 +252,46 @@ public class InboundWebhookRestController {
       connector
           .context()
           .log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.ERROR)
-                      .withTag(payload.method())
-                      .withMessage("Webhook processing failed", e));
+              activity -> {
+                var builder = activity.withSeverity(Severity.ERROR).withTag(payload.method());
+                if (containsFeelEngineWrapperException(e)) {
+                  // The reason/expression must not reach this log either: a verification
+                  // expression (or a per-element response expression, bound via
+                  // InboundConnectorContextImpl#bindElementProperties, which wraps a
+                  // FeelEngineWrapperException in a plain RuntimeException) can resolve secrets
+                  // (e.g. {{secrets.X}}) at bind time. ActivityLogRegistry both retains this
+                  // message and re-emits it through SLF4J (see buildErrorResponse for the same
+                  // rationale on the HTTP response/app log). Throwable#printStackTrace() prints
+                  // the whole "Caused by:" chain, so checking only `e instanceof
+                  // FeelEngineWrapperException` misses it wrapped as a cause.
+                  builder.withMessage(
+                      "Webhook processing failed: FEEL expression evaluation failed");
+                } else if (e instanceof WebhookSecurityException) {
+                  // Same rationale: an auth handler's failure detail may carry a resolved secret
+                  // (see handleWebhookConnectorException, which withholds it from the response).
+                  builder.withMessage("Webhook processing failed: security check failed");
+                } else {
+                  builder.withMessage("Webhook processing failed", e);
+                }
+              });
       response = buildErrorResponse(e);
     }
     return response;
+  }
+
+  /**
+   * Whether {@code e} or any exception in its cause chain is a {@link FeelEngineWrapperException}.
+   * {@code InboundConnectorContextImpl#bindElementProperties}/{@code #bindProperties} (used to
+   * evaluate a per-element response expression) wrap it in a plain {@link RuntimeException}, so a
+   * direct {@code instanceof} check on the caught exception alone would miss it.
+   */
+  private static boolean containsFeelEngineWrapperException(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof FeelEngineWrapperException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private List<Document> createDocuments(
@@ -367,11 +399,15 @@ public class InboundWebhookRestController {
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {
     ResponseEntity<?> response;
-    if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
-      var error =
-          new FeelExpressionErrorResponse(
-              feelEngineWrapperException.getReason(), feelEngineWrapperException.getExpression());
-      response = ResponseEntity.unprocessableEntity().body(error);
+    if (e instanceof FeelEngineWrapperException) {
+      // Neither the response nor the application log carries the reason or expression: a
+      // verification expression can resolve secrets (e.g. {{secrets.X}}) at bind time, and the
+      // response may reach an unauthenticated caller while the log may reach a third-party
+      // aggregator. Only the exception type is safe to record.
+      LOG.warn("Webhook FEEL expression evaluation failed");
+      response =
+          ResponseEntity.unprocessableContent()
+              .body(new GenericErrorResponse("Failed to evaluate FEEL expression"));
     } else if (e instanceof ConnectorException connectorException) {
       if (e instanceof WebhookConnectorException webhookConnectorException) {
         response = handleWebhookConnectorException(webhookConnectorException);
@@ -550,19 +586,26 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
     var status = HttpStatus.valueOf(e.getStatusCode());
-    ResponseEntity response = ResponseEntity.status(status).build();
+    ResponseEntity response;
+    // WebhookSecurityException carries 401/403, both 4xx: this must be checked before the
+    // 4xx branch below, not just after it, or that branch unconditionally overwrites the
+    // "no message" response with e.getMessage() — silently undoing this exclusion for every
+    // security failure (e.g. a sanitized-but-still-informative auth failure message).
     if (e instanceof WebhookSecurityException) {
-      LOG.warn("Webhook failed with security-related exception", e);
+      // e (message and stack trace) must not be logged either: it carries whatever an auth
+      // handler put in its failure result, which may echo a resolved secret (see the FEEL
+      // branches above and in buildErrorResponse for the same rationale).
+      LOG.warn("Webhook failed with security-related exception");
       // no message will be included for security reasons
       response = ResponseEntity.status(status).body(null);
-    }
-    if (status.is5xxServerError()) {
+    } else if (status.is5xxServerError()) {
       LOG.error("Webhook failed with exception", e);
       // no message will be included for security reasons
       response = ResponseEntity.status(status).body(null);
-    }
-    if (status.is4xxClientError()) {
+    } else if (status.is4xxClientError()) {
       response = ResponseEntity.status(status).body(new GenericErrorResponse(e.getMessage()));
+    } else {
+      response = ResponseEntity.status(status).build();
     }
     return response;
   }

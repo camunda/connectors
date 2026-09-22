@@ -29,6 +29,7 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import jakarta.validation.constraints.Size;
@@ -92,6 +93,20 @@ class ConfigurationValidationServiceTest {
     @Override
     public ConfigurationValidationResult validate(NullConfig configuration) {
       return null;
+    }
+  }
+
+  @Configuration(id = "objectField", name = "ObjectField")
+  record ObjectFieldConfig(Object value) {}
+
+  /** Captures the configuration that actually reached the validator. */
+  static class ObjectFieldRecordingValidator implements ConfigurationValidator<ObjectFieldConfig> {
+    private ObjectFieldConfig seen;
+
+    @Override
+    public ConfigurationValidationResult validate(ObjectFieldConfig configuration) {
+      seen = configuration;
+      return ConfigurationValidationResult.success();
     }
   }
 
@@ -481,6 +496,39 @@ class ConfigurationValidationServiceTest {
             "ok", "={\"camunda.secrets.TOKEN\" : \"literal\"}", "tenant", "engine-a"));
 
     assertThat(expressions).containsExactly("={\"camunda.secrets.TOKEN\" : \"literal\"}");
+  }
+
+  @Test
+  void anIntrinsicFunctionShapedResolvedValueBindsAsPlainDataNotADispatchedCall() {
+    // Regression for security-testing-findings#275 on this service's own wiring: credentialRef is
+    // evaluated out of band with no process or element scope to derive an allow-list from, so the
+    // injected mapper must never carry live camunda.function.type dispatch (see this class's
+    // javadoc). Uses the exact mapper ConfigurationValidationConfiguration wires in production
+    // (FeelEvaluationResultMapper.create()) rather than the plain bare ObjectMapper the other tests
+    // in this file use, since the vulnerability was specifically in which mapper gets wired, not in
+    // anything this service itself does with it.
+    var validator = new ObjectFieldRecordingValidator();
+    var registry = new ConfigurationValidationRegistry(List.of(validator));
+    var service =
+        new ConfigurationValidationService(
+            registry,
+            Map.of(
+                "engine-a",
+                feelReturning(
+                    "{\"value\": {\"camunda.function.type\":\"createLink\","
+                        + "\"params\":[{\"camunda.document.type\":\"camunda\"},\"PT1H\"]}}")),
+            ValidationUtil.discoverDefaultValidationProviderImplementation(),
+            FeelEvaluationResultMapper.create());
+
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest("objectField", "=ref", "tenant", "engine-a"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    assertThat(validator.seen.value()).isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    var boundValue = (Map<String, Object>) validator.seen.value();
+    assertThat(boundValue).containsEntry("camunda.function.type", "createLink");
   }
 
   @Test

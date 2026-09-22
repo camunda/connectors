@@ -104,6 +104,33 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
+  void mapsBlankTextBlockAlongsideToolUseToNoTextContent() {
+    // A blank text block alongside a tool_use block must not crash TextContent.
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_blank_text",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "text", "text": "\\n\\n"},
+                {"type": "tool_use", "id": "toolu_1", "name": "get_weather", "input": {"city": "Berlin"}}
+              ],
+              "stop_reason": "tool_use",
+              "usage": {"input_tokens": 10, "output_tokens": 20}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.content()).isEmpty();
+    assertThat(assistantMessage.toolCalls())
+        .containsExactly(new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
+  }
+
+  @Test
   void stampsTimestampMetadataEvenWithoutAStopReason() {
     final var message =
         message(

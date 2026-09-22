@@ -22,6 +22,21 @@ def agentType = binding.hasVariable('agentType') ? agentType : null
 def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
 def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
 
+// optional: "templateId=file" tuples (one per line) of default-system-prompt deviations, keyed by
+// the generated template's own id; a template whose id has no entry keeps the generator's own
+// default. Duplicated in transform-ai-agent-sub-process-template.groovy since each script is
+// invoked as a standalone gmavenplus execution.
+def systemPromptOverrides = binding.hasVariable('systemPromptOverrides') ? systemPromptOverrides : null
+def systemPromptOverrideFileById = [:]
+((String) (systemPromptOverrides ?: "")).eachLine { line ->
+    line = line.trim()
+    if (!line) return
+    def parts = line.split('=', 2)
+    if (parts.length == 2) {
+        systemPromptOverrideFileById[parts[0].trim()] = parts[1].trim()
+    }
+}
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -32,6 +47,10 @@ def mapper = new ObjectMapper()
 mapper.enable(SerializationFeature.INDENT_OUTPUT)
 
 def json = mapper.readValue(file, Map.class)
+
+// this script never changes a template's own id, so it is the stable lookup key
+def systemPromptOverrideFile = systemPromptOverrideFileById[(String) json.id]
+def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
 
 if (deprecationMessage) {
     def orderedJson = new LinkedHashMap()
@@ -69,44 +88,16 @@ static def moveAfter(List properties, List idsToMove, String afterId) {
     return remaining
 }
 
-static def configurePromptCaching(List properties) {
-    def integrations = [
-        [modelId: "provider.anthropic.model.model", cachingId: "provider.anthropic.model.parameters.promptCaching.enabled"],
-        [modelId: "provider.bedrock.model.model", cachingId: "provider.bedrock.model.parameters.promptCaching.enabled"],
-        [modelId: "provider.openai.model.model", cachingId: "promptCaching.openai.status"],
-        [modelId: "provider.googleGemini.model.model", cachingId: "promptCaching.googleGemini.status"],
-        [modelId: "provider.model", cachingId: "promptCaching.custom.status"]
-    ]
-    def cachingPropertyIds = integrations*.cachingId
-    def cachingProperties = properties.findAll { it.id in cachingPropertyIds }
-        .collectEntries { [(it.id): it] }
-    def remaining = properties.findAll { !(it.id in cachingPropertyIds) }
-
-    integrations.each { integration ->
-        def cachingProperty = cachingProperties[integration.cachingId]
-        if (cachingProperty?.binding?.name?.startsWith("modeler.")) {
-            cachingProperty.binding = [
-                name: cachingProperty.binding.name.replaceFirst(/^modeler\./, "modeler:"),
-                type: "property"
-            ]
-            cachingProperty.editable = false
-            cachingProperty.remove("feel")
-            cachingProperty.remove("optional")
-        }
-        def anchorIndex = remaining.findIndexOf { it.id == integration.modelId }
-        if (anchorIndex >= 0 && cachingProperty) {
-            remaining.add(anchorIndex + 1, cachingProperty)
-        }
-    }
-    return remaining
-}
-
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
         return
+    }
+
+    if (systemPromptDefault && property.id == "data.systemPrompt.prompt") {
+        property.value = '="' + systemPromptDefault + '"'
     }
 
     updatedProperties.add(property)
@@ -132,9 +123,6 @@ updatedProperties = moveAfter(
     ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
     "provider.openai.model.model"
 )
-if (json.id?.toString()?.contains("ai-agent-task.v2")) {
-    updatedProperties = configurePromptCaching(updatedProperties)
-}
 
 json.put('properties', updatedProperties)
 mapper.writeValue(new File((String) outputFile), json)
