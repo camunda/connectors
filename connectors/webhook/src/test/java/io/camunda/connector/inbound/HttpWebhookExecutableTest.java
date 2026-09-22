@@ -30,9 +30,15 @@ import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -452,6 +458,351 @@ class HttpWebhookExecutableTest {
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
     assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampWithinTolerance_HappyCase()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    long now = Instant.now().getEpochSecond();
+    byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
+    String timestamp = Long.toString(now);
+    String signature = hmacHex("mySecretKey", timestamp, body);
+
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                signature,
+                "X-HMAC-Timestamp",
+                timestamp));
+    Mockito.when(payload.rawBody()).thenReturn(body);
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertThat((Map) result.request().body()).containsEntry("key", "value");
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampStale_RaisesException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // an hour old; well outside the default 300-second tolerance
+    long staleTimestamp = Instant.now().getEpochSecond() - 3600;
+    byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
+    String timestamp = Long.toString(staleTimestamp);
+    String signature = hmacHex("mySecretKey", timestamp, body);
+
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                signature,
+                "X-HMAC-Timestamp",
+                timestamp));
+    Mockito.when(payload.rawBody()).thenReturn(body);
+
+    testObject.activate(ctx);
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void activate_HmacTimestampScopeWithoutHeaderConfigured_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        // hmacTimestampHeader intentionally omitted
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceZeroOrNegative_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "PT0S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceMalformed_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "300",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+    // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
+    // enabled; a leftover invalid value from a previous configuration must not block activation
+    // once HMAC is switched off.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", disabled.name(),
+                        "hmacTolerance", "PT0S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
+  void activate_HmacToleranceIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
+    // Same rationale as the HMAC-disabled case above, but for HMAC enabled with a scope that
+    // doesn't include 'timestamp' (e.g. after switching back to the default 'body' scope): the
+    // tolerance value is still irrelevant and a leftover invalid one must not block activation.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\"]",
+                        "hmacTolerance", "PT0S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
+  void activate_UnsupportedHmacScopeCombination_RaisesException() {
+    // [timestamp, url] strips down to [url] alone, which the encoding-strategy factory has no
+    // strategy for — must fail at activation, not on every incoming request.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"timestamp\",\"url\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_UnsupportedHmacScopeCombinationIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+    // The same combination must not block activation when HMAC is disabled entirely — the scope
+    // configuration is then irrelevant, matching the other HMAC-disabled passthrough cases above.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", disabled.name(),
+                        "hmacScopes", "=[\"timestamp\",\"url\"]",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
+  void triggerWebhook_HmacTimestampMissing_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                "fa431d91a69beb76186b3b082c5bb87bab0702769d65761af2361cbf3a17cc09"));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void triggerWebhook_HmacCustomToleranceExceeded_RaisesException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // 90 seconds old; within the default 300s tolerance, but outside a custom 60s tolerance bound
+    // via a property, expressed as an ISO-8601 duration.
+    long timestampValue = Instant.now().getEpochSecond() - 90;
+    byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
+    String timestamp = Long.toString(timestampValue);
+    String signature = hmacHex("mySecretKey", timestamp, body);
+
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "PT60S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HEADER_CONTENT_TYPE,
+                "application/json",
+                "X-HMAC-Sig",
+                signature,
+                "X-HMAC-Timestamp",
+                timestamp));
+    Mockito.when(payload.rawBody()).thenReturn(body);
+
+    testObject.activate(ctx);
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
+  }
+
+  private static String hmacHex(String secret, String timestamp, byte[] body)
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    byte[] timestampPrefix = (timestamp + ":").getBytes(StandardCharsets.UTF_8);
+    byte[] bytesToSign = new byte[timestampPrefix.length + body.length];
+    System.arraycopy(timestampPrefix, 0, bytesToSign, 0, timestampPrefix.length);
+    System.arraycopy(body, 0, bytesToSign, timestampPrefix.length, body.length);
+
+    Mac mac = Mac.getInstance(HMACAlgoCustomerChoice.sha_256.getAlgoReference());
+    mac.init(
+        new SecretKeySpec(
+            secret.getBytes(StandardCharsets.UTF_8),
+            HMACAlgoCustomerChoice.sha_256.getAlgoReference()));
+    return Hex.encodeHexString(mac.doFinal(bytesToSign));
   }
 
   @Test
