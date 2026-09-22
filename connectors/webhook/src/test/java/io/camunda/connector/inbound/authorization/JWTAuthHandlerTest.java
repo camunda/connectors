@@ -239,7 +239,12 @@ public class JWTAuthHandlerTest {
               "secret leak reason", "={{secrets.SUPER_SECRET}}", null);
         };
     JWTProperties jwtProperties =
-        new JWTProperties("https://mockUrl.com", throwingExpression, List.of("admin"));
+        new JWTProperties(
+            "https://mockUrl.com",
+            "https://idp.local",
+            "api1",
+            throwingExpression,
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
