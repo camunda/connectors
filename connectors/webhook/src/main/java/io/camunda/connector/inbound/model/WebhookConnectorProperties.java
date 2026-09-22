@@ -15,6 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice;
+import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -94,7 +95,7 @@ public record WebhookConnectorProperties(
             label = "HMAC scopes",
             group = "authentication",
             description =
-                "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
+                "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/8.9/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
             optional = true,
             type = PropertyType.String,
             feel = FeelMode.required,
@@ -102,6 +103,29 @@ public record WebhookConnectorProperties(
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         @FEEL
         HMACScope[] hmacScopes,
+    @TemplateProperty(
+            id = "hmacTimestampHeader",
+            label = "HMAC timestamp header",
+            description =
+                "Name of the header attribute carrying the request timestamp, as a base-10 Unix epoch timestamp in seconds (not milliseconds, not ISO-8601). The signed material is '<timestamp>:<bytes selected by the other HMAC scopes>'. Required when HMAC scopes include 'timestamp'",
+            group = "authentication",
+            feel = FeelMode.optional,
+            optional = true,
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
+        String hmacTimestampHeader,
+    @TemplateProperty(
+            id = "hmacTolerance",
+            label = "HMAC timestamp tolerance",
+            description =
+                "Maximum allowed difference between the signed timestamp and the current time, as an ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+            group = "authentication",
+            optional = true,
+            defaultValue = HMACVerifier.DEFAULT_HMAC_TOLERANCE,
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
+        @Pattern(regexp = "^(PT.*|)$", message = "must be an ISO-8601 duration")
+        String hmacTolerance,
     WebhookAuthorization auth,
     @TemplateProperty(
             id = "verificationExpression",
@@ -114,6 +138,35 @@ public record WebhookConnectorProperties(
             optional = true)
         Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
 
+  /**
+   * Legacy constructor retained for source/binary compatibility with existing connector code built
+   * against the pre-timestamp nine-argument constructor. Disables timestamp validation (no {@code
+   * hmacTimestampHeader}), matching the pre-existing behavior exactly.
+   */
+  public WebhookConnectorProperties(
+      String method,
+      String context,
+      HMACSwitchCustomerChoice shouldValidateHmac,
+      String hmacSecret,
+      String hmacHeader,
+      HMACAlgoCustomerChoice hmacAlgorithm,
+      HMACScope[] hmacScopes,
+      WebhookAuthorization auth,
+      Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
+    this(
+        method,
+        context,
+        shouldValidateHmac,
+        hmacSecret,
+        hmacHeader,
+        hmacAlgorithm,
+        hmacScopes,
+        null,
+        HMACVerifier.DEFAULT_HMAC_TOLERANCE,
+        auth,
+        verificationExpression);
+  }
+
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
         wrapper.inbound.method != null ? wrapper.inbound.method : HttpMethods.any.name(),
@@ -124,6 +177,8 @@ public record WebhookConnectorProperties(
         wrapper.inbound.hmacAlgorithm,
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
+        wrapper.inbound.hmacTimestampHeader,
+        getOrDefault(wrapper.inbound.hmacTolerance, HMACVerifier.DEFAULT_HMAC_TOLERANCE),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
         wrapper.inbound.verificationExpression);
   }
@@ -155,6 +210,11 @@ public record WebhookConnectorProperties(
         + "'"
         + ", hmacScopes="
         + Arrays.toString(hmacScopes)
+        + ", hmacTimestampHeader='"
+        + hmacTimestampHeader
+        + "'"
+        + ", hmacTolerance="
+        + hmacTolerance
         + ", auth="
         + auth
         + ", verificationExpression="
