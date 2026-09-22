@@ -20,6 +20,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
@@ -31,7 +32,6 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,10 +101,17 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
-    final var activeProps = Objects.requireNonNull(props);
-    final var activeAuthChecker = Objects.requireNonNull(authChecker);
-    final var activeContext = Objects.requireNonNull(context);
-    final var activeHmacVerifier = Objects.requireNonNull(hmacVerifier);
+    if (props == null || authChecker == null || context == null || hmacVerifier == null) {
+      // activate() aborted partway (e.g. a JWT webhook missing the now-required issuer/audience)
+      // before setting one of these fields. Reject cleanly instead of letting
+      // Objects.requireNonNull throw a NullPointerException that reaches the caller as an
+      // empty-body 500 - see HttpWebhookExecutable#authenticate for the shared rationale.
+      throw new WebhookConnectorException(503, "This webhook is not active.");
+    }
+    final var activeProps = props;
+    final var activeAuthChecker = authChecker;
+    final var activeContext = context;
+    final var activeHmacVerifier = hmacVerifier;
 
     LOGGER.debug("Triggered A2A webhook with context {}", activeProps.context());
 
