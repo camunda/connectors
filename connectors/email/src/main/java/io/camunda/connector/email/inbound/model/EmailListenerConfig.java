@@ -18,7 +18,16 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 
 public record EmailListenerConfig(
-    @NestedProperties(addNestedPath = false) @Valid ImapConfig imapConfig,
+    // Hidden and un-cascaded once an email account credential is bound: the account then supplies
+    // these coordinates (EmailInboundConnectorProperties#getImapConfiguration), and validating the
+    // losing inline fields would reject the blank values Modeler still emits for them.
+    @NestedProperties(
+            addNestedPath = false,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "emailAccountConfiguration",
+                    isEmpty = TemplateProperty.NullableBoolean.TRUE))
+        ImapConfig imapConfig,
     @TemplateProperty(
             label = "Folder to listen",
             group = "listenerInfos",

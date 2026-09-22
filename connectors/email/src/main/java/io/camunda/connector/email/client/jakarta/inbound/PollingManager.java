@@ -79,7 +79,7 @@ public class PollingManager {
       EmailListenerConfig emailListenerConfig = emailInboundConnectorProperties.data();
       Session session =
           jakartaUtils.createSession(
-              emailInboundConnectorProperties.data().imapConfig(), authentication);
+              emailInboundConnectorProperties.getImapConfiguration(), authentication);
       store = session.getStore();
       jakartaUtils.connectStore(store, authentication);
       folder = jakartaUtils.findImapFolder(store, emailListenerConfig.folderToListen());

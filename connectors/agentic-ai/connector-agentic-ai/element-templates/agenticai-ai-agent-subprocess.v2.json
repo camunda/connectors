@@ -168,6 +168,9 @@
       "name" : "AWS Bedrock Mantle",
       "value" : "aws-bedrock-mantle"
     }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "value" : "foundry"
+    }, {
       "name" : "Custom / compatible endpoint",
       "value" : "custom"
     } ]
@@ -388,6 +391,291 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Microsoft Foundry resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The full resource endpoint, e.g. <code>https://your-resource.services.ai.azure.com</code>.",
+    "placeholder" : "https://your-resource.services.ai.azure.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Microsoft Foundry authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Entra ID: Client credentials",
+      "value" : "clientCredentials"
+    }, {
+      "name" : "Entra ID: Managed identity (Hybrid/Self-Managed only)",
+      "value" : "managedIdentity"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Microsoft Entra ID application (client) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Microsoft Entra ID application client secret.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "Microsoft Entra ID tenant (directory) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+    "label" : "Client ID",
+    "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
   }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
@@ -1295,7 +1583,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "apiKey",
+    "value" : "none",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -1314,6 +1602,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "API key",
       "value" : "apiKey"
     }, {
@@ -1941,6 +2232,72 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.anthropic.backend.foundry.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.anthropic.backend.custom.headers",
     "label" : "HTTP headers",
     "description" : "Map of HTTP headers to add to the request.",
@@ -2283,7 +2640,6 @@
   }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2299,27 +2655,9 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
-  }, {
-    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
-    "label" : "Prompt caching",
-    "description" : "Optional.",
-    "optional" : true,
-    "value" : false,
-    "feel" : "static",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean"
   }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
@@ -2440,9 +2778,26 @@
       "value" : "omitted"
     } ]
   }, {
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2458,12 +2813,12 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID or inference profile ID. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
     "placeholder" : "us.amazon.nova-2-lite-v1:0",
     "type" : "String"
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
-    "label" : "Prompt caching",
-    "description" : "Optional.",
+    "label" : "Enable prompt caching",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -2477,12 +2832,11 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">caching documentation</a>.",
+    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2498,26 +2852,9 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.openai.status",
-    "label" : "Prompt caching",
-    "description" : "Automatic.",
-    "value" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingOpenAI",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
@@ -2611,7 +2948,6 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2627,26 +2963,9 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.googleGemini.status",
-    "label" : "Prompt caching",
-    "description" : "Automatic.",
-    "value" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingGoogleGemini",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "google-gemini",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
     "label" : "Thinking budget (tokens)",
@@ -2706,7 +3025,6 @@
   }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "Identifier of the model to use.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2722,25 +3040,8 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID.",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.custom.status",
-    "label" : "Prompt caching",
-    "description" : "Not available.",
-    "value" : false,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingCustom",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "custom",
-      "type" : "simple"
-    },
-    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",
@@ -3070,7 +3371,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "=\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "value" : "=\"You are **TaskAgent**, a helpful, capable agent that can handle a wide variety of customer requests using your own knowledge **and** any tools explicitly provided to you at runtime. Prefer a provided tool over guessing whenever it would give a more accurate or reliable answer, and only use tools that were explicitly configured for you (never assume a tool exists). You can call the same tool multiple times with different inputs if that helps complete the request. If no tool fits the request, answer from your own knowledge; if you can't produce a reliable answer, say so plainly and explain why, rather than guessing.\"",
     "constraints" : {
       "notEmpty" : true
     },

@@ -31,6 +31,8 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -72,8 +76,9 @@ public class InboundKafkaTests extends BaseKafkaTest {
     producer.close();
   }
 
-  @Test
-  void testKafkaIntermediateConnectorProcessWithJsonKey() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testKafkaIntermediateConnectorProcessWithJsonKey(boolean useCredential) {
     Map<String, Object> expectedJsonResponse =
         Map.of(
             "key", MESSAGE_KEY_JSON_AS_OBJECT,
@@ -86,6 +91,21 @@ public class InboundKafkaTests extends BaseKafkaTest {
             INTERMEDIATE_CATCH_EVENT_BPMN,
             BpmnFile.Replace.replace("kafkaBootstrapServers", getBootstrapServers()),
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
+    if (useCredential) {
+      var properties = model.getModelElementsByType(ZeebeProperties.class).iterator().next();
+      var credential = model.newInstance(ZeebeProperty.class);
+      credential.setName("kafkaConnectionConfiguration");
+      credential.setValue(createConnectionCredential());
+      properties.addChildElement(credential);
+      for (var property : properties.getProperties()) {
+        if (property.getName().equals("topic.bootstrapServers")) {
+          property.setValue("");
+        } else if (property.getName().equals("additionalProperties")) {
+          // Keep this process test on its existing broker; authenticated coverage is separate.
+          property.setValue("={\"security.protocol\":\"PLAINTEXT\"}");
+        }
+      }
+    }
 
     mockProcessDefinition(model);
     processStateManager.update(

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves the tool elements for ad-hoc tools based on the process definition key and ad-hoc
@@ -15,5 +16,13 @@ import java.util.List;
  * from the definition XML.
  */
 public interface ProcessDefinitionAdHocToolElementsResolver {
-  List<AdHocToolElement> resolveToolElements(Long processDefinitionKey, String adHocSubProcessId);
+
+  /**
+   * @param physicalTenantId the physical tenant (orchestration cluster) the job was activated from,
+   *     or {@code null} when it carries none. The definition has to be read from that cluster:
+   *     process definition keys are only unique within one cluster, so a key alone identifies a
+   *     different definition on each of them.
+   */
+  List<AdHocToolElement> resolveToolElements(
+      @Nullable String physicalTenantId, Long processDefinitionKey, String adHocSubProcessId);
 }

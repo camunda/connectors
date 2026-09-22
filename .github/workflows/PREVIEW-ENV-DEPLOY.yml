@@ -19,7 +19,7 @@ jobs:
       !startsWith(github.head_ref, 'fix/alwaysgreen-') &&
       (contains(github.event.label.name, 'deploy-preview') ||
        contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     name: deploy-preview-env-${{ matrix.product_context }}
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
@@ -93,7 +93,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
   conflicts:
     if: always() && github.event_name == 'pull_request' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - name: Check PR for merge conflicts
       uses: camunda/infra-global-github-actions/preview-env/conflicts@main
@@ -109,7 +109,7 @@ jobs:
   comment:
     if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
     name: create-deployment-result-summary
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [deploy-preview]
     steps:
     - uses: camunda/infra-global-github-actions/preview-env/comment@main

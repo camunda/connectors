@@ -39,10 +39,8 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -235,11 +233,6 @@ class DocumentToolCallResultsIT {
   // ---------------------------------------------------------------------------
 
   static Stream<ProviderConfig> providers() {
-    List<Predicate<ProviderConfig>> modelFilters = new ArrayList<>();
-
-    // sample filter
-    // modelFilters.add(p -> p.label().contains("gpt-4.1"));
-
     return Stream.of(
             // OpenAI (v1)
             openAiV1("gpt-4.1"),
@@ -272,10 +265,6 @@ class DocumentToolCallResultsIT {
             // Ollama (OpenAI-compatible)
             ollamaV1("qwen3.6:latest").disabled(),
             ollamaV1("llama3.1:8b").disabled())
-        .filter(
-            providerConfig ->
-                modelFilters.isEmpty()
-                    || modelFilters.stream().anyMatch(f -> f.test(providerConfig)))
         .filter(ProviderConfig::isEnabled);
   }
 
@@ -283,6 +272,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig openAiV1(String model) {
     return new ProviderConfig(
         "openai-v1/" + model,
+        RealLlmProviderGroup.OPENAI,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -298,6 +288,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig openAiResponsesV2(String model) {
     return new ProviderConfig(
         "openai-responses-v2/" + model,
+        RealLlmProviderGroup.OPENAI,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -317,6 +308,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig openAiCompletionsV2(String model) {
     return new ProviderConfig(
         "openai-completions-v2/" + model,
+        RealLlmProviderGroup.OPENAI,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -336,6 +328,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig anthropicV1(String model) {
     return new ProviderConfig(
         "anthropic-v1/" + model,
+        RealLlmProviderGroup.ANTHROPIC,
         List.of("ANTHROPIC_API_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -351,6 +344,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig anthropicV2(String model) {
     return new ProviderConfig(
         "anthropic-v2/" + model,
+        RealLlmProviderGroup.ANTHROPIC,
         List.of("ANTHROPIC_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -372,6 +366,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig anthropicBedrockMantleV2(String model) {
     return new ProviderConfig(
         "anthropic-bedrock-mantle-v2/" + model,
+        RealLlmProviderGroup.BEDROCK,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -393,6 +388,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig bedrockV1(String model) {
     return new ProviderConfig(
         "bedrock-v1/" + model,
+        RealLlmProviderGroup.BEDROCK,
         List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -414,6 +410,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig bedrockV2(String model) {
     return new ProviderConfig(
         "bedrock-v2/" + model,
+        RealLlmProviderGroup.BEDROCK,
         List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -438,6 +435,7 @@ class DocumentToolCallResultsIT {
             .getOrDefault("DOCKER_MODEL_RUNNER_URL", "http://localhost:12434/engines/llama.cpp/v1");
     return new ProviderConfig(
         "docker-model-runner-v1/" + model,
+        RealLlmProviderGroup.LOCAL,
         List.of(), // local endpoint, no API key env var required
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -451,6 +449,7 @@ class DocumentToolCallResultsIT {
     var url = System.getenv().getOrDefault("OLLAMA_URL", "http://localhost:11434/v1");
     return new ProviderConfig(
         "ollama-v1/" + model,
+        RealLlmProviderGroup.LOCAL,
         List.of(), // local endpoint, no API key env var required
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -570,11 +569,11 @@ class DocumentToolCallResultsIT {
   }
 
   private static String envOrPlaceholder(String envVar) {
-    return System.getenv().getOrDefault(envVar, "NOT_SET");
+    return RealLlmTestEnvironment.getOrDefault(envVar, "NOT_SET");
   }
 
   private static String envOrDefault(String envVar, String defaultValue) {
-    return System.getenv().getOrDefault(envVar, defaultValue);
+    return RealLlmTestEnvironment.getOrDefault(envVar, defaultValue);
   }
 
   // ---------------------------------------------------------------------------
@@ -583,6 +582,7 @@ class DocumentToolCallResultsIT {
 
   record ProviderConfig(
       String label,
+      RealLlmProviderGroup providerGroup,
       List<String> requiredEnvVars,
       boolean enabled,
       String elementTemplatePath,
@@ -590,19 +590,23 @@ class DocumentToolCallResultsIT {
 
     ProviderConfig(
         String label,
+        RealLlmProviderGroup providerGroup,
         List<String> requiredEnvVars,
         String elementTemplatePath,
         Map<String, String> properties) {
-      this(label, requiredEnvVars, true, elementTemplatePath, properties);
+      this(label, providerGroup, requiredEnvVars, true, elementTemplatePath, properties);
     }
 
     ProviderConfig disabled() {
-      return new ProviderConfig(label, requiredEnvVars, false, elementTemplatePath, properties);
+      return new ProviderConfig(
+          label, providerGroup, requiredEnvVars, false, elementTemplatePath, properties);
     }
 
     boolean isEnabled() {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
-      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
+      return enabled
+          && providerGroup.isSelected()
+          && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
 
     @Override

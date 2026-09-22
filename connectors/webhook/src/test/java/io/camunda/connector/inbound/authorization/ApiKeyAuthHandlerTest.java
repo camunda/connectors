@@ -86,6 +86,33 @@ public class ApiKeyAuthHandlerTest {
     assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
+  @Test
+  void apiKey_invalidLocatorExpression_doesNotExposeResolvedSecretInFailureMessage() {
+    // Regression test for a PR review finding on
+    // https://github.com/camunda/security-testing-findings/issues/265: apiKeyLocator is a FEEL
+    // expression, and inbound binding resolves secrets before compiling it, so a locator that
+    // fails to evaluate (e.g. malformed, or referencing a value the request lacks) must not echo
+    // its raw reason/expression into the failure message — it flows into a WebhookSecurityException
+    // that can reach an unauthenticated caller.
+    var payload = preparePayload("key");
+    var invalidAuthDefinition =
+        new ApiKeyAuth(
+            "key",
+            request -> {
+              throw new FeelEngineWrapperException(
+                  "secret leak reason", "={{secrets.SUPER_SECRET}}", null);
+            });
+    var checker = new ApiKeyAuthHandler(invalidAuthDefinition);
+
+    // when
+    var result = (InvalidCredentials) checker.checkAuthorization(payload);
+
+    // then
+    assertThat(result.getMessage())
+        .doesNotContain("secret leak reason")
+        .doesNotContain("SUPER_SECRET");
+  }
+
   private WebhookProcessingPayload preparePayload(String apiKey) {
     return new TestWebhookProcessingPayload(apiKey, null);
   }

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -15,12 +16,10 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.Objects;
+import java.time.Duration;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -35,21 +34,23 @@ import org.jspecify.annotations.Nullable;
  * credential <em>object</em> is cached here, never a token: azure-identity's credentials already
  * cache and auto-refresh their own tokens internally.
  *
- * <p>The cache key is a SHA-256 hash of the credential configuration (mirroring {@code
- * CaffeineOAuthTokenCache} in connector-commons/http-client), computed and consumed entirely inside
- * this class so that raw credential material such as a client secret is never stored in plain text
- * as a map key.
+ * <p>The cache key is derived via {@link HashedCacheKey} so that raw credential material such as a
+ * client secret is never stored in plain text as a map key.
  *
  * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
  * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
  * that requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the
- * token exchange too. Managed identity does not: see {@link
- * #buildManagedIdentityCredential(String)}.
+ * token exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
+ * Duration)}.
+ *
+ * <p>The caller's configured request timeout reaches the token exchange as well as the model call
+ * itself, applied as the credential HTTP client's connect and response timeout. That is a
+ * per-attempt bound, not an overall deadline: azure-identity's own retries start a fresh attempt,
+ * so a retrying token exchange can outlast a single timeout. Because the timeout is baked into the
+ * credential's HTTP client, it is also part of the cache key: two otherwise identical
+ * configurations with different timeouts get their own credential.
  */
 public class EntraIdTokenCredentialFactory {
-
-  private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
-      ThreadLocal.withInitial(EntraIdTokenCredentialFactory::createSha256Digest);
 
   private final Cache<String, TokenCredential> cache;
   private final AgenticAiHttpProxySupport httpProxySupport;
@@ -70,15 +71,18 @@ public class EntraIdTokenCredentialFactory {
    * client-credentials (app registration + secret) flow.
    */
   public TokenCredential clientCredentials(
-      String tenantId, String clientId, String clientSecret, @Nullable String authorityHost) {
+      String tenantId,
+      String clientId,
+      String clientSecret,
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
     final var key =
-        String.join(
-            "\0", tenantId, clientId, clientSecret, Objects.requireNonNullElse(authorityHost, ""));
+        HashedCacheKey.of(tenantId, clientId, clientSecret, authorityHost, timeoutKeyPart(timeout));
     return cache.get(
-        sha256Hex(key),
+        key,
         k ->
             buildClientSecretCredential(
-                httpProxySupport, tenantId, clientId, clientSecret, authorityHost));
+                httpProxySupport, tenantId, clientId, clientSecret, authorityHost, timeout));
   }
 
   /**
@@ -86,9 +90,9 @@ public class EntraIdTokenCredentialFactory {
    * managed-identity flow. {@code clientId} selects a user-assigned identity; {@code null} resolves
    * the system-assigned identity.
    */
-  public TokenCredential managedIdentity(@Nullable String clientId) {
-    final var key = Objects.requireNonNullElse(clientId, "");
-    return cache.get(sha256Hex(key), k -> buildManagedIdentityCredential(clientId));
+  public TokenCredential managedIdentity(@Nullable String clientId, @Nullable Duration timeout) {
+    final var key = HashedCacheKey.of(clientId, timeoutKeyPart(timeout));
+    return cache.get(key, k -> buildManagedIdentityCredential(clientId, timeout));
   }
 
   private static TokenCredential buildClientSecretCredential(
@@ -96,7 +100,8 @@ public class EntraIdTokenCredentialFactory {
       String tenantId,
       String clientId,
       String clientSecret,
-      @Nullable String authorityHost) {
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
     final var clientSecretCredentialBuilder =
         new ClientSecretCredentialBuilder()
             .clientId(clientId)
@@ -105,13 +110,10 @@ public class EntraIdTokenCredentialFactory {
     if (authorityHost != null && !authorityHost.isBlank()) {
       clientSecretCredentialBuilder.authorityHost(authorityHost);
     }
-    httpProxySupport
-        .azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(
-            proxyOptions ->
-                clientSecretCredentialBuilder.httpClient(
-                    HttpClient.createDefault(
-                        new HttpClientOptions().setProxyOptions(proxyOptions))));
+    httpClientFor(
+            httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS).orElse(null),
+            timeout)
+        .ifPresent(clientSecretCredentialBuilder::httpClient);
     return clientSecretCredentialBuilder.build();
   }
 
@@ -121,27 +123,38 @@ public class EntraIdTokenCredentialFactory {
    * endpoint, neither of which is reachable via an internet-facing egress proxy -- Microsoft's own
    * IMDS guidance explicitly calls out bypassing any configured proxy for this address.
    */
-  private static TokenCredential buildManagedIdentityCredential(@Nullable String clientId) {
+  private static TokenCredential buildManagedIdentityCredential(
+      @Nullable String clientId, @Nullable Duration timeout) {
     final var managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
     if (clientId != null && !clientId.isBlank()) {
       managedIdentityCredentialBuilder.clientId(clientId);
     }
+    httpClientFor(null, timeout).ifPresent(managedIdentityCredentialBuilder::httpClient);
     return managedIdentityCredentialBuilder.build();
   }
 
-  private static String sha256Hex(String raw) {
-    final MessageDigest digest = SHA_256_DIGEST.get();
-    digest.reset();
-    final byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-    return HexFormat.of().formatHex(hash);
+  /**
+   * Builds the credential's HTTP client only when there is something to configure on it, so a
+   * deployment with neither a proxy nor a configured timeout keeps azure-identity's own default
+   * client. The timeout bounds each attempt's connection establishment and response wait, not the
+   * overall token acquisition.
+   */
+  private static Optional<HttpClient> httpClientFor(
+      @Nullable ProxyOptions proxyOptions, @Nullable Duration timeout) {
+    if (proxyOptions == null && timeout == null) {
+      return Optional.empty();
+    }
+    final var httpClientOptions = new HttpClientOptions();
+    if (proxyOptions != null) {
+      httpClientOptions.setProxyOptions(proxyOptions);
+    }
+    if (timeout != null) {
+      httpClientOptions.setConnectTimeout(timeout).setResponseTimeout(timeout);
+    }
+    return Optional.of(HttpClient.createDefault(httpClientOptions));
   }
 
-  private static MessageDigest createSha256Digest() {
-    try {
-      return MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      // SHA-256 is required by the Java spec, so this should never happen
-      throw new IllegalStateException("SHA-256 algorithm not available", e);
-    }
+  private static @Nullable String timeoutKeyPart(@Nullable Duration timeout) {
+    return timeout == null ? null : timeout.toString();
   }
 }

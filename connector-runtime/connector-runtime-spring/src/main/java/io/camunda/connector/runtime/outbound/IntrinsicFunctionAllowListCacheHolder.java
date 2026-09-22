@@ -14,6 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.webhook;
+package io.camunda.connector.runtime.outbound;
 
-public record FeelExpressionErrorResponse(String reason, String expression) {}
+import org.springframework.cache.Cache;
+
+/**
+ * Wraps the intrinsic-function allow-list {@link Cache}, mirroring {@link SecretKeyCacheHolder}'s
+ * reasoning exactly: an unqualified {@code Cache} bean would collide with a host application's own.
+ */
+record IntrinsicFunctionAllowListCacheHolder(Cache cache) {}

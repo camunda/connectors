@@ -1,0 +1,293 @@
+name: AI Agent CPT Tests (PR)
+
+# Runs real-LLM AI Agent E2E coverage on a PR before it reaches the merge queue, gated by the
+# `ai-agent-model-e2e-test` label so it isn't triggered accidentally.
+#
+# This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
+# feeds unrelated SM/SaaS E2E triggers.
+#
+# This listens only for `labeled`, not `synchronize`, so later pushes require a maintainer to review
+# the new commits and re-apply the label before another credential-bearing run starts.
+#
+# The image-backed E2E class and three in-process provider groups run in parallel. Only the
+# image-backed leg builds the default bundle; the other legs avoid paying that cost.
+on:
+  pull_request:
+    types: [ labeled ]
+
+# Scoped to the PR number + the label name, so a re-labeling event gets its own group and cancels
+# any run still in flight for that PR - there's only one trigger shape now (the label being
+# applied), so this no longer needs to reconcile a separate `synchronize` case with it.
+concurrency:
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Required by dorny/paths-filter on the `pull_request` event - it calls the GitHub REST API
+  # to list changed files and fails outright without this scope.
+  pull-requests: read
+
+jobs:
+  run-ai-agent-cpt:
+    name: ${{ matrix.name }}
+    runs-on: gcp-core-8-default
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: AI Agent bundle E2E
+            provider-group: ""
+            test-classes: AiAgentE2ETestIT
+            build-bundle: true
+            maven-projects: apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai
+          - name: OpenAI real-provider CPT
+            provider-group: openai
+            test-classes: RealProviderApiSmokeIT,DocumentToolCallResultsIT
+            build-bundle: false
+            maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
+          - name: Vertex real-provider CPT
+            provider-group: vertex
+            test-classes: RealProviderApiSmokeIT
+            build-bundle: false
+            maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
+          - name: Bedrock real-provider CPT
+            provider-group: bedrock
+            test-classes: RealProviderApiSmokeIT,DocumentToolCallResultsIT
+            build-bundle: false
+            maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
+    # Fork PRs get no secrets from `pull_request` by design. Never widen this to
+    # `pull_request_target`, which would expose Vault-backed credentials to unvetted fork code.
+    if: |
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'ai-agent-model-e2e-test'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # build the PR's actual code, not the synthetic merge ref
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      # Everything below is gated so a labeled PR touching no agentic-ai files pays for neither
+      # the bundle build nor any real-provider calls in any matrix leg.
+      - name: Check for agentic-ai changes
+        id: changes
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            ai:
+              - 'connectors/agentic-ai/**'
+              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
+              - '.github/workflows/AI_AGENT_CPT_PR.yml'
+              - '.github/workflows/package.json'
+
+      - name: Import build secrets
+        if: steps.changes.outputs.ai == 'true'
+        id: build-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: Import registry secret
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        id: registry-secret
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+
+      - name: Import OpenAI secret
+        if: steps.changes.outputs.ai == 'true' && (matrix.build-bundle || matrix.provider-group == 'openai')
+        id: openai-secret
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+
+      - name: Import Vertex secrets
+        if: steps.changes.outputs.ai == 'true' && (matrix.build-bundle || matrix.provider-group == 'vertex')
+        id: vertex-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
+
+      # Document assertions use Bedrock Haiku as their judge, including in the OpenAI shard.
+      - name: Import document judge secrets
+        if: steps.changes.outputs.ai == 'true' && (matrix.provider-group == 'openai' || matrix.provider-group == 'bedrock')
+        id: document-judge-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
+
+      - name: Import Bedrock provider secrets
+        if: steps.changes.outputs.ai == 'true' && (matrix.build-bundle || matrix.provider-group == 'bedrock')
+        id: bedrock-provider-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          distribution: temurin
+          java-version: "21.0.12+101.0.LTS"
+
+      - name: Create settings.xml
+        if: steps.changes.outputs.ai == 'true'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.build-secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.build-secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven cache
+        if: steps.changes.outputs.ai == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-node@v7.0.0
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          node-version: '24'
+
+      # Pinned via .github/workflows/package.json, matching run-ai-agent-cpt in
+      # MERGE_QUEUE_HELM_TEST.yaml - not BUILD_PR_DOCKER_IMAGES.yml's unpinned
+      # `npm install --global element-templates-cli`.
+      - name: Install element templates CLI
+        if: steps.changes.outputs.ai == 'true'
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Install reactor dependencies (skip tests and checks)
+        if: steps.changes.outputs.ai == 'true'
+        env:
+          MAVEN_PROJECTS: ${{ matrix.maven-projects }}
+        run: |
+          ./mvnw --batch-mode install -DskipTests -DskipChecks \
+            --projects "$MAVEN_PROJECTS" \
+            --also-make
+
+      # Fails fast with a clear error if the bundle jar wasn't produced, rather than a confusing
+      # Docker COPY failure downstream. Checks the actual glob the Dockerfile depends on, not just
+      # that target/ exists - stricter than MERGE_QUEUE_HELM_TEST.yaml's own post-build step,
+      # which only runs a plain `ls -lh` on the directory without asserting the jar itself exists.
+      - name: Check default-bundle jar exists
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        run: ls -lh apps/bundle/default-bundle/target/*-with-dependencies.jar
+
+      - name: Compute image tag
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        id: tag
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          BASE_VERSION=$(./mvnw --batch-mode help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BASE_VERSION="${BASE_VERSION%-SNAPSHOT}"
+          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          echo "::notice::Local image tag: ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Build
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/setup-buildx-action@v4
+
+      # Needed to pull default-bundle's own base image (reg.mini.dev/1212/openjre-base) during
+      # the build below, even though the built image is never pushed anywhere.
+      - name: Login to Minimus
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/login-action@v4
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.registry-secret.outputs.REGISTRY_MINIMUS_PSW }}
+
+      # load: true (not push) keeps the image local to this runner's Docker daemon for
+      # testcontainers to use directly - no registry round trip, no Harbor credentials needed
+      # here, and no orphan PR-tagged images left behind anywhere.
+      - name: Build default-bundle image
+        if: steps.changes.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/bundle/default-bundle/
+          load: true
+          tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Run ${{ matrix.name }}
+        if: steps.changes.outputs.ai == 'true'
+        env:
+          CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
+          CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
+          RUN_NATIVE_LLM_E2E: "true"
+          REAL_LLM_PROVIDER_GROUP: ${{ matrix.provider-group }}
+          TEST_CLASSES: ${{ matrix.test-classes }}
+          OPENAI_API_KEY: ${{ steps.openai-secret.outputs.OPENAI_API_KEY }}
+          AWS_BEDROCK_ACCESS_KEY: ${{ steps.document-judge-secrets.outputs.IDP_AWS_ACCESSKEY }}
+          AWS_BEDROCK_SECRET_KEY: ${{ steps.document-judge-secrets.outputs.IDP_AWS_SECRETKEY }}
+          AWS_BEDROCK_REGION: ${{ steps.bedrock-provider-secrets.outputs.IDP_AWS_REGION }}
+          AWS_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_AWS_KEY }}
+          ANTHROPIC_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY }}
+          ANTHROPIC_BEDROCK_REGION: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON: ${{ steps.vertex-secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.vertex-secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
+          GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
+          GOOGLE_VERTEX_AI_REGION: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_REGION }}
+        run: |
+          ./mvnw verify \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -Pit-real-llm \
+            -Dit.test="$TEST_CLASSES" \
+            --batch-mode
