@@ -187,6 +187,9 @@
       "condition": {
         "property": "authorizationType",
         "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
@@ -203,6 +206,9 @@
       "condition": {
         "property": "authorizationType",
         "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
