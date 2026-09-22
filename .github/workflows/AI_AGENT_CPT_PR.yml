@@ -173,7 +173,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
-          java-version: "21.0.9"
+          java-version: "21.0.12+101.0.LTS"
 
       - name: Create settings.xml
         if: steps.changes.outputs.ai == 'true'
