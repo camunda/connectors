@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.secret.SecretAllowListUnavailableExcept
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
@@ -157,8 +158,10 @@ class ConfigurableSecretFilterFactoryTest {
     // IllegalStateException-turned-SecretFilterUnavailableException
     // is never derived from external content, unlike every other failure on this path -- it must
     // survive into the incident as-is instead of being reduced to a class name.
+    var modelCacheWithoutClient =
+        new ProcessDefinitionModelCache(null, Caffeine.newBuilder().build());
     SecretKeyCache realSecretKeyCache =
-        new ProcessDefinitionSecretKeyCache(null, Caffeine.newBuilder().build());
+        new ProcessDefinitionSecretKeyCache(modelCacheWithoutClient, Caffeine.newBuilder().build());
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
 
     var filter = factory.create(CONTEXT);
@@ -212,8 +215,12 @@ class ConfigurableSecretFilterFactoryTest {
         .thenThrow(new OperateException("Operate returned 404 for process definition 42"));
     // Near-zero retry delay: this is a permanent failure exercised through every retry attempt,
     // and the default delay would otherwise make this test sleep through Failsafe's real backoff.
-    SecretKeyCache realSecretKeyCache =
-        new ProcessDefinitionSecretKeyCache(operateClient, cache, Duration.ofMillis(1));
+    // The model layer gets its own, always-real cache -- this test's real-vs-disabled parameter
+    // exercises the secret-map layer specifically.
+    var modelCache =
+        new ProcessDefinitionModelCache(
+            operateClient, Caffeine.newBuilder().build(), Duration.ofMillis(1));
+    SecretKeyCache realSecretKeyCache = new ProcessDefinitionSecretKeyCache(modelCache, cache);
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
 
     var filter = factory.create(CONTEXT);

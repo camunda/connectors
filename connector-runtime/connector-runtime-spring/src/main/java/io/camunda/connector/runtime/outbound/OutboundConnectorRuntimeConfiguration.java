@@ -20,15 +20,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListMode;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFunctionAllowListCache;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.document.factory.DocumentFactory;
@@ -90,11 +95,20 @@ public class OutboundConnectorRuntimeConfiguration {
     return new SecretKeyCacheHolder(Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
   }
 
+  /**
+   * Builds its own {@link ProcessDefinitionModelCache} backed by the shared {@code
+   * bpmnModelCacheStore} rather than fetching the BPMN model itself: {@link
+   * #intrinsicFunctionAllowListCache} builds one from the exact same underlying cache, so a process
+   * definition fetched for one purpose is reused for the other instead of being fetched twice.
+   */
   @Bean
   public SecretKeyCache secretKeyCache(
       @Autowired(required = false) CamundaOperateClient camundaOperateClient,
-      SecretKeyCacheHolder secretKeyCacheStore) {
-    return new ProcessDefinitionSecretKeyCache(camundaOperateClient, secretKeyCacheStore.cache());
+      SecretKeyCacheHolder secretKeyCacheStore,
+      BpmnModelCacheHolder bpmnModelCacheStore) {
+    var modelCache =
+        new ProcessDefinitionModelCache(camundaOperateClient, bpmnModelCacheStore.cache());
+    return new ProcessDefinitionSecretKeyCache(modelCache, secretKeyCacheStore.cache());
   }
 
   @Bean
@@ -103,6 +117,57 @@ public class OutboundConnectorRuntimeConfiguration {
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
+  }
+
+  /**
+   * Mirrors {@link #secretKeyCacheStore} exactly, one type level down: an unqualified {@code Cache}
+   * bean would collide with a host application's own cache bean of that exact type.
+   */
+  @Bean
+  BpmnModelCacheHolder bpmnModelCacheStore(
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new BpmnModelCacheHolder(new NoOpCache<>());
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new BpmnModelCacheHolder(Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
+  }
+
+  @Bean
+  IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore(
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new IntrinsicFunctionAllowListCacheHolder(new NoOpCache<>());
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new IntrinsicFunctionAllowListCacheHolder(
+        Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
+  }
+
+  @Bean
+  public ProcessDefinitionIntrinsicFunctionAllowListCache intrinsicFunctionAllowListCache(
+      @Autowired(required = false) CamundaOperateClient camundaOperateClient,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore) {
+    var modelCache =
+        new ProcessDefinitionModelCache(camundaOperateClient, bpmnModelCacheStore.cache());
+    return new ProcessDefinitionIntrinsicFunctionAllowListCache(
+        modelCache, intrinsicFunctionAllowListCacheStore.cache());
+  }
+
+  @Bean
+  public IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory(
+      @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
+          IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode,
+      ProcessDefinitionIntrinsicFunctionAllowListCache intrinsicFunctionAllowListCache) {
+    return new ConfigurableIntrinsicFunctionAllowListFactory(
+        intrinsicFunctionAllowListMode, intrinsicFunctionAllowListCache);
   }
 
   @Bean
@@ -115,7 +180,8 @@ public class OutboundConnectorRuntimeConfiguration {
       DocumentFactory documentFactory,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -125,7 +191,8 @@ public class OutboundConnectorRuntimeConfiguration {
         documentFactory,
         objectMapper,
         metricsRecorder,
-        secretFilterFactory);
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
   }
 
   @Bean
