@@ -255,10 +255,13 @@ Bedrock judge credentials in addition to the provider credentials. The PR workfl
 explicitly with `-Dit.test` for the shards that support document assertions. Do not add it back to the
 default profile unless every existing `-Pit-real-llm` caller also imports those judge credentials.
 Run it locally by selecting it explicitly and setting the judge credentials plus whichever provider
-credentials you want its rows to exercise:
+credentials you want its rows to exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended
+provider group; otherwise, every row whose credentials are available can run. For example, select
+only the OpenAI rows:
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
 export AWS_BEDROCK_ACCESS_KEY=...
 export AWS_BEDROCK_SECRET_KEY=...
 export OPENAI_API_KEY=...
