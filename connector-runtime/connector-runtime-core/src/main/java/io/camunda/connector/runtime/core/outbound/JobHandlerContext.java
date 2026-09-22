@@ -38,6 +38,8 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionUtil;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -57,6 +59,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
   private final DocumentFactory documentFactory;
+  private final IntrinsicFunctionAllowList intrinsicFunctionAllowList;
   private JsonNode jsonWithSecrets = null;
 
   public JobHandlerContext(
@@ -65,11 +68,13 @@ public class JobHandlerContext extends AbstractConnectorContext
       final ValidationProvider validationProvider,
       final DocumentFactory documentFactory,
       final ObjectMapper objectMapper,
-      final SecretFilter secretFilter) {
+      final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList) {
     super(secretProvider, secretFilter, validationProvider);
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;
+    this.intrinsicFunctionAllowList = intrinsicFunctionAllowList;
     this.jobContext = new ActivatedJobContext(job, () -> writeJson(getJsonReplacedWithSecrets()));
   }
 
@@ -82,10 +87,12 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private JsonNode getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
-      jsonWithSecrets =
+      var replaced =
           getSecretHandler()
               .replaceSecrets(
                   parseVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+      IntrinsicFunctionUtil.verifyAgainstAllowList(replaced, intrinsicFunctionAllowList);
+      jsonWithSecrets = replaced;
     }
     return jsonWithSecrets;
   }

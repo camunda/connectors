@@ -58,13 +58,18 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    secretKeyCache = new ProcessDefinitionSecretKeyCache(camundaClient, cache);
+    // The same mocked Cache backs both the model layer (keyed by CachedProcessDefinitionKey) and
+    // this class's own secret-map layer (keyed by the raw process definition key) -- any(), not
+    // anyLong(), so the stub answers both.
+    secretKeyCache =
+        new ProcessDefinitionSecretKeyCache(
+            new ProcessDefinitionModelCache("default", camundaClient, cache), cache);
     // lenient: getSecretKeys_deadlineWithinSafetyMargin_failsWithoutAttemptingFetch below never
     // reaches the XML fetch, so this stub would otherwise be flagged as unnecessary there
     lenient()
         .when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong()))
         .thenReturn(xmlRequest);
-    when(cache.get(anyLong(), any(Callable.class)))
+    when(cache.get(any(), any(Callable.class)))
         .thenAnswer(
             invocation -> {
               Callable<?> loader = invocation.getArgument(1);
@@ -418,7 +423,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     // simulates the get-XML endpoint's eventual-consistency window right after deployment: the
     // first two attempts 404 before the definition becomes visible, the third succeeds
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, cache, Duration.ofMillis(1));
+        new ProcessDefinitionSecretKeyCache(
+            new ProcessDefinitionModelCache("default", camundaClient, cache, Duration.ofMillis(1)),
+            cache);
     when(xmlRequest.execute())
         .thenThrow(new RuntimeException("not found (yet)"))
         .thenThrow(new RuntimeException("not found (yet)"))
@@ -437,7 +444,9 @@ class ProcessDefinitionSecretKeyCacheTest {
   @Test
   void getSecretKeys_xmlFetchFailsPastMaxRetries_throwsLastFailure() {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, cache, Duration.ofMillis(1));
+        new ProcessDefinitionSecretKeyCache(
+            new ProcessDefinitionModelCache("default", camundaClient, cache, Duration.ofMillis(1)),
+            cache);
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
 
     assertThatThrownBy(
@@ -464,7 +473,10 @@ class ProcessDefinitionSecretKeyCacheTest {
   @Test
   void getSecretKeys_deadlineLeavesOnlyAPartialRetryWindow_stopsRetryingBeforeMaxRetries() {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, cache, Duration.ofMillis(200));
+        new ProcessDefinitionSecretKeyCache(
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, cache, Duration.ofMillis(200)),
+            cache);
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
@@ -486,7 +498,10 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails()
       throws IOException {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, cache, Duration.ofMillis(200));
+        new ProcessDefinitionSecretKeyCache(
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, cache, Duration.ofMillis(200)),
+            cache);
     String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
     when(xmlRequest.execute())
         .thenAnswer(

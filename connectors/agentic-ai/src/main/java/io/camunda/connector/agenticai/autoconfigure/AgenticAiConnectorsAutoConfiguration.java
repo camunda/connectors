@@ -67,8 +67,10 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -317,14 +319,24 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      @ConnectorsObjectMapper ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      // Not @ConnectorsObjectMapper: this mapper binds the AI-agent job's own input variables via
+      // JobHandlerContext, the same allow-list-gated trust boundary outboundConnectorObjectMapper
+      // is built for. A model-declared intrinsic-function call the allow-list already approved
+      // would otherwise fail to bind (security-testing-findings#275).
+      @OutboundConnectorObjectMapper ObjectMapper objectMapper,
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
     return new JobWorkerAgentExecutionContextFactoryImpl(
-        secretProvider, validationProvider, documentFactory, objectMapper, secretFilterFactory);
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
   }
 
   @Bean
