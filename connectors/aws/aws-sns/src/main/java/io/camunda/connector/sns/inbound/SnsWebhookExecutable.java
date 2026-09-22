@@ -103,6 +103,13 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
 
+    // The webhook endpoint stays registered even when activate() failed validation (e.g. a
+    // legacy/hand-authored element with an invalid or missing allow-list configuration), so a
+    // request can still reach this method with props unset. Fail with the same actionable
+    // rejection as everything else here, not an NPE surfaced as an opaque HTTP 500.
+    if (props == null) {
+      throw new Exception("Connector is not activated (invalid configuration); rejecting request.");
+    }
     // Reject obvious misses before the expensive signature verification. The second allow-list
     // check below remains authoritative because the header is not covered by the SNS signature.
     checkMessageAllowListed(webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER));

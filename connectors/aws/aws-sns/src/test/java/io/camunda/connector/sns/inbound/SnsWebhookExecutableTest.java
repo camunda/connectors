@@ -335,6 +335,34 @@ class SnsWebhookExecutableTest {
   }
 
   /**
+   * Regression test raised in PR review: the webhook endpoint stays registered even when {@code
+   * activate()} failed validation (e.g. a legacy/hand-authored element with an invalid allow-list
+   * configuration), so a request can still reach {@code triggerWebhook} with {@code props} unset.
+   * That must produce the same actionable rejection as everything else here, not a raw NPE surfaced
+   * as an opaque HTTP 500.
+   */
+  @Test
+  void triggerWebhook_AfterFailedActivation_ThrowsActionableExceptionNotNpe() {
+    Map<String, Object> actualBPMNProperties =
+        Map.of(
+            "inbound",
+            Map.of(
+                "context", "snstest",
+                "securitySubscriptionAllowedFor", "specific"));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(new HashMap<>(snsRequestHeaders));
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .isNotInstanceOf(NullPointerException.class)
+        .hasMessageContaining("not activated");
+  }
+
+  /**
    * Regression test for security-testing-findings#263, clause 2: a {@code null}
    * securitySubscriptionAllowedFor must still deny an unauthorized topic at request time, not just
    * at activation - i.e. null is "specific", never "any".
