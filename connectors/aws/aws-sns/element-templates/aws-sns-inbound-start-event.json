@@ -27,7 +27,7 @@
     "value": "bpmn:StartEvent"
   },
   "engines": {
-    "camunda": "^8.5"
+    "camunda": "^8.9"
   },
   "groups": [
     {
