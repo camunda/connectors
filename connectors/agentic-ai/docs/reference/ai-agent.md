@@ -1793,9 +1793,9 @@ lease-fenced `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
-- An `ASSISTANT` item's content blocks are ordered `text` → `reasoning` → `object` → `document` →
-  everything else (stable within each group), regardless of the order the model produced them in
-  (`AgentInstanceHistoryMapper.assistantContent`). An assistant message with neither text/object/etc.
+- An `ASSISTANT` item's content blocks preserve the order the model produced them in because
+  `AgentInstanceHistoryMapper.assistantContent` maps the source list directly. An assistant message
+  with neither text/object/etc.
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
 
@@ -1822,12 +1822,16 @@ tool calls the mapper resolves it from the namespaced name via `GatewayToolHandl
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
 gateway element id parsed from the namespaced name.
 
-Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
-`DocumentContent` → a document reference block (Camunda documents only; external document references
-currently fall back to an object/text block — see follow-ups), and the additive `ReasoningContent` /
-`ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
-provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
-path yet).
+Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
+`DocumentContent` → a Camunda document reference block. External document references currently fall
+back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
+`camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
+persisted. Replay-critical provider values must therefore remain durably preserved in `payload`.
+For Gemini, the raw payload retains `thoughtSignature`, while the response converter also places a
+base64 copy in transient `Content.metadata()` for the request converter to use during in-memory
+replay. `AgentInstanceHistoryMapper` does not persist that metadata.
+`ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
+(`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet).
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job
