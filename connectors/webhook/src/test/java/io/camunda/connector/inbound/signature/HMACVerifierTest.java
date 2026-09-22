@@ -383,6 +383,28 @@ class HMACVerifierTest {
   }
 
   @Test
+  void verifySignature_WhenToleranceMalformedAndTimestampMatchesClock_ShouldThrowException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    long now = 1_700_000_000L;
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.BODY, HMACScope.TIMESTAMP},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            "not-a-duration",
+            fixedClock(now));
+
+    WebhookProcessingPayload payload =
+        signedPayload(now, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(WebhookSecurityException.class)
+        .hasMessageContaining("HMAC tolerance is malformed");
+  }
+
+  @Test
   void verifySignature_WhenTimestampFutureSkewed_ShouldThrowException()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long now = 1_700_000_000L;
@@ -539,12 +561,14 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE);
+            TOLERANCE,
+            fixedClock(1_700_000_000L));
 
     WebhookProcessingPayload payload =
         signedPayload(1_700_000_000L, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
     assertThatThrownBy(() -> verifier.verifySignature(payload))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(RuntimeException.class)
+        .hasCauseInstanceOf(UnsupportedOperationException.class);
   }
 }
