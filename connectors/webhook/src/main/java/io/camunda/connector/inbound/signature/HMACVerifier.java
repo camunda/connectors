@@ -111,9 +111,13 @@ public class HMACVerifier {
           "HMAC timestamp header " + hmacTimestampHeader + " is missing");
     }
 
+    // Deliberately not trimmed: the signed material is this exact header string (see
+    // withTimestampPrefix), so tolerating surrounding whitespace here would accept a timestamp as
+    // fresh while still signing bytes a well-formed sender never produced — silently rejecting a
+    // legitimately fresh, correctly-signed request instead. A padded value is malformed, full stop.
     long timestampEpochSeconds;
     try {
-      timestampEpochSeconds = Long.parseLong(timestampValue.trim());
+      timestampEpochSeconds = Long.parseLong(timestampValue);
     } catch (NumberFormatException e) {
       throw new WebhookSecurityException(
           401,

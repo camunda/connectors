@@ -316,6 +316,48 @@ class HMACVerifierTest {
   }
 
   @Test
+  void verifySignature_WhenTimestampHeaderHasSurroundingWhitespace_ShouldThrowException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // Regression test: parsing used to tolerate whitespace (Long.parseLong(value.trim())) while
+    // the signed material always used the raw, untrimmed header — so a padded value could be
+    // treated as fresh yet signed over different bytes than a sender who signs the trimmed
+    // numeric string would produce. Even a self-consistent request — correctly signed over the
+    // padded bytes it actually sends — must still be rejected as malformed; tolerance for the
+    // format isn't the point, byte-for-byte agreement between the freshness check and the signed
+    // material is.
+    long now = 1_700_000_000L;
+    String paddedTimestamp = " " + now + " ";
+    byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
+    String signature =
+        hmacHex(SECRET, concat((paddedTimestamp + ":").getBytes(StandardCharsets.UTF_8), body));
+
+    Map<String, String> headers = new HashMap<>();
+    headers.put(HEADER_CONTENT_TYPE, "application/json");
+    headers.put(TIMESTAMP_HEADER, paddedTimestamp);
+    headers.put("X-HMAC-Sig", signature);
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody()).thenReturn(body);
+
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.BODY, HMACScope.TIMESTAMP},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            TOLERANCE_SECONDS,
+            fixedClock(now));
+
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(WebhookSecurityException.class)
+        .hasMessageContaining("malformed")
+        .hasMessageContaining(TIMESTAMP_HEADER);
+  }
+
+  @Test
   void verifySignature_WhenTimestampStale_ShouldThrowException()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long requestSentAt = 1_700_000_000L;
