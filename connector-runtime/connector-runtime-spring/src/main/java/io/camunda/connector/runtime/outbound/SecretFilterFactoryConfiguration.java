@@ -61,10 +61,21 @@ public class SecretFilterFactoryConfiguration {
             Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
+  /**
+   * Builds its own {@link ProcessDefinitionModelCache} backed by the shared {@code
+   * bpmnModelCacheStore} rather than fetching BPMN XML itself: {@link
+   * #intrinsicFunctionAllowListCache} builds one from the exact same underlying cache, so a process
+   * definition fetched for one purpose is reused for the other instead of being fetched and parsed
+   * twice.
+   */
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
-    return new ProcessDefinitionSecretKeyCache(camundaClient, secretKeyCacheStore.cache());
+      CamundaClient camundaClient,
+      SecretKeyCacheHolder secretKeyCacheStore,
+      BpmnModelCacheHolder bpmnModelCacheStore) {
+    var modelCache =
+        new ProcessDefinitionModelCache("default", camundaClient, bpmnModelCacheStore.cache());
+    return new ProcessDefinitionSecretKeyCache(modelCache, secretKeyCacheStore.cache());
   }
 
   @Bean

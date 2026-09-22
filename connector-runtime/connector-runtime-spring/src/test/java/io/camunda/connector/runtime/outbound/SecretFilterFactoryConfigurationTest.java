@@ -18,7 +18,19 @@ package io.camunda.connector.runtime.outbound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
+import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
@@ -77,5 +89,49 @@ class SecretFilterFactoryConfigurationTest {
     var holder = configuration.secretKeyCacheStore(true, 1000);
 
     assertInstanceOf(SecretKeyCacheHolder.class, holder);
+  }
+
+  @Test
+  void secretKeyCacheAndIntrinsicFunctionAllowListCache_shareOneBpmnModelCacheStore_fetchOnce()
+      throws IOException {
+    // Regression for Finding C: before this, secretKeyCache() fetched and parsed a process
+    // definition's BPMN XML independently of intrinsicFunctionAllowListCache(), which already
+    // shared its own separate model cache internally -- two consumers, two fetches for the same
+    // process definition. Both beans now build their ProcessDefinitionModelCache from the same
+    // bpmnModelCacheStore, so the first consumer to ask for a given process definition key is the
+    // only one that ever calls out to Zeebe for it.
+    var camundaClient = mock(CamundaClient.class);
+    var xmlRequest = mock(ProcessDefinitionGetXmlRequest.class);
+    when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(xmlRequest);
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
+    var bpmnModelCacheStore = configuration.bpmnModelCacheStore(true, 1000);
+
+    var secretKeyCache =
+        configuration.secretKeyCache(
+            camundaClient, configuration.secretKeyCacheStore(true, 1000), bpmnModelCacheStore);
+    var intrinsicFunctionAllowListCache =
+        configuration.intrinsicFunctionAllowListCache(
+            camundaClient,
+            bpmnModelCacheStore,
+            configuration.intrinsicFunctionAllowListCacheStore(true, 1000));
+    var deadline = Instant.now().plusSeconds(30);
+
+    secretKeyCache.getSecretKeys(new SecretKeyContext(42L, "service-task-1", deadline));
+    intrinsicFunctionAllowListCache.getAllowedFunctions(
+        new IntrinsicFunctionAllowListContext(42L, "service-task-1", deadline));
+
+    verify(camundaClient, times(1)).newProcessDefinitionGetXmlRequest(42L);
+  }
+
+  private static String loadBpmn(String fileName) throws IOException {
+    try (var stream =
+        SecretFilterFactoryConfigurationTest.class
+            .getClassLoader()
+            .getResourceAsStream("bpmn/" + fileName)) {
+      if (stream == null) {
+        throw new IllegalArgumentException("BPMN resource not found: bpmn/" + fileName);
+      }
+      return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+    }
   }
 }
