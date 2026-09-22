@@ -25,7 +25,6 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
@@ -47,9 +46,18 @@ import org.springframework.core.env.Environment;
 @Import({SecretFilterFactoryConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
 
+  /**
+   * The mapper wired here is used by {@code OperationInvoker} to bind an already-secret-replaced,
+   * already-allow-list-checked job-variable tree ({@code JobHandlerContext.getJobContext()
+   * .getVariables()} runs that gate before this ever parses it) — the exact same trust boundary
+   * {@code outboundConnectorObjectMapper} is built for, not the general-purpose, dispatch-disabled
+   * {@code connectorObjectMapper}. Wiring the disabled mapper here would make a model-declared
+   * intrinsic-function call the allow-list gate just approved fail at bind time regardless
+   * (security-testing-findings#275).
+   */
   @Bean
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
-      @ConnectorsObjectMapper ObjectMapper mapper,
+      @OutboundConnectorObjectMapper ObjectMapper mapper,
       ValidationProvider validationProvider,
       Environment environment,
       List<OutboundConnectorFunction> functions,
