@@ -357,6 +357,65 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_UnsupportedHmacScopeCombination_ThrowsException() {
+    // [timestamp, url] strips down to [url] alone, which the encoding-strategy factory has no
+    // strategy for — must fail at activation, not on every incoming request.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"timestamp\",\"url\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void activate_UnsupportedHmacScopeCombinationIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+    // The same combination must not block activation when HMAC is disabled entirely — the scope
+    // configuration is then irrelevant, matching the other HMAC-disabled passthrough cases above.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        disabled.name(),
+                        "hmacScopes",
+                        "=[\"timestamp\",\"url\"]")))
+            .build();
+
+    assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNull();
+  }
+
+  @Test
   void triggerWebhook_HmacTimestampWithinTolerance_Success()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long now = Instant.now().getEpochSecond();

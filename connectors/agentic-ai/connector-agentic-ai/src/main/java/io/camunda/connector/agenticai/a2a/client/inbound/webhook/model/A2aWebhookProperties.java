@@ -94,7 +94,7 @@ public record A2aWebhookProperties(
             label = "HMAC scopes",
             group = "authentication",
             description =
-                "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
+                "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
             optional = true,
             type = PropertyType.String,
             feel = FeelMode.required,
@@ -127,33 +127,6 @@ public record A2aWebhookProperties(
         @Min(1)
         Integer hmacToleranceSeconds,
     @Valid @NotNull WebhookAuthorization auth) {
-
-  /**
-   * Legacy constructor retained for source/binary compatibility with existing connector code built
-   * against the pre-timestamp eight-argument constructor. Disables timestamp validation (no {@code
-   * hmacTimestampHeader}), matching the pre-existing behavior exactly.
-   */
-  public A2aWebhookProperties(
-      String context,
-      String clientResponse,
-      HMACSwitchCustomerChoice shouldValidateHmac,
-      String hmacSecret,
-      String hmacHeader,
-      HMACAlgoCustomerChoice hmacAlgorithm,
-      HMACScope[] hmacScopes,
-      WebhookAuthorization auth) {
-    this(
-        context,
-        clientResponse,
-        shouldValidateHmac,
-        hmacSecret,
-        hmacHeader,
-        hmacAlgorithm,
-        hmacScopes,
-        null,
-        HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS,
-        auth);
-  }
 
   public A2aWebhookProperties(A2aWebhookPropertiesWrapper wrapper) {
     this(

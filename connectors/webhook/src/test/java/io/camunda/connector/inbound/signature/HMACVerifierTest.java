@@ -483,55 +483,67 @@ class HMACVerifierTest {
   }
 
   @Test
-  void constructor_WhenTimestampScopeStripsDownToUnsupportedUrlAlone_ShouldThrowAtConstruction() {
+  void
+      rejectUnsupportedScopeCombination_WhenTimestampScopeStripsDownToUnsupportedUrlAlone_ShouldThrow() {
     // Regression test: [timestamp, url] strips TIMESTAMP down to [url] alone, which
     // HMACEncodingStrategyFactory has no strategy for. Before this fail-fast check, this
     // combination only failed at request-processing time — an UnsupportedOperationException
     // wrapped in a bare RuntimeException, indistinguishable from an unhandled 500, on every
-    // single request. It must instead fail immediately, at connector activation.
+    // single request. Connectors call this from activate() (gated on HMAC being enabled) so it
+    // fails immediately at deploy time instead — this is not run from the constructor itself,
+    // since both connectors construct HMACVerifier unconditionally regardless of that gate.
     assertThatThrownBy(
             () ->
-                new HMACVerifier(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL},
-                    "X-HMAC-Sig",
-                    SECRET,
-                    sha_256,
-                    TIMESTAMP_HEADER,
-                    TOLERANCE_SECONDS))
+                HMACVerifier.rejectUnsupportedScopeCombination(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
 
   @Test
   void
-      constructor_WhenTimestampScopeStripsDownToUnsupportedParametersAlone_ShouldThrowAtConstruction() {
+      rejectUnsupportedScopeCombination_WhenTimestampScopeStripsDownToUnsupportedParametersAlone_ShouldThrow() {
     // Same regression, for [timestamp, parameters] stripping down to [parameters] alone.
     assertThatThrownBy(
             () ->
-                new HMACVerifier(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.PARAMETERS},
-                    "X-HMAC-Sig",
-                    SECRET,
-                    sha_256,
-                    TIMESTAMP_HEADER,
-                    TOLERANCE_SECONDS))
+                HMACVerifier.rejectUnsupportedScopeCombination(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.PARAMETERS}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
 
   @Test
-  void constructor_WhenTimestampCombinedWithSupportedScopes_ShouldNotThrow() {
+  void rejectUnsupportedScopeCombination_WhenTimestampCombinedWithSupportedScopes_ShouldNotThrow() {
     // Counterpart: [timestamp, url, body] strips down to [url, body], a supported combination,
     // and must keep working.
     assertThatCode(
             () ->
-                new HMACVerifier(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL, HMACScope.BODY},
-                    "X-HMAC-Sig",
-                    SECRET,
-                    sha_256,
-                    TIMESTAMP_HEADER,
-                    TOLERANCE_SECONDS))
+                HMACVerifier.rejectUnsupportedScopeCombination(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL, HMACScope.BODY}))
         .doesNotThrowAnyException();
+  }
+
+  @Test
+  void verifySignature_WhenConstructedWithUnsupportedScopeCombination_StillThrowsAtRequestTime()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    // The constructor itself does not validate scope support (that's
+    // rejectUnsupportedScopeCombination's
+    // job, called from activate() gated on HMAC being enabled) — so constructing with an
+    // unsupported combination must not throw, but using it to verify a request still fails
+    // (as an unhandled exception, not silently) rather than falsely accepting anything.
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            TOLERANCE_SECONDS);
+
+    WebhookProcessingPayload payload =
+        signedPayload(1_700_000_000L, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(RuntimeException.class);
   }
 }

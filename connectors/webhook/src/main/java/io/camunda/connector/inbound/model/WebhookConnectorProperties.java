@@ -96,7 +96,7 @@ public record WebhookConnectorProperties(
             label = "HMAC scopes",
             group = "authentication",
             description =
-                "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
+                "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
             optional = true,
             type = PropertyType.String,
             feel = FeelMode.required,

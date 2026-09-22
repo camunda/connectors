@@ -97,6 +97,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     props = new A2aWebhookProperties(wrappedProps);
     rejectMissingHmacTimestampHeader(props);
     rejectInvalidHmacToleranceSeconds(props);
+    rejectUnsupportedHmacScopeCombination(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
@@ -153,6 +154,21 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       throw new ConnectorInputException(
           "HMAC property 'hmacToleranceSeconds' must be at least 1, but was "
               + props.hmacToleranceSeconds());
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC is enabled and the configured {@code
+   * hmacScopes} — after stripping {@code timestamp}, which isn't itself signable — reduce to a
+   * combination {@link HMACVerifier} doesn't support (e.g. {@code [timestamp, url]} strips down to
+   * {@code [url]} alone). Gated on HMAC being enabled: {@link HMACVerifier} is constructed
+   * unconditionally below regardless of {@code shouldValidateHmac}, so this check must be too, or a
+   * deployment with HMAC disabled could fail activation over a scope combination that will never
+   * actually be evaluated.
+   */
+  private static void rejectUnsupportedHmacScopeCombination(A2aWebhookProperties props) {
+    if (enabled.equals(props.shouldValidateHmac())) {
+      HMACVerifier.rejectUnsupportedScopeCombination(props.hmacScopes());
     }
   }
 

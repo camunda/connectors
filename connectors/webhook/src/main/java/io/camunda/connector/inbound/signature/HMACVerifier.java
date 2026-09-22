@@ -81,19 +81,20 @@ public class HMACVerifier {
     this.hmacTimestampHeader = hmacTimestampHeader;
     this.hmacToleranceSeconds = hmacToleranceSeconds;
     this.clock = clock;
-    rejectUnsupportedScopeCombination(hmacScopes);
   }
 
   /**
-   * Fails fast (at construction time, i.e. connector activation) when the non-{@code timestamp}
-   * portion of {@code hmacScopes} isn't a combination {@link HMACEncodingStrategyFactory} actually
-   * supports — e.g. {@code [timestamp, url]} or {@code [timestamp, parameters]} strip down to
-   * {@code [url]}/{@code [parameters]} alone, which has no matching strategy. Without this check,
-   * {@link HMACEncodingStrategyFactory#getStrategy} throws {@code UnsupportedOperationException} on
-   * every incoming request instead, which nothing upstream maps to a client error — an unhandled
-   * 500 on every request, not a deploy-time failure.
+   * Fails fast (called from each connector's {@code activate()}, gated on HMAC being enabled — not
+   * from this constructor, which both connectors call unconditionally regardless of whether HMAC
+   * validation is actually enabled for the deployment) when the non-{@code timestamp} portion of
+   * {@code hmacScopes} isn't a combination {@link HMACEncodingStrategyFactory} actually supports —
+   * e.g. {@code [timestamp, url]} or {@code [timestamp, parameters]} strip down to {@code
+   * [url]}/{@code [parameters]} alone, which has no matching strategy. Without this check, {@link
+   * HMACEncodingStrategyFactory#getStrategy} throws {@code UnsupportedOperationException} on every
+   * incoming request instead, which nothing upstream maps to a client error — an unhandled 500 on
+   * every request, not a deploy-time failure.
    */
-  private static void rejectUnsupportedScopeCombination(HMACScope[] hmacScopes) {
+  public static void rejectUnsupportedScopeCombination(HMACScope[] hmacScopes) {
     HMACScope[] effectiveScopes = nonTimestampScopes(hmacScopes);
     try {
       // Every scope combination the factory supports is either method-independent or supports
