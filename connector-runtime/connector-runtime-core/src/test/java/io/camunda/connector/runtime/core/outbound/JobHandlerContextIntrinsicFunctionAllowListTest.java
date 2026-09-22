@@ -22,13 +22,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.intrinsic.AllowedIntrinsicFunction;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.List;
@@ -90,6 +94,77 @@ class JobHandlerContextIntrinsicFunctionAllowListTest {
     // mapper wiring, lives in IntrinsicFunctionAllowListEndToEndTest. What this test proves is
     // narrower and specific to this class: the allow-list gate itself does not block a declared
     // call before binding even reaches that point.
+    assertThatCode(() -> context.bindVariables(TargetType.class)).doesNotThrowAnyException();
+  }
+
+  /**
+   * Regresses a wiring mistake distinct from the allow-list gate itself: a consumer that binds an
+   * already-allow-listed job-variable tree (the AI-agent job worker's own {@code
+   * JobWorkerAgentExecutionContextFactoryImpl}, and — one level removed, through {@code
+   * JobHandlerContext#getJobContext().getVariables()} — {@code OperationInvoker}'s
+   * {@code @Variable}/{@code @Header} binding) must receive a mapper with <em>live</em> intrinsic
+   * dispatch, mirroring {@code outboundConnectorObjectMapper}, not the general-purpose mapper this
+   * fix disabled dispatch on ({@code connectorObjectMapper}/{@code objectMapper}). Both mappers see
+   * only the same already-allow-listed tree, so live dispatch here is exactly as safe as it is for
+   * {@code outboundConnectorObjectMapper} itself — but if a consumer is wired to the disabled one
+   * by mistake, a legitimately declared call fails at bind time even though the gate allowed it.
+   */
+  // base64, not createLink: no Document dependency, so success/failure here isolates dispatch
+  // being reached at all rather than CreateLinkFunction's own document-resolution behavior.
+  private static final String BASE64_JSON =
+      """
+      {"body": {"camunda.function.type":"base64","params":["dGVzdA=="]}}
+      """;
+
+  @Test
+  void aDeclaredCallFailsToBindIfTheInjectedMapperHasDispatchDisabled() {
+    var allowList =
+        IntrinsicFunctionAllowList.allowOnly(
+            List.of(new AllowedIntrinsicFunction("base64", List.of("body"))));
+    var disabledMapper =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    mock(DocumentFactory.class),
+                    new DisabledIntrinsicFunctionExecutor(),
+                    JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+    var context =
+        new JobHandlerContext(
+            jobWithVariables(BASE64_JSON),
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(DocumentFactory.class),
+            disabledMapper,
+            SecretFilter.allowAll(),
+            allowList);
+
+    assertThatThrownBy(() -> context.bindVariables(TargetType.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Intrinsic function dispatch is disabled");
+  }
+
+  @Test
+  void aDeclaredCallBindsSuccessfullyWhenTheInjectedMapperHasLiveDispatch() {
+    var allowList =
+        IntrinsicFunctionAllowList.allowOnly(
+            List.of(new AllowedIntrinsicFunction("base64", List.of("body"))));
+    ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+    var liveMapper =
+        mapper.registerModule(
+            new JacksonModuleDocumentDeserializer(
+                mock(DocumentFactory.class),
+                new DefaultIntrinsicFunctionExecutor(mapper),
+                JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+    var context =
+        new JobHandlerContext(
+            jobWithVariables(BASE64_JSON),
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(DocumentFactory.class),
+            liveMapper,
+            SecretFilter.allowAll(),
+            allowList);
+
     assertThatCode(() -> context.bindVariables(TargetType.class)).doesNotThrowAnyException();
   }
 

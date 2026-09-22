@@ -13,15 +13,27 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 class TestConfig {
+  // @Primary: with two ObjectMapper beans now in context, a still-unqualified injection point
+  // (e.g. aiAgentJobWorkerHandler's own objectMapper param, deliberately left on the
+  // general-purpose/disabled mapper) must keep resolving to this one, not become ambiguous.
   @Bean
+  @Primary
   public ObjectMapper objectMapper() {
+    return new ObjectMapper();
+  }
+
+  @Bean
+  @OutboundConnectorObjectMapper
+  public ObjectMapper outboundConnectorObjectMapper() {
     return new ObjectMapper();
   }
 

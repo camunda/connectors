@@ -47,9 +47,18 @@ import org.springframework.core.env.Environment;
 @Import({SecretFilterFactoryConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
 
+  /**
+   * The mapper wired here is used by {@code OperationInvoker} to bind an already-secret-replaced,
+   * already-allow-list-checked job-variable tree ({@code JobHandlerContext.getJobContext()
+   * .getVariables()} runs that gate before this ever parses it) — the exact same trust boundary
+   * {@code outboundConnectorObjectMapper} is built for, not the general-purpose, dispatch-disabled
+   * {@code objectMapper} bean this fix disables dispatch on. Wiring the disabled mapper here would
+   * make a model-declared intrinsic-function call the allow-list gate just approved fail at bind
+   * time regardless (security-testing-findings#275).
+   */
   @Bean
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
-      ObjectMapper mapper,
+      @OutboundConnectorObjectMapper ObjectMapper mapper,
       ValidationProvider validationProvider,
       Environment environment,
       List<OutboundConnectorFunction> functions,
