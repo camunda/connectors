@@ -89,9 +89,15 @@ public class ConnectorResultHandler {
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
         .map(
-            expression ->
-                feelExpressionEvaluator.evaluateToJson(
-                    expression, responseContent, wrapResponse(responseContent), jobContext))
+            expression -> {
+              var evaluatedJson =
+                  feelExpressionEvaluator.evaluateToJson(
+                      expression, responseContent, wrapResponse(responseContent), jobContext);
+              if (evaluatedJson != null) {
+                verifyNoForbiddenLiterals(evaluatedJson);
+              }
+              return evaluatedJson;
+            })
         .filter(
             json ->
                 !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")
