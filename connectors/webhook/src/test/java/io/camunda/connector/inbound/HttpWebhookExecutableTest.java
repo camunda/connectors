@@ -151,6 +151,54 @@ class HttpWebhookExecutableTest {
     assertThat(catchException(() -> testObject.activate(ctx))).isNull();
   }
 
+  private InboundConnectorContext contextWithFailingJwtActivation() {
+    return InboundConnectorContextBuilder.create()
+        .properties(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context",
+                    "webhookContext",
+                    "method",
+                    "any",
+                    "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of("jwkUrl", "https://example.com/.well-known/jwks.json")))))
+        .build();
+  }
+
+  @Test
+  void triggerWebhook_afterFailedActivation_rejectsCleanlyInsteadOfNpe() {
+    // A v15-shaped JWT webhook (no issuer/audience) fails to activate, per this PR's own change.
+    // Regression for the QA finding: a request against the never-activated executable must not
+    // NPE on the null `props` field left behind by the aborted activate().
+    InboundConnectorContext ctx = contextWithFailingJwtActivation();
+    assertThat(catchException(() -> testObject.activate(ctx))).isNotNull();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(503);
+  }
+
+  @Test
+  void verify_afterFailedActivation_rejectsCleanlyInsteadOfNpe() {
+    InboundConnectorContext ctx = contextWithFailingJwtActivation();
+    assertThat(catchException(() -> testObject.activate(ctx))).isNotNull();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+
+    var exception = catchException(() -> testObject.verify(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(503);
+  }
+
   private static ProcessElement elementWithRawProperties(Map<String, String> rawProperties) {
     var element = Mockito.mock(ProcessElement.class);
     Mockito.when(element.properties()).thenReturn(rawProperties);
