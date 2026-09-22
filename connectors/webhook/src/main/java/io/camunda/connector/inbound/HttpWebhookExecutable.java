@@ -203,16 +203,24 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   /**
-   * Fails webhook deployment (activation) when {@code hmacToleranceSeconds} is not a positive
-   * number of seconds. The {@code @Min(1)} constraint on the property is never evaluated at runtime
-   * — {@code bindProperties} validates {@link WebhookConnectorPropertiesWrapper}, whose {@code
-   * inbound} component isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into
-   * the nested {@link WebhookConnectorProperties} record. Enforced here explicitly instead of
-   * adding that cascade, to avoid retroactively activating validation for the record's other,
-   * pre-existing constraints as an unrelated side effect.
+   * Fails webhook deployment (activation) when the {@code timestamp} scope is selected and {@code
+   * hmacToleranceSeconds} is not a positive number of seconds. Gated on the {@code timestamp}
+   * scope, matching {@link #rejectMissingHmacTimestampHeader}: the property is hidden and
+   * irrelevant otherwise, so a leftover invalid value from a previous configuration (e.g. after
+   * switching scopes back to {@code body}) must not block activation.
+   *
+   * <p>The {@code @Min(1)} constraint on the property is never evaluated at runtime — {@code
+   * bindProperties} validates {@link WebhookConnectorPropertiesWrapper}, whose {@code inbound}
+   * component isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into the nested
+   * {@link WebhookConnectorProperties} record. Enforced here explicitly instead of adding that
+   * cascade, to avoid retroactively activating validation for the record's other, pre-existing
+   * constraints as an unrelated side effect.
    */
   private static void rejectInvalidHmacToleranceSeconds(WebhookConnectorProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
     if (enabled.equals(props.shouldValidateHmac())
+        && timestampScopeSelected
         && props.hmacToleranceSeconds() != null
         && props.hmacToleranceSeconds() < 1) {
       throw new ConnectorInputException(

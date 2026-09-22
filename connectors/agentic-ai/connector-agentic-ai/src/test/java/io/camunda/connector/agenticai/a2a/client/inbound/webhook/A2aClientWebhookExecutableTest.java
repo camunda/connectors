@@ -323,6 +323,40 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacToleranceSecondsIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
+    // Same rationale as the HMAC-disabled case above, but for HMAC enabled with a scope that
+    // doesn't include 'timestamp' (e.g. after switching back to the default 'body' scope): the
+    // tolerance value is still irrelevant and a leftover invalid one must not block activation.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\"]",
+                        "hmacToleranceSeconds",
+                        "0")))
+            .build();
+
+    assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNull();
+  }
+
+  @Test
   void triggerWebhook_HmacTimestampWithinTolerance_Success()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long now = Instant.now().getEpochSecond();

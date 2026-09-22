@@ -615,6 +615,31 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacToleranceSecondsIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
+    // Same rationale as the HMAC-disabled case above, but for HMAC enabled with a scope that
+    // doesn't include 'timestamp' (e.g. after switching back to the default 'body' scope): the
+    // tolerance value is still irrelevant and a leftover invalid one must not block activation.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\"]",
+                        "hmacToleranceSeconds", "0",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
   void triggerWebhook_HmacTimestampMissing_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
