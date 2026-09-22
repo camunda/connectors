@@ -263,7 +263,7 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
-  void activate_HmacToleranceSecondsZeroOrNegative_ThrowsException() {
+  void activate_HmacToleranceZeroOrNegative_ThrowsException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -288,8 +288,8 @@ class A2aClientWebhookExecutableTest {
                         "=[\"body\",\"timestamp\"]",
                         "hmacTimestampHeader",
                         "X-HMAC-Timestamp",
-                        "hmacToleranceSeconds",
-                        "0")))
+                        "hmacTolerance",
+                        "PT0S")))
             .build();
 
     assertThatThrownBy(() -> webhookExecutable.activate(ctx))
@@ -297,7 +297,41 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
-  void activate_HmacToleranceSecondsIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+  void activate_HmacToleranceMalformed_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp",
+                        "hmacTolerance",
+                        "300")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void activate_HmacToleranceIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
     // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
     // enabled; a leftover invalid value from a previous configuration must not block activation
     // once HMAC is switched off.
@@ -315,15 +349,15 @@ class A2aClientWebhookExecutableTest {
                         Map.of("type", "NONE"),
                         "shouldValidateHmac",
                         disabled.name(),
-                        "hmacToleranceSeconds",
-                        "0")))
+                        "hmacTolerance",
+                        "PT0S")))
             .build();
 
     assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNull();
   }
 
   @Test
-  void activate_HmacToleranceSecondsIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
+  void activate_HmacToleranceIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
     // Same rationale as the HMAC-disabled case above, but for HMAC enabled with a scope that
     // doesn't include 'timestamp' (e.g. after switching back to the default 'body' scope): the
     // tolerance value is still irrelevant and a leftover invalid one must not block activation.
@@ -349,8 +383,8 @@ class A2aClientWebhookExecutableTest {
                         HMACAlgoCustomerChoice.sha_256.name(),
                         "hmacScopes",
                         "=[\"body\"]",
-                        "hmacToleranceSeconds",
-                        "0")))
+                        "hmacTolerance",
+                        "PT0S")))
             .build();
 
     assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNull();

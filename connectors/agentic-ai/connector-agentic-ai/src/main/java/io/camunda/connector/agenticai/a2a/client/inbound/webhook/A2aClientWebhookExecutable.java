@@ -33,6 +33,8 @@ import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -41,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.webhook.v0",
-    version = 1,
+    version = 2,
     name = "A2A Client Webhook Connector (early access)",
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
@@ -96,7 +98,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
     rejectMissingHmacTimestampHeader(props);
-    rejectInvalidHmacToleranceSeconds(props);
+    rejectInvalidHmacTolerance(props);
     rejectUnsupportedHmacScopeCombination(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
@@ -106,7 +108,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
             props.hmacSecret(),
             props.hmacAlgorithm(),
             props.hmacTimestampHeader(),
-            props.hmacToleranceSeconds());
+            props.hmacTolerance());
     context.reportHealth(Health.up());
   }
 
@@ -132,28 +134,38 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   /**
    * Fails webhook deployment (activation) when the {@code timestamp} scope is selected and {@code
-   * hmacToleranceSeconds} is not a positive number of seconds. Gated on the {@code timestamp}
-   * scope, matching {@link #rejectMissingHmacTimestampHeader}: the property is hidden and
-   * irrelevant otherwise, so a leftover invalid value from a previous configuration (e.g. after
-   * switching scopes back to {@code body}) must not block activation.
+   * hmacTolerance} is not a positive ISO-8601 duration. Gated on the {@code timestamp} scope,
+   * matching {@link #rejectMissingHmacTimestampHeader}: the property is hidden and irrelevant
+   * otherwise, so a leftover invalid value from a previous configuration (e.g. after switching
+   * scopes back to {@code body}) must not block activation.
    *
-   * <p>The {@code @Min(1)} constraint on the property is never evaluated at runtime — {@code
+   * <p>The {@code @Pattern} constraint on the property is never evaluated at runtime — {@code
    * bindProperties} validates {@link A2aWebhookPropertiesWrapper}, whose {@code inbound} component
    * isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into the nested {@link
    * A2aWebhookProperties} record. Enforced here explicitly instead of adding that cascade, to avoid
    * retroactively activating validation for the record's other, pre-existing constraints as an
    * unrelated side effect.
    */
-  private static void rejectInvalidHmacToleranceSeconds(A2aWebhookProperties props) {
+  private static void rejectInvalidHmacTolerance(A2aWebhookProperties props) {
     boolean timestampScopeSelected =
         Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
-    if (enabled.equals(props.shouldValidateHmac())
-        && timestampScopeSelected
-        && props.hmacToleranceSeconds() != null
-        && props.hmacToleranceSeconds() < 1) {
+    if (!enabled.equals(props.shouldValidateHmac()) || !timestampScopeSelected) {
+      return;
+    }
+    String tolerance = props.hmacTolerance();
+    if (tolerance == null || tolerance.isBlank()) {
+      return;
+    }
+    Duration parsed;
+    try {
+      parsed = Duration.parse(tolerance);
+    } catch (DateTimeParseException e) {
       throw new ConnectorInputException(
-          "HMAC property 'hmacToleranceSeconds' must be at least 1, but was "
-              + props.hmacToleranceSeconds());
+          "HMAC property 'hmacTolerance' must be an ISO-8601 duration, but was " + tolerance);
+    }
+    if (!parsed.isPositive()) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be a positive duration, but was " + tolerance);
     }
   }
 

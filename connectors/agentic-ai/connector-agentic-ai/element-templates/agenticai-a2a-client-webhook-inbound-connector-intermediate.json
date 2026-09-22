@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0",
   "description" : "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-webhook-connector/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -208,14 +208,21 @@
     },
     "type" : "String"
   }, {
-    "id" : "inbound.hmacToleranceSeconds",
-    "label" : "HMAC timestamp tolerance (seconds)",
-    "description" : "Maximum allowed difference, in seconds, between the signed timestamp and the current time. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+    "id" : "inbound.hmacTolerance",
+    "label" : "HMAC timestamp tolerance",
+    "description" : "Maximum allowed difference between the signed timestamp and the current time, as an ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
     "optional" : true,
-    "value" : "300",
+    "value" : "PT5M",
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(PT.*|)$",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
     "group" : "authentication",
     "binding" : {
-      "name" : "inbound.hmacToleranceSeconds",
+      "name" : "inbound.hmacTolerance",
       "type" : "zeebe:property"
     },
     "condition" : {

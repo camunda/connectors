@@ -36,6 +36,7 @@ class HMACVerifierTest {
   private static final String SECRET = "mySecretKey";
   private static final String TIMESTAMP_HEADER = "X-HMAC-Timestamp";
   private static final int TOLERANCE_SECONDS = 300;
+  private static final String TOLERANCE = "PT300S";
 
   @Test
   void verifySignature_WhenSignatureMatches_ShouldNotThrowException() {
@@ -145,7 +146,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(now));
 
     WebhookProcessingPayload payload =
@@ -166,7 +167,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(verifiedAt));
 
     WebhookProcessingPayload payload =
@@ -187,7 +188,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(verifiedAt));
 
     WebhookProcessingPayload payload =
@@ -213,7 +214,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(now));
 
     WebhookProcessingPayload payload =
@@ -263,7 +264,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(1_700_000_000L));
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
@@ -294,7 +295,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(now));
 
     byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
@@ -349,7 +350,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(now));
 
     assertThatThrownBy(() -> verifier.verifySignature(payload))
@@ -370,7 +371,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(verifiedAt));
 
     WebhookProcessingPayload payload =
@@ -393,7 +394,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(now));
 
     WebhookProcessingPayload payload =
@@ -418,7 +419,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(originalSendTime));
     WebhookProcessingPayload originalRequest = signedPayload(originalSendTime, body);
     assertThatCode(() -> verifierAtOriginalTime.verifySignature(originalRequest))
@@ -434,7 +435,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(replayTime));
 
     assertThatThrownBy(() -> verifierAtReplayTime.verifySignature(originalRequest))
@@ -474,7 +475,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS,
+            TOLERANCE,
             fixedClock(forgedTimestamp));
 
     assertThatThrownBy(() -> verifierAtForgedTime.verifySignature(forgedRequest))
@@ -538,7 +539,7 @@ class HMACVerifierTest {
             SECRET,
             sha_256,
             TIMESTAMP_HEADER,
-            TOLERANCE_SECONDS);
+            TOLERANCE);
 
     WebhookProcessingPayload payload =
         signedPayload(1_700_000_000L, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));

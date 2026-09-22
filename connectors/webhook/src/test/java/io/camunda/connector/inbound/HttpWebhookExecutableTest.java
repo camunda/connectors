@@ -571,7 +571,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void activate_HmacToleranceSecondsZeroOrNegative_RaisesException() {
+  void activate_HmacToleranceZeroOrNegative_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -586,7 +586,7 @@ class HttpWebhookExecutableTest {
                         "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
                         "hmacScopes", "=[\"body\",\"timestamp\"]",
                         "hmacTimestampHeader", "X-HMAC-Timestamp",
-                        "hmacToleranceSeconds", "0",
+                        "hmacTolerance", "PT0S",
                         "auth", Map.of("type", "NONE"))))
             .build();
 
@@ -594,7 +594,30 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void activate_HmacToleranceSecondsIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+  void activate_HmacToleranceMalformed_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "300",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
     // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
     // enabled; a leftover invalid value from a previous configuration must not block activation
     // once HMAC is switched off.
@@ -607,7 +630,7 @@ class HttpWebhookExecutableTest {
                         "context", "webhookContext",
                         "method", "any",
                         "shouldValidateHmac", disabled.name(),
-                        "hmacToleranceSeconds", "0",
+                        "hmacTolerance", "PT0S",
                         "auth", Map.of("type", "NONE"))))
             .build();
 
@@ -615,7 +638,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void activate_HmacToleranceSecondsIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
+  void activate_HmacToleranceIgnoredWhenTimestampScopeNotSelected_DoesNotFailDeployment() {
     // Same rationale as the HMAC-disabled case above, but for HMAC enabled with a scope that
     // doesn't include 'timestamp' (e.g. after switching back to the default 'body' scope): the
     // tolerance value is still irrelevant and a leftover invalid one must not block activation.
@@ -632,7 +655,7 @@ class HttpWebhookExecutableTest {
                         "hmacHeader", "X-HMAC-Sig",
                         "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
                         "hmacScopes", "=[\"body\"]",
-                        "hmacToleranceSeconds", "0",
+                        "hmacTolerance", "PT0S",
                         "auth", Map.of("type", "NONE"))))
             .build();
 
@@ -724,7 +747,7 @@ class HttpWebhookExecutableTest {
   void triggerWebhook_HmacCustomToleranceExceeded_RaisesException()
       throws NoSuchAlgorithmException, InvalidKeyException {
     // 90 seconds old; within the default 300s tolerance, but outside a custom 60s tolerance bound
-    // via a property (exercises String -> Integer coercion through property binding).
+    // via a property, expressed as an ISO-8601 duration.
     long timestampValue = Instant.now().getEpochSecond() - 90;
     byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
     String timestamp = Long.toString(timestampValue);
@@ -744,7 +767,7 @@ class HttpWebhookExecutableTest {
                         "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
                         "hmacScopes", "=[\"body\",\"timestamp\"]",
                         "hmacTimestampHeader", "X-HMAC-Timestamp",
-                        "hmacToleranceSeconds", "60",
+                        "hmacTolerance", "PT60S",
                         "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);

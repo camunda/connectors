@@ -19,20 +19,22 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.TreeMap;
 
 public class HMACVerifier {
 
-  /** Mirrors the Slack SDK's own timestamp tolerance (5 minutes). */
-  public static final int DEFAULT_HMAC_TOLERANCE_SECONDS = 300;
+  /** Mirrors the Slack SDK's own timestamp tolerance (5 minutes), as an ISO-8601 duration. */
+  public static final String DEFAULT_HMAC_TOLERANCE = "PT5M";
 
   private final HMACScope[] hmacScopes;
   private final String hmacHeader;
   private final String hmacSecret;
   private final HMACAlgoCustomerChoice hmacAlgorithm;
   private final String hmacTimestampHeader;
-  private final Integer hmacToleranceSeconds;
+  private final String hmacTolerance;
   private final Clock clock;
 
   /**
@@ -54,14 +56,14 @@ public class HMACVerifier {
       String hmacSecret,
       HMACAlgoCustomerChoice hmacAlgorithm,
       String hmacTimestampHeader,
-      Integer hmacToleranceSeconds) {
+      String hmacTolerance) {
     this(
         hmacScopes,
         hmacHeader,
         hmacSecret,
         hmacAlgorithm,
         hmacTimestampHeader,
-        hmacToleranceSeconds,
+        hmacTolerance,
         Clock.systemUTC());
   }
 
@@ -72,14 +74,14 @@ public class HMACVerifier {
       String hmacSecret,
       HMACAlgoCustomerChoice hmacAlgorithm,
       String hmacTimestampHeader,
-      Integer hmacToleranceSeconds,
+      String hmacTolerance,
       Clock clock) {
     this.hmacScopes = hmacScopes;
     this.hmacHeader = hmacHeader;
     this.hmacSecret = hmacSecret;
     this.hmacAlgorithm = hmacAlgorithm;
     this.hmacTimestampHeader = hmacTimestampHeader;
-    this.hmacToleranceSeconds = hmacToleranceSeconds;
+    this.hmacTolerance = hmacTolerance;
     this.clock = clock;
   }
 
@@ -163,8 +165,7 @@ public class HMACVerifier {
           "HMAC timestamp header " + hmacTimestampHeader + " is malformed: " + timestampValue);
     }
 
-    int toleranceSeconds =
-        hmacToleranceSeconds != null ? hmacToleranceSeconds : DEFAULT_HMAC_TOLERANCE_SECONDS;
+    long toleranceSeconds = resolveToleranceSeconds();
     long nowEpochSeconds = clock.instant().getEpochSecond();
     boolean withinTolerance;
     try {
@@ -180,6 +181,24 @@ public class HMACVerifier {
           401,
           Reason.INVALID_SIGNATURE,
           "HMAC timestamp is outside the allowed tolerance of " + toleranceSeconds + " seconds");
+    }
+  }
+
+  /**
+   * Resolves the configured ISO-8601 {@code hmacTolerance} to whole seconds, falling back to {@link
+   * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse — which the
+   * activation-time check in each connector's {@code activate()} is meant to prevent from ever
+   * reaching here — is treated as an immediate, always-failing tolerance (zero seconds) rather than
+   * silently falling back to the default, so a misconfiguration that slipped past that check fails
+   * closed instead of quietly becoming more permissive than intended.
+   */
+  private long resolveToleranceSeconds() {
+    String tolerance =
+        hmacTolerance != null && !hmacTolerance.isBlank() ? hmacTolerance : DEFAULT_HMAC_TOLERANCE;
+    try {
+      return Duration.parse(tolerance).getSeconds();
+    } catch (DateTimeParseException e) {
+      return 0;
     }
   }
 

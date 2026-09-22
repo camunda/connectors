@@ -17,7 +17,6 @@ import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import java.util.Arrays;
@@ -116,18 +115,17 @@ public record WebhookConnectorProperties(
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         String hmacTimestampHeader,
     @TemplateProperty(
-            id = "hmacToleranceSeconds",
-            label = "HMAC timestamp tolerance (seconds)",
+            id = "hmacTolerance",
+            label = "HMAC timestamp tolerance",
             description =
-                "Maximum allowed difference, in seconds, between the signed timestamp and the current time. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+                "Maximum allowed difference between the signed timestamp and the current time, as an ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
             group = "authentication",
             optional = true,
-            defaultValue = "300",
-            defaultValueType = TemplateProperty.DefaultValueType.Number,
+            defaultValue = HMACVerifier.DEFAULT_HMAC_TOLERANCE,
             condition =
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
-        @Min(1)
-        Integer hmacToleranceSeconds,
+        @Pattern(regexp = "^(PT.*|)$", message = "must be an ISO-8601 duration")
+        String hmacTolerance,
     WebhookAuthorization auth,
     @TemplateProperty(
             id = "verificationExpression",
@@ -164,7 +162,7 @@ public record WebhookConnectorProperties(
         hmacAlgorithm,
         hmacScopes,
         null,
-        HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS,
+        HMACVerifier.DEFAULT_HMAC_TOLERANCE,
         auth,
         verificationExpression);
   }
@@ -180,8 +178,7 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         wrapper.inbound.hmacTimestampHeader,
-        getOrDefault(
-            wrapper.inbound.hmacToleranceSeconds, HMACVerifier.DEFAULT_HMAC_TOLERANCE_SECONDS),
+        getOrDefault(wrapper.inbound.hmacTolerance, HMACVerifier.DEFAULT_HMAC_TOLERANCE),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
         wrapper.inbound.verificationExpression);
   }
@@ -216,8 +213,8 @@ public record WebhookConnectorProperties(
         + ", hmacTimestampHeader='"
         + hmacTimestampHeader
         + "'"
-        + ", hmacToleranceSeconds="
-        + hmacToleranceSeconds
+        + ", hmacTolerance="
+        + hmacTolerance
         + ", auth="
         + auth
         + ", verificationExpression="
