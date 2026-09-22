@@ -208,6 +208,46 @@ class SnsWebhookExecutableTest {
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Subscription");
   }
 
+  /**
+   * Regression test: a comma-separated allow list with a space after the comma (the natural way to
+   * write one, and how the happy-case test above writes it) must match every entry, not just the
+   * first. {@code "arnA, arnB".split(",")} leaves a leading space on every entry after the first;
+   * without a per-entry trim, that space-padded entry never matches the unpadded ARN from a
+   * verified message, silently rejecting a topic the operator did allow-list.
+   */
+  @Test
+  void triggerWebhook_SubscriptionAllowlistSpaceAfterComma_SecondTopicMatches() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context",
+                    "snstest",
+                    "securitySubscriptionAllowedFor",
+                    "specific",
+                    "topicsAllowList",
+                    TOPIC_ARN + ", " + OTHER_TOPIC_ARN))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    headers.put("x-amz-sns-topic-arn", OTHER_TOPIC_ARN);
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    testObject.triggerWebhook(payload);
+
+    verify(confirmation).confirmSubscription();
+  }
+
   @Test
   void triggerWebhook_SubscriptionNoAllowlistTopic_RaiseException() throws Exception {
     // Configure connector

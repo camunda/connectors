@@ -63,11 +63,13 @@ public record SnsWebhookConnectorProperties(
         wrapper.inbound().context(),
         wrapper.inbound().securitySubscriptionAllowedFor(),
         wrapper.inbound().topicsAllowList(),
+        // Trim each entry, not just the whole string: "arnA, arnB" (a space after the comma,
+        // the natural way to write a comma-separated list) otherwise leaves " arnB" in the
+        // parsed list, which never matches the unpadded ARN from the verified message and
+        // silently rejects a topic the operator did allow-list.
         Arrays.stream(
-                Optional.ofNullable(wrapper.inbound().topicsAllowList())
-                    .orElse("")
-                    .trim()
-                    .split(","))
+                Optional.ofNullable(wrapper.inbound().topicsAllowList()).orElse("").split(","))
+            .map(String::trim)
             .collect(Collectors.toList()));
   }
 
