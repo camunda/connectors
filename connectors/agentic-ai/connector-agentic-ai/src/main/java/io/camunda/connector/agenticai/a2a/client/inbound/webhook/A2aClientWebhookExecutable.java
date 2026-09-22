@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhoo
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookProperties.A2aWebhookPropertiesWrapper;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookResult;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -30,8 +31,12 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorE
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
+import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,11 +97,91 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     this.context = context;
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
+    rejectMissingHmacTimestampHeader(props);
+    rejectInvalidHmacTolerance(props);
+    rejectUnsupportedHmacScopeCombination(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
-            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
+            props.hmacScopes(),
+            props.hmacHeader(),
+            props.hmacSecret(),
+            props.hmacAlgorithm(),
+            props.hmacTimestampHeader(),
+            props.hmacTolerance());
     context.reportHealth(Health.up());
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC authentication is enabled with the {@code
+   * timestamp} scope but no {@code hmacTimestampHeader} is configured to read it from — that
+   * combination can never pass verification, so it's rejected at deploy time rather than on every
+   * request.
+   */
+  private static void rejectMissingHmacTimestampHeader(A2aWebhookProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    boolean timestampHeaderConfigured =
+        props.hmacTimestampHeader() != null && !props.hmacTimestampHeader().isBlank();
+    if (enabled.equals(props.shouldValidateHmac())
+        && timestampScopeSelected
+        && !timestampHeaderConfigured) {
+      throw new ConnectorInputException(
+          "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
+              + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when the {@code timestamp} scope is selected and {@code
+   * hmacTolerance} is not a positive ISO-8601 duration. Gated on the {@code timestamp} scope,
+   * matching {@link #rejectMissingHmacTimestampHeader}: the property is hidden and irrelevant
+   * otherwise, so a leftover invalid value from a previous configuration (e.g. after switching
+   * scopes back to {@code body}) must not block activation.
+   *
+   * <p>The {@code @Pattern} constraint on the property is never evaluated at runtime — {@code
+   * bindProperties} validates {@link A2aWebhookPropertiesWrapper}, whose {@code inbound} component
+   * isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into the nested {@link
+   * A2aWebhookProperties} record. Enforced here explicitly instead of adding that cascade, to avoid
+   * retroactively activating validation for the record's other, pre-existing constraints as an
+   * unrelated side effect.
+   */
+  private static void rejectInvalidHmacTolerance(A2aWebhookProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    if (!enabled.equals(props.shouldValidateHmac()) || !timestampScopeSelected) {
+      return;
+    }
+    String tolerance = props.hmacTolerance();
+    if (tolerance == null || tolerance.isBlank()) {
+      return;
+    }
+    Duration parsed;
+    try {
+      parsed = Duration.parse(tolerance);
+    } catch (DateTimeParseException e) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be an ISO-8601 duration, but was " + tolerance);
+    }
+    if (!parsed.isPositive()) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be a positive duration, but was " + tolerance);
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC is enabled and the configured {@code
+   * hmacScopes} — after stripping {@code timestamp}, which isn't itself signable — reduce to a
+   * combination {@link HMACVerifier} doesn't support (e.g. {@code [timestamp, url]} strips down to
+   * {@code [url]} alone). Gated on HMAC being enabled: {@link HMACVerifier} is constructed
+   * unconditionally below regardless of {@code shouldValidateHmac}, so this check must be too, or a
+   * deployment with HMAC disabled could fail activation over a scope combination that will never
+   * actually be evaluated.
+   */
+  private static void rejectUnsupportedHmacScopeCombination(A2aWebhookProperties props) {
+    if (enabled.equals(props.shouldValidateHmac())) {
+      HMACVerifier.rejectUnsupportedScopeCombination(props.hmacScopes());
+    }
   }
 
   @Override
