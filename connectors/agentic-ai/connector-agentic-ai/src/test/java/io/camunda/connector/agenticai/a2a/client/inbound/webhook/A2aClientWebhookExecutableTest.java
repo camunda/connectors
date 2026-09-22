@@ -263,6 +263,66 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacToleranceSecondsZeroOrNegative_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp",
+                        "hmacToleranceSeconds",
+                        "0")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void activate_HmacToleranceSecondsIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+    // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
+    // enabled; a leftover invalid value from a previous configuration must not block activation
+    // once HMAC is switched off.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        disabled.name(),
+                        "hmacToleranceSeconds",
+                        "0")))
+            .build();
+
+    assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNull();
+  }
+
+  @Test
   void triggerWebhook_HmacTimestampWithinTolerance_Success()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long now = Instant.now().getEpochSecond();

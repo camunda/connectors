@@ -569,6 +569,50 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacToleranceSecondsZeroOrNegative_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacToleranceSeconds", "0",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceSecondsIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
+    // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
+    // enabled; a leftover invalid value from a previous configuration must not block activation
+    // once HMAC is switched off.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", disabled.name(),
+                        "hmacToleranceSeconds", "0",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
   void triggerWebhook_HmacTimestampMissing_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()

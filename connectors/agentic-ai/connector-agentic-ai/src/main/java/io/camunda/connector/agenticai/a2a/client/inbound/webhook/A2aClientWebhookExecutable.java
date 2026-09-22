@@ -96,6 +96,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
     rejectMissingHmacTimestampHeader(props);
+    rejectInvalidHmacToleranceSeconds(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
@@ -125,6 +126,25 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       throw new ConnectorInputException(
           "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
               + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when {@code hmacToleranceSeconds} is not a positive
+   * number of seconds. The {@code @Min(1)} constraint on the property is never evaluated at runtime
+   * — {@code bindProperties} validates {@link A2aWebhookPropertiesWrapper}, whose {@code inbound}
+   * component isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into the nested
+   * {@link A2aWebhookProperties} record. Enforced here explicitly instead of adding that cascade,
+   * to avoid retroactively activating validation for the record's other, pre-existing constraints
+   * as an unrelated side effect.
+   */
+  private static void rejectInvalidHmacToleranceSeconds(A2aWebhookProperties props) {
+    if (enabled.equals(props.shouldValidateHmac())
+        && props.hmacToleranceSeconds() != null
+        && props.hmacToleranceSeconds() < 1) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacToleranceSeconds' must be at least 1, but was "
+              + props.hmacToleranceSeconds());
     }
   }
 
