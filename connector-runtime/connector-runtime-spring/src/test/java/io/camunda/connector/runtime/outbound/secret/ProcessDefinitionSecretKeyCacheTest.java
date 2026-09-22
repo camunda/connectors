@@ -56,10 +56,12 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @BeforeEach
   void setUp() {
-    // A real Caffeine cache, not a mock: exercises the actual get(key, Function) contract this
-    // class now relies on, including unchecked-exception propagation.
-    secretKeyCache =
-        new ProcessDefinitionSecretKeyCache(camundaOperateClient, Caffeine.newBuilder().build());
+    // Real Caffeine caches, not mocks: exercises the actual get(key, Function) contract both
+    // this class and ProcessDefinitionModelCache rely on, including unchecked-exception
+    // propagation.
+    var modelCache =
+        new ProcessDefinitionModelCache(camundaOperateClient, Caffeine.newBuilder().build());
+    secretKeyCache = new ProcessDefinitionSecretKeyCache(modelCache, Caffeine.newBuilder().build());
   }
 
   @Test
@@ -427,8 +429,10 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @Test
   void getSecretKeys_noCamundaOperateClient_throwsSecretFilterUnavailableException() {
+    var modelCacheWithoutClient =
+        new ProcessDefinitionModelCache(null, Caffeine.newBuilder().build());
     var cacheWithoutClient =
-        new ProcessDefinitionSecretKeyCache(null, Caffeine.newBuilder().build());
+        new ProcessDefinitionSecretKeyCache(modelCacheWithoutClient, Caffeine.newBuilder().build());
 
     assertThatThrownBy(
             () ->
@@ -461,7 +465,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     // first two attempts 404 before the definition becomes visible, the third succeeds
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(1));
+            new ProcessDefinitionModelCache(
+                camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(1)),
+            Caffeine.newBuilder().build());
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("not found (yet)"))
         .thenThrow(new OperateException("not found (yet)"))
@@ -481,7 +487,9 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_xmlFetchFailsPastMaxRetries_throwsLastFailure() throws Exception {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(1));
+            new ProcessDefinitionModelCache(
+                camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(1)),
+            Caffeine.newBuilder().build());
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("still not found"));
 
@@ -513,7 +521,9 @@ class ProcessDefinitionSecretKeyCacheTest {
       throws Exception {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(200));
+            new ProcessDefinitionModelCache(
+                camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(200)),
+            Caffeine.newBuilder().build());
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("still not found"));
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
@@ -540,7 +550,9 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails() throws Exception {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(200));
+            new ProcessDefinitionModelCache(
+                camundaOperateClient, Caffeine.newBuilder().build(), Duration.ofMillis(200)),
+            Caffeine.newBuilder().build());
     BpmnModelInstance bpmnModel = loadBpmn("outbound-with-secrets.bpmn");
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenAnswer(

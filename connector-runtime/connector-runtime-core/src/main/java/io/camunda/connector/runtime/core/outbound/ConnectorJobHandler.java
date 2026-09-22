@@ -30,6 +30,8 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
@@ -71,6 +73,7 @@ public class ConnectorJobHandler implements JobHandler {
 
   private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public ConnectorJobHandler(
       final OutboundConnectorFunction call,
@@ -79,6 +82,24 @@ public class ConnectorJobHandler implements JobHandler {
       final DocumentFactory documentFactory,
       final ObjectMapper objectMapper,
       final SecretFilterFactory secretFilterFactory) {
+    this(
+        call,
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        secretFilterFactory,
+        IntrinsicFunctionAllowListFactory.disabled());
+  }
+
+  public ConnectorJobHandler(
+      final OutboundConnectorFunction call,
+      final SecretProvider secretProvider,
+      final ValidationProvider validationProvider,
+      final DocumentFactory documentFactory,
+      final ObjectMapper objectMapper,
+      final SecretFilterFactory secretFilterFactory,
+      final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
@@ -87,6 +108,7 @@ public class ConnectorJobHandler implements JobHandler {
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
@@ -134,6 +156,12 @@ public class ConnectorJobHandler implements JobHandler {
                 job.getProcessDefinitionKey(),
                 job.getElementId(),
                 Instant.ofEpochMilli(job.getDeadline())));
+    var intrinsicFunctionAllowList =
+        intrinsicFunctionAllowListFactory.create(
+            new IntrinsicFunctionAllowListContext(
+                job.getProcessDefinitionKey(),
+                job.getElementId(),
+                Instant.ofEpochMilli(job.getDeadline())));
     // built here rather than inside the call, so the values it substituted are still available to
     // redact with afterwards: a secret rotated in the store since then no longer re-reads to what
     // this job actually sent, and the error it provoked would publish the value it did send
@@ -144,7 +172,8 @@ public class ConnectorJobHandler implements JobHandler {
             validationProvider,
             documentFactory,
             objectMapper,
-            secretFilter);
+            secretFilter,
+            intrinsicFunctionAllowList);
     ConnectorResult result = getConnectorResult(job, context, secretFilter);
     processFinalResult(client, job, result, secretFilter, context.getSecretHandler());
   }

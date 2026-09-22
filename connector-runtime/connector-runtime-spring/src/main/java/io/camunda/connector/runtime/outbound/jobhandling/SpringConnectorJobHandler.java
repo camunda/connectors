@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -60,13 +61,38 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       OutboundConnectorFunction connectorFunction,
       OutboundConnectorConfiguration connectorConfiguration,
       SecretFilterFactory secretFilterFactory) {
+    this(
+        metricsRecorder,
+        commandExceptionHandlingStrategy,
+        secretProviderAggregator,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        connectorFunction,
+        connectorConfiguration,
+        secretFilterFactory,
+        IntrinsicFunctionAllowListFactory.disabled());
+  }
+
+  public SpringConnectorJobHandler(
+      MetricsRecorder metricsRecorder,
+      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ObjectMapper objectMapper,
+      OutboundConnectorFunction connectorFunction,
+      OutboundConnectorConfiguration connectorConfiguration,
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     super(
         connectorFunction,
         secretProviderAggregator,
         validationProvider,
         documentFactory,
         objectMapper,
-        secretFilterFactory);
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;
