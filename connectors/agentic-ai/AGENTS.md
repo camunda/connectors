@@ -219,7 +219,7 @@ Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, or `l
 provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing shard-only
 behavior, disabled rows, or provider group membership.
 
-To run the default real-provider suite locally, set `RUN_NATIVE_LLM_E2E=true`,
+To run the default in-process real-provider suite locally, set `RUN_NATIVE_LLM_E2E=true`,
 `REAL_LLM_PROVIDER_GROUP`, and the credentials for the provider group you want to exercise. Provider
 rows whose required environment variables are missing are skipped, so a green run may cover only the
 rows you configured.
@@ -228,7 +228,9 @@ rows you configured.
 export RUN_NATIVE_LLM_E2E=true
 export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Pit-real-llm
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm \
+  -Dit.test=RealProviderApiSmokeIT
 ```
 
 To run one capability from the command line, select its method with Failsafe's `-Dit.test`:
