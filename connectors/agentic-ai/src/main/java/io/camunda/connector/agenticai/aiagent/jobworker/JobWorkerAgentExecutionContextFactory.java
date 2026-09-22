@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.jobworker;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.List;
 import java.util.function.Consumer;
@@ -25,5 +26,6 @@ public interface JobWorkerAgentExecutionContextFactory {
       final JobClient jobClient,
       final ActivatedJob job,
       final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList,
       final Consumer<List<String>> capturedSecrets);
 }

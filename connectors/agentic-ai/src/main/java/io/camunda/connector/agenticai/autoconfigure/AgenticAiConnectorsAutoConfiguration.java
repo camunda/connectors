@@ -53,8 +53,10 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -270,7 +272,11 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper) {
+      // Not the unqualified/general-purpose mapper: this binds the AI-agent job's own input
+      // variables via JobHandlerContext, the same allow-list-gated trust boundary
+      // outboundConnectorObjectMapper is built for. A model-declared intrinsic-function call the
+      // allow-list already approved would otherwise fail to bind (security-testing-findings#275).
+      @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
@@ -291,7 +297,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       ObjectMapper objectMapper,
       ConnectorsOutboundMetrics connectorsOutboundMetrics,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     return new AiAgentJobWorkerHandlerImpl(
         executionContextFactory,
         agentRequestHandler,
@@ -299,7 +306,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         new OutboundConnectorExceptionHandler(secretProvider),
         new ConnectorResultHandler(objectMapper),
         connectorsOutboundMetrics,
-        secretFilterFactory);
+        secretFilterFactory,
+        intrinsicFunctionAllowListFactory);
   }
 
   @Bean

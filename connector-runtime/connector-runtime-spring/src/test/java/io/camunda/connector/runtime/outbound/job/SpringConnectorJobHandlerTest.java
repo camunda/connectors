@@ -52,6 +52,7 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -104,7 +105,8 @@ class SpringConnectorJobHandlerTest {
             TestObjectMapperSupplier.INSTANCE,
             call,
             new DefaultNoopMetricsRecorder(),
-            SecretFilterFactory.disabled());
+            SecretFilterFactory.disabled(),
+            IntrinsicFunctionAllowListFactory.disabled());
       }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(
@@ -752,7 +754,8 @@ class SpringConnectorJobHandlerTest {
               TestObjectMapperSupplier.INSTANCE,
               (context) -> "ok",
               new DefaultNoopMetricsRecorder(),
-              secretFilterFactory);
+              secretFilterFactory,
+              IntrinsicFunctionAllowListFactory.disabled());
       long deadline = System.currentTimeMillis() + Duration.ofMinutes(5).toMillis();
       var jobBuilder = JobBuilder.create().withDeadline(deadline);
 

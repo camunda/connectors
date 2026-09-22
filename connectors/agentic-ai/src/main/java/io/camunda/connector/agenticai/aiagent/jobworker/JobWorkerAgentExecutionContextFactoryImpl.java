@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentReques
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.List;
@@ -42,10 +43,17 @@ public class JobWorkerAgentExecutionContextFactoryImpl
       final JobClient jobClient,
       final ActivatedJob job,
       final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList,
       final Consumer<List<String>> capturedSecrets) {
     final JobHandlerContext context =
         new JobHandlerContext(
-            job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
+            job,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter,
+            intrinsicFunctionAllowList);
     try {
       final var request = context.bindVariables(JobWorkerAgentRequest.class);
       return new JobWorkerAgentExecutionContext(jobClient, job, request);

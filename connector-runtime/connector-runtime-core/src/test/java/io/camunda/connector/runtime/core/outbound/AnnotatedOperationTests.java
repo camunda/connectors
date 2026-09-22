@@ -29,6 +29,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.NoOpSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
@@ -153,6 +154,7 @@ public class AnnotatedOperationTests {
         validationProvider,
         null,
         objectMapper,
-        SecretFilter.allowAll());
+        SecretFilter.allowAll(),
+        IntrinsicFunctionAllowList.allowAll());
   }
 }
