@@ -220,10 +220,12 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
    * ordering.
    */
   private void authenticate(WebhookProcessingPayload payload) {
-    if (props == null) {
-      // activate() aborted (e.g. a JWT webhook missing the now-required issuer/audience) before
-      // setting props, authChecker and hmacVerifier. Reject cleanly instead of letting a
-      // NullPointerException reach the caller as an empty-body 500.
+    if (props == null || authChecker == null || hmacVerifier == null) {
+      // activate() sets props, authChecker and hmacVerifier in sequence and can abort partway
+      // (e.g. a JWT webhook missing the now-required issuer/audience aborts before props is set;
+      // one with an unparseable jwkUrl aborts after props but before authChecker). Reject
+      // cleanly on any partial activation instead of letting a NullPointerException on whichever
+      // field never got set reach the caller as an empty-body 500.
       throw new WebhookConnectorException(503, "This webhook is not active.");
     }
     validateHttpMethod(payload);

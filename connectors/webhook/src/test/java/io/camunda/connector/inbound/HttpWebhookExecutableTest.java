@@ -199,6 +199,44 @@ class HttpWebhookExecutableTest {
     assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(503);
   }
 
+  @Test
+  void triggerWebhook_afterPartialActivationPastProps_rejectsCleanlyInsteadOfNpe() {
+    // activate() sets props, then authChecker, then hmacVerifier, in that order. A JWT webhook
+    // with valid issuer/audience but a scheme-less jwkUrl passes the JWTProperties constructor
+    // (so `props` is set) but fails at WebhookAuthorizationHandler.getHandlerForAuth
+    // (jwkUrl.toURL()
+    // requires an absolute URI), leaving `authChecker` null while `props` is non-null - a
+    // narrower partial-activation state than the one covered above.
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of(
+                            "type",
+                            "JWT",
+                            "jwt",
+                            Map.of(
+                                "jwkUrl", "not-a-valid-url",
+                                "issuer", "https://idp.local",
+                                "audience", "api1")))))
+            .build();
+    assertThat(catchException(() -> testObject.activate(ctx))).isNotNull();
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(503);
+  }
+
   private static ProcessElement elementWithRawProperties(Map<String, String> rawProperties) {
     var element = Mockito.mock(ProcessElement.class);
     Mockito.when(element.properties()).thenReturn(rawProperties);
