@@ -6,12 +6,14 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategy;
 import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategyFactory;
+import io.camunda.connector.inbound.utils.HttpMethods;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -79,6 +81,41 @@ public class HMACVerifier {
     this.hmacTimestampHeader = hmacTimestampHeader;
     this.hmacToleranceSeconds = hmacToleranceSeconds;
     this.clock = clock;
+    rejectUnsupportedScopeCombination(hmacScopes);
+  }
+
+  /**
+   * Fails fast (at construction time, i.e. connector activation) when the non-{@code timestamp}
+   * portion of {@code hmacScopes} isn't a combination {@link HMACEncodingStrategyFactory} actually
+   * supports — e.g. {@code [timestamp, url]} or {@code [timestamp, parameters]} strip down to
+   * {@code [url]}/{@code [parameters]} alone, which has no matching strategy. Without this check,
+   * {@link HMACEncodingStrategyFactory#getStrategy} throws {@code UnsupportedOperationException} on
+   * every incoming request instead, which nothing upstream maps to a client error — an unhandled
+   * 500 on every request, not a deploy-time failure.
+   */
+  private static void rejectUnsupportedScopeCombination(HMACScope[] hmacScopes) {
+    HMACScope[] effectiveScopes = nonTimestampScopes(hmacScopes);
+    try {
+      // Every scope combination the factory supports is either method-independent or supports
+      // both branches of its method-conditional entries, so one arbitrary non-GET method is
+      // enough to determine whether the combination is supported at all.
+      HMACEncodingStrategyFactory.getStrategy(effectiveScopes, HttpMethods.post.name());
+    } catch (UnsupportedOperationException e) {
+      throw new ConnectorInputException(
+          "Unsupported HMAC scope combination "
+              + Arrays.toString(hmacScopes)
+              + ": "
+              + e.getMessage());
+    }
+  }
+
+  private static HMACScope[] nonTimestampScopes(HMACScope[] hmacScopes) {
+    HMACScope[] filtered =
+        Arrays.stream(hmacScopes)
+            .filter(scope -> scope != HMACScope.TIMESTAMP)
+            .toArray(HMACScope[]::new);
+    // TIMESTAMP is an additive scope: on its own, fall back to the default BODY strategy.
+    return filtered.length > 0 ? filtered : new HMACScope[] {HMACScope.BODY};
   }
 
   public void verifySignature(WebhookProcessingPayload payload) {
@@ -156,9 +193,9 @@ public class HMACVerifier {
 
   private boolean webhookSignatureIsValid(WebhookProcessingPayload payload) {
     try {
-      HMACScope[] nonTimestampScopes = nonTimestampScopes();
+      HMACScope[] effectiveScopes = nonTimestampScopes(hmacScopes);
       HMACEncodingStrategy strategy =
-          HMACEncodingStrategyFactory.getStrategy(nonTimestampScopes, payload.method());
+          HMACEncodingStrategyFactory.getStrategy(effectiveScopes, payload.method());
       byte[] bytesToSign = strategy.getBytesToSign(payload);
       if (hasTimestampScope()) {
         bytesToSign = withTimestampPrefix(bytesToSign, payload);
@@ -167,15 +204,6 @@ public class HMACVerifier {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private HMACScope[] nonTimestampScopes() {
-    HMACScope[] filtered =
-        Arrays.stream(hmacScopes)
-            .filter(scope -> scope != HMACScope.TIMESTAMP)
-            .toArray(HMACScope[]::new);
-    // TIMESTAMP is an additive scope: on its own, fall back to the default BODY strategy.
-    return filtered.length > 0 ? filtered : new HMACScope[] {HMACScope.BODY};
   }
 
   private byte[] withTimestampPrefix(byte[] bytesToSign, WebhookProcessingPayload payload) {

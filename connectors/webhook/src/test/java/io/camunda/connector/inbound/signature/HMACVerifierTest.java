@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.model.HMACScope;
@@ -479,5 +480,58 @@ class HMACVerifierTest {
     assertThatThrownBy(() -> verifierAtForgedTime.verifySignature(forgedRequest))
         .isInstanceOf(WebhookSecurityException.class)
         .hasMessageContaining("HMAC signature check didn't pass");
+  }
+
+  @Test
+  void constructor_WhenTimestampScopeStripsDownToUnsupportedUrlAlone_ShouldThrowAtConstruction() {
+    // Regression test: [timestamp, url] strips TIMESTAMP down to [url] alone, which
+    // HMACEncodingStrategyFactory has no strategy for. Before this fail-fast check, this
+    // combination only failed at request-processing time — an UnsupportedOperationException
+    // wrapped in a bare RuntimeException, indistinguishable from an unhandled 500, on every
+    // single request. It must instead fail immediately, at connector activation.
+    assertThatThrownBy(
+            () ->
+                new HMACVerifier(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL},
+                    "X-HMAC-Sig",
+                    SECRET,
+                    sha_256,
+                    TIMESTAMP_HEADER,
+                    TOLERANCE_SECONDS))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Unsupported HMAC scope combination");
+  }
+
+  @Test
+  void
+      constructor_WhenTimestampScopeStripsDownToUnsupportedParametersAlone_ShouldThrowAtConstruction() {
+    // Same regression, for [timestamp, parameters] stripping down to [parameters] alone.
+    assertThatThrownBy(
+            () ->
+                new HMACVerifier(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.PARAMETERS},
+                    "X-HMAC-Sig",
+                    SECRET,
+                    sha_256,
+                    TIMESTAMP_HEADER,
+                    TOLERANCE_SECONDS))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Unsupported HMAC scope combination");
+  }
+
+  @Test
+  void constructor_WhenTimestampCombinedWithSupportedScopes_ShouldNotThrow() {
+    // Counterpart: [timestamp, url, body] strips down to [url, body], a supported combination,
+    // and must keep working.
+    assertThatCode(
+            () ->
+                new HMACVerifier(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL, HMACScope.BODY},
+                    "X-HMAC-Sig",
+                    SECRET,
+                    sha_256,
+                    TIMESTAMP_HEADER,
+                    TOLERANCE_SECONDS))
+        .doesNotThrowAnyException();
   }
 }
