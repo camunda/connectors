@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -82,6 +83,28 @@ class ConnectorResultHandlerTest {
         assertThrows(
             ConnectorInputException.class,
             () -> connectorResultHandler.createOutputVariables(context, null, resultExpression));
+
+    assertThat(exception)
+        .hasMessageContaining(
+            "The connector result contains a forbidden literal 'camunda.function.type'");
+  }
+
+  @Test
+  void ensureErrorExpressionCanNotProduceIntrinsicFunction() {
+    final Object responseContent =
+        Map.of("camunda.function.type", "myfun", "params", List.of("test"));
+    final String errorExpression = "=bpmnError(\"CODE\", \"msg\", {leaked: response})";
+    final Map<String, String> jobHeaders =
+        Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, errorExpression);
+    final ErrorExpressionJobContext jobContext =
+        new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3));
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.examineErrorExpression(
+                    responseContent, jobHeaders, jobContext));
 
     assertThat(exception)
         .hasMessageContaining(
