@@ -55,10 +55,11 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @BeforeEach
   void setUp() {
-    // A real Caffeine cache, not a mock: exercises the actual get(key, Function) contract this
-    // class now relies on.
-    secretKeyCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, Caffeine.newBuilder().build());
+    // Real Caffeine caches, not mocks: exercises the actual get(key, Function) contract both
+    // this class and ProcessDefinitionModelCache rely on.
+    var modelCache =
+        new ProcessDefinitionModelCache("default", camundaClient, Caffeine.newBuilder().build());
+    secretKeyCache = new ProcessDefinitionSecretKeyCache(modelCache, Caffeine.newBuilder().build());
     lenient()
         .when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong()))
         .thenReturn(xmlRequest);
@@ -412,7 +413,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     // first two attempts 404 before the definition becomes visible, the third succeeds
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(1));
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(1)),
+            Caffeine.newBuilder().build());
     when(xmlRequest.execute())
         .thenThrow(new RuntimeException("not found (yet)"))
         .thenThrow(new RuntimeException("not found (yet)"))
@@ -432,7 +435,9 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_xmlFetchFailsPastMaxRetries_throwsLastFailure() {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(1));
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(1)),
+            Caffeine.newBuilder().build());
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
 
     assertThatThrownBy(
@@ -447,12 +452,18 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @Test
   void getSecretKeys_deadlineWithinSafetyMargin_failsWithoutAttemptingFetch() {
+    // The deadline check lives in ProcessDefinitionModelCache, and both it and this class now
+    // wrap it in their own real Caffeine cache -- either may leave the IllegalStateException
+    // unwrapped or nest it a level or two under its own wrapper.
     assertThatThrownBy(
             () ->
                 secretKeyCache.getSecretKeys(
                     new SecretKeyContext(
                         PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
-        .isInstanceOf(IllegalStateException.class);
+        .satisfiesAnyOf(
+            e -> assertThat(e).isInstanceOf(IllegalStateException.class),
+            e -> assertThat(e).hasCauseInstanceOf(IllegalStateException.class),
+            e -> assertThat(e).hasRootCauseInstanceOf(IllegalStateException.class));
     verify(xmlRequest, times(0)).execute();
   }
 
@@ -460,7 +471,9 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_deadlineLeavesOnlyAPartialRetryWindow_stopsRetryingBeforeMaxRetries() {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(200));
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(200)),
+            Caffeine.newBuilder().build());
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
@@ -483,7 +496,9 @@ class ProcessDefinitionSecretKeyCacheTest {
       throws IOException {
     var retryingCache =
         new ProcessDefinitionSecretKeyCache(
-            camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(200));
+            new ProcessDefinitionModelCache(
+                "default", camundaClient, Caffeine.newBuilder().build(), Duration.ofMillis(200)),
+            Caffeine.newBuilder().build());
     String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
     when(xmlRequest.execute())
         .thenAnswer(
