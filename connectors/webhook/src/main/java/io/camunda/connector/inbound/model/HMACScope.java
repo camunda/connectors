@@ -18,5 +18,8 @@ public enum HMACScope {
   BODY,
   @JsonProperty("parameters")
   @JsonAlias("PARAMETERS")
-  PARAMETERS
+  PARAMETERS,
+  @JsonProperty("timestamp")
+  @JsonAlias("TIMESTAMP")
+  TIMESTAMP
 }
