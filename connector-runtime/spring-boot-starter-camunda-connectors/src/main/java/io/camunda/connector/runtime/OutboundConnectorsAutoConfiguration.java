@@ -19,8 +19,10 @@ package io.camunda.connector.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -28,6 +30,8 @@ import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.operate.auth.JwtCredential;
 import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
@@ -163,9 +167,49 @@ public class OutboundConnectorsAutoConfiguration {
     return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
   }
 
+  /**
+   * This mapper's consumers (inbound context/correlation binding, the app-wide HTTP JSON converter
+   * Spring MVC picks up by default in the absence of another unqualified {@code ObjectMapper} bean,
+   * {@code commonJsonMapper} above, ...) all bind data that arrived as external payload, not a
+   * model author's FEEL text — the same "cannot tell trusted model text from payload data"
+   * situation {@link DisabledIntrinsicFunctionExecutor} documents. None of them run an {@link
+   * io.camunda.intrinsic.IntrinsicFunctionAllowList} check first the way the one path that
+   * legitimately dispatches live does ({@code JobHandlerContext}, built from the separate {@code
+   * outboundConnectorObjectMapper} below). Auditing every current and future consumer of a shared,
+   * unqualified bean for that gate individually doesn't scale; disabling dispatch here, at the one
+   * place all of them draw from, does (security-testing-findings#275).
+   */
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
-    return ConnectorsObjectMapperSupplier.getCopy(documentFactory, DocumentModuleSettings.create());
+    final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DisabledIntrinsicFunctionExecutor();
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModule(jacksonModuleDocumentDeserializer);
+  }
+
+  /**
+   * Used by {@code OutboundConnectorManager} to bind an already-secret-replaced,
+   * already-allow-list-checked job-variable tree ({@code JobHandlerContext} runs that gate before
+   * this ever parses it) — the exact trust boundary this mapper is built for, not the
+   * general-purpose, dispatch-disabled {@code objectMapper} above. Wiring the disabled mapper here
+   * would make a model-declared intrinsic-function call the allow-list gate just approved fail at
+   * bind time regardless (security-testing-findings#275).
+   */
+  @Bean(defaultCandidate = false)
+  @OutboundConnectorObjectMapper
+  public ObjectMapper outboundConnectorObjectMapper(DocumentFactory documentFactory) {
+    final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    // Dispatch is intentionally live here: JobHandlerContext refuses an undeclared
+    // camunda.function.type call (via IntrinsicFunctionAllowList) before this mapper's typed
+    // binding ever runs, so by the time this executor is invoked only calls the deployed BPMN
+    // model actually declares remain in the tree. See security-testing-findings#275.
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModule(jacksonModuleDocumentDeserializer);
   }
 }

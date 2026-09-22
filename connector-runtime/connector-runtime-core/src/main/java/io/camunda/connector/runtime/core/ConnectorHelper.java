@@ -56,6 +56,7 @@ public class ConnectorHelper {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
+      verifyResultVariableHasNoForbiddenLiterals(responseContent);
       outputVariables.put(resultVariableName, responseContent);
     }
 
@@ -138,5 +139,24 @@ public class ConnectorHelper {
                     json));
           }
         });
+  }
+
+  /**
+   * Named distinctly from {@link #verifyNoForbiddenLiterals(String)} rather than overloading it --
+   * both take unrelated static types at their one respective call site each, but an {@code
+   * Object}/{@code String} overload pair reads ambiguously to a caller regardless, so a distinct
+   * name is clearer for a reader too.
+   *
+   * <p>Serializes with {@link #OBJECT_MAPPER}, which registers the document module, so a resolved
+   * {@link io.camunda.connector.api.document.Document} in {@code responseContent} doesn't silently
+   * serialize as {@code {}} and hide a forbidden literal nested under it.
+   */
+  private static void verifyResultVariableHasNoForbiddenLiterals(Object responseContent) {
+    try {
+      verifyNoForbiddenLiterals(OBJECT_MAPPER.writeValueAsString(responseContent));
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException(
+          "Failed to serialize the connector result for its forbidden-literal check", e);
+    }
   }
 }
