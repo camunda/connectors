@@ -155,7 +155,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   // template) is treated the same as "specific": only an explicit "any" skips the allow list.
   private void checkMessageAllowListed(String topicArn) throws Exception {
     if (!SubscriptionAllowListFlag.any.equals(props.securitySubscriptionAllowedFor())
-        && !props.topicsAllowListParsed().contains(topicArn)) {
+        && !props.topicsAllowList().contains(topicArn)) {
       // The first call site passes the caller-controlled header, before signature verification,
       // so this value is not yet trustworthy: strip CR/LF before it reaches any log line (log
       // injection, CWE-117). context is only @NotBlank-validated (no CR/LF restriction) and is
@@ -185,9 +185,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
       throw new Exception("Inbound connector context cannot be null");
     }
     this.context = context;
-    props =
-        new SnsWebhookConnectorProperties(
-            context.bindProperties(SnsWebhookConnectorPropertiesWrapper.class));
+    props = context.bindProperties(SnsWebhookConnectorPropertiesWrapper.class).inbound();
     context.reportHealth(Health.up());
   }
 

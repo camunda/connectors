@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -731,9 +730,11 @@ class SnsWebhookExecutableTest {
   }
 
   private InboundConnectorContext createConnectorContext(Map<String, Object> properties) {
+    // Uses InboundConnectorContextBuilder's own default ObjectMapper (not
+    // ObjectMapperSupplier.getMapperInstance(), which lacks the FEEL module): topicsAllowList
+    // relies on FeelDeserializer's comma-splitting for a plain string value, same as the runtime.
     return InboundConnectorContextBuilder.create()
         .properties(properties)
-        .objectMapper(ObjectMapperSupplier.getMapperInstance())
         .validation(new DefaultValidationProvider())
         .build();
   }

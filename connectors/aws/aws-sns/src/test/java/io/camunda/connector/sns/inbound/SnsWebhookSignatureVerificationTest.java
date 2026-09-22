@@ -273,6 +273,10 @@ class SnsWebhookSignatureVerificationTest {
     when(supplier.messageManager("eu-central-1")).thenReturn(manager);
     var mapper = ObjectMapperSupplier.getMapperInstance();
     SnsWebhookExecutable executable = new SnsWebhookExecutable(mapper, supplier);
+    // Uses InboundConnectorContextBuilder's own default ObjectMapper for property binding (not
+    // ObjectMapperSupplier.getMapperInstance(), which lacks the FEEL module): topicsAllowList
+    // relies on FeelDeserializer's comma-splitting for a plain string value, same as the runtime.
+    // `mapper` above is only for SnsWebhookExecutable's own JSON body parsing.
     executable.activate(
         InboundConnectorContextBuilder.create()
             .properties(
@@ -282,7 +286,6 @@ class SnsWebhookSignatureVerificationTest {
                         "context", "snstest",
                         "securitySubscriptionAllowedFor", allowedFor,
                         "topicsAllowList", topicsAllowList)))
-            .objectMapper(mapper)
             .validation(new DefaultValidationProvider())
             .build());
     return executable;
