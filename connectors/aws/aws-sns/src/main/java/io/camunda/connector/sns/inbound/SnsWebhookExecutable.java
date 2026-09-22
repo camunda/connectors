@@ -33,6 +33,7 @@ import io.camunda.connector.sns.inbound.model.SubscriptionAllowListFlag;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -155,7 +156,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   // template) is treated the same as "specific": only an explicit "any" skips the allow list.
   private void checkMessageAllowListed(String topicArn) throws Exception {
     if (!SubscriptionAllowListFlag.any.equals(props.securitySubscriptionAllowedFor())
-        && !props.topicsAllowList().contains(topicArn)) {
+        && !isAllowListed(props.topicsAllowList(), topicArn)) {
       // The first call site passes the caller-controlled header, before signature verification,
       // so this value is not yet trustworthy: strip CR/LF before it reaches any log line (log
       // injection, CWE-117). context is only @NotBlank-validated (no CR/LF restriction) and is
@@ -177,6 +178,14 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
 
   private static String sanitizeForLog(String value) {
     return value == null ? null : value.replaceAll("[\r\n]", "_");
+  }
+
+  // The comma-separated string path is trimmed per-entry by FeelDeserializer.handleListLikeFormat
+  // before it ever reaches here, but a FEEL list literal (e.g. =[" arnA ", "arnB"]) is not - so a
+  // padded entry needs trimming at comparison time too, or it silently rejects an allow-listed
+  // topic (the same over-block failure mode the comma path was already fixed for).
+  private static boolean isAllowListed(List<String> allowList, String topicArn) {
+    return allowList.stream().anyMatch(entry -> entry != null && entry.trim().equals(topicArn));
   }
 
   @Override

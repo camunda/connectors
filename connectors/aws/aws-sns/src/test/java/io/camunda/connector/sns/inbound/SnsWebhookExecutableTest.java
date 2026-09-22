@@ -247,6 +247,39 @@ class SnsWebhookExecutableTest {
     verify(confirmation).confirmSubscription();
   }
 
+  /**
+   * Regression test for a QA finding on PR #8988: the comma-separated string path is trimmed
+   * per-entry by {@code FeelDeserializer.handleListLikeFormat}, but a FEEL list literal is not, so
+   * a padded entry from a FEEL expression was silently rejected - the same over-block failure mode
+   * already fixed for the comma path, just relocated to the FEEL path.
+   */
+  @Test
+  void triggerWebhook_FeelListAllowlistWithPaddedEntry_StillMatches() throws Exception {
+    String feelAllowList = "=[\" " + TOPIC_ARN + " \", \"" + OTHER_TOPIC_ARN + "\"]";
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", feelAllowList))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    testObject.triggerWebhook(payload);
+
+    verify(confirmation).confirmSubscription();
+  }
+
   @Test
   void triggerWebhook_SubscriptionNoAllowlistTopic_RaiseException() throws Exception {
     // Configure connector
