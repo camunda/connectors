@@ -188,9 +188,7 @@ public class HMACVerifier {
    * Resolves the configured ISO-8601 {@code hmacTolerance} to whole seconds, falling back to {@link
    * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse — which the
    * activation-time check in each connector's {@code activate()} is meant to prevent from ever
-   * reaching here — is treated as an immediate, always-failing tolerance (zero seconds) rather than
-   * silently falling back to the default, so a misconfiguration that slipped past that check fails
-   * closed instead of quietly becoming more permissive than intended.
+   * reaching here — fails closed rather than silently falling back to the default.
    */
   private long resolveToleranceSeconds() {
     String tolerance =
@@ -198,7 +196,8 @@ public class HMACVerifier {
     try {
       return Duration.parse(tolerance).getSeconds();
     } catch (DateTimeParseException e) {
-      return 0;
+      throw new WebhookSecurityException(
+          401, Reason.INVALID_SIGNATURE, "HMAC tolerance is malformed: " + tolerance);
     }
   }
 
