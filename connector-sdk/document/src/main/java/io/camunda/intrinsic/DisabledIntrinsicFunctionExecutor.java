@@ -17,7 +17,7 @@
 package io.camunda.intrinsic;
 
 /**
- * An {@link IntrinsicFunctionExecutor} for mappers that bind data nothing marks as coming from
+ * An {@link IntrinsicFunctionExecutor} for mappers that bind data that nothing marks as coming from
  * trusted model text — a FEEL evaluation result, or a job/element property reached through an
  * arbitrary ioMapping expression. By the time such a mapper sees a {@code camunda.function.type}
  * node, it cannot tell a value a process author wrote in the model from one that arrived as

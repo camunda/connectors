@@ -66,24 +66,21 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
           EndEvent.class);
 
   private final ProcessDefinitionModelCache modelCache;
-  private final Cache<Object, Object> cache;
+  private final Cache<Long, Map<String, List<AllowedIntrinsicFunction>>> cache;
 
   public ProcessDefinitionIntrinsicFunctionAllowListCache(
-      ProcessDefinitionModelCache modelCache, Cache<Object, Object> cache) {
+      ProcessDefinitionModelCache modelCache,
+      Cache<Long, Map<String, List<AllowedIntrinsicFunction>>> cache) {
     this.modelCache = modelCache;
     this.cache = cache;
   }
 
   public List<AllowedIntrinsicFunction> getAllowedFunctions(
       IntrinsicFunctionAllowListContext context) {
-    @SuppressWarnings("unchecked")
     Map<String, List<AllowedIntrinsicFunction>> byElement =
-        (Map<String, List<AllowedIntrinsicFunction>>)
-            cache.get(
-                context.processDefinitionKey(),
-                key ->
-                    extractAllowedFunctionsByElementId(
-                        context.processDefinitionKey(), context.deadline()));
+        cache.get(
+            context.processDefinitionKey(),
+            key -> extractAllowedFunctionsByElementId(key, context.deadline()));
     return byElement.getOrDefault(context.elementId(), Collections.emptyList());
   }
 

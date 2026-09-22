@@ -17,9 +17,11 @@
 package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.intrinsic.AllowedIntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
@@ -42,9 +44,12 @@ import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -107,7 +112,7 @@ public class OutboundConnectorRuntimeConfiguration {
       SecretKeyCacheHolder secretKeyCacheStore,
       BpmnModelCacheHolder bpmnModelCacheStore) {
     var modelCache =
-        new ProcessDefinitionModelCache(camundaOperateClient, bpmnModelCacheStore.cache());
+        new ProcessDefinitionModelCache(camundaOperateClient, asModelCache(bpmnModelCacheStore));
     return new ProcessDefinitionSecretKeyCache(modelCache, secretKeyCacheStore.cache());
   }
 
@@ -156,9 +161,27 @@ public class OutboundConnectorRuntimeConfiguration {
       BpmnModelCacheHolder bpmnModelCacheStore,
       IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore) {
     var modelCache =
-        new ProcessDefinitionModelCache(camundaOperateClient, bpmnModelCacheStore.cache());
+        new ProcessDefinitionModelCache(camundaOperateClient, asModelCache(bpmnModelCacheStore));
     return new ProcessDefinitionIntrinsicFunctionAllowListCache(
-        modelCache, intrinsicFunctionAllowListCacheStore.cache());
+        modelCache, asAllowListCache(intrinsicFunctionAllowListCacheStore));
+  }
+
+  /**
+   * {@link BpmnModelCacheHolder} exposes a generic {@code Cache<Object, Object>} so the bean itself
+   * can't collide with a host's own cache bean of any specific type (see its javadoc); the cast to
+   * this cache's actual, narrower shape is confined to this one call site instead of living inside
+   * {@link ProcessDefinitionModelCache} itself.
+   */
+  @SuppressWarnings("unchecked")
+  private static Cache<Long, BpmnModelInstance> asModelCache(BpmnModelCacheHolder holder) {
+    return (Cache<Long, BpmnModelInstance>) (Cache<?, ?>) holder.cache();
+  }
+
+  /** Mirrors {@link #asModelCache} for {@link IntrinsicFunctionAllowListCacheHolder}. */
+  @SuppressWarnings("unchecked")
+  private static Cache<Long, Map<String, List<AllowedIntrinsicFunction>>> asAllowListCache(
+      IntrinsicFunctionAllowListCacheHolder holder) {
+    return (Cache<Long, Map<String, List<AllowedIntrinsicFunction>>>) (Cache<?, ?>) holder.cache();
   }
 
   @Bean

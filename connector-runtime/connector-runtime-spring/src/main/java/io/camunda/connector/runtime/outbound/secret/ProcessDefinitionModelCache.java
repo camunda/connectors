@@ -52,18 +52,18 @@ public class ProcessDefinitionModelCache {
   private static final Duration XML_FETCH_DEADLINE_SAFETY_MARGIN = Duration.ofSeconds(5);
 
   private final CamundaOperateClient camundaOperateClient;
-  private final Cache<Object, Object> cache;
+  private final Cache<Long, BpmnModelInstance> cache;
   private final Duration xmlFetchInitialRetryDelay;
 
   public ProcessDefinitionModelCache(
-      CamundaOperateClient camundaOperateClient, Cache<Object, Object> cache) {
+      CamundaOperateClient camundaOperateClient, Cache<Long, BpmnModelInstance> cache) {
     this(camundaOperateClient, cache, XML_FETCH_INITIAL_RETRY_DELAY);
   }
 
   /** Test-only seam: lets retry tests use a near-zero delay instead of the real one. */
   public ProcessDefinitionModelCache(
       CamundaOperateClient camundaOperateClient,
-      Cache<Object, Object> cache,
+      Cache<Long, BpmnModelInstance> cache,
       Duration xmlFetchInitialRetryDelay) {
     this.camundaOperateClient = camundaOperateClient;
     this.cache = cache;
@@ -78,8 +78,7 @@ public class ProcessDefinitionModelCache {
               + ". This happens when camunda.connector.polling.enabled=false, which skips the"
               + " bean that provides it.");
     }
-    return (BpmnModelInstance)
-        cache.get(processDefinitionKey, key -> fetchModelUnchecked(processDefinitionKey, deadline));
+    return cache.get(processDefinitionKey, key -> fetchModelUnchecked(key, deadline));
   }
 
   /**
