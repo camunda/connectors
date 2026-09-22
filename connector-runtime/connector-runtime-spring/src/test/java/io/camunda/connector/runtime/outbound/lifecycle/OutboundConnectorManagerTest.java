@@ -38,6 +38,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -75,6 +76,11 @@ class OutboundConnectorManagerTest {
     var objectMappersByPhysicalTenantId =
         documentFactoriesByPhysicalTenantId.keySet().stream()
             .collect(java.util.stream.Collectors.toMap(id -> id, id -> mock(ObjectMapper.class)));
+    var intrinsicFunctionAllowListFactoriesByPhysicalTenantId =
+        documentFactoriesByPhysicalTenantId.keySet().stream()
+            .collect(
+                java.util.stream.Collectors.toMap(
+                    id -> id, id -> mock(IntrinsicFunctionAllowListFactory.class)));
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -85,6 +91,7 @@ class OutboundConnectorManagerTest {
         objectMappersByPhysicalTenantId,
         mock(MetricsRecorder.class),
         secretFilterFactoriesByPhysicalTenantId,
+        intrinsicFunctionAllowListFactoriesByPhysicalTenantId,
         null);
   }
 
