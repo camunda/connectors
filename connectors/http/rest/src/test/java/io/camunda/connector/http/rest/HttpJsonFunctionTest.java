@@ -224,6 +224,35 @@ public class HttpJsonFunctionTest extends BaseTest {
   }
 
   /**
+   * Modeler leaves the inline authentication's last-selected discriminator (and its now-hidden,
+   * unfilled members) in the job input even after a credential is bound, regardless of which source
+   * the user picked. Cascading validation straight into that leftover object would fail its
+   * {@code @NotEmpty name}/{@code value} even though it lost to the credential.
+   */
+  @Test
+  void leftoverInlineAuthDoesNotFailValidationWhenCredentialIsBound() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8086/http-endpoint"
+          },
+          "authentication": { "type": "apiKey", "apiKeyLocation": "headers", "name": "", "value": "" }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    var request = context.bindVariables(HttpJsonRequest.class);
+    assertThat(request.getAuthentication()).isInstanceOf(BearerAuthentication.class);
+  }
+
+  /**
    * The inline URL wins over the credential's own, on any host: binding the credential and pointing
    * the task elsewhere are both the process author's decisions, so the override is deliberately
    * left unconstrained.
