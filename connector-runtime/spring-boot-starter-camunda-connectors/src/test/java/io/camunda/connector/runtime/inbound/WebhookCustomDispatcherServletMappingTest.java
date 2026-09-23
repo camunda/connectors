@@ -48,6 +48,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -150,11 +152,36 @@ class WebhookCustomDispatcherServletMappingTest {
     assertThat(receivedBody).isEqualTo(sentBody);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"multipart/related; boundary=x", "multipart/mixed; boundary=x"})
+  void nonFormMultipartBodyIsPreservedUnderTheUnannouncedCustomMapping(String contentType)
+      throws Exception {
+    var sentBody =
+        """
+        --x\r
+        Content-Type: application/json\r
+        \r
+        {"message":"payload"}\r
+        --x--\r
+        """;
+
+    var response = sendPut("/api/inbound/formPath", sentBody, contentType);
+
+    assertThat(response.statusCode()).isEqualTo(400);
+    var receivedBody = new String(payloadCaptor.getValue().rawBody(), StandardCharsets.UTF_8);
+    assertThat(receivedBody).isEqualTo(sentBody);
+  }
+
   private HttpResponse<String> sendPut(String path, String body) throws Exception {
+    return sendPut(path, body, "application/x-www-form-urlencoded");
+  }
+
+  private HttpResponse<String> sendPut(String path, String body, String contentType)
+      throws Exception {
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:" + port + path))
-            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Type", contentType)
             .PUT(HttpRequest.BodyPublishers.ofString(body))
             .build();
     return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());

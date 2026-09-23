@@ -43,6 +43,16 @@ final class WebhookFilterPaths {
     return path;
   }
 
+  static boolean isMultipartFormData(String contentType) {
+    if (contentType == null) {
+      return false;
+    }
+    int parameterSeparator = contentType.indexOf(';');
+    String mediaType =
+        parameterSeparator == -1 ? contentType : contentType.substring(0, parameterSeparator);
+    return mediaType.trim().equalsIgnoreCase("multipart/form-data");
+  }
+
   static boolean isWebhookPath(HttpServletRequest request, String normalizedConfiguredServletPath) {
     String path = URL_PATH_HELPER.getPathWithinApplication(request);
     String prefix = servletPathPrefix(request, normalizedConfiguredServletPath);

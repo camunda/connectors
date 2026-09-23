@@ -254,7 +254,7 @@ public class InboundWebhookRestController {
     }
 
     boolean isMultipartFormData =
-        isMultipartFormDataContentType(httpServletRequest.getContentType());
+        WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
     Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
     if (isMultipartFormData) {
       try {
@@ -282,16 +282,6 @@ public class InboundWebhookRestController {
         new HttpServletRequestWebhookProcessingPayload(
             httpServletRequest, params, lowercaseHeaders, bodyAsByteArray, parts);
     return processWebhook(connector, payload);
-  }
-
-  private static boolean isMultipartFormDataContentType(String contentType) {
-    if (contentType == null) {
-      return false;
-    }
-    int parameterSeparator = contentType.indexOf(';');
-    String mediaType =
-        parameterSeparator == -1 ? contentType : contentType.substring(0, parameterSeparator);
-    return mediaType.trim().equalsIgnoreCase("multipart/form-data");
   }
 
   private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {

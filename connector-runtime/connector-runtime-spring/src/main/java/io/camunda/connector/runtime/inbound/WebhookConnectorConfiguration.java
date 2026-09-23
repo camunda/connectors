@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
+import io.camunda.connector.runtime.inbound.webhook.WebhookAwareStandardServletMultipartResolver;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMethodFilter;
@@ -31,6 +32,7 @@ import java.util.Set;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.AbstractFilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -39,6 +41,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.DispatcherServlet;
 
 @Configuration
@@ -60,6 +63,20 @@ public class WebhookConnectorConfiguration {
   public HiddenHttpMethodFilter webhookExcludingHiddenHttpMethodFilter(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath) {
     return new WebhookExcludingHiddenHttpMethodFilter(dispatcherServletPath);
+  }
+
+  @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+  @ConditionalOnMissingBean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+  @ConditionalOnProperty(
+      name = "spring.servlet.multipart.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public StandardServletMultipartResolver webhookAwareMultipartResolver(
+      @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
+      @Value("${spring.servlet.multipart.resolve-lazily:false}") boolean resolveLazily) {
+    var resolver = new WebhookAwareStandardServletMultipartResolver(dispatcherServletPath);
+    resolver.setResolveLazily(resolveLazily);
+    return resolver;
   }
 
   @Bean

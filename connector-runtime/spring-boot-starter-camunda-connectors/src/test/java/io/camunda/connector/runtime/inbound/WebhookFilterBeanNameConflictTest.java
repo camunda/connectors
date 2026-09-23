@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.runtime.WebhookConnectorAutoConfiguration;
+import io.camunda.connector.runtime.inbound.webhook.WebhookAwareStandardServletMultipartResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -81,6 +82,22 @@ class WebhookFilterBeanNameConflictTest {
                   .hasMessageContaining("Found FormContentFilter(s)")
                   .hasMessageContaining("WebhookExcludingFormContentFilter");
             });
+  }
+
+  @Test
+  void defaultMultipartResolverIsWebhookAware() {
+    contextRunner.run(
+        context ->
+            assertThat(context)
+                .hasSingleBean(WebhookAwareStandardServletMultipartResolver.class)
+                .hasBean("multipartResolver"));
+  }
+
+  @Test
+  void multipartResolverIsNotDeclaredWhenMultipartIsDisabled() {
+    contextRunner
+        .withPropertyValues("spring.servlet.multipart.enabled=false")
+        .run(context -> assertThat(context).doesNotHaveBean("multipartResolver"));
   }
 
   @Configuration(proxyBeanMethods = false)
