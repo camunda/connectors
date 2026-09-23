@@ -186,15 +186,23 @@ public class HMACVerifier {
 
   /**
    * Resolves the configured ISO-8601 {@code hmacTolerance} to whole seconds, falling back to {@link
-   * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse — which the
-   * activation-time check in each connector's {@code activate()} is meant to prevent from ever
-   * reaching here — fails closed rather than silently falling back to the default.
+   * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse or contains fractional
+   * seconds — which the activation-time check in each connector's {@code activate()} is meant to
+   * prevent from ever reaching here — fails closed rather than silently weakening the configured
+   * tolerance.
    */
   private long resolveToleranceSeconds() {
     String tolerance =
         hmacTolerance != null && !hmacTolerance.isBlank() ? hmacTolerance : DEFAULT_HMAC_TOLERANCE;
     try {
-      return Duration.parse(tolerance).getSeconds();
+      Duration parsed = Duration.parse(tolerance);
+      if (parsed.getNano() != 0) {
+        throw new WebhookSecurityException(
+            401,
+            Reason.INVALID_SIGNATURE,
+            "HMAC tolerance must be a whole-second duration: " + tolerance);
+      }
+      return parsed.getSeconds();
     } catch (DateTimeParseException e) {
       throw new WebhookSecurityException(
           401, Reason.INVALID_SIGNATURE, "HMAC tolerance is malformed: " + tolerance);
