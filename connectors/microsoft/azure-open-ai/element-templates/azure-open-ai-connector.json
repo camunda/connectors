@@ -73,7 +73,7 @@
       "id": "authenticationConfiguration",
       "label": "Authentication credential",
       "tooltip": "Choose a reusable authentication credential, or configure a one-time API key below.",
-      "description": "Note: the credential must be an API key credential whose key name is <code>api-key</code>, which is what Azure OpenAI expects; a credential of any other type or key name passes template and binding validation but fails at runtime against Azure OpenAI. The credential's own URL field is not used by this connector.",
+      "description": "Note: a bearer or OAuth 2.0 credential is sent as a standard <code>Authorization: Bearer</code> header and works as an alternative when local API key authentication is disabled. If you use an API key credential instead, its key name must be exactly <code>api-key</code>, which is what Azure OpenAI expects; a credential with any other key name passes template and binding validation but silently sends the wrong header, so the request fails at runtime against Azure OpenAI. The credential's own URL field is not used by this connector.",
       "optional": true,
       "group": "authentication",
       "binding": {
