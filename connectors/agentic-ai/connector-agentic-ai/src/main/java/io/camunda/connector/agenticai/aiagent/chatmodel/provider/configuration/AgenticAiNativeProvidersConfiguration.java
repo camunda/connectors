@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCh
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
@@ -122,6 +123,21 @@ public class AgenticAiNativeProvidersConfiguration {
         responsesStrategy,
         foundryCredentialResolver,
         oAuthClientCredentialsTokenResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public MistralChatModelFactory aiAgentMistralChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgenticAiHttpProxySupport httpProxySupport,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    return new MistralChatModelFactory(
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+        new OpenAiCompletionsResponseConverter(objectMapper),
+        OpenAiCompletionsStreamAssembler.accumulating());
   }
 
   @Bean
