@@ -638,6 +638,31 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacToleranceWithFractionalSeconds_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "PT0.5S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    ConnectorInputException exception =
+        assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+    assertThat(exception).hasMessageContaining("whole-second duration");
+  }
+
+  @Test
   void activate_HmacToleranceIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
     // The tolerance field is only meaningful (and only shown in the Modeler) while HMAC is
     // enabled; a leftover invalid value from a previous configuration must not block activation
