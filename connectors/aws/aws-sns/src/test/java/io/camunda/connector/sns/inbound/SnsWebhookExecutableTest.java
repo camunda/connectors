@@ -20,9 +20,9 @@ import com.amazonaws.services.sns.message.SnsNotification;
 import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.amazonaws.services.sns.message.SnsUnknownMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -207,6 +207,79 @@ class SnsWebhookExecutableTest {
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Subscription");
   }
 
+  /**
+   * Regression test: a comma-separated allow list with a space after the comma (the natural way to
+   * write one, and how the happy-case test above writes it) must match every entry, not just the
+   * first. {@code "arnA, arnB".split(",")} leaves a leading space on every entry after the first;
+   * without a per-entry trim, that space-padded entry never matches the unpadded ARN from a
+   * verified message, silently rejecting a topic the operator did allow-list.
+   */
+  @Test
+  void triggerWebhook_SubscriptionAllowlistSpaceAfterComma_SecondTopicMatches() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context",
+                    "snstest",
+                    "securitySubscriptionAllowedFor",
+                    "specific",
+                    "topicsAllowList",
+                    TOPIC_ARN + ", " + OTHER_TOPIC_ARN))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    headers.put("x-amz-sns-topic-arn", OTHER_TOPIC_ARN);
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    testObject.triggerWebhook(payload);
+
+    verify(confirmation).confirmSubscription();
+  }
+
+  /**
+   * Regression test for a QA finding on PR #8988: the comma-separated string path is trimmed
+   * per-entry by {@code FeelDeserializer.handleListLikeFormat}, but a FEEL list literal is not, so
+   * a padded entry from a FEEL expression was silently rejected - the same over-block failure mode
+   * already fixed for the comma path, just relocated to the FEEL path.
+   */
+  @Test
+  void triggerWebhook_FeelListAllowlistWithPaddedEntry_StillMatches() throws Exception {
+    String feelAllowList = "=[\" " + TOPIC_ARN + " \", \"" + OTHER_TOPIC_ARN + "\"]";
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", feelAllowList))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    testObject.triggerWebhook(payload);
+
+    verify(confirmation).confirmSubscription();
+  }
+
   @Test
   void triggerWebhook_SubscriptionNoAllowlistTopic_RaiseException() throws Exception {
     // Configure connector
@@ -238,9 +311,13 @@ class SnsWebhookExecutableTest {
     assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
+  /**
+   * Regression test for security-testing-findings#263, clause 3: {@code topicsAllowList} must be
+   * required (non-empty) whenever the mode isn't explicitly "any" - this must fail fast at
+   * activation, not silently accept every topic at runtime.
+   */
   @Test
-  void triggerWebhook_SubscriptionAllowListEmpty_RaiseException() throws Exception {
-    // Configure connector
+  void activate_SpecificModeWithoutAllowList_FailsValidation() {
     Map<String, Object> actualBPMNProperties =
         Map.of(
             "inbound",
@@ -250,22 +327,201 @@ class SnsWebhookExecutableTest {
 
     ctx = createConnectorContext(actualBPMNProperties);
 
-    // Configure payload
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
+   * Regression test raised in PR review: a delimiter-only {@code topicsAllowList} (e.g. {@code
+   * ","}) is non-blank but parses to zero usable topic ARNs, which would otherwise activate
+   * successfully and then reject every request.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {",", " , ", ",,"})
+  void activate_DelimiterOnlyAllowList_FailsValidation(String delimiterOnlyAllowList) {
+    Map<String, Object> actualBPMNProperties =
+        Map.of(
+            "inbound",
+            Map.of(
+                "context", "snstest",
+                "securitySubscriptionAllowedFor", "specific",
+                "topicsAllowList", delimiterOnlyAllowList));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clauses 2+3: a {@code null}
+   * securitySubscriptionAllowedFor (hand-authored BPMN, or a diagram built on an older element
+   * template) is treated the same as "specific" and therefore also requires a non-empty allow list
+   * at activation - it must not fall back to the permissive "any" behaviour.
+   */
+  @Test
+  void activate_NullSecuritySubscriptionAllowedForWithoutAllowList_FailsValidation() {
+    Map<String, Object> actualBPMNProperties = Map.of("inbound", Map.of("context", "snstest"));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  /**
+   * Regression test raised in PR review: the webhook endpoint stays registered even when {@code
+   * activate()} failed validation (e.g. a legacy/hand-authored element with an invalid allow-list
+   * configuration), so a request can still reach {@code triggerWebhook} with {@code props} unset.
+   * That must produce the same actionable rejection as everything else here, not a raw NPE surfaced
+   * as an opaque HTTP 500.
+   */
+  @Test
+  void triggerWebhook_AfterFailedActivation_ThrowsActionableExceptionNotNpe() {
+    Map<String, Object> actualBPMNProperties =
+        Map.of(
+            "inbound",
+            Map.of(
+                "context", "snstest",
+                "securitySubscriptionAllowedFor", "specific"));
+
+    ctx = createConnectorContext(actualBPMNProperties);
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(new HashMap<>(snsRequestHeaders));
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .isNotInstanceOf(NullPointerException.class)
+        .hasMessageContaining("not activated");
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clause 2: a {@code null}
+   * securitySubscriptionAllowedFor must still deny an unauthorized topic at request time, not just
+   * at activation - i.e. null is "specific", never "any".
+   */
+  @Test
+  void triggerWebhook_NullSecuritySubscriptionAllowedFor_UnauthorizedTopicIsRejected()
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of("inbound", Map.of("context", "snstest", "topicsAllowList", TOPIC_ARN))));
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
     final var confirmation = mock(SnsSubscriptionConfirmation.class);
-    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
     final var payload = mock(WebhookProcessingPayload.class);
-    when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
-        .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
-
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
     when(messageManager.parseMessage(any())).thenReturn(confirmation);
 
-    // when & then
-    testObject.activate(ctx);
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list");
+    verify(confirmation, never()).confirmSubscription();
+  }
+
+  /**
+   * Regression test for security-testing-findings#263, clause 1: the allow list must be enforced
+   * "not only for SnsNotification" - a Notification (not just a SubscriptionConfirmation) from an
+   * unauthorized, signature-verified topic must be rejected too.
+   */
+  @Test
+  void triggerWebhook_NotificationFromUnauthorizedTopic_RaisesException() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-message-type", "Notification");
+    final var notification = mock(SnsNotification.class);
+    when(notification.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            NOTIFICATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(notification);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list");
+  }
+
+  /**
+   * Regression test raised in PR review: the rejection exception message is also written to the
+   * connector's activity log (InboundWebhookRestController#L259 logs {@code Throwable#getMessage}
+   * verbatim), so it must not carry the configured allow list - only "not allowed"-level detail.
+   */
+  @Test
+  void triggerWebhook_RejectionException_DoesNotLeakAllowListContents() throws Exception {
+    final var configuredAllowListArn = "arn:aws:sns:eu-central-1:999999999999:SecretInternalTopic";
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", configuredAllowListArn))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    // The header-based prefilter runs before signature verification, so it must also see the
+    // rejected topic - otherwise it would throw first, using the (allowed) default header.
+    headers.put("x-amz-sns-topic-arn", OTHER_TOPIC_ARN);
+    headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
+    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(OTHER_TOPIC_ARN);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody())
+        .thenReturn(
+            SUBSCRIPTION_CONFIRMATION_REQUEST
+                .replace(TOPIC_ARN, OTHER_TOPIC_ARN)
+                .getBytes(StandardCharsets.UTF_8));
+    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN)
+        .hasMessageNotContaining(configuredAllowListArn);
+  }
+
+  /**
+   * Regression test raised in PR review: the first {@code checkMessageAllowListed} call receives
+   * the caller-controlled header before signature verification, so a CR/LF in it must not reach the
+   * exception message (log injection, CWE-117) that {@code InboundWebhookRestController} writes to
+   * the activity log.
+   */
+  @Test
+  void triggerWebhook_UnlistedHeaderWithCrlf_SanitizesTopicInExceptionMessage() throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "specific",
+                    "topicsAllowList", TOPIC_ARN))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    final var injectedTopicArn = OTHER_TOPIC_ARN + "\r\nFORGED LOG LINE";
+    headers.put("x-amz-sns-topic-arn", injectedTopicArn);
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Request didn't match allow list")
+        .hasMessageContaining(OTHER_TOPIC_ARN)
+        .hasMessageContaining("FORGED LOG LINE")
+        .hasMessageNotContaining("\r")
+        .hasMessageNotContaining("\n");
   }
 
   @ParameterizedTest
@@ -342,6 +598,34 @@ class SnsWebhookExecutableTest {
         .isNotInstanceOf(ArrayIndexOutOfBoundsException.class)
         .hasMessageContaining("Invalid SNS topic ARN header");
     verify(snsClientSupplier, never()).messageManager(anyString());
+  }
+
+  /**
+   * Regression test raised in PR review: {@code extractRegionFromTopicArnHeader} runs
+   * unconditionally in every mode, including "any" - where {@code checkMessageAllowListed} never
+   * gets a chance to sanitize anything - so its own "Invalid SNS topic ARN header" exception must
+   * sanitize the header independently (log injection, CWE-117).
+   */
+  @Test
+  void triggerWebhook_MalformedTopicArnHeaderWithCrlf_AnyMode_SanitizesExceptionMessage()
+      throws Exception {
+    testObject.activate(
+        createConnectorContext(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "snstest",
+                    "securitySubscriptionAllowedFor", "any"))));
+    final var headers = new HashMap<>(snsRequestHeaders);
+    headers.put("x-amz-sns-topic-arn", "garbage\r\nFORGED LOG LINE");
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.headers()).thenReturn(headers);
+
+    assertThatThrownBy(() -> testObject.triggerWebhook(payload))
+        .hasMessageContaining("Invalid SNS topic ARN header")
+        .hasMessageContaining("FORGED LOG LINE")
+        .hasMessageNotContaining("\r")
+        .hasMessageNotContaining("\n");
   }
 
   @ParameterizedTest
@@ -479,9 +763,11 @@ class SnsWebhookExecutableTest {
   }
 
   private InboundConnectorContext createConnectorContext(Map<String, Object> properties) {
+    // Uses InboundConnectorContextBuilder's own default ObjectMapper (not
+    // ObjectMapperSupplier.getMapperInstance(), which lacks the FEEL module): topicsAllowList
+    // relies on FeelDeserializer's comma-splitting for a plain string value, same as the runtime.
     return InboundConnectorContextBuilder.create()
         .properties(properties)
-        .objectMapper(ObjectMapperSupplier.getMapperInstance())
         .validation(new DefaultValidationProvider())
         .build();
   }

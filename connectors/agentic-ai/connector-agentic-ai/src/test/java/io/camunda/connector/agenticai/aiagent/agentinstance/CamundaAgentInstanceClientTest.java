@@ -6,12 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -69,6 +72,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigura
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -140,7 +144,39 @@ class CamundaAgentInstanceClientTest {
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
-            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper, toolMapper);
+            singleTenant(camundaClient),
+            RETRIES_CONFIGURATION,
+            recordedSleeps::add,
+            historyMapper,
+            toolMapper);
+  }
+
+  @Test
+  void createsTheAgentInstanceOnTheClusterTheJobWasActivatedFrom() {
+    final var tenantAClient = mock(CamundaClient.class);
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    final var executionContext = TestAgentExecutionContext.ofPhysicalTenant("tenanta");
+    when(selector.forJob(executionContext.jobContext())).thenReturn(tenantAClient);
+    when(tenantAClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
+    when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+        .thenReturn(createCommandStep2);
+    when(createCommandStep2.jobKey(JOB_KEY)).thenReturn(createCommandStep3);
+    when(createCommandStep3.jobLeaseToken(DEFAULT_LEASE_TOKEN)).thenReturn(createCommandStep4);
+    when(createCommandStep4.history(anyList())).thenReturn(createCommandStep5);
+    when(createCommandStep5.execute()).thenReturn(response);
+    when(response.getAgentInstanceKey()).thenReturn(AGENT_INSTANCE_KEY);
+
+    final var key =
+        new CamundaAgentInstanceClient(
+                selector,
+                RETRIES_CONFIGURATION,
+                recordedSleeps::add,
+                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceToolMapper(gatewayToolHandlers))
+            .create(executionContext);
+
+    assertThat(key.value()).isEqualTo(AGENT_INSTANCE_KEY);
+    verifyNoInteractions(camundaClient);
   }
 
   private void givenCreateCommand() {
@@ -553,10 +589,18 @@ class CamundaAgentInstanceClientTest {
 
     private AgentConfiguration configuration(
         String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
+      return configuration(systemPrompt, tools, maxModelCalls, "gpt-4o");
+    }
+
+    private AgentConfiguration configuration(
+        String systemPrompt,
+        List<ToolDefinition> tools,
+        @Nullable Integer maxModelCalls,
+        String model) {
       return new AgentConfiguration(
               new OpenAiProviderConfiguration(
                   new OpenAiProviderConfiguration.OpenAiConnection(
-                      null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+                      null, null, new OpenAiProviderConfiguration.OpenAiModel(model, null))),
               new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
               null,
               null,
@@ -727,7 +771,7 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
-      assertThat(configurationItem.getModel()).isNull();
+      assertThat(configurationItem.getModel()).isEqualTo("gpt-4o");
       assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
@@ -806,6 +850,27 @@ class CamundaAgentInstanceClientTest {
       final var configurationItem = historyCaptor.getValue().get(0);
       assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
       assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(20);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWithUpdatedModelWhenModelChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of(), null, "gpt-4o");
+      final var configuration = configuration("Be nice.", List.of(), null, "gpt-5.5");
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      final var configurationItem = historyCaptor.getValue().get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      assertThat(configurationItem.getModel()).isEqualTo("gpt-5.5");
     }
 
     @Test
@@ -1321,6 +1386,12 @@ class CamundaAgentInstanceClientTest {
 
     public static TestAgentExecutionContext withoutLeaseToken() {
       return new TestAgentExecutionContext(new LimitsConfiguration(10), null);
+    }
+
+    public static TestAgentExecutionContext ofPhysicalTenant(String physicalTenantId) {
+      var context = new TestAgentExecutionContext(new LimitsConfiguration(10));
+      context.jobContext.setPhysicalTenantId(physicalTenantId);
+      return context;
     }
 
     public static TestAgentExecutionContext withChatModel(ChatModelConfiguration chatModel) {

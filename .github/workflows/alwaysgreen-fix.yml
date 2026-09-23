@@ -485,10 +485,11 @@ jobs:
           find agent-workspace -type d -name .git -prune -exec chmod -R u+w {} +
           jq -e --arg surface "$SURFACE" '
             type == "object" and
-            ((keys - ["surface", "category", "change", "reason"]) | length == 0) and
+            ((keys - ["surface", "category", "change", "reason", "blame_relevant"]) | length == 0) and
             .surface == $surface and
             (.category | IN("test", "chart", "product", "ci", "not-determined")) and
             (.reason == null or (.reason | type == "string" and length <= 2000)) and
+            (.blame_relevant == null or (.blame_relevant | type == "boolean")) and
             (.change == null or (
               .change | type == "object" and
               ((keys - ["owner", "repo", "root_cause", "fix"]) | length == 0) and
@@ -755,8 +756,38 @@ jobs:
           KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
         run: |
           set -euo pipefail
-          root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json)
-          fix=$(jq -r '.change.fix' /tmp/fix-meta.json)
+          # GitHub notifies on every @login in a PR body, including one inside a sentence
+          # explaining that the person was ruled out, and .change.root_cause/.change.fix are
+          # untrusted agent output rendered verbatim below. FIX-AGENT.md tells the agent not
+          # to name anyone itself, but that is an instruction, not an enforcement: defang
+          # mention-shaped tokens here so the gated "Breaking-change author" line stays the
+          # only thing in this body that can notify a human. Dropping the sigil is what
+          # makes that hold under any renderer: wrapping the token in backticks instead
+          # would break an existing code span ("` @x `" -> "` `@x` `" closes the span
+          # before the mention), and an HTML entity relies on GitHub's mention filter
+          # running before entity decoding. With no @ left in mention position there is
+          # nothing to parse, whatever the surrounding markup.
+          #
+          # The prefix class is the boundary GitHub's own mention parser uses -- start of
+          # line or any non-word character -- so "ruled-out-@x" and "(@x)" are caught too,
+          # while an email keeps its @ because a local part ends in a word character and
+          # is not a mention for GitHub either. The loop re-runs to a fixpoint so a token
+          # that only becomes a mention after an earlier edit ("@@x" -> "@x") is caught as
+          # well. Note /tmp/fix-meta.json keeps the agent's wording verbatim for the
+          # run artifact.
+          defang_mentions() {
+            sed -E -e ':a' -e 's,(^|[^A-Za-z0-9_])@([A-Za-z0-9]),\1\2,g' -e 'ta'
+          }
+          root_cause=$(jq -r '.change.root_cause' /tmp/fix-meta.json | defang_mentions)
+          fix=$(jq -r '.change.fix' /tmp/fix-meta.json | defang_mentions)
+
+          # The agent's own "Zeroth check" verdict (FIX-AGENT.md), not just whether a
+          # blame author/reviewer was resolved at all: a merge that merely triggered this
+          # run is not a confirmed cause, and naming or reviewer-requesting its author
+          # regardless of relevance is exactly what pinged an uninvolved contributor in
+          # camunda/camunda once already (camunda/camunda#63373). Absent or malformed
+          # defaults to "not relevant" -- fail safe, not fail open.
+          blame_relevant=$(jq -r '.blame_relevant // false' /tmp/fix-meta.json 2>/dev/null || echo false)
 
           record_pr() {
             local number="$1"
@@ -792,7 +823,21 @@ jobs:
             echo
             echo "- Failing run: ${FAILING_RUN_URL}"
             echo "- Triage run: ${TRIAGE_RUN_URL}"
-            [ -z "$BLAME_AUTHOR" ] || echo "- Breaking-change author: @${BLAME_AUTHOR}"
+            # "Candidate", not "the": a true verdict says the blamed PR is plausibly
+            # connected to the failing surface, which is not the same as establishing that
+            # this person's change caused it. The line claims only the verdict and says
+            # where the name came from, so the notification is actionable rather than an
+            # accusation. It deliberately does not assert that this person's merge produced
+            # the tested commit -- that holds for a clean "pr-author" match only, and is
+            # false for a "backport-original" (names the original PR's author, not the bot
+            # merge) and for the "pr-author" fallback (a candidate whose merge never
+            # matched). See Blame in .github/scripts/alwaysgreen/classify.py.
+            [ -z "$BLAME_AUTHOR" ] || [ "$blame_relevant" != "true" ] \
+              || echo "- Candidate breaking-change author: @${BLAME_AUTHOR} -- the agent" \
+                      "judged the PR attributed to this run's commit related to the" \
+                      "failure. That attribution is heuristic (see \`Blame\` in" \
+                      ".github/scripts/alwaysgreen/classify.py); it is not a confirmed" \
+                      "cause."
             echo
             echo "<!-- alwaysgreen-fixed"
             jq -r '.[] | "fp=\(.)"' /tmp/fingerprints.json
@@ -840,9 +885,15 @@ jobs:
             --body-file /tmp/pr-body.md \
             --label "${FIX_LABEL}" --label "${KEY_LABEL}")
           number="${url##*/}"
-          if [ -n "$BLAME_REVIEWER" ]; then
+          # Gated on the same blame_relevant verdict as the body mention above: a formal
+          # review request notifies the blamed author exactly like a body mention does, so
+          # requesting one for a PR the agent already ruled unrelated (or never judged)
+          # reintroduces the same false-cause ping the body-mention gate exists to prevent.
+          if [ -n "$BLAME_REVIEWER" ] && [ "$blame_relevant" = "true" ]; then
             gh pr edit "$number" --repo "$REPO" --add-reviewer "$BLAME_REVIEWER" 2>/dev/null \
               || echo "::warning::could not request review from ${BLAME_REVIEWER} on ${REPO}#${number}"
+          elif [ -n "$BLAME_REVIEWER" ]; then
+            echo "blame_relevant is not true in fix-meta.json -- skipping review request for ${BLAME_REVIEWER} on ${REPO}#${number} (zeroth check ruled them out, or no verdict was recorded)"
           fi
           record_pr "$number" "$url" "$BRANCH"
 

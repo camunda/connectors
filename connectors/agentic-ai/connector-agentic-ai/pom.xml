@@ -19,14 +19,25 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
-    <version.groovy>5.1.2</version.groovy>
+    <version.groovy>6.0.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.14.1</version.nullaway>
-    <version.anthropic-java>2.63.0</version.anthropic-java>
-    <version.openai-java>4.63.3</version.openai-java>
+    <version.anthropic-java>2.65.0</version.anthropic-java>
+    <version.openai-java>4.68.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
+    <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
+         A template whose id has no entry here keeps the generator's own default
+         (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
+         legacy <thinking> XML scaffold that DEFAULT_SYSTEM_PROMPT (the v2 default) dropped in
+         favor of each provider's native reasoning/thinking configuration. -->
+    <systemPromptOverrides>
+io.camunda.connectors.agenticai.aiagent.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.jobworker.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
+    </systemPromptOverrides>
   </properties>
 
   <licenses>
@@ -175,6 +186,12 @@
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-bedrock</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-foundry</artifactId>
       <version>${version.anthropic-java}</version>
     </dependency>
 
@@ -682,6 +699,10 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -728,6 +749,10 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -761,6 +786,10 @@
                 <property>
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -800,61 +829,9 @@
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>add-agent-definition-marker-task-v2</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
-              </scripts>
-              <properties>
                 <property>
-                  <name>sourceFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
-                </property>
-                <property>
-                  <name>agentType</name>
-                  <value>aiAgentTask</value>
-                </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>add-agent-definition-marker-task-v2-hybrid</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
-              </scripts>
-              <properties>
-                <property>
-                  <name>sourceFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
-                  </value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
-                  </value>
-                </property>
-                <property>
-                  <name>agentType</name>
-                  <value>aiAgentTask</value>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -889,6 +866,10 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>
@@ -927,6 +908,74 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>systemPromptOverrides</name>
+                  <value>${systemPromptOverrides}</value>
                 </property>
               </properties>
             </configuration>

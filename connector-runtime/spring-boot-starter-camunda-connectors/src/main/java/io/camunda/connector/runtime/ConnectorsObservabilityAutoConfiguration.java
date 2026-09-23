@@ -19,7 +19,9 @@ package io.camunda.connector.runtime;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -37,9 +39,16 @@ public class ConnectorsObservabilityAutoConfiguration {
     return new ContextAwareLogbackMetrics();
   }
 
+  /**
+   * Reports the topology health of a single cluster: the sole configured client, or the one
+   * designated primary. With several clients and none designated primary it reflects whichever one
+   * {@link PhysicalTenantClients#defaultClient} picks — designate a primary to make that explicit.
+   */
   @Bean(name = "zeebeClientHealthIndicator") // overrides the health indicator from Spring Zeebe
-  public ZeebeHealthIndicator zeebeClientHealthIndicator(CamundaClient camundaClient) {
-    return new ZeebeHealthIndicator(camundaClient);
+  public ZeebeHealthIndicator zeebeClientHealthIndicator(
+      ObjectProvider<CamundaClient> camundaClientProvider) {
+    return new ZeebeHealthIndicator(
+        PhysicalTenantClients.defaultClient(camundaClientProvider, "zeebeClientHealthIndicator"));
   }
 
   @Bean

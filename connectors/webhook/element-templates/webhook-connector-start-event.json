@@ -5,7 +5,7 @@
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 15,
+  "version" : 16,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -179,12 +179,53 @@
   }, {
     "id" : "inbound.hmacScopes",
     "label" : "HMAC scopes",
-    "description" : "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
+    "description" : "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/8.9/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.hmacScopes",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.shouldValidateHmac",
+      "equals" : "enabled",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.hmacTimestampHeader",
+    "label" : "HMAC timestamp header",
+    "description" : "Name of the header attribute carrying the request timestamp, as a base-10 Unix epoch timestamp in seconds (not milliseconds, not ISO-8601). The signed material is '<timestamp>:<bytes selected by the other HMAC scopes>'. Required when HMAC scopes include 'timestamp'",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "inbound.hmacTimestampHeader",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.shouldValidateHmac",
+      "equals" : "enabled",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.hmacTolerance",
+    "label" : "HMAC timestamp tolerance",
+    "description" : "Maximum allowed difference between the signed timestamp and the current time, as an ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+    "optional" : true,
+    "value" : "PT5M",
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(PT.*|)$",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "inbound.hmacTolerance",
       "type" : "zeebe:property"
     },
     "condition" : {
@@ -298,6 +339,46 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.jwkUrl",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.jwt.issuer",
+    "label" : "Issuer",
+    "description" : "Expected value of the JWT 'iss' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.issuer",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.jwt.audience",
+    "label" : "Audience",
+    "description" : "Expected value of the JWT 'aud' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.audience",
       "type" : "zeebe:property"
     },
     "condition" : {

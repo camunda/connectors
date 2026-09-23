@@ -16,16 +16,24 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
+import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -100,7 +108,7 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -112,7 +120,7 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -126,7 +134,7 @@ class OutboundConnectorRuntimeConfigurationTest {
         .thenThrow(new RuntimeException("client not initialized"));
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("engine-c");
   }
@@ -140,7 +148,8 @@ class OutboundConnectorRuntimeConfigurationTest {
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, legacyClient);
+    var result =
+        configuration.documentStoresByPhysicalTenantId(registry, clientProvider(legacyClient));
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
   }
@@ -154,7 +163,8 @@ class OutboundConnectorRuntimeConfigurationTest {
         .thenThrow(
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
-    assertThatThrownBy(() -> configuration.documentStoresByPhysicalTenantId(registry, null))
+    assertThatThrownBy(
+            () -> configuration.documentStoresByPhysicalTenantId(registry, clientProvider()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -169,7 +179,8 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(() -> configuration.documentStoresByPhysicalTenantId(registry, null))
+    assertThatThrownBy(
+            () -> configuration.documentStoresByPhysicalTenantId(registry, clientProvider()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }
@@ -183,8 +194,56 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.documentFactoriesByPhysicalTenantId(registry, null, null);
+    var result =
+        configuration.documentFactoriesByPhysicalTenantId(registry, clientProvider(), null);
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
+  }
+
+  private static final String SIMPLE_PROCESS_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:startEvent id="start" />
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
+  private static CamundaClient clientReturning(String xml) {
+    var client = mock(CamundaClient.class);
+    var request = mock(ProcessDefinitionGetXmlRequest.class);
+    when(client.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(request);
+    when(request.execute()).thenReturn(xml);
+    return client;
+  }
+
+  /**
+   * Regression: {@code secretKeyCache()} used to build its {@link ProcessDefinitionSecretKeyCache}
+   * via the {@code (String, CamundaClient, Cache)} convenience constructor, which allocates its own
+   * unbounded, never-evicting model cache instead of using the shared, bounded {@code
+   * bpmnModelCacheStore} every other consumer goes through. Proven here the same way {@link
+   * ProcessDefinitionModelCacheTest#fetchesOnlyOncePerProcessDefinitionKeyAcrossRepeatedCalls}
+   * proves the model layer's own caching: pre-warm the shared store exactly as another consumer
+   * (e.g. the intrinsic-function allow-list cache) would for the same physical tenant and process
+   * definition key, then confirm this bean's {@code SecretKeyCache} finds that same cached model
+   * instead of fetching its own copy.
+   */
+  @Test
+  void
+      secretKeyCache_reusesTheSharedBoundedBpmnModelCache_ratherThanAllocatingItsOwnUnboundedOne() {
+    var client = clientReturning(SIMPLE_PROCESS_XML);
+    var bpmnModelCacheStore = configuration.bpmnModelCacheStore(true, 1000);
+    new ProcessDefinitionModelCache("default", client, bpmnModelCacheStore.cache())
+        .getModel(42L, Instant.now().plusSeconds(30));
+
+    var secretKeyCacheStore = configuration.secretKeyCacheStore(true, 1000);
+    var secretKeyCache =
+        configuration.secretKeyCache(
+            clientProvider(client), bpmnModelCacheStore, secretKeyCacheStore);
+    secretKeyCache.getSecretKeys(new SecretKeyContext(42L, "start", Instant.now().plusSeconds(30)));
+
+    verify(client, times(1)).newProcessDefinitionGetXmlRequest(42L);
   }
 }
