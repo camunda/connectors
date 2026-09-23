@@ -41,26 +41,23 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved OpenAI Chat Completions model
- * configuration to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating the domain
- * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
- * the {@link OpenAiContentConverter} built for content parts.
+ * Maps a windowed {@link ConversationSnapshot} plus a provider-neutral {@link
+ * CompletionsRequestSpec} to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating
+ * the domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
+ * shape via the {@link OpenAiContentConverter} built for content parts. This converter has no
+ * dependency on any specific {@code ProviderConfiguration} subtype -- the OpenAI provider and any
+ * other caller of the Chat Completions wire format (e.g. the Mistral provider) each build their own
+ * {@link CompletionsRequestSpec} from their own configuration type.
  *
  * <p>Reasoning is mapped only via the input-only {@code reasoning_effort} dial: this family has no
  * mechanism to replay reasoning content from a prior turn, so {@link ReasoningContent} and {@link
@@ -79,75 +76,51 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   public ChatCompletionCreateParams toRequest(
-      OpenAiChatModelConfiguration configuration,
+      CompletionsRequestSpec spec,
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final OpenAiConnection connection = configuration.openai();
-    final String modelId = connection.model().model();
-    final CompletionsParameters params = completionsParameters(connection);
-
-    final var builder = ChatCompletionCreateParams.builder().model(modelId);
+    final var builder = ChatCompletionCreateParams.builder().model(spec.model());
 
     // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
     // converter's calls are always streamed, so request usage so token metrics
     // (input/output/cached) are populated. Set unconditionally, on every request.
     builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
 
-    // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
-    // never relies on OpenAI-side response storage.
-    builder.store(false);
-
-    applyModelParameters(builder, params);
-    applyReasoning(builder, params);
+    applyModelParameters(builder, spec);
+    applyReasoning(builder, spec);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, response);
-    applyRequestCustomizations(builder, connection);
+    applyRequestCustomizations(builder, spec.customizations());
 
     return builder.build();
   }
 
-  /**
-   * This converter only handles the {@code completions} API family; routing a {@code responses}
-   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
-   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
-   * completions} itself is optional -- every one of its own fields is optional, so a modeler
-   * leaving all of them unset means the object is absent entirely, not present-with-nulls.
-   */
-  private @Nullable CompletionsParameters completionsParameters(OpenAiConnection connection) {
-    return switch (connection.api()) {
-      case OpenAiCompletionsApi completionsApi -> completionsApi.completions();
-      default ->
-          throw new IllegalArgumentException(
-              "OpenAiCompletionsRequestConverter requires the 'completions' API family, but was configured with '%s'"
-                  .formatted(connection.api().type()));
-    };
-  }
-
   private void applyModelParameters(
-      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
-    if (params == null) {
-      return;
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    // maxCompletionTokens (OpenAI's current wire name) and maxTokens (the older name several
+    // OpenAI-compatible APIs still require instead) are mutually exclusive: a caller's spec sets
+    // at most one, matching its own provider's wire parameter.
+    if (spec.maxCompletionTokens() != null) {
+      builder.maxCompletionTokens(spec.maxCompletionTokens());
     }
-    if (params.maxCompletionTokens() != null) {
-      builder.maxCompletionTokens(params.maxCompletionTokens().longValue());
+    if (spec.maxTokens() != null) {
+      builder.maxTokens(spec.maxTokens());
     }
-    if (params.temperature() != null) {
-      builder.temperature(params.temperature());
+    if (spec.temperature() != null) {
+      builder.temperature(spec.temperature());
     }
-    if (params.topP() != null) {
-      builder.topP(params.topP());
+    if (spec.topP() != null) {
+      builder.topP(spec.topP());
     }
   }
 
-  /** Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. */
+  /** Maps the spec's {@code reasoningEffort} dial onto the SDK's {@code reasoning_effort} param. */
   private void applyReasoning(
-      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
-    final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
-      return;
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    if (spec.reasoningEffort() != null) {
+      builder.reasoningEffort(ReasoningEffort.of(spec.reasoningEffort()));
     }
-    builder.reasoningEffort(ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT)));
   }
 
   private void applyMessages(ChatCompletionCreateParams.Builder builder, List<Message> messages) {
@@ -307,12 +280,11 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Merges the backend's headers, query parameters, and body properties onto the request via the
+   * Merges the spec's headers, query parameters, and body properties onto the request via the
    * shared {@link OpenAiRequestCustomizations}.
    */
   private void applyRequestCustomizations(
-      ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
-    final var customizations = connection.backend().requestCustomizations();
+      ChatCompletionCreateParams.Builder builder, OpenAiRequestCustomizations customizations) {
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations
