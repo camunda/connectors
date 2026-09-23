@@ -380,6 +380,31 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
+  void shouldNotApplyGlobalRateLimitToUnknownWebhookPaths() throws Exception {
+    var registration = registerWebhook("registeredRatePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+    controller.validateWebhookConfig();
+
+    var unknownBeforeLimit =
+        controller.inbound("unknownPath", new HashMap<>(), requestTo("unknownPath", "body"));
+    var registered =
+        controller.inbound(
+            "registeredRatePath", new HashMap<>(), requestTo("registeredRatePath", "body"));
+    var unknownAfterLimit =
+        controller.inbound("unknownPath", new HashMap<>(), requestTo("unknownPath", "body"));
+    var rateLimited =
+        controller.inbound(
+            "registeredRatePath", new HashMap<>(), requestTo("registeredRatePath", "body"));
+
+    assertThat(unknownBeforeLimit.getStatusCode().value()).isEqualTo(404);
+    assertThat(registered.getStatusCode().value()).isEqualTo(422);
+    assertThat(unknownAfterLimit.getStatusCode().value()).isEqualTo(404);
+    assertThat(rateLimited.getStatusCode().value()).isEqualTo(429);
+  }
+
+  @Test
   void shouldNotRateLimitWhenDisabled() throws Exception {
     var registration = registerWebhook("rateDisabledPath");
     var controller = new InboundWebhookRestController(registration.registry());

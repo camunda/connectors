@@ -221,14 +221,14 @@ public class InboundWebhookRestController {
       throws IOException {
     LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
 
-    if (rateLimitEnabled && !globalRateLimiter.tryAcquire()) {
-      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-    }
-
     if (connectorOpt.isEmpty()) {
       return ResponseEntity.notFound().build();
     }
     var connector = connectorOpt.get();
+
+    if (rateLimitEnabled && !globalRateLimiter.tryAcquire()) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
 
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
