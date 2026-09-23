@@ -113,12 +113,12 @@ public class HMACVerifier {
   }
 
   private static HMACScope[] nonTimestampScopes(HMACScope[] hmacScopes) {
-    HMACScope[] filtered =
-        Arrays.stream(hmacScopes)
-            .filter(scope -> scope != HMACScope.TIMESTAMP)
-            .toArray(HMACScope[]::new);
-    // TIMESTAMP is an additive scope: on its own, fall back to the default BODY strategy.
-    return filtered.length > 0 ? filtered : new HMACScope[] {HMACScope.BODY};
+    if (hmacScopes.length == 1 && hmacScopes[0] == HMACScope.TIMESTAMP) {
+      return new HMACScope[] {HMACScope.BODY};
+    }
+    return Arrays.stream(hmacScopes)
+        .filter(scope -> scope != HMACScope.TIMESTAMP)
+        .toArray(HMACScope[]::new);
   }
 
   public void verifySignature(WebhookProcessingPayload payload) {
