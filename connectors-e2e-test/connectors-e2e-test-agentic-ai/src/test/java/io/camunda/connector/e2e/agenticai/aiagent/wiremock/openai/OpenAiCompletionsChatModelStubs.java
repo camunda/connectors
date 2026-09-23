@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.openai.core.JsonValue;
 import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionChunk.Choice;
@@ -36,8 +37,10 @@ import com.openai.models.completions.CompletionUsage.CompletionTokensDetails;
 import com.openai.models.completions.CompletionUsage.PromptTokensDetails;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -259,6 +262,27 @@ public final class OpenAiCompletionsChatModelStubs {
     return delta.build();
   }
 
+  /**
+   * Builds a chunked {@code content} delta (a {@code thinking} chunk followed by an optional {@code
+   * text} chunk), set via the raw {@code JsonField} escape hatch since the vendor SDK's typed
+   * {@code content(String)} setter only accepts a plain string.
+   */
+  private static Delta chunkedContentDelta(String reasoningText, String text) {
+    final List<Map<String, Object>> chunks = new ArrayList<>();
+    chunks.add(
+        Map.of(
+            "type",
+            "thinking",
+            "thinking",
+            List.of(Map.of("type", "text", "text", reasoningText)),
+            "closed",
+            true));
+    if (text != null && !text.isBlank()) {
+      chunks.add(Map.of("type", "text", "text", text));
+    }
+    return Delta.builder().role(Role.ASSISTANT).content(JsonValue.from(chunks)).build();
+  }
+
   private static Delta toolCallDelta(int index, ToolCall tc) {
     return Delta.builder()
         .toolCalls(
@@ -332,13 +356,24 @@ public final class OpenAiCompletionsChatModelStubs {
     private final List<ToolCall> toolCalls;
     private final int promptTokens;
     private final int completionTokens;
+    private final String reasoningText;
     private Duration requestDelay;
 
     private Turn(String text, List<ToolCall> toolCalls, int promptTokens, int completionTokens) {
+      this(text, toolCalls, promptTokens, completionTokens, null);
+    }
+
+    private Turn(
+        String text,
+        List<ToolCall> toolCalls,
+        int promptTokens,
+        int completionTokens,
+        String reasoningText) {
       this.text = text;
       this.toolCalls = toolCalls;
       this.promptTokens = promptTokens;
       this.completionTokens = completionTokens;
+      this.reasoningText = reasoningText;
     }
 
     /** A plain text response that ends the turn ({@code finish_reason: "stop"}). */
@@ -356,6 +391,20 @@ public final class OpenAiCompletionsChatModelStubs {
       return new Turn(text, Arrays.asList(toolCalls), promptTokens, completionTokens);
     }
 
+    /**
+     * A chunked reasoning response, mirroring what a Mistral Magistral model returns: {@code
+     * content} is an array of a {@code thinking} chunk (carrying {@code reasoningText}, marked
+     * {@code closed: true}) followed by a {@code text} chunk (carrying {@code text}), ending the
+     * turn ({@code finish_reason: "stop"}). Emitted as a single already-assembled delta rather than
+     * fragmented across multiple deltas -- the streaming reassembly itself is covered by {@code
+     * ChunkedContentChatCompletionAccumulatorTest} in the connector module; this stub only needs to
+     * exercise the end-to-end response parsing and replay.
+     */
+    public static Turn reasoning(
+        String reasoningText, String text, int promptTokens, int completionTokens) {
+      return new Turn(text, List.of(), promptTokens, completionTokens, reasoningText);
+    }
+
     public Turn withRequestDelay(Duration duration) {
       this.requestDelay = duration;
       return this;
@@ -367,7 +416,9 @@ public final class OpenAiCompletionsChatModelStubs {
 
       final StringBuilder body = new StringBuilder();
       // 1. role + content delta (content omitted when there are only tool calls)
-      body.append(dataLine(chunk(id, contentDelta(text), null)));
+      final Delta firstDelta =
+          reasoningText != null ? chunkedContentDelta(reasoningText, text) : contentDelta(text);
+      body.append(dataLine(chunk(id, firstDelta, null)));
       // 2. one tool-call delta chunk per tool call
       int i = 0;
       for (final ToolCall tc : toolCalls) {
