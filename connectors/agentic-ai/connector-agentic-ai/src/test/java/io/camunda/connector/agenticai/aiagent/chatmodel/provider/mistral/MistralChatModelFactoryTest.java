@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -62,8 +63,8 @@ class MistralChatModelFactoryTest {
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-            new OpenAiCompletionsResponseConverter(objectMapper),
-            OpenAiCompletionsStreamAssembler.accumulating());
+            new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
+            OpenAiCompletionsStreamAssembler.chunkedContentAware());
   }
 
   private static MistralChatModelConfiguration config(

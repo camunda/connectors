@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -197,8 +198,8 @@ class MistralChatModelFactoryClientTest {
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-            new OpenAiCompletionsResponseConverter(objectMapper),
-            OpenAiCompletionsStreamAssembler.accumulating());
+            new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
+            OpenAiCompletionsStreamAssembler.chunkedContentAware());
     final var configuration =
         new MistralChatModelConfiguration(
             new MistralConnection(backend, new MistralModel(MODEL_ID), null, null));

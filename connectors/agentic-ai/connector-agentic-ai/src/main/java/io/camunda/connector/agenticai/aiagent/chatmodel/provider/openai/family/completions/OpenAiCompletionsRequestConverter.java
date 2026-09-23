@@ -46,7 +46,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -59,10 +61,15 @@ import org.jspecify.annotations.Nullable;
  * other caller of the Chat Completions wire format (e.g. the Mistral provider) each build their own
  * {@link CompletionsRequestSpec} from their own configuration type.
  *
- * <p>Reasoning is mapped only via the input-only {@code reasoning_effort} dial: this family has no
- * mechanism to replay reasoning content from a prior turn, so {@link ReasoningContent} and {@link
- * ProviderContent} are dropped rather than replayed, and tool results are always flattened to plain
- * text.
+ * <p>Reasoning is mapped via the input-only {@code reasoning_effort} dial plus, where applicable,
+ * replay of a prior turn's reasoning content: a {@link ReasoningContent} whose payload is shaped
+ * like the chunked {@code thinking} chunk {@link OpenAiCompletionsResponseConverter} emits (self-
+ * detected from the payload's own shape, not a caller-supplied flag or its {@code provider} tag) is
+ * replayed byte-faithfully as part of a chunked {@code content} array (see {@link
+ * #assistantMessage}); this is what Mistral's Magistral models require to keep reasoning quality
+ * across turns. Any other {@link ReasoningContent} (e.g. carried over from a different API family
+ * after a mid-conversation provider switch) and every {@link ProviderContent} have no
+ * representation on this family and are dropped. Tool results are always flattened to plain text.
  */
 public class OpenAiCompletionsRequestConverter {
 
@@ -160,8 +167,11 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Flattens plain content (text/document/object) to a single text blob; {@link ReasoningContent}
-   * and {@link ProviderContent} have no wire representation on this family and are dropped.
+   * Flattens plain content (text/document/object) to a single text blob, unless the message also
+   * carries a replayable chunked {@link ReasoningContent} (see the class Javadoc), in which case
+   * {@code content} is rebuilt as a chunked array instead via {@link #toChunkedContent}. Any other
+   * {@link ReasoningContent} and every {@link ProviderContent} have no wire representation on this
+   * family and are dropped.
    *
    * <p>Returns {@code null} when nothing representable remains and there are no tool calls either:
    * the Completions API requires an assistant message to carry {@code content} unless it carries a
@@ -173,12 +183,17 @@ public class OpenAiCompletionsRequestConverter {
         assistant.content().stream()
             .filter(c -> !(c instanceof ReasoningContent) && !(c instanceof ProviderContent))
             .toList();
-    if (plainContent.isEmpty() && assistant.toolCalls().isEmpty()) {
+    final boolean hasChunkedReasoning =
+        assistant.content().stream()
+            .anyMatch(c -> c instanceof ReasoningContent rc && isChunkedReasoningContent(rc));
+    if (plainContent.isEmpty() && !hasChunkedReasoning && assistant.toolCalls().isEmpty()) {
       return null;
     }
 
     final var builder = ChatCompletionAssistantMessageParam.builder();
-    if (!plainContent.isEmpty()) {
+    if (hasChunkedReasoning) {
+      builder.content(JsonValue.from(toChunkedContent(assistant.content())));
+    } else if (!plainContent.isEmpty()) {
       builder.content(toTextOutput(plainContent));
     }
 
@@ -196,6 +211,53 @@ public class OpenAiCompletionsRequestConverter {
     }
 
     return builder.build();
+  }
+
+  /**
+   * A {@link ReasoningContent} is only replayable as a chunked {@code thinking} chunk if its
+   * payload is shaped the way {@link OpenAiCompletionsResponseConverter} produces it -- detected
+   * from the payload's own {@code type} field, not from the content's {@code provider} tag, so
+   * reasoning content carried over from a different API family (whose payload never has this shape)
+   * correctly keeps being dropped rather than misread as replayable.
+   */
+  private boolean isChunkedReasoningContent(ReasoningContent reasoning) {
+    return reasoning.payload() instanceof Map<?, ?> payload
+        && "thinking".equals(payload.get("type"));
+  }
+
+  /**
+   * Rebuilds the assistant message's {@code content} as a chunked array, preserving the original
+   * order of its {@link Content} entries: a replayable {@link ReasoningContent} (see {@link
+   * #isChunkedReasoningContent}) becomes a {@code thinking} chunk via {@link
+   * #toChunkedThinkingChunk}, and every other plain content entry becomes a {@code text} chunk.
+   * Only called once {@link #assistantMessage} has established at least one replayable {@link
+   * ReasoningContent} is present, so the result is never empty.
+   */
+  private List<Map<String, Object>> toChunkedContent(List<Content> content) {
+    final List<Map<String, Object>> chunks = new ArrayList<>();
+    for (final Content c : content) {
+      if (c instanceof ReasoningContent reasoning && isChunkedReasoningContent(reasoning)) {
+        chunks.add(toChunkedThinkingChunk(reasoning));
+      } else if (!(c instanceof ReasoningContent) && !(c instanceof ProviderContent)) {
+        chunks.add(Map.of("type", "text", "text", toTextOutput(List.of(c))));
+      }
+    }
+    return chunks;
+  }
+
+  /**
+   * Reinserts a replayable {@link ReasoningContent}'s lifted-out {@link ReasoningContent#text()}
+   * back into its payload's {@code thinking} field, reconstructing the original chunk verbatim (see
+   * {@link OpenAiCompletionsResponseConverter#toReasoningContent}).
+   */
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> toChunkedThinkingChunk(ReasoningContent reasoning) {
+    final Map<String, Object> chunk =
+        new LinkedHashMap<>((Map<String, Object>) reasoning.payload());
+    chunk.put(
+        "thinking",
+        List.of(Map.of("type", "text", "text", reasoning.text() == null ? "" : reasoning.text())));
+    return chunk;
   }
 
   private List<ChatCompletionMessageParam> toolResultMessages(ToolCallResultMessage message) {

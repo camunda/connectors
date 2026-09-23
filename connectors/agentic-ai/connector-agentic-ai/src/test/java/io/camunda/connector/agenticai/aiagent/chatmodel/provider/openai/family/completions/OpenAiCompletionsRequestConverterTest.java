@@ -261,6 +261,86 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void replaysChunkedReasoningContentAlongsideTextAsChunkedAssistantContent() {
+    // Mirrors what OpenAiCompletionsResponseConverter#toReasoningContent produces for a Mistral
+    // Magistral response: a ReasoningContent whose payload is shaped like a stripped `thinking`
+    // chunk. It must be replayed byte-faithfully, in original order, ahead of the plain text.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral",
+                                Map.of("type", "thinking", "closed", true),
+                                "5+7=12",
+                                null),
+                            TextContent.textContent("The answer is 12.")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), null, snapshot);
+
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    assertThat(contentNode.isArray()).isTrue();
+    assertThat(contentNode.get(0).path("type").asText()).isEqualTo("thinking");
+    assertThat(contentNode.get(0).path("closed").asBoolean()).isTrue();
+    assertThat(contentNode.get(0).path("thinking").get(0).path("text").asText())
+        .isEqualTo("5+7=12");
+    assertThat(contentNode.get(1).path("type").asText()).isEqualTo("text");
+    assertThat(contentNode.get(1).path("text").asText()).isEqualTo("The answer is 12.");
+  }
+
+  @Test
+  void doesNotOmitAssistantMessageWithOnlyChunkedReasoningContent() {
+    // Unlike a non-replayable ReasoningContent, a chunked one must not be treated as "nothing
+    // representable" even when it is the only content and there are no tool calls either.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral", Map.of("type", "thinking"), "still thinking", null)))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), null, snapshot);
+
+    assertThat(params.messages()).hasSize(1);
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    assertThat(contentNode.isArray()).isTrue();
+    assertThat(contentNode).hasSize(1);
+    assertThat(contentNode.get(0).path("type").asText()).isEqualTo("thinking");
+  }
+
+  @Test
+  void dropsReasoningContentFromADifferentApiFamilyEvenWhenProviderTagMatchesThisOne() {
+    // Gating is purely payload-shape-based (see OpenAiCompletionsRequestConverter#
+    // isChunkedReasoningContent), so a same-provider-tagged ReasoningContent from a different API
+    // family (e.g. carried over from the Responses family after a mid-conversation switch) still
+    // correctly stays dropped instead of being misread as a replayable chunk.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ReasoningContent.reasoningContent(
+                                "openai", Map.of("type", "reasoning")),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
   void mapsToolDefinitionsToFunctionTools() {
     final Map<String, Object> schema =
         Map.of(
