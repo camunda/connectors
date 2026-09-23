@@ -30,7 +30,7 @@ public record MsInboundEmailProperties(
             optional = true,
             feel = FeelMode.disabled,
             binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
-            description =
+            tooltip =
                 "Choose a reusable Microsoft Entra ID credential, or configure one-time"
                     + " authentication parameters below.")
         @Valid

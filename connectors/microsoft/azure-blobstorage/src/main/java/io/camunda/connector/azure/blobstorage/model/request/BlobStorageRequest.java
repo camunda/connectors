@@ -42,7 +42,7 @@ public class BlobStorageRequest {
       type = PropertyType.Configuration,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
-      description =
+      tooltip =
           "Choose a reusable Azure Blob Storage credential, or configure one-time authentication"
               + " parameters below.")
   @Valid

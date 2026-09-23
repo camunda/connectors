@@ -72,7 +72,8 @@
     {
       "id": "authenticationConfiguration",
       "label": "Authentication credential",
-      "description": "Choose a reusable authentication credential, or configure a one-time API key below. Note: the credential must be an API key credential whose key name is <code>api-key</code>, which is what Azure OpenAI expects; a credential of any other type or key name passes template and binding validation but fails at runtime against Azure OpenAI. The credential's own URL field is not used by this connector.",
+      "tooltip": "Choose a reusable authentication credential, or configure a one-time API key below.",
+      "description": "Note: the credential must be an API key credential whose key name is <code>api-key</code>, which is what Azure OpenAI expects; a credential of any other type or key name passes template and binding validation but fails at runtime against Azure OpenAI. The credential's own URL field is not used by this connector.",
       "optional": true,
       "group": "authentication",
       "binding": {

@@ -355,13 +355,13 @@
   }, {
     "id" : "authenticationConfiguration",
     "label" : "Azure Blob Storage credential",
-    "description" : "Choose a reusable Azure Blob Storage credential, or configure one-time authentication parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
       "name" : "authenticationConfiguration",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Choose a reusable Azure Blob Storage credential, or configure one-time authentication parameters below.",
     "type" : "Configuration",
     "configurationTemplate" : "io.camunda.connectors:azure-blobstorage:1"
   }, {

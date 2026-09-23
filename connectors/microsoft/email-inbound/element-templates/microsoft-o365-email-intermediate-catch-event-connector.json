@@ -52,13 +52,13 @@
   }, {
     "id" : "authenticationConfiguration",
     "label" : "Microsoft Entra ID credential",
-    "description" : "Choose a reusable Microsoft Entra ID credential, or configure one-time authentication parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
       "name" : "authenticationConfiguration",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Choose a reusable Microsoft Entra ID credential, or configure one-time authentication parameters below.",
     "type" : "Configuration",
     "configurationTemplate" : "io.camunda.connectors:microsoft-entra:1"
   }, {

@@ -27,7 +27,7 @@ public record MSTeamsRequest(
             type = PropertyType.Configuration,
             optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
-            description =
+            tooltip =
                 "Choose a reusable Microsoft Entra ID credential, or configure one-time"
                     + " authentication parameters below.")
         @Valid
