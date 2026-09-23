@@ -192,7 +192,7 @@ class MistralChatModelFactoryClientTest {
   }
 
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, MistralBackend backend) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, "mistral");
     final var factory =
         new MistralChatModelFactory(
             chatModelProperties,

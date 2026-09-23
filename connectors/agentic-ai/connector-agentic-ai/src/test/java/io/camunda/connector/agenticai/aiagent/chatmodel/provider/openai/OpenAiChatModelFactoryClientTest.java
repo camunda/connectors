@@ -541,7 +541,7 @@ class OpenAiChatModelFactoryClientTest {
       OpenAiBackend backend,
       FoundryCredentialResolver foundryCredentialResolver,
       @Nullable Duration timeout) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, "openai");
     final var factory =
         new OpenAiChatModelFactory(
             chatModelProperties,

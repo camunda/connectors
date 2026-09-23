@@ -57,7 +57,7 @@ class MistralChatModelFactoryTest {
 
   @BeforeEach
   void setUp() {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, "mistral");
     factory =
         new MistralChatModelFactory(
             chatModelProperties,

@@ -108,7 +108,7 @@ public class AgenticAiNativeProvidersConfiguration {
       FoundryCredentialResolver foundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, OPENAI_ID);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
             new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
@@ -134,7 +134,7 @@ public class AgenticAiNativeProvidersConfiguration {
       AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, MISTRAL_ID);
     return new MistralChatModelFactory(
         configuration.aiagent().chatModel(),
         httpProxySupport,
