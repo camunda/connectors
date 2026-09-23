@@ -64,8 +64,7 @@ class OpenAiResponsesRequestConverterTest {
 
   private final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
-  private final OpenAiContentConverter contentConverter =
-      new OpenAiContentConverter(objectMapper, "openai");
+  private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiResponsesRequestConverter converter =
       new OpenAiResponsesRequestConverter(contentConverter, objectMapper);
 

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
@@ -57,12 +58,15 @@ class MistralChatModelFactoryTest {
 
   @BeforeEach
   void setUp() {
-    final var contentConverter = new OpenAiContentConverter(objectMapper, "mistral");
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new MistralChatModelFactory(
             chatModelProperties,
             httpProxySupport,
-            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+            new OpenAiCompletionsRequestConverter(
+                contentConverter,
+                OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.chunkedContentAware());
   }

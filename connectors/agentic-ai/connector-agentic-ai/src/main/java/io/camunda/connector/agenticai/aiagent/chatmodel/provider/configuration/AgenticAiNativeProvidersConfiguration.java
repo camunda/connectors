@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -108,10 +109,13 @@ public class AgenticAiNativeProvidersConfiguration {
       FoundryCredentialResolver foundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper, OPENAI_ID);
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
-            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+            new OpenAiCompletionsRequestConverter(
+                contentConverter,
+                OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
@@ -134,11 +138,14 @@ public class AgenticAiNativeProvidersConfiguration {
       AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper, MISTRAL_ID);
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
     return new MistralChatModelFactory(
         configuration.aiagent().chatModel(),
         httpProxySupport,
-        new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+        new OpenAiCompletionsRequestConverter(
+            contentConverter,
+            OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
+            objectMapper),
         new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
         OpenAiCompletionsStreamAssembler.chunkedContentAware());
   }

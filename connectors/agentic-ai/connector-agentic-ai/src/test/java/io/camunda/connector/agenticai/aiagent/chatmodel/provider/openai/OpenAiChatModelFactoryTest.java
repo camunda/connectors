@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -87,13 +88,16 @@ class OpenAiChatModelFactoryTest {
 
   @BeforeEach
   void setUp() {
-    final var contentConverter = new OpenAiContentConverter(objectMapper, "openai");
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new OpenAiChatModelFactory(
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
-                new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+                new OpenAiCompletionsRequestConverter(
+                    contentConverter,
+                    OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+                    objectMapper),
                 new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(
