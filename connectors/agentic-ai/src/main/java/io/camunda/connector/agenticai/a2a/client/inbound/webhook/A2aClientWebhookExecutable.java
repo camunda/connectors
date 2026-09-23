@@ -168,6 +168,10 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       throw new ConnectorInputException(
           "HMAC property 'hmacTolerance' must be a positive duration, but was " + tolerance);
     }
+    if (parsed.getNano() != 0) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be a whole-second duration, but was " + tolerance);
+    }
   }
 
   /**

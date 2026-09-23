@@ -156,6 +156,32 @@ class HMACVerifierTest {
   }
 
   @Test
+  void verifySignature_WhenTimestampIsOnlyScope_ShouldImplicitlySignBody()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    long now = 1_700_000_000L;
+    byte[] body = "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8);
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.TIMESTAMP},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            TOLERANCE,
+            fixedClock(now));
+
+    WebhookProcessingPayload payload = signedPayload(now, body);
+    assertThatCode(() -> verifier.verifySignature(payload)).doesNotThrowAnyException();
+
+    payload
+        .headers()
+        .put("X-HMAC-Sig", hmacHex(SECRET, (now + ":").getBytes(StandardCharsets.UTF_8)));
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(WebhookSecurityException.class)
+        .hasMessageContaining("HMAC signature check didn't pass");
+  }
+
+  @Test
   void verifySignature_WhenSkewExactlyAtToleranceBoundary_ShouldNotThrowException()
       throws NoSuchAlgorithmException, InvalidKeyException {
     long sentAt = 1_700_000_000L;
@@ -402,6 +428,28 @@ class HMACVerifierTest {
     assertThatThrownBy(() -> verifier.verifySignature(payload))
         .isInstanceOf(WebhookSecurityException.class)
         .hasMessageContaining("HMAC tolerance is malformed");
+  }
+
+  @Test
+  void verifySignature_WhenToleranceHasFractionalSeconds_ShouldThrowException()
+      throws NoSuchAlgorithmException, InvalidKeyException {
+    long now = 1_700_000_000L;
+    HMACVerifier verifier =
+        new HMACVerifier(
+            new HMACScope[] {HMACScope.BODY, HMACScope.TIMESTAMP},
+            "X-HMAC-Sig",
+            SECRET,
+            sha_256,
+            TIMESTAMP_HEADER,
+            "PT0.5S",
+            fixedClock(now));
+
+    WebhookProcessingPayload payload =
+        signedPayload(now, "{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    assertThatThrownBy(() -> verifier.verifySignature(payload))
+        .isInstanceOf(WebhookSecurityException.class)
+        .hasMessageContaining("whole-second duration");
   }
 
   @Test
