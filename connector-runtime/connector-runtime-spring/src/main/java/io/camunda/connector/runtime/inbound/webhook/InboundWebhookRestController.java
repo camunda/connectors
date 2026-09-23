@@ -24,8 +24,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -51,7 +49,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
@@ -63,9 +60,7 @@ import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,7 +90,7 @@ public class InboundWebhookRestController {
   int maxRequestBodyBytes = 10 * 1024 * 1024;
 
   @Value("${camunda.connector.webhook.rate-limit.enabled:true}")
-  boolean rateLimitEnabled = true;
+  boolean rateLimitEnabled;
 
   @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
   double rateLimitPermitsPerSecond = 1000;
@@ -103,10 +98,7 @@ public class InboundWebhookRestController {
   @Value("${spring.servlet.multipart.enabled:true}")
   boolean multipartEnabled = true;
 
-  static final Duration RATE_LIMITER_IDLE_EXPIRY = Duration.ofHours(1);
-
-  Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
-      CacheBuilder.newBuilder().expireAfterAccess(RATE_LIMITER_IDLE_EXPIRY).build();
+  RateLimiter globalRateLimiter;
 
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
@@ -127,23 +119,8 @@ public class InboundWebhookRestController {
               + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
               + rateLimitPermitsPerSecond);
     }
-    if (rateLimitEnabled
-        && Double.isFinite(rateLimitPermitsPerSecond)
-        && rateLimitPermitsPerSecond > 0) {
-      double secondsPerPermit = 1.0 / rateLimitPermitsPerSecond;
-      if (secondsPerPermit > RATE_LIMITER_IDLE_EXPIRY.getSeconds()) {
-        throw new IllegalStateException(
-            "camunda.connector.webhook.rate-limit.permits-per-second is too low: at "
-                + rateLimitPermitsPerSecond
-                + " permits/second, accumulating one permit takes "
-                + secondsPerPermit
-                + "s, longer than the "
-                + RATE_LIMITER_IDLE_EXPIRY.getSeconds()
-                + "s a webhook's rate limiter survives while idle. A caller who waits out that"
-                + " idle window would get a fresh limiter that immediately grants a burst permit,"
-                + " repeatable indefinitely -- exceeding the configured sustained rate. Configure"
-                + " a higher rate or disable rate limiting.");
-      }
+    if (rateLimitEnabled) {
+      globalRateLimiter = RateLimiter.create(rateLimitPermitsPerSecond);
     }
   }
 
@@ -244,14 +221,14 @@ public class InboundWebhookRestController {
       throws IOException {
     LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
 
+    if (rateLimitEnabled && !globalRateLimiter.tryAcquire()) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
     if (connectorOpt.isEmpty()) {
       return ResponseEntity.notFound().build();
     }
     var connector = connectorOpt.get();
-
-    if (rateLimitEnabled && !acquireRateLimitPermit(connector)) {
-      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-    }
 
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
@@ -291,16 +268,6 @@ public class InboundWebhookRestController {
       return null;
     }
     return body;
-  }
-
-  boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
-    try {
-      return rateLimitersByExecutable
-          .get(connector.id(), () -> RateLimiter.create(rateLimitPermitsPerSecond))
-          .tryAcquire();
-    } catch (ExecutionException e) {
-      throw new IllegalStateException("Failed to create rate limiter", e);
-    }
   }
 
   private ResponseEntity<?> processWebhook(

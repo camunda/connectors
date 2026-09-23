@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -31,8 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.google.common.base.Ticker;
-import com.google.common.cache.CacheBuilder;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -60,12 +57,10 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -97,36 +92,6 @@ class InboundWebhookRestControllerTest {
     controller.rateLimitPermitsPerSecond = Double.NaN;
 
     assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
-  }
-
-  @Test
-  void shouldFailFastOnRateLimitSlowerThanOnePermitPerIdleExpiry() {
-    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
-    controller.rateLimitEnabled = true;
-    controller.rateLimitPermitsPerSecond =
-        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
-
-    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
-  }
-
-  @Test
-  void shouldAllowRateLimitOfExactlyOnePermitPerIdleExpiry() {
-    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
-    controller.rateLimitEnabled = true;
-    controller.rateLimitPermitsPerSecond =
-        1.0 / InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds();
-
-    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
-  }
-
-  @Test
-  void shouldAllowSlowRateLimitWhenRateLimitingIsDisabled() {
-    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
-    controller.rateLimitEnabled = false;
-    controller.rateLimitPermitsPerSecond =
-        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
-
-    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
   }
 
   @Test
@@ -386,9 +351,29 @@ class InboundWebhookRestControllerTest {
     var controller = new InboundWebhookRestController(registration.registry());
     controller.rateLimitEnabled = true;
     controller.rateLimitPermitsPerSecond = 0.0001;
+    controller.validateWebhookConfig();
 
     var first = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
     var second = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
+
+    assertThat(first.getStatusCode().value()).isEqualTo(422);
+    assertThat(second.getStatusCode().value()).isEqualTo(429);
+  }
+
+  @Test
+  void shouldApplyRateLimitAcrossDifferentWebhookPaths() throws Exception {
+    var registry = new WebhookConnectorRegistry();
+    registerWebhook(registry, "firstRatePath");
+    registerWebhook(registry, "secondRatePath");
+    var controller = new InboundWebhookRestController(registry);
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+    controller.validateWebhookConfig();
+
+    var first =
+        controller.inbound("firstRatePath", new HashMap<>(), requestTo("firstRatePath", "body"));
+    var second =
+        controller.inbound("secondRatePath", new HashMap<>(), requestTo("secondRatePath", "body"));
 
     assertThat(first.getStatusCode().value()).isEqualTo(422);
     assertThat(second.getStatusCode().value()).isEqualTo(429);
@@ -412,54 +397,6 @@ class InboundWebhookRestControllerTest {
     assertThat(second.getStatusCode().value()).isEqualTo(422);
   }
 
-  @Test
-  void shouldPreserveActiveLimiterStateAcrossChurnBeyondFormerCapacity() {
-    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
-    controller.rateLimitEnabled = true;
-    controller.rateLimitPermitsPerSecond = 0.0001;
-
-    var active = activatedWithId(ExecutableId.fromDeduplicationId("active-webhook"));
-    assertThat(controller.acquireRateLimitPermit(active)).isTrue();
-    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
-
-    for (int i = 0; i < 10_050; i++) {
-      controller.acquireRateLimitPermit(
-          activatedWithId(ExecutableId.fromDeduplicationId("churn-" + i)));
-    }
-
-    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
-  }
-
-  @Test
-  void shouldEventuallyReclaimObsoleteLimiterEntries() {
-    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
-    var currentTime = new AtomicLong();
-    controller.rateLimitersByExecutable =
-        CacheBuilder.newBuilder()
-            .ticker(
-                new Ticker() {
-                  @Override
-                  public long read() {
-                    return currentTime.get();
-                  }
-                })
-            .expireAfterAccess(Duration.ofMillis(20))
-            .build();
-
-    var obsolete = activatedWithId(ExecutableId.fromDeduplicationId("obsolete-webhook"));
-    controller.acquireRateLimitPermit(obsolete);
-    assertThat(controller.rateLimitersByExecutable.asMap()).containsKey(obsolete.id());
-
-    currentTime.addAndGet(Duration.ofMillis(21).toNanos());
-    controller.rateLimitersByExecutable.cleanUp();
-
-    assertThat(controller.rateLimitersByExecutable.asMap()).doesNotContainKey(obsolete.id());
-  }
-
-  private static RegisteredExecutable.Activated activatedWithId(ExecutableId id) {
-    return new RegisteredExecutable.Activated(null, null, id);
-  }
-
   private static MockHttpServletRequest requestTo(String path, String body) {
     var request = new MockHttpServletRequest();
     request.setRequestURI("/inbound/" + path);
@@ -472,6 +409,12 @@ class InboundWebhookRestControllerTest {
       WebhookConnectorRegistry registry, WebhookConnectorExecutable executable) {}
 
   private static WebhookRegistration registerWebhook(String path) throws Exception {
+    var registry = new WebhookConnectorRegistry();
+    return new WebhookRegistration(registry, registerWebhook(registry, path));
+  }
+
+  private static WebhookConnectorExecutable registerWebhook(
+      WebhookConnectorRegistry registry, String path) throws Exception {
     var executable = mock(WebhookConnectorExecutable.class);
     var webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
@@ -493,11 +436,10 @@ class InboundWebhookRestControllerTest {
             new ActivityLogRegistry(),
             mock(CamundaClient.class));
 
-    var registry = new WebhookConnectorRegistry();
     registry.register(
         new RegisteredExecutable.Activated(
             executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
-    return new WebhookRegistration(registry, executable);
+    return executable;
   }
 
   private static class ThrowingBodyMockHttpServletRequest extends MockHttpServletRequest {
