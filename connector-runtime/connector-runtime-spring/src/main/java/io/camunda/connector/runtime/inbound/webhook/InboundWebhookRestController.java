@@ -24,6 +24,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
@@ -52,6 +53,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementConte
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -62,6 +64,7 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,9 +86,42 @@ public class InboundWebhookRestController {
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
+  @Value("${camunda.connector.webhook.max-request-body-bytes:10485760}")
+  int maxRequestBodyBytes = 10 * 1024 * 1024;
+
+  @Value("${camunda.connector.webhook.rate-limit.enabled:true}")
+  boolean rateLimitEnabled;
+
+  @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
+  double rateLimitPermitsPerSecond = 1000;
+
+  @Value("${spring.servlet.multipart.enabled:true}")
+  boolean multipartEnabled = true;
+
+  RateLimiter globalRateLimiter;
+
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  @PostConstruct
+  void validateWebhookConfig() {
+    if (maxRequestBodyBytes < 0) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.max-request-body-bytes must not be negative, but was: "
+              + maxRequestBodyBytes);
+    }
+    if (rateLimitEnabled
+        && !(Double.isFinite(rateLimitPermitsPerSecond) && rateLimitPermitsPerSecond > 0)) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
+              + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
+              + rateLimitPermitsPerSecond);
+    }
+    if (rateLimitEnabled) {
+      globalRateLimiter = RateLimiter.create(rateLimitPermitsPerSecond);
+    }
   }
 
   protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
@@ -184,36 +220,54 @@ public class InboundWebhookRestController {
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
-    // Body must be read before any call that triggers form-parameter parsing (e.g.
-    // getParameterMap).
-    // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
-    // getParameterMap() is invoked, which would leave rawBody empty and break HMAC verification.
-    byte[] bodyAsByteArray = httpServletRequest.getInputStream().readAllBytes();
+
+    if (connectorOpt.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    var connector = connectorOpt.get();
+
+    if (rateLimitEnabled && !globalRateLimiter.tryAcquire()) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
+    boolean isMultipartFormData =
+        WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
+    Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
+    if (isMultipartFormData) {
+      try {
+        parts = getParts(httpServletRequest);
+      } catch (MultipartSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
+    }
+
+    // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
+    // Other content types retain the original bytes needed by HMAC verification.
+    byte[] bodyAsByteArray =
+        isMultipartFormData ? new byte[0] : readBoundedBody(httpServletRequest);
+    if (bodyAsByteArray == null) {
+      return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+    }
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
-    return connectorOpt
-        .map(
-            connector -> {
-              // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
-              // “store HTTP request headers using the original case for the header name rather
-              // than forcing it to lower case.”
-              // This breaks some webhook connectors that expect lowercase headers in expressions.
-              var lowercaseHeaders =
-                  headers.entrySet().stream()
-                      .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
-              Optional.ofNullable(httpServletRequest.getContentType())
-                  .ifPresent(
-                      contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
-              WebhookProcessingPayload payload =
-                  new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest,
-                      params,
-                      lowercaseHeaders,
-                      bodyAsByteArray,
-                      getParts(httpServletRequest));
-              return processWebhook(connector, payload);
-            })
-        .orElseGet(() -> ResponseEntity.notFound().build());
+    var lowercaseHeaders =
+        headers.entrySet().stream()
+            .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
+    Optional.ofNullable(httpServletRequest.getContentType())
+        .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
+    WebhookProcessingPayload payload =
+        new HttpServletRequestWebhookProcessingPayload(
+            httpServletRequest, params, lowercaseHeaders, bodyAsByteArray, parts);
+    return processWebhook(connector, payload);
+  }
+
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+    var inputStream = httpServletRequest.getInputStream();
+    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (inputStream.read() != -1) {
+      return null;
+    }
+    return body;
   }
 
   private ResponseEntity<?> processWebhook(
@@ -438,9 +492,22 @@ public class InboundWebhookRestController {
       LOG.debug("The request is not multipart/form-data, silently ignoring: {}", e.getMessage());
       return List.of();
     } catch (IllegalStateException e) {
-      LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
-      throw new RuntimeException(
-          "Size limits are exceeded or no multipart configuration is provided", e);
+      if (!multipartEnabled) {
+        LOG.error(
+            "Received a multipart request but spring.servlet.multipart.enabled=false, so it"
+                + " cannot be parsed",
+            e);
+        throw new RuntimeException(
+            "Received a multipart request but spring.servlet.multipart.enabled=false", e);
+      }
+      LOG.debug("Multipart size limit exceeded: {}", e.getMessage());
+      throw new MultipartSizeExceededException(e);
+    }
+  }
+
+  private static final class MultipartSizeExceededException extends RuntimeException {
+    MultipartSizeExceededException(Throwable cause) {
+      super(cause);
     }
   }
 
