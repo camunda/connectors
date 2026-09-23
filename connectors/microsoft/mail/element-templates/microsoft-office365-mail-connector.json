@@ -123,7 +123,7 @@
       "id": "authenticationConfiguration",
       "label": "Authentication credential",
       "tooltip": "Choose a reusable authentication credential, or configure one-time authentication parameters below.",
-      "description": "Note: for an OAuth 2.0 or refresh-token credential, the scope must be <code>https://graph.microsoft.com/.default</code>, and a refresh-token credential's token endpoint must be your tenant's Microsoft Entra endpoint (<code>https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token</code>); a credential missing these passes template and binding validation but fails at runtime against Microsoft Graph. A bearer credential has no scope to configure and is used as-is. The credential's own URL field is not used by this connector.",
+      "description": "Note: Microsoft Graph accepts only a bearer, OAuth 2.0, or refresh-token credential; API key and Basic credentials are not supported and always fail at runtime, even though they pass template validation. For an OAuth 2.0 or refresh-token credential, the scope must be <code>https://graph.microsoft.com/.default</code>, and a refresh-token credential's token endpoint must be your tenant's Microsoft Entra endpoint (<code>https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token</code>); a credential missing these passes template and binding validation but fails at runtime against Microsoft Graph. A bearer credential has no scope to configure and is used as-is. The credential's own URL field is not used by this connector.",
       "optional": true,
       "group": "authentication",
       "binding": {

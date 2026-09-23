@@ -239,8 +239,11 @@ hand-maintained source and hand-editing it is simply how you change it. Each emb
 copy of the `io.camunda.connectors:rest-authentication:1` schema, taken from
 `connectors/http/rest/element-templates/http-json-connector.json`, as its `configurationTemplates`
 block. Unlike every other consumer of that credential, these two cannot regenerate the copy from
-`RestAuthenticationConfiguration.java` — whoever changes that class must re-copy the embedded
-`configurationTemplates` block into both templates by hand, since nothing else keeps them in sync.
+`RestAuthenticationConfiguration.java` — whoever changes that class, or any of the nested
+authentication model classes it embeds (e.g. `ApiKeyAuthentication`, `BasicAuthentication`,
+`BearerAuthentication`, `OAuthAuthentication`, `OAuthRefreshTokenAuthentication`), must re-copy the
+embedded `configurationTemplates` block into both templates by hand, since nothing else keeps them
+in sync.
 
 ## Trying it out locally
 
