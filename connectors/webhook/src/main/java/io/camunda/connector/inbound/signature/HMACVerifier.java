@@ -113,12 +113,12 @@ public class HMACVerifier {
   }
 
   private static HMACScope[] nonTimestampScopes(HMACScope[] hmacScopes) {
-    HMACScope[] filtered =
-        Arrays.stream(hmacScopes)
-            .filter(scope -> scope != HMACScope.TIMESTAMP)
-            .toArray(HMACScope[]::new);
-    // TIMESTAMP is an additive scope: on its own, fall back to the default BODY strategy.
-    return filtered.length > 0 ? filtered : new HMACScope[] {HMACScope.BODY};
+    if (hmacScopes.length == 1 && hmacScopes[0] == HMACScope.TIMESTAMP) {
+      return new HMACScope[] {HMACScope.BODY};
+    }
+    return Arrays.stream(hmacScopes)
+        .filter(scope -> scope != HMACScope.TIMESTAMP)
+        .toArray(HMACScope[]::new);
   }
 
   public void verifySignature(WebhookProcessingPayload payload) {
@@ -186,19 +186,26 @@ public class HMACVerifier {
 
   /**
    * Resolves the configured ISO-8601 {@code hmacTolerance} to whole seconds, falling back to {@link
-   * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse — which the
-   * activation-time check in each connector's {@code activate()} is meant to prevent from ever
-   * reaching here — is treated as an immediate, always-failing tolerance (zero seconds) rather than
-   * silently falling back to the default, so a misconfiguration that slipped past that check fails
-   * closed instead of quietly becoming more permissive than intended.
+   * #DEFAULT_HMAC_TOLERANCE} when unset. A tolerance that fails to parse or contains fractional
+   * seconds — which the activation-time check in each connector's {@code activate()} is meant to
+   * prevent from ever reaching here — fails closed rather than silently weakening the configured
+   * tolerance.
    */
   private long resolveToleranceSeconds() {
     String tolerance =
         hmacTolerance != null && !hmacTolerance.isBlank() ? hmacTolerance : DEFAULT_HMAC_TOLERANCE;
     try {
-      return Duration.parse(tolerance).getSeconds();
+      Duration parsed = Duration.parse(tolerance);
+      if (parsed.getNano() != 0) {
+        throw new WebhookSecurityException(
+            401,
+            Reason.INVALID_SIGNATURE,
+            "HMAC tolerance must be a whole-second duration: " + tolerance);
+      }
+      return parsed.getSeconds();
     } catch (DateTimeParseException e) {
-      return 0;
+      throw new WebhookSecurityException(
+          401, Reason.INVALID_SIGNATURE, "HMAC tolerance is malformed: " + tolerance);
     }
   }
 

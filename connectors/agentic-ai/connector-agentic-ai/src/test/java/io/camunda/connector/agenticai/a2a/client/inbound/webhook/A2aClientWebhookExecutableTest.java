@@ -296,6 +296,39 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacTimestampHeaderMatchesSignatureHeader_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        HMAC_HEADER.toLowerCase())))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("must be different");
+  }
+
+  @Test
   void activate_HmacToleranceZeroOrNegative_ThrowsException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
@@ -361,6 +394,41 @@ class A2aClientWebhookExecutableTest {
 
     assertThatThrownBy(() -> webhookExecutable.activate(ctx))
         .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void activate_HmacToleranceWithFractionalSeconds_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        "X-HMAC-Timestamp",
+                        "hmacTolerance",
+                        "PT0.5S")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("whole-second duration");
   }
 
   @Test
@@ -451,6 +519,36 @@ class A2aClientWebhookExecutableTest {
                         "=[\"timestamp\",\"url\"]",
                         "hmacTimestampHeader",
                         "X-HMAC-Timestamp")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void activate_EmptyHmacScopes_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[]")))
             .build();
 
     assertThatThrownBy(() -> webhookExecutable.activate(ctx))

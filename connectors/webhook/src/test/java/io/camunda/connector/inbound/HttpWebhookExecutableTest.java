@@ -657,6 +657,29 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacTimestampHeaderMatchesSignatureHeader_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "x-hmac-sig",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    var exception = assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+    assertThat(exception).hasMessageContaining("must be different");
+  }
+
+  @Test
   void activate_HmacToleranceZeroOrNegative_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
@@ -700,6 +723,31 @@ class HttpWebhookExecutableTest {
             .build();
 
     assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_HmacToleranceWithFractionalSeconds_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "hmacTolerance", "PT0.5S",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    ConnectorInputException exception =
+        assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+    assertThat(exception).hasMessageContaining("whole-second duration");
   }
 
   @Test
@@ -766,6 +814,27 @@ class HttpWebhookExecutableTest {
                         "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
                         "hmacScopes", "=[\"timestamp\",\"url\"]",
                         "hmacTimestampHeader", "X-HMAC-Timestamp",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    assertThrows(ConnectorInputException.class, () -> testObject.activate(ctx));
+  }
+
+  @Test
+  void activate_EmptyHmacScopes_RaisesException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes", "=[]",
                         "auth", Map.of("type", "NONE"))))
             .build();
 
