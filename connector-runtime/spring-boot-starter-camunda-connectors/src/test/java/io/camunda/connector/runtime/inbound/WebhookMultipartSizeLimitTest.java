@@ -37,10 +37,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
       "camunda.connector.polling.enabled=false",
-      "spring.servlet.multipart.max-file-size=1KB",
-      "spring.servlet.multipart.max-request-size=1KB",
+      "spring.servlet.multipart.max-file-size=10MB",
+      "spring.servlet.multipart.max-request-size=11MB",
     })
 class WebhookMultipartSizeLimitTest {
+
+  private static final int ONE_MEBIBYTE = 1024 * 1024;
+  private static final int TEN_MEBIBYTES = 10 * ONE_MEBIBYTE;
 
   @MockitoBean private CamundaClient camundaClient;
 
@@ -49,31 +52,41 @@ class WebhookMultipartSizeLimitTest {
   @LocalServerPort private int port;
 
   @Test
+  void shouldAcceptMultipartFileLargerThanOneMebibyte() throws Exception {
+    HttpResponse<String> response = sendMultipartFile(ONE_MEBIBYTE + 1);
+
+    assertThat(response.statusCode()).isEqualTo(404);
+  }
+
+  @Test
   void shouldReturn413WithEmptyBodyWhenMultipartFileExceedsConfiguredLimit() throws Exception {
+    HttpResponse<String> response = sendMultipartFile(TEN_MEBIBYTES + 1);
+
+    assertThat(response.statusCode()).isEqualTo(413);
+    assertThat(response.body()).isEmpty();
+  }
+
+  private HttpResponse<String> sendMultipartFile(int fileSize) throws Exception {
     String boundary = "test-boundary-268";
-    String oversizedFileContent = "x".repeat(2000);
-    String body =
+    String multipartPrefix =
         "--"
             + boundary
             + "\r\n"
             + "Content-Disposition: form-data; name=\"file\"; filename=\"payload.bin\"\r\n"
-            + "Content-Type: application/octet-stream\r\n\r\n"
-            + oversizedFileContent
-            + "\r\n--"
-            + boundary
-            + "--\r\n";
+            + "Content-Type: application/octet-stream\r\n\r\n";
+    HttpRequest.BodyPublisher body =
+        HttpRequest.BodyPublishers.concat(
+            HttpRequest.BodyPublishers.ofString(multipartPrefix),
+            HttpRequest.BodyPublishers.ofByteArray(new byte[fileSize]),
+            HttpRequest.BodyPublishers.ofString("\r\n--" + boundary + "--\r\n"));
 
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:" + port + "/inbound/doesNotExist"))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .POST(body)
             .build();
 
-    HttpResponse<String> response =
-        HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-
-    assertThat(response.statusCode()).isEqualTo(413);
-    assertThat(response.body()).isEmpty();
+    return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
   }
 }
