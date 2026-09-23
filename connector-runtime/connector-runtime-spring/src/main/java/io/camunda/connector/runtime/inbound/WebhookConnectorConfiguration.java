@@ -73,9 +73,12 @@ public class WebhookConnectorConfiguration {
       matchIfMissing = true)
   public StandardServletMultipartResolver webhookAwareMultipartResolver(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
-      @Value("${spring.servlet.multipart.resolve-lazily:false}") boolean resolveLazily) {
+      @Value("${spring.servlet.multipart.resolve-lazily:false}") boolean resolveLazily,
+      @Value("${spring.servlet.multipart.strict-servlet-compliance:false}")
+          boolean strictServletCompliance) {
     var resolver = new WebhookAwareStandardServletMultipartResolver(dispatcherServletPath);
     resolver.setResolveLazily(resolveLazily);
+    resolver.setStrictServletCompliance(strictServletCompliance);
     return resolver;
   }
 

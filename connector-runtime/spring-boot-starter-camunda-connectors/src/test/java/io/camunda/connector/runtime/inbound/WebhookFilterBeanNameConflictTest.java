@@ -27,6 +27,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
 import org.springframework.web.servlet.DispatcherServlet;
@@ -98,6 +99,21 @@ class WebhookFilterBeanNameConflictTest {
     contextRunner
         .withPropertyValues("spring.servlet.multipart.enabled=false")
         .run(context -> assertThat(context).doesNotHaveBean("multipartResolver"));
+  }
+
+  @Test
+  void multipartResolverPreservesStrictServletCompliance() {
+    contextRunner
+        .withPropertyValues("spring.servlet.multipart.strict-servlet-compliance=true")
+        .run(
+            context -> {
+              var resolver = context.getBean(WebhookAwareStandardServletMultipartResolver.class);
+              var request = new MockHttpServletRequest();
+              request.setRequestURI("/management/import");
+              request.setContentType("multipart/related; boundary=x");
+
+              assertThat(resolver.isMultipart(request)).isFalse();
+            });
   }
 
   @Configuration(proxyBeanMethods = false)
