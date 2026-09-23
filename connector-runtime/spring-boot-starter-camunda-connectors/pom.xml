@@ -24,6 +24,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-managed-code</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
     </dependency>
     <dependency>
@@ -262,6 +266,7 @@
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-actuator</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-web</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-cache</ignoredDependency>
+                <ignoredDependency>io.camunda.connector:connector-runtime-managed-code</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
