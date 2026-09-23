@@ -107,7 +107,7 @@ public record WebhookConnectorProperties(
             id = "hmacTimestampHeader",
             label = "HMAC timestamp header",
             description =
-                "Name of the header attribute carrying the request timestamp, as a base-10 Unix epoch timestamp in seconds (not milliseconds, not ISO-8601). The signed material is '<timestamp>:<bytes selected by the other HMAC scopes>'. Required when HMAC scopes include 'timestamp'",
+                "Name of the header attribute carrying the request timestamp, as a base-10 Unix epoch timestamp in seconds (not milliseconds, not ISO-8601). The signed material is '&lt;timestamp&gt;:&lt;bytes selected by the other HMAC scopes&gt;'. Required when HMAC scopes include 'timestamp'",
             group = "authentication",
             feel = FeelMode.optional,
             optional = true,
@@ -118,7 +118,7 @@ public record WebhookConnectorProperties(
             id = "hmacTolerance",
             label = "HMAC timestamp tolerance",
             description =
-                "Maximum allowed difference between the signed timestamp and the current time, as an ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
+                "Maximum allowed difference between the signed timestamp and the current time, as a whole-second ISO-8601 duration, e.g. PT5M for 5 minutes. Requests outside this window are rejected. Only relevant when HMAC scopes include 'timestamp'",
             group = "authentication",
             optional = true,
             defaultValue = HMACVerifier.DEFAULT_HMAC_TOLERANCE,
