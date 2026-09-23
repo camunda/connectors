@@ -114,6 +114,26 @@ class MsInboundEmailCredentialTest {
   }
 
   @Test
+  void leftoverInlineDiscriminatorDoesNotFailValidationWhenCredentialIsBound() {
+    // Modeler leaves the inline authentication's default discriminator (and no other inline
+    // fields, since they're hidden once a credential is bound) in the job input regardless of
+    // which source the user picked.
+    var properties =
+        bind(
+            """
+            {"authenticationConfiguration":{"authentication":{"type":"token",\
+            "token":"cred-token"}},\
+            "authentication":{"type":"clientCredentials"},\
+            """
+                + REST_OF_PROPERTIES
+                + "}");
+
+    assertThat(properties.authentication())
+        .isInstanceOfSatisfying(
+            BearerAuthentication.class, auth -> assertThat(auth.token()).isEqualTo("cred-token"));
+  }
+
+  @Test
   void validationCascadesIntoTheBoundCredential() {
     assertThatThrownBy(
             () ->

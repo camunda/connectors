@@ -35,13 +35,18 @@ public record MsInboundEmailProperties(
                     + " authentication parameters below.")
         @Valid
         MicrosoftEntraConfiguration authenticationConfiguration,
+    // Not @Valid on the component: Modeler leaves the inline authentication's default
+    // discriminator (and its now-hidden, unfilled members) in the job input even after a
+    // credential is bound, and cascading validation straight into that leftover object would fail
+    // its @NotBlank members even though it lost to the credential. Requiredness and shape
+    // validation are applied to the effective value instead - see isAuthenticationPresent() and
+    // getInlineAuthenticationWhenNoCredentialBound() below.
     @NestedProperties(
             group = "authentication",
             condition =
                 @PropertyCondition(
                     property = "authenticationConfiguration",
                     isEmpty = NullableBoolean.TRUE))
-        @Valid
         MicrosoftAuthentication authentication,
     @NestedProperties(group = "pollingConfig") @Valid EmailPollingConfig pollingConfig,
     @NestedProperties(group = "postprocessing") @Valid @NotNull
@@ -66,5 +71,15 @@ public record MsInboundEmailProperties(
   @JsonIgnore
   public boolean isAuthenticationPresent() {
     return authentication() != null;
+  }
+
+  /**
+   * Validates the inline {@link #authentication} only when no credential is bound; see the
+   * component's javadoc for why the record component itself isn't {@code @Valid}.
+   */
+  @Valid
+  @JsonIgnore
+  public MicrosoftAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+    return authenticationConfiguration != null ? null : authentication;
   }
 }

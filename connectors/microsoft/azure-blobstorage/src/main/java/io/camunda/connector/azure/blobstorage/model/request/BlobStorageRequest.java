@@ -48,12 +48,17 @@ public class BlobStorageRequest {
   @Valid
   private AzureBlobStorageConfiguration authenticationConfiguration;
 
+  // Not @Valid on the field: Modeler leaves the inline authentication's default discriminator
+  // (and its now-hidden, unfilled members) in the job input even after a credential is bound, and
+  // cascading validation straight into that leftover object would fail its @NotBlank members even
+  // though it lost to the credential. Requiredness and shape validation are applied to the
+  // effective value instead - see isAuthenticationPresent() and
+  // getInlineAuthenticationWhenNoCredentialBound() below.
   @NestedProperties(
       condition =
           @PropertyCondition(
               property = "authenticationConfiguration",
               isEmpty = NullableBoolean.TRUE))
-  @Valid
   private Authentication authentication;
 
   public BlobStorageRequest() {}
@@ -90,5 +95,15 @@ public class BlobStorageRequest {
   @JsonIgnore
   public boolean isAuthenticationPresent() {
     return getAuthentication() != null;
+  }
+
+  /**
+   * Validates the inline {@link #authentication} only when no credential is bound; see the field's
+   * javadoc for why the field itself isn't {@code @Valid}.
+   */
+  @Valid
+  @JsonIgnore
+  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
+    return authenticationConfiguration != null ? null : authentication;
   }
 }

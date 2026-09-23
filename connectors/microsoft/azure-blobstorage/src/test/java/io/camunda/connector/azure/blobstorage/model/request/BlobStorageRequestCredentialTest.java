@@ -97,6 +97,24 @@ class BlobStorageRequestCredentialTest {
   }
 
   @Test
+  void leftoverInlineDiscriminatorDoesNotFailValidationWhenCredentialIsBound() {
+    // Modeler leaves the inline authentication's default discriminator (and no other inline
+    // fields, since they're hidden once a credential is bound) in the job input regardless of
+    // which source the user picked.
+    String leftoverInlineSas =
+        """
+        "authentication":{"type":"SAS"}\
+        """;
+
+    var request = bind("{" + OAUTH_CREDENTIAL + "," + leftoverInlineSas + "," + OPERATION + "}");
+
+    assertThat(request.getAuthentication())
+        .isInstanceOfSatisfying(
+            OAuthAuthentication.class,
+            auth -> assertThat(auth.tenantId()).isEqualTo("cred-tenant"));
+  }
+
+  @Test
   void toStringRedactsTheSecretsOfBothAuthenticationTypes() {
     var sas =
         new SASAuthentication(
