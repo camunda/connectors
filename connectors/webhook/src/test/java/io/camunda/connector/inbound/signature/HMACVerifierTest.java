@@ -601,6 +601,16 @@ class HMACVerifierTest {
   }
 
   @Test
+  void rejectUnsupportedScopeCombination_WhenTimestampIsDuplicatedAlongsideBody_ShouldThrow() {
+    assertThatThrownBy(
+            () ->
+                HMACVerifier.rejectUnsupportedScopeCombination(
+                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.TIMESTAMP, HMACScope.BODY}))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Unsupported HMAC scope combination");
+  }
+
+  @Test
   void rejectUnsupportedScopeCombination_WhenBodyScopeIsDuplicated_ShouldThrow() {
     assertThatThrownBy(
             () ->
