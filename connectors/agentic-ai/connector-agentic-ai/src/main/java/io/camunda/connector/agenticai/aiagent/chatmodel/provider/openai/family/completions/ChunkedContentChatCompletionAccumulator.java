@@ -49,8 +49,19 @@ import org.jspecify.annotations.Nullable;
  * vendor accumulator would have produced.
  *
  * <p>Everything other than {@code content} (id/created/model, tool calls, refusal, role, usage,
- * finish reason) is accumulated the same way the vendor accumulator does it; log probabilities are
- * not supported since this connector never requests them.
+ * finish reason) is accumulated the same way the vendor accumulator does it, field for field and
+ * method for method, deliberately kept structurally close to {@code
+ * com.openai.helpers.ChatCompletionAccumulator} (find it in the {@code openai-java-core} sources
+ * jar) so an SDK upgrade can be diffed against it directly; log probabilities are the one thing
+ * dropped rather than ported, since this connector never requests them.
+ *
+ * <p>Subclassing the vendor accumulator and overriding only content handling isn't possible: it's a
+ * Kotlin class with no {@code open} modifier (final by default, cannot be extended), a private
+ * constructor reachable only through its own {@code create()} factory, and every field the {@code
+ * content}-accumulation logic would need to share with the rest of the class ({@code
+ * messageContents}, {@code messageBuilders}, etc.) is {@code private}. There is no extension point
+ * to hook a custom content strategy into, so this class re-implements the whole algorithm rather
+ * than overriding a part of it.
  */
 class ChunkedContentChatCompletionAccumulator {
 
@@ -211,23 +222,33 @@ class ChunkedContentChatCompletionAccumulator {
     if (builders == null) {
       return List.of();
     }
-    final Map<Long, ChatCompletionMessageFunctionToolCall.Function.Builder> functionBuilders =
-        toolCallFunctionBuilders.get(index);
-    final Map<Long, String> functionArgs = toolCallFunctionArgs.get(index);
     final List<ChatCompletionMessageToolCall> toolCalls = new ArrayList<>();
     for (final var entry : builders.entrySet()) {
-      final var functionBuilder =
-          functionBuilders == null ? null : functionBuilders.get(entry.getKey());
-      final String arguments = functionArgs == null ? null : functionArgs.get(entry.getKey());
-      if (functionBuilder == null || arguments == null) {
-        throw new OpenAIInvalidDataException(
-            "Missing function for tool call index " + index + "." + entry.getKey() + ".");
-      }
+      final long toolCallIndex = entry.getKey();
       toolCalls.add(
           ChatCompletionMessageToolCall.ofFunction(
-              entry.getValue().function(functionBuilder.arguments(arguments).build()).build()));
+              entry.getValue().function(buildFunction(index, toolCallIndex)).build()));
     }
     return toolCalls;
+  }
+
+  private ChatCompletionMessageFunctionToolCall.Function buildFunction(
+      long index, long toolCallIndex) {
+    final Map<Long, ChatCompletionMessageFunctionToolCall.Function.Builder> functionBuilders =
+        toolCallFunctionBuilders.get(index);
+    final ChatCompletionMessageFunctionToolCall.Function.Builder functionBuilder =
+        functionBuilders == null ? null : functionBuilders.get(toolCallIndex);
+    if (functionBuilder == null) {
+      throw new OpenAIInvalidDataException(
+          "Missing function builder for index " + index + "." + toolCallIndex + ".");
+    }
+    final Map<Long, String> functionArgs = toolCallFunctionArgs.get(index);
+    final String arguments = functionArgs == null ? null : functionArgs.get(toolCallIndex);
+    if (arguments == null) {
+      throw new OpenAIInvalidDataException(
+          "Missing function arguments for index " + index + "." + toolCallIndex + ".");
+    }
+    return functionBuilder.arguments(arguments).build();
   }
 
   /**
