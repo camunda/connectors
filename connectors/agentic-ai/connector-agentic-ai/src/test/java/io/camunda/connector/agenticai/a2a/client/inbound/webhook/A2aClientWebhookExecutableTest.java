@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStat
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
@@ -144,6 +145,38 @@ class A2aClientWebhookExecutableTest {
 
     assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
         .isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  void triggerWebhook_afterFailedActivation_rejectsCleanlyInsteadOfNpe() {
+    // A v0-shaped JWT webhook missing the now-required issuer/audience fails to activate.
+    // Regression mirroring HttpWebhookExecutableTest: a request against the never-activated
+    // executable must not NPE on the null props/authChecker/hmacVerifier left by the aborted
+    // activate().
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of(
+                            "type",
+                            "JWT",
+                            "jwt",
+                            Map.of("jwkUrl", "https://example.com/.well-known/jwks.json")))))
+            .build();
+    assertThat(catchException(() -> webhookExecutable.activate(ctx))).isNotNull();
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+
+    var exception = catchException(() -> webhookExecutable.triggerWebhook(payload));
+
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(503);
   }
 
   @Test

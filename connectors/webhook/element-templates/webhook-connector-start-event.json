@@ -348,6 +348,46 @@
     },
     "type" : "String"
   }, {
+    "id" : "inbound.auth.jwt.issuer",
+    "label" : "Issuer",
+    "description" : "Expected value of the JWT 'iss' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.issuer",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.jwt.audience",
+    "label" : "Audience",
+    "description" : "Expected value of the JWT 'aud' claim",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.audience",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "inbound.auth.jwt.permissionsExpression",
     "label" : "JWT role property expression",
     "description" : "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",

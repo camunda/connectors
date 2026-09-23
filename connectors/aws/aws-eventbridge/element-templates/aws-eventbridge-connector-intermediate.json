@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.AWSEventBridge.intermediate.v1",
-  "version": 5,
+  "version": 6,
   "description": "Receive events from AWS EventBridge",
   "keywords": [
     "receive event",
@@ -172,6 +172,44 @@
       "condition": {
         "property": "authorizationType",
         "equals": "JWT"
+      }
+    },
+    {
+      "label": "Issuer",
+      "description": "Expected value of the JWT 'iss' claim",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.jwt.issuer"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Audience",
+      "description": "Expected value of the JWT 'aud' claim",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.jwt.audience"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
