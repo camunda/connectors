@@ -97,7 +97,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     this.context = context;
     var wrappedProps = context.bindProperties(A2aWebhookPropertiesWrapper.class);
     props = new A2aWebhookProperties(wrappedProps);
-    rejectMissingHmacTimestampHeader(props);
+    rejectInvalidHmacTimestampHeader(props);
     rejectInvalidHmacTolerance(props);
     rejectUnsupportedHmacScopeCombination(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
@@ -114,28 +114,32 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   /**
    * Fails webhook deployment (activation) when HMAC authentication is enabled with the {@code
-   * timestamp} scope but no {@code hmacTimestampHeader} is configured to read it from — that
-   * combination can never pass verification, so it's rejected at deploy time rather than on every
+   * timestamp} scope but its header is missing or matches the signature header. Neither
+   * configuration can pass verification, so they are rejected at deploy time rather than on every
    * request.
    */
-  private static void rejectMissingHmacTimestampHeader(A2aWebhookProperties props) {
+  private static void rejectInvalidHmacTimestampHeader(A2aWebhookProperties props) {
     boolean timestampScopeSelected =
         Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
-    boolean timestampHeaderConfigured =
-        props.hmacTimestampHeader() != null && !props.hmacTimestampHeader().isBlank();
-    if (enabled.equals(props.shouldValidateHmac())
-        && timestampScopeSelected
-        && !timestampHeaderConfigured) {
+    if (!enabled.equals(props.shouldValidateHmac()) || !timestampScopeSelected) {
+      return;
+    }
+    String timestampHeader = props.hmacTimestampHeader();
+    if (timestampHeader == null || timestampHeader.isBlank()) {
       throw new ConnectorInputException(
           "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
               + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
+    }
+    if (timestampHeader.equalsIgnoreCase(props.hmacHeader())) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTimestampHeader' must be different from 'hmacHeader'.");
     }
   }
 
   /**
    * Fails webhook deployment (activation) when the {@code timestamp} scope is selected and {@code
    * hmacTolerance} is not a positive ISO-8601 duration. Gated on the {@code timestamp} scope,
-   * matching {@link #rejectMissingHmacTimestampHeader}: the property is hidden and irrelevant
+   * matching {@link #rejectInvalidHmacTimestampHeader}: the property is hidden and irrelevant
    * otherwise, so a leftover invalid value from a previous configuration (e.g. after switching
    * scopes back to {@code body}) must not block activation.
    *

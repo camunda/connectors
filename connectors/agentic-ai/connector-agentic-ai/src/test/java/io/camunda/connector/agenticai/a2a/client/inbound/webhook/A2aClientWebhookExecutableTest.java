@@ -263,6 +263,39 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_HmacTimestampHeaderMatchesSignatureHeader_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[\"body\",\"timestamp\"]",
+                        "hmacTimestampHeader",
+                        HMAC_HEADER.toLowerCase())))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("must be different");
+  }
+
+  @Test
   void activate_HmacToleranceZeroOrNegative_ThrowsException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
