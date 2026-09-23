@@ -16,7 +16,6 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionMessage;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
-import com.openai.models.completions.CompletionUsage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +52,15 @@ import org.jspecify.annotations.Nullable;
  * com.openai.helpers.ChatCompletionAccumulator} (find it in the {@code openai-java-core} sources
  * jar) so an SDK upgrade can be diffed against it directly; log probabilities are the one thing
  * dropped rather than ported, since this connector never requests them.
+ *
+ * <p>One deliberate behavioral divergence from the vendor accumulator: {@code usage} is applied to
+ * the builder unconditionally, before that chunk's {@code choices} are processed, rather than
+ * treating any usage-carrying chunk as choices-less. OpenAI always sends {@code usage} on its own
+ * separate trailing chunk with an empty {@code choices} array, which is what the vendor accumulator
+ * assumes; Mistral instead sends {@code usage} on the very same chunk that also carries the closing
+ * delta and {@code finishReason}. Mirroring the vendor's ordering exactly would silently drop that
+ * chunk's choices, leaving the final {@link ChatCompletion.Builder} without {@code choices} set and
+ * failing with "choices is required, but was not set" once the stream completed.
  *
  * <p>Subclassing the vendor accumulator and overriding only content handling isn't possible: it's a
  * Kotlin class with no {@code open} modifier (final by default, cannot be extended), a private
@@ -99,11 +107,21 @@ final class ChunkedContentChatCompletionAccumulator {
   ChatCompletionChunk accumulate(ChatCompletionChunk chunk) {
     final ChatCompletion.Builder builder = ensureChatCompletionBuilder();
 
-    final Optional<CompletionUsage> usage = chunk.usage();
-    if (usage.isPresent()) {
-      builder.usage(usage.get());
-      chatCompletion = builder.build();
-      // The final usage-only chunk carries no choices; nothing more to accumulate.
+    // Set eagerly, unlike the vendor accumulator: OpenAI sends usage on its own trailing
+    // choices-less chunk, but Mistral sends it on the very same chunk that also carries the
+    // final finishReason -- setting it unconditionally here, before that chunk's choices are
+    // processed below, means both wire shapes end up with usage present on the built
+    // ChatCompletion. Deferring this behind the emptiness check below would silently drop the
+    // choices that arrive in that same combined chunk.
+    chunk.usage().ifPresent(builder::usage);
+
+    if (chunk.choices().isEmpty()) {
+      // A usage-only trailing chunk (OpenAI's shape). The chat completion, if already finished
+      // by an earlier chunk, needs rebuilding to pick up the usage just set above; if not yet
+      // finished, there is nothing more to do until the finishing chunk arrives.
+      if (chunk.usage().isPresent() && chatCompletion != null) {
+        chatCompletion = builder.build();
+      }
       return chunk;
     }
 
