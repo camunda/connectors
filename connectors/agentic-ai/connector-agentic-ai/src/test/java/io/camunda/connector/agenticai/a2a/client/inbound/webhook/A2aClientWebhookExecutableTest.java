@@ -493,6 +493,36 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void activate_EmptyHmacScopes_ThrowsException() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "a2aWebhookContext",
+                        "clientResponse",
+                        "=task",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "shouldValidateHmac",
+                        enabled.name(),
+                        "hmacSecret",
+                        "mySecret123",
+                        "hmacHeader",
+                        HMAC_HEADER,
+                        "hmacAlgorithm",
+                        HMACAlgoCustomerChoice.sha_256.name(),
+                        "hmacScopes",
+                        "=[]")))
+            .build();
+
+    assertThatThrownBy(() -> webhookExecutable.activate(ctx))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
   void activate_UnsupportedHmacScopeCombinationIgnoredWhenHmacDisabled_DoesNotFailDeployment() {
     // The same combination must not block activation when HMAC is disabled entirely — the scope
     // configuration is then irrelevant, matching the other HMAC-disabled passthrough cases above.
