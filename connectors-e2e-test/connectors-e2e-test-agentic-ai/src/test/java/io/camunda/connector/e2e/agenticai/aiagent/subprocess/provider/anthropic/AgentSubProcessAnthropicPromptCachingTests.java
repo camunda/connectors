@@ -37,18 +37,13 @@ import org.junit.jupiter.api.Test;
 class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicSubProcessTest {
 
   @Test
-  void enablePromptCachingAddsCacheControlToTheWire() throws Exception {
+  void promptCachingEnabledByDefaultAddsCacheControlToTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
     StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
-    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
-        template ->
-            template.property("provider.anthropic.model.parameters.promptCaching.enabled", "true");
-
-    awaitProcessCompletion(
-        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
+    awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
     final var request = parseBody(soleRecordedRequest());
     assertThat(request.has("cache_control")).as("top-level cache_control present").isTrue();
