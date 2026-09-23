@@ -65,6 +65,24 @@
       "type": "java.time.Duration",
       "description": "Maximum time to wait for in-flight reconciliation during shutdown.",
       "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.local-execution-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to execute fake-provider managed scripts in local Node.js or Python subprocesses. This trusted-development-only mode is not a sandbox.",
+      "defaultValue": false
+    },
+    {
+      "name": "camunda.connector.managed-code.execution-timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum duration of one trusted local script invocation.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.invocation-concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of managed-script invocation jobs activated concurrently per Camunda client.",
+      "defaultValue": 4
     }
   ]
 }

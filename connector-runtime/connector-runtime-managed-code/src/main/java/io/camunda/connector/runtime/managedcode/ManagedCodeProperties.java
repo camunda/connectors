@@ -31,7 +31,10 @@ public record ManagedCodeProperties(
     int batchSize,
     int concurrency,
     int queueCapacity,
-    Duration shutdownTimeout) {
+    Duration shutdownTimeout,
+    boolean localExecutionEnabled,
+    Duration executionTimeout,
+    int invocationConcurrency) {
 
   private static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
   private static final Duration DEFAULT_LEASE_DURATION = Duration.ofMinutes(2);
@@ -39,6 +42,8 @@ public record ManagedCodeProperties(
   private static final int DEFAULT_CONCURRENCY = 4;
   private static final int DEFAULT_QUEUE_CAPACITY = 64;
   private static final Duration DEFAULT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
+  private static final int DEFAULT_INVOCATION_CONCURRENCY = 4;
 
   public ManagedCodeProperties {
     provider = provider == null ? "" : provider;
@@ -50,6 +55,8 @@ public record ManagedCodeProperties(
     concurrency = positive(concurrency, DEFAULT_CONCURRENCY);
     queueCapacity = positive(queueCapacity, DEFAULT_QUEUE_CAPACITY);
     shutdownTimeout = positive(shutdownTimeout, DEFAULT_SHUTDOWN_TIMEOUT);
+    executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
+    invocationConcurrency = positive(invocationConcurrency, DEFAULT_INVOCATION_CONCURRENCY);
   }
 
   private static int positive(int value, int fallback) {

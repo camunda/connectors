@@ -20,12 +20,7 @@ import io.camunda.client.CamundaClient;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * Control-plane transport boundary for managed-script reconciliation.
- *
- * <p>The OC transport implementation is intentionally supplied as a bean by a later slice. This
- * module does not assume endpoint paths or transport details.
- */
+/** Control-plane transport boundary for managed-script deployment reconciliation and invocation. */
 public interface ManagedScriptControlPlane {
 
   List<ManagedScriptDeployment> acquireDeployments(
@@ -63,4 +58,10 @@ public interface ManagedScriptControlPlane {
       ManagedScriptDeployment deployment,
       ManagedCodeDeploymentFailure failure)
       throws Exception;
+
+  default ManagedScriptInvocation getInvocation(
+      CamundaClient client, String physicalTenantId, long processDefinitionKey, String elementId)
+      throws Exception {
+    throw new UnsupportedOperationException("Managed-script invocation is not configured");
+  }
 }

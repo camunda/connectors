@@ -44,6 +44,8 @@ class ManagedCodeAutoConfigurationTest {
         context -> {
           assertThat(context).doesNotHaveBean(ManagedCodeReconciler.class);
           assertThat(context).doesNotHaveBean(FakeManagedCodeDeploymentProvider.class);
+          assertThat(context).doesNotHaveBean(LocalProcessScriptExecutor.class);
+          assertThat(context).doesNotHaveBean(ManagedScriptJobWorker.class);
         });
   }
 
@@ -95,6 +97,25 @@ class ManagedCodeAutoConfigurationTest {
               assertThat(context).hasNotFailed();
               assertThat(context).hasSingleBean(RestManagedScriptControlPlane.class);
               assertThat(context).hasSingleBean(ManagedCodeReconciler.class);
+            });
+  }
+
+  @Test
+  void localExecutionMustBeExplicitlyEnabled() {
+    var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn("tenant-a");
+
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=fake",
+            "camunda.connector.managed-code.local-execution-enabled=true")
+        .withBean(CamundaClient.class, () -> client)
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).hasSingleBean(LocalProcessScriptExecutor.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
             });
   }
 

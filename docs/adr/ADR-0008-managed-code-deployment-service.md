@@ -33,8 +33,11 @@ The module:
 - exposes a deterministic fake provider for self-contained local validation.
 
 The module does not execute production customer scripts. AWS Lambda and Google Cloud Run remain the
-production execution boundaries. Provider adapters are separate from the reconciliation core so
-their SDKs and credentials do not become dependencies of the standard Connector Runtime.
+production execution boundaries. A disabled-by-default local invocation worker may execute scripts
+deployed through the fake provider for trusted development and POC validation only. It uses bounded
+Node.js or Python subprocesses, but it is not a sandbox and must not be used for untrusted code.
+Provider adapters are separate from the reconciliation core so their SDKs and credentials do not
+become dependencies of the standard Connector Runtime.
 
 Camunda remains the authoritative source for desired state and public lifecycle status. Local
 caches may optimize processing but cannot determine correctness.

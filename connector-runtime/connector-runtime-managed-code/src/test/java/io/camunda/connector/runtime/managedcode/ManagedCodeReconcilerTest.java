@@ -316,7 +316,10 @@ class ManagedCodeReconcilerTest {
             20,
             2,
             4,
-            Duration.ofSeconds(5)),
+            Duration.ofSeconds(5),
+            false,
+            Duration.ofSeconds(30),
+            4),
         Map.of("engine-a", "tenant-a"),
         Map.of("tenant-a", client));
   }

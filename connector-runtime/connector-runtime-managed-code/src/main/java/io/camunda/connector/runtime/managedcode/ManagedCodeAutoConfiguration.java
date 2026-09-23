@@ -61,6 +61,40 @@ public class ManagedCodeAutoConfiguration {
         properties.provider(), objectMapperProvider.getIfAvailable(ObjectMapper::new));
   }
 
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "local-execution-enabled",
+      havingValue = "true")
+  public LocalProcessScriptExecutor localProcessScriptExecutor(
+      ManagedCodeProperties properties, ObjectProvider<ObjectMapper> objectMapperProvider) {
+    if (!"fake".equals(properties.provider())) {
+      throw new IllegalStateException(
+          "Trusted local managed-script execution requires"
+              + " camunda.connector.managed-code.provider=fake");
+    }
+    return new LocalProcessScriptExecutor(
+        objectMapperProvider.getIfAvailable(ObjectMapper::new),
+        LocalInterpreterDiscovery.discover(),
+        properties.executionTimeout());
+  }
+
+  @Bean(destroyMethod = "shutdown")
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "local-execution-enabled",
+      havingValue = "true")
+  public ManagedScriptJobWorker managedScriptJobWorker(
+      ManagedScriptControlPlane controlPlane,
+      LocalProcessScriptExecutor executor,
+      ManagedCodeProperties properties,
+      ObjectProvider<ObjectMapper> objectMapperProvider) {
+    final var objectMapper = objectMapperProvider.getIfAvailable(ObjectMapper::new);
+    return new ManagedScriptJobWorker(
+        new ManagedScriptJobHandler(controlPlane, executor, objectMapper, properties.interval()),
+        properties);
+  }
+
   @Bean(destroyMethod = "shutdown")
   @ConditionalOnMissingBean
   public ManagedCodeReconciler managedCodeReconciler(

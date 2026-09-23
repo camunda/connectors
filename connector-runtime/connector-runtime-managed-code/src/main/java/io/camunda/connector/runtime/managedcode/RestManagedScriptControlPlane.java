@@ -36,6 +36,8 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
 
   private static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
   private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration ARTIFACT_RETRY_DELAY = Duration.ofMillis(250);
+  private static final int ARTIFACT_FETCH_ATTEMPTS = 10;
   private static final int MAX_ERROR_BODY_LENGTH = 4_096;
 
   private final String provider;
@@ -82,7 +84,7 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
               try {
                 return toDeployment(
                     definition,
-                    get(
+                    getArtifact(
                         client,
                         physicalTenantId,
                         "/resources/%d/content/binary".formatted(definition.resourceKey())));
@@ -128,9 +130,9 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
                 operationId(deployment, "checkpoint"),
                 "DEPLOYING",
                 providerOperationId,
-                null,
-                null,
-                null,
+                "",
+                "",
+                "",
                 false));
     return deployment.withProviderOperation(response.revision(), providerOperationId);
   }
@@ -151,10 +153,10 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
             deployment.leaseToken(),
             operationId(deployment, "complete"),
             "READY",
-            null,
+            "",
             result.providerDeploymentId(),
-            null,
-            null,
+            "",
+            "",
             false));
   }
 
@@ -174,11 +176,44 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
             deployment.leaseToken(),
             operationId(deployment, "fail"),
             "FAILED",
-            null,
-            null,
+            "",
+            "",
             failure.code(),
             failure.message(),
             failure.retryable()));
+  }
+
+  @Override
+  public ManagedScriptInvocation getInvocation(
+      final CamundaClient client,
+      final String physicalTenantId,
+      final long processDefinitionKey,
+      final String elementId)
+      throws Exception {
+    final var definition =
+        getJson(
+            client,
+            physicalTenantId,
+            "/managed-script-definitions/by-process-definition/%d/elements/%s"
+                .formatted(processDefinitionKey, encodePathSegment(elementId)),
+            DefinitionResponse.class);
+    final var status = ManagedScriptInvocation.Status.valueOf(definition.status());
+    final var artifact =
+        status == ManagedScriptInvocation.Status.READY
+            ? getArtifact(
+                client,
+                physicalTenantId,
+                "/resources/%d/content/binary".formatted(definition.resourceKey()))
+            : new byte[0];
+    return new ManagedScriptInvocation(
+        status,
+        definition.provider(),
+        definition.providerDeploymentId(),
+        definition.language(),
+        definition.runtime(),
+        definition.resourceKey(),
+        definition.resourceName(),
+        artifact);
   }
 
   private DefinitionResponse transition(
@@ -201,6 +236,32 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
     final var request =
         authenticatedRequest(client, endpoint(client, physicalTenantId, path)).GET();
     return send(request.build()).body();
+  }
+
+  private byte[] getArtifact(
+      final CamundaClient client, final String physicalTenantId, final String path)
+      throws Exception {
+    for (int attempt = 1; ; attempt++) {
+      try {
+        return get(client, physicalTenantId, path);
+      } catch (ControlPlaneHttpException e) {
+        if (e.statusCode() != 404 || attempt >= ARTIFACT_FETCH_ATTEMPTS) {
+          throw e;
+        }
+        Thread.sleep(ARTIFACT_RETRY_DELAY);
+      }
+    }
+  }
+
+  private <T> T getJson(
+      final CamundaClient client,
+      final String physicalTenantId,
+      final String path,
+      final Class<T> responseType)
+      throws Exception {
+    final var request =
+        authenticatedRequest(client, endpoint(client, physicalTenantId, path)).GET();
+    return objectMapper.readValue(send(request.build()).body(), responseType);
   }
 
   private <T> T exchangeJson(
@@ -232,11 +293,8 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
     final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
     if (response.statusCode() < 200 || response.statusCode() >= 300) {
       final var body = new String(response.body(), StandardCharsets.UTF_8);
-      throw new IOException(
-          "Managed-script control-plane request failed with HTTP %d: %s"
-              .formatted(
-                  response.statusCode(),
-                  body.substring(0, Math.min(body.length(), MAX_ERROR_BODY_LENGTH))));
+      throw new ControlPlaneHttpException(
+          response.statusCode(), body.substring(0, Math.min(body.length(), MAX_ERROR_BODY_LENGTH)));
     }
     return response;
   }
@@ -273,17 +331,13 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
         definition.language(),
         definition.runtime(),
         artifact,
-        Optional.ofNullable(blankToNull(definition.providerOperationId())));
+        Optional.of(definition.providerOperationId()).filter(value -> !value.isBlank()));
   }
 
   private static String operationId(
       final ManagedScriptDeployment deployment, final String operation) {
     return "%s:%s:%d"
         .formatted(deployment.deploymentId(), operation, deployment.definitionRevision());
-  }
-
-  private static String blankToNull(final String value) {
-    return value == null || value.isBlank() ? null : value;
   }
 
   private record ActivationRequest(
@@ -308,6 +362,7 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record DefinitionResponse(
       long managedScriptDefinitionKey,
+      String status,
       long revision,
       long resourceKey,
       String resourceName,
@@ -317,12 +372,29 @@ public final class RestManagedScriptControlPlane implements ManagedScriptControl
       String provider,
       String leaseToken,
       String providerOperationId,
+      String providerDeploymentId,
       String tenantId) {}
 
   private static final class ArtifactFetchException extends RuntimeException {
 
     private ArtifactFetchException(final long resourceKey, final Exception cause) {
       super("Failed to fetch managed script resource '%d'".formatted(resourceKey), cause);
+    }
+  }
+
+  private static final class ControlPlaneHttpException extends IOException {
+
+    private final int statusCode;
+
+    private ControlPlaneHttpException(final int statusCode, final String body) {
+      super(
+          "Managed-script control-plane request failed with HTTP %d: %s"
+              .formatted(statusCode, body));
+      this.statusCode = statusCode;
+    }
+
+    private int statusCode() {
+      return statusCode;
     }
   }
 }

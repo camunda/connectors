@@ -34,6 +34,21 @@ The reconciler isolates physical tenants, prevents overlapping work for the same
 and leaves normal connector workers unchanged when disabled. See
 [ADR-0008](adr/ADR-0008-managed-code-deployment-service.md) for the architectural boundary.
 
+For trusted local POC validation only, fake-provider deployments can be invoked in bounded Node.js
+or Python subprocesses:
+
+```properties
+camunda.connector.managed-code.local-execution-enabled=true
+camunda.connector.managed-code.execution-timeout=30s
+camunda.connector.managed-code.invocation-concurrency=4
+```
+
+Node.js 20 or newer and Python 3.10 or newer are discovered from `PATH`. The script must export or
+define `execute(variables, context)` and return a JSON object; its properties become job completion
+variables. This mode executes scripts with the Connector Runtime operating-system identity. It
+limits time and I/O but is **not a sandbox** and must not be enabled for untrusted or production
+workloads.
+
 ## Connect to INT SaaS from a local connector runtime
 
 ```properties
