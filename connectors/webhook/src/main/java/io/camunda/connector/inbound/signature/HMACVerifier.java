@@ -97,8 +97,8 @@ public class HMACVerifier {
    * every request, not a deploy-time failure.
    */
   public static void rejectUnsupportedScopeCombination(HMACScope[] hmacScopes) {
-    HMACScope[] effectiveScopes = nonTimestampScopes(hmacScopes);
     try {
+      HMACScope[] effectiveScopes = nonTimestampScopes(hmacScopes);
       // Every scope combination the factory supports is either method-independent or supports
       // both branches of its method-conditional entries, so one arbitrary non-GET method is
       // enough to determine whether the combination is supported at all.
@@ -113,6 +113,9 @@ public class HMACVerifier {
   }
 
   private static HMACScope[] nonTimestampScopes(HMACScope[] hmacScopes) {
+    if (Arrays.stream(hmacScopes).distinct().count() != hmacScopes.length) {
+      throw new UnsupportedOperationException("Duplicate HMAC scopes are not supported");
+    }
     if (hmacScopes.length == 1 && hmacScopes[0] == HMACScope.TIMESTAMP) {
       return new HMACScope[] {HMACScope.BODY};
     }
