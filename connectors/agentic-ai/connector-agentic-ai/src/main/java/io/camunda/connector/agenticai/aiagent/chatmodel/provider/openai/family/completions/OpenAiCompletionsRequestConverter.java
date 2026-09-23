@@ -56,10 +56,11 @@ import org.jspecify.annotations.Nullable;
  * Maps a windowed {@link ConversationSnapshot} plus a provider-neutral {@link
  * CompletionsRequestSpec} to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating
  * the domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
- * shape via the {@link OpenAiContentConverter} built for content parts. This converter has no
+ * shape via {@link OpenAiContentConverter} for generic JSON serialization and the injected {@link
+ * OpenAiCompletionsContentChunkStrategy} for user-message content parts. This converter has no
  * dependency on any specific {@code ProviderConfiguration} subtype -- the OpenAI provider and any
  * other caller of the Chat Completions wire format (e.g. the Mistral provider) each build their own
- * {@link CompletionsRequestSpec} from their own configuration type.
+ * {@link CompletionsRequestSpec} plus their own {@link OpenAiCompletionsContentChunkStrategy}.
  *
  * <p>Reasoning is mapped via the input-only {@code reasoning_effort} dial plus, where applicable,
  * replay of a prior turn's reasoning content: a {@link ReasoningContent} whose payload is shaped
@@ -74,11 +75,15 @@ import org.jspecify.annotations.Nullable;
 public class OpenAiCompletionsRequestConverter {
 
   private final OpenAiContentConverter contentConverter;
+  private final OpenAiCompletionsContentChunkStrategy contentChunkStrategy;
   private final ObjectMapper objectMapper;
 
   public OpenAiCompletionsRequestConverter(
-      OpenAiContentConverter contentConverter, ObjectMapper objectMapper) {
+      OpenAiContentConverter contentConverter,
+      OpenAiCompletionsContentChunkStrategy contentChunkStrategy,
+      ObjectMapper objectMapper) {
     this.contentConverter = contentConverter;
+    this.contentChunkStrategy = contentChunkStrategy;
     this.objectMapper = objectMapper;
   }
 
@@ -162,7 +167,7 @@ public class OpenAiCompletionsRequestConverter {
     return ChatCompletionUserMessageParam.builder()
         .content(
             ChatCompletionUserMessageParam.Content.ofArrayOfContentParts(
-                contentConverter.toCompletionsContentParts(user.content())))
+                contentChunkStrategy.toContentParts(user.content())))
         .build();
   }
 

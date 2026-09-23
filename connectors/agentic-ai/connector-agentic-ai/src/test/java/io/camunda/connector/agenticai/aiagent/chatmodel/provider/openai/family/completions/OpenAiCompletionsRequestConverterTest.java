@@ -45,10 +45,12 @@ class OpenAiCompletionsRequestConverterTest {
 
   private final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
-  private final OpenAiContentConverter contentConverter =
-      new OpenAiContentConverter(objectMapper, "openai");
+  private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiCompletionsRequestConverter converter =
-      new OpenAiCompletionsRequestConverter(contentConverter, objectMapper);
+      new OpenAiCompletionsRequestConverter(
+          contentConverter,
+          OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+          objectMapper);
 
   private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
       new OpenAiRequestCustomizations(null, null, null);

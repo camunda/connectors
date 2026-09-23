@@ -6,14 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openai.core.ObjectMappers;
-import com.openai.models.chat.completions.ChatCompletionContentPart;
-import com.openai.models.chat.completions.ChatCompletionContentPartImage;
-import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import com.openai.models.responses.ResponseFunctionCallOutputItem;
 import com.openai.models.responses.ResponseInputContent;
 import com.openai.models.responses.ResponseInputFile;
@@ -27,52 +21,26 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.error.ConnectorException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import org.apache.hc.core5.http.ContentType;
-import org.jspecify.annotations.Nullable;
 
 /**
- * Converts the domain {@link Content} model to OpenAI SDK content parts, for both the Responses API
- * ({@link ResponseInputContent}) and the Chat Completions API ({@link ChatCompletionContentPart})
- * families. Used for user/assistant message bodies as well as Responses tool-result bodies ({@link
- * ResponseFunctionCallOutputItem}).
+ * Converts the domain {@link Content} model to OpenAI Responses API content parts ({@link
+ * ResponseInputContent}). Used for user/assistant message bodies as well as Responses tool-result
+ * bodies ({@link ResponseFunctionCallOutputItem}).
  *
- * <p>A PDF document on the Completions family is one genuine wire-format divergence between OpenAI
- * and Mistral, despite the two otherwise sharing this family's converters wholesale (see {@link
- * io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter}):
- * OpenAI's real API accepts the SDK-modeled {@code file}/{@code file_data} chunk, but Mistral
- * rejects it (verified against the real API) and instead requires a {@code document_url} chunk
- * whose value is the data URI directly, with no nested object -- confirmed against the real Mistral
- * API to be the correct replacement, unlike {@code file}. There is no wire-format signal to
- * self-detect this from (unlike the chunked-reasoning-content case), since this is an outbound
- * choice this converter makes, not something already present in what it's given to convert -- so
- * {@code providerId} (the caller's own explicit configured identity, already threaded through this
- * family's response converter for the same reason) gates it explicitly. Image parts need no such
- * gate: Mistral accepts the identical {@code image_url} shape OpenAI uses (also verified against
- * the real API), so {@link #completionsDocumentPart} sends it unconditionally.
+ * <p>The Chat Completions family's equivalent conversion lives in {@code
+ * io.camunda....openai.family.completions.OpenAiCompletionsContentChunkStrategy} instead, as a
+ * per-provider strategy rather than a method on this class: OpenAI and Mistral share that family's
+ * wire format overall, but diverge on the PDF document-part shape, and Mistral has no Responses
+ * family at all, so there is nothing to share here.
  */
 public class OpenAiContentConverter {
 
-  private static final String DEFAULT_FILE_NAME = "document";
-
-  /**
-   * Mirrors {@code MistralChatModelConfiguration.MISTRAL_ID}, duplicated as a local literal rather
-   * than imported: this package is the shared Completions/Responses wire-format layer and must not
-   * depend on a specific provider's config package.
-   */
-  private static final String MISTRAL_PROVIDER_ID = "mistral";
-
   private final ObjectMapper objectMapper;
-  private final String providerId;
 
-  public OpenAiContentConverter(ObjectMapper objectMapper, String providerId) {
+  public OpenAiContentConverter(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-    this.providerId = providerId;
   }
 
   public List<ResponseInputContent> toResponsesContentParts(List<Content> content) {
@@ -107,11 +75,10 @@ public class OpenAiContentConverter {
 
   /**
    * Converts a tool result's structured content into Responses {@code function_call_output} items.
-   * Responses-only: the Completions family has no equivalent structured tool-result item shape (see
-   * {@link #toCompletionsContentParts}). Unlike {@link #toResponsesContentParts}, a document here
-   * is flattened to a JSON reference rather than emitted natively as {@code input_image}/{@code
-   * input_file}: the document's actual bytes are already delivered to the model elsewhere for tool
-   * results, so embedding it here as well would send it twice.
+   * A document here is flattened to a JSON reference rather than emitted natively as {@code
+   * input_image}/{@code input_file}, unlike {@link #toResponsesContentParts}: the document's actual
+   * bytes are already delivered to the model elsewhere for tool results, so embedding it here as
+   * well would send it twice.
    */
   public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
       List<Content> content) {
@@ -143,121 +110,28 @@ public class OpenAiContentConverter {
     return items;
   }
 
-  public List<ChatCompletionContentPart> toCompletionsContentParts(List<Content> content) {
-    final List<ChatCompletionContentPart> parts = new ArrayList<>();
-    for (final Content c : content) {
-      switch (c) {
-        case TextContent text ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder().text(text.text()).build()));
-        case DocumentContent doc -> parts.add(completionsDocumentPart(doc));
-        case ObjectContent obj ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder()
-                        .text(writeAsJson(obj.content()))
-                        .build()));
-        case ReasoningContent reasoning ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder().text(writeAsJson(reasoning)).build()));
-        case ProviderContent providerContent ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder()
-                        .text(writeAsJson(providerContent))
-                        .build()));
-      }
-    }
-    return parts;
-  }
-
   private ResponseInputContent responsesDocumentPart(DocumentContent doc) {
     final var contentType = DocumentMimeTypes.requireContentType(doc.document());
-    return switch (classify(DocumentMimeTypes.parse(contentType))) {
+    return switch (OpenAiDocumentParts.classify(DocumentMimeTypes.parse(contentType))) {
       case IMAGE ->
           ResponseInputContent.ofInputImage(
               ResponseInputImage.builder()
-                  .imageUrl(dataUri(contentType, doc.document()))
+                  .imageUrl(OpenAiDocumentParts.dataUri(contentType, doc.document()))
                   .detail(ResponseInputImage.Detail.AUTO)
                   .build());
       case PDF ->
           ResponseInputContent.ofInputFile(
               ResponseInputFile.builder()
-                  .filename(fileName(doc.document()))
-                  .fileData(dataUri(contentType, doc.document()))
+                  .filename(OpenAiDocumentParts.fileName(doc.document()))
+                  .fileData(OpenAiDocumentParts.dataUri(contentType, doc.document()))
                   .build());
       case TEXT ->
           ResponseInputContent.ofInputText(
-              ResponseInputText.builder().text(decodeUtf8(doc.document())).build());
-      case UNSUPPORTED -> throw unsupportedContentType(contentType, doc);
-    };
-  }
-
-  private ChatCompletionContentPart completionsDocumentPart(DocumentContent doc) {
-    final var contentType = DocumentMimeTypes.requireContentType(doc.document());
-    return switch (classify(DocumentMimeTypes.parse(contentType))) {
-      case IMAGE ->
-          ChatCompletionContentPart.ofImageUrl(
-              ChatCompletionContentPartImage.builder()
-                  .imageUrl(
-                      ChatCompletionContentPartImage.ImageUrl.builder()
-                          .url(dataUri(contentType, doc.document()))
-                          .detail(ChatCompletionContentPartImage.ImageUrl.Detail.AUTO)
-                          .build())
+              ResponseInputText.builder()
+                  .text(OpenAiDocumentParts.decodeUtf8(doc.document()))
                   .build());
-      case PDF ->
-          MISTRAL_PROVIDER_ID.equals(providerId)
-              ? rawContentPart(
-                  Map.of(
-                      "type", "document_url", "document_url", dataUri(contentType, doc.document())))
-              : ChatCompletionContentPart.ofFile(
-                  ChatCompletionContentPart.File.builder()
-                      .file(
-                          ChatCompletionContentPart.File.FileObject.builder()
-                              .filename(fileName(doc.document()))
-                              .fileData(dataUri(contentType, doc.document()))
-                              .build())
-                      .build());
-      case TEXT ->
-          ChatCompletionContentPart.ofText(
-              ChatCompletionContentPartText.builder().text(decodeUtf8(doc.document())).build());
-      case UNSUPPORTED -> throw unsupportedContentType(contentType, doc);
+      case UNSUPPORTED -> throw OpenAiDocumentParts.unsupportedContentType(contentType, doc);
     };
-  }
-
-  /**
-   * Builds a {@link ChatCompletionContentPart} for a shape the SDK doesn't model (e.g. Mistral's
-   * {@code document_url} chunk) by deserializing it through the SDK's own mapper: {@code
-   * ChatCompletionContentPart}'s deserializer falls back to storing any unrecognized {@code type}
-   * verbatim in an internal raw-JSON field, and its serializer writes that field straight back out
-   * unchanged, so this round-trips byte-identical without needing a typed SDK builder for it.
-   */
-  private static ChatCompletionContentPart rawContentPart(Map<String, Object> raw) {
-    return ObjectMappers.jsonMapper().convertValue(raw, ChatCompletionContentPart.class);
-  }
-
-  private static ConnectorException unsupportedContentType(
-      String contentType, DocumentContent doc) {
-    return new ConnectorException(
-        ERROR_CODE_FAILED_MODEL_CALL,
-        "Unsupported content type '%s' for document with reference '%s'"
-            .formatted(contentType, doc.document().reference()));
-  }
-
-  private static String dataUri(String contentType, Document document) {
-    return "data:" + contentType + ";base64," + document.asBase64();
-  }
-
-  private static String fileName(Document document) {
-    final var metadata = document.metadata();
-    final var name = metadata != null ? metadata.getFileName() : null;
-    return name != null ? name : DEFAULT_FILE_NAME;
-  }
-
-  private static String decodeUtf8(Document document) {
-    return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
 
   public String writeAsJson(Object value) {
@@ -266,33 +140,5 @@ public class OpenAiContentConverter {
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize content to JSON", e);
     }
-  }
-
-  /**
-   * Coarse content-type buckets driving the document-part builder methods' choice of OpenAI part
-   * shape. Unknown/blank/unparseable types map conservatively to {@link #UNSUPPORTED}, which fails
-   * the request.
-   */
-  private enum DocumentPartKind {
-    IMAGE,
-    PDF,
-    TEXT,
-    UNSUPPORTED
-  }
-
-  private static DocumentPartKind classify(@Nullable ContentType contentType) {
-    if (contentType == null) {
-      return DocumentPartKind.UNSUPPORTED;
-    }
-    if (DocumentMimeTypes.isImage(contentType)) {
-      return DocumentPartKind.IMAGE;
-    }
-    if (DocumentMimeTypes.isPdf(contentType)) {
-      return DocumentPartKind.PDF;
-    }
-    if (DocumentMimeTypes.isTextIsh(contentType)) {
-      return DocumentPartKind.TEXT;
-    }
-    return DocumentPartKind.UNSUPPORTED;
   }
 }

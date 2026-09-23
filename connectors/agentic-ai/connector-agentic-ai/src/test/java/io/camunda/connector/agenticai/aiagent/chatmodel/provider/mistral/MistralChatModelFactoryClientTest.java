@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
@@ -192,12 +193,15 @@ class MistralChatModelFactoryClientTest {
   }
 
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, MistralBackend backend) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper, "mistral");
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new MistralChatModelFactory(
             chatModelProperties,
             httpProxySupport,
-            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+            new OpenAiCompletionsRequestConverter(
+                contentConverter,
+                OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.chunkedContentAware());
     final var configuration =
