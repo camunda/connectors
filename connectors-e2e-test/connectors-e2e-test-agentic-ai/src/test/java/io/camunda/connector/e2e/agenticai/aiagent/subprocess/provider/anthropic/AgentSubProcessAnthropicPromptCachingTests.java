@@ -58,17 +58,22 @@ class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicSubProcess
   }
 
   @Test
-  void promptCachingDisabledByDefaultLeavesCacheControlOffTheWire() throws Exception {
+  void promptCachingDisabledLeavesCacheControlOffTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
     StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
-    awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
+    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
+        template ->
+            template.property("provider.anthropic.model.parameters.promptCaching.enabled", "false");
+
+    awaitProcessCompletion(
+        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
 
     final var request = parseBody(soleRecordedRequest());
     assertThat(request.has("cache_control"))
-        .as("top-level cache_control must not be present when prompt caching is not enabled")
+        .as("top-level cache_control must not be present when prompt caching is disabled")
         .isFalse();
   }
 
