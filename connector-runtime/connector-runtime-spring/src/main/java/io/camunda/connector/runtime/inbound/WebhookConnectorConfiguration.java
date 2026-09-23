@@ -47,14 +47,14 @@ public class WebhookConnectorConfiguration {
       name = "spring.mvc.formcontent.filter.enabled",
       havingValue = "true",
       matchIfMissing = true)
-  public FormContentFilter formContentFilter(
+  public FormContentFilter webhookExcludingFormContentFilter(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath) {
     return new WebhookExcludingFormContentFilter(dispatcherServletPath);
   }
 
   @Bean
   @ConditionalOnProperty(name = "spring.mvc.hiddenmethod.filter.enabled", havingValue = "true")
-  public HiddenHttpMethodFilter hiddenHttpMethodFilter(
+  public HiddenHttpMethodFilter webhookExcludingHiddenHttpMethodFilter(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath) {
     return new WebhookExcludingHiddenHttpMethodFilter(dispatcherServletPath);
   }
