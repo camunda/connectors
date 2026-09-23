@@ -432,10 +432,7 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  // Mistral's Chat Completions API is wire-compatible with OpenAI's Completions family, so the
-  // native Mistral provider reuses OpenAiCompletionsRequestConverter/ResponseConverter wholesale
-  // (see native-providers.md) -- but it has no API-family axis of its own, hence no "family"
-  // parameter here unlike openAiV2.
+  // No "family" parameter here unlike openAiV2: Mistral has no API-family axis of its own.
   static ProviderConfig mistralV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(

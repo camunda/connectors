@@ -342,31 +342,22 @@ Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything e
 
 ## Mistral AI
 
-Not a separate wire mapper. `MistralChatModel` reuses [OpenAI](#openai)'s Completions family
-converters (`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`/
-`OpenAiCompletionsStrategy`) wholesale, because Mistral's Chat Completions API is the same wire
-format as OpenAI's — this is the first place that reuse relationship is documented; the OpenAI
-section above predates Mistral and doesn't mention it. `MistralChatModelFactory` only builds a
-differently-configured openai-java client (`baseUrl` pointed at `https://api.mistral.ai/v1`,
-Mistral's own API key) and passes a `providerId` of `mistral` through to the shared converters, the
-same way [Azure OpenAI](#backends-1) is just another consumer of the same Completions converters
-under its own `providerId`. There is one backend, `MistralApiBackend` (`mistral-api`) — the sealed
-backend axis exists so a second backend (e.g. a future Bedrock-hosted or Foundry-hosted Mistral
-surface) is purely additive later, without moving any existing template property.
-
-This native, direct-API provider is unrelated to the pre-existing ability to reach Mistral-family
-models through the generic Bedrock Converse provider (see the repo-root `AGENTS.md`) — that path
-goes through AWS Bedrock's own wire format and converters, not this one, and the two are configured
-as entirely separate provider entries.
+`MistralChatModel` reuses the OpenAI Completions family converters
+(`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`/
+`OpenAiCompletionsStrategy`) wholesale, since Mistral's Chat Completions API is the same wire format
+as OpenAI's. `MistralChatModelFactory` only builds a differently-configured openai-java client
+(`baseUrl` pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId`
+of `mistral` through to the shared converters. There is one backend, `MistralApiBackend`
+(`mistral-api`) — the sealed backend axis exists so a second backend is purely additive later,
+without moving any existing template property.
 
 ### Reasoning
 
 Magistral-class models return assistant `content` as a chunk array
-(`[{type:"thinking",...},{type:"text",...}]`) instead of OpenAI's plain string, and require that
-array to be replayed verbatim (including the raw `thinking` chunk) on every follow-up turn, the same
-strip-and-reinject contract Anthropic's reasoning content already uses. There is no dialect flag and
-no model-name heuristic anywhere in this path: both the response parser and the request-side replay
-detect the chunked shape structurally.
+(`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string, and require that array to
+be replayed verbatim (including the raw `thinking` chunk) on every follow-up turn. There is no
+dialect flag and no model-name heuristic anywhere in this path: both the response parser and the
+request-side replay detect the chunked shape structurally.
 
 - **Response**: `OpenAiCompletionsResponseConverter` reads the raw `ChatCompletionMessage._content()`
   field. If it's a JSON array, each chunk is walked and mapped by its own `type` key (`thinking` →
