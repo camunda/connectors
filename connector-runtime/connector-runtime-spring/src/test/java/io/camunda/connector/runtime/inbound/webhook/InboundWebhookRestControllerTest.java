@@ -17,9 +17,12 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.google.common.cache.CacheBuilder;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -54,6 +58,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -70,6 +75,53 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class InboundWebhookRestControllerTest {
+
+  @Test
+  void shouldFailFastOnNegativeMaxRequestBodyBytes() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.maxRequestBodyBytes = -1;
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldFailFastOnNonFiniteRateLimit() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = Double.NaN;
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldFailFastOnRateLimitSlowerThanOnePermitPerIdleExpiry() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
+
+    assertThatThrownBy(controller::validateWebhookConfig).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void shouldAllowRateLimitOfExactlyOnePermitPerIdleExpiry() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds();
+
+    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
+  }
+
+  @Test
+  void shouldAllowSlowRateLimitWhenRateLimitingIsDisabled() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = false;
+    controller.rateLimitPermitsPerSecond =
+        1.0 / (InboundWebhookRestController.RATE_LIMITER_IDLE_EXPIRY.getSeconds() + 1);
+
+    assertThatCode(controller::validateWebhookConfig).doesNotThrowAnyException();
+  }
 
   @Test
   void shouldLogRequestDetailsWithRedactionAndTruncation() throws Exception {
@@ -230,6 +282,203 @@ class InboundWebhookRestControllerTest {
 
     // legacy 2-segment route 404s: the flag registers only under the composite key
     mockMvc.perform(post("/inbound/myPath")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void shouldAcceptBodyExactlyAtSizeLimit() throws Exception {
+    var registration = registerWebhook("sizePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxRequestBodyBytes = 8;
+
+    var response =
+        controller.inbound("sizePath", new HashMap<>(), requestTo("sizePath", "12345678"));
+
+    assertThat(response.getStatusCode().value()).isEqualTo(422);
+  }
+
+  @Test
+  void shouldRejectOversizedBodyWithoutInvokingConnector() throws Exception {
+    var registration = registerWebhook("oversizePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxRequestBodyBytes = 8;
+
+    var response =
+        controller.inbound("oversizePath", new HashMap<>(), requestTo("oversizePath", "123456789"));
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldReturnNotFoundWithoutReadingRawBodyForUnknownNonMultipartPath() throws Exception {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+
+    var request = new ThrowingBodyMockHttpServletRequest();
+    request.setRequestURI("/inbound/doesNotExist");
+    request.setMethod("POST");
+    request.setContent("irrelevant".getBytes(StandardCharsets.UTF_8));
+
+    var response = controller.inbound("doesNotExist", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void shouldRejectOversizedMultipartAsPayloadTooLarge() throws Exception {
+    var registration = registerWebhook("multipartSizePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+
+    var request = new SizeExceededMultipartMockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/multipartSizePath");
+    request.setContentType("multipart/form-data; boundary=x");
+
+    var response = controller.inbound("multipartSizePath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldNotMapAmbiguousMultipartExceptionTo413WhenMultipartIsDisabled() throws Exception {
+    var registration = registerWebhook("multipartDisabledPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.multipartEnabled = false;
+
+    var request = new SizeExceededMultipartMockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/multipartDisabledPath");
+    request.setContentType("multipart/form-data; boundary=x");
+
+    assertThatThrownBy(() -> controller.inbound("multipartDisabledPath", new HashMap<>(), request))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("spring.servlet.multipart.enabled=false");
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldRateLimitSecondRequestToSamePath() throws Exception {
+    var registration = registerWebhook("ratePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+
+    var first = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
+    var second = controller.inbound("ratePath", new HashMap<>(), requestTo("ratePath", "body"));
+
+    assertThat(first.getStatusCode().value()).isEqualTo(422);
+    assertThat(second.getStatusCode().value()).isEqualTo(429);
+  }
+
+  @Test
+  void shouldNotRateLimitWhenDisabled() throws Exception {
+    var registration = registerWebhook("rateDisabledPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.rateLimitEnabled = false;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+
+    var first =
+        controller.inbound(
+            "rateDisabledPath", new HashMap<>(), requestTo("rateDisabledPath", "body"));
+    var second =
+        controller.inbound(
+            "rateDisabledPath", new HashMap<>(), requestTo("rateDisabledPath", "body"));
+
+    assertThat(first.getStatusCode().value()).isEqualTo(422);
+    assertThat(second.getStatusCode().value()).isEqualTo(422);
+  }
+
+  @Test
+  void shouldPreserveActiveLimiterStateAcrossChurnBeyondFormerCapacity() {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitEnabled = true;
+    controller.rateLimitPermitsPerSecond = 0.0001;
+
+    var active = activatedWithId(ExecutableId.fromDeduplicationId("active-webhook"));
+    assertThat(controller.acquireRateLimitPermit(active)).isTrue();
+    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
+
+    for (int i = 0; i < 10_050; i++) {
+      controller.acquireRateLimitPermit(
+          activatedWithId(ExecutableId.fromDeduplicationId("churn-" + i)));
+    }
+
+    assertThat(controller.acquireRateLimitPermit(active)).isFalse();
+  }
+
+  @Test
+  void shouldEventuallyReclaimObsoleteLimiterEntries() throws Exception {
+    var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    controller.rateLimitersByExecutable =
+        CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMillis(20)).build();
+
+    var obsolete = activatedWithId(ExecutableId.fromDeduplicationId("obsolete-webhook"));
+    controller.acquireRateLimitPermit(obsolete);
+    assertThat(controller.rateLimitersByExecutable.asMap()).containsKey(obsolete.id());
+
+    Thread.sleep(50);
+    controller.rateLimitersByExecutable.cleanUp();
+
+    assertThat(controller.rateLimitersByExecutable.asMap()).doesNotContainKey(obsolete.id());
+  }
+
+  private static RegisteredExecutable.Activated activatedWithId(ExecutableId id) {
+    return new RegisteredExecutable.Activated(null, null, id);
+  }
+
+  private static MockHttpServletRequest requestTo(String path, String body) {
+    var request = new MockHttpServletRequest();
+    request.setRequestURI("/inbound/" + path);
+    request.setMethod("POST");
+    request.setContent(body.getBytes(StandardCharsets.UTF_8));
+    return request;
+  }
+
+  private record WebhookRegistration(
+      WebhookConnectorRegistry registry, WebhookConnectorExecutable executable) {}
+
+  private static WebhookRegistration registerWebhook(String path) throws Exception {
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class))).thenReturn(webhookResult);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenThrow(new ConnectorInputException("invalid input"));
+
+    var details = webhookDefinition("processA", 1, path);
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+    return new WebhookRegistration(registry, executable);
+  }
+
+  private static class ThrowingBodyMockHttpServletRequest extends MockHttpServletRequest {
+    @Override
+    public jakarta.servlet.ServletInputStream getInputStream() {
+      throw new AssertionError("Request body must not be read for an unregistered webhook path");
+    }
+  }
+
+  private static class SizeExceededMultipartMockHttpServletRequest extends MockHttpServletRequest {
+    @Override
+    public java.util.Collection<jakarta.servlet.http.Part> getParts() {
+      throw new IllegalStateException(
+          "Simulated: multipart size limit exceeded (or no multipart config)");
+    }
   }
 
   @Test

@@ -33,8 +33,13 @@ public record ConnectorProperties(
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
-  /** Configuration for the inbound webhook connector. */
-  public record Webhook(boolean enabled, boolean appendPhysicalTenantAndTenantToPath) {}
+  public record Webhook(
+      boolean enabled,
+      boolean appendPhysicalTenantAndTenantToPath,
+      int maxRequestBodyBytes,
+      RateLimit rateLimit) {}
+
+  public record RateLimit(boolean enabled, double permitsPerSecond) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(

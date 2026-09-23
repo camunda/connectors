@@ -24,6 +24,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
@@ -48,20 +51,25 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,9 +91,60 @@ public class InboundWebhookRestController {
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
+  @Value("${camunda.connector.webhook.max-request-body-bytes:10485760}")
+  int maxRequestBodyBytes = 10 * 1024 * 1024;
+
+  @Value("${camunda.connector.webhook.rate-limit.enabled:true}")
+  boolean rateLimitEnabled = true;
+
+  @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
+  double rateLimitPermitsPerSecond = 1000;
+
+  @Value("${spring.servlet.multipart.enabled:true}")
+  boolean multipartEnabled = true;
+
+  static final Duration RATE_LIMITER_IDLE_EXPIRY = Duration.ofHours(1);
+
+  Cache<ExecutableId, RateLimiter> rateLimitersByExecutable =
+      CacheBuilder.newBuilder().expireAfterAccess(RATE_LIMITER_IDLE_EXPIRY).build();
+
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  @PostConstruct
+  void validateWebhookConfig() {
+    if (maxRequestBodyBytes < 0) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.max-request-body-bytes must not be negative, but was: "
+              + maxRequestBodyBytes);
+    }
+    if (rateLimitEnabled
+        && !(Double.isFinite(rateLimitPermitsPerSecond) && rateLimitPermitsPerSecond > 0)) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
+              + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
+              + rateLimitPermitsPerSecond);
+    }
+    if (rateLimitEnabled
+        && Double.isFinite(rateLimitPermitsPerSecond)
+        && rateLimitPermitsPerSecond > 0) {
+      double secondsPerPermit = 1.0 / rateLimitPermitsPerSecond;
+      if (secondsPerPermit > RATE_LIMITER_IDLE_EXPIRY.getSeconds()) {
+        throw new IllegalStateException(
+            "camunda.connector.webhook.rate-limit.permits-per-second is too low: at "
+                + rateLimitPermitsPerSecond
+                + " permits/second, accumulating one permit takes "
+                + secondsPerPermit
+                + "s, longer than the "
+                + RATE_LIMITER_IDLE_EXPIRY.getSeconds()
+                + "s a webhook's rate limiter survives while idle. A caller who waits out that"
+                + " idle window would get a fresh limiter that immediately grants a burst permit,"
+                + " repeatable indefinitely -- exceeding the configured sustained rate. Configure"
+                + " a higher rate or disable rate limiting.");
+      }
+    }
   }
 
   protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
@@ -184,36 +243,68 @@ public class InboundWebhookRestController {
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
+
+    if (connectorOpt.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    var connector = connectorOpt.get();
+
+    if (rateLimitEnabled && !acquireRateLimitPermit(connector)) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
+    boolean isMultipart = isMultipartContentType(httpServletRequest.getContentType());
+    Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
+    if (isMultipart) {
+      try {
+        parts = getParts(httpServletRequest);
+      } catch (MultipartSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
+    }
+
     // Body must be read before any call that triggers form-parameter parsing (e.g.
     // getParameterMap).
     // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
     // getParameterMap() is invoked, which would leave rawBody empty and break HMAC verification.
-    byte[] bodyAsByteArray = httpServletRequest.getInputStream().readAllBytes();
+    byte[] bodyAsByteArray = readBoundedBody(httpServletRequest);
+    if (bodyAsByteArray == null) {
+      return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+    }
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
-    return connectorOpt
-        .map(
-            connector -> {
-              // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
-              // “store HTTP request headers using the original case for the header name rather
-              // than forcing it to lower case.”
-              // This breaks some webhook connectors that expect lowercase headers in expressions.
-              var lowercaseHeaders =
-                  headers.entrySet().stream()
-                      .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
-              Optional.ofNullable(httpServletRequest.getContentType())
-                  .ifPresent(
-                      contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
-              WebhookProcessingPayload payload =
-                  new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest,
-                      params,
-                      lowercaseHeaders,
-                      bodyAsByteArray,
-                      getParts(httpServletRequest));
-              return processWebhook(connector, payload);
-            })
-        .orElseGet(() -> ResponseEntity.notFound().build());
+    var lowercaseHeaders =
+        headers.entrySet().stream()
+            .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
+    Optional.ofNullable(httpServletRequest.getContentType())
+        .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
+    WebhookProcessingPayload payload =
+        new HttpServletRequestWebhookProcessingPayload(
+            httpServletRequest, params, lowercaseHeaders, bodyAsByteArray, parts);
+    return processWebhook(connector, payload);
+  }
+
+  private static boolean isMultipartContentType(String contentType) {
+    return contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("multipart/");
+  }
+
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+    var inputStream = httpServletRequest.getInputStream();
+    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (inputStream.read() != -1) {
+      return null;
+    }
+    return body;
+  }
+
+  boolean acquireRateLimitPermit(RegisteredExecutable.Activated connector) {
+    try {
+      return rateLimitersByExecutable
+          .get(connector.id(), () -> RateLimiter.create(rateLimitPermitsPerSecond))
+          .tryAcquire();
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Failed to create rate limiter", e);
+    }
   }
 
   private ResponseEntity<?> processWebhook(
@@ -438,9 +529,22 @@ public class InboundWebhookRestController {
       LOG.debug("The request is not multipart/form-data, silently ignoring: {}", e.getMessage());
       return List.of();
     } catch (IllegalStateException e) {
-      LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
-      throw new RuntimeException(
-          "Size limits are exceeded or no multipart configuration is provided", e);
+      if (!multipartEnabled) {
+        LOG.error(
+            "Received a multipart request but spring.servlet.multipart.enabled=false, so it"
+                + " cannot be parsed",
+            e);
+        throw new RuntimeException(
+            "Received a multipart request but spring.servlet.multipart.enabled=false", e);
+      }
+      LOG.debug("Multipart size limit exceeded: {}", e.getMessage());
+      throw new MultipartSizeExceededException(e);
+    }
+  }
+
+  private static final class MultipartSizeExceededException extends RuntimeException {
+    MultipartSizeExceededException(Throwable cause) {
+      super(cause);
     }
   }
 
