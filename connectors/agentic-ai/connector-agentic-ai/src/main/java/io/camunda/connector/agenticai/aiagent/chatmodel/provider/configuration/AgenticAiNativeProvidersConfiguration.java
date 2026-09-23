@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
@@ -109,7 +112,7 @@ public class AgenticAiNativeProvidersConfiguration {
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
             new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-            new OpenAiCompletionsResponseConverter(objectMapper),
+            new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
         new OpenAiResponsesStrategy(
@@ -136,8 +139,8 @@ public class AgenticAiNativeProvidersConfiguration {
         configuration.aiagent().chatModel(),
         httpProxySupport,
         new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-        new OpenAiCompletionsResponseConverter(objectMapper),
-        OpenAiCompletionsStreamAssembler.accumulating());
+        new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
+        OpenAiCompletionsStreamAssembler.chunkedContentAware());
   }
 
   @Bean

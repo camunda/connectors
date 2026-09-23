@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -547,7 +548,7 @@ class OpenAiChatModelFactoryClientTest {
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-                new OpenAiCompletionsResponseConverter(objectMapper),
+                new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),

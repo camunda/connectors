@@ -41,7 +41,7 @@ class OpenAiCompletionsResponseConverterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final OpenAiCompletionsResponseConverter converter =
-      new OpenAiCompletionsResponseConverter(objectMapper);
+      new OpenAiCompletionsResponseConverter("openai", objectMapper);
 
   private static ChatCompletion completionFromJson(String json) {
     try {
@@ -263,9 +263,10 @@ class OpenAiCompletionsResponseConverterTest {
 
   @Test
   void dropsNonStandardReasoningFieldFromMessage() {
-    // Chat Completions has no standard reasoning/thinking field on the message; this simulates a
-    // nonstandard extension carrying one, verifying it is never surfaced as ReasoningContent --
-    // reasoning support is deferred for the Completions family.
+    // Chat Completions has no standard top-level reasoning/thinking message field (reasoning is
+    // only ever carried inside a chunked `content` array, see the chunked-content tests above);
+    // this simulates a nonstandard extension carrying one instead, verifying it is never surfaced
+    // as ReasoningContent.
     final ChatCompletion completion =
         baseCompletion(
             """
@@ -282,6 +283,77 @@ class OpenAiCompletionsResponseConverterTest {
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("Hello there"));
     assertThat(result.assistantMessage().content()).noneMatch(ReasoningContent.class::isInstance);
+  }
+
+  @Test
+  void mapsChunkedThinkingAndTextContentToReasoningAndTextContent() {
+    // Mirrors a real Mistral Magistral non-streaming response: content is an array of typed
+    // chunks instead of a plain string, self-detected from the raw JSON shape (see
+    // OpenAiCompletionsResponseConverter#mapContent).
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": [{"type": "text", "text": "5 + 7 is 12."}],
+                  "closed": true
+                },
+                {"type": "text", "text": "The answer is 12."}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(
+            new ReasoningContent(
+                "openai", Map.of("type", "thinking", "closed", true), "5 + 7 is 12.", null),
+            TextContent.textContent("The answer is 12."));
+  }
+
+  @Test
+  void mapsChunkedThinkingOnlyContentWithoutTrailingTextChunk() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "length",
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "thinking", "thinking": [{"type": "text", "text": "still thinking"}]}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(
+            new ReasoningContent("openai", Map.of("type", "thinking"), "still thinking", null));
+  }
+
+  @Test
+  void skipsUnknownChunkTypesInChunkedContent() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "some_future_chunk_type", "data": "opaque"},
+                {"type": "text", "text": "Hello there"}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("Hello there"));
   }
 
   @Test
