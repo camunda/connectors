@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.openai.core.JsonField;
 import com.openai.core.JsonNull;
 import com.openai.core.JsonValue;
-import com.openai.core.http.StreamResponse;
 import com.openai.errors.OpenAIInvalidDataException;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
@@ -63,7 +62,7 @@ import org.jspecify.annotations.Nullable;
  * to hook a custom content strategy into, so this class re-implements the whole algorithm rather
  * than overriding a part of it.
  */
-class ChunkedContentChatCompletionAccumulator {
+final class ChunkedContentChatCompletionAccumulator {
 
   private final Map<Long, ChatCompletion.Choice.Builder> choiceBuilders = new TreeMap<>();
   private final Map<Long, ChatCompletionMessage.Builder> messageBuilders = new TreeMap<>();
@@ -79,16 +78,25 @@ class ChunkedContentChatCompletionAccumulator {
   private ChatCompletion.@Nullable Builder chatCompletionBuilder;
   private @Nullable ChatCompletion chatCompletion;
 
-  ChatCompletion assemble(StreamResponse<ChatCompletionChunk> stream) {
-    stream.stream().forEach(this::accumulate);
+  private ChunkedContentChatCompletionAccumulator() {}
+
+  static ChunkedContentChatCompletionAccumulator create() {
+    return new ChunkedContentChatCompletionAccumulator();
+  }
+
+  /**
+   * Gets the final accumulated chat completion. Only valid after the last chunk (the one carrying
+   * the finish reason, plus an optional trailing usage-only chunk) has been passed to {@link
+   * #accumulate}, mirroring the vendor accumulator's {@code chatCompletion()}.
+   */
+  ChatCompletion chatCompletion() {
     if (chatCompletion == null) {
-      throw new OpenAIInvalidDataException(
-          "Stream completed without a finished chat completion chunk.");
+      throw new IllegalStateException("Final chat completion chunk(s) not yet received.");
     }
     return chatCompletion;
   }
 
-  private void accumulate(ChatCompletionChunk chunk) {
+  ChatCompletionChunk accumulate(ChatCompletionChunk chunk) {
     final ChatCompletion.Builder builder = ensureChatCompletionBuilder();
 
     final Optional<CompletionUsage> usage = chunk.usage();
@@ -96,7 +104,7 @@ class ChunkedContentChatCompletionAccumulator {
       builder.usage(usage.get());
       chatCompletion = builder.build();
       // The final usage-only chunk carries no choices; nothing more to accumulate.
-      return;
+      return chunk;
     }
 
     builder
@@ -129,6 +137,8 @@ class ChunkedContentChatCompletionAccumulator {
         choiceBuilder.finishReason(JsonNull.of());
       }
     }
+
+    return chunk;
   }
 
   private ChatCompletion.Builder ensureChatCompletionBuilder() {
