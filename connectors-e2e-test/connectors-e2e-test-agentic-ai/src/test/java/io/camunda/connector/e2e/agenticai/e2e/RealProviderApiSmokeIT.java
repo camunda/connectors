@@ -661,17 +661,13 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // No PROMPT_CACHING claim: MistralParameters has no caching toggle. REASONING lives on
-            // a separate row below (magistral-medium-latest) rather than here: plain
-            // mistral-medium-latest never returns Magistral's chunked thinking/text content.
+            // No PROMPT_CACHING claim: MistralParameters has no caching toggle.
             mistralV2(
-                "mistral-medium-latest",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
-            // Only Magistral-class models return chunked reasoning content; STRUCTURED_OUTPUT and
-            // MULTIMODAL_USER_MESSAGE are intentionally not claimed here (unconfirmed against this
-            // model family) -- see the mistral-medium-latest row above for those.
+                "mistral-medium-latest", Map.of(Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+            // mistral-medium-latest degenerates into a repetition loop for
+            // tool-history+json_schema requests (confirmed against the real API); large-latest
+            // doesn't, so STRUCTURED_OUTPUT is exercised here instead.
+            mistralV2("mistral-large-latest", Map.of(Capability.STRUCTURED_OUTPUT, Map.of())),
             mistralV2(
                 "magistral-medium-latest",
                 Map.of(Capability.REASONING, Map.of("provider.mistral.parameters.effort", "high"))),
