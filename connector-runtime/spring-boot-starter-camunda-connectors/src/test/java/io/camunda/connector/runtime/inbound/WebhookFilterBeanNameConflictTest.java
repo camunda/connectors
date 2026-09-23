@@ -22,10 +22,13 @@ import io.camunda.connector.runtime.WebhookConnectorAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.servlet.DispatcherServlet;
 
 class WebhookFilterBeanNameConflictTest {
 
@@ -65,6 +68,21 @@ class WebhookFilterBeanNameConflictTest {
             });
   }
 
+  @Test
+  void mappedFormContentFilterReachesSecurityConflictCheckWithCustomDispatcherPath() {
+    contextRunner
+        .withUserConfiguration(CustomMappedFormContentFilterConfiguration.class)
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context.getStartupFailure())
+                  .hasRootCauseInstanceOf(IllegalStateException.class)
+                  .rootCause()
+                  .hasMessageContaining("Found FormContentFilter(s)")
+                  .hasMessageContaining("WebhookExcludingFormContentFilter");
+            });
+  }
+
   @Configuration(proxyBeanMethods = false)
   static class CustomFormContentFilterConfiguration {
 
@@ -80,6 +98,28 @@ class WebhookFilterBeanNameConflictTest {
     @Bean
     HiddenHttpMethodFilter hiddenHttpMethodFilter() {
       return new HiddenHttpMethodFilter();
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class CustomMappedFormContentFilterConfiguration {
+
+    @Bean
+    DispatcherServlet dispatcherServlet() {
+      return new DispatcherServlet();
+    }
+
+    @Bean(name = "dispatcherServletRegistration")
+    DispatcherServletRegistrationBean dispatcherServletRegistration(
+        DispatcherServlet dispatcherServlet) {
+      return new DispatcherServletRegistrationBean(dispatcherServlet, "/api");
+    }
+
+    @Bean
+    FilterRegistrationBean<FormContentFilter> mappedFormContentFilter() {
+      var registration = new FilterRegistrationBean<>(new FormContentFilter());
+      registration.addUrlPatterns("/api/inbound/*");
+      return registration;
     }
   }
 }

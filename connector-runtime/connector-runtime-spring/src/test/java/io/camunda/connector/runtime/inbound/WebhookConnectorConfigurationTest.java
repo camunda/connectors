@@ -31,8 +31,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.web.servlet.AbstractFilterRegistrationBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Exercises the explicit-vs-inferred resolution of {@code
@@ -128,12 +130,32 @@ class WebhookConnectorConfigurationTest {
     var managementFilter = new FormContentFilter();
     var registration = new FilterRegistrationBean<>(managementFilter);
     registration.addUrlPatterns("/management/*");
+    var dispatcherRegistration = new ServletRegistrationBean<>(new DispatcherServlet(), "/api");
     var check =
         configuration.webhookFormContentFilterConflictCheck(
+            "",
             List.of(new WebhookExcludingFormContentFilter(""), managementFilter),
-            List.<AbstractFilterRegistrationBean<?>>of(registration));
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of(dispatcherRegistration));
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckFlagsRegistrationUnderCustomDispatcherMapping() {
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.addUrlPatterns("/api/*");
+    var dispatcherRegistration = new ServletRegistrationBean<>(new DispatcherServlet(), "/api");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "",
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of(dispatcherRegistration));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
   }
 
   @Test

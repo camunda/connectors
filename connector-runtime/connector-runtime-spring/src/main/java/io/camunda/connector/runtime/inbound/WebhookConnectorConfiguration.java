@@ -24,6 +24,7 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMe
 import jakarta.servlet.Filter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -32,11 +33,13 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.AbstractFilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.servlet.DispatcherServlet;
 
 @Configuration
 @Import(InboundWebhookRestController.class)
@@ -63,14 +66,16 @@ public class WebhookConnectorConfiguration {
   InitializingBean webhookFormContentFilterConflictCheck(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
       List<FormContentFilter> formContentFilters,
-      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations,
+      List<ServletRegistrationBean<?>> servletRegistrations) {
     return () ->
         checkNoConflictingFilter(
             allFiltersOfType(
                 formContentFilters,
                 filterRegistrations,
                 FormContentFilter.class,
-                dispatcherServletPath),
+                dispatcherServletPath,
+                servletRegistrations),
             WebhookExcludingFormContentFilter.class,
             "FormContentFilter");
   }
@@ -79,16 +84,34 @@ public class WebhookConnectorConfiguration {
   InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
       @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
       List<HiddenHttpMethodFilter> hiddenHttpMethodFilters,
-      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations,
+      List<ServletRegistrationBean<?>> servletRegistrations) {
     return () ->
         checkNoConflictingFilter(
             allFiltersOfType(
                 hiddenHttpMethodFilters,
                 filterRegistrations,
                 HiddenHttpMethodFilter.class,
-                dispatcherServletPath),
+                dispatcherServletPath,
+                servletRegistrations),
             WebhookExcludingHiddenHttpMethodFilter.class,
             "HiddenHttpMethodFilter");
+  }
+
+  InitializingBean webhookFormContentFilterConflictCheck(
+      String dispatcherServletPath,
+      List<FormContentFilter> formContentFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+    return webhookFormContentFilterConflictCheck(
+        dispatcherServletPath, formContentFilters, filterRegistrations, List.of());
+  }
+
+  InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
+      String dispatcherServletPath,
+      List<HiddenHttpMethodFilter> hiddenHttpMethodFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+    return webhookHiddenHttpMethodFilterConflictCheck(
+        dispatcherServletPath, hiddenHttpMethodFilters, filterRegistrations, List.of());
   }
 
   InitializingBean webhookFormContentFilterConflictCheck(
@@ -108,7 +131,8 @@ public class WebhookConnectorConfiguration {
       List<? extends Filter> directBeans,
       List<AbstractFilterRegistrationBean<?>> filterRegistrations,
       Class<? extends Filter> type,
-      String dispatcherServletPath) {
+      String dispatcherServletPath,
+      List<ServletRegistrationBean<?>> servletRegistrations) {
     Set<Filter> filtersOwnedByRegistrations = Collections.newSetFromMap(new IdentityHashMap<>());
     filterRegistrations.stream()
         .map(AbstractFilterRegistrationBean::getFilter)
@@ -122,7 +146,8 @@ public class WebhookConnectorConfiguration {
         .filter(AbstractFilterRegistrationBean::isEnabled)
         .filter(
             registration ->
-                registrationCanAffectWebhookEndpoints(registration, dispatcherServletPath))
+                registrationCanAffectWebhookEndpoints(
+                    registration, dispatcherServletPath, servletRegistrations))
         .map(AbstractFilterRegistrationBean::getFilter)
         .filter(filter -> type.isInstance(filter))
         .forEach(result::add);
@@ -130,16 +155,53 @@ public class WebhookConnectorConfiguration {
   }
 
   private static boolean registrationCanAffectWebhookEndpoints(
-      AbstractFilterRegistrationBean<?> registration, String dispatcherServletPath) {
+      AbstractFilterRegistrationBean<?> registration,
+      String dispatcherServletPath,
+      List<ServletRegistrationBean<?>> servletRegistrations) {
     if (!registration.getServletNames().isEmpty()) {
       return true;
     }
     if (registration.getUrlPatterns().isEmpty()) {
       return true;
     }
-    String webhookPath = normalizeServletPath(dispatcherServletPath) + "/inbound";
+
+    var dispatcherServletRegistrations =
+        servletRegistrations.stream()
+            .filter(
+                servletRegistration ->
+                    servletRegistration.getServlet() instanceof DispatcherServlet)
+            .toList();
+    var dispatcherMappings =
+        dispatcherServletRegistrations.stream()
+            .flatMap(dispatcherRegistration -> dispatcherRegistration.getUrlMappings().stream())
+            .toList();
+    if (dispatcherServletRegistrations.stream()
+            .anyMatch(dispatcherRegistration -> dispatcherRegistration.getUrlMappings().isEmpty())
+        || dispatcherMappings.stream().anyMatch(mapping -> !isKnownServletMapping(mapping))) {
+      return true;
+    }
+
+    var webhookPaths = new HashSet<String>();
+    webhookPaths.add(normalizeServletPath(dispatcherServletPath) + "/inbound");
+    dispatcherMappings.stream()
+        .map(WebhookConnectorConfiguration::normalizeServletPath)
+        .map(path -> path + "/inbound")
+        .forEach(webhookPaths::add);
     return registration.getUrlPatterns().stream()
-        .anyMatch(pattern -> urlPatternCanMatchWebhook(pattern, webhookPath));
+        .anyMatch(
+            pattern ->
+                webhookPaths.stream()
+                    .anyMatch(webhookPath -> urlPatternCanMatchWebhook(pattern, webhookPath)));
+  }
+
+  private static boolean isKnownServletMapping(String mapping) {
+    if (mapping == null || mapping.isBlank() || mapping.equals("/") || mapping.equals("/*")) {
+      return true;
+    }
+    int wildcardIndex = mapping.indexOf('*');
+    return mapping.startsWith("/")
+        && (wildcardIndex == -1
+            || (mapping.endsWith("/*") && wildcardIndex == mapping.length() - 1));
   }
 
   private static boolean urlPatternCanMatchWebhook(String pattern, String webhookPath) {
