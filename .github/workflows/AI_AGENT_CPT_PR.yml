@@ -59,6 +59,11 @@ jobs:
             test-classes: RealProviderApiSmokeIT,DocumentToolCallResultsIT
             build-bundle: false
             maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
+          - name: Mistral real-provider CPT
+            provider-group: mistral
+            test-classes: RealProviderApiSmokeIT
+            build-bundle: false
+            maven-projects: connectors-e2e-test/connectors-e2e-test-agentic-ai
     # Fork PRs get no secrets from `pull_request` by design. Never widen this to
     # `pull_request_target`, which would expose Vault-backed credentials to unvetted fork code.
     if: |
@@ -170,6 +175,19 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
+
+      - name: Import Mistral secret
+        if: steps.changes.outputs.ai == 'true' && (matrix.build-bundle || matrix.provider-group == 'mistral')
+        id: mistral-secret
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite MISTRAL_API_KEY;
 
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         if: steps.changes.outputs.ai == 'true'
@@ -287,6 +305,7 @@ jobs:
           GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.vertex-secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
           GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
           GOOGLE_VERTEX_AI_REGION: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_REGION }}
+          MISTRAL_API_KEY: ${{ steps.mistral-secret.outputs.MISTRAL_API_KEY }}
         run: |
           ./mvnw verify \
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \

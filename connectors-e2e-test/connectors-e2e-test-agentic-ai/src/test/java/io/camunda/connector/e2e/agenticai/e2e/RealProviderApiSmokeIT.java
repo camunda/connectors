@@ -432,6 +432,31 @@ class RealProviderApiSmokeIT {
         false);
   }
 
+  // Mistral's Chat Completions API is wire-compatible with OpenAI's Completions family, so the
+  // native Mistral provider reuses OpenAiCompletionsRequestConverter/ResponseConverter wholesale
+  // (see native-providers.md) -- but it has no API-family axis of its own, hence no "family"
+  // parameter here unlike openAiV2.
+  static ProviderConfig mistralV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new ProviderConfig(
+        "mistral-v2/" + model,
+        RealLlmProviderGroup.MISTRAL,
+        List.of("MISTRAL_API_KEY"),
+        Map.of(
+            "provider.type",
+            "mistral",
+            "provider.mistral.backend.type",
+            "mistral-api",
+            "provider.mistral.backend.mistral.apiKey",
+            envOrPlaceholder("MISTRAL_API_KEY"),
+            "provider.mistral.model.model",
+            model),
+        capabilityProperties,
+        // Mistral reports a cache-read token count but no distinct cache-creation (write) metric,
+        // same as OpenAI.
+        false);
+  }
+
   static ProviderConfig googleGeminiV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -639,6 +664,20 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
+            // No PROMPT_CACHING claim: MistralParameters has no caching toggle. REASONING lives on
+            // a separate row below (magistral-medium-latest) rather than here: plain
+            // mistral-medium-latest never returns Magistral's chunked thinking/text content.
+            mistralV2(
+                "mistral-medium-latest",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+            // Only Magistral-class models return chunked reasoning content; STRUCTURED_OUTPUT and
+            // MULTIMODAL_USER_MESSAGE are intentionally not claimed here (unconfirmed against this
+            // model family) -- see the mistral-medium-latest row above for those.
+            mistralV2(
+                "magistral-medium-latest",
+                Map.of(Capability.REASONING, Map.of("provider.mistral.parameters.effort", "high"))),
             googleGeminiV2(
                 "gemini-3.7-flash",
                 Map.of(
