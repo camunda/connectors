@@ -46,9 +46,10 @@ carry no text, only the encrypted payload.
 
 ### Caching
 
-Opt-in per model (`AnthropicModelParameters.promptCaching.enabled`, default `false`): a single
-top-level `cache_control` breakpoint covers the whole prefix (system prompt, tools, prior messages);
-no per-message breakpoints.
+Opt-in in the raw provider config (`AnthropicModelParameters.promptCaching.enabled`, default
+`false` when omitted), but the generated AI Agent task and subprocess element templates currently
+set the field to `true` by default. Anthropic uses a single top-level `cache_control` breakpoint
+for the whole prefix (system prompt, tools, prior messages); there are no per-message breakpoints.
 
 ### Tool-result documents
 
@@ -128,9 +129,10 @@ model, and Claude via the Converse path) to prove the normalization holds in pra
 
 ### Caching
 
-Opt-in per model (`BedrockConverseModelParameters.promptCaching.enabled`, default `false`),
-expressed as Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in
-`TokenUsage`.
+Opt-in in the raw provider config (`BedrockConverseModelParameters.promptCaching.enabled`, default
+`false` when omitted), but the generated AI Agent task and subprocess element templates currently
+set the field to `true` by default. Bedrock expresses caching as Converse `cachePoint` blocks and
+always reports a distinct cache-write count in `TokenUsage`.
 
 ### Tool-result documents
 
