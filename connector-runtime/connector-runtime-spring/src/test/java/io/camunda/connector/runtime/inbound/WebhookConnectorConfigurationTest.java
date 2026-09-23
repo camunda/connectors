@@ -124,6 +124,34 @@ class WebhookConnectorConfigurationTest {
   }
 
   @Test
+  void formContentFilterConflictCheckIgnoresRegistrationOutsideWebhookPaths() throws Exception {
+    var managementFilter = new FormContentFilter();
+    var registration = new FilterRegistrationBean<>(managementFilter);
+    registration.addUrlPatterns("/management/*");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            List.of(new WebhookExcludingFormContentFilter(""), managementFilter),
+            List.<AbstractFilterRegistrationBean<?>>of(registration));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckFlagsRegistrationUnderConfiguredServletPath() {
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.addUrlPatterns("/api/inbound/*");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "/api",
+            List.of(new WebhookExcludingFormContentFilter("/api")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
+  }
+
+  @Test
   void formContentFilterConflictCheckPassesWithOnlyTheWebhookExcludingFilter() {
     var check =
         configuration.webhookFormContentFilterConflictCheck(

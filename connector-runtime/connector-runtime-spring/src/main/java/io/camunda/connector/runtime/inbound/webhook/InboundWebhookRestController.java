@@ -253,9 +253,10 @@ public class InboundWebhookRestController {
       return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
     }
 
-    boolean isMultipart = isMultipartContentType(httpServletRequest.getContentType());
+    boolean isMultipartFormData =
+        isMultipartFormDataContentType(httpServletRequest.getContentType());
     Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
-    if (isMultipart) {
+    if (isMultipartFormData) {
       try {
         parts = getParts(httpServletRequest);
       } catch (MultipartSizeExceededException e) {
@@ -265,7 +266,8 @@ public class InboundWebhookRestController {
 
     // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
     // Other content types retain the original bytes needed by HMAC verification.
-    byte[] bodyAsByteArray = isMultipart ? new byte[0] : readBoundedBody(httpServletRequest);
+    byte[] bodyAsByteArray =
+        isMultipartFormData ? new byte[0] : readBoundedBody(httpServletRequest);
     if (bodyAsByteArray == null) {
       return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
     }
@@ -282,8 +284,14 @@ public class InboundWebhookRestController {
     return processWebhook(connector, payload);
   }
 
-  private static boolean isMultipartContentType(String contentType) {
-    return contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("multipart/");
+  private static boolean isMultipartFormDataContentType(String contentType) {
+    if (contentType == null) {
+      return false;
+    }
+    int parameterSeparator = contentType.indexOf(';');
+    String mediaType =
+        parameterSeparator == -1 ? contentType : contentType.substring(0, parameterSeparator);
+    return mediaType.trim().equalsIgnoreCase("multipart/form-data");
   }
 
   private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {

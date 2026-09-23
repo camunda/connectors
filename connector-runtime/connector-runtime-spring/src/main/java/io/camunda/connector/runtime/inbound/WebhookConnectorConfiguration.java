@@ -61,48 +61,114 @@ public class WebhookConnectorConfiguration {
 
   @Bean
   InitializingBean webhookFormContentFilterConflictCheck(
+      @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
       List<FormContentFilter> formContentFilters,
       List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
     return () ->
         checkNoConflictingFilter(
-            allFiltersOfType(formContentFilters, filterRegistrations, FormContentFilter.class),
+            allFiltersOfType(
+                formContentFilters,
+                filterRegistrations,
+                FormContentFilter.class,
+                dispatcherServletPath),
             WebhookExcludingFormContentFilter.class,
             "FormContentFilter");
   }
 
   @Bean
   InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
+      @Value("${spring.mvc.servlet.path:}") String dispatcherServletPath,
       List<HiddenHttpMethodFilter> hiddenHttpMethodFilters,
       List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
     return () ->
         checkNoConflictingFilter(
             allFiltersOfType(
-                hiddenHttpMethodFilters, filterRegistrations, HiddenHttpMethodFilter.class),
+                hiddenHttpMethodFilters,
+                filterRegistrations,
+                HiddenHttpMethodFilter.class,
+                dispatcherServletPath),
             WebhookExcludingHiddenHttpMethodFilter.class,
             "HiddenHttpMethodFilter");
+  }
+
+  InitializingBean webhookFormContentFilterConflictCheck(
+      List<FormContentFilter> formContentFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+    return webhookFormContentFilterConflictCheck("", formContentFilters, filterRegistrations);
+  }
+
+  InitializingBean webhookHiddenHttpMethodFilterConflictCheck(
+      List<HiddenHttpMethodFilter> hiddenHttpMethodFilters,
+      List<AbstractFilterRegistrationBean<?>> filterRegistrations) {
+    return webhookHiddenHttpMethodFilterConflictCheck(
+        "", hiddenHttpMethodFilters, filterRegistrations);
   }
 
   private static List<Filter> allFiltersOfType(
       List<? extends Filter> directBeans,
       List<AbstractFilterRegistrationBean<?>> filterRegistrations,
-      Class<? extends Filter> type) {
-    Set<Filter> filtersOwnedByDisabledRegistrations =
-        Collections.newSetFromMap(new IdentityHashMap<>());
+      Class<? extends Filter> type,
+      String dispatcherServletPath) {
+    Set<Filter> filtersOwnedByRegistrations = Collections.newSetFromMap(new IdentityHashMap<>());
     filterRegistrations.stream()
-        .filter(registration -> !registration.isEnabled())
         .map(AbstractFilterRegistrationBean::getFilter)
-        .forEach(filtersOwnedByDisabledRegistrations::add);
+        .forEach(filtersOwnedByRegistrations::add);
 
     var result = new ArrayList<Filter>();
     directBeans.stream()
-        .filter(filter -> !filtersOwnedByDisabledRegistrations.contains(filter))
+        .filter(filter -> !filtersOwnedByRegistrations.contains(filter))
         .forEach(result::add);
     filterRegistrations.stream()
         .filter(AbstractFilterRegistrationBean::isEnabled)
+        .filter(
+            registration ->
+                registrationCanAffectWebhookEndpoints(registration, dispatcherServletPath))
         .map(AbstractFilterRegistrationBean::getFilter)
         .filter(filter -> type.isInstance(filter))
         .forEach(result::add);
     return result;
+  }
+
+  private static boolean registrationCanAffectWebhookEndpoints(
+      AbstractFilterRegistrationBean<?> registration, String dispatcherServletPath) {
+    if (!registration.getServletNames().isEmpty()) {
+      return true;
+    }
+    if (registration.getUrlPatterns().isEmpty()) {
+      return true;
+    }
+    String webhookPath = normalizeServletPath(dispatcherServletPath) + "/inbound";
+    return registration.getUrlPatterns().stream()
+        .anyMatch(pattern -> urlPatternCanMatchWebhook(pattern, webhookPath));
+  }
+
+  private static boolean urlPatternCanMatchWebhook(String pattern, String webhookPath) {
+    if (pattern == null || pattern.isBlank() || pattern.equals("/") || pattern.equals("/*")) {
+      return true;
+    }
+    if (pattern.startsWith("*.")) {
+      return true;
+    }
+    if (pattern.endsWith("/*")) {
+      String prefix = pattern.substring(0, pattern.length() - 2);
+      return webhookPath.equals(prefix)
+          || webhookPath.startsWith(prefix + "/")
+          || prefix.startsWith(webhookPath + "/");
+    }
+    return pattern.equals(webhookPath) || pattern.startsWith(webhookPath + "/");
+  }
+
+  private static String normalizeServletPath(String servletPath) {
+    if (servletPath == null || servletPath.isBlank() || servletPath.equals("/")) {
+      return "";
+    }
+    String normalized = servletPath;
+    if (normalized.endsWith("/*")) {
+      normalized = normalized.substring(0, normalized.length() - 2);
+    } else if (normalized.endsWith("/")) {
+      normalized = normalized.substring(0, normalized.length() - 1);
+    }
+    return normalized;
   }
 
   private static void checkNoConflictingFilter(

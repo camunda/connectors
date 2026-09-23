@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -67,6 +68,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -339,6 +343,24 @@ class InboundWebhookRestControllerTest {
 
     assertThat(response.getStatusCode().value()).isEqualTo(413);
     verifyNoInteractions(registration.executable());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"multipart/related; boundary=x", "multipart/mixed; boundary=x"})
+  void shouldPreserveRawBodyForNonFormMultipart(String contentType) throws Exception {
+    var registration = registerWebhook("multipartRelatedPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    var body = "multipart-related-payload";
+    var request = requestTo("multipartRelatedPath", body);
+    request.setContentType(contentType);
+
+    var response = controller.inbound("multipartRelatedPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(422);
+    var payloadCaptor = ArgumentCaptor.forClass(WebhookProcessingPayload.class);
+    verify(registration.executable()).triggerWebhook(payloadCaptor.capture());
+    assertThat(payloadCaptor.getValue().rawBody()).isEqualTo(body.getBytes(StandardCharsets.UTF_8));
+    assertThat(payloadCaptor.getValue().parts()).isEmpty();
   }
 
   @Test
