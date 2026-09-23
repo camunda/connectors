@@ -49,7 +49,16 @@ public record ConnectorProperties(
       boolean enabled,
       boolean appendPhysicalTenantAndTenantToPath,
       int maxRequestBodyBytes,
-      RateLimit rateLimit) {}
+      RateLimit rateLimit) {
+
+    public Webhook(boolean enabled, boolean appendPhysicalTenantAndTenantToPath) {
+      this(
+          enabled,
+          appendPhysicalTenantAndTenantToPath,
+          10 * 1024 * 1024,
+          new RateLimit(true, 1000));
+    }
+  }
 
   public record RateLimit(boolean enabled, double permitsPerSecond) {}
 

@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.DispatcherServlet;
 
 class WebhookFilterBeanNameConflictTest {
@@ -116,6 +117,21 @@ class WebhookFilterBeanNameConflictTest {
             });
   }
 
+  @Test
+  void customMultipartResolverReachesSecurityConflictCheck() {
+    contextRunner
+        .withUserConfiguration(CustomMultipartResolverConfiguration.class)
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context.getStartupFailure())
+                  .hasRootCauseInstanceOf(IllegalStateException.class)
+                  .rootCause()
+                  .hasMessageContaining("multipartResolver")
+                  .hasMessageContaining(StandardServletMultipartResolver.class.getName());
+            });
+  }
+
   @Configuration(proxyBeanMethods = false)
   static class CustomFormContentFilterConfiguration {
 
@@ -153,6 +169,15 @@ class WebhookFilterBeanNameConflictTest {
       var registration = new FilterRegistrationBean<>(new FormContentFilter());
       registration.addUrlPatterns("/api/inbound/*");
       return registration;
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class CustomMultipartResolverConfiguration {
+
+    @Bean(name = "multipartResolver")
+    StandardServletMultipartResolver multipartResolver() {
+      return new StandardServletMultipartResolver();
     }
   }
 }

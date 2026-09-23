@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,6 +42,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.filter.FormContentFilter;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.multipart.MultipartResolver;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.DispatcherServlet;
 
@@ -80,6 +82,24 @@ public class WebhookConnectorConfiguration {
     resolver.setResolveLazily(resolveLazily);
     resolver.setStrictServletCompliance(strictServletCompliance);
     return resolver;
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      name = "spring.servlet.multipart.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  InitializingBean webhookMultipartResolverConflictCheck(
+      @Qualifier(DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+          MultipartResolver multipartResolver) {
+    return () -> {
+      if (!(multipartResolver instanceof WebhookAwareStandardServletMultipartResolver)) {
+        throw new IllegalStateException(
+            "The multipartResolver bean must preserve raw non-form multipart webhook bodies, but"
+                + " found "
+                + multipartResolver.getClass().getName());
+      }
+    };
   }
 
   @Bean
