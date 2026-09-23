@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.23.0</version.mockito>
+    <version.mockito>5.24.0</version.mockito>
     <version.junit-jupiter>5.14.4</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.3</version.jackson-bom>
@@ -101,7 +101,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>1.45.2</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260901-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260913-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260902-2.0.0</version.google-api-services-docs>
