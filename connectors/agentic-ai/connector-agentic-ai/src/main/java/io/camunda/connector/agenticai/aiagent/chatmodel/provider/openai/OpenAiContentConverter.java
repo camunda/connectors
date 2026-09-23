@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
@@ -31,6 +32,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
@@ -39,15 +41,38 @@ import org.jspecify.annotations.Nullable;
  * ({@link ResponseInputContent}) and the Chat Completions API ({@link ChatCompletionContentPart})
  * families. Used for user/assistant message bodies as well as Responses tool-result bodies ({@link
  * ResponseFunctionCallOutputItem}).
+ *
+ * <p>A PDF document on the Completions family is one genuine wire-format divergence between OpenAI
+ * and Mistral, despite the two otherwise sharing this family's converters wholesale (see {@link
+ * io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter}):
+ * OpenAI's real API accepts the SDK-modeled {@code file}/{@code file_data} chunk, but Mistral
+ * rejects it (verified against the real API) and instead requires a {@code document_url} chunk
+ * whose value is the data URI directly, with no nested object -- confirmed against the real Mistral
+ * API to be the correct replacement, unlike {@code file}. There is no wire-format signal to
+ * self-detect this from (unlike the chunked-reasoning-content case), since this is an outbound
+ * choice this converter makes, not something already present in what it's given to convert -- so
+ * {@code providerId} (the caller's own explicit configured identity, already threaded through this
+ * family's response converter for the same reason) gates it explicitly. Image parts need no such
+ * gate: Mistral accepts the identical {@code image_url} shape OpenAI uses (also verified against
+ * the real API), so {@link #completionsDocumentPart} sends it unconditionally.
  */
 public class OpenAiContentConverter {
 
   private static final String DEFAULT_FILE_NAME = "document";
 
-  private final ObjectMapper objectMapper;
+  /**
+   * Mirrors {@code MistralChatModelConfiguration.MISTRAL_ID}, duplicated as a local literal rather
+   * than imported: this package is the shared Completions/Responses wire-format layer and must not
+   * depend on a specific provider's config package.
+   */
+  private static final String MISTRAL_PROVIDER_ID = "mistral";
 
-  public OpenAiContentConverter(ObjectMapper objectMapper) {
+  private final ObjectMapper objectMapper;
+  private final String providerId;
+
+  public OpenAiContentConverter(ObjectMapper objectMapper, String providerId) {
     this.objectMapper = objectMapper;
+    this.providerId = providerId;
   }
 
   public List<ResponseInputContent> toResponsesContentParts(List<Content> content) {
@@ -183,19 +208,34 @@ public class OpenAiContentConverter {
                           .build())
                   .build());
       case PDF ->
-          ChatCompletionContentPart.ofFile(
-              ChatCompletionContentPart.File.builder()
-                  .file(
-                      ChatCompletionContentPart.File.FileObject.builder()
-                          .filename(fileName(doc.document()))
-                          .fileData(dataUri(contentType, doc.document()))
-                          .build())
-                  .build());
+          MISTRAL_PROVIDER_ID.equals(providerId)
+              ? rawContentPart(
+                  Map.of(
+                      "type", "document_url", "document_url", dataUri(contentType, doc.document())))
+              : ChatCompletionContentPart.ofFile(
+                  ChatCompletionContentPart.File.builder()
+                      .file(
+                          ChatCompletionContentPart.File.FileObject.builder()
+                              .filename(fileName(doc.document()))
+                              .fileData(dataUri(contentType, doc.document()))
+                              .build())
+                      .build());
       case TEXT ->
           ChatCompletionContentPart.ofText(
               ChatCompletionContentPartText.builder().text(decodeUtf8(doc.document())).build());
       case UNSUPPORTED -> throw unsupportedContentType(contentType, doc);
     };
+  }
+
+  /**
+   * Builds a {@link ChatCompletionContentPart} for a shape the SDK doesn't model (e.g. Mistral's
+   * {@code document_url} chunk) by deserializing it through the SDK's own mapper: {@code
+   * ChatCompletionContentPart}'s deserializer falls back to storing any unrecognized {@code type}
+   * verbatim in an internal raw-JSON field, and its serializer writes that field straight back out
+   * unchanged, so this round-trips byte-identical without needing a typed SDK builder for it.
+   */
+  private static ChatCompletionContentPart rawContentPart(Map<String, Object> raw) {
+    return ObjectMappers.jsonMapper().convertValue(raw, ChatCompletionContentPart.class);
   }
 
   private static ConnectorException unsupportedContentType(

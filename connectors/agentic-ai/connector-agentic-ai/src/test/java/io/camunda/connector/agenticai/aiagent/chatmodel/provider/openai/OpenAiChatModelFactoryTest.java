@@ -87,7 +87,7 @@ class OpenAiChatModelFactoryTest {
 
   @BeforeEach
   void setUp() {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper, "openai");
     factory =
         new OpenAiChatModelFactory(
             chatModelProperties,
