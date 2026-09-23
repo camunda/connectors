@@ -21,7 +21,7 @@ set -e
 # produces false-positive mismatches unrelated to the PR's actual change, so
 # the check only applies to PRs/pushes targeting main.
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
-if [[ "$TARGET_BRANCH" =~ ^(stable|alpha)/ ]]; then
+if [[ "$TARGET_BRANCH" =~ ^(stable|alpha)/ || "$TARGET_BRANCH" =~ ^backport-[0-9]+-to-(stable|alpha)/ ]]; then
   echo "Target branch '${TARGET_BRANCH}' is a release branch — skipping versioned element template check (only meaningful for main)."
   exit 0
 fi
