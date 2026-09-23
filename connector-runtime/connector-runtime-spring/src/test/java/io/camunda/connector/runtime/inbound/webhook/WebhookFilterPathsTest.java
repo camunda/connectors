@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 class WebhookFilterPathsTest {
 
@@ -55,5 +56,13 @@ class WebhookFilterPathsTest {
   void stripsARawWildcardServletMappingPattern() {
     // Also a supported form: the raw servlet-mapping pattern rather than a plain prefix.
     assertThat(WebhookFilterPaths.normalizeServletPath("/api/*")).isEqualTo("/api");
+  }
+
+  @Test
+  void doesNotStripANonBoundaryServletPathPrefix() {
+    var request = new MockHttpServletRequest();
+    request.setRequestURI("/api2/inbound/webhook");
+
+    assertThat(WebhookFilterPaths.isWebhookPath(request, "/api")).isFalse();
   }
 }

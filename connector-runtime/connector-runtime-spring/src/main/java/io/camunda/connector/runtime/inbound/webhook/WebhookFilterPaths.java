@@ -46,7 +46,7 @@ final class WebhookFilterPaths {
   static boolean isWebhookPath(HttpServletRequest request, String normalizedConfiguredServletPath) {
     String path = URL_PATH_HELPER.getPathWithinApplication(request);
     String prefix = servletPathPrefix(request, normalizedConfiguredServletPath);
-    if (!prefix.isEmpty() && path.startsWith(prefix)) {
+    if (!prefix.isEmpty() && (path.equals(prefix) || path.startsWith(prefix + "/"))) {
       path = path.substring(prefix.length());
     }
     return path.equals(WEBHOOK_PATH) || path.startsWith(WEBHOOK_PATH_PREFIX);

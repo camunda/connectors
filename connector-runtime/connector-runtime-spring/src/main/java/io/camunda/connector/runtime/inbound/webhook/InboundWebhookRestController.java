@@ -263,11 +263,9 @@ public class InboundWebhookRestController {
       }
     }
 
-    // Body must be read before any call that triggers form-parameter parsing (e.g.
-    // getParameterMap).
-    // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
-    // getParameterMap() is invoked, which would leave rawBody empty and break HMAC verification.
-    byte[] bodyAsByteArray = readBoundedBody(httpServletRequest);
+    // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
+    // Other content types retain the original bytes needed by HMAC verification.
+    byte[] bodyAsByteArray = isMultipart ? new byte[0] : readBoundedBody(httpServletRequest);
     if (bodyAsByteArray == null) {
       return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
     }

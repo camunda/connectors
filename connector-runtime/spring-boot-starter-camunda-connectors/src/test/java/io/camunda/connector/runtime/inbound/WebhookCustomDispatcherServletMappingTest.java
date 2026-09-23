@@ -136,7 +136,7 @@ class WebhookCustomDispatcherServletMappingTest {
   void assertsSetup() throws Exception {
     var response = sendPut("/inbound/formPath", "field=12345678");
 
-    assertThat(response.statusCode()).isNotEqualTo(400);
+    assertThat(response.statusCode()).isEqualTo(404);
   }
 
   @Test

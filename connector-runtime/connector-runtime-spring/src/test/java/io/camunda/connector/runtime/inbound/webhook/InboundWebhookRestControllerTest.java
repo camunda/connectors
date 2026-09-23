@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -63,6 +64,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -407,16 +409,26 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
-  void shouldEventuallyReclaimObsoleteLimiterEntries() throws Exception {
+  void shouldEventuallyReclaimObsoleteLimiterEntries() {
     var controller = new InboundWebhookRestController(new WebhookConnectorRegistry());
+    var currentTime = new AtomicLong();
     controller.rateLimitersByExecutable =
-        CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMillis(20)).build();
+        CacheBuilder.newBuilder()
+            .ticker(
+                new Ticker() {
+                  @Override
+                  public long read() {
+                    return currentTime.get();
+                  }
+                })
+            .expireAfterAccess(Duration.ofMillis(20))
+            .build();
 
     var obsolete = activatedWithId(ExecutableId.fromDeduplicationId("obsolete-webhook"));
     controller.acquireRateLimitPermit(obsolete);
     assertThat(controller.rateLimitersByExecutable.asMap()).containsKey(obsolete.id());
 
-    Thread.sleep(50);
+    currentTime.addAndGet(Duration.ofMillis(21).toNanos());
     controller.rateLimitersByExecutable.cleanUp();
 
     assertThat(controller.rateLimitersByExecutable.asMap()).doesNotContainKey(obsolete.id());
