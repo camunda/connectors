@@ -39,6 +39,11 @@ public interface OpenAiCompletionsStreamAssembler {
    * also safe to use for a model that never sends a chunked array at all.
    */
   static OpenAiCompletionsStreamAssembler chunkedContentAware() {
-    return stream -> new ChunkedContentChatCompletionAccumulator().assemble(stream);
+    return stream -> {
+      final ChunkedContentChatCompletionAccumulator accumulator =
+          ChunkedContentChatCompletionAccumulator.create();
+      stream.stream().forEach(accumulator::accumulate);
+      return accumulator.chatCompletion();
+    };
   }
 }
