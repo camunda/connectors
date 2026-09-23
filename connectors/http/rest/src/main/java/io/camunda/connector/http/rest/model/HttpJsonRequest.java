@@ -61,19 +61,6 @@ public class HttpJsonRequest extends HttpCommonRequest {
   }
 
   /**
-   * Modeler leaves the inline authentication's default discriminator (and its now-hidden, unfilled
-   * members) in the job input even after a credential is bound, so the leftover inline value is no
-   * longer validated once {@link #authenticationConfiguration} is present - see {@link
-   * HttpCommonRequest#getInlineAuthenticationWhenNoCredentialBound()}.
-   */
-  @Override
-  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
-    return authenticationConfiguration != null
-        ? null
-        : super.getInlineAuthenticationWhenNoCredentialBound();
-  }
-
-  /**
    * The URL is the one place where the inline value wins over the credential rather than the other
    * way round: the credential's URL is the endpoint it is bound to by default, but a process author
    * who sets an inline URL on the task means it. Binding the credential and pointing the task

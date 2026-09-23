@@ -103,20 +103,15 @@ public class HttpCommonRequest {
               + " carries none, as an OAuth credential need not.")
   private String urlOverride;
 
-  // Not @Valid on the field: Modeler leaves the inline authentication's default discriminator
-  // (and its now-hidden, unfilled members) in the job input even after a credential is bound
-  // in the HttpJsonRequest subclass, and cascading validation straight into that leftover object
-  // would fail its shape constraints even though it lost. Shape validation is applied to the
-  // effective value instead - see getInlineAuthenticationWhenNoCredentialBound() below, which a
-  // credential-aware subclass overrides. Hidden and un-required (via the isEmpty condition) once
-  // a credential is chosen. The chooser (authenticationConfiguration) is declared in the
-  // HttpJsonRequest subclass, which renders before this field since subclass fields precede
-  // superclass fields.
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen. The chooser
+  // (authenticationConfiguration) is declared in the HttpJsonRequest subclass, which renders
+  // before this field since subclass fields precede superclass fields.
   @NestedProperties(
       condition =
           @PropertyCondition(
               property = "authenticationConfiguration",
               isEmpty = NullableBoolean.TRUE))
+  @Valid
   private Authentication authentication;
 
   @Valid private ClientTls clientTls;
@@ -255,16 +250,6 @@ public class HttpCommonRequest {
 
   public void setAuthentication(final Authentication authentication) {
     this.authentication = authentication;
-  }
-
-  /**
-   * Validates the inline {@link #authentication} unless overridden by a credential-aware subclass
-   * to return {@code null} once a credential is bound, making the leftover inline value irrelevant.
-   */
-  @Valid
-  @JsonIgnore
-  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
-    return authentication;
   }
 
   public ClientTls getClientTls() {
