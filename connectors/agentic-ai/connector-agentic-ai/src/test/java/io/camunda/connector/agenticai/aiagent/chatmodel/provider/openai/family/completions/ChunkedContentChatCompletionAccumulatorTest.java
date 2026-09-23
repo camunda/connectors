@@ -44,6 +44,11 @@ class ChunkedContentChatCompletionAccumulatorTest {
     return chunkFromJson("{}", finishReasonJson, "null");
   }
 
+  private static ChatCompletionChunk finishChunkWithUsage(
+      String finishReasonJson, String usageJson) {
+    return chunkFromJson("{}", finishReasonJson, usageJson);
+  }
+
   private static ChatCompletionChunk usageChunk(String usageJson) {
     final String json =
         """
@@ -230,5 +235,28 @@ class ChunkedContentChatCompletionAccumulatorTest {
 
     assertThat(assembled.usage()).isPresent();
     assertThat(assembled.usage().orElseThrow().promptTokens()).isEqualTo(10);
+  }
+
+  @Test
+  void assemblesSuccessfullyWhenUsageArrivesOnTheSameChunkAsTheFinishReason() {
+    // Mistral's wire shape, unlike OpenAI's separate trailing usage-only chunk: usage is reported
+    // on the very same chunk that also carries the closing delta and finishReason.
+    final ChatCompletion assembled =
+        assemble(
+            assembler,
+            deltaChunk(
+                """
+                {"role": "assistant", "content": "Hi"}
+                """),
+            finishChunkWithUsage(
+                "\"stop\"",
+                """
+                {"prompt_tokens": 21, "completion_tokens": 3, "total_tokens": 24}
+                """));
+
+    assertThat(assembled.choices()).hasSize(1);
+    assertThat(assembled.choices().get(0).message().content()).contains("Hi");
+    assertThat(assembled.usage()).isPresent();
+    assertThat(assembled.usage().orElseThrow().promptTokens()).isEqualTo(21);
   }
 }
