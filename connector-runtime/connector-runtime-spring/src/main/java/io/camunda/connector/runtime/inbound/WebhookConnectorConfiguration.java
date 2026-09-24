@@ -95,7 +95,7 @@ public class WebhookConnectorConfiguration {
     return () -> {
       if (!(multipartResolver instanceof WebhookAwareStandardServletMultipartResolver)) {
         throw new IllegalStateException(
-            "The multipartResolver bean must preserve raw non-form multipart webhook bodies, but"
+            "The multipartResolver bean must leave webhook multipart bodies unconsumed, but"
                 + " found "
                 + multipartResolver.getClass().getName());
       }
@@ -198,11 +198,28 @@ public class WebhookConnectorConfiguration {
       AbstractFilterRegistrationBean<?> registration,
       String dispatcherServletPath,
       List<ServletRegistrationBean<?>> servletRegistrations) {
-    if (!registration.getServletNames().isEmpty()) {
+    if (registration.getServletRegistrationBeans().stream()
+        .anyMatch(
+            servletRegistration -> servletRegistration.getServlet() instanceof DispatcherServlet)) {
       return true;
     }
+    for (String servletName : registration.getServletNames()) {
+      var matchingServlets =
+          servletRegistrations.stream()
+              .filter(
+                  servletRegistration -> servletName.equals(servletRegistration.getServletName()))
+              .toList();
+      if (matchingServlets.isEmpty()
+          || matchingServlets.stream()
+              .anyMatch(
+                  servletRegistration ->
+                      servletRegistration.getServlet() instanceof DispatcherServlet)) {
+        return true;
+      }
+    }
     if (registration.getUrlPatterns().isEmpty()) {
-      return true;
+      return registration.getServletNames().isEmpty()
+          && registration.getServletRegistrationBeans().isEmpty();
     }
 
     var dispatcherServletRegistrations =

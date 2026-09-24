@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingFormContentFilter;
 import io.camunda.connector.runtime.inbound.webhook.WebhookExcludingHiddenHttpMethodFilter;
+import jakarta.servlet.Servlet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -139,6 +140,76 @@ class WebhookConnectorConfigurationTest {
             List.of(dispatcherRegistration));
 
     assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckIgnoresRegistrationForUnrelatedServlet() throws Exception {
+    var managementServlet = new ServletRegistrationBean<>(mock(Servlet.class), "/management/*");
+    managementServlet.setName("managementServlet");
+    var managementFilter = new FormContentFilter();
+    var registration = new FilterRegistrationBean<>(managementFilter);
+    registration.addServletNames("managementServlet");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "",
+            List.of(new WebhookExcludingFormContentFilter(""), managementFilter),
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of(managementServlet));
+
+    assertThatCode(check::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @Test
+  void formContentFilterConflictCheckFlagsRegistrationForDispatcherServlet() {
+    var dispatcherServlet = new ServletRegistrationBean<>(new DispatcherServlet(), "/");
+    dispatcherServlet.setName("dispatcherServlet");
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.addServletNames("dispatcherServlet");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "",
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of(dispatcherServlet));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
+  }
+
+  @Test
+  void formContentFilterConflictCheckFailsClosedForUnknownServletName() {
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.addServletNames("unknownServlet");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "",
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of());
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
+  }
+
+  @Test
+  void formContentFilterConflictCheckStillFlagsMatchingUrlForUnrelatedNamedServlet() {
+    var managementServlet = new ServletRegistrationBean<>(mock(Servlet.class), "/management/*");
+    managementServlet.setName("managementServlet");
+    var registration = new FilterRegistrationBean<>(new FormContentFilter());
+    registration.addServletNames("managementServlet");
+    registration.addUrlPatterns("/inbound/*");
+    var check =
+        configuration.webhookFormContentFilterConflictCheck(
+            "",
+            List.of(new WebhookExcludingFormContentFilter("")),
+            List.<AbstractFilterRegistrationBean<?>>of(registration),
+            List.of(managementServlet));
+
+    assertThatThrownBy(check::afterPropertiesSet)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("FormContentFilter");
   }
 
   @Test

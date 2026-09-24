@@ -42,6 +42,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,10 +104,12 @@ class WebhookLazyMultipartTest {
     when(executable.triggerWebhook(payloadCaptor.capture())).thenReturn(webhookResult);
     registerWebhook("formPath", executable);
 
-    var response = sendMultipart("/inbound/formPath", "x".repeat(100));
+    var rawBody = multipartBody("x".repeat(100));
+    var response = sendMultipartBody("/inbound/formPath", rawBody);
 
     assertThat(response.statusCode()).isEqualTo(400);
-    assertThat(payloadCaptor.getValue().rawBody()).isEmpty();
+    assertThat(payloadCaptor.getValue().rawBody())
+        .isEqualTo(rawBody.getBytes(StandardCharsets.UTF_8));
     var parts = payloadCaptor.getValue().parts();
     assertThat(parts).hasSize(1);
     assertThat(parts.iterator().next().name()).isEqualTo("file");
@@ -141,16 +144,22 @@ class WebhookLazyMultipartTest {
   }
 
   private HttpResponse<String> sendMultipart(String path, String fileContent) throws Exception {
-    String body =
-        "--"
-            + BOUNDARY
-            + "\r\n"
-            + "Content-Disposition: form-data; name=\"file\"; filename=\"payload.bin\"\r\n"
-            + "Content-Type: application/octet-stream\r\n\r\n"
-            + fileContent
-            + "\r\n--"
-            + BOUNDARY
-            + "--\r\n";
+    return sendMultipartBody(path, multipartBody(fileContent));
+  }
+
+  private static String multipartBody(String fileContent) {
+    return "--"
+        + BOUNDARY
+        + "\r\n"
+        + "Content-Disposition: form-data; name=\"file\"; filename=\"payload.bin\"\r\n"
+        + "Content-Type: application/octet-stream\r\n\r\n"
+        + fileContent
+        + "\r\n--"
+        + BOUNDARY
+        + "--\r\n";
+  }
+
+  private HttpResponse<String> sendMultipartBody(String path, String body) throws Exception {
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:" + port + path))
