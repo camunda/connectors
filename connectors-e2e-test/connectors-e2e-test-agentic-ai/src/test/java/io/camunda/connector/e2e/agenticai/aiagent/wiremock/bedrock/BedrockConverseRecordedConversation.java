@@ -121,8 +121,11 @@ public final class BedrockConverseRecordedConversation {
 
         root.path("messages").forEach(message -> messages.addAll(toRecordedMessages(message)));
 
+        // Excludes cachePoint entries, appended to toolConfig.tools when caching is enabled with
+        // no system prompt to anchor to instead.
         final var tools =
             StreamSupport.stream(root.path("toolConfig").path("tools").spliterator(), false)
+                .filter(tool -> tool.path("cachePoint").isMissingNode())
                 .map(tool -> tool.path("toolSpec"))
                 .map(RecordedChatRequest::toToolDefinition)
                 .toList();
@@ -172,10 +175,12 @@ public final class BedrockConverseRecordedConversation {
         return toolResults;
       }
 
-      // Content parts exclude toolUse blocks - those become toolCalls() instead.
+      // Excludes toolUse blocks (become toolCalls() instead) and cachePoint blocks (added when
+      // caching is enabled; carry no assertable content).
       final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> block.path("toolUse").isMissingNode())
+              .filter(block -> block.path("cachePoint").isMissingNode())
               .map(
                   block -> {
                     final var kind = blockKind(block);
