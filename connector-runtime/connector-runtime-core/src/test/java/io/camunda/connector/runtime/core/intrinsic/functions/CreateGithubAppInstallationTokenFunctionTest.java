@@ -26,6 +26,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Base64;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -278,8 +279,8 @@ class CreateGithubAppInstallationTokenFunctionTest {
     }
 
     @Test
-    @DisplayName("Should use overridden githubApiBaseUrl when provided")
-    void shouldUseOverriddenBaseUrlWhenProvided(WireMockRuntimeInfo wmRuntimeInfo) {
+    @DisplayName("Should use overridden githubApiBaseUrl when it is in the configured allow-list")
+    void shouldUseOverriddenBaseUrlWhenAllowListed(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(
           post(urlPathMatching("/app/installations/.*/access_tokens"))
               .willReturn(
@@ -288,9 +289,14 @@ class CreateGithubAppInstallationTokenFunctionTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody("{\"token\": \"" + MOCK_TOKEN + "\"}")));
 
-      // Constructed with a bogus default base URL that would fail if actually used.
+      // Constructed with a bogus default base URL that would fail if actually used, and an
+      // allow-list (as a self-managed operator would configure) that permits the override.
       CreateGithubAppInstallationTokenFunction testFunction =
-          new CreateGithubAppInstallationTokenFunction("http://invalid.example.invalid");
+          new CreateGithubAppInstallationTokenFunction(
+              "http://invalid.example.invalid",
+              Map.of(
+                  CreateGithubAppInstallationTokenFunction.ALLOWED_BASE_URLS_ENV_VAR,
+                  wmRuntimeInfo.getHttpBaseUrl()));
 
       String token =
           testFunction.execute(
@@ -298,6 +304,46 @@ class CreateGithubAppInstallationTokenFunctionTest {
 
       assertThat(token).isEqualTo(MOCK_TOKEN);
       verify(postRequestedFor(urlPathMatching("/app/installations/.*/access_tokens")));
+    }
+
+    @Test
+    @DisplayName("Should reject overridden githubApiBaseUrl when it is not allow-listed")
+    void shouldRejectOverriddenBaseUrlWhenNotAllowListed(WireMockRuntimeInfo wmRuntimeInfo) {
+      // No allow-list configured (env unset), so only this instance's own default is permitted.
+      CreateGithubAppInstallationTokenFunction testFunction =
+          new CreateGithubAppInstallationTokenFunction("http://default.example.invalid", Map.of());
+
+      assertThatThrownBy(
+              () ->
+                  testFunction.execute(
+                      TEST_PRIVATE_KEY_FORMATTED,
+                      APP_ID,
+                      INSTALLATION_ID,
+                      wmRuntimeInfo.getHttpBaseUrl()))
+          .isInstanceOf(RuntimeException.class)
+          .cause()
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("not permitted");
+    }
+
+    @Test
+    @DisplayName(
+        "Should reject the implicit default base URL when an allow-list is configured without it "
+            + "(catches accidental public GitHub API use on self-managed setups)")
+    void shouldRejectImplicitDefaultWhenNotInConfiguredAllowList() {
+      CreateGithubAppInstallationTokenFunction testFunction =
+          new CreateGithubAppInstallationTokenFunction(
+              "https://api.github.com",
+              Map.of(
+                  CreateGithubAppInstallationTokenFunction.ALLOWED_BASE_URLS_ENV_VAR,
+                  "https://github.example.com/api/v3"));
+
+      assertThatThrownBy(
+              () -> testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID))
+          .isInstanceOf(RuntimeException.class)
+          .cause()
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("not permitted");
     }
 
     @Test
