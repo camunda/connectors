@@ -121,8 +121,12 @@ public final class BedrockConverseRecordedConversation {
 
         root.path("messages").forEach(message -> messages.addAll(toRecordedMessages(message)));
 
+        // Excludes cachePoint entries: BedrockConverseRequestConverter appends one to
+        // toolConfig.tools (sibling to the real toolSpec entries) when prompt caching is enabled
+        // and there is no system prompt to anchor the checkpoint to instead.
         final var tools =
             StreamSupport.stream(root.path("toolConfig").path("tools").spliterator(), false)
+                .filter(tool -> tool.path("cachePoint").isMissingNode())
                 .map(tool -> tool.path("toolSpec"))
                 .map(RecordedChatRequest::toToolDefinition)
                 .toList();
