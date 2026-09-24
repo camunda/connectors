@@ -89,6 +89,40 @@ class ConnectorHelperTest {
   }
 
   @Test
+  void resultVariableRejectsAForbiddenLiteralInTheResponseContent() {
+    // security-testing-findings#275: with resultVariableName alone (no resultExpression),
+    // verifyNoForbiddenLiterals previously never ran at all, so a webhook payload shaped like an
+    // intrinsic-function call was written straight into a process variable, unchecked.
+    Object responseContent =
+        Map.of(
+            "probe",
+            Map.of(
+                "camunda.function.type",
+                "createLink",
+                "params",
+                List.of(Map.of("camunda.document.type", "camunda"), "PT1H")));
+
+    final var exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> ConnectorHelper.createOutputVariables(responseContent, "hookResult", null));
+
+    assertThat(exception)
+        .hasMessageContaining(
+            "The connector result contains a forbidden literal 'camunda.function.type'");
+  }
+
+  @Test
+  void resultVariableAllowsOrdinaryResponseDataWithoutALiteral() {
+    Object responseContent = Map.of("status", "ok", "count", 3);
+
+    Map<String, Object> result =
+        ConnectorHelper.createOutputVariables(responseContent, "hookResult", null);
+
+    assertThat(result).containsEntry("hookResult", responseContent);
+  }
+
+  @Test
   void shouldHandleEmptyResponseBody() {
     // given - simulates HTTP response with empty/null body
     final String resultExpression = "={\"status\": response.status}";

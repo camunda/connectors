@@ -33,6 +33,8 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionUtil;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
@@ -57,6 +59,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
   private final DocumentFactory documentFactory;
+  private final IntrinsicFunctionAllowList intrinsicFunctionAllowList;
   private JsonNode jsonWithSecrets = null;
 
   public JobHandlerContext(
@@ -65,11 +68,13 @@ public class JobHandlerContext extends AbstractConnectorContext
       final ValidationProvider validationProvider,
       final DocumentFactory documentFactory,
       final ObjectMapper objectMapper,
-      final SecretFilter secretFilter) {
+      final SecretFilter secretFilter,
+      final IntrinsicFunctionAllowList intrinsicFunctionAllowList) {
     super(secretProvider, secretFilter, validationProvider);
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;
+    this.intrinsicFunctionAllowList = intrinsicFunctionAllowList;
     this.jobContext = new ActivatedJobContext(job, () -> writeJson(getJsonReplacedWithSecrets()));
   }
 
@@ -154,6 +159,10 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private <T> T mapJson(Class<T> cls) {
     var jsonWithSecrets = getJsonReplacedWithSecrets();
+    // Refuses any camunda.function.type call the deployed BPMN model doesn't declare at this
+    // exact field path, before objectMapper's typed binding -- and its live intrinsic-function
+    // dispatch -- ever runs. See security-testing-findings#275.
+    IntrinsicFunctionUtil.verifyAgainstAllowList(jsonWithSecrets, intrinsicFunctionAllowList);
     try {
       return objectMapper.treeToValue(jsonWithSecrets, cls);
     } catch (JsonProcessingException e) {

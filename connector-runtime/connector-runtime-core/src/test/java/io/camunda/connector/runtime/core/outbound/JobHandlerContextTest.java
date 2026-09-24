@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowList;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
@@ -62,7 +63,8 @@ class JobHandlerContextTest {
             validationProvider,
             null,
             objectMapper,
-            SecretFilter.allowAll());
+            SecretFilter.allowAll(),
+            IntrinsicFunctionAllowList.allowNone());
   }
 
   @Test
@@ -243,7 +245,8 @@ class JobHandlerContextTest {
             validationProvider,
             null,
             objectMapper,
-            SecretFilter.allowOnly(List.of(new Secret("AUTH", List.of()))));
+            SecretFilter.allowOnly(List.of(new Secret("AUTH", List.of()))),
+            IntrinsicFunctionAllowList.allowNone());
     String json = "{ \"value\": \"{{secrets.UNDECLARED}}\" }";
     stubVariables(json);
 

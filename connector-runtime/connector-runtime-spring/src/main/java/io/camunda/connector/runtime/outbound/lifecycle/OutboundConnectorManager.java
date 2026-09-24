@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -50,6 +51,7 @@ public class OutboundConnectorManager {
   private final MetricsRecorder metricsRecorder;
   private final DocumentFactory documentFactory;
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -60,7 +62,8 @@ public class OutboundConnectorManager {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -70,6 +73,7 @@ public class OutboundConnectorManager {
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   public void start(final ZeebeClient client) {
@@ -111,7 +115,8 @@ public class OutboundConnectorManager {
             objectMapper,
             connectorFunction,
             connector,
-            secretFilterFactory);
+            secretFilterFactory,
+            intrinsicFunctionAllowListFactory);
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
   }
