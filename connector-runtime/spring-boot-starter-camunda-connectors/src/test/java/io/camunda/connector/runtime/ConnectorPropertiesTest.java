@@ -16,19 +16,17 @@
  */
 package io.camunda.connector.runtime;
 
-import io.camunda.connector.runtime.inbound.WebhookConnectorConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.context.annotation.Import;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@AutoConfiguration
-@AutoConfigureBefore({InboundConnectorsAutoConfiguration.class, WebMvcAutoConfiguration.class})
-@ConditionalOnProperty(
-    prefix = "camunda.connector.webhook",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@Import(WebhookConnectorConfiguration.class)
-public class WebhookConnectorAutoConfiguration {}
+import org.junit.jupiter.api.Test;
+
+class ConnectorPropertiesTest {
+
+  @Test
+  void legacyWebhookConstructorUsesCurrentDefaults() {
+    var webhook = new ConnectorProperties.Webhook(true);
+
+    assertThat(webhook.maxRequestBodyBytes()).isEqualTo(10 * 1024 * 1024);
+    assertThat(webhook.rateLimit()).isEqualTo(new ConnectorProperties.RateLimit(true, 1000));
+  }
+}
