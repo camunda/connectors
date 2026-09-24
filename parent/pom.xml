@@ -170,6 +170,7 @@ limitations under the License.</license.inlineheader>
     <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.6.0</version.collections4>
 
+    <version.commons-fileupload>2.0.0-M5</version.commons-fileupload>
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
@@ -936,6 +937,11 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.20.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-fileupload2-core</artifactId>
+        <version>${version.commons-fileupload}</version>
       </dependency>
 
       <dependency>

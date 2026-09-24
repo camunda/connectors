@@ -54,9 +54,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +66,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -97,6 +96,12 @@ public class InboundWebhookRestController {
 
   @Value("${spring.servlet.multipart.enabled:true}")
   boolean multipartEnabled = true;
+
+  @Value("${spring.servlet.multipart.max-file-size:1MB}")
+  String maxMultipartFileSize = "1MB";
+
+  @Value("${spring.servlet.multipart.max-request-size:10MB}")
+  String maxMultipartRequestSize = "10MB";
 
   RateLimiter globalRateLimiter;
 
@@ -164,19 +169,6 @@ public class InboundWebhookRestController {
     return lowerContentType.contains("application/xml") || lowerContentType.contains("text/xml");
   }
 
-  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
-    try {
-      return new io.camunda.connector.api.inbound.webhook.Part(
-          part.getName(),
-          part.getSubmittedFileName(),
-          part.getInputStream(),
-          part.getContentType());
-    } catch (IOException e) {
-      LOG.warn("Failed to process part: {}", part.getName(), e);
-      return null;
-    }
-  }
-
   @RequestMapping(
       method = {GET, HEAD, POST, PUT, DELETE},
       path = "/inbound/{context}")
@@ -233,20 +225,35 @@ public class InboundWebhookRestController {
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
     Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
+    byte[] bodyAsByteArray;
     if (isMultipartFormData) {
-      try {
-        parts = getParts(httpServletRequest);
-      } catch (MultipartSizeExceededException e) {
+      if (!multipartEnabled) {
+        throw new IllegalStateException(
+            "Received a multipart request but spring.servlet.multipart.enabled=false");
+      }
+      bodyAsByteArray =
+          readBoundedBody(httpServletRequest, DataSize.parse(maxMultipartRequestSize).toBytes());
+      if (bodyAsByteArray == null) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
       }
-    }
-
-    // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
-    // Other content types retain the original bytes needed by HMAC verification.
-    byte[] bodyAsByteArray =
-        isMultipartFormData ? new byte[0] : readBoundedBody(httpServletRequest);
-    if (bodyAsByteArray == null) {
-      return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      try {
+        parts =
+            WebhookMultipartParser.parse(
+                bodyAsByteArray,
+                httpServletRequest.getContentType(),
+                httpServletRequest.getCharacterEncoding(),
+                DataSize.parse(maxMultipartRequestSize).toBytes(),
+                DataSize.parse(maxMultipartFileSize).toBytes());
+      } catch (WebhookMultipartParser.MultipartSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      } catch (WebhookMultipartParser.MalformedMultipartException e) {
+        return ResponseEntity.badRequest().build();
+      }
+    } else {
+      bodyAsByteArray = readBoundedBody(httpServletRequest, maxRequestBodyBytes);
+      if (bodyAsByteArray == null) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
     }
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
@@ -261,9 +268,16 @@ public class InboundWebhookRestController {
     return processWebhook(connector, payload);
   }
 
-  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest, long maxBodyBytes)
+      throws IOException {
     var inputStream = httpServletRequest.getInputStream();
-    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (maxBodyBytes < 0) {
+      return inputStream.readAllBytes();
+    }
+    if (httpServletRequest.getContentLengthLong() > maxBodyBytes) {
+      return null;
+    }
+    byte[] body = inputStream.readNBytes(Math.toIntExact(maxBodyBytes));
     if (inputStream.read() != -1) {
       return null;
     }
@@ -478,39 +492,6 @@ public class InboundWebhookRestController {
     return response;
   }
 
-  private Collection<io.camunda.connector.api.inbound.webhook.Part> getParts(
-      HttpServletRequest httpServletRequest) {
-    try {
-      return httpServletRequest.getParts().stream()
-          .map(InboundWebhookRestController::mapToCamundaPart)
-          .filter(Objects::nonNull)
-          .toList();
-    } catch (IOException e) {
-      LOG.error("Failed to get parts from request", e);
-      throw new RuntimeException("Failed to get parts from request", e);
-    } catch (ServletException e) {
-      LOG.debug("The request is not multipart/form-data, silently ignoring: {}", e.getMessage());
-      return List.of();
-    } catch (IllegalStateException e) {
-      if (!multipartEnabled) {
-        LOG.error(
-            "Received a multipart request but spring.servlet.multipart.enabled=false, so it"
-                + " cannot be parsed",
-            e);
-        throw new RuntimeException(
-            "Received a multipart request but spring.servlet.multipart.enabled=false", e);
-      }
-      LOG.debug("Multipart size limit exceeded: {}", e.getMessage());
-      throw new MultipartSizeExceededException(e);
-    }
-  }
-
-  private static final class MultipartSizeExceededException extends RuntimeException {
-    MultipartSizeExceededException(Throwable cause) {
-      super(cause);
-    }
-  }
-
   // This will be used to correlate data returned from connector.
   // In other words, we pass this data to Zeebe.
   private WebhookTriggerResultContext toWebhookTriggerResultContext(
@@ -639,7 +620,8 @@ public class InboundWebhookRestController {
                 parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
                 parts ->
                     parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "",
-                (a, b) -> a));
+                (a, b) -> a,
+                LinkedHashMap::new));
   }
 
   private static boolean isMultipartRequest(WebhookProcessingPayload payload) {

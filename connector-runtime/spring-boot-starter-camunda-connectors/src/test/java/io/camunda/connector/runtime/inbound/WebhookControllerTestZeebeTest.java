@@ -48,6 +48,7 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,8 +62,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.mock.web.MockMultipartHttpServletRequest;
 
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
@@ -688,16 +687,26 @@ class WebhookControllerTestZeebeTest {
 
     deployProcess("processA");
 
-    MockMultipartHttpServletRequest request = new MockMultipartHttpServletRequest();
+    String boundary = "test-boundary";
+    String multipartBody =
+        "--"
+            + boundary
+            + "\r\n"
+            + "Content-Disposition: form-data; name=\"field1\"\r\n\r\n"
+            + "value1\r\n"
+            + "--"
+            + boundary
+            + "\r\n"
+            + "Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n"
+            + "Content-Type: text/plain\r\n\r\n"
+            + "file content here\r\n"
+            + "--"
+            + boundary
+            + "--\r\n";
+    MockHttpServletRequest request = new MockHttpServletRequest();
     request.setMethod("POST");
-
-    // Add a regular form field
-    request.addParameter("field1", "value1");
-
-    // Add a file upload
-    MockMultipartFile file =
-        new MockMultipartFile("file", "test.txt", "text/plain", "file content here".getBytes());
-    request.addFile(file);
+    request.setContentType("multipart/form-data; boundary=" + boundary);
+    request.setContent(multipartBody.getBytes(StandardCharsets.UTF_8));
 
     ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 

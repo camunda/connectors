@@ -95,7 +95,7 @@ public class WebhookConnectorConfiguration {
     return () -> {
       if (!(multipartResolver instanceof WebhookAwareStandardServletMultipartResolver)) {
         throw new IllegalStateException(
-            "The multipartResolver bean must preserve raw non-form multipart webhook bodies, but"
+            "The multipartResolver bean must leave webhook multipart bodies unconsumed, but"
                 + " found "
                 + multipartResolver.getClass().getName());
       }
