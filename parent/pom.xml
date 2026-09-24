@@ -79,7 +79,7 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.84.0</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.23.0</version.mockito>
+    <version.mockito>5.24.0</version.mockito>
     <version.junit-jupiter>5.14.4</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.3</version.jackson-bom>
@@ -113,7 +113,7 @@ limitations under the License.</license.inlineheader>
     <version.software-aws-java-sdk-sts>2.55.3</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.55.2</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.55.3</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -121,7 +121,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260901-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260913-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260902-2.0.0</version.google-api-services-docs>
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.73.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.72.0</version.google-genai>
+    <version.google-genai>1.73.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -158,7 +158,7 @@ limitations under the License.</license.inlineheader>
 
     <version.microsoft-graph>6.70.0</version.microsoft-graph>
     <version.azure-identity>1.18.6</version.azure-identity>
-    <version.azure-cosmos>4.82.0</version.azure-cosmos>
+    <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
