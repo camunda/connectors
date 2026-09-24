@@ -190,7 +190,8 @@ class CreateGithubAppInstallationTokenFunctionTest {
       CreateGithubAppInstallationTokenFunction testFunction =
           new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
 
-      String token = testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID);
+      String token =
+          testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, null);
 
       assertThat(token).isEqualTo(MOCK_TOKEN);
       verify(postRequestedFor(urlPathMatching("/app/installations/.*/access_tokens")));
@@ -211,7 +212,8 @@ class CreateGithubAppInstallationTokenFunctionTest {
           new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
 
       String token =
-          testFunction.execute(TEST_PRIVATE_KEY_WITH_ESCAPED_NEWLINES, APP_ID, INSTALLATION_ID);
+          testFunction.execute(
+              TEST_PRIVATE_KEY_WITH_ESCAPED_NEWLINES, APP_ID, INSTALLATION_ID, null);
 
       assertThat(token).isEqualTo(MOCK_TOKEN);
     }
@@ -230,7 +232,8 @@ class CreateGithubAppInstallationTokenFunctionTest {
       CreateGithubAppInstallationTokenFunction testFunction =
           new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
 
-      String token = testFunction.execute(TEST_PRIVATE_KEY_SINGLE_LINE, APP_ID, INSTALLATION_ID);
+      String token =
+          testFunction.execute(TEST_PRIVATE_KEY_SINGLE_LINE, APP_ID, INSTALLATION_ID, null);
 
       assertThat(token).isEqualTo(MOCK_TOKEN);
     }
@@ -250,7 +253,7 @@ class CreateGithubAppInstallationTokenFunctionTest {
           new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
 
       assertThatThrownBy(
-              () -> testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID))
+              () -> testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class)
           .hasMessageContaining("Failed to generate GitHub App installation token");
     }
@@ -270,11 +273,58 @@ class CreateGithubAppInstallationTokenFunctionTest {
           new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
 
       assertThatThrownBy(
-              () -> testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID))
+              () -> testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class)
           .hasMessageContaining("Failed to generate GitHub App installation token")
           .cause()
           .hasMessageContaining("did not contain a token");
+    }
+
+    @Test
+    @DisplayName("Should use overridden githubApiBaseUrl when provided")
+    void shouldUseOverriddenBaseUrlWhenProvided(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          post(urlPathMatching("/app/installations/.*/access_tokens"))
+              .willReturn(
+                  aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody("{\"token\": \"" + MOCK_TOKEN + "\"}")));
+
+      // Constructed with a bogus default base URL that would fail if actually used.
+      CreateGithubAppInstallationTokenFunction testFunction =
+          new CreateGithubAppInstallationTokenFunction("http://invalid.example.invalid");
+
+      String token =
+          testFunction.execute(
+              TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, wmRuntimeInfo.getHttpBaseUrl());
+
+      assertThat(token).isEqualTo(MOCK_TOKEN);
+      verify(postRequestedFor(urlPathMatching("/app/installations/.*/access_tokens")));
+    }
+
+    @Test
+    @DisplayName(
+        "Should fall back to constructor base URL when githubApiBaseUrl is null (backwards compatibility)")
+    void shouldFallBackToConstructorBaseUrlWhenOverrideIsNull(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          post(urlPathMatching("/app/installations/.*/access_tokens"))
+              .willReturn(
+                  aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody("{\"token\": \"" + MOCK_TOKEN + "\"}")));
+
+      CreateGithubAppInstallationTokenFunction testFunction =
+          new CreateGithubAppInstallationTokenFunction(wmRuntimeInfo.getHttpBaseUrl());
+
+      // Equivalent to a pre-existing 3-arg intrinsic function call, where the parameter
+      // binder defaults the unset 4th argument to null.
+      String token =
+          testFunction.execute(TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, null);
+
+      assertThat(token).isEqualTo(MOCK_TOKEN);
+      verify(postRequestedFor(urlPathMatching("/app/installations/.*/access_tokens")));
     }
   }
 
@@ -287,7 +337,7 @@ class CreateGithubAppInstallationTokenFunctionTest {
     void shouldThrowExceptionForInvalidPem() {
       String invalidKey = "not a valid key";
 
-      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID))
+      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class);
     }
 
@@ -296,7 +346,7 @@ class CreateGithubAppInstallationTokenFunctionTest {
     void shouldThrowExceptionForMissingBeginMarker() {
       String invalidKey = "MIIEvQIBADANBg...-----END RSA PRIVATE KEY-----";
 
-      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID))
+      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class);
     }
 
@@ -305,21 +355,21 @@ class CreateGithubAppInstallationTokenFunctionTest {
     void shouldThrowExceptionForMissingEndMarker() {
       String invalidKey = "-----BEGIN RSA PRIVATE KEY-----MIIEvQIBADANBg...";
 
-      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID))
+      assertThatThrownBy(() -> function.execute(invalidKey, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Should throw exception for empty key")
     void shouldThrowExceptionForEmptyKey() {
-      assertThatThrownBy(() -> function.execute("", APP_ID, INSTALLATION_ID))
+      assertThatThrownBy(() -> function.execute("", APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Should throw exception for null key")
     void shouldThrowExceptionForNullKey() {
-      assertThatThrownBy(() -> function.execute(null, APP_ID, INSTALLATION_ID))
+      assertThatThrownBy(() -> function.execute(null, APP_ID, INSTALLATION_ID, null))
           .isInstanceOf(RuntimeException.class);
     }
   }

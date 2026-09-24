@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
@@ -74,10 +75,12 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
   }
 
   @IntrinsicFunction(name = "createGithubAppInstallationToken")
-  public String execute(String privateKey, String appId, String installationId) {
+  public String execute(
+      String privateKey, String appId, String installationId, @Nullable String githubApiBaseUrl) {
     try {
       final String jwt = createJwt(privateKey, appId);
-      return getInstallationAccessToken(jwt, installationId);
+      final String resolvedBaseUrl = githubApiBaseUrl != null ? githubApiBaseUrl : baseUrl;
+      return getInstallationAccessToken(jwt, installationId, resolvedBaseUrl);
     } catch (Exception e) {
       throw new RuntimeException("Failed to generate GitHub App installation token", e);
     }
@@ -96,7 +99,7 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
         .sign(algorithm);
   }
 
-  private String getInstallationAccessToken(String jwt, String installationId)
+  private String getInstallationAccessToken(String jwt, String installationId, String baseUrl)
       throws IOException, InterruptedException {
     final String url = baseUrl + String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
     final HttpRequest request =
