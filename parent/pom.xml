@@ -86,7 +86,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>6.1.2</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
-    <version.jackson-bom>2.22.2</version.jackson-bom>
+    <version.jackson-bom>2.22.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.2</version.jackson-datatype-jsr310>
     <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7: Jackson 3.x line (tools.jackson:*), separate from the
          legacy com.fasterxml.jackson:jackson-bom above and not covered by it. Jackson 3.x reaches the
@@ -96,7 +96,7 @@ limitations under the License.</license.inlineheader>
          so it must be pinned independently. Remove once spring-boot-dependencies ships
          tools.jackson:jackson-bom >= 3.1.6.
          Ref: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7 -->
-    <version.jackson3-bom>3.1.6</version.jackson3-bom>
+    <version.jackson3-bom>3.1.7</version.jackson3-bom>
     <version.hibernate-validator>9.1.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
