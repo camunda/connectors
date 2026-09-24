@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.fileupload2.core.AbstractFileUpload;
 import org.apache.commons.fileupload2.core.DiskFileItem;
 import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.FileItemHeaders;
 import org.apache.commons.fileupload2.core.FileItemInputIterator;
 import org.apache.commons.fileupload2.core.FileUploadException;
 import org.apache.commons.fileupload2.core.FileUploadFileCountLimitException;
@@ -42,28 +43,22 @@ final class WebhookMultipartParser {
       String characterEncoding,
       long maxRequestSize,
       long maxFileSize,
-      long maxPartCount) {
-    var upload = new BufferedFileUpload();
+      long maxPartCount,
+      long maxPartHeaderSize) {
+    var upload = new BufferedFileUpload(maxPartCount);
     upload.setMaxSize(maxRequestSize);
     upload.setMaxFileSize(maxFileSize);
     upload.setMaxFileCount(maxPartCount);
+    // FileUpload treats -1 as unlimited and rejects every header for any other negative value
+    upload.setMaxPartHeaderSize(
+        maxPartHeaderSize < 0 ? -1 : (int) Math.min(maxPartHeaderSize, Integer.MAX_VALUE));
 
     try {
-      if (maxPartCount >= 0 && (maxRequestSize < 0 || rawBody.length <= maxRequestSize)) {
-        enforcePartCount(rawBody, contentType, maxPartCount, upload);
-      }
       var items =
           upload.getItemIterator(
               new BufferedRequestContext(rawBody, contentType, characterEncoding));
       var parts = new ArrayList<Part>();
       while (items.hasNext()) {
-        if (maxPartCount >= 0 && parts.size() >= maxPartCount) {
-          throw new MultipartSizeExceededException(
-              new FileUploadFileCountLimitException(
-                  "Multipart part count exceeds the configured limit",
-                  parts.size() + 1,
-                  maxPartCount));
-        }
         var item = items.next();
         try (var inputStream = item.getInputStream()) {
           parts.add(
@@ -88,46 +83,6 @@ final class WebhookMultipartParser {
     }
   }
 
-  private static void enforcePartCount(
-      byte[] rawBody, String contentType, long maxPartCount, BufferedFileUpload upload) {
-    var boundary = upload.getBoundary(contentType);
-    if (boundary == null) {
-      return;
-    }
-    long partCount = 0;
-    int delimiterLength = boundary.length + 2;
-    for (int offset = 0; offset + delimiterLength + 1 < rawBody.length; offset++) {
-      boolean startsLine =
-          offset == 0
-              || (offset >= 2 && rawBody[offset - 2] == '\r' && rawBody[offset - 1] == '\n');
-      if (!startsLine
-          || rawBody[offset] != '-'
-          || rawBody[offset + 1] != '-'
-          || !matches(rawBody, offset + 2, boundary)) {
-        continue;
-      }
-      int suffixOffset = offset + delimiterLength;
-      boolean startsPart = rawBody[suffixOffset] == '\r' && rawBody[suffixOffset + 1] == '\n';
-      if (startsPart && ++partCount > maxPartCount) {
-        throw new MultipartSizeExceededException(
-            new FileUploadFileCountLimitException(
-                "Multipart part count exceeds the configured limit", partCount, maxPartCount));
-      }
-    }
-  }
-
-  private static boolean matches(byte[] body, int offset, byte[] expected) {
-    if (offset + expected.length > body.length) {
-      return false;
-    }
-    for (int i = 0; i < expected.length; i++) {
-      if (body[offset + i] != expected[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   static final class MalformedMultipartException extends RuntimeException {
     MalformedMultipartException(Throwable cause) {
       super(cause);
@@ -148,6 +103,25 @@ final class WebhookMultipartParser {
 
   private static final class BufferedFileUpload
       extends AbstractFileUpload<BufferedRequestContext, DiskFileItem, DiskFileItemFactory> {
+
+    private final long maxPartCount;
+    private long partCount;
+
+    BufferedFileUpload(long maxPartCount) {
+      this.maxPartCount = maxPartCount;
+    }
+
+    // The item iterator calls this once per section, including nested multipart/mixed sections and
+    // nameless sections that it discards without returning an item, so every section is counted.
+    @Override
+    public FileItemHeaders getParsedHeaders(String headerPart) {
+      if (maxPartCount >= 0 && ++partCount > maxPartCount) {
+        throw new MultipartSizeExceededException(
+            new FileUploadFileCountLimitException(
+                "Multipart part count exceeds the configured limit", partCount, maxPartCount));
+      }
+      return super.getParsedHeaders(headerPart);
+    }
 
     @Override
     public FileItemInputIterator getItemIterator(BufferedRequestContext request)
