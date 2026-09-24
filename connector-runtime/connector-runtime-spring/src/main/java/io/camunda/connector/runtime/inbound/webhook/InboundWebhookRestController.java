@@ -82,6 +82,24 @@ public class InboundWebhookRestController {
   @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
   double rateLimitPermitsPerSecond = 1000;
 
+<<<<<<< HEAD
+=======
+  @Value("${spring.servlet.multipart.enabled:true}")
+  boolean multipartEnabled = true;
+
+  @Value("${spring.servlet.multipart.max-file-size:1MB}")
+  String maxMultipartFileSize = "1MB";
+
+  @Value("${spring.servlet.multipart.max-request-size:10MB}")
+  String maxMultipartRequestSize = "10MB";
+
+  @Value("${server.tomcat.max-part-count:50}")
+  int maxMultipartPartCount = 50;
+
+  @Value("${server.tomcat.max-part-header-size:512B}")
+  String maxMultipartPartHeaderSize = "512B";
+
+>>>>>>> 1d32299 (fix(webhook): count nested multipart sections and honor part header size limit (#9139))
   RateLimiter globalRateLimiter;
 
   @Autowired
@@ -180,10 +198,45 @@ public class InboundWebhookRestController {
     // verification.
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
+<<<<<<< HEAD
     byte[] bodyAsByteArray =
         isMultipartFormData ? null : readBoundedBody(httpServletRequest, maxRequestBodyBytes);
     if (!isMultipartFormData && bodyAsByteArray == null) {
       return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+=======
+    Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
+    byte[] bodyAsByteArray;
+    if (isMultipartFormData) {
+      if (!multipartEnabled) {
+        throw new IllegalStateException(
+            "Received a multipart request but spring.servlet.multipart.enabled=false");
+      }
+      bodyAsByteArray =
+          readBoundedBody(httpServletRequest, DataSize.parse(maxMultipartRequestSize).toBytes());
+      if (bodyAsByteArray == null) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
+      try {
+        parts =
+            WebhookMultipartParser.parse(
+                bodyAsByteArray,
+                httpServletRequest.getContentType(),
+                httpServletRequest.getCharacterEncoding(),
+                DataSize.parse(maxMultipartRequestSize).toBytes(),
+                DataSize.parse(maxMultipartFileSize).toBytes(),
+                maxMultipartPartCount,
+                DataSize.parse(maxMultipartPartHeaderSize).toBytes());
+      } catch (WebhookMultipartParser.MultipartSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      } catch (WebhookMultipartParser.MalformedMultipartException e) {
+        return ResponseEntity.badRequest().build();
+      }
+    } else {
+      bodyAsByteArray = readBoundedBody(httpServletRequest, maxRequestBodyBytes);
+      if (bodyAsByteArray == null) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
+>>>>>>> 1d32299 (fix(webhook): count nested multipart sections and honor part header size limit (#9139))
     }
 
     WebhookProcessingPayload payload =
