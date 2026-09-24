@@ -202,21 +202,19 @@ public class InboundWebhookRestController {
 
     // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
     // Other content types retain the original bytes needed by HMAC verification.
-    byte[] bodyAsByteArray =
-        isMultipartFormData ? new byte[0] : readBoundedBody(httpServletRequest);
-    if (bodyAsByteArray == null) {
+    byte[] bodyAsByteArray = isMultipartFormData ? null : readBoundedBody(httpServletRequest);
+    if (!isMultipartFormData && bodyAsByteArray == null) {
       return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
     }
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
-    var lowercaseHeaders =
-        headers.entrySet().stream()
-            .collect(toMap(e -> e.getKey().toLowerCase(Locale.ROOT), Map.Entry::getValue));
+    var requestHeaders = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+    requestHeaders.putAll(headers);
     Optional.ofNullable(httpServletRequest.getContentType())
-        .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
+        .ifPresent(contentType -> requestHeaders.putIfAbsent("content-type", contentType));
     WebhookProcessingPayload payload =
         new HttpServletRequestWebhookProcessingPayload(
-            httpServletRequest, params, lowercaseHeaders, bodyAsByteArray, parts);
+            httpServletRequest, params, requestHeaders, bodyAsByteArray, parts);
     return processWebhook(connector, payload);
   }
 

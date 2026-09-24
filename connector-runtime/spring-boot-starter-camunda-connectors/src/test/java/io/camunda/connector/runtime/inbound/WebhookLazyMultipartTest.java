@@ -114,7 +114,7 @@ class WebhookLazyMultipartTest {
     var response = sendMultipart("/inbound/formPath", "x".repeat(100));
 
     assertThat(response.statusCode()).isEqualTo(400);
-    assertThat(payloadCaptor.getValue().rawBody()).isEmpty();
+    assertThat(payloadCaptor.getValue().rawBody()).isNull();
     var parts = payloadCaptor.getValue().parts();
     assertThat(parts).hasSize(1);
     assertThat(parts.iterator().next().name()).isEqualTo("file");
