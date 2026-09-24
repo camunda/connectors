@@ -349,6 +349,66 @@ class InboundWebhookRestControllerTest {
     verifyNoInteractions(registration.executable());
   }
 
+  @Test
+  void shouldRejectMultipartWithInvalidSubmittedFilename() throws Exception {
+    var registration = registerWebhook("invalidFilenamePath");
+    var controller = new InboundWebhookRestController(registration.registry());
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/invalidFilenamePath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(multipartBodyWithFilename("invalid\u0000.txt", "content"));
+
+    var response = controller.inbound("invalidFilenamePath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(400);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldRejectMultipartExceedingConfiguredPartCount() throws Exception {
+    var registration = registerWebhook("partCountPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartPartCount = 1;
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/partCountPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(
+        ("--x\r\n"
+                + "Content-Disposition: form-data; name=\"first\"\r\n\r\n"
+                + "first content\r\n"
+                + "--x\r\n"
+                + "Content-Disposition: form-data; name=\"second\"\r\n\r\n"
+                + "second content\r\n"
+                + "--x--\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+
+    var response = controller.inbound("partCountPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldAcceptSmallMultipartWhenConfiguredRequestLimitExceedsTwoGibibytes() throws Exception {
+    var registration = registerWebhook("largeConfiguredLimitPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartRequestSize = "3GB";
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/largeConfiguredLimitPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(multipartBody("content"));
+
+    controller.inbound("largeConfiguredLimitPath", new HashMap<>(), request);
+
+    verify(registration.executable()).triggerWebhook(any());
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"multipart/related; boundary=x", "multipart/mixed; boundary=x"})
   void shouldPreserveRawBodyForNonFormMultipart(String contentType) throws Exception {
@@ -471,8 +531,14 @@ class InboundWebhookRestControllerTest {
   }
 
   private static byte[] multipartBody(String fileContent) {
+    return multipartBodyWithFilename("test.txt", fileContent);
+  }
+
+  private static byte[] multipartBodyWithFilename(String filename, String fileContent) {
     return ("--x\r\n"
-            + "Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n"
+            + "Content-Disposition: form-data; name=\"file\"; filename=\""
+            + filename
+            + "\"\r\n"
             + "Content-Type: text/plain\r\n\r\n"
             + fileContent
             + "\r\n--x--\r\n")

@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 import io.camunda.connector.api.inbound.webhook.Part;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.apache.commons.fileupload2.core.DiskFileItem;
 import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.core.FileItemInputIterator;
 import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.core.FileUploadFileCountLimitException;
 import org.apache.commons.fileupload2.core.FileUploadSizeException;
 import org.apache.commons.fileupload2.core.RequestContext;
 
@@ -39,10 +41,12 @@ final class WebhookMultipartParser {
       String contentType,
       String characterEncoding,
       long maxRequestSize,
-      long maxFileSize) {
+      long maxFileSize,
+      long maxPartCount) {
     var upload = new BufferedFileUpload();
     upload.setMaxSize(maxRequestSize);
     upload.setMaxFileSize(maxFileSize);
+    upload.setMaxFileCount(maxPartCount);
 
     try {
       var items =
@@ -50,6 +54,13 @@ final class WebhookMultipartParser {
               new BufferedRequestContext(rawBody, contentType, characterEncoding));
       var parts = new ArrayList<Part>();
       while (items.hasNext()) {
+        if (maxPartCount >= 0 && parts.size() >= maxPartCount) {
+          throw new MultipartSizeExceededException(
+              new FileUploadFileCountLimitException(
+                  "Multipart part count exceeds the configured limit",
+                  parts.size() + 1,
+                  maxPartCount));
+        }
         var item = items.next();
         try (var inputStream = item.getInputStream()) {
           parts.add(
@@ -66,6 +77,8 @@ final class WebhookMultipartParser {
     } catch (FileUploadException e) {
       throw new MalformedMultipartException(e);
     } catch (IllegalStateException e) {
+      throw new MalformedMultipartException(e);
+    } catch (InvalidPathException e) {
       throw new MalformedMultipartException(e);
     } catch (IOException e) {
       throw new MultipartReadException(e);

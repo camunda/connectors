@@ -103,6 +103,9 @@ public class InboundWebhookRestController {
   @Value("${spring.servlet.multipart.max-request-size:10MB}")
   String maxMultipartRequestSize = "10MB";
 
+  @Value("${server.tomcat.max-part-count:50}")
+  int maxMultipartPartCount = 50;
+
   RateLimiter globalRateLimiter;
 
   @Autowired
@@ -243,7 +246,8 @@ public class InboundWebhookRestController {
                 httpServletRequest.getContentType(),
                 httpServletRequest.getCharacterEncoding(),
                 DataSize.parse(maxMultipartRequestSize).toBytes(),
-                DataSize.parse(maxMultipartFileSize).toBytes());
+                DataSize.parse(maxMultipartFileSize).toBytes(),
+                maxMultipartPartCount);
       } catch (WebhookMultipartParser.MultipartSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
       } catch (WebhookMultipartParser.MalformedMultipartException e) {
@@ -277,7 +281,8 @@ public class InboundWebhookRestController {
     if (httpServletRequest.getContentLengthLong() > maxBodyBytes) {
       return null;
     }
-    byte[] body = inputStream.readNBytes(Math.toIntExact(maxBodyBytes));
+    int readLimit = (int) Math.min(maxBodyBytes, Integer.MAX_VALUE - 8L);
+    byte[] body = inputStream.readNBytes(readLimit);
     if (inputStream.read() != -1) {
       return null;
     }
