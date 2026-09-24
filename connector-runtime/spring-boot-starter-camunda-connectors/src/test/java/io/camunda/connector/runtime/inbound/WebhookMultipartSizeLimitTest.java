@@ -16,16 +16,38 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static io.camunda.connector.runtime.inbound.BaseWebhookTest.webhookDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientStatusException;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.grpc.Status;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -49,13 +71,33 @@ class WebhookMultipartSizeLimitTest {
 
   @MockitoBean private OutboundConnectorFactory outboundConnectorFactory;
 
+  @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
+
+  @Autowired private SecretProviderAggregator secretProvider;
+
+  @Autowired private ObjectMapper mapper;
+
+  @MockitoBean private InboundCorrelationHandler correlationHandler;
+
   @LocalServerPort private int port;
+
+  @BeforeEach
+  void beforeEach() throws Exception {
+    webhookConnectorRegistry.reset();
+    when(camundaClient.newCreateInstanceCommand())
+        .thenThrow(new ClientStatusException(Status.INVALID_ARGUMENT, new Exception()));
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenReturn(
+            new CorrelationResult.Failure.ZeebeClientStatus(
+                Status.Code.INVALID_ARGUMENT.name(), "invalid input"));
+    registerWebhook("sizePath");
+  }
 
   @Test
   void shouldAcceptMultipartFileLargerThanOneMebibyte() throws Exception {
     HttpResponse<String> response = sendMultipartFile(ONE_MEBIBYTE + 1);
 
-    assertThat(response.statusCode()).isEqualTo(404);
+    assertThat(response.statusCode()).isEqualTo(400);
   }
 
   @Test
@@ -82,11 +124,32 @@ class WebhookMultipartSizeLimitTest {
 
     HttpRequest request =
         HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:" + port + "/inbound/doesNotExist"))
+            .uri(URI.create("http://localhost:" + port + "/inbound/sizePath"))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
             .POST(body)
             .build();
 
     return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+  }
+
+  private void registerWebhook(String path) throws Exception {
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(executable.triggerWebhook(any())).thenReturn(webhookResult);
+
+    var details = webhookDefinition("processA", 1, path);
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            details,
+            correlationHandler,
+            e -> {},
+            mapper,
+            new ActivityLogRegistry());
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
   }
 }

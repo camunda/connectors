@@ -29,7 +29,6 @@ import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
@@ -57,6 +56,7 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -78,9 +78,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @SpringBootTest(
@@ -98,6 +98,7 @@ public class HttpTests {
 
   private static final String TEXT_FILE = "text.txt";
   private static final String PNG_FILE = "camunda1.png";
+  private static final String MULTIPART_BOUNDARY = "test-boundary";
 
   @RegisterExtension
   static WireMockExtension wm =
@@ -493,9 +494,9 @@ public class HttpTests {
     var response =
         mockMvc
             .perform(
-                multipart(mockUrl)
-                    .part(new MockPart("param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
-                    .part(new MockPart("param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
+                MockMvcRequestBuilders.post(mockUrl)
+                    .contentType("multipart/form-data; boundary=" + MULTIPART_BOUNDARY)
+                    .content(multipartBody(imageFileContent, textFileContent))
                     .header("THEHEADER", "THEVALUE"))
             .andExpect(status().isOk())
             .andReturn();
@@ -541,6 +542,30 @@ public class HttpTests {
                 null));
     Assertions.assertThat(new String(textStoredDocument.asByteArray(), StandardCharsets.UTF_8))
         .isEqualTo("Hello from\n" + "the Camunda Connectors!");
+  }
+
+  private static byte[] multipartBody(byte[] imageFileContent, byte[] textFileContent) {
+    var body = new ByteArrayOutputStream();
+    writeMultipartPart(body, "param1", PNG_FILE, MediaType.IMAGE_PNG_VALUE, imageFileContent);
+    writeMultipartPart(body, "param2", TEXT_FILE, MediaType.TEXT_PLAIN_VALUE, textFileContent);
+    body.writeBytes(("--" + MULTIPART_BOUNDARY + "--\r\n").getBytes(StandardCharsets.US_ASCII));
+    return body.toByteArray();
+  }
+
+  private static void writeMultipartPart(
+      ByteArrayOutputStream body,
+      String name,
+      String fileName,
+      String contentType,
+      byte[] content) {
+    body.writeBytes(("--" + MULTIPART_BOUNDARY + "\r\n").getBytes(StandardCharsets.US_ASCII));
+    body.writeBytes(
+        ("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"" + fileName + "\"\r\n")
+            .getBytes(StandardCharsets.US_ASCII));
+    body.writeBytes(
+        ("Content-Type: " + contentType + "\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+    body.writeBytes(content);
+    body.writeBytes("\r\n".getBytes(StandardCharsets.US_ASCII));
   }
 
   @Test
