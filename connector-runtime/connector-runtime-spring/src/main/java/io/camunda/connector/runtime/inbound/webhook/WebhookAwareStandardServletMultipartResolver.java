@@ -30,8 +30,7 @@ public final class WebhookAwareStandardServletMultipartResolver
 
   @Override
   public boolean isMultipart(HttpServletRequest request) {
-    if (WebhookFilterPaths.isWebhookPath(request, servletPath)
-        && !WebhookFilterPaths.isMultipartFormData(request.getContentType())) {
+    if (WebhookFilterPaths.isWebhookPath(request, servletPath)) {
       return false;
     }
     return super.isMultipart(request);

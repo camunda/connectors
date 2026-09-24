@@ -35,6 +35,10 @@
       <artifactId>micrometer-core</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-fileupload2-core</artifactId>
+    </dependency>
 
     <!-- The runtime provides enhanced metrics for logback if it is present -->
     <dependency>
