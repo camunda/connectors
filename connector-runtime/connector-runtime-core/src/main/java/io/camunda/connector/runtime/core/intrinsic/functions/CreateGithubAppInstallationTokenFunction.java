@@ -74,6 +74,11 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
     this.baseUrl = baseUrl;
   }
 
+  // Preserved for Java source/binary compatibility with existing callers of the public API.
+  public String execute(String privateKey, String appId, String installationId) {
+    return execute(privateKey, appId, installationId, null);
+  }
+
   @IntrinsicFunction(name = "createGithubAppInstallationToken")
   public String execute(
       String privateKey, String appId, String installationId, @Nullable String githubApiBaseUrl) {
