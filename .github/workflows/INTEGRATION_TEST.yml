@@ -188,8 +188,11 @@ jobs:
       camunda-helm-git-ref: main
       # test-enabled enables testing generally, both IT and E2E tests.
       test-enabled: true
-      # e2e-enabled is our way to disable E2E tests if needed.
-      e2e-enabled: true
+      # e2e-enabled is our way to disable E2E tests if needed. Disabled only for
+      # the AlwaysGreen merge-queue scenario (MERGE_QUEUE_HELM_TEST.yaml); other
+      # callers (RELEASE.yaml, DEPLOY_SNAPSHOTS.yaml) leave scenario at its
+      # 'keycloak-original' default and keep their SM E2E suite enabled.
+      e2e-enabled: ${{ inputs.scenario != 'alwaysgreen' }}
       # Scenario + shortname are caller-overridable. The default (keycloak-original / keyco) installs a
       # full Camunda 8 cluster with external Keycloak and Elasticsearch, with randomly-generated realm
       # and ES prefix per install. Merge-queue runs pass 'alwaysgreen' / 'agrn' to route deploys to the
@@ -208,4 +211,3 @@ jobs:
             registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
             repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
-
