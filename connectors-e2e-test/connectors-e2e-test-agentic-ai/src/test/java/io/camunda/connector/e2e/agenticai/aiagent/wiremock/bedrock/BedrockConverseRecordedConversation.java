@@ -172,10 +172,14 @@ public final class BedrockConverseRecordedConversation {
         return toolResults;
       }
 
-      // Content parts exclude toolUse blocks - those become toolCalls() instead.
+      // Content parts exclude toolUse blocks - those become toolCalls() instead - and cachePoint
+      // blocks, which BedrockConverseRequestConverter inserts as a sibling content block (not a
+      // field on an existing block, unlike Anthropic's cache_control) when prompt caching is
+      // enabled and carry no assertable content of their own.
       final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> block.path("toolUse").isMissingNode())
+              .filter(block -> block.path("cachePoint").isMissingNode())
               .map(
                   block -> {
                     final var kind = blockKind(block);
