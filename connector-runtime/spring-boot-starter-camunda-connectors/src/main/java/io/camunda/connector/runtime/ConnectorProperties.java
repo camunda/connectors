@@ -31,8 +31,8 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
    * @param maxRequestBodyBytes maximum raw body size; {@code multipart/form-data} requests instead
    *     use {@code spring.servlet.multipart.max-file-size} and {@code
    *     spring.servlet.multipart.max-request-size}
-   * @param rateLimit global request rate limiting shared by all registered webhook paths; servlet
-   *     multipart parsing can occur before this limit is evaluated
+   * @param rateLimit global request rate limiting shared by all registered webhook paths after
+   *     registry lookup
    */
   public record Webhook(boolean enabled, int maxRequestBodyBytes, RateLimit rateLimit) {
 
