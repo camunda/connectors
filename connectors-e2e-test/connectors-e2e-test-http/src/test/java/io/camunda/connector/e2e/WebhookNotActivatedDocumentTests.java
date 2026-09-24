@@ -17,8 +17,9 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static io.camunda.connector.e2e.WebhookMultipartTestRequest.multipartRequest;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,8 +57,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockPart;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -155,13 +154,8 @@ public class WebhookNotActivatedDocumentTests {
             try {
               future.complete(
                   mockMvc.perform(
-                      multipart(mockUrl)
-                          .part(
-                              new MockPart(
-                                  "param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
-                          .part(
-                              new MockPart(
-                                  "param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
+                      multipartRequest(
+                              mockUrl, PNG_FILE, imageFileContent, TEXT_FILE, textFileContent)
                           .header("THEHEADER", "THEVALUE")));
             } catch (Exception e) {
               future.completeExceptionally(e);
@@ -169,7 +163,7 @@ public class WebhookNotActivatedDocumentTests {
           },
           2,
           TimeUnit.SECONDS);
-      future.get(10, TimeUnit.SECONDS);
+      future.get(10, TimeUnit.SECONDS).andExpect(status().isOk());
       verify(documentFactory, never()).create(any());
     }
   }
