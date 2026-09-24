@@ -22,6 +22,15 @@ set -e
 # false-positive mismatches unrelated to the PR's actual change, so the check
 # only applies when the target/base branch is main.
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
+
+# Merge-queue runs have no pull_request context, so TARGET_BRANCH falls back to
+# github.ref_name, which for a queue entry targeting main is
+# gh-readonly-queue/main/pr-<number>-<sha>, not "main" itself. Normalize it back
+# to the real base branch so merge-queue runs into main still get checked.
+if [[ "$TARGET_BRANCH" =~ ^gh-readonly-queue/(.+)/pr-[0-9]+ ]]; then
+  TARGET_BRANCH="${BASH_REMATCH[1]}"
+fi
+
 if [[ "$TARGET_BRANCH" != "main" ]]; then
   echo "Target branch '${TARGET_BRANCH}' is not main — skipping versioned element template check (only meaningful for main)."
   exit 0
