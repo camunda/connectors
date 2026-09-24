@@ -196,11 +196,28 @@ public class WebhookConnectorConfiguration {
       AbstractFilterRegistrationBean<?> registration,
       String dispatcherServletPath,
       List<ServletRegistrationBean<?>> servletRegistrations) {
-    if (!registration.getServletNames().isEmpty()) {
+    if (registration.getServletRegistrationBeans().stream()
+        .anyMatch(
+            servletRegistration -> servletRegistration.getServlet() instanceof DispatcherServlet)) {
       return true;
     }
+    for (String servletName : registration.getServletNames()) {
+      var matchingServlets =
+          servletRegistrations.stream()
+              .filter(
+                  servletRegistration -> servletName.equals(servletRegistration.getServletName()))
+              .toList();
+      if (matchingServlets.isEmpty()
+          || matchingServlets.stream()
+              .anyMatch(
+                  servletRegistration ->
+                      servletRegistration.getServlet() instanceof DispatcherServlet)) {
+        return true;
+      }
+    }
     if (registration.getUrlPatterns().isEmpty()) {
-      return true;
+      return registration.getServletNames().isEmpty()
+          && registration.getServletRegistrationBeans().isEmpty();
     }
 
     var dispatcherServletRegistrations =
