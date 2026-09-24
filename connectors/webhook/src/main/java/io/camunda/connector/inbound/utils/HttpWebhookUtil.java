@@ -22,6 +22,7 @@ public class HttpWebhookUtil {
   public static final String FORM_DATA_CONTENT_TYPE = "application/x-www-form-urlencoded";
   public static final String HEADER_CONTENT_TYPE = "Content-Type";
   public static final String HEADER_AUTHORIZATION = "Authorization";
+  private static final String MULTIPART_FORM_DATA_CONTENT_TYPE = "multipart/form-data";
 
   public static String extractContentType(Map<String, String> headers) {
     var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -33,7 +34,9 @@ public class HttpWebhookUtil {
     if (rawBody == null || rawBody.length == 0) {
       return Collections.emptyMap();
     }
-    if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
+    if (isMultipartFormDataContentType(contentTypeHeader)) {
+      return Collections.emptyMap();
+    } else if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       return Arrays.stream(bodyAsString.split("&"))
@@ -50,6 +53,15 @@ public class HttpWebhookUtil {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private static boolean isMultipartFormDataContentType(String contentType) {
+    if (contentType == null) {
+      return false;
+    }
+    int parameterStart = contentType.indexOf(';');
+    String mediaType = parameterStart < 0 ? contentType : contentType.substring(0, parameterStart);
+    return MULTIPART_FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(mediaType.trim());
   }
 
   private static boolean isXmlContentType(String contentType) {
