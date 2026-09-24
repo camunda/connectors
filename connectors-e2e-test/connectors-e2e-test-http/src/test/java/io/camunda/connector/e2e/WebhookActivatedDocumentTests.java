@@ -43,9 +43,6 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +60,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
     classes = {
@@ -145,76 +141,64 @@ public class WebhookActivatedDocumentTests {
                     processDef.getKey(), processDef.getVersion().intValue()))));
 
     var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
-    CompletableFuture<ResultActions> future = new CompletableFuture<>();
     ClassPathResource textFile = new ClassPathResource("files/text.txt");
     ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");
     byte[] textFileContent = copyToByteArray(textFile.getInputStream());
     byte[] imageFileContent = copyToByteArray(imageFile.getInputStream());
 
-    try (var executor = Executors.newSingleThreadScheduledExecutor()) {
-      executor.schedule(
-          () -> {
-            try {
-              future.complete(
-                  mockMvc.perform(
-                      multipartRequest(
-                              mockUrl, PNG_FILE, imageFileContent, TEXT_FILE, textFileContent)
-                          .header("THEHEADER", "THEVALUE")));
-            } catch (Exception e) {
-              future.completeExceptionally(e);
-            }
-          },
-          2,
-          java.util.concurrent.TimeUnit.SECONDS);
-      var result = bpmnTest.waitForProcessCompletion();
+    var response =
+        mockMvc
+            .perform(
+                multipartRequest(mockUrl, PNG_FILE, imageFileContent, TEXT_FILE, textFileContent)
+                    .header("THEHEADER", "THEVALUE"))
+            .andExpect(status().isOk())
+            .andReturn();
+    var result = bpmnTest.waitForProcessCompletion();
 
-      assertThat(result.getProcessInstanceEvent()).hasVariable("body", Map.of());
-      assertThat(result.getProcessInstanceEvent()).isCompleted();
-      var resultActions = future.get(10, TimeUnit.SECONDS);
-      var response = resultActions.andExpect(status().isOk()).andReturn();
-      String jsonResponse = response.getResponse().getContentAsString();
-      Map<String, Object> actualResponse = mapper.readValue(jsonResponse, Map.class);
-      List<Map> documents = (List<Map>) actualResponse.get("documents");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("body", Map.of());
+    assertThat(result.getProcessInstanceEvent()).isCompleted();
+    String jsonResponse = response.getResponse().getContentAsString();
+    Map<String, Object> actualResponse = mapper.readValue(jsonResponse, Map.class);
+    List<Map> documents = (List<Map>) actualResponse.get("documents");
 
-      assertThat(result.getProcessInstanceEvent()).hasVariable("documents", documents);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("documents", documents);
 
-      verify(documentFactory, times(2)).create(any());
-      Assertions.assertThat(documents).hasSize(2);
-      Map<String, Object> pngDocument =
-          (Map<String, Object>) ((List<?>) actualResponse.get("documents")).get(0);
-      Assertions.assertThat(pngDocument).containsKey("storeId");
-      Assertions.assertThat(pngDocument).containsKey("documentId");
-      Map<String, Object> metadata = (Map<String, Object>) pngDocument.get("metadata");
-      Assertions.assertThat(metadata.get("fileName")).isEqualTo(PNG_FILE);
-      Assertions.assertThat(metadata.get("contentType")).isEqualTo(MediaType.IMAGE_PNG_VALUE);
-      Map<String, Object> textDocument =
-          (Map<String, Object>) ((List<?>) actualResponse.get("documents")).get(1);
-      Assertions.assertThat(textDocument).containsKey("storeId");
-      Assertions.assertThat(textDocument).containsKey("documentId");
-      Map<String, Object> metadata2 = (Map<String, Object>) textDocument.get("metadata");
-      Assertions.assertThat(metadata2.get("fileName")).isEqualTo(TEXT_FILE);
-      Assertions.assertThat(metadata2.get("contentType")).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
+    verify(documentFactory, times(2)).create(any());
+    Assertions.assertThat(documents).hasSize(2);
+    Map<String, Object> pngDocument =
+        (Map<String, Object>) ((List<?>) actualResponse.get("documents")).get(0);
+    Assertions.assertThat(pngDocument).containsKey("storeId");
+    Assertions.assertThat(pngDocument).containsKey("documentId");
+    Map<String, Object> metadata = (Map<String, Object>) pngDocument.get("metadata");
+    Assertions.assertThat(metadata.get("fileName")).isEqualTo(PNG_FILE);
+    Assertions.assertThat(metadata.get("contentType")).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+    Map<String, Object> textDocument =
+        (Map<String, Object>) ((List<?>) actualResponse.get("documents")).get(1);
+    Assertions.assertThat(textDocument).containsKey("storeId");
+    Assertions.assertThat(textDocument).containsKey("documentId");
+    Map<String, Object> metadata2 = (Map<String, Object>) textDocument.get("metadata");
+    Assertions.assertThat(metadata2.get("fileName")).isEqualTo(TEXT_FILE);
+    Assertions.assertThat(metadata2.get("contentType")).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
 
-      var pngStoredDocument =
-          documentFactory.resolve(
-              new CamundaDocumentReferenceImpl(
-                  pngDocument.get("storeId").toString(),
-                  pngDocument.get("documentId").toString(),
-                  pngDocument.get("contentHash").toString(),
-                  null));
-      var storedContent = pngStoredDocument.asByteArray();
-      Assertions.assertThat(storedContent).isEqualTo(imageFileContent);
+    var pngStoredDocument =
+        documentFactory.resolve(
+            new CamundaDocumentReferenceImpl(
+                pngDocument.get("storeId").toString(),
+                pngDocument.get("documentId").toString(),
+                pngDocument.get("contentHash").toString(),
+                null));
+    var storedContent = pngStoredDocument.asByteArray();
+    Assertions.assertThat(storedContent).isEqualTo(imageFileContent);
 
-      var textStoredDocument =
-          documentFactory.resolve(
-              new CamundaDocumentReferenceImpl(
-                  textDocument.get("storeId").toString(),
-                  textDocument.get("documentId").toString(),
-                  textDocument.get("contentHash").toString(),
-                  null));
-      var storedTextContent = textStoredDocument.asByteArray();
-      Assertions.assertThat(new String(storedTextContent))
-          .isEqualTo("Hello from\n" + "the Camunda Connectors!");
-    }
+    var textStoredDocument =
+        documentFactory.resolve(
+            new CamundaDocumentReferenceImpl(
+                textDocument.get("storeId").toString(),
+                textDocument.get("documentId").toString(),
+                textDocument.get("contentHash").toString(),
+                null));
+    var storedTextContent = textStoredDocument.asByteArray();
+    Assertions.assertThat(new String(storedTextContent))
+        .isEqualTo("Hello from\n" + "the Camunda Connectors!");
   }
 }
