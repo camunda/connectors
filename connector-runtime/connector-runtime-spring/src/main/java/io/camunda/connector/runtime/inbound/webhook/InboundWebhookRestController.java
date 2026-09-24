@@ -96,6 +96,9 @@ public class InboundWebhookRestController {
   @Value("${server.tomcat.max-part-count:50}")
   int maxMultipartPartCount = 50;
 
+  @Value("${server.tomcat.max-part-header-size:512B}")
+  String maxMultipartPartHeaderSize = "512B";
+
   RateLimiter globalRateLimiter;
 
   @Autowired
@@ -211,7 +214,8 @@ public class InboundWebhookRestController {
                 httpServletRequest.getCharacterEncoding(),
                 DataSize.parse(maxMultipartRequestSize).toBytes(),
                 DataSize.parse(maxMultipartFileSize).toBytes(),
-                maxMultipartPartCount);
+                maxMultipartPartCount,
+                DataSize.parse(maxMultipartPartHeaderSize).toBytes());
       } catch (WebhookMultipartParser.MultipartSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
       } catch (WebhookMultipartParser.MalformedMultipartException e) {
