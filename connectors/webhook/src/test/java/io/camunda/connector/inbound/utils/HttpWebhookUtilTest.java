@@ -9,6 +9,7 @@ package io.camunda.connector.inbound.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class HttpWebhookUtilTest {
@@ -65,5 +66,18 @@ class HttpWebhookUtilTest {
     // Then
     assertThat(result).isInstanceOf(String.class);
     assertThat(result).isEqualTo(xmlContent);
+  }
+
+  @Test
+  void transformRawBodyToObject_MultipartFormData_ReturnsEmptyMap() {
+    byte[] multipartBody =
+        "--boundary\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\ncontent\r\n"
+            .getBytes(StandardCharsets.UTF_8);
+
+    Object result =
+        HttpWebhookUtil.transformRawBodyToObject(
+            multipartBody, "multipart/form-data; boundary=boundary;charset=UTF-8");
+
+    assertThat(result).isEqualTo(Map.of());
   }
 }

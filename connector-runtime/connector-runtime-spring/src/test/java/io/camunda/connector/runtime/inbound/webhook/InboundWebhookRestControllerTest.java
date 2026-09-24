@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -194,6 +195,34 @@ class InboundWebhookRestControllerTest extends WebhookTestsBase {
     assertThat(payloadCaptor.getValue().rawBody())
         .isEqualTo(
             "payload=%7B%22type%22%3A%22block_actions%22%7D".getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void shouldPreserveQueryParameterEncounterOrderAndFirstValue() throws Exception {
+    var registration = registerWebhook("queryPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    var request = requestTo("queryPath", "");
+    request.setQueryString("z=first&a=second&z=ignored");
+
+    controller.inbound("queryPath", new HashMap<>(), request);
+
+    var payloadCaptor = ArgumentCaptor.forClass(WebhookProcessingPayload.class);
+    verify(registration.executable()).triggerWebhook(payloadCaptor.capture());
+    assertThat(payloadCaptor.getValue().params())
+        .containsExactly(entry("z", "first"), entry("a", "second"));
+  }
+
+  @Test
+  void shouldRejectMalformedQueryEncodingWithoutInvokingConnector() throws Exception {
+    var registration = registerWebhook("malformedQueryPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    var request = requestTo("malformedQueryPath", "");
+    request.setQueryString("token=%");
+
+    var response = controller.inbound("malformedQueryPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(400);
+    verifyNoInteractions(registration.executable());
   }
 
   private static InboundWebhookRestController rateLimitedController(

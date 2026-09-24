@@ -50,6 +50,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -166,16 +167,24 @@ public class InboundWebhookRestController {
       return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
     }
 
+    Map<String, String> params;
+    try {
+      params = extractQueryParams(httpServletRequest.getQueryString());
+    } catch (IllegalArgumentException e) {
+      // URLDecoder rejects malformed percent-encoding such as "?token=%"
+      return ResponseEntity.badRequest().build();
+    }
+
     // Servlet multipart parsing consumes the raw stream before the controller runs, so multipart
     // requests carry no raw body. Other content types retain the original bytes needed by HMAC
     // verification.
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
-    byte[] bodyAsByteArray = isMultipartFormData ? null : readBoundedBody(httpServletRequest);
+    byte[] bodyAsByteArray =
+        isMultipartFormData ? null : readBoundedBody(httpServletRequest, maxRequestBodyBytes);
     if (!isMultipartFormData && bodyAsByteArray == null) {
       return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
     }
-    Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
     WebhookProcessingPayload payload =
         new HttpServletRequestWebhookProcessingPayload(
@@ -202,9 +211,17 @@ public class InboundWebhookRestController {
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
-  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest, long maxBodyBytes)
+      throws IOException {
     var inputStream = httpServletRequest.getInputStream();
-    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (maxBodyBytes < 0) {
+      return inputStream.readAllBytes();
+    }
+    if (httpServletRequest.getContentLengthLong() > maxBodyBytes) {
+      return null;
+    }
+    int readLimit = (int) Math.min(maxBodyBytes, Integer.MAX_VALUE - 8L);
+    byte[] body = inputStream.readNBytes(readLimit);
     if (inputStream.read() != -1) {
       return null;
     }
@@ -345,7 +362,8 @@ public class InboundWebhookRestController {
                 parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
                 parts ->
                     parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "",
-                (a, b) -> a));
+                (a, b) -> a,
+                LinkedHashMap::new));
   }
 
   // This will be used to correlate data returned from connector.
