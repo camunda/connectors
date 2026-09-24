@@ -230,6 +230,19 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
+  void shouldRejectMalformedQueryEncodingWithoutInvokingConnector() throws Exception {
+    var registration = registerWebhook("malformedQueryPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    var request = requestTo("malformedQueryPath", "");
+    request.setQueryString("token=%");
+
+    var response = controller.inbound("malformedQueryPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(400);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
   void physicalTenantScopedRoute_routesToCorrectConnector_legacyRouteThenNotFound()
       throws Exception {
     var executable = mock(WebhookConnectorExecutable.class);

@@ -225,6 +225,14 @@ public class InboundWebhookRestController {
       return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
     }
 
+    Map<String, String> params;
+    try {
+      params = extractQueryParams(httpServletRequest.getQueryString());
+    } catch (IllegalArgumentException e) {
+      // URLDecoder rejects malformed percent-encoding such as "?token=%"
+      return ResponseEntity.badRequest().build();
+    }
+
     boolean isMultipartFormData =
         WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
     Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
@@ -259,7 +267,6 @@ public class InboundWebhookRestController {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
       }
     }
-    Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
     var lowercaseHeaders =
         headers.entrySet().stream()
