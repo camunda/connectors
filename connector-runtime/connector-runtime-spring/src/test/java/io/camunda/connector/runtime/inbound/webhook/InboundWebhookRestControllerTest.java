@@ -200,6 +200,116 @@ class InboundWebhookRestControllerTest extends WebhookTestsBase {
   }
 
   @Test
+  void shouldCountNestedMultipartSectionsAgainstConfiguredPartCount() throws Exception {
+    var registration = registerWebhook("nestedPartCountPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartPartCount = 2;
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/nestedPartCountPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(
+        ("--x\r\n"
+                + "Content-Disposition: form-data; name=\"files\"\r\n"
+                + "Content-Type: multipart/mixed; boundary=y\r\n\r\n"
+                + "--y\r\nContent-Type: text/plain\r\n\r\nfirst\r\n"
+                + "--y\r\nContent-Type: text/plain\r\n\r\nsecond\r\n"
+                + "--y\r\nContent-Type: text/plain\r\n\r\nthird\r\n"
+                + "--y--\r\n"
+                + "--x--\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+
+    var response = controller.inbound("nestedPartCountPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldParseNestedMultipartFilesWithinConfiguredPartCount() throws Exception {
+    var registration = registerWebhook("nestedFilesPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/nestedFilesPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(
+        ("--x\r\n"
+                + "Content-Disposition: form-data; name=\"files\"\r\n"
+                + "Content-Type: multipart/mixed; boundary=y\r\n\r\n"
+                + "--y\r\n"
+                + "Content-Disposition: attachment; filename=\"a.txt\"\r\n\r\na\r\n"
+                + "--y\r\n"
+                + "Content-Disposition: attachment; filename=\"b.txt\"\r\n\r\nb\r\n"
+                + "--y--\r\n"
+                + "--x--\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+
+    controller.inbound("nestedFilesPath", new HashMap<>(), request);
+
+    var payloadCaptor = ArgumentCaptor.forClass(WebhookProcessingPayload.class);
+    verify(registration.executable()).triggerWebhook(payloadCaptor.capture());
+    assertThat(payloadCaptor.getValue().parts())
+        .extracting(part -> part.name() + "/" + part.submittedFileName())
+        .containsExactly("files/a.txt", "files/b.txt");
+  }
+
+  @Test
+  void shouldRejectPartHeadersExceedingLoweredLimit() throws Exception {
+    var registration = registerWebhook("loweredPartHeaderLimitPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartPartHeaderSize = "64B";
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/loweredPartHeaderLimitPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(multipartBody("content"));
+
+    var response = controller.inbound("loweredPartHeaderLimitPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
+  void shouldRejectPartHeadersExceedingDefaultLimit() throws Exception {
+    var registration = registerWebhook("defaultPartHeaderLimitPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/defaultPartHeaderLimitPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(multipartBodyWithFilename("f".repeat(600) + ".txt", "content"));
+
+    var response = controller.inbound("defaultPartHeaderLimitPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"1KB", "-1"})
+  void shouldAcceptPartHeadersWithinRaisedOrUnlimitedLimit(String limit) throws Exception {
+    var registration = registerWebhook("raisedPartHeaderLimitPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartPartHeaderSize = limit;
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/raisedPartHeaderLimitPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(multipartBodyWithFilename("f".repeat(600) + ".txt", "content"));
+
+    controller.inbound("raisedPartHeaderLimitPath", new HashMap<>(), request);
+
+    verify(registration.executable()).triggerWebhook(any());
+  }
+
+  @Test
   void shouldAcceptSmallMultipartWhenConfiguredRequestLimitExceedsTwoGibibytes() throws Exception {
     var registration = registerWebhook("largeConfiguredLimitPath");
     var controller = new InboundWebhookRestController(registration.registry());
