@@ -79,9 +79,11 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
     this(DEFAULT_GITHUB_API_BASE_URL, System.getenv());
   }
 
-  // Package-private constructor for testing
+  // Package-private constructor for testing: deterministic, ignores the ambient environment so
+  // an allow-list variable set on the test machine can't affect it. Tests exercising a configured
+  // allow-list use the explicit environment overload instead.
   CreateGithubAppInstallationTokenFunction(String baseUrl) {
-    this(baseUrl, System.getenv());
+    this(baseUrl, Map.of());
   }
 
   // Package-private constructor for testing: allows injecting the environment consulted for the
