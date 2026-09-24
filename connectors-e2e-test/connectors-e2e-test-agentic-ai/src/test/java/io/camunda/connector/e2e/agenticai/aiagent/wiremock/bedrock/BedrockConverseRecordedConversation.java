@@ -121,9 +121,8 @@ public final class BedrockConverseRecordedConversation {
 
         root.path("messages").forEach(message -> messages.addAll(toRecordedMessages(message)));
 
-        // Excludes cachePoint entries: BedrockConverseRequestConverter appends one to
-        // toolConfig.tools (sibling to the real toolSpec entries) when prompt caching is enabled
-        // and there is no system prompt to anchor the checkpoint to instead.
+        // Excludes cachePoint entries, appended to toolConfig.tools when caching is enabled with
+        // no system prompt to anchor to instead.
         final var tools =
             StreamSupport.stream(root.path("toolConfig").path("tools").spliterator(), false)
                 .filter(tool -> tool.path("cachePoint").isMissingNode())
@@ -176,10 +175,8 @@ public final class BedrockConverseRecordedConversation {
         return toolResults;
       }
 
-      // Content parts exclude toolUse blocks - those become toolCalls() instead - and cachePoint
-      // blocks, which BedrockConverseRequestConverter inserts as a sibling content block (not a
-      // field on an existing block, unlike Anthropic's cache_control) when prompt caching is
-      // enabled and carry no assertable content of their own.
+      // Excludes toolUse blocks (become toolCalls() instead) and cachePoint blocks (added when
+      // caching is enabled; carry no assertable content).
       final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> block.path("toolUse").isMissingNode())
