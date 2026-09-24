@@ -406,6 +406,32 @@ class InboundWebhookRestControllerTest {
   }
 
   @Test
+  void shouldCountNamelessMultipartSectionsAgainstConfiguredPartCount() throws Exception {
+    var registration = registerWebhook("namelessPartCountPath");
+    var controller = new InboundWebhookRestController(registration.registry());
+    controller.maxMultipartPartCount = 1;
+
+    var request = new MockHttpServletRequest();
+    request.setMethod("POST");
+    request.setRequestURI("/inbound/namelessPartCountPath");
+    request.setContentType("multipart/form-data; boundary=x");
+    request.setContent(
+        ("--x\r\n"
+                + "Content-Disposition: form-data\r\n\r\n"
+                + "first content\r\n"
+                + "--x\r\n"
+                + "Content-Disposition: form-data\r\n\r\n"
+                + "second content\r\n"
+                + "--x--\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+
+    var response = controller.inbound("namelessPartCountPath", new HashMap<>(), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(413);
+    verifyNoInteractions(registration.executable());
+  }
+
+  @Test
   void shouldAcceptSmallMultipartWhenConfiguredRequestLimitExceedsTwoGibibytes() throws Exception {
     var registration = registerWebhook("largeConfiguredLimitPath");
     var controller = new InboundWebhookRestController(registration.registry());

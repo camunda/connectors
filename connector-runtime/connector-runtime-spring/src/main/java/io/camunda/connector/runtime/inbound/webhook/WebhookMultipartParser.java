@@ -49,6 +49,9 @@ final class WebhookMultipartParser {
     upload.setMaxFileCount(maxPartCount);
 
     try {
+      if (maxPartCount >= 0 && (maxRequestSize < 0 || rawBody.length <= maxRequestSize)) {
+        enforcePartCount(rawBody, contentType, maxPartCount, upload);
+      }
       var items =
           upload.getItemIterator(
               new BufferedRequestContext(rawBody, contentType, characterEncoding));
@@ -83,6 +86,46 @@ final class WebhookMultipartParser {
     } catch (IOException e) {
       throw new MultipartReadException(e);
     }
+  }
+
+  private static void enforcePartCount(
+      byte[] rawBody, String contentType, long maxPartCount, BufferedFileUpload upload) {
+    var boundary = upload.getBoundary(contentType);
+    if (boundary == null) {
+      return;
+    }
+    long partCount = 0;
+    int delimiterLength = boundary.length + 2;
+    for (int offset = 0; offset + delimiterLength + 1 < rawBody.length; offset++) {
+      boolean startsLine =
+          offset == 0
+              || (offset >= 2 && rawBody[offset - 2] == '\r' && rawBody[offset - 1] == '\n');
+      if (!startsLine
+          || rawBody[offset] != '-'
+          || rawBody[offset + 1] != '-'
+          || !matches(rawBody, offset + 2, boundary)) {
+        continue;
+      }
+      int suffixOffset = offset + delimiterLength;
+      boolean startsPart = rawBody[suffixOffset] == '\r' && rawBody[suffixOffset + 1] == '\n';
+      if (startsPart && ++partCount > maxPartCount) {
+        throw new MultipartSizeExceededException(
+            new FileUploadFileCountLimitException(
+                "Multipart part count exceeds the configured limit", partCount, maxPartCount));
+      }
+    }
+  }
+
+  private static boolean matches(byte[] body, int offset, byte[] expected) {
+    if (offset + expected.length > body.length) {
+      return false;
+    }
+    for (int i = 0; i < expected.length; i++) {
+      if (body[offset + i] != expected[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static final class MalformedMultipartException extends RuntimeException {
