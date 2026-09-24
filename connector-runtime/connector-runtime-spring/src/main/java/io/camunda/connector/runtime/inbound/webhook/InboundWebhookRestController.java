@@ -17,12 +17,14 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
@@ -49,22 +51,24 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContex
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.HtmlUtils;
 
@@ -75,9 +79,42 @@ public class InboundWebhookRestController {
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
+  @Value("${camunda.connector.webhook.max-request-body-bytes:10485760}")
+  int maxRequestBodyBytes = 10 * 1024 * 1024;
+
+  @Value("${camunda.connector.webhook.rate-limit.enabled:true}")
+  boolean rateLimitEnabled;
+
+  @Value("${camunda.connector.webhook.rate-limit.permits-per-second:1000}")
+  double rateLimitPermitsPerSecond = 1000;
+
+  @Value("${spring.servlet.multipart.enabled:true}")
+  boolean multipartEnabled = true;
+
+  RateLimiter globalRateLimiter;
+
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  @PostConstruct
+  void validateWebhookConfig() {
+    if (maxRequestBodyBytes < 0) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.max-request-body-bytes must not be negative, but was: "
+              + maxRequestBodyBytes);
+    }
+    if (rateLimitEnabled
+        && !(Double.isFinite(rateLimitPermitsPerSecond) && rateLimitPermitsPerSecond > 0)) {
+      throw new IllegalStateException(
+          "camunda.connector.webhook.rate-limit.permits-per-second must be a positive, finite "
+              + "number when camunda.connector.webhook.rate-limit.enabled is true, but was: "
+              + rateLimitPermitsPerSecond);
+    }
+    if (rateLimitEnabled) {
+      globalRateLimiter = RateLimiter.create(rateLimitPermitsPerSecond);
+    }
   }
 
   protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
@@ -139,10 +176,54 @@ public class InboundWebhookRestController {
   public ResponseEntity<?> inbound(
       @PathVariable(value = "context") String context,
       @RequestHeader Map<String, String> headers,
-      @RequestBody(required = false) byte[] bodyAsByteArray,
-      @RequestParam(required = false) Map<String, String> params,
       HttpServletRequest httpServletRequest)
       throws IOException {
+    LOG.trace("Received inbound hook on {}", context);
+    var connectorOpt = webhookConnectorRegistry.getActiveWebhook(context);
+    if (connectorOpt.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    var connector = connectorOpt.get();
+
+    if (rateLimitEnabled && !globalRateLimiter.tryAcquire()) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
+    boolean isMultipartFormData =
+        WebhookFilterPaths.isMultipartFormData(httpServletRequest.getContentType());
+    Collection<io.camunda.connector.api.inbound.webhook.Part> parts = List.of();
+    if (isMultipartFormData) {
+      try {
+        parts = getParts(httpServletRequest);
+      } catch (MultipartSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+      }
+    }
+
+    // Servlet multipart parsing consumes the raw stream; parts are the canonical multipart payload.
+    // Other content types retain the original bytes needed by HMAC verification.
+    byte[] bodyAsByteArray = isMultipartFormData ? null : readBoundedBody(httpServletRequest);
+    if (!isMultipartFormData && bodyAsByteArray == null) {
+      return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+    }
+    Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
+
+    var requestHeaders = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+    requestHeaders.putAll(headers);
+    Optional.ofNullable(httpServletRequest.getContentType())
+        .ifPresent(contentType -> requestHeaders.putIfAbsent("content-type", contentType));
+    WebhookProcessingPayload payload =
+        new HttpServletRequestWebhookProcessingPayload(
+            httpServletRequest, params, requestHeaders, bodyAsByteArray, parts);
+    return processWebhook(connector, payload);
+  }
+
+  public ResponseEntity<?> inbound(
+      String context,
+      Map<String, String> headers,
+      byte[] bodyAsByteArray,
+      Map<String, String> params,
+      HttpServletRequest httpServletRequest) {
     LOG.trace("Received inbound hook on {}", context);
     return webhookConnectorRegistry
         .getActiveWebhook(context)
@@ -158,6 +239,15 @@ public class InboundWebhookRestController {
               return processWebhook(connector, payload);
             })
         .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
+  private byte[] readBoundedBody(HttpServletRequest httpServletRequest) throws IOException {
+    var inputStream = httpServletRequest.getInputStream();
+    byte[] body = inputStream.readNBytes(maxRequestBodyBytes);
+    if (inputStream.read() != -1) {
+      return null;
+    }
+    return body;
   }
 
   private ResponseEntity<?> processWebhook(
@@ -346,10 +436,38 @@ public class InboundWebhookRestController {
       LOG.debug("The request is not multipart/form-data, silently ignoring", e);
       return List.of();
     } catch (IllegalStateException e) {
-      LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
-      throw new RuntimeException(
-          "Size limits are exceeded or no multipart configuration is provided", e);
+      if (!multipartEnabled) {
+        LOG.error(
+            "Received a multipart request but spring.servlet.multipart.enabled=false, so it"
+                + " cannot be parsed",
+            e);
+        throw new RuntimeException(
+            "Received a multipart request but spring.servlet.multipart.enabled=false", e);
+      }
+      LOG.debug("Multipart size limit exceeded: {}", e.getMessage());
+      throw new MultipartSizeExceededException(e);
     }
+  }
+
+  private static final class MultipartSizeExceededException extends RuntimeException {
+    MultipartSizeExceededException(Throwable cause) {
+      super(cause);
+    }
+  }
+
+  private static Map<String, String> extractQueryParams(String queryString) {
+    if (queryString == null || queryString.isBlank()) {
+      return emptyMap();
+    }
+    return Arrays.stream(queryString.split("&"))
+        .map(pair -> pair.split("=", 2))
+        .filter(parts -> parts.length > 0 && !parts[0].isBlank())
+        .collect(
+            toMap(
+                parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+                parts ->
+                    parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "",
+                (a, b) -> a));
   }
 
   // This will be used to correlate data returned from connector.
