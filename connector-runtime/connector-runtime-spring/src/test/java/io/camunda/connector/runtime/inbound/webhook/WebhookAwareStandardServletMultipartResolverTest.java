@@ -34,10 +34,10 @@ class WebhookAwareStandardServletMultipartResolverTest {
   }
 
   @Test
-  void resolvesMultipartFormDataWebhookRequest() {
+  void leavesMultipartFormDataWebhookRequestForTheController() {
     var request = request("/api/inbound/webhook", "multipart/form-data; boundary=x");
 
-    assertThat(resolver.isMultipart(request)).isTrue();
+    assertThat(resolver.isMultipart(request)).isFalse();
   }
 
   @Test
