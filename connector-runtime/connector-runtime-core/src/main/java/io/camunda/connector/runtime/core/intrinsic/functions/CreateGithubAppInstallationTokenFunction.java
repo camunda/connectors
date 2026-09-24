@@ -119,8 +119,9 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
   public String execute(
       String privateKey, String appId, String installationId, @Nullable String githubApiBaseUrl) {
     try {
-      final String resolvedBaseUrl = githubApiBaseUrl != null ? githubApiBaseUrl : baseUrl;
-      if (!allowedBaseUrls.contains(normalizeBaseUrl(resolvedBaseUrl))) {
+      final String resolvedBaseUrl =
+          normalizeBaseUrl(githubApiBaseUrl != null ? githubApiBaseUrl : baseUrl);
+      if (!allowedBaseUrls.contains(resolvedBaseUrl)) {
         throw new IllegalArgumentException(
             "GitHub API base URL '"
                 + resolvedBaseUrl

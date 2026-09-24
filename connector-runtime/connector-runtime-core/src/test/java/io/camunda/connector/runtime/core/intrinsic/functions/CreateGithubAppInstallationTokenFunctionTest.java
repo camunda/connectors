@@ -307,6 +307,37 @@ class CreateGithubAppInstallationTokenFunctionTest {
     }
 
     @Test
+    @DisplayName(
+        "Should strip a trailing slash from the resolved base URL before building the request")
+    void shouldNormalizeTrailingSlashInResolvedBaseUrl(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          post(urlPathEqualTo("/app/installations/" + INSTALLATION_ID + "/access_tokens"))
+              .willReturn(
+                  aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody("{\"token\": \"" + MOCK_TOKEN + "\"}")));
+
+      String baseUrlWithTrailingSlash = wmRuntimeInfo.getHttpBaseUrl() + "/";
+      CreateGithubAppInstallationTokenFunction testFunction =
+          new CreateGithubAppInstallationTokenFunction(
+              "http://invalid.example.invalid",
+              Map.of(
+                  CreateGithubAppInstallationTokenFunction.ALLOWED_BASE_URLS_ENV_VAR,
+                  baseUrlWithTrailingSlash));
+
+      String token =
+          testFunction.execute(
+              TEST_PRIVATE_KEY_FORMATTED, APP_ID, INSTALLATION_ID, baseUrlWithTrailingSlash);
+
+      assertThat(token).isEqualTo(MOCK_TOKEN);
+      // An exact (not regex-permissive) path match fails if a doubled slash slipped through.
+      verify(
+          postRequestedFor(
+              urlPathEqualTo("/app/installations/" + INSTALLATION_ID + "/access_tokens")));
+    }
+
+    @Test
     @DisplayName("Should reject overridden githubApiBaseUrl when it is not allow-listed")
     void shouldRejectOverriddenBaseUrlWhenNotAllowListed(WireMockRuntimeInfo wmRuntimeInfo) {
       // No allow-list configured (env unset), so only this instance's own default is permitted.
