@@ -115,7 +115,8 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiCompletionsRequestConverter(
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                objectMapper),
+                objectMapper,
+                OPENAI_ID),
             new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
@@ -145,7 +146,8 @@ public class AgenticAiNativeProvidersConfiguration {
         new OpenAiCompletionsRequestConverter(
             contentConverter,
             OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-            objectMapper),
+            objectMapper,
+            MISTRAL_ID),
         new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
         OpenAiCompletionsStreamAssembler.chunkedContentAware());
   }

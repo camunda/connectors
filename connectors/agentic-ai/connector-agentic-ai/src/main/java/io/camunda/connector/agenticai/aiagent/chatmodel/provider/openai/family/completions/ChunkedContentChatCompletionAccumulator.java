@@ -284,7 +284,8 @@ final class ChunkedContentChatCompletionAccumulator {
    * value is a plain string or a chunk array (see the class Javadoc). Once any array delta has been
    * seen, accumulation switches to chunk mode for the rest of the message, even if a later delta
    * reverts to a plain string -- that string is simply appended to the currently open {@code text}
-   * chunk (observed in real traffic once the thinking phase has ended).
+   * chunk (observed in real traffic once the thinking phase has ended). Any plain-string deltas
+   * seen before that switch are flushed as a leading {@code text} chunk rather than dropped.
    */
   private static final class ContentAccumulator {
 
@@ -297,6 +298,13 @@ final class ChunkedContentChatCompletionAccumulator {
     void accumulate(JsonField<String> rawContent) {
       final Optional<List<JsonValue>> chunks = rawContent.asArray();
       if (chunks.isPresent()) {
+        if (!chunked && !plainText.isEmpty()) {
+          // Preserve any plain-string deltas seen before the first array delta as a leading text
+          // chunk -- build()'s chunked branch never reads plainText, so without this the prefix
+          // would otherwise be silently dropped.
+          closedChunks.add(Map.of("type", "text", "text", plainText.toString()));
+          plainText.setLength(0);
+        }
         chunked = true;
         for (final JsonValue chunkValue : chunks.get()) {
           accumulateChunk(chunkValue);

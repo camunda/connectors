@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,7 +53,18 @@ class OpenAiCompletionsRequestConverterTest {
       new OpenAiCompletionsRequestConverter(
           contentConverter,
           OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-          objectMapper);
+          objectMapper,
+          OPENAI_ID);
+
+  // Chunked reasoning replay only ever applies to a converter instance bound to the Mistral
+  // provider (see OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- mirrors the real
+  // production wiring in AgenticAiNativeProvidersConfiguration.
+  private final OpenAiCompletionsRequestConverter mistralConverter =
+      new OpenAiCompletionsRequestConverter(
+          contentConverter,
+          OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
+          objectMapper,
+          MISTRAL_ID);
 
   private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
       new OpenAiRequestCustomizations(null, null, null);
@@ -266,8 +280,9 @@ class OpenAiCompletionsRequestConverterTest {
   @Test
   void replaysChunkedReasoningContentAlongsideTextAsChunkedAssistantContent() {
     // Mirrors what OpenAiCompletionsResponseConverter#toReasoningContent produces for a Mistral
-    // Magistral response: a ReasoningContent whose payload is shaped like a stripped `thinking`
-    // chunk. It must be replayed byte-faithfully, in original order, ahead of the plain text.
+    // reasoning-capable model's response: a ReasoningContent whose payload is shaped like a
+    // stripped `thinking` chunk. It must be replayed byte-faithfully, in original order, ahead of
+    // the plain text.
     final var snapshot =
         new ConversationSnapshot(
             List.of(
@@ -283,7 +298,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(spec(), null, snapshot);
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
 
     final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
     assertThat(contentNode.isArray()).isTrue();
@@ -310,7 +325,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(spec(), null, snapshot);
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).hasSize(1);
     final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
@@ -321,10 +336,12 @@ class OpenAiCompletionsRequestConverterTest {
 
   @Test
   void dropsReasoningContentFromADifferentApiFamilyEvenWhenProviderTagMatchesThisOne() {
-    // Gating is purely payload-shape-based (see OpenAiCompletionsRequestConverter#
-    // isChunkedReasoningContent), so a same-provider-tagged ReasoningContent from a different API
-    // family (e.g. carried over from the Responses family after a mid-conversation switch) still
-    // correctly stays dropped instead of being misread as a replayable chunk.
+    // Gating requires both a provider-tag match and payload-shape match (see
+    // OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- shape alone isn't a unique
+    // signal (Anthropic's raw thinking-block payload also carries type=thinking), so a
+    // same-provider-tagged ReasoningContent from a different API family (e.g. carried over from
+    // the Responses family after a mid-conversation switch) still correctly stays dropped instead
+    // of being misread as a replayable chunk.
     final var snapshot =
         new ConversationSnapshot(
             List.of(
@@ -338,6 +355,33 @@ class OpenAiCompletionsRequestConverterTest {
             List.of());
 
     final var params = converter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
+  void dropsReasoningContentFromADifferentProviderEvenWhenPayloadShapeMatches() {
+    // Anthropic's raw thinking-block payload keeps a type=thinking field after its own text
+    // extraction (see AnthropicMessageResponseConverter#toReasoningContent), the same shape
+    // Mistral's chunked reasoning uses. A provider-tag mismatch must still drop it instead of
+    // misreplaying Anthropic reasoning content as a Mistral chunk after a provider switch.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                ANTHROPIC_ID,
+                                Map.of("type", "thinking", "signature", "sig-123"),
+                                "anthropic reasoning text",
+                                null),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
 
     final var assistant = params.messages().get(0).asAssistant();
     assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");

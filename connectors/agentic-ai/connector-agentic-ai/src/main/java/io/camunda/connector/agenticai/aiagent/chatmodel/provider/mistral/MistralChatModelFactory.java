@@ -101,16 +101,17 @@ public class MistralChatModelFactory implements ChatModelFactory {
       OpenAIOkHttpClient.Builder builder, MistralApiBackend apiBackend) {
     final var mistral = apiBackend.mistral();
     builder.apiKey(mistral.apiKey());
-    if (mistral.endpoint() != null) {
-      builder.baseUrl(mistral.endpoint());
-    }
+    builder.baseUrl(configuredEndpoint(apiBackend));
   }
 
   /**
-   * The base URL actually configured for this backend, used only to pick the proxy scheme: the
-   * {@code endpoint} field always carries a default value (see {@link
+   * The base URL actually configured for this backend, used both as the SDK client's {@code
+   * baseUrl} and to pick the proxy scheme: the {@code endpoint} field always carries a default
+   * value (see {@link
    * MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection}), so it is
-   * never null in practice, but the template's default is not enforced at the Java type level.
+   * never null in practice, but the template's default is not enforced at the Java type level --
+   * falling back here, rather than leaving the SDK's own default (OpenAI's API) in place, keeps a
+   * null endpoint from silently sending the Mistral API key to OpenAI.
    */
   private static String configuredEndpoint(MistralBackend backend) {
     return switch (backend) {
