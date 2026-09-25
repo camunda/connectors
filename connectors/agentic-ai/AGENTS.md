@@ -215,9 +215,9 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
    capability. When debugging one capability, run the matching method instead of the whole class.
 
-Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, or `local`) to run only one
-provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing shard-only
-behavior, disabled rows, or provider group membership.
+Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mistral`, or `local`) to
+run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
+shard-only behavior, disabled rows, or provider group membership.
 
 To run the default in-process real-provider suite locally, set `RUN_NATIVE_LLM_E2E=true`,
 `REAL_LLM_PROVIDER_GROUP`, and the credentials for the provider group you want to exercise. Provider
