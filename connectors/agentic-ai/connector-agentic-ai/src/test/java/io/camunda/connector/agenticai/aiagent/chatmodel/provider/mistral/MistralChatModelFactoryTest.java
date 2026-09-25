@@ -9,9 +9,13 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
@@ -37,7 +41,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -105,9 +111,33 @@ class MistralChatModelFactoryTest {
   void createAppliesConfiguredTimeout() {
     when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
 
-    try (ChatModel chatModel =
-        factory.create(config(MODEL_ID, new TimeoutConfiguration(Duration.ofSeconds(7))))) {
-      assertThat(chatModel).isInstanceOf(MistralChatModel.class);
+    final var clientBuilder = spy(OpenAIOkHttpClient.builder());
+    try (MockedStatic<OpenAIOkHttpClient> clientMock =
+        mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
+
+      try (ChatModel chatModel =
+          factory.create(config(MODEL_ID, new TimeoutConfiguration(Duration.ofSeconds(7))))) {
+        verify(clientBuilder).timeout(Duration.ofSeconds(7));
+      }
+    }
+  }
+
+  @Test
+  void fallsBackToMistralDefaultEndpointWhenNoneConfigured() {
+    // endpoint() is null in config(...) below -- the built client's baseUrl must still resolve to
+    // Mistral's own default rather than openai-java's built-in default (api.openai.com), which
+    // would otherwise silently send the Mistral API key to OpenAI.
+    when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
+
+    final var clientBuilder = spy(OpenAIOkHttpClient.builder());
+    try (MockedStatic<OpenAIOkHttpClient> clientMock =
+        mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
+
+      try (ChatModel chatModel = factory.create(config(MODEL_ID, null))) {
+        verify(clientBuilder).baseUrl("https://api.mistral.ai/v1");
+      }
     }
   }
 }
