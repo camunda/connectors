@@ -32,11 +32,8 @@ public final class GraphApiMapper {
         .toList();
   }
 
-  public static EmailMessage toEmailMessage(Message message, List<Document> documents) {
-    var sender = toEmailAddress(message.getSender());
-    var recipients = toEmailAddressList(message.getToRecipients());
-    var cc = toEmailAddressList(message.getCcRecipients());
-    var bcc = toEmailAddressList(message.getBccRecipients());
+  public static EmailMessage toEmailMessage(
+      Message message, List<EmailAttachmentMetadata> attachmentMetadata) {
     String body = null;
     String bodyContentType = null;
     if (message.getBody() != null) {
@@ -50,14 +47,38 @@ public final class GraphApiMapper {
     return new EmailMessage(
         message.getId(),
         message.getConversationId(),
-        sender,
-        recipients,
-        cc,
-        bcc,
+        toEmailAddress(message.getSender()),
+        toEmailAddressList(message.getToRecipients()),
+        toEmailAddressList(message.getCcRecipients()),
+        toEmailAddressList(message.getBccRecipients()),
         message.getSubject(),
         body,
         bodyContentType,
         receivedTime,
+        message.getHasAttachments(),
+        attachmentMetadata,
+        List.of());
+  }
+
+  /**
+   * Returns a copy of {@code source} with the downloaded attachment documents attached. {@code
+   * attachmentMetadata} is carried over unchanged, so an activation condition referencing it still
+   * resolves the same way when the runtime re-evaluates it against these correlation variables.
+   */
+  public static EmailMessage withAttachments(EmailMessage source, List<Document> documents) {
+    return new EmailMessage(
+        source.id(),
+        source.conversationId(),
+        source.sender(),
+        source.recipients(),
+        source.cc(),
+        source.bcc(),
+        source.subject(),
+        source.body(),
+        source.bodyContentType(),
+        source.receivedDateTime(),
+        source.hasAttachments(),
+        source.attachmentMetadata(),
         documents);
   }
 }

@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import static io.camunda.connector.microsoft.email.model.output.GraphApiMapper.toEmailMessage;
-
-import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,45 +21,11 @@ public record EmailMessage(
     String body,
     String bodyContentType,
     OffsetDateTime receivedDateTime,
+    Boolean hasAttachments,
+    List<EmailAttachmentMetadata> attachmentMetadata,
     List<Document> attachments) {
-  public EmailMessage(Message message) {
-    this(message, List.of());
-  }
 
-  public EmailMessage(Message message, List<Document> documents) {
-    this(toEmailMessage(message, documents));
-  }
-
-  private EmailMessage(EmailMessage message) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        message.attachments);
-  }
-
-  public EmailMessage(EmailMessage message, List<Document> documents) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        documents);
-  }
-
+  /** OData {@code $select} fields for the message list query. */
   public static String[] getSelect() {
     return new String[] {
       "id",
@@ -73,7 +36,8 @@ public record EmailMessage(
       "bccRecipients",
       "subject",
       "body",
-      "receivedDateTime"
+      "receivedDateTime",
+      "hasAttachments"
     };
   }
 }
