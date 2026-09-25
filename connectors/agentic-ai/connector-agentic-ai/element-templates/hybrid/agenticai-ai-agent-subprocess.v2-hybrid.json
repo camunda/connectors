@@ -147,6 +147,9 @@
       "name" : "Google Gemini",
       "value" : "google-gemini"
     }, {
+      "name" : "Mistral AI",
+      "value" : "mistral"
+    }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
     } ]
@@ -2067,6 +2070,90 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.mistral.backend.type",
+    "label" : "Connection",
+    "description" : "Specify how the Mistral API is reached.",
+    "value" : "mistral-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Mistral API",
+      "value" : "mistral-api"
+    } ]
+  }, {
+    "id" : "provider.mistral.backend.mistral.apiKey",
+    "label" : "Mistral API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.mistral.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "value" : "https://api.mistral.ai/v1",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.providerType",
     "label" : "Provider type",
     "description" : "Identifier for the custom chat model provider.",
@@ -2643,6 +2730,69 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.mistral.backend.mistral.headers",
+    "label" : "Headers",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.mistral.queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.mistral.bodyProperties",
+    "label" : "Body properties",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
     "optional" : false,
@@ -3028,6 +3178,54 @@
       "value" : "high"
     } ]
   }, {
+    "id" : "provider.mistral.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.mistral.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Specify the model ID. See the <a href=\"https://docs.mistral.ai/getting-started/models/models_overview/\" target=\"_blank\">models documentation</a>.",
+    "placeholder" : "mistral-medium-latest",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.parameters.effort",
+    "label" : "Effort",
+    "optional" : false,
+    "value" : "modelDefault",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.mistral.parameters.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls how many tokens the model spends thinking before responding. Only supported on reasoning-capable models.<br><br>See the <a href=\"https://docs.mistral.ai/capabilities/reasoning/\" target=\"_blank\">Mistral reasoning documentation</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
+      "name" : "none",
+      "value" : "none"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    } ]
+  }, {
     "id" : "provider.model",
     "label" : "Model",
     "optional" : false,
@@ -3371,6 +3569,57 @@
       "type" : "simple"
     },
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.mistral.parameters.maxTokens",
+    "label" : "Max tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.mistral.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1.5. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.mistral.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "data.systemPrompt.prompt",

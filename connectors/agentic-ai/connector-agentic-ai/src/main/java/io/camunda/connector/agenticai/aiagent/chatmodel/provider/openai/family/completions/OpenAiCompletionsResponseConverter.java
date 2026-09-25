@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.JsonValue;
 import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -34,19 +34,31 @@ import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Maps an accumulated OpenAI Chat Completions API SDK {@link ChatCompletion} to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code content}/{@code
- * refusal} become {@link TextContent} and function tool calls become {@link ToolCall}s. A custom
- * tool call (only reachable when a request customization configures a custom tool) has no
- * provider-neutral representation in this domain model and is captured losslessly as {@link
- * ProviderContent} instead of being silently dropped. This message shape carries no
- * reasoning/thinking field, so no {@link ReasoningContent} is ever emitted, though {@code
+ * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: plain string {@code
+ * content}/{@code refusal} become {@link TextContent} and function tool calls become {@link
+ * ToolCall}s. A custom tool call (only reachable when a request customization configures a custom
+ * tool) has no provider-neutral representation in this domain model and is captured losslessly as
+ * {@link ProviderContent} instead of being silently dropped, though {@code
  * completion_tokens_details.reasoning_tokens} is still surfaced via {@link
  * AgentMetrics.TokenUsage}.
+ *
+ * <p>Some OpenAI-compatible endpoints (e.g. Mistral's Magistral reasoning models) send {@code
+ * content} as an array of typed chunks (a {@code thinking} chunk followed by a {@code text} chunk)
+ * instead of a plain string. This is detected from the raw JSON shape of the field itself -- not
+ * from a caller-supplied flag -- so it works uniformly for reasoning and non-reasoning models
+ * alike: a {@code thinking} chunk becomes a {@link ReasoningContent} (tagged with this converter's
+ * configured {@code providerId}, its payload preserving the chunk's other fields verbatim, minus
+ * the lifted-out text, for byte-faithful replay -- see {@link
+ * OpenAiCompletionsRequestConverter#assistantMessage}), and a {@code text} chunk becomes a {@link
+ * TextContent}, both in their original order.
  *
  * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
  * ContentFilteredException} instead of returning a result, carrying the assistant message and
@@ -55,9 +67,11 @@ import java.util.Map;
  */
 public class OpenAiCompletionsResponseConverter {
 
+  private final String providerId;
   private final ObjectMapper objectMapper;
 
-  public OpenAiCompletionsResponseConverter(ObjectMapper objectMapper) {
+  public OpenAiCompletionsResponseConverter(String providerId, ObjectMapper objectMapper) {
+    this.providerId = providerId;
     this.objectMapper = objectMapper;
   }
 
@@ -89,7 +103,7 @@ public class OpenAiCompletionsResponseConverter {
     final List<ChatCompletion.Choice> choices = completion.choices();
     if (choices.isEmpty()) {
       throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response contained no choices");
+          ERROR_CODE_FAILED_MODEL_CALL, "%s response contained no choices".formatted(providerId));
     }
     return choices.get(0);
   }
@@ -107,10 +121,7 @@ public class OpenAiCompletionsResponseConverter {
     final ChatCompletionMessage message = choice.message();
 
     final List<Content> content = new ArrayList<>();
-    message
-        .content()
-        .filter(text -> !text.isBlank())
-        .ifPresent(text -> content.add(TextContent.textContent(text)));
+    mapContent(message, content);
     // A refusal has no dedicated domain content type; kept as TextContent so the declination stays
     // visible in the partial result once toResult() throws ContentFilteredException for it (see
     // hasRefusal).
@@ -125,7 +136,7 @@ public class OpenAiCompletionsResponseConverter {
         .ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls, content)));
 
     final Map<String, Object> openAiMetadata =
-        Map.of(OPENAI_ID, Map.of("stopReason", choice.finishReason().asString()));
+        Map.of(providerId, Map.of("stopReason", choice.finishReason().asString()));
 
     return AssistantMessage.builder()
         .content(content)
@@ -154,13 +165,103 @@ public class OpenAiCompletionsResponseConverter {
     };
   }
 
+  /**
+   * Maps {@code content} to domain {@link Content}, self-detecting the wire shape from the raw JSON
+   * value rather than a caller-supplied flag (see the class Javadoc): a plain string maps to a
+   * single {@link TextContent}, while a chunked array (thinking/text chunks) is unpacked by {@link
+   * #mapChunkedContent}.
+   */
+  private void mapContent(ChatCompletionMessage message, List<Content> content) {
+    final Optional<List<JsonValue>> chunkedContent = message._content().asArray();
+    if (chunkedContent.isPresent()) {
+      mapChunkedContent(chunkedContent.get(), content);
+      return;
+    }
+    message
+        .content()
+        .filter(text -> !text.isBlank())
+        .ifPresent(text -> content.add(TextContent.textContent(text)));
+  }
+
+  /**
+   * Unpacks a chunked {@code content} array into domain {@link Content}, one entry per chunk, in
+   * original order: a {@code thinking} chunk becomes {@link ReasoningContent}, a {@code text} chunk
+   * becomes {@link TextContent}. Any other chunk type is a forward-compatibility gap and is
+   * silently skipped rather than failing the whole turn.
+   */
+  private void mapChunkedContent(List<JsonValue> chunks, List<Content> content) {
+    for (final JsonValue chunkValue : chunks) {
+      final Map<String, Object> raw =
+          chunkValue.convert(new TypeReference<Map<String, Object>>() {});
+      if (raw == null) {
+        continue;
+      }
+      final Object type = raw.get("type");
+      if ("thinking".equals(type)) {
+        content.add(toReasoningContent(raw));
+      } else if ("text".equals(type) && raw.get("text") instanceof String text && !text.isBlank()) {
+        content.add(TextContent.textContent(text));
+      }
+    }
+  }
+
+  /**
+   * Lifts the readable text out of a {@code thinking} chunk's nested {@code thinking} array into
+   * {@link ReasoningContent#text()}. Whether {@code thinking} is also stripped from {@code payload}
+   * depends on {@link #isThinkingReconstructible}: if it holds, {@link
+   * OpenAiCompletionsRequestConverter#toChunkedThinkingChunk} rebuilds {@code thinking} from {@code
+   * text()} before replay; otherwise {@code thinking} is left untouched in {@code payload} --
+   * deliberately duplicated with {@code text()} -- since reconstructing it from a single joined
+   * string would silently drop extra items or per-item fields a multi-item {@code thinking} array
+   * may carry. Mirrors {@code OpenAiResponsesResponseConverter#toReasoningContent}'s handling of
+   * the Responses family's {@code summary} field.
+   */
+  private ReasoningContent toReasoningContent(Map<String, Object> raw) {
+    final Map<String, Object> payload = new LinkedHashMap<>(raw);
+    final Object thinking = payload.get("thinking");
+    final String text = extractThinkingText(thinking);
+    if (isThinkingReconstructible(thinking)) {
+      payload.remove("thinking");
+    }
+    return new ReasoningContent(providerId, payload, text, null);
+  }
+
+  private @Nullable String extractThinkingText(@Nullable Object thinking) {
+    if (!(thinking instanceof List<?> items)) {
+      return null;
+    }
+    final StringBuilder text = new StringBuilder();
+    for (final Object item : items) {
+      if (item instanceof Map<?, ?> map && map.get("text") instanceof String fragment) {
+        text.append(fragment);
+      }
+    }
+    return text.isEmpty() ? null : text.toString();
+  }
+
+  /**
+   * Holds only when {@code thinking} can be reconstructed byte-identical from {@link
+   * #extractThinkingText}'s joined result alone: exactly one item, itself exactly {@code
+   * {"type":"text","text":...}} with no extra fields -- the single-chunk shape both the streaming
+   * accumulator and a plain non-streaming response produce for the common case.
+   */
+  private boolean isThinkingReconstructible(@Nullable Object thinking) {
+    if (!(thinking instanceof List<?> items) || items.size() != 1) {
+      return false;
+    }
+    return items.get(0) instanceof Map<?, ?> item
+        && item.size() == 2
+        && "text".equals(item.get("type"))
+        && item.get("text") instanceof String;
+  }
+
   private void toToolCall(
       ChatCompletionMessageToolCall call, List<ToolCall> toolCalls, List<Content> content) {
     if (call.function().isEmpty()) {
       // Only function tool calls have a provider-neutral representation; a custom tool call (see
       // the class Javadoc) is preserved losslessly as ProviderContent instead, so the agent loop
       // still sees the model's output even though it can't act on it as a tool call.
-      content.add(ProviderContent.providerContent(OPENAI_ID, toRawMap(call)));
+      content.add(ProviderContent.providerContent(providerId, toRawMap(call)));
       return;
     }
 

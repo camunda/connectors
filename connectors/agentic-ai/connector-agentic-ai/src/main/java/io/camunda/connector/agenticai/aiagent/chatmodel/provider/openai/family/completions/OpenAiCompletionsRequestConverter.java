@@ -41,113 +41,104 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved OpenAI Chat Completions model
- * configuration to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating the domain
- * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
- * the {@link OpenAiContentConverter} built for content parts.
+ * Maps a windowed {@link ConversationSnapshot} plus a provider-neutral {@link
+ * CompletionsRequestSpec} to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating
+ * the domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
+ * shape via {@link OpenAiContentConverter} for generic JSON serialization and the injected {@link
+ * OpenAiCompletionsContentChunkStrategy} for user-message content parts. This converter has no
+ * dependency on any specific {@code ProviderConfiguration} subtype -- the OpenAI provider and any
+ * other caller of the Chat Completions wire format (e.g. the Mistral provider) each build their own
+ * {@link CompletionsRequestSpec} plus their own {@link OpenAiCompletionsContentChunkStrategy}.
  *
- * <p>Reasoning is mapped only via the input-only {@code reasoning_effort} dial: this family has no
- * mechanism to replay reasoning content from a prior turn, so {@link ReasoningContent} and {@link
- * ProviderContent} are dropped rather than replayed, and tool results are always flattened to plain
- * text.
+ * <p>Reasoning is mapped via the input-only {@code reasoning_effort} dial plus, where applicable,
+ * replay of a prior turn's reasoning content: a {@link ReasoningContent} is replayed
+ * byte-faithfully as part of a chunked {@code content} array (see {@link #assistantMessage}) only
+ * when it was produced by this same provider instance (its {@code provider} tag matches this
+ * converter's own {@code providerId}) <em>and</em> its payload is shaped like the chunked {@code
+ * thinking} chunk {@link OpenAiCompletionsResponseConverter} emits -- both are required, since a
+ * payload shape alone doesn't uniquely identify the producing family: Anthropic's raw
+ * thinking-block payload also keeps a {@code type: "thinking"} field after its own text extraction.
+ * This is what Mistral's reasoning-capable models require to keep reasoning quality across turns.
+ * Any other {@link ReasoningContent} (e.g. carried over from a different provider after a
+ * mid-conversation provider switch) and every {@link ProviderContent} have no representation on
+ * this family and are dropped. Tool results are always flattened to plain text.
  */
 public class OpenAiCompletionsRequestConverter {
 
   private final OpenAiContentConverter contentConverter;
+  private final OpenAiCompletionsContentChunkStrategy contentChunkStrategy;
   private final ObjectMapper objectMapper;
+  private final String providerId;
 
   public OpenAiCompletionsRequestConverter(
-      OpenAiContentConverter contentConverter, ObjectMapper objectMapper) {
+      OpenAiContentConverter contentConverter,
+      OpenAiCompletionsContentChunkStrategy contentChunkStrategy,
+      ObjectMapper objectMapper,
+      String providerId) {
     this.contentConverter = contentConverter;
+    this.contentChunkStrategy = contentChunkStrategy;
     this.objectMapper = objectMapper;
+    this.providerId = providerId;
   }
 
   public ChatCompletionCreateParams toRequest(
-      OpenAiChatModelConfiguration configuration,
+      CompletionsRequestSpec spec,
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final OpenAiConnection connection = configuration.openai();
-    final String modelId = connection.model().model();
-    final CompletionsParameters params = completionsParameters(connection);
-
-    final var builder = ChatCompletionCreateParams.builder().model(modelId);
+    final var builder = ChatCompletionCreateParams.builder().model(spec.model());
 
     // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
     // converter's calls are always streamed, so request usage so token metrics
     // (input/output/cached) are populated. Set unconditionally, on every request.
     builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
 
-    // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
-    // never relies on OpenAI-side response storage.
-    builder.store(false);
-
-    applyModelParameters(builder, params);
-    applyReasoning(builder, params);
+    applyModelParameters(builder, spec);
+    applyReasoning(builder, spec);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, response);
-    applyRequestCustomizations(builder, connection);
+    applyRequestCustomizations(builder, spec.customizations());
 
     return builder.build();
   }
 
-  /**
-   * This converter only handles the {@code completions} API family; routing a {@code responses}
-   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
-   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
-   * completions} itself is optional -- every one of its own fields is optional, so a modeler
-   * leaving all of them unset means the object is absent entirely, not present-with-nulls.
-   */
-  private @Nullable CompletionsParameters completionsParameters(OpenAiConnection connection) {
-    return switch (connection.api()) {
-      case OpenAiCompletionsApi completionsApi -> completionsApi.completions();
-      default ->
-          throw new IllegalArgumentException(
-              "OpenAiCompletionsRequestConverter requires the 'completions' API family, but was configured with '%s'"
-                  .formatted(connection.api().type()));
-    };
-  }
-
   private void applyModelParameters(
-      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
-    if (params == null) {
-      return;
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    // maxCompletionTokens (OpenAI's current wire name) and maxTokens (the older name several
+    // OpenAI-compatible APIs still require instead) are mutually exclusive: a caller's spec sets
+    // at most one, matching its own provider's wire parameter.
+    if (spec.maxCompletionTokens() != null) {
+      builder.maxCompletionTokens(spec.maxCompletionTokens());
     }
-    if (params.maxCompletionTokens() != null) {
-      builder.maxCompletionTokens(params.maxCompletionTokens().longValue());
+    if (spec.maxTokens() != null) {
+      builder.maxTokens(spec.maxTokens());
     }
-    if (params.temperature() != null) {
-      builder.temperature(params.temperature());
+    if (spec.temperature() != null) {
+      builder.temperature(spec.temperature());
     }
-    if (params.topP() != null) {
-      builder.topP(params.topP());
+    if (spec.topP() != null) {
+      builder.topP(spec.topP());
     }
   }
 
-  /** Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. */
+  /** Maps the spec's {@code reasoningEffort} dial onto the SDK's {@code reasoning_effort} param. */
   private void applyReasoning(
-      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
-    final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
-      return;
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    if (spec.reasoningEffort() != null) {
+      builder.reasoningEffort(ReasoningEffort.of(spec.reasoningEffort()));
     }
-    builder.reasoningEffort(ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT)));
   }
 
   private void applyMessages(ChatCompletionCreateParams.Builder builder, List<Message> messages) {
@@ -182,13 +173,16 @@ public class OpenAiCompletionsRequestConverter {
     return ChatCompletionUserMessageParam.builder()
         .content(
             ChatCompletionUserMessageParam.Content.ofArrayOfContentParts(
-                contentConverter.toCompletionsContentParts(user.content())))
+                contentChunkStrategy.toContentParts(user.content())))
         .build();
   }
 
   /**
-   * Flattens plain content (text/document/object) to a single text blob; {@link ReasoningContent}
-   * and {@link ProviderContent} have no wire representation on this family and are dropped.
+   * Flattens plain content (text/document/object) to a single text blob, unless the message also
+   * carries a replayable chunked {@link ReasoningContent} (see the class Javadoc), in which case
+   * {@code content} is rebuilt as a chunked array instead via {@link #toChunkedContent}. Any other
+   * {@link ReasoningContent} and every {@link ProviderContent} have no wire representation on this
+   * family and are dropped.
    *
    * <p>Returns {@code null} when nothing representable remains and there are no tool calls either:
    * the Completions API requires an assistant message to carry {@code content} unless it carries a
@@ -200,12 +194,17 @@ public class OpenAiCompletionsRequestConverter {
         assistant.content().stream()
             .filter(c -> !(c instanceof ReasoningContent) && !(c instanceof ProviderContent))
             .toList();
-    if (plainContent.isEmpty() && assistant.toolCalls().isEmpty()) {
+    final boolean hasChunkedReasoning =
+        assistant.content().stream()
+            .anyMatch(c -> c instanceof ReasoningContent rc && isChunkedReasoningContent(rc));
+    if (plainContent.isEmpty() && !hasChunkedReasoning && assistant.toolCalls().isEmpty()) {
       return null;
     }
 
     final var builder = ChatCompletionAssistantMessageParam.builder();
-    if (!plainContent.isEmpty()) {
+    if (hasChunkedReasoning) {
+      builder.content(JsonValue.from(toChunkedContent(assistant.content())));
+    } else if (!plainContent.isEmpty()) {
       builder.content(toTextOutput(plainContent));
     }
 
@@ -223,6 +222,60 @@ public class OpenAiCompletionsRequestConverter {
     }
 
     return builder.build();
+  }
+
+  /**
+   * A {@link ReasoningContent} is only replayable as a chunked {@code thinking} chunk if it was
+   * produced by this same provider ({@code provider} tag matches this converter's own {@code
+   * providerId}) <em>and</em> its payload is shaped the way {@link
+   * OpenAiCompletionsResponseConverter} produces it. Both checks are required: payload shape alone
+   * isn't a unique signal -- Anthropic's raw thinking-block payload also carries a {@code type:
+   * "thinking"} field after its own text extraction, so a provider-tag-only or shape-only check
+   * would misclassify reasoning content replayed after a mid-conversation provider switch.
+   */
+  private boolean isChunkedReasoningContent(ReasoningContent reasoning) {
+    return providerId.equals(reasoning.provider())
+        && reasoning.payload() instanceof Map<?, ?> payload
+        && "thinking".equals(payload.get("type"));
+  }
+
+  /**
+   * Rebuilds the assistant message's {@code content} as a chunked array, preserving the original
+   * order of its {@link Content} entries: a replayable {@link ReasoningContent} (see {@link
+   * #isChunkedReasoningContent}) becomes a {@code thinking} chunk via {@link
+   * #toChunkedThinkingChunk}, and every other plain content entry becomes a {@code text} chunk.
+   * Only called once {@link #assistantMessage} has established at least one replayable {@link
+   * ReasoningContent} is present, so the result is never empty.
+   */
+  private List<Map<String, Object>> toChunkedContent(List<Content> content) {
+    final List<Map<String, Object>> chunks = new ArrayList<>();
+    for (final Content c : content) {
+      if (c instanceof ReasoningContent reasoning && isChunkedReasoningContent(reasoning)) {
+        chunks.add(toChunkedThinkingChunk(reasoning));
+      } else if (!(c instanceof ReasoningContent) && !(c instanceof ProviderContent)) {
+        chunks.add(Map.of("type", "text", "text", toTextOutput(List.of(c))));
+      }
+    }
+    return chunks;
+  }
+
+  /**
+   * If {@link OpenAiCompletionsResponseConverter#toReasoningContent} left {@code thinking} in the
+   * payload (not byte-identically reconstructible from {@link ReasoningContent#text()} alone), it
+   * is replayed verbatim instead. Otherwise reinserts the lifted-out {@code text()} back into the
+   * payload's {@code thinking} field, reconstructing the single-item chunk it was extracted from.
+   */
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> toChunkedThinkingChunk(ReasoningContent reasoning) {
+    final Map<String, Object> payload = (Map<String, Object>) reasoning.payload();
+    if (payload.containsKey("thinking")) {
+      return new LinkedHashMap<>(payload);
+    }
+    final Map<String, Object> chunk = new LinkedHashMap<>(payload);
+    chunk.put(
+        "thinking",
+        List.of(Map.of("type", "text", "text", reasoning.text() == null ? "" : reasoning.text())));
+    return chunk;
   }
 
   private List<ChatCompletionMessageParam> toolResultMessages(ToolCallResultMessage message) {
@@ -307,12 +360,11 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Merges the backend's headers, query parameters, and body properties onto the request via the
+   * Merges the spec's headers, query parameters, and body properties onto the request via the
    * shared {@link OpenAiRequestCustomizations}.
    */
   private void applyRequestCustomizations(
-      ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
-    final var customizations = connection.backend().requestCustomizations();
+      ChatCompletionCreateParams.Builder builder, OpenAiRequestCustomizations customizations) {
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations

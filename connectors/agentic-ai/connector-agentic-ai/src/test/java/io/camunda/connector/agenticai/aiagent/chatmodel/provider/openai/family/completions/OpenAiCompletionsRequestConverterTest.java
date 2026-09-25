@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,20 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -53,7 +42,6 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class OpenAiCompletionsRequestConverterTest {
@@ -62,37 +50,32 @@ class OpenAiCompletionsRequestConverterTest {
       new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiCompletionsRequestConverter converter =
-      new OpenAiCompletionsRequestConverter(contentConverter, objectMapper);
+      new OpenAiCompletionsRequestConverter(
+          contentConverter,
+          OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+          objectMapper,
+          OPENAI_ID);
 
-  private static OpenAiBackend defaultBackend() {
-    return new OpenAiApiBackend(
-        new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+  // Chunked reasoning replay only ever applies to a converter instance bound to the Mistral
+  // provider (see OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- mirrors the real
+  // production wiring in AgenticAiNativeProvidersConfiguration.
+  private final OpenAiCompletionsRequestConverter mistralConverter =
+      new OpenAiCompletionsRequestConverter(
+          contentConverter,
+          OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
+          objectMapper,
+          MISTRAL_ID);
+
+  private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
+      new OpenAiRequestCustomizations(null, null, null);
+
+  private static CompletionsRequestSpec spec() {
+    return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, NO_CUSTOMIZATIONS);
   }
 
-  private static OpenAiChatModelConfiguration model(@Nullable CompletionsParameters parameters) {
-    return modelWithBackend(defaultBackend(), parameters);
-  }
-
-  private static OpenAiChatModelConfiguration modelWithBackend(
-      OpenAiBackend backend, @Nullable CompletionsParameters parameters) {
-    return new OpenAiChatModelConfiguration(
-        new OpenAiConnection(
-            new OpenAiCompletionsApi(
-                parameters != null
-                    ? parameters
-                    : new CompletionsParameters(null, null, null, null)),
-            backend,
-            new OpenAiModel("gpt-4o"),
-            null));
-  }
-
-  private static OpenAiChatModelConfiguration responsesFamilyModel() {
-    return new OpenAiChatModelConfiguration(
-        new OpenAiConnection(
-            new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
-            defaultBackend(),
-            new OpenAiModel("gpt-5"),
-            null));
+  private static CompletionsRequestSpec specWithCustomizations(
+      OpenAiRequestCustomizations customizations) {
+    return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, customizations);
   }
 
   private static JsonNode requestBodyAsJson(ChatCompletionCreateParams params) {
@@ -108,7 +91,7 @@ class OpenAiCompletionsRequestConverterTest {
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).hasSize(2);
     final var system = params.messages().get(0).asSystem();
@@ -122,7 +105,7 @@ class OpenAiCompletionsRequestConverterTest {
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).hasSize(1);
     final var user = params.messages().get(0).asUser();
@@ -156,7 +139,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).hasSize(2);
 
@@ -197,7 +180,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     final var tool = params.messages().get(1).asTool();
     assertThat(tool.toolCallId()).isEqualTo("call_1");
@@ -238,7 +221,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     final var tool = params.messages().get(0).asTool();
     assertThat(tool.toolCallId()).isEqualTo("call_1");
@@ -262,7 +245,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).hasSize(1);
     final var assistant = params.messages().get(0).asAssistant();
@@ -289,9 +272,155 @@ class OpenAiCompletionsRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.messages()).isEmpty();
+  }
+
+  @Test
+  void replaysChunkedReasoningContentAlongsideTextAsChunkedAssistantContent() {
+    // Mirrors what OpenAiCompletionsResponseConverter#toReasoningContent produces for a Mistral
+    // reasoning-capable model's response: a ReasoningContent whose payload is shaped like a
+    // stripped `thinking` chunk. It must be replayed byte-faithfully, in original order, ahead of
+    // the plain text.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral",
+                                Map.of("type", "thinking", "closed", true),
+                                "5+7=12",
+                                null),
+                            TextContent.textContent("The answer is 12.")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    assertThat(contentNode.isArray()).isTrue();
+    assertThat(contentNode.get(0).path("type").asText()).isEqualTo("thinking");
+    assertThat(contentNode.get(0).path("closed").asBoolean()).isTrue();
+    assertThat(contentNode.get(0).path("thinking").get(0).path("text").asText())
+        .isEqualTo("5+7=12");
+    assertThat(contentNode.get(1).path("type").asText()).isEqualTo("text");
+    assertThat(contentNode.get(1).path("text").asText()).isEqualTo("The answer is 12.");
+  }
+
+  @Test
+  void replaysAMultiItemThinkingArrayVerbatimInsteadOfCollapsingIt() {
+    // OpenAiCompletionsResponseConverter leaves a non-reconstructible (multi-item) `thinking`
+    // array in the payload rather than stripping it; this must be replayed exactly as-is, not
+    // rebuilt from the single joined text() -- which would lose the second item.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral",
+                                Map.of(
+                                    "type",
+                                    "thinking",
+                                    "thinking",
+                                    List.of(
+                                        Map.of("type", "text", "text", "5 + 7 "),
+                                        Map.of("type", "text", "text", "is 12.")),
+                                    "closed",
+                                    true),
+                                "5 + 7 is 12.",
+                                null)))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    final var thinkingItems = contentNode.get(0).path("thinking");
+    assertThat(thinkingItems).hasSize(2);
+    assertThat(thinkingItems.get(0).path("text").asText()).isEqualTo("5 + 7 ");
+    assertThat(thinkingItems.get(1).path("text").asText()).isEqualTo("is 12.");
+  }
+
+  @Test
+  void doesNotOmitAssistantMessageWithOnlyChunkedReasoningContent() {
+    // Unlike a non-replayable ReasoningContent, a chunked one must not be treated as "nothing
+    // representable" even when it is the only content and there are no tool calls either.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral", Map.of("type", "thinking"), "still thinking", null)))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    assertThat(params.messages()).hasSize(1);
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    assertThat(contentNode.isArray()).isTrue();
+    assertThat(contentNode).hasSize(1);
+    assertThat(contentNode.get(0).path("type").asText()).isEqualTo("thinking");
+  }
+
+  @Test
+  void dropsReasoningContentFromADifferentApiFamilyEvenWhenProviderTagMatchesThisOne() {
+    // Gating requires both a provider-tag match and payload-shape match (see
+    // OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- shape alone isn't a unique
+    // signal (Anthropic's raw thinking-block payload also carries type=thinking), so a
+    // same-provider-tagged ReasoningContent from a different API family (e.g. carried over from
+    // the Responses family after a mid-conversation switch) still correctly stays dropped instead
+    // of being misread as a replayable chunk.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ReasoningContent.reasoningContent(
+                                "openai", Map.of("type", "reasoning")),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
+  void dropsReasoningContentFromADifferentProviderEvenWhenPayloadShapeMatches() {
+    // Anthropic's raw thinking-block payload keeps a type=thinking field after its own text
+    // extraction (see AnthropicMessageResponseConverter#toReasoningContent), the same shape
+    // Mistral's chunked reasoning uses. A provider-tag mismatch must still drop it instead of
+    // misreplaying Anthropic reasoning content as a Mistral chunk after a provider switch.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                ANTHROPIC_ID,
+                                Map.of("type", "thinking", "signature", "sig-123"),
+                                "anthropic reasoning text",
+                                null),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
   }
 
   @Test
@@ -314,7 +443,7 @@ class OpenAiCompletionsRequestConverterTest {
                     .inputSchema(schema)
                     .build()));
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.tools()).isPresent();
     final var tool = params.tools().orElseThrow().get(0).function().orElseThrow();
@@ -367,7 +496,7 @@ class OpenAiCompletionsRequestConverterTest {
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), response, snapshot);
+    final var params = converter.toRequest(spec(), response, snapshot);
 
     assertThat(params.responseFormat()).isPresent();
 
@@ -404,7 +533,7 @@ class OpenAiCompletionsRequestConverterTest {
         new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), response, snapshot);
+    final var params = converter.toRequest(spec(), response, snapshot);
 
     assertThat(params.responseFormat()).isPresent();
     final var formatNode = requestBodyAsJson(params).path("response_format");
@@ -419,7 +548,7 @@ class OpenAiCompletionsRequestConverterTest {
             new JsonResponseFormatConfiguration(Map.of(), null), null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), response, snapshot);
+    final var params = converter.toRequest(spec(), response, snapshot);
 
     assertThat(params.responseFormat()).isPresent();
     final var formatNode = requestBodyAsJson(params).path("response_format");
@@ -428,72 +557,38 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void mapsConfiguredEffortToReasoningEffort() {
-    final var parameters = new CompletionsParameters(null, OpenAiEffort.HIGH, null, null);
+  void mapsReasoningEffortWhenConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(parameters), null, snapshot);
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec("gpt-4o", null, null, null, null, "high", NO_CUSTOMIZATIONS),
+            null,
+            snapshot);
 
     assertThat(params.reasoningEffort()).hasValue(ReasoningEffort.HIGH);
     assertThat(requestBodyAsJson(params).path("reasoning_effort").asText()).isEqualTo("high");
   }
 
   @Test
-  void omitsReasoningEffortWhenNoneConfigured() {
+  void omitsReasoningEffortWhenNotConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params =
-        converter.toRequest(
-            model(new CompletionsParameters(null, null, null, null)), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.reasoningEffort()).isEmpty();
     assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
-  }
-
-  @Test
-  void modelDefaultEffortOmitsReasoningEffort() {
-    // The "default" dropdown choice binds to OpenAiEffort.MODEL_DEFAULT rather than an unset
-    // value; it must still be treated as "don't send reasoning_effort".
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params =
-        converter.toRequest(
-            model(new CompletionsParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null)),
-            null,
-            snapshot);
-
-    assertThat(params.reasoningEffort()).isEmpty();
-    assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
-  }
-
-  @Test
-  void mapsEachEffortLevelToItsLowercaseWireValue() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    for (final var entry :
-        Map.of(
-                OpenAiEffort.MINIMAL, "minimal",
-                OpenAiEffort.LOW, "low",
-                OpenAiEffort.MEDIUM, "medium",
-                OpenAiEffort.HIGH, "high",
-                OpenAiEffort.XHIGH, "xhigh",
-                OpenAiEffort.MAX, "max")
-            .entrySet()) {
-      final var parameters = new CompletionsParameters(null, entry.getKey(), null, null);
-      final var params = converter.toRequest(model(parameters), null, snapshot);
-
-      assertThat(params.reasoningEffort().orElseThrow().asString()).isEqualTo(entry.getValue());
-      assertThat(requestBodyAsJson(params).path("reasoning_effort").asText())
-          .isEqualTo(entry.getValue());
-    }
   }
 
   @Test
   void mapsModelParameters() {
-    final var parameters = new CompletionsParameters(512, null, 0.5, 0.9);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(parameters), null, snapshot);
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec("gpt-4o", 512L, null, 0.5, 0.9, null, NO_CUSTOMIZATIONS),
+            null,
+            snapshot);
 
     assertThat(params.model().asString()).isEqualTo("gpt-4o");
     assertThat(params.maxCompletionTokens()).contains(512L);
@@ -502,60 +597,62 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   /**
-   * Regression test: {@code completions} itself (not just its fields) can be {@code null} - every
-   * one of its fields is optional, so real job binding produces a {@code null} object, not one with
-   * all-null fields, whenever a modeler leaves every option under the family unset (caught by e2e
-   * running against the real job-input binding path).
+   * {@code max_tokens} is the wire parameter Mistral's own OpenAPI spec and SDK document; {@code
+   * max_completion_tokens} is silently accepted too (a live-API-confirmed but undocumented
+   * compatibility shim, not something this connector relies on). The two spec fields are mutually
+   * exclusive, each mapped by whichever caller's wire format needs it.
    */
   @Test
-  void handlesNullCompletionsParametersWithoutError() {
-    final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiCompletionsApi(null), defaultBackend(), new OpenAiModel("gpt-4o"), null));
+  void mapsMaxTokensWhenSetInsteadOfMaxCompletionTokens() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(config, null, snapshot);
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec(
+                "mistral-medium-latest", null, 512L, null, null, null, NO_CUSTOMIZATIONS),
+            null,
+            snapshot);
 
-    assertThat(params.reasoningEffort()).isEmpty();
     assertThat(params.maxCompletionTokens()).isEmpty();
-    assertThat(params.temperature()).isEmpty();
-    assertThat(params.topP()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("max_tokens")).isTrue();
+    assertThat(requestBodyAsJson(params).path("max_tokens").asLong()).isEqualTo(512L);
   }
 
   @Test
   void alwaysRequestsUsageOnStreamingRequests() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     assertThat(params.streamOptions().orElseThrow().includeUsage()).contains(true);
     assertThat(requestBodyAsJson(params).path("stream_options").path("include_usage").asBoolean())
         .isTrue();
   }
 
+  /**
+   * {@code store} defaults to {@code false} on Chat Completions already (unlike Responses, where it
+   * defaults to {@code true} and must be turned off explicitly); sending it at all is a redundant
+   * restatement of the default against OpenAI, and the reason a strict OpenAI-compatible endpoint
+   * (e.g. Mistral) rejects the request with a 422. It must never appear on the wire.
+   */
   @Test
-  void alwaysDisablesServerSideStorage() {
+  void neverSendsStore() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
-    assertThat(params.store()).contains(false);
+    assertThat(params.store()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("store")).isFalse();
   }
 
   @Test
-  void mergesCustomBackendBodyPropertiesIntoRequestBody() {
-    final var backend =
-        new OpenAiCustomBackend(
-            new CustomBackend(
-                "https://example.test/v1",
-                null,
-                null,
-                Map.of("service_tier", "priority", "top_logprobs", 5),
-                new ApiKeyAuthentication("test-key")));
+  void mergesBodyPropertiesIntoRequestBody() {
+    final var customizations =
+        new OpenAiRequestCustomizations(
+            null, null, Map.of("service_tier", "priority", "top_logprobs", 5));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params = converter.toRequest(specWithCustomizations(customizations), null, snapshot);
 
     final var body = requestBodyAsJson(params);
     assertThat(body.path("service_tier").asText()).isEqualTo("priority");
@@ -563,24 +660,10 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void mergesApiBackendBodyPropertiesIntoRequestBody() {
-    final var backend =
-        new OpenAiApiBackend(
-            new OpenAiApiConnection(
-                "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
-
-    final var body = requestBodyAsJson(params);
-    assertThat(body.path("service_tier").asText()).isEqualTo("priority");
-  }
-
-  @Test
   void doesNotAddBodyPropertiesWhenNoneConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(spec(), null, snapshot);
 
     final var body = requestBodyAsJson(params);
     assertThat(body.has("service_tier")).isFalse();
@@ -588,55 +671,16 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void mergesCustomBackendHeadersAndQueryParametersAsAdditional() {
-    final var backend =
-        new OpenAiCustomBackend(
-            new CustomBackend(
-                "https://example.test/v1",
-                Map.of("X-Custom-Header", "header-value"),
-                Map.of("api-version", "2026-01-01"),
-                null,
-                new ApiKeyAuthentication("test-key")));
+  void mergesHeadersAndQueryParametersAsAdditional() {
+    final var customizations =
+        new OpenAiRequestCustomizations(
+            Map.of("X-Custom-Header", "header-value"), Map.of("api-version", "2026-01-01"), null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params = converter.toRequest(specWithCustomizations(customizations), null, snapshot);
 
     assertThat(params._additionalHeaders().values("X-Custom-Header"))
         .containsExactly("header-value");
     assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
-  }
-
-  @Test
-  void mergesApiBackendHiddenHeadersAndQueryParametersAsAdditional() {
-    final var backend =
-        new OpenAiApiBackend(
-            new OpenAiApiConnection(
-                "sk-test",
-                null,
-                null,
-                null,
-                Map.of("X-Hidden-Header", "hidden-value"),
-                Map.of("api-version", "2026-01-01"),
-                null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
-
-    assertThat(params._additionalHeaders().values("X-Hidden-Header"))
-        .containsExactly("hidden-value");
-    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
-  }
-
-  // --- Family guard --------------------------------------------------------------------------
-
-  @Test
-  void throwsWhenConfiguredWithResponsesApiFamily() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    assertThatThrownBy(() -> converter.toRequest(responsesFamilyModel(), null, snapshot))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "OpenAiCompletionsRequestConverter requires the 'completions' API family, but was"
-                + " configured with 'responses'");
   }
 }
