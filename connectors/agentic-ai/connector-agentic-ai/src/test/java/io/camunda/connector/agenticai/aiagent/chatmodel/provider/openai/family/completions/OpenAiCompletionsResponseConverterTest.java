@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -334,6 +335,43 @@ class OpenAiCompletionsResponseConverterTest {
     assertThat(result.assistantMessage().content())
         .containsExactly(
             new ReasoningContent("openai", Map.of("type", "thinking"), "still thinking", null));
+  }
+
+  @Test
+  void keepsMultiItemThinkingArrayInPayloadInsteadOfCollapsingIt() {
+    // A multi-item thinking array (or one whose item carries extra fields) can't be reconstructed
+    // byte-identical from the joined text alone, so it must stay in the payload verbatim -- see
+    // OpenAiCompletionsResponseConverter#isThinkingReconstructible.
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "stop",
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": [
+                    {"type": "text", "text": "5 + 7 "},
+                    {"type": "text", "text": "is 12."}
+                  ],
+                  "closed": true
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    final var reasoning = (ReasoningContent) result.assistantMessage().content().get(0);
+    assertThat(reasoning.text()).isEqualTo("5 + 7 is 12.");
+    assertThat(reasoning.payload())
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsEntry(
+            "thinking",
+            List.of(
+                Map.of("type", "text", "text", "5 + 7 "),
+                Map.of("type", "text", "text", "is 12.")));
   }
 
   @Test

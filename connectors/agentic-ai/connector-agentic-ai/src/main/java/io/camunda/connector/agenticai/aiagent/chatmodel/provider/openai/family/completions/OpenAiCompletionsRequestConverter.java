@@ -260,14 +260,18 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Reinserts a replayable {@link ReasoningContent}'s lifted-out {@link ReasoningContent#text()}
-   * back into its payload's {@code thinking} field, reconstructing the original chunk verbatim (see
-   * {@link OpenAiCompletionsResponseConverter#toReasoningContent}).
+   * If {@link OpenAiCompletionsResponseConverter#toReasoningContent} left {@code thinking} in the
+   * payload (not byte-identically reconstructible from {@link ReasoningContent#text()} alone), it
+   * is replayed verbatim instead. Otherwise reinserts the lifted-out {@code text()} back into the
+   * payload's {@code thinking} field, reconstructing the single-item chunk it was extracted from.
    */
   @SuppressWarnings("unchecked")
   private Map<String, Object> toChunkedThinkingChunk(ReasoningContent reasoning) {
-    final Map<String, Object> chunk =
-        new LinkedHashMap<>((Map<String, Object>) reasoning.payload());
+    final Map<String, Object> payload = (Map<String, Object>) reasoning.payload();
+    if (payload.containsKey("thinking")) {
+      return new LinkedHashMap<>(payload);
+    }
+    final Map<String, Object> chunk = new LinkedHashMap<>(payload);
     chunk.put(
         "thinking",
         List.of(Map.of("type", "text", "text", reasoning.text() == null ? "" : reasoning.text())));

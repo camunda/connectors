@@ -311,6 +311,42 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void replaysAMultiItemThinkingArrayVerbatimInsteadOfCollapsingIt() {
+    // OpenAiCompletionsResponseConverter leaves a non-reconstructible (multi-item) `thinking`
+    // array in the payload rather than stripping it; this must be replayed exactly as-is, not
+    // rebuilt from the single joined text() -- which would lose the second item.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral",
+                                Map.of(
+                                    "type",
+                                    "thinking",
+                                    "thinking",
+                                    List.of(
+                                        Map.of("type", "text", "text", "5 + 7 "),
+                                        Map.of("type", "text", "text", "is 12.")),
+                                    "closed",
+                                    true),
+                                "5 + 7 is 12.",
+                                null)))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    final var thinkingItems = contentNode.get(0).path("thinking");
+    assertThat(thinkingItems).hasSize(2);
+    assertThat(thinkingItems.get(0).path("text").asText()).isEqualTo("5 + 7 ");
+    assertThat(thinkingItems.get(1).path("text").asText()).isEqualTo("is 12.");
+  }
+
+  @Test
   void doesNotOmitAssistantMessageWithOnlyChunkedReasoningContent() {
     // Unlike a non-replayable ReasoningContent, a chunked one must not be treated as "nothing
     // representable" even when it is the only content and there are no tool calls either.
