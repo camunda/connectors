@@ -597,9 +597,10 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   /**
-   * Mistral's Chat Completions API only accepts the older {@code max_tokens} wire parameter and
-   * rejects {@code max_completion_tokens} outright (422 "Extra inputs are not permitted") -- the
-   * two spec fields are mutually exclusive, each mapped by whichever caller's wire format needs it.
+   * {@code max_tokens} is the wire parameter Mistral's own OpenAPI spec and SDK document; {@code
+   * max_completion_tokens} is silently accepted too (a live-API-confirmed but undocumented
+   * compatibility shim, not something this connector relies on). The two spec fields are mutually
+   * exclusive, each mapped by whichever caller's wire format needs it.
    */
   @Test
   void mapsMaxTokensWhenSetInsteadOfMaxCompletionTokens() {
