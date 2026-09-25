@@ -353,7 +353,7 @@ without moving any existing template property.
 
 ### Reasoning
 
-Magistral-class models return assistant `content` as a chunk array
+Mistral's reasoning-capable models (`mistral-medium`, `mistral-small`) return assistant `content` as a chunk array
 (`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string, and require that array to
 be replayed verbatim (including the raw `thinking` chunk) on every follow-up turn. There is no
 dialect flag and no model-name heuristic anywhere in this path: both the response parser and the
@@ -377,7 +377,7 @@ request-side replay detect the chunked shape structurally.
 
 `MistralParameters.effort` maps onto the same `reasoning_effort` field OpenAI Completions uses.
 `MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: it adds `NONE` (Mistral supports
-explicitly disabling reasoning on a Magistral model) but has no `MAX` (Mistral's ladder tops out at
+explicitly disabling reasoning on a reasoning-capable model) but has no `MAX` (Mistral's ladder tops out at
 `high`).
 
 ## Microsoft Foundry authentication

@@ -111,7 +111,9 @@ class RealProviderApiSmokeIT {
       "You are a precise assistant. When the user asks for a classified or internal code name, "
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
           + "guess or fabricate a value for a tool argument - only use a value you actually "
-          + "received from a previous tool result.";
+          + "received from a previous tool result. If a tool's input depends on another tool's "
+          + "result, call only that first tool now and wait for its result before calling the "
+          + "dependent tool in a later turn - never call both in the same turn.";
 
   private static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
@@ -677,25 +679,30 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // mistral-medium-latest never returns from a tool-history+json_schema request: the
-            // model call hangs until the client-side call timeout kills the stream (confirmed
-            // against the real API); large-latest doesn't, so STRUCTURED_OUTPUT is exercised here.
-            // No PROMPT_CACHING claim: Mistral does cache (confirmed against the real API - same
+            // mistral-medium-3-5 never returns from a tool-history+json_schema request: the model
+            // call hangs until the client-side call timeout kills the stream (confirmed against
+            // the real API); large-2512 doesn't, so STRUCTURED_OUTPUT is exercised here. No
+            // PROMPT_CACHING claim: Mistral does cache (confirmed against the real API - same
             // prompt_tokens_details.cached_tokens field as OpenAI), but the hit only appeared on a
             // third rapid call, not the second, so this scenario's write-then-read turn pair
             // doesn't reliably observe it.
             mistralV2(
-                "mistral-large-latest",
+                "mistral-large-2512",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
-            // No STRUCTURED_OUTPUT claim: a tool-history+json_schema request also hangs the model
-            // call here until the client-side timeout kills the stream (confirmed against the
-            // real API).
             mistralV2(
-                "magistral-medium-latest",
+                "mistral-medium-3-5",
                 Map.of(
                     Capability.REASONING, Map.of("provider.mistral.parameters.effort", "high"),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+            // Ministral 3 14B: Mistral's open-weight edge tier, biggest variant offered via the
+            // API. No REASONING (not supported by the model). No PROMPT_CACHING claim: same
+            // unobserved-within-two-turns issue as the other Mistral rows above.
+            mistralV2(
+                "ministral-14b-2512",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
             googleGeminiV2(
                 "gemini-3.7-flash",
