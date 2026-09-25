@@ -207,13 +207,22 @@ public class OpenAiCompletionsResponseConverter {
 
   /**
    * Lifts the readable text out of a {@code thinking} chunk's nested {@code thinking} array into
-   * {@link ReasoningContent#text()}; the payload keeps every other field of the raw chunk verbatim
-   * (including e.g. {@code closed}) so {@link OpenAiCompletionsRequestConverter#assistantMessage}
-   * can reinsert the text and replay the chunk byte-faithfully.
+   * {@link ReasoningContent#text()}. Whether {@code thinking} is also stripped from {@code payload}
+   * depends on {@link #isThinkingReconstructible}: if it holds, {@link
+   * OpenAiCompletionsRequestConverter#toChunkedThinkingChunk} rebuilds {@code thinking} from {@code
+   * text()} before replay; otherwise {@code thinking} is left untouched in {@code payload} --
+   * deliberately duplicated with {@code text()} -- since reconstructing it from a single joined
+   * string would silently drop extra items or per-item fields a multi-item {@code thinking} array
+   * may carry. Mirrors {@code OpenAiResponsesResponseConverter#toReasoningContent}'s handling of
+   * the Responses family's {@code summary} field.
    */
   private ReasoningContent toReasoningContent(Map<String, Object> raw) {
     final Map<String, Object> payload = new LinkedHashMap<>(raw);
-    final String text = extractThinkingText(payload.remove("thinking"));
+    final Object thinking = payload.get("thinking");
+    final String text = extractThinkingText(thinking);
+    if (isThinkingReconstructible(thinking)) {
+      payload.remove("thinking");
+    }
     return new ReasoningContent(providerId, payload, text, null);
   }
 
@@ -228,6 +237,22 @@ public class OpenAiCompletionsResponseConverter {
       }
     }
     return text.isEmpty() ? null : text.toString();
+  }
+
+  /**
+   * Holds only when {@code thinking} can be reconstructed byte-identical from {@link
+   * #extractThinkingText}'s joined result alone: exactly one item, itself exactly {@code
+   * {"type":"text","text":...}} with no extra fields -- the single-chunk shape both the streaming
+   * accumulator and a plain non-streaming response produce for the common case.
+   */
+  private boolean isThinkingReconstructible(@Nullable Object thinking) {
+    if (!(thinking instanceof List<?> items) || items.size() != 1) {
+      return false;
+    }
+    return items.get(0) instanceof Map<?, ?> item
+        && item.size() == 2
+        && "text".equals(item.get("type"))
+        && item.get("text") instanceof String;
   }
 
   private void toToolCall(
