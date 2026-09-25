@@ -34,6 +34,7 @@ public final class HiddenProperty extends Property {
       String group,
       PropertyBinding binding,
       PropertyCondition condition,
+      Boolean editable,
       Boolean secret) {
     super(
         name,
@@ -52,6 +53,7 @@ public final class HiddenProperty extends Property {
         null,
         null,
         TYPE,
+        editable,
         secret);
   }
 
@@ -85,6 +87,7 @@ public final class HiddenProperty extends Property {
           group,
           binding,
           condition,
+          editable,
           secret);
     }
   }

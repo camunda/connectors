@@ -148,6 +148,9 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       return;
     }
     builder.optional(AnnotationProcessor.isOptional(field));
+    if (annotation.editable() == NullableBoolean.FALSE) {
+      builder.editable(false);
+    }
 
     switch (builder) {
       case DropdownProperty.DropdownPropertyBuilder ignored -> {}

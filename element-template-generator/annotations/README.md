@@ -66,6 +66,23 @@ You can customize the property name and label by using the `@TemplateProperty` a
 private String value;
 ```
 
+## Non-editable properties
+
+Set `editable` to `NullableBoolean.FALSE` to prevent users from changing a generated property in the
+properties panel. For example, this Boolean property is displayed as checked and read-only:
+
+```java
+@TemplateProperty(
+    type = TemplateProperty.PropertyType.Boolean,
+    defaultValue = "true",
+    defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+    editable = TemplateProperty.NullableBoolean.FALSE)
+private Boolean enabled;
+```
+
+The generator emits `"editable": false` only for `NullableBoolean.FALSE`. For every other value, it
+omits `editable` because `true` is the element-template schema default.
+
 ## Nested properties
 
 The Template Generator supports nested properties. For example, if your Connector input data model looks like this:
