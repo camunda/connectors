@@ -78,6 +78,7 @@
               <ignoredDependencies>
                 <dependency>ch.qos.logback:logback-classic:jar</dependency>
                 <dependency>com.microsoft.kiota:microsoft-kiota-abstractions</dependency>
+                <dependency>com.microsoft.kiota:microsoft-kiota-serialization-json</dependency>
                 <dependency>com.microsoft.graph:microsoft-graph-core</dependency>
               </ignoredDependencies>
             </configuration>
