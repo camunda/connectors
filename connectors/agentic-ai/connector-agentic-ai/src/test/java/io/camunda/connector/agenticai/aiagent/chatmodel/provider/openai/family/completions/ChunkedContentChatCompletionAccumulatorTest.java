@@ -172,6 +172,44 @@ class ChunkedContentChatCompletionAccumulatorTest {
   }
 
   @Test
+  void closesThinkingChunkAndStartsATextChunkWhenTheAnswerArrivesAsASeparatePlainStringDelta() {
+    // Unlike the fragmented-array test above, the closing `closed: true` thinking chunk is NOT
+    // bundled with an opening text chunk in the same delta -- the answer instead arrives entirely
+    // as its own later plain-string delta. SSE delta grouping must not change the result: the
+    // answer must still become its own TextContent, not get appended into the (closed) thinking
+    // chunk's text.
+    final ChatCompletion assembled =
+        assemble(
+            assembler,
+            deltaChunk(
+                """
+                {"role": "assistant", "content": [
+                  {"type": "thinking", "thinking": [{"type": "text", "text": "5 + 7 is 12."}], "closed": true}
+                ]}
+                """),
+            deltaChunk(
+                """
+                {"content": "The answer is 12."}
+                """),
+            finishChunk("\"stop\""));
+
+    final var chunks = assembled.choices().get(0).message()._content().asArray().orElseThrow();
+    assertThat(chunks).hasSize(2);
+
+    final var thinkingChunk = chunks.get(0).convert(new TypeReference<Map<String, Object>>() {});
+    assertThat(thinkingChunk.get("type")).isEqualTo("thinking");
+    assertThat(thinkingChunk.get("closed")).isEqualTo(true);
+    assertThat(thinkingChunk.get("thinking"))
+        .asInstanceOf(InstanceOfAssertFactories.LIST)
+        .singleElement()
+        .satisfies(item -> assertThat(((Map<?, ?>) item).get("text")).isEqualTo("5 + 7 is 12."));
+
+    final var textChunk = chunks.get(1).convert(new TypeReference<Map<String, Object>>() {});
+    assertThat(textChunk.get("type")).isEqualTo("text");
+    assertThat(textChunk.get("text")).isEqualTo("The answer is 12.");
+  }
+
+  @Test
   void finalizesAnOpenThinkingChunkEvenWithoutATrailingTextChunk() {
     final ChatCompletion assembled =
         assemble(

@@ -318,8 +318,15 @@ final class ChunkedContentChatCompletionAccumulator {
           .ifPresent(
               text -> {
                 if (chunked) {
-                  // A plain-string delta arriving after chunk mode has started continues the
-                  // currently open chunk (observed once the thinking phase has ended).
+                  if (openChunkType == null) {
+                    // No chunk is currently open -- e.g. a thinking chunk just closed via its own
+                    // `closed: true` in an earlier delta, and the provider split the answer into a
+                    // separate plain-string delta instead of bundling an opening text chunk in the
+                    // same array. This is the start of a new text chunk, not a continuation.
+                    openChunkType = "text";
+                  }
+                  // A plain-string delta continues whichever chunk is (now) open (observed in real
+                  // traffic once the thinking phase has ended and a text chunk is already open).
                   openChunkText.append(text);
                 } else {
                   plainText.append(text);
@@ -358,6 +365,15 @@ final class ChunkedContentChatCompletionAccumulator {
               openChunkText.append(fragment);
             }
           }
+        }
+        if (Boolean.TRUE.equals(raw.get("closed"))) {
+          // A closed thinking chunk isn't guaranteed to be followed, in the same delta, by an
+          // opening text chunk for the answer -- the provider may split them across separate
+          // deltas, with the answer arriving as a plain string. Close now so accumulate()'s
+          // plain-string branch sees no chunk open and starts a fresh one instead of appending
+          // the answer into this (finished) thinking chunk.
+          closeOpenChunk();
+          openChunkType = null;
         }
       } else if ("text".equals(typeName) && raw.get("text") instanceof String fragment) {
         openChunkText.append(fragment);
