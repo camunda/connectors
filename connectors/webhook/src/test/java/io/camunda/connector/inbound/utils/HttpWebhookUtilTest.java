@@ -15,6 +15,13 @@ import org.junit.jupiter.api.Test;
 class HttpWebhookUtilTest {
 
   @Test
+  void transformRawBodyToObject_EmptyBody_ReturnsEmptyMap() {
+    Object result = HttpWebhookUtil.transformRawBodyToObject(new byte[0], "");
+
+    assertThat(result).isEqualTo(Map.of());
+  }
+
+  @Test
   void transformRawBodyToObject_XmlWithApplicationXmlContentType_ReturnsString() {
     // Given
     String xmlContent = "<request><id>123</id><status>active</status></request>";
