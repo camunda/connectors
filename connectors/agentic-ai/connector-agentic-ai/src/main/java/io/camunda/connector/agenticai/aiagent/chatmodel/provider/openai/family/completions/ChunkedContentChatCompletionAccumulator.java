@@ -286,7 +286,11 @@ final class ChunkedContentChatCompletionAccumulator {
    * seen, accumulation switches to chunk mode for the rest of the message, even if a later delta
    * reverts to a plain string -- that string is simply appended to the currently open {@code text}
    * chunk (observed in real traffic once the thinking phase has ended). Any plain-string deltas
-   * seen before that switch are flushed as a leading {@code text} chunk rather than dropped.
+   * seen before that switch are flushed as a leading {@code text} chunk rather than dropped. A
+   * {@code thinking} chunk's text is joined from single-item, single-fragment deltas -- the shape
+   * observed in real traffic -- but falls back to preserving every raw {@code thinking} item
+   * verbatim (see {@link #isSingleReconstructibleTextItem}) rather than silently collapsing
+   * structure this accumulator has never observed and can't safely merge.
    */
   private static final class ContentAccumulator {
 
@@ -295,6 +299,8 @@ final class ChunkedContentChatCompletionAccumulator {
     private @Nullable String openChunkType;
     private final Map<String, Object> openChunkExtra = new LinkedHashMap<>();
     private final StringBuilder openChunkText = new StringBuilder();
+    private final List<Object> openChunkThinkingItems = new ArrayList<>();
+    private boolean openChunkThinkingReconstructible = true;
     private boolean chunked = false;
 
     void accumulate(JsonField<String> rawContent) {
@@ -360,7 +366,17 @@ final class ChunkedContentChatCompletionAccumulator {
       if ("thinking".equals(typeName)) {
         final Object thinking = raw.get("thinking");
         if (thinking instanceof List<?> items) {
+          // A single-item {"type":"text","text":...} list per delta is the only shape a joined
+          // string can reconstruct byte-identical (the common case: one delta = one fragment of a
+          // continuous thought). Any other shape -- more than one item in a delta's own thinking
+          // array, or an item carrying fields beyond type/text -- can't be safely collapsed into
+          // one synthesized item without silently losing structure, so fall back to preserving
+          // every raw item verbatim instead of joining text.
+          if (!isSingleReconstructibleTextItem(items)) {
+            openChunkThinkingReconstructible = false;
+          }
           for (final Object item : items) {
+            openChunkThinkingItems.add(item);
             if (item instanceof Map<?, ?> map && map.get("text") instanceof String fragment) {
               openChunkText.append(fragment);
             }
@@ -380,6 +396,14 @@ final class ChunkedContentChatCompletionAccumulator {
       }
     }
 
+    private static boolean isSingleReconstructibleTextItem(List<?> items) {
+      return items.size() == 1
+          && items.get(0) instanceof Map<?, ?> item
+          && item.size() == 2
+          && "text".equals(item.get("type"))
+          && item.get("text") instanceof String;
+    }
+
     private void closeOpenChunk() {
       if (openChunkType == null) {
         return;
@@ -387,7 +411,11 @@ final class ChunkedContentChatCompletionAccumulator {
       final Map<String, Object> chunk = new LinkedHashMap<>(openChunkExtra);
       chunk.put("type", openChunkType);
       if ("thinking".equals(openChunkType)) {
-        chunk.put("thinking", List.of(Map.of("type", "text", "text", openChunkText.toString())));
+        chunk.put(
+            "thinking",
+            openChunkThinkingReconstructible
+                ? List.of(Map.of("type", "text", "text", openChunkText.toString()))
+                : List.copyOf(openChunkThinkingItems));
         // Only default to closed if no delta on this chunk carried its own `closed` field --
         // preserves a real false/other value instead of overriding it.
         chunk.putIfAbsent("closed", true);
@@ -397,6 +425,8 @@ final class ChunkedContentChatCompletionAccumulator {
       closedChunks.add(chunk);
       openChunkText.setLength(0);
       openChunkExtra.clear();
+      openChunkThinkingItems.clear();
+      openChunkThinkingReconstructible = true;
     }
 
     JsonField<String> build() {
