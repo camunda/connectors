@@ -255,6 +255,34 @@ class ChunkedContentChatCompletionAccumulatorTest {
   }
 
   @Test
+  void preservesAMultiItemThinkingArrayFromASingleDeltaVerbatimInsteadOfCollapsingIt() {
+    // A single delta whose own thinking array already carries more than one item can't be
+    // reconstructed byte-identical from a joined string -- the accumulator must fall back to
+    // preserving every raw item instead of synthesizing one collapsed item.
+    final ChatCompletion assembled =
+        assemble(
+            assembler,
+            deltaChunk(
+                """
+                {"role": "assistant", "content": [
+                  {"type": "thinking", "thinking": [
+                    {"type": "text", "text": "5 + 7 "},
+                    {"type": "text", "text": "is 12."}
+                  ], "closed": true}
+                ]}
+                """),
+            finishChunk("\"stop\""));
+
+    final var chunks = assembled.choices().get(0).message()._content().asArray().orElseThrow();
+    assertThat(chunks).hasSize(1);
+    final var thinkingChunk = chunks.get(0).convert(new TypeReference<Map<String, Object>>() {});
+    assertThat(thinkingChunk.get("thinking"))
+        .asInstanceOf(InstanceOfAssertFactories.LIST)
+        .containsExactly(
+            Map.of("type", "text", "text", "5 + 7 "), Map.of("type", "text", "text", "is 12."));
+  }
+
+  @Test
   void accumulatesToolCallArgumentsAcrossDeltasByIndex() {
     final ChatCompletion assembled =
         assemble(
