@@ -376,9 +376,12 @@ request-side replay detect the chunked shape structurally.
   `OpenAiCompletionsStreamAssembler.chunkedContentAware()`.
 
 `MistralParameters.effort` maps onto the same `reasoning_effort` field OpenAI Completions uses.
-`MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: it adds `NONE` (Mistral supports
-explicitly disabling reasoning on a reasoning-capable model) but has no `MAX` (Mistral's ladder tops out at
-`high`).
+`MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: Mistral's API-wide `ReasoningEffort`
+type declares six values (`none`/`minimal`/`low`/`medium`/`high`/`xhigh`), but `mistral-medium-3-5` —
+the only model in the real-provider acceptance matrix claiming `REASONING` — rejects every value
+except `none` and `high` with an HTTP 400 (confirmed against the live API, and matching the two-way
+toggle Mistral's own playground exposes for reasoning effort), so `MistralEffort` only offers
+`MODEL_DEFAULT`, `NONE`, and `HIGH`.
 
 ## Microsoft Foundry authentication
 

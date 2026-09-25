@@ -201,11 +201,7 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
               choices = {
                 @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                 @DropdownPropertyChoice(value = "none", label = "none"),
-                @DropdownPropertyChoice(value = "minimal", label = "minimal"),
-                @DropdownPropertyChoice(value = "low", label = "low"),
-                @DropdownPropertyChoice(value = "medium", label = "medium"),
-                @DropdownPropertyChoice(value = "high", label = "high"),
-                @DropdownPropertyChoice(value = "xhigh", label = "xhigh")
+                @DropdownPropertyChoice(value = "high", label = "high")
               },
               defaultValue = "modelDefault")
           @Nullable MistralEffort effort,
@@ -233,24 +229,19 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
           @Nullable Double topP) {}
 
   /**
-   * Mistral's reasoning-effort ladder. Unlike {@link OpenAiChatModelConfiguration.OpenAiEffort}, it
-   * has an explicit {@code none} level (minimal internal reasoning, no thinking chunk in the
-   * response) below {@code minimal}, and no {@code max} level above {@code xhigh}.
+   * Mistral's reasoning-effort dial. The API's {@code ReasoningEffort} type declares six values
+   * ({@code none/minimal/low/medium/high/xhigh}), but {@code mistral-medium-3-5} -- the only model
+   * in the real-provider acceptance matrix claiming the {@code REASONING} capability -- rejects
+   * every value except {@code none} and {@code high} with an HTTP 400 (confirmed against the live
+   * API), matching the two-way toggle Mistral's own playground exposes for reasoning effort. This
+   * enum only offers the values that actually work.
    */
   public enum MistralEffort {
     @JsonProperty("modelDefault")
     MODEL_DEFAULT,
     @JsonProperty("none")
     NONE,
-    @JsonProperty("minimal")
-    MINIMAL,
-    @JsonProperty("low")
-    LOW,
-    @JsonProperty("medium")
-    MEDIUM,
     @JsonProperty("high")
-    HIGH,
-    @JsonProperty("xhigh")
-    XHIGH
+    HIGH
   }
 }
