@@ -132,6 +132,11 @@ limitations under the License.</license.inlineheader>
          override lives in that module's pom, because version.apache-tika is declared there.
          Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
     <version.ddplist>1.30</version.ddplist>
+    <!-- jsoup transitive override: pin 1.23.2 (includes jhy/jsoup#2556) over the older jsoup brought in by
+         Tika (tika-parser-code-module / tika-parser-html-module). Remove once the Tika version in
+         connectors/embeddings-vector-database pulls jsoup >= 1.23.2. The enforcer reminder for this
+         override lives in that module's pom, because version.apache-tika is declared there. -->
+    <version.jsoup>1.23.2</version.jsoup>
 
     <version.google-api-client>2.9.1</version.google-api-client>
 
@@ -289,6 +294,13 @@ limitations under the License.</license.inlineheader>
         <groupId>com.googlecode.plist</groupId>
         <artifactId>dd-plist</artifactId>
         <version>${version.ddplist}</version>
+      </dependency>
+
+      <!-- Override jsoup transitive version brought in via Tika (see version.jsoup). -->
+      <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>${version.jsoup}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
