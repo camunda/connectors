@@ -97,7 +97,8 @@ class OpenAiChatModelFactoryTest {
                 new OpenAiCompletionsRequestConverter(
                     contentConverter,
                     OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                    objectMapper),
+                    objectMapper,
+                    OPENAI_ID),
                 new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(

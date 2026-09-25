@@ -63,28 +63,34 @@ import org.jspecify.annotations.Nullable;
  * {@link CompletionsRequestSpec} plus their own {@link OpenAiCompletionsContentChunkStrategy}.
  *
  * <p>Reasoning is mapped via the input-only {@code reasoning_effort} dial plus, where applicable,
- * replay of a prior turn's reasoning content: a {@link ReasoningContent} whose payload is shaped
- * like the chunked {@code thinking} chunk {@link OpenAiCompletionsResponseConverter} emits (self-
- * detected from the payload's own shape, not a caller-supplied flag or its {@code provider} tag) is
- * replayed byte-faithfully as part of a chunked {@code content} array (see {@link
- * #assistantMessage}); this is what Mistral's Magistral models require to keep reasoning quality
- * across turns. Any other {@link ReasoningContent} (e.g. carried over from a different API family
- * after a mid-conversation provider switch) and every {@link ProviderContent} have no
- * representation on this family and are dropped. Tool results are always flattened to plain text.
+ * replay of a prior turn's reasoning content: a {@link ReasoningContent} is replayed
+ * byte-faithfully as part of a chunked {@code content} array (see {@link #assistantMessage}) only
+ * when it was produced by this same provider instance (its {@code provider} tag matches this
+ * converter's own {@code providerId}) <em>and</em> its payload is shaped like the chunked {@code
+ * thinking} chunk {@link OpenAiCompletionsResponseConverter} emits -- both are required, since a
+ * payload shape alone doesn't uniquely identify the producing family: Anthropic's raw
+ * thinking-block payload also keeps a {@code type: "thinking"} field after its own text extraction.
+ * This is what Mistral's reasoning-capable models require to keep reasoning quality across turns.
+ * Any other {@link ReasoningContent} (e.g. carried over from a different provider after a
+ * mid-conversation provider switch) and every {@link ProviderContent} have no representation on
+ * this family and are dropped. Tool results are always flattened to plain text.
  */
 public class OpenAiCompletionsRequestConverter {
 
   private final OpenAiContentConverter contentConverter;
   private final OpenAiCompletionsContentChunkStrategy contentChunkStrategy;
   private final ObjectMapper objectMapper;
+  private final String providerId;
 
   public OpenAiCompletionsRequestConverter(
       OpenAiContentConverter contentConverter,
       OpenAiCompletionsContentChunkStrategy contentChunkStrategy,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      String providerId) {
     this.contentConverter = contentConverter;
     this.contentChunkStrategy = contentChunkStrategy;
     this.objectMapper = objectMapper;
+    this.providerId = providerId;
   }
 
   public ChatCompletionCreateParams toRequest(
@@ -219,14 +225,17 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * A {@link ReasoningContent} is only replayable as a chunked {@code thinking} chunk if its
-   * payload is shaped the way {@link OpenAiCompletionsResponseConverter} produces it -- detected
-   * from the payload's own {@code type} field, not from the content's {@code provider} tag, so
-   * reasoning content carried over from a different API family (whose payload never has this shape)
-   * correctly keeps being dropped rather than misread as replayable.
+   * A {@link ReasoningContent} is only replayable as a chunked {@code thinking} chunk if it was
+   * produced by this same provider ({@code provider} tag matches this converter's own {@code
+   * providerId}) <em>and</em> its payload is shaped the way {@link
+   * OpenAiCompletionsResponseConverter} produces it. Both checks are required: payload shape alone
+   * isn't a unique signal -- Anthropic's raw thinking-block payload also carries a {@code type:
+   * "thinking"} field after its own text extraction, so a provider-tag-only or shape-only check
+   * would misclassify reasoning content replayed after a mid-conversation provider switch.
    */
   private boolean isChunkedReasoningContent(ReasoningContent reasoning) {
-    return reasoning.payload() instanceof Map<?, ?> payload
+    return providerId.equals(reasoning.provider())
+        && reasoning.payload() instanceof Map<?, ?> payload
         && "thinking".equals(payload.get("type"));
   }
 

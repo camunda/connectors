@@ -201,7 +201,8 @@ class MistralChatModelFactoryClientTest {
             new OpenAiCompletionsRequestConverter(
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-                objectMapper),
+                objectMapper,
+                MISTRAL_ID),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.chunkedContentAware());
     final var configuration =
