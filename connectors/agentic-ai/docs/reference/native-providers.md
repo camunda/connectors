@@ -356,19 +356,22 @@ without moving any existing template property.
 Mistral's reasoning-capable models (`mistral-medium`, `mistral-small`) return assistant `content` as a chunk array
 (`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string, and require that array to
 be replayed verbatim (including the raw `thinking` chunk) on every follow-up turn. There is no
-dialect flag and no model-name heuristic anywhere in this path: both the response parser and the
-request-side replay detect the chunked shape structurally.
+dialect flag and no model-name heuristic anywhere in this path: the response parser detects the
+chunked shape structurally, and request-side replay requires both a provider-tag match and that
+same structural shape.
 
 - **Response**: `OpenAiCompletionsResponseConverter` reads the raw `ChatCompletionMessage._content()`
   field. If it's a JSON array, each chunk is walked and mapped by its own `type` key (`thinking` →
   `ReasoningContent`, carrying the chunk's other fields as `payload` and the joined thinking text as
   `text`; `text` → `TextContent`). If it's a plain string, the existing OpenAI string-content path
   runs unchanged — a non-reasoning Mistral model is indistinguishable from OpenAI at this layer.
-- **Request**: `assistantMessage()` rebuilds the chunk array only when a `ReasoningContent`'s
-  `payload` is itself shaped like a thinking chunk (`instanceof Map` with `type=thinking`), never by
-  checking `provider()`. This means a `ReasoningContent` from a different provider family that
-  happens to carry a matching provider tag but the wrong payload shape is correctly dropped instead
-  of misreplayed, and vice versa.
+- **Request**: `assistantMessage()` rebuilds the chunk array only when a `ReasoningContent` was
+  produced by this same provider instance (its `provider` tag matches this converter's own
+  `providerId`) *and* its `payload` is itself shaped like a thinking chunk (`instanceof Map` with
+  `type=thinking`). Both checks are required: payload shape alone isn't a unique signal —
+  Anthropic's raw thinking-block payload also keeps a `type: "thinking"` field after its own text
+  extraction — so a provider-tag-only or shape-only check would misclassify reasoning content
+  replayed after a mid-conversation provider switch.
 - **Streaming**: `ChatCompletionAccumulator` (the openai-java SDK helper this converter chain
   otherwise reuses) can't accumulate array-shaped content deltas, so streamed Mistral responses use a
   separate `ChunkedContentChatCompletionAccumulator` — a manual reimplementation of the same
