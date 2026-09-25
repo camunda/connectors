@@ -123,11 +123,7 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
           normalizeBaseUrl(githubApiBaseUrl != null ? githubApiBaseUrl : baseUrl);
       if (!allowedBaseUrls.contains(resolvedBaseUrl)) {
         throw new IllegalArgumentException(
-            "GitHub API base URL '"
-                + resolvedBaseUrl
-                + "' is not permitted. Configure "
-                + ALLOWED_BASE_URLS_ENV_VAR
-                + " to allow additional hosts.");
+            "GitHub API base URL '" + resolvedBaseUrl + "' is not permitted.");
       }
       final String jwt = createJwt(privateKey, appId);
       return getInstallationAccessToken(jwt, installationId, resolvedBaseUrl);
