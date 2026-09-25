@@ -271,6 +271,18 @@ entry from parent/pom.xml, and this enforcer rule.
 See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
               </regexMessage>
             </requireProperty>
+            <!-- jsoup guard: see version.jsoup in parent/pom.xml. -->
+            <requireProperty>
+              <property>version.apache-tika</property>
+              <regex>^3\.3\.2$</regex>
+              <regexMessage>
+version.apache-tika was changed! Check if the jsoup override can be removed.
+If the new Tika version pulls jsoup &gt;= 1.23.2 (confirm with
+`mvn dependency:tree -Dincludes=org.jsoup:jsoup -pl connectors/embeddings-vector-database`,
+not just the property), remove the version.jsoup property and the jsoup dependencyManagement
+entry from parent/pom.xml, and this enforcer rule.
+              </regexMessage>
+            </requireProperty>
           </rules>
         </configuration>
       </plugin>
