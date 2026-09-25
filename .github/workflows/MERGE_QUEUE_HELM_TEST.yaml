@@ -770,6 +770,17 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
+      # Upstream modules are only needed as dependencies here, so they install without their
+      # own tests or checks. The image under test comes from build-image, not from this build.
+      - name: Install reactor dependencies (skip tests and checks)
+        if: steps.changes.outputs.ai == 'true'
+        run: |
+          ./mvnw --batch-mode install -DskipTests -DskipChecks \
+            --projects connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            --also-make
+
+      # No `-am` here: the previous step already installed the dependencies, so this stays
+      # scoped to the agentic-ai E2E module instead of re-running every upstream module's tests.
       - name: Run AI Agent E2E tests
         if: steps.changes.outputs.ai == 'true'
         env:
@@ -782,7 +793,6 @@ jobs:
         run: |
           ./mvnw verify \
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-            -am \
             -Pit-real-llm \
             --batch-mode
 
