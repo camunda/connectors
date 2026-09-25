@@ -103,7 +103,7 @@ public class OpenAiCompletionsResponseConverter {
     final List<ChatCompletion.Choice> choices = completion.choices();
     if (choices.isEmpty()) {
       throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response contained no choices");
+          ERROR_CODE_FAILED_MODEL_CALL, "%s response contained no choices".formatted(providerId));
     }
     return choices.get(0);
   }

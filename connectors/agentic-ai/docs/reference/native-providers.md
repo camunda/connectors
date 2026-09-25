@@ -343,16 +343,20 @@ Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything e
 ## Mistral AI
 
 `MistralChatModel` reuses the OpenAI Completions family's converters
-(`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`) and stream assembler
-wholesale, since Mistral's Chat Completions API is the same wire format as OpenAI's. It does not go
-through `OpenAiCompletionsStrategy` -- that class is typed to `OpenAiChatModelConfiguration` -- so
-`MistralChatModel` has its own thin `execute()`/`toSpec()` that maps this provider's own
-configuration onto the shared `CompletionsRequestSpec` instead. `MistralChatModelFactory` only
-builds a differently-configured openai-java client (`baseUrl` pointed at
-`https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of `mistral` through
-to the shared converters. There is one backend, `MistralApiBackend` (`mistral-api`) — the sealed
-backend axis exists so a second backend is purely additive later, without moving any existing
-template property.
+(`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`) wholesale, since
+Mistral's Chat Completions API is the same wire format as OpenAI's, but supplies its own content
+chunk strategy and stream assembler: `OpenAiCompletionsContentChunkStrategy.mistral(...)` maps a
+PDF to Mistral's `document_url` chunk instead of OpenAI's `file`/`file_data` shape, and
+`OpenAiCompletionsStreamAssembler.chunkedContentAware()` drives the chunked reasoning content
+covered below -- OpenAI's own wiring uses `.openAi(...)` and `.accumulating()` instead. It also
+does not go through `OpenAiCompletionsStrategy` -- that class is typed to
+`OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
+that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
+`MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
+pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of
+`mistral` through to the shared converters. There is one backend, `MistralApiBackend`
+(`mistral-api`) — the sealed backend axis exists so a second backend is purely additive later,
+without moving any existing template property.
 
 ### Reasoning
 
