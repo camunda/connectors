@@ -30,7 +30,7 @@ public class HttpWebhookUtil {
   }
 
   public static Object transformRawBodyToObject(byte[] rawBody, String contentTypeHeader) {
-    if (rawBody == null) {
+    if (rawBody == null || rawBody.length == 0) {
       return Collections.emptyMap();
     }
     if (isMultipartFormDataContentType(contentTypeHeader)) {
