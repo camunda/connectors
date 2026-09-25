@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
@@ -35,8 +36,11 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
@@ -55,29 +59,74 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
   private static final String GITHUB_API_VERSION_ACCEPT_HEADER = "application/vnd.github.v3+json";
   public static final String RESPONSE_TOKEN_FIELD = "token";
 
+  // Comma-separated list of GitHub API base URLs the githubApiBaseUrl argument may resolve to.
+  // Unset (or blank) permits only this instance's own default base URL - the right default for
+  // SaaS, where the public GitHub API is the only legitimate target. Self-managed/hybrid
+  // deployments set this to their GitHub Enterprise host(s) instead.
+  static final String ALLOWED_BASE_URLS_ENV_VAR = "CAMUNDA_CONNECTOR_GITHUB_APP_ALLOWED_BASE_URLS";
+
   private final ObjectMapper objectMapper = new ObjectMapper();
   private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
   private final String baseUrl;
+  private final Set<String> allowedBaseUrls;
 
   static {
     Security.addProvider(new BouncyCastleProvider());
   }
 
   public CreateGithubAppInstallationTokenFunction() {
-    this(DEFAULT_GITHUB_API_BASE_URL);
+    this(DEFAULT_GITHUB_API_BASE_URL, System.getenv());
   }
 
-  // Package-private constructor for testing
+  // Package-private constructor for testing: deterministic, ignores the ambient environment so
+  // an allow-list variable set on the test machine can't affect it. Tests exercising a configured
+  // allow-list use the explicit environment overload instead.
   CreateGithubAppInstallationTokenFunction(String baseUrl) {
+    this(baseUrl, Map.of());
+  }
+
+  // Package-private constructor for testing: allows injecting the environment consulted for the
+  // allow-list, independent of this instance's default base URL.
+  CreateGithubAppInstallationTokenFunction(String baseUrl, Map<String, String> environment) {
     this.baseUrl = baseUrl;
+    this.allowedBaseUrls = loadAllowedBaseUrls(environment, baseUrl);
+  }
+
+  private static Set<String> loadAllowedBaseUrls(
+      Map<String, String> environment, String defaultBaseUrl) {
+    final String raw = environment.get(ALLOWED_BASE_URLS_ENV_VAR);
+    if (raw == null || raw.isBlank()) {
+      return Set.of(normalizeBaseUrl(defaultBaseUrl));
+    }
+    return Arrays.stream(raw.split(","))
+        .map(String::trim)
+        .filter(s -> !s.isBlank())
+        .map(CreateGithubAppInstallationTokenFunction::normalizeBaseUrl)
+        .collect(Collectors.toUnmodifiableSet());
+  }
+
+  private static String normalizeBaseUrl(String url) {
+    return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+  }
+
+  // Preserved for Java source/binary compatibility with existing callers of the public API.
+  public String execute(String privateKey, String appId, String installationId) {
+    return execute(privateKey, appId, installationId, null);
   }
 
   @IntrinsicFunction(name = "createGithubAppInstallationToken")
-  public String execute(String privateKey, String appId, String installationId) {
+  public String execute(
+      String privateKey, String appId, String installationId, @Nullable String githubApiBaseUrl) {
     try {
+      final String resolvedBaseUrl =
+          normalizeBaseUrl(githubApiBaseUrl != null ? githubApiBaseUrl : baseUrl);
+      if (!allowedBaseUrls.contains(resolvedBaseUrl)) {
+        throw new IllegalArgumentException(
+            "GitHub API base URL '" + resolvedBaseUrl + "' is not permitted.");
+      }
       final String jwt = createJwt(privateKey, appId);
-      return getInstallationAccessToken(jwt, installationId);
+      return getInstallationAccessToken(jwt, installationId, resolvedBaseUrl);
     } catch (Exception e) {
       throw new RuntimeException("Failed to generate GitHub App installation token", e);
     }
@@ -96,7 +145,7 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
         .sign(algorithm);
   }
 
-  private String getInstallationAccessToken(String jwt, String installationId)
+  private String getInstallationAccessToken(String jwt, String installationId, String baseUrl)
       throws IOException, InterruptedException {
     final String url = baseUrl + String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
     final HttpRequest request =
