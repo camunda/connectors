@@ -24,6 +24,15 @@
           <zeebe:taskDefinition type="lookup-classified-fact" retries="0" />
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:serviceTask id="Lookup_Access_Authorization" name="Lookup Access Authorization">
+        <bpmn:documentation>Looks up the access authorization code for a given internal project code name. Requires the code name returned by the Lookup Classified Fact tool as input, so call this only after that tool has already returned its result.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="lookup-access-authorization" retries="0" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.codeName, &#34;The internal project code name previously returned by the Lookup Classified Fact tool.&#34;)" target="codeName" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_Agent_To_Feedback" sourceRef="AI_Agent" targetRef="User_Feedback" />
     <bpmn:userTask id="User_Feedback" name="User Feedback">
@@ -78,6 +87,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_Lookup_di" bpmnElement="Lookup_Classified_Fact">
         <dc:Bounds x="480" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Lookup_Access_di" bpmnElement="Lookup_Access_Authorization">
+        <dc:Bounds x="600" y="200" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_Start_To_Loop_di" bpmnElement="Flow_Start_To_Loop">
         <di:waypoint x="188" y="250" />
