@@ -2754,7 +2754,7 @@
     "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
     "label" : "Enable prompt caching",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "model",
     "binding" : {
@@ -2793,7 +2793,7 @@
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
     "label" : "Enable prompt caching",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "model",
     "binding" : {

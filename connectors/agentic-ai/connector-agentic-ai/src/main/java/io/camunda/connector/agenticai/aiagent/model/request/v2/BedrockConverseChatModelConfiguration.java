@@ -202,7 +202,7 @@ public record BedrockConverseChatModelConfiguration(
                         + "href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" "
                         + "target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
-                defaultValue = "false",
+                defaultValue = "true",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
             @Nullable Boolean enabled) {}
