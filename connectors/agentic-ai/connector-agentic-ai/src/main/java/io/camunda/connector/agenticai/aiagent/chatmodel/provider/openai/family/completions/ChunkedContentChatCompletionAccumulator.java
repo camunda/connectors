@@ -17,6 +17,7 @@ import com.openai.models.chat.completions.ChatCompletionMessage;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -292,6 +293,7 @@ final class ChunkedContentChatCompletionAccumulator {
     private final StringBuilder plainText = new StringBuilder();
     private final List<Map<String, Object>> closedChunks = new ArrayList<>();
     private @Nullable String openChunkType;
+    private final Map<String, Object> openChunkExtra = new LinkedHashMap<>();
     private final StringBuilder openChunkText = new StringBuilder();
     private boolean chunked = false;
 
@@ -339,6 +341,15 @@ final class ChunkedContentChatCompletionAccumulator {
         closeOpenChunk();
         openChunkType = typeName;
       }
+      // Carry over every other field a delta carries on this chunk (e.g. a per-delta `closed`
+      // flag, provider metadata, signatures) so closeOpenChunk doesn't have to synthesize them --
+      // last delta wins, matching how a field like `closed` flips true only once the chunk ends.
+      raw.forEach(
+          (key, value) -> {
+            if (!"type".equals(key) && !"thinking".equals(key) && !"text".equals(key)) {
+              openChunkExtra.put(key, value);
+            }
+          });
       if ("thinking".equals(typeName)) {
         final Object thinking = raw.get("thinking");
         if (thinking instanceof List<?> items) {
@@ -357,19 +368,19 @@ final class ChunkedContentChatCompletionAccumulator {
       if (openChunkType == null) {
         return;
       }
+      final Map<String, Object> chunk = new LinkedHashMap<>(openChunkExtra);
+      chunk.put("type", openChunkType);
       if ("thinking".equals(openChunkType)) {
-        closedChunks.add(
-            Map.of(
-                "type",
-                "thinking",
-                "thinking",
-                List.of(Map.of("type", "text", "text", openChunkText.toString())),
-                "closed",
-                true));
+        chunk.put("thinking", List.of(Map.of("type", "text", "text", openChunkText.toString())));
+        // Only default to closed if no delta on this chunk carried its own `closed` field --
+        // preserves a real false/other value instead of overriding it.
+        chunk.putIfAbsent("closed", true);
       } else {
-        closedChunks.add(Map.of("type", openChunkType, "text", openChunkText.toString()));
+        chunk.put("text", openChunkText.toString());
       }
+      closedChunks.add(chunk);
       openChunkText.setLength(0);
+      openChunkExtra.clear();
     }
 
     JsonField<String> build() {

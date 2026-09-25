@@ -191,6 +191,32 @@ class ChunkedContentChatCompletionAccumulatorTest {
   }
 
   @Test
+  void preservesExtraChunkFieldsAndAnExplicitClosedValueFromTheRawDelta() {
+    // A field beyond type/thinking/text (e.g. provider metadata/signature) must survive
+    // accumulation, and an explicit closed value observed on a delta must not be overridden by
+    // the true default -- e.g. a chunk still open when the stream is cut off by finish_reason
+    // length.
+    final ChatCompletion assembled =
+        assemble(
+            assembler,
+            deltaChunk(
+                """
+                {"role": "assistant", "content": [
+                  {"type": "thinking", "thinking": [{"type": "text", "text": "still thinking"}],
+                   "closed": false, "signature": "sig-abc"}
+                ]}
+                """),
+            finishChunk("\"length\""));
+
+    final var chunks = assembled.choices().get(0).message()._content().asArray().orElseThrow();
+    assertThat(chunks).hasSize(1);
+    final var thinkingChunk = chunks.get(0).convert(new TypeReference<Map<String, Object>>() {});
+    assertThat(thinkingChunk.get("type")).isEqualTo("thinking");
+    assertThat(thinkingChunk.get("closed")).isEqualTo(false);
+    assertThat(thinkingChunk.get("signature")).isEqualTo("sig-abc");
+  }
+
+  @Test
   void accumulatesToolCallArgumentsAcrossDeltasByIndex() {
     final ChatCompletion assembled =
         assemble(
