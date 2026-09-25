@@ -841,8 +841,9 @@ class RealProviderApiSmokeIT {
   }
 
   /**
-   * Combines structured output with chained tool calls. Known to fail on mistral-medium-latest
-   * (repetition-loop hang); not tested here since it doesn't claim STRUCTURED_OUTPUT.
+   * Combines structured output with chained tool calls. mistral-medium-3-5 was observed hanging on
+   * this combination during real-API testing (repetition-loop hang, client-side timeout kills the
+   * stream); it isn't exercised here since it doesn't claim STRUCTURED_OUTPUT.
    */
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")

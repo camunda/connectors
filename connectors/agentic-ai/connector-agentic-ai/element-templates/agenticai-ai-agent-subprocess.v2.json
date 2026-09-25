@@ -3217,20 +3217,8 @@
       "name" : "none",
       "value" : "none"
     }, {
-      "name" : "minimal",
-      "value" : "minimal"
-    }, {
-      "name" : "low",
-      "value" : "low"
-    }, {
-      "name" : "medium",
-      "value" : "medium"
-    }, {
       "name" : "high",
       "value" : "high"
-    }, {
-      "name" : "xhigh",
-      "value" : "xhigh"
     } ]
   }, {
     "id" : "provider.model",
