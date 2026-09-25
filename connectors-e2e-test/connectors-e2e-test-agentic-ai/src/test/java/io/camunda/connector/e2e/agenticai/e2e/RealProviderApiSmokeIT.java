@@ -23,6 +23,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -49,7 +50,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -87,6 +87,7 @@ class RealProviderApiSmokeIT {
   static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
+  static final String ACCESS_JOB_TYPE = "lookup-access-authorization";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
   private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
 
@@ -101,14 +102,27 @@ class RealProviderApiSmokeIT {
           + NONCE_CLEARANCE
           + ".";
 
+  // Distinct from PLANTED_SECRET - only obtainable via Lookup_Access_Authorization.
+  static final String NONCE_ACCESS_CODE = "Vantablack-3";
+  static final String ACCESS_AUTHORIZATION_SECRET =
+      "ACCESS AUTHORIZATION: The access authorization code is " + NONCE_ACCESS_CODE + ".";
+
   static final String DEFAULT_SYSTEM_PROMPT =
       "You are a precise assistant. When the user asks for a classified or internal code name, "
-          + "you MUST call the Lookup Classified Fact tool and quote its result verbatim.";
+          + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
+          + "guess or fabricate a value for a tool argument - only use a value you actually "
+          + "received from a previous tool result.";
 
   private static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
           + "\"required\":[\"codeName\",\"clearanceLevel\"]}";
+
+  // codeName/accessCode span both tools - proves both were called, unlike RESPONSE_SCHEMA above.
+  private static final String MULTI_TOOL_RESPONSE_SCHEMA =
+      "{\"type\":\"object\","
+          + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"accessCode\":{\"type\":\"string\"}},"
+          + "\"required\":[\"codeName\",\"accessCode\"]}";
 
   // Repeated to clear the largest minimum cacheable-prefix size among providers under test:
   // Anthropic needs ~1024 tokens (Sonnet-class models), Gemini needs ~4096. Each repeat is ~65
@@ -134,6 +148,8 @@ class RealProviderApiSmokeIT {
           + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private final AtomicReference<String> capturedAccessAuthorizationCodeName =
+      new AtomicReference<>();
 
   @Autowired CamundaClient camundaClient;
   @Autowired CamundaProcessTestContext processTestContext;
@@ -661,16 +677,26 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // No PROMPT_CACHING claim: MistralParameters has no caching toggle.
+            // mistral-medium-latest never returns from a tool-history+json_schema request: the
+            // model call hangs until the client-side call timeout kills the stream (confirmed
+            // against the real API); large-latest doesn't, so STRUCTURED_OUTPUT is exercised here.
+            // No PROMPT_CACHING claim: Mistral does cache (confirmed against the real API - same
+            // prompt_tokens_details.cached_tokens field as OpenAI), but the hit only appeared on a
+            // third rapid call, not the second, so this scenario's write-then-read turn pair
+            // doesn't reliably observe it.
             mistralV2(
-                "mistral-medium-latest", Map.of(Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
-            // mistral-medium-latest degenerates into a repetition loop for
-            // tool-history+json_schema requests (confirmed against the real API); large-latest
-            // doesn't, so STRUCTURED_OUTPUT is exercised here instead.
-            mistralV2("mistral-large-latest", Map.of(Capability.STRUCTURED_OUTPUT, Map.of())),
+                "mistral-large-latest",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+            // No STRUCTURED_OUTPUT claim: a tool-history+json_schema request also hangs the model
+            // call here until the client-side timeout kills the stream (confirmed against the
+            // real API).
             mistralV2(
                 "magistral-medium-latest",
-                Map.of(Capability.REASONING, Map.of("provider.mistral.parameters.effort", "high"))),
+                Map.of(
+                    Capability.REASONING, Map.of("provider.mistral.parameters.effort", "high"),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
             googleGeminiV2(
                 "gemini-3.7-flash",
                 Map.of(
@@ -751,7 +777,7 @@ class RealProviderApiSmokeIT {
   }
 
   @BeforeEach
-  void mockClassifiedFactTool() {
+  void mockClassifiedFactTools() {
     processTestContext
         .mockJobWorker(TOOL_JOB_TYPE)
         .withHandler(
@@ -761,6 +787,22 @@ class RealProviderApiSmokeIT {
                     .variable("toolCallResult", PLANTED_SECRET)
                     .send()
                     .join());
+    processTestContext
+        .mockJobWorker(ACCESS_JOB_TYPE)
+        .withHandler(
+            (jobClient, job) -> {
+              var codeName = String.valueOf(job.getVariablesAsMap().get("codeName"));
+              capturedAccessAuthorizationCodeName.set(codeName);
+              if (codeName.isBlank() || "null".equals(codeName)) {
+                throw new IllegalStateException(
+                    "Lookup Access Authorization called without a resolvable codeName argument");
+              }
+              jobClient
+                  .newCompleteCommand(job)
+                  .variable("toolCallResult", ACCESS_AUTHORIZATION_SECRET)
+                  .send()
+                  .join();
+            });
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -788,8 +830,60 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text ->
-                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME)));
+                    text -> assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME)));
+  }
+
+  /**
+   * Combines structured output with chained tool calls. Known to fail on mistral-medium-latest
+   * (repetition-loop hang); not tested here since it doesn't claim STRUCTURED_OUTPUT.
+   */
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("providersWithStructuredOutput")
+  void structuredOutputWithMultipleToolCallsReturnsSchemaConformingJson(ProviderConfig provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            DEFAULT_SYSTEM_PROMPT,
+            template ->
+                template
+                    .property("data.response.format.type", "json")
+                    .property("data.response.format.schema", "=" + MULTI_TOOL_RESPONSE_SCHEMA)
+                    .property("data.response.format.schemaName", "ClassifiedAccess"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
+            Map.of(
+                "userPrompt",
+                "What is the internal project code name, and what is the access authorization "
+                    + "code? Use your lookup tools to get both, then return them as JSON."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .metricsSatisfy(
+                    metrics -> assertThat(metrics.toolCalls()).as("tool calls").isEqualTo(2))
+                .hasResponseJsonSatisfying(
+                    json -> {
+                      @SuppressWarnings("unchecked")
+                      var map = (Map<String, Object>) json;
+                      assertThat(map).containsKeys("codeName", "accessCode");
+                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                          .contains(NONCE_CODE_NAME);
+                      assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
+                          .contains(NONCE_ACCESS_CODE);
+                    }));
+
+    assertThat(normalizeDashes(capturedAccessAuthorizationCodeName.get()))
+        .as("codeName argument passed to Lookup Access Authorization")
+        .contains(NONCE_CODE_NAME);
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -826,11 +920,10 @@ class RealProviderApiSmokeIT {
                     json -> {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
-                      Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                      assertThat(map).containsKeys("codeName", "clearanceLevel");
+                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(
-                              normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
+                      assertThat(normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
                           .contains(NONCE_CLEARANCE);
                     }));
   }
@@ -863,7 +956,7 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasReasoningContent()
-                .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
+                .hasResponseTextSatisfying(text -> assertThat(text).contains("23")));
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -900,18 +993,18 @@ class RealProviderApiSmokeIT {
           if (provider.reportsCacheCreationTokens()) {
             agentAssert.metricsSatisfy(
                 metrics ->
-                    Assertions.assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                    assertThat(metrics.tokenUsage().cacheCreationTokenCount())
                         .as("cache creation token count")
                         .isPositive());
           }
           agentAssert
               .metricsSatisfy(
                   metrics ->
-                      Assertions.assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
                           .as("cache read token count")
                           .isPositive())
               .hasResponseTextSatisfying(
-                  text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
+                  text -> assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });
   }
 
@@ -955,8 +1048,7 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text ->
-                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
+                    text -> assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -1140,7 +1232,7 @@ class RealProviderApiSmokeIT {
             Map.class,
             map -> responseRef.set(objectMapper.convertValue(map, AgentSubProcessResponse.class)));
 
-    Assertions.assertThat(responseRef.get()).satisfies(assertions);
+    assertThat(responseRef.get()).satisfies(assertions);
   }
 
   /**
@@ -1163,7 +1255,7 @@ class RealProviderApiSmokeIT {
             Map.class,
             map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
 
-    Assertions.assertThat(normalizeDashes(responseTextRef.get())).contains(expectedSubstrings);
+    assertThat(normalizeDashes(responseTextRef.get())).contains(expectedSubstrings);
   }
 
   /**
