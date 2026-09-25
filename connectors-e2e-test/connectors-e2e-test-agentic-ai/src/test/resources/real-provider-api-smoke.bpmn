@@ -25,7 +25,7 @@
         </bpmn:extensionElements>
       </bpmn:serviceTask>
       <bpmn:serviceTask id="Lookup_Access_Authorization" name="Lookup Access Authorization">
-        <bpmn:documentation>Looks up the access authorization code for a given internal project code name. Requires the code name returned by the Lookup Classified Fact tool as input, so call this only after that tool has already returned its result.</bpmn:documentation>
+        <bpmn:documentation>Looks up the access authorization code for a given internal project code name. Requires the code name returned by the Lookup Classified Fact tool as input. Do NOT call this tool in the same turn as Lookup Classified Fact - call Lookup Classified Fact first, wait for its result, and only then call this tool with that real result.</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="lookup-access-authorization" retries="0" />
           <zeebe:ioMapping>
