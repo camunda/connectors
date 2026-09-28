@@ -73,7 +73,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
           server-id: camunda-nexus
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
@@ -118,12 +118,12 @@ jobs:
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
       - name: Lint Connector Bundle Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
 
