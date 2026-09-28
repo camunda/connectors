@@ -2137,7 +2137,7 @@
   }, {
     "id" : "provider.mistral.backend.custom.endpoint",
     "label" : "API endpoint",
-    "description" : "Base URL of the Mistral-compatible API; <code>/chat/completions</code> will be appended.",
+    "description" : "Base URL of the Mistral-compatible API. <code>/chat/completions</code> will be appended.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

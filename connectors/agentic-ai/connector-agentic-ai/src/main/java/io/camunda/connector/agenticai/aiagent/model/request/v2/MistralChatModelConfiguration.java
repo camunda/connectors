@@ -190,7 +190,7 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
                   group = "provider",
                   label = "API endpoint",
                   description =
-                      "Base URL of the Mistral-compatible API; <code>/chat/completions</code> will be appended.",
+                      "Base URL of the Mistral-compatible API. <code>/chat/completions</code> will be appended.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.mistral.ai/v1",
