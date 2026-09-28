@@ -19,6 +19,9 @@ package io.camunda.connector.runtime.managedcode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -32,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class ManagedCodeReconcilerTest {
 
@@ -239,6 +243,63 @@ class ManagedCodeReconcilerTest {
       assertThat(controlPlane.providerOperationIds).isEmpty();
     } finally {
       reconciler.shutdown();
+    }
+  }
+
+  @Test
+  void logsSuccessfulProviderDeploymentLifecycleWithoutScriptContent() throws Exception {
+    var scriptContent = "super-secret-script-source";
+    var deployment =
+        new ManagedScriptDeployment(
+            "deployment-demo",
+            1L,
+            "lease-demo",
+            "fake",
+            "tenant-a",
+            123L,
+            "sum.js",
+            new byte[] {1, 2, 3},
+            "javascript",
+            "nodejs22",
+            scriptContent.getBytes(StandardCharsets.UTF_8),
+            Optional.empty());
+    var controlPlane = new RecordingControlPlane(List.of(deployment), 1);
+    var logger = (Logger) LoggerFactory.getLogger(ManagedCodeReconciler.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    var reconciler =
+        reconciler(
+            controlPlane, new FakeManagedCodeDeploymentProvider(), mock(CamundaClient.class));
+    try {
+      reconciler.reconcile();
+
+      assertThat(controlPlane.reported.await(5, TimeUnit.SECONDS)).isTrue();
+      assertThat(appender.list)
+          .extracting(ILoggingEvent::getFormattedMessage)
+          .anySatisfy(
+              message ->
+                  assertThat(message)
+                      .contains(
+                          "Started provider operation 'fake-operation-",
+                          "managed-script deployment 'deployment-demo'",
+                          "physical tenant 'tenant-a'",
+                          "provider 'fake'",
+                          "resource='sum.js'",
+                          "language='javascript'",
+                          "runtime='nodejs22'"))
+          .anySatisfy(
+              message ->
+                  assertThat(message)
+                      .contains(
+                          "Managed-script deployment 'deployment-demo' is READY",
+                          "providerOperationId='fake-operation-",
+                          "providerDeploymentId='fake-deployment-"))
+          .noneSatisfy(message -> assertThat(message).contains(scriptContent));
+    } finally {
+      reconciler.shutdown();
+      logger.detachAppender(appender);
+      appender.stop();
     }
   }
 

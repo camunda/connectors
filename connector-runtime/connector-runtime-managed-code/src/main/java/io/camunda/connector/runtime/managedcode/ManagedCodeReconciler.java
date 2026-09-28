@@ -146,6 +146,14 @@ public final class ManagedCodeReconciler implements CamundaClientLifecycleAware 
         var result =
             deploymentProvider.resumeDeployment(operation.deployment(), operation.operationId());
         controlPlane.completeDeployment(client, physicalTenantId, operation.deployment(), result);
+        LOG.info(
+            "Managed-script deployment '{}' is READY for physical tenant '{}' with provider '{}':"
+                + " providerOperationId='{}', providerDeploymentId='{}'",
+            operation.deployment().deploymentId(),
+            physicalTenantId,
+            deploymentProvider.provider(),
+            operation.operationId(),
+            result.providerDeploymentId());
       } finally {
         renewal.cancel(false);
       }
@@ -176,10 +184,27 @@ public final class ManagedCodeReconciler implements CamundaClientLifecycleAware 
       CamundaClient client, String physicalTenantId, ManagedScriptDeployment deployment)
       throws Exception {
     if (deployment.existingProviderOperationId().isPresent()) {
-      return new ResolvedOperation(
-          deployment, deployment.existingProviderOperationId().orElseThrow());
+      final var operationId = deployment.existingProviderOperationId().orElseThrow();
+      LOG.info(
+          "Resuming provider operation '{}' for managed-script deployment '{}' in physical tenant"
+              + " '{}' with provider '{}'",
+          operationId,
+          deployment.deploymentId(),
+          physicalTenantId,
+          deploymentProvider.provider());
+      return new ResolvedOperation(deployment, operationId);
     }
     var operationId = deploymentProvider.startDeployment(deployment);
+    LOG.info(
+        "Started provider operation '{}' for managed-script deployment '{}' in physical tenant '{}'"
+            + " with provider '{}' (resource='{}', language='{}', runtime='{}')",
+        operationId,
+        deployment.deploymentId(),
+        physicalTenantId,
+        deploymentProvider.provider(),
+        deployment.resourceName(),
+        deployment.language(),
+        deployment.runtime());
     var updatedDeployment =
         controlPlane.recordProviderOperation(client, physicalTenantId, deployment, operationId);
     return new ResolvedOperation(updatedDeployment, operationId);

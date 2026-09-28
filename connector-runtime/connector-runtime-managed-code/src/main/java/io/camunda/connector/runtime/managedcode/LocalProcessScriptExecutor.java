@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,8 +47,6 @@ final class LocalProcessScriptExecutor {
   private static final String CONTRACT_VERSION = "1";
   private static final Duration TERMINATION_GRACE_PERIOD = Duration.ofMillis(250);
   private static final Duration STREAM_COLLECTION_TIMEOUT = Duration.ofSeconds(5);
-  private static final Set<String> ALLOWED_ENVIRONMENT_VARIABLES =
-      Set.of("LANG", "LC_ALL", "LC_CTYPE", "TZ", "SYSTEMROOT", "WINDIR");
 
   private final ObjectMapper objectMapper;
   private final LocalInterpreterDiscovery.DiscoveryReport interpreters;
@@ -111,7 +108,7 @@ final class LocalProcessScriptExecutor {
                   interpreter.executable().orElseThrow().toString(),
                   wrapper.getFileName().toString())
               .directory(workingDirectory.toFile());
-      configureEnvironment(processBuilder.environment(), workingDirectory);
+      LocalProcessEnvironment.configure(processBuilder.environment(), workingDirectory);
 
       final var startedAt = System.nanoTime();
       process = processBuilder.start();
@@ -178,24 +175,6 @@ final class LocalProcessScriptExecutor {
       Files.copy(wrapperStream, wrapper);
       return wrapper;
     }
-  }
-
-  private static void configureEnvironment(Map<String, String> environment, Path workingDirectory) {
-    final var hostEnvironment = System.getenv();
-    environment.clear();
-    for (var name : ALLOWED_ENVIRONMENT_VARIABLES) {
-      final var value = hostEnvironment.get(name);
-      if (value != null) {
-        environment.put(name, value);
-      }
-    }
-    final var temporaryPath = workingDirectory.toString();
-    environment.put("HOME", temporaryPath);
-    environment.put("TMPDIR", temporaryPath);
-    environment.put("TMP", temporaryPath);
-    environment.put("TEMP", temporaryPath);
-    environment.put("PYTHONDONTWRITEBYTECODE", "1");
-    environment.put("NODE_DISABLE_COLORS", "1");
   }
 
   private CapturedProcess captureProcess(Process process, int maxOutputBytes, int maxLogBytes)
