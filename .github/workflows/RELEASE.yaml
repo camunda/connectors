@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       camunda-version:
-        description: 'Camunda artifact version (version.camunda) to build against (e.g., 8.7.0). Leave empty to keep the version from pom.xml.'
+        description: 'Camunda artifact version (version.zeebe and version.camunda-process-test) to build against (e.g., 8.7.0). Leave empty to keep the version from pom.xml.'
         required: false
         type: string
         default: ''
@@ -184,7 +184,9 @@ jobs:
 
       - name: Set Camunda artifact version
         if: ${{ inputs.camunda-version != '' }}
-        run: ./mvnw -B versions:set-property -Dproperty=version.camunda -DnewVersion=${CAMUNDA_VERSION} -DgenerateBackupPoms=false -f parent
+        run: |
+          ./mvnw -B versions:set-property -Dproperty=version.zeebe -DnewVersion=${CAMUNDA_VERSION} -DgenerateBackupPoms=false -f parent
+          ./mvnw -B versions:set-property -Dproperty=version.camunda-process-test -DnewVersion=${CAMUNDA_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           CAMUNDA_VERSION: ${{ inputs.camunda-version }}
 
