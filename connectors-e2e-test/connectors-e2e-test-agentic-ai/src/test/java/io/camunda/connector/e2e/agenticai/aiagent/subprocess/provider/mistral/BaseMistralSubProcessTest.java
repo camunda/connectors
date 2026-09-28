@@ -33,9 +33,12 @@ import java.util.function.Function;
 
 /**
  * Shared foundation for native-Mistral-only v2 sub-process e2e coverage. Mistral's Chat Completions
- * wire format is byte-for-byte identical to OpenAI's (see {@code MistralChatModel}, which reuses
- * the OpenAI provider's Completions converters wholesale), so this mirrors {@code
+ * wire format is OpenAI-compatible (see {@code MistralChatModel}, which reuses the OpenAI
+ * provider's Completions converters wholesale), so this mirrors {@code
  * BaseOpenAiCompletionsSubProcessTest} but wires the {@code mistral} provider/backend instead.
+ * Mistral-specific wire divergences (the {@code document_url} PDF shape, array-shaped reasoning
+ * content) are covered separately by {@link AgentSubProcessMistralReasoningTests} and its siblings,
+ * not by this shared fixture.
  */
 abstract class BaseMistralSubProcessTest extends BaseAgentSubProcessTest {
 

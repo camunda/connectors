@@ -28,12 +28,15 @@ import java.util.function.Function;
 
 /**
  * Plugs the native Mistral provider into the provider-agnostic {@link ProviderWireFormatFixture}
- * SPI. Mistral's Chat Completions API is the same wire format as OpenAI's (see {@code
- * MistralChatModel}, which reuses the OpenAI provider's Completions request/response converters
- * wholesale), so -- exactly like {@link AzureOpenAiCompletionsWireFormatFixture} -- this fixture
- * reuses {@link OpenAiCompletionsChatModelStubs}, {@link OpenAiCompletionsRecordedConversation} and
- * {@link OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them, at the
- * same default {@code /v1/chat/completions} path.
+ * SPI. Mistral's Chat Completions API is OpenAI-compatible for the common cross-provider scenarios
+ * this SPI exercises (see {@code MistralChatModel}, which reuses the OpenAI provider's Completions
+ * request/response converters wholesale), so -- exactly like {@link
+ * AzureOpenAiCompletionsWireFormatFixture} -- this fixture reuses {@link
+ * OpenAiCompletionsChatModelStubs}, {@link OpenAiCompletionsRecordedConversation} and {@link
+ * OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them, at the same
+ * default {@code /v1/chat/completions} path. Mistral-specific wire divergences (the {@code
+ * document_url} PDF shape, array-shaped reasoning content) are outside this SPI's scope and are not
+ * exercised here.
  *
  * <p>Chunked reasoning content is exercised separately in {@code
  * AgentSubProcessMistralReasoningTests}, not by this fixture's shared cross-provider scenarios --
