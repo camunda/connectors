@@ -361,11 +361,17 @@ without moving any existing template property.
 ### Reasoning
 
 Mistral's reasoning-capable models (`mistral-medium`, `mistral-small`) return assistant `content` as a chunk array
-(`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string, and require that array to
-be replayed verbatim (including the raw `thinking` chunk) on every follow-up turn. There is no
-dialect flag and no model-name heuristic anywhere in this path: the response parser detects the
-chunked shape structurally, and request-side replay requires both a provider-tag match and that
-same structural shape.
+(`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string. Per Mistral's own OpenAPI
+schema (`ThinkChunk`, `additionalProperties: false`), a `thinking` chunk's items aren't limited to
+plain text: `thinking` is an array of `text` | `tool_reference` | `reference` items, and the chunk
+itself carries an optional `signature` field the schema documents as existing specifically "to
+replay some reasoning blocks across turns." The contract this connector holds itself to is bounded
+accordingly: a streamed assembly of that array must equal what the non-streaming response would
+have contained for the same generation — every item and the `signature`/`closed` fields carried
+through unchanged — not an open-ended byte-for-byte promise beyond what the schema itself declares.
+There is no dialect flag and no model-name heuristic anywhere in this path: the response parser
+detects the chunked shape structurally, and request-side replay requires both a provider-tag match
+and that same structural shape.
 
 - **Response**: `OpenAiCompletionsResponseConverter` reads the raw `ChatCompletionMessage._content()`
   field. If it's a JSON array, each chunk is walked and mapped by its own `type` key (`thinking` →
