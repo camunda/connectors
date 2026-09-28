@@ -4,13 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.openai.core.JsonValue;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -23,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class MistralDocumentUrlContentChunkStrategyTest {
 
   private final OpenAiCompletionsContentChunkStrategy strategy =
-      OpenAiCompletionsContentChunkStrategy.mistral(TestObjectMapperSupplier.INSTANCE);
+      new MistralDocumentUrlContentChunkStrategy(TestObjectMapperSupplier.INSTANCE);
 
   private static Document pdfDocument() {
     final var document = mock(Document.class);
@@ -37,8 +38,6 @@ class MistralDocumentUrlContentChunkStrategyTest {
 
   @Test
   void mapsPdfDocumentToDocumentUrlPartInsteadOfFilePart() {
-    // Mistral's real API rejects OpenAI's `file`/`file_data` chunk for a PDF (verified against
-    // the real API) and requires a `document_url` chunk carrying the data URI directly instead.
     final var document = pdfDocument();
 
     final var parts =
@@ -58,8 +57,6 @@ class MistralDocumentUrlContentChunkStrategyTest {
 
   @Test
   void mapsImageDocumentToTheSameImageUrlPartAsOpenAi() {
-    // Verified against the real Mistral API: the identical image_url shape OpenAI uses works
-    // unchanged, so no provider-specific branch is needed here.
     final var document = mock(Document.class);
     final var metadata = mock(DocumentMetadata.class);
     when(document.metadata()).thenReturn(metadata);

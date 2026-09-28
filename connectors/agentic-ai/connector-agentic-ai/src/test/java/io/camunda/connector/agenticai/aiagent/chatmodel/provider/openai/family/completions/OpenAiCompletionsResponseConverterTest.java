@@ -16,6 +16,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -42,7 +43,15 @@ class OpenAiCompletionsResponseConverterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final OpenAiCompletionsResponseConverter converter =
-      new OpenAiCompletionsResponseConverter("openai", objectMapper);
+      new OpenAiCompletionsResponseConverter(
+          "openai", objectMapper, OpenAiCompletionsContentDialect.none());
+
+  // Mistral's thinking-chunk vocabulary is only ever recognized by a converter instance wired with
+  // MistralReasoningContentDialect -- mirrors the real production wiring in
+  // AgenticAiNativeProvidersConfiguration.
+  private final OpenAiCompletionsResponseConverter mistralConverter =
+      new OpenAiCompletionsResponseConverter(
+          "mistral", objectMapper, new MistralReasoningContentDialect());
 
   private static ChatCompletion completionFromJson(String json) {
     try {
@@ -288,9 +297,10 @@ class OpenAiCompletionsResponseConverterTest {
 
   @Test
   void mapsChunkedThinkingAndTextContentToReasoningAndTextContent() {
-    // Mirrors a real Mistral Magistral non-streaming response: content is an array of typed
-    // chunks instead of a plain string, self-detected from the raw JSON shape (see
-    // OpenAiCompletionsResponseConverter#mapContent).
+    // Mirrors a real Mistral non-streaming response: content is an array of typed chunks instead
+    // of a plain string, self-detected from the raw JSON shape (see
+    // OpenAiCompletionsResponseConverter#mapContent); the thinking chunk itself is only recognized
+    // by MistralReasoningContentDialect.
     final ChatCompletion completion =
         baseCompletion(
             """
@@ -307,12 +317,12 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
         .containsExactly(
             new ReasoningContent(
-                "openai", Map.of("type", "thinking", "closed", true), "5 + 7 is 12.", null),
+                "mistral", Map.of("type", "thinking", "closed", true), "5 + 7 is 12.", null),
             TextContent.textContent("The answer is 12."));
   }
 
@@ -330,18 +340,18 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
         .containsExactly(
-            new ReasoningContent("openai", Map.of("type", "thinking"), "still thinking", null));
+            new ReasoningContent("mistral", Map.of("type", "thinking"), "still thinking", null));
   }
 
   @Test
   void keepsMultiItemThinkingArrayInPayloadInsteadOfCollapsingIt() {
     // A multi-item thinking array (or one whose item carries extra fields) can't be reconstructed
     // byte-identical from the joined text alone, so it must stay in the payload verbatim -- see
-    // OpenAiCompletionsResponseConverter#isThinkingReconstructible.
+    // MistralReasoningContentDialect#isThinkingReconstructible.
     final ChatCompletion completion =
         completionWithFinishReason(
             "stop",
@@ -361,7 +371,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
 
     final var reasoning = (ReasoningContent) result.assistantMessage().content().get(0);
     assertThat(reasoning.text()).isEqualTo("5 + 7 is 12.");
@@ -372,6 +382,31 @@ class OpenAiCompletionsResponseConverterTest {
             List.of(
                 Map.of("type", "text", "text", "5 + 7 "),
                 Map.of("type", "text", "text", "is 12.")));
+  }
+
+  @Test
+  void treatsThinkingChunkAsGenericProviderContentWhenDialectDoesNotRecognizeIt() {
+    // Unlike mistralConverter, this converter's OpenAiCompletionsContentDialect.none() doesn't
+    // recognize Mistral's thinking-chunk vocabulary, so it falls back to the generic
+    // unknown-chunk-type handling instead of ReasoningContent.
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "thinking", "thinking": [{"type": "text", "text": "5 + 7 is 12."}]}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ProviderContent.class,
+            providerContent -> assertThat(providerContent.provider()).isEqualTo("openai"));
   }
 
   @Test

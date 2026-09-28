@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -552,8 +553,10 @@ class OpenAiChatModelFactoryClientTest {
                     OPENAI_ID,
                     contentConverter,
                     OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                    objectMapper),
-                new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
+                    objectMapper,
+                    OpenAiCompletionsContentDialect.none()),
+                new OpenAiCompletionsResponseConverter(
+                    OPENAI_ID, objectMapper, OpenAiCompletionsContentDialect.none()),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),

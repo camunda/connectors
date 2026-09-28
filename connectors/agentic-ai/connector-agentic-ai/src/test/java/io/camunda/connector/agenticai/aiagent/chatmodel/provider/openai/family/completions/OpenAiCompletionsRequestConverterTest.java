@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicC
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -54,17 +57,19 @@ class OpenAiCompletionsRequestConverterTest {
           OPENAI_ID,
           contentConverter,
           OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-          objectMapper);
+          objectMapper,
+          OpenAiCompletionsContentDialect.none());
 
-  // Chunked reasoning replay only ever applies to a converter instance bound to the Mistral
-  // provider (see OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- mirrors the real
-  // production wiring in AgenticAiNativeProvidersConfiguration.
+  // Chunked reasoning replay only ever applies to a converter instance wired with a reasoning-
+  // capable content dialect -- mirrors the real production wiring in
+  // AgenticAiNativeProvidersConfiguration.
   private final OpenAiCompletionsRequestConverter mistralConverter =
       new OpenAiCompletionsRequestConverter(
           MISTRAL_ID,
           contentConverter,
-          OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-          objectMapper);
+          new MistralDocumentUrlContentChunkStrategy(objectMapper),
+          objectMapper,
+          new MistralReasoningContentDialect());
 
   private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
       new OpenAiRequestCustomizations(null, null, null);
@@ -693,6 +698,20 @@ class OpenAiCompletionsRequestConverterTest {
     assertThat(params.maxCompletionTokens()).isEmpty();
     assertThat(requestBodyAsJson(params).has("max_tokens")).isTrue();
     assertThat(requestBodyAsJson(params).path("max_tokens").asLong()).isEqualTo(512L);
+  }
+
+  @Test
+  void rejectsSpecWithBothMaxCompletionTokensAndMaxTokensSet() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    assertThatThrownBy(
+            () ->
+                converter.toRequest(
+                    new CompletionsRequestSpec(
+                        "gpt-4o", 100L, 200L, null, null, null, NO_CUSTOMIZATIONS),
+                    null,
+                    snapshot))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test

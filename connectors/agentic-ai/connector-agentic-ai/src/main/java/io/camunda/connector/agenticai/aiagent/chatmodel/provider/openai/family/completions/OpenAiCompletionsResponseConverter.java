@@ -27,18 +27,15 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Maps an accumulated OpenAI Chat Completions API SDK {@link ChatCompletion} to the domain {@link
@@ -51,15 +48,16 @@ import org.jspecify.annotations.Nullable;
  * AgentMetrics.TokenUsage}.
  *
  * <p>Some OpenAI-compatible endpoints (e.g. Mistral's reasoning-capable models) send {@code
- * content} as an array of typed chunks (a {@code thinking} chunk followed by a {@code text} chunk)
- * instead of a plain string. This is detected from the raw JSON shape of the field itself -- not
- * from a caller-supplied flag -- so it works uniformly for reasoning and non-reasoning models
- * alike: a {@code thinking} chunk becomes a {@link ReasoningContent} (tagged with this converter's
- * configured {@code providerId}, its payload preserving the chunk's other fields verbatim, minus
- * the lifted-out text, for byte-faithful replay -- see {@link
- * OpenAiCompletionsRequestConverter#assistantMessage}), a {@code text} chunk becomes a {@link
- * TextContent}, and any other chunk type becomes a {@link ProviderContent} (see {@link
- * #mapChunkedContent}), all in their original order.
+ * content} as an array of typed chunks instead of a plain string. Whether {@code content} is a
+ * plain string or a chunked array is detected from the raw JSON shape of the field itself -- not
+ * from a caller-supplied flag -- so it works uniformly regardless of provider; what to do with a
+ * given chunk's own {@code type} is delegated to the injected {@link
+ * OpenAiCompletionsContentDialect} (see {@link #mapChunkedContent}): a chunk type the dialect
+ * recognizes (e.g. Mistral's {@code thinking} chunk, tagged with this converter's configured {@code
+ * providerId} for byte-faithful replay -- see {@link
+ * OpenAiCompletionsRequestConverter#assistantMessage}) becomes whatever domain {@link Content} the
+ * dialect produces; a plain {@code text} chunk becomes a {@link TextContent}; any other chunk type
+ * becomes a {@link ProviderContent}, all in their original order.
  *
  * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
  * ContentFilteredException} instead of returning a result, carrying the assistant message and
@@ -70,10 +68,15 @@ public class OpenAiCompletionsResponseConverter {
 
   private final String providerId;
   private final ObjectMapper objectMapper;
+  private final OpenAiCompletionsContentDialect contentDialect;
 
-  public OpenAiCompletionsResponseConverter(String providerId, ObjectMapper objectMapper) {
+  public OpenAiCompletionsResponseConverter(
+      String providerId,
+      ObjectMapper objectMapper,
+      OpenAiCompletionsContentDialect contentDialect) {
     this.providerId = providerId;
     this.objectMapper = objectMapper;
+    this.contentDialect = contentDialect;
   }
 
   public ChatResult toResult(ChatCompletion completion, Duration executionTime) {
@@ -186,13 +189,15 @@ public class OpenAiCompletionsResponseConverter {
 
   /**
    * Unpacks a chunked {@code content} array into domain {@link Content}, one entry per chunk, in
-   * original order: a {@code thinking} chunk becomes {@link ReasoningContent}, a {@code text} chunk
-   * becomes {@link TextContent}. Any other chunk type (this endpoint's own {@code ContentChunk}
-   * union additionally allows {@code reference}/{@code image_url}/{@code document_url}/{@code
-   * file}/{@code input_audio}, e.g. a citation from a web-search-tool-augmented answer) has no
-   * provider-neutral representation and is preserved losslessly as {@link ProviderContent} instead
-   * -- mirrors the custom-tool-call handling in {@link #toToolCall} -- so nothing is silently
-   * dropped from conversation history even if this connector can't otherwise act on it.
+   * original order: a chunk the injected {@link OpenAiCompletionsContentDialect} recognizes (e.g.
+   * Mistral's {@code thinking} chunk) becomes whatever domain {@link Content} it produces; a plain
+   * {@code text} chunk becomes a {@link TextContent}; any other chunk type (this endpoint's own
+   * {@code ContentChunk} union additionally allows {@code reference}/{@code image_url}/{@code
+   * document_url}/{@code file}/{@code input_audio}, e.g. a citation from a web-search-tool-
+   * augmented answer) has no provider-neutral representation and is preserved losslessly as {@link
+   * ProviderContent} instead -- mirrors the custom-tool-call handling in {@link #toToolCall} -- so
+   * nothing is silently dropped from conversation history even if this connector can't otherwise
+   * act on it.
    */
   private void mapChunkedContent(List<JsonValue> chunks, List<Content> content) {
     for (final JsonValue chunkValue : chunks) {
@@ -201,67 +206,20 @@ public class OpenAiCompletionsResponseConverter {
       if (raw == null) {
         continue;
       }
-      final Object type = raw.get("type");
-      if ("thinking".equals(type)) {
-        content.add(toReasoningContent(raw));
-      } else if ("text".equals(type)) {
-        if (raw.get("text") instanceof String text && !text.isBlank()) {
-          content.add(TextContent.textContent(text));
-        }
-      } else {
-        content.add(ProviderContent.providerContent(providerId, raw));
+      contentDialect
+          .mapChunk(raw, providerId)
+          .ifPresentOrElse(content::add, () -> mapGenericChunk(raw, content));
+    }
+  }
+
+  private void mapGenericChunk(Map<String, Object> raw, List<Content> content) {
+    if ("text".equals(raw.get("type"))) {
+      if (raw.get("text") instanceof String text && !text.isBlank()) {
+        content.add(TextContent.textContent(text));
       }
+    } else {
+      content.add(ProviderContent.providerContent(providerId, raw));
     }
-  }
-
-  /**
-   * Lifts the readable text out of a {@code thinking} chunk's nested {@code thinking} array into
-   * {@link ReasoningContent#text()}. Whether {@code thinking} is also stripped from {@code payload}
-   * depends on {@link #isThinkingReconstructible}: if it holds, {@link
-   * OpenAiCompletionsRequestConverter#toChunkedThinkingChunk} rebuilds {@code thinking} from {@code
-   * text()} before replay; otherwise {@code thinking} is left untouched in {@code payload} --
-   * deliberately duplicated with {@code text()} -- since reconstructing it from a single joined
-   * string would silently drop extra items or per-item fields a multi-item {@code thinking} array
-   * may carry. Mirrors {@code OpenAiResponsesResponseConverter#toReasoningContent}'s handling of
-   * the Responses family's {@code summary} field.
-   */
-  private ReasoningContent toReasoningContent(Map<String, Object> raw) {
-    final Map<String, Object> payload = new LinkedHashMap<>(raw);
-    final Object thinking = payload.get("thinking");
-    final String text = extractThinkingText(thinking);
-    if (isThinkingReconstructible(thinking)) {
-      payload.remove("thinking");
-    }
-    return new ReasoningContent(providerId, payload, text, null);
-  }
-
-  private @Nullable String extractThinkingText(@Nullable Object thinking) {
-    if (!(thinking instanceof List<?> items)) {
-      return null;
-    }
-    final StringBuilder text = new StringBuilder();
-    for (final Object item : items) {
-      if (item instanceof Map<?, ?> map && map.get("text") instanceof String fragment) {
-        text.append(fragment);
-      }
-    }
-    return text.isEmpty() ? null : text.toString();
-  }
-
-  /**
-   * Holds only when {@code thinking} can be reconstructed byte-identical from {@link
-   * #extractThinkingText}'s joined result alone: exactly one item, itself exactly {@code
-   * {"type":"text","text":...}} with no extra fields -- the single-chunk shape both the streaming
-   * accumulator and a plain non-streaming response produce for the common case.
-   */
-  private boolean isThinkingReconstructible(@Nullable Object thinking) {
-    if (!(thinking instanceof List<?> items) || items.size() != 1) {
-      return false;
-    }
-    return items.get(0) instanceof Map<?, ?> item
-        && item.size() == 2
-        && "text".equals(item.get("type"))
-        && item.get("text") instanceof String;
   }
 
   private void toToolCall(

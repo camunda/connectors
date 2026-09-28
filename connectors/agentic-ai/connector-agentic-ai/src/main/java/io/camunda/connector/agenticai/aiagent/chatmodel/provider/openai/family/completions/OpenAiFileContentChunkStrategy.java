@@ -22,12 +22,16 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.ArrayList;
 import java.util.List;
 
-/** OpenAI's own Chat Completions content-chunk shapes, including the SDK-modeled PDF chunk. */
-final class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentChunkStrategy {
+/**
+ * OpenAI's own Chat Completions content-chunk shapes, including the SDK-modeled PDF chunk. Open for
+ * extension so a provider whose PDF chunk shape diverges (e.g. Mistral's {@code document_url}
+ * chunk) can reuse every other branch unchanged; see {@link #pdfPart}.
+ */
+public class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentChunkStrategy {
 
   private final ObjectMapper objectMapper;
 
-  OpenAiFileContentChunkStrategy(ObjectMapper objectMapper) {
+  protected OpenAiFileContentChunkStrategy(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 
@@ -74,15 +78,7 @@ final class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentCh
                           .detail(ChatCompletionContentPartImage.ImageUrl.Detail.AUTO)
                           .build())
                   .build());
-      case PDF ->
-          ChatCompletionContentPart.ofFile(
-              ChatCompletionContentPart.File.builder()
-                  .file(
-                      ChatCompletionContentPart.File.FileObject.builder()
-                          .filename(OpenAiDocumentParts.fileName(doc.document()))
-                          .fileData(OpenAiDocumentParts.dataUri(contentType, doc.document()))
-                          .build())
-                  .build());
+      case PDF -> pdfPart(contentType, doc);
       case TEXT ->
           ChatCompletionContentPart.ofText(
               ChatCompletionContentPartText.builder()
@@ -90,6 +86,22 @@ final class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentCh
                   .build());
       case UNSUPPORTED -> throw OpenAiDocumentParts.unsupportedContentType(contentType, doc);
     };
+  }
+
+  /**
+   * OpenAI's PDF chunk shape ({@code file}/{@code file_data} carrying the data URI). Override to
+   * send a divergent PDF encoding on an OpenAI-Completions-compatible endpoint that rejects this
+   * one (e.g. Mistral's {@code document_url} chunk).
+   */
+  protected ChatCompletionContentPart pdfPart(String contentType, DocumentContent doc) {
+    return ChatCompletionContentPart.ofFile(
+        ChatCompletionContentPart.File.builder()
+            .file(
+                ChatCompletionContentPart.File.FileObject.builder()
+                    .filename(OpenAiDocumentParts.fileName(doc.document()))
+                    .fileData(OpenAiDocumentParts.dataUri(contentType, doc.document()))
+                    .build())
+            .build());
   }
 
   private String writeAsJson(Object value) {

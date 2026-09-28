@@ -26,8 +26,4 @@ public interface OpenAiCompletionsContentChunkStrategy {
   static OpenAiCompletionsContentChunkStrategy openAi(ObjectMapper objectMapper) {
     return new OpenAiFileContentChunkStrategy(objectMapper);
   }
-
-  static OpenAiCompletionsContentChunkStrategy mistral(ObjectMapper objectMapper) {
-    return new MistralDocumentUrlContentChunkStrategy(objectMapper);
-  }
 }

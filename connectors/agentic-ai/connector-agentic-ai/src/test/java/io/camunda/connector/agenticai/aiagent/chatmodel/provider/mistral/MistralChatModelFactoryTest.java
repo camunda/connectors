@@ -19,7 +19,6 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
@@ -74,9 +73,11 @@ class MistralChatModelFactoryTest {
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
                 contentConverter,
-                OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-                objectMapper),
-            new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
+                new MistralDocumentUrlContentChunkStrategy(objectMapper),
+                objectMapper,
+                new MistralReasoningContentDialect()),
+            new OpenAiCompletionsResponseConverter(
+                MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
             OpenAiCompletionsStreamAssembler.chunkedContentAware(),
             oAuthClientCredentialsTokenResolver);
   }

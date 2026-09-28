@@ -25,9 +25,12 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -116,8 +119,10 @@ public class AgenticAiNativeProvidersConfiguration {
                 OPENAI_ID,
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                objectMapper),
-            new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
+                objectMapper,
+                OpenAiCompletionsContentDialect.none()),
+            new OpenAiCompletionsResponseConverter(
+                OPENAI_ID, objectMapper, OpenAiCompletionsContentDialect.none()),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
         new OpenAiResponsesStrategy(
@@ -141,15 +146,18 @@ public class AgenticAiNativeProvidersConfiguration {
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var mistralReasoningContentDialect = new MistralReasoningContentDialect();
     return new MistralChatModelFactory(
         configuration.aiagent().chatModel(),
         httpProxySupport,
         new OpenAiCompletionsRequestConverter(
             MISTRAL_ID,
             contentConverter,
-            OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-            objectMapper),
-        new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
+            new MistralDocumentUrlContentChunkStrategy(objectMapper),
+            objectMapper,
+            mistralReasoningContentDialect),
+        new OpenAiCompletionsResponseConverter(
+            MISTRAL_ID, objectMapper, mistralReasoningContentDialect),
         OpenAiCompletionsStreamAssembler.chunkedContentAware(),
         oAuthClientCredentialsTokenResolver);
   }
