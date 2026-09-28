@@ -172,24 +172,50 @@ class ChunkedContentChatCompletionAccumulatorTest {
   }
 
   @Test
-  void closesThinkingChunkAndStartsATextChunkWhenTheAnswerArrivesAsASeparatePlainStringDelta() {
-    // Unlike the fragmented-array test above, the closing `closed: true` thinking chunk is NOT
-    // bundled with an opening text chunk in the same delta -- the answer instead arrives entirely
-    // as its own later plain-string delta. SSE delta grouping must not change the result: the
-    // answer must still become its own TextContent, not get appended into the (closed) thinking
-    // chunk's text.
+  void doesNotFragmentAThinkingChunkOnClosedTrueArrivingOnIntermediateDeltas() {
+    // Real captured traffic: `closed: true` arrives on roughly every other thinking delta
+    // throughout the entire reasoning phase, not just the final one -- per Mistral's own schema,
+    // it is "currently only used for prefixing" and is not an end-of-reasoning signal. Treating it
+    // as one fragments one logical thinking chunk into dozens of separate ones instead of joining
+    // it into one. A delta with an empty `thinking` array (also observed immediately before the
+    // switch to `text`) must be a no-op, not a signal either. Only a type change legitimately
+    // closes a chunk.
     final ChatCompletion assembled =
         assemble(
             assembler,
             deltaChunk(
                 """
                 {"role": "assistant", "content": [
-                  {"type": "thinking", "thinking": [{"type": "text", "text": "5 + 7 is 12."}], "closed": true}
+                  {"type": "thinking", "thinking": [{"type": "text", "text": "Let me think "}], "closed": true}
                 ]}
                 """),
             deltaChunk(
                 """
-                {"content": "The answer is 12."}
+                {"content": [
+                  {"type": "thinking", "thinking": [{"type": "text", "text": "about this."}]}
+                ]}
+                """),
+            deltaChunk(
+                """
+                {"content": [
+                  {"type": "thinking", "thinking": [{"type": "text", "text": " 5+7=12."}], "closed": true}
+                ]}
+                """),
+            deltaChunk(
+                """
+                {"content": [
+                  {"type": "thinking", "thinking": []}
+                ]}
+                """),
+            deltaChunk(
+                """
+                {"content": [
+                  {"type": "text", "text": "The"}
+                ]}
+                """),
+            deltaChunk(
+                """
+                {"content": " answer is 12."}
                 """),
             finishChunk("\"stop\""));
 
@@ -202,7 +228,10 @@ class ChunkedContentChatCompletionAccumulatorTest {
     assertThat(thinkingChunk.get("thinking"))
         .asInstanceOf(InstanceOfAssertFactories.LIST)
         .singleElement()
-        .satisfies(item -> assertThat(((Map<?, ?>) item).get("text")).isEqualTo("5 + 7 is 12."));
+        .satisfies(
+            item ->
+                assertThat(((Map<?, ?>) item).get("text"))
+                    .isEqualTo("Let me think about this. 5+7=12."));
 
     final var textChunk = chunks.get(1).convert(new TypeReference<Map<String, Object>>() {});
     assertThat(textChunk.get("type")).isEqualTo("text");

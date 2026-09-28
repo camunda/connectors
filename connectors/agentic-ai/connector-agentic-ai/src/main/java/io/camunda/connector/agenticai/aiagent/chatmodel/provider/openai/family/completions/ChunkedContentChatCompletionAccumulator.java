@@ -40,12 +40,15 @@ import org.jspecify.annotations.Nullable;
  * accumulating a {@code thinking} chunk's text one fragment at a time, then further chunked-array
  * deltas accumulating a {@code text} chunk once thinking is done -- observed in real traffic to
  * arrive in the very same delta as the thinking chunk's closing fragment. Once the array shape has
- * been observed at all, every open chunk is tracked by type (switching type finalizes the
- * previously open chunk) and the assembled message's {@code content} is emitted as a chunk array,
- * even if a later delta reverts to plain-string chunks (observed in real traffic once the thinking
- * phase has ended): those are simply appended to the currently open {@code text} chunk. A message
- * that never sees an array delta at all is emitted as a plain string, byte-identical to what the
- * vendor accumulator would have produced.
+ * been observed at all, every open chunk is tracked by type and only a type change finalizes the
+ * previously open chunk -- notably NOT a {@code thinking} chunk's own {@code closed} field, which
+ * real traffic sets true on roughly every other delta throughout the entire reasoning phase and is
+ * not an end-of-reasoning signal (per Mistral's own schema, it exists only for an unrelated
+ * prefixing feature). The assembled message's {@code content} is emitted as a chunk array, even if
+ * a later delta reverts to plain-string chunks (observed in real traffic once the thinking phase
+ * has ended): those are simply appended to the currently open {@code text} chunk. A message that
+ * never sees an array delta at all is emitted as a plain string, byte-identical to what the vendor
+ * accumulator would have produced.
  *
  * <p>Everything other than {@code content} (id/created/model, tool calls, refusal, role, usage,
  * finish reason) is accumulated the same way the vendor accumulator does it, field for field and
@@ -325,10 +328,10 @@ final class ChunkedContentChatCompletionAccumulator {
               text -> {
                 if (chunked) {
                   if (openChunkType == null) {
-                    // No chunk is currently open -- e.g. a thinking chunk just closed via its own
-                    // `closed: true` in an earlier delta, and the provider split the answer into a
-                    // separate plain-string delta instead of bundling an opening text chunk in the
-                    // same array. This is the start of a new text chunk, not a continuation.
+                    // Defensive fallback: no chunk is currently open (not observed in real
+                    // traffic once chunk mode has started, since only a type change closes a
+                    // chunk and always opens the next one immediately). Starts a text chunk
+                    // rather than silently discarding the fragment.
                     openChunkType = "text";
                   }
                   // A plain-string delta continues whichever chunk is (now) open (observed in real
@@ -365,7 +368,10 @@ final class ChunkedContentChatCompletionAccumulator {
           });
       if ("thinking".equals(typeName)) {
         final Object thinking = raw.get("thinking");
-        if (thinking instanceof List<?> items) {
+        // An empty thinking array is observed in real traffic immediately before the switch to
+        // text -- a no-op flush, not a signal, and must not affect reconstructibility (an empty
+        // list trivially satisfies "nothing to lose by joining", not the opposite).
+        if (thinking instanceof List<?> items && !items.isEmpty()) {
           // A single-item {"type":"text","text":...} list per delta is the only shape a joined
           // string can reconstruct byte-identical (the common case: one delta = one fragment of a
           // continuous thought). Any other shape -- more than one item in a delta's own thinking
@@ -382,15 +388,12 @@ final class ChunkedContentChatCompletionAccumulator {
             }
           }
         }
-        if (Boolean.TRUE.equals(raw.get("closed"))) {
-          // A closed thinking chunk isn't guaranteed to be followed, in the same delta, by an
-          // opening text chunk for the answer -- the provider may split them across separate
-          // deltas, with the answer arriving as a plain string. Close now so accumulate()'s
-          // plain-string branch sees no chunk open and starts a fresh one instead of appending
-          // the answer into this (finished) thinking chunk.
-          closeOpenChunk();
-          openChunkType = null;
-        }
+        // `closed` is deliberately NOT treated as an end-of-reasoning signal here: real traffic
+        // sends it true on roughly every other delta throughout the entire thinking phase, not
+        // just the final one -- Mistral's own schema documents it as "currently only used for
+        // prefixing". Treating it as a closing signal fragments one logical thinking chunk into
+        // dozens of separate ones. Only a type change (below) legitimately closes a chunk; its
+        // value is still carried through to the final chunk via openChunkExtra above.
       } else if ("text".equals(typeName) && raw.get("text") instanceof String fragment) {
         openChunkText.append(fragment);
       }
