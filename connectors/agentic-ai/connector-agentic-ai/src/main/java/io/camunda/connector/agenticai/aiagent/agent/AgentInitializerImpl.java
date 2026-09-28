@@ -119,10 +119,14 @@ public class AgentInitializerImpl implements AgentInitializer {
     final var executionMetadata = AgentMetadata.of(executionContext.jobContext());
     if (agentMetadata == null
         || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
+      final var updatedMetadata =
+          agentMetadata == null
+              ? executionMetadata
+              : agentMetadata.withProcessDefinitionKey(executionMetadata.processDefinitionKey());
       agentContext =
           toolsResolver
               .updateToolDefinitions(executionContext, agentContext)
-              .withMetadata(executionMetadata);
+              .withMetadata(updatedMetadata);
     }
 
     return new ReadyToConverse(agentContext, initialToolCallResults);
