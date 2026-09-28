@@ -417,9 +417,8 @@ while `assistantMessage == null`.
 
 The next turn's `iterationKey` is determined by `AgentConversation.rehydrate()`:
 `AgentMetadata.lastIterationKey` (persisted by `toAgentContext()`, see above) is authoritative when
-present. The reconstructed turn count is used as a fallback when it's absent (pre-feature
-conversations, or right after a process definition migration reset — `AgentInitializerImpl` replaces
-metadata wholesale on migration) and, when a stored key is present, to cross-validate against it:
+present. The reconstructed turn count is used as a fallback when it's absent (conversations created
+before this field was introduced) and, when a stored key is present, to cross-validate against it:
 a mismatch is logged as a warning (reconstruction drift), not thrown.
 
 `TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
