@@ -120,10 +120,10 @@ limitations under the License.</license.inlineheader>
     <version.amqp-client>5.36.0</version.amqp-client>
     <version.netty>4.2.18.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.1</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.3</version.logback>
+    <version.logback>1.6.4</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.3</version.aws-sdk2>
+    <version.aws-sdk2>2.55.7</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -155,7 +155,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260913-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260916-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260902-2.0.0</version.google-api-services-docs>
@@ -163,12 +163,12 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.72.0</version.google-genai>
+    <version.google-genai>1.73.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
-    <version.httpcore5>5.4.3</version.httpcore5>
+    <version.httpcore5>5.4.4</version.httpcore5>
     <version.httpclient5>5.6.4</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.1.0</version.ayza>
@@ -182,7 +182,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.3.1</version.kafka-clients>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
-    <version.lz4-java>1.11.3</version.lz4-java>
+    <version.lz4-java>1.12.0</version.lz4-java>
 
     <version.microsoft-graph>6.70.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
@@ -197,11 +197,11 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
-    <version.box-sdk>5.16.0</version.box-sdk>
+    <version.box-sdk>5.17.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-19</version.zstd-jni>
+    <version.zstd-jni>1.5.7-20</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -227,10 +227,10 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.1</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.20.0</version.langchain4j>
+    <version.langchain4j>1.20.2</version.langchain4j>
     <version.mcp-sdk>2.0.1</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.21</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.21</version.elasticsearch-rest-client>
+    <version.elasticsearch-java>8.19.22</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.22</version.elasticsearch-rest-client>
 
     <version.scala>3.9.0</version.scala>
 
@@ -243,7 +243,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.10.2</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.10.3</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
     <plugin.version.maven-compiler-plugin>3.16.0</plugin.version.maven-compiler-plugin>
 
@@ -251,7 +251,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.50.0</version.error-prone>
-    <version.nullaway>0.14.1</version.nullaway>
+    <version.nullaway>0.14.2</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
