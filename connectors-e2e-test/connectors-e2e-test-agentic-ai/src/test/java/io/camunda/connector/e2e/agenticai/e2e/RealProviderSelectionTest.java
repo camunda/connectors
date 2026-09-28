@@ -51,7 +51,7 @@ class RealProviderSelectionTest {
   @Test
   void shouldSelectMistralRowsOnlyWhenGroupIsMistral() {
     environment.set("MISTRAL_API_KEY", "key");
-    environment.set("REAL_LLM_PROVIDER_GROUP", "");
+    environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");
 
     assertThat(RealProviderApiSmokeIT.providers())
         .extracting(RealProviderApiSmokeIT.ProviderConfig::label)
