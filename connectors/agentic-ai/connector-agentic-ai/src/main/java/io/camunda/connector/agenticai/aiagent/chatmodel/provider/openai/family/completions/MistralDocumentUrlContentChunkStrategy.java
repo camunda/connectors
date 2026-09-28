@@ -27,9 +27,8 @@ import java.util.Map;
 /**
  * Mistral's Chat Completions content-chunk shapes. Only the PDF branch differs from {@link
  * OpenAiFileContentChunkStrategy}: Mistral rejects OpenAI's {@code file}/{@code file_data} chunk
- * and requires a {@code document_url} chunk carrying the data URI directly instead (verified
- * against the real API). Image parts need no such divergence: Mistral accepts the identical {@code
- * image_url} shape OpenAI uses (also verified against the real API).
+ * and requires a {@code document_url} chunk carrying the data URI directly instead. Image parts
+ * need no such divergence: Mistral accepts the identical {@code image_url} shape OpenAI uses.
  */
 final class MistralDocumentUrlContentChunkStrategy
     implements OpenAiCompletionsContentChunkStrategy {

@@ -34,7 +34,7 @@ public interface OpenAiCompletionsStreamAssembler {
 
   /**
    * Like {@link #accumulating()}, but additionally able to accumulate a chunked {@code content}
-   * array (as sent by e.g. Mistral's Magistral reasoning models) instead of failing on it -- see
+   * array (as sent by e.g. Mistral's reasoning-capable models) instead of failing on it -- see
    * {@link ChunkedContentChatCompletionAccumulator}. Detection is entirely shape-based, so this is
    * also safe to use for a model that never sends a chunked array at all.
    */

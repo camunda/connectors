@@ -14,13 +14,9 @@ import java.util.List;
 /**
  * Converts the domain {@link Content} model to Chat Completions content parts ({@link
  * ChatCompletionContentPart}) for a user/assistant message body. One implementation per provider
- * rather than one shared method with a provider check inside it: OpenAI and Mistral share this
- * family's request/response converters wholesale (see {@link OpenAiCompletionsRequestConverter}),
- * but Mistral rejects OpenAI's {@code file}/{@code file_data} PDF chunk and requires a {@code
- * document_url} chunk instead (verified against the real API) -- a genuine, outbound wire-format
- * choice this converter makes, with no self-detectable signal to key off the way the chunked
- * reasoning-content case has. Text/image/object/reasoning-fallback/provider-fallback content is
- * identical between the two implementations; only the PDF branch differs.
+ * rather than one shared method with a provider check inside it: this is a genuine, outbound
+ * wire-format choice each implementation makes, with no self-detectable signal to key off the way
+ * the chunked reasoning-content case has.
  */
 @FunctionalInterface
 public interface OpenAiCompletionsContentChunkStrategy {

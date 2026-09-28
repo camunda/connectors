@@ -50,7 +50,7 @@ import org.jspecify.annotations.Nullable;
  * completion_tokens_details.reasoning_tokens} is still surfaced via {@link
  * AgentMetrics.TokenUsage}.
  *
- * <p>Some OpenAI-compatible endpoints (e.g. Mistral's Magistral reasoning models) send {@code
+ * <p>Some OpenAI-compatible endpoints (e.g. Mistral's reasoning-capable models) send {@code
  * content} as an array of typed chunks (a {@code thinking} chunk followed by a {@code text} chunk)
  * instead of a plain string. This is detected from the raw JSON shape of the field itself -- not
  * from a caller-supplied flag -- so it works uniformly for reasoning and non-reasoning models

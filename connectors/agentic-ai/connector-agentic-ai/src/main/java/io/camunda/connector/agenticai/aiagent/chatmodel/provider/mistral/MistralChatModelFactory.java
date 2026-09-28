@@ -51,6 +51,12 @@ public class MistralChatModelFactory implements ChatModelFactory {
    */
   private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
+  /**
+   * Mistral API's own default base URL, used when the {@code mistral-api} backend's endpoint is
+   * unset.
+   */
+  static final String DEFAULT_MISTRAL_API_ENDPOINT = "https://api.mistral.ai/v1";
+
   private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiCompletionsRequestConverter requestConverter;
@@ -166,7 +172,7 @@ public class MistralChatModelFactory implements ChatModelFactory {
       case MistralApiBackend apiBackend ->
           apiBackend.mistral().endpoint() != null
               ? apiBackend.mistral().endpoint()
-              : "https://api.mistral.ai/v1";
+              : DEFAULT_MISTRAL_API_ENDPOINT;
       case MistralCustomBackend custom -> custom.custom().endpoint();
     };
   }

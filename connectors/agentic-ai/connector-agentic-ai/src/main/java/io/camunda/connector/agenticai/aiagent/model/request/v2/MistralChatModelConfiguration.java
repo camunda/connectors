@@ -29,18 +29,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Native (non-LangChain4j) v2 configuration for the Mistral AI provider. Mistral's Chat Completions
- * surface is OpenAI-shaped, so the wire mapping itself reuses the OpenAI provider's Chat
- * Completions converters (see {@code MistralChatModelFactory}); this record only carries Mistral's
- * own connection details and the handful of parameters its API actually accepts.
- *
- * <p>The backend is modeled as a sealed union ({@link MistralBackend.MistralApiBackend}, {@link
- * MistralBackend.MistralCustomBackend}) rather than a flat connection record, matching the
- * convention every other v2 provider follows ({@code ai-agent.md} §25.1): adding a further Mistral
- * backend later (e.g. Microsoft Foundry or AWS Bedrock Mantle) is then purely additive, with no
- * change to any existing template property path.
- */
 @TemplateSubType(id = MistralChatModelConfiguration.MISTRAL_ID, label = "Mistral AI")
 public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mistral)
     implements ProviderConfiguration {
