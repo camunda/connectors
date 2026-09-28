@@ -64,25 +64,25 @@ abstract class BaseMistralSubProcessTest extends BaseAgentSubProcessTest {
   }
 
   /** Asserts that exactly one model-call request has been recorded and returns its parsed body. */
-  JsonNode parseSoleRecordedRequest() {
+  protected JsonNode parseSoleRecordedRequest() {
     final var requests = recordedLoggedRequests();
     assertThat(requests).as("recorded model-call requests").hasSize(1);
     return parseBody(requests.get(0));
   }
 
   /** All recorded model-call requests, oldest first. */
-  List<JsonNode> parseRecordedRequests() {
+  protected List<JsonNode> parseRecordedRequests() {
     return recordedLoggedRequests().stream().map(this::parseBody).toList();
   }
 
-  static List<LoggedRequest> recordedLoggedRequests() {
+  protected static List<LoggedRequest> recordedLoggedRequests() {
     final List<LoggedRequest> requests =
         new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH))));
     requests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
     return requests;
   }
 
-  JsonNode parseBody(LoggedRequest loggedRequest) {
+  protected JsonNode parseBody(LoggedRequest loggedRequest) {
     try {
       return objectMapper.readTree(loggedRequest.getBodyAsString());
     } catch (Exception e) {

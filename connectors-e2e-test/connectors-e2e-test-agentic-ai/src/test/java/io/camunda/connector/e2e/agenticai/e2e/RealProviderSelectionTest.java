@@ -55,7 +55,7 @@ class RealProviderSelectionTest {
 
     assertThat(RealProviderApiSmokeIT.providers())
         .extracting(RealProviderApiSmokeIT.ProviderConfig::label)
-        .contains(
+        .containsExactly(
             "mistral-v2/mistral-large-2512",
             "mistral-v2/mistral-medium-3-5",
             "mistral-v2/ministral-14b-2512");
@@ -64,10 +64,7 @@ class RealProviderSelectionTest {
 
     assertThat(RealProviderApiSmokeIT.providers())
         .extracting(RealProviderApiSmokeIT.ProviderConfig::label)
-        .doesNotContain(
-            "mistral-v2/mistral-large-2512",
-            "mistral-v2/mistral-medium-3-5",
-            "mistral-v2/ministral-14b-2512");
+        .noneMatch(label -> label.startsWith("mistral-v2/"));
   }
 
   @Test
