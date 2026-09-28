@@ -135,7 +135,7 @@ public class MistralChatModelFactory implements ChatModelFactory {
     builder.baseUrl(connection.endpoint());
 
     switch (connection.authentication()) {
-      case NoAuthentication ignored -> builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY);
+      case NoAuthentication() -> builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY);
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
           builder.credential(
