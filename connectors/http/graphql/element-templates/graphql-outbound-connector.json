@@ -608,6 +608,13 @@
     "label" : "URL",
     "description" : "Overrides the URL carried by the selected credential. Required when the credential carries none, as an OAuth credential need not.",
     "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
     "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
