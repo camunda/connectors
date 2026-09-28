@@ -83,9 +83,10 @@ public class HttpCommonRequest {
   // Template-only twin of `url`, bound to the same `url` input and shown in its place once a
   // credential is chosen: there the URL may come from the credential, so the inline value is an
   // optional override rather than a required field. Never populated - the engine writes a single
-  // `url` input, which Jackson binds to the field above. Keep this twin constraint-free: Modeler's
-  // field validator applies patterns to an undefined optional value, while runtime validation still
-  // applies the URL pattern to the actual `url` field.
+  // `url` input, which Jackson binds to the field above. The twin carries the URL pattern but not
+  // notEmpty: Modeler reads an absent input as the empty string, which URL_PATTERN accepts, so an
+  // empty override still falls back to the credential while a malformed one is flagged at design
+  // time.
   @JsonIgnore
   @TemplateProperty(
       id = "urlOverride",
@@ -98,6 +99,10 @@ public class HttpCommonRequest {
           @PropertyCondition(
               property = "authenticationConfiguration",
               isEmpty = NullableBoolean.FALSE),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              pattern =
+                  @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)),
       description =
           "Overrides the URL carried by the selected credential. Required when the credential"
               + " carries none, as an OAuth credential need not.")
