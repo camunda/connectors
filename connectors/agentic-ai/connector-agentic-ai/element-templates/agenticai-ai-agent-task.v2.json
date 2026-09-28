@@ -1530,7 +1530,7 @@
   }, {
     "id" : "provider.openai.backend.custom.endpoint",
     "label" : "API endpoint",
-    "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+    "description" : "Base URL of the OpenAI-compatible API. <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
