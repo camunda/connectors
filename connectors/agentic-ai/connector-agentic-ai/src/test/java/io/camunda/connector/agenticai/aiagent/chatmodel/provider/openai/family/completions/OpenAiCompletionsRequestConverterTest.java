@@ -424,6 +424,83 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void replaysAReplayableProviderContentInItsOriginalPositionAlongsideReasoning() {
+    // Mirrors what OpenAiCompletionsResponseConverter#mapChunkedContent produces for a real
+    // interleaved [thinking, reference, text] response: a same-provider, chunk-shaped
+    // ProviderContent must be replayed verbatim in its original position, not dropped, and not
+    // reordered relative to the reasoning/text entries around it.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ReasoningContent(
+                                "mistral", Map.of("type", "thinking"), "thought about it", null),
+                            ProviderContent.providerContent(
+                                "mistral",
+                                Map.of("type", "reference", "reference_ids", List.of(1, 2))),
+                            TextContent.textContent("See source above.")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var contentNode = requestBodyAsJson(params).path("messages").get(0).path("content");
+    assertThat(contentNode).hasSize(3);
+    assertThat(contentNode.get(0).path("type").asText()).isEqualTo("thinking");
+    assertThat(contentNode.get(1).path("type").asText()).isEqualTo("reference");
+    assertThat(contentNode.get(1).path("reference_ids").get(0).asInt()).isEqualTo(1);
+    assertThat(contentNode.get(1).path("reference_ids").get(1).asInt()).isEqualTo(2);
+    assertThat(contentNode.get(2).path("type").asText()).isEqualTo("text");
+    assertThat(contentNode.get(2).path("text").asText()).isEqualTo("See source above.");
+  }
+
+  @Test
+  void dropsAProviderContentShapedLikeACustomToolCallInsteadOfReplayingItAsAChunk() {
+    // OpenAiCompletionsResponseConverter#toToolCall also wraps a custom tool call as
+    // ProviderContent, but its raw payload shape is unrelated to a content chunk and must never
+    // be sent back as one -- only the explicit chunk-type allow-list makes it replayable.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ProviderContent.providerContent(
+                                "mistral",
+                                Map.of("type", "custom", "custom", Map.of("input", "x"))),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
+  void dropsAProviderContentFromADifferentProviderEvenWhenChunkShaped() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ProviderContent.providerContent(
+                                "openai", Map.of("type", "reference", "reference_ids", List.of(1))),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = mistralConverter.toRequest(spec(), null, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
   void mapsToolDefinitionsToFunctionTools() {
     final Map<String, Object> schema =
         Map.of(

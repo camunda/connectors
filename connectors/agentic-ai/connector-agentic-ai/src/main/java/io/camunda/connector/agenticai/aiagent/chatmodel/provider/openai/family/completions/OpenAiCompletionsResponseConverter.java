@@ -57,8 +57,9 @@ import org.jspecify.annotations.Nullable;
  * alike: a {@code thinking} chunk becomes a {@link ReasoningContent} (tagged with this converter's
  * configured {@code providerId}, its payload preserving the chunk's other fields verbatim, minus
  * the lifted-out text, for byte-faithful replay -- see {@link
- * OpenAiCompletionsRequestConverter#assistantMessage}), and a {@code text} chunk becomes a {@link
- * TextContent}, both in their original order.
+ * OpenAiCompletionsRequestConverter#assistantMessage}), a {@code text} chunk becomes a {@link
+ * TextContent}, and any other chunk type becomes a {@link ProviderContent} (see {@link
+ * #mapChunkedContent}), all in their original order.
  *
  * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
  * ContentFilteredException} instead of returning a result, carrying the assistant message and
@@ -186,8 +187,12 @@ public class OpenAiCompletionsResponseConverter {
   /**
    * Unpacks a chunked {@code content} array into domain {@link Content}, one entry per chunk, in
    * original order: a {@code thinking} chunk becomes {@link ReasoningContent}, a {@code text} chunk
-   * becomes {@link TextContent}. Any other chunk type is a forward-compatibility gap and is
-   * silently skipped rather than failing the whole turn.
+   * becomes {@link TextContent}. Any other chunk type (this endpoint's own {@code ContentChunk}
+   * union additionally allows {@code reference}/{@code image_url}/{@code document_url}/{@code
+   * file}/{@code input_audio}, e.g. a citation from a web-search-tool-augmented answer) has no
+   * provider-neutral representation and is preserved losslessly as {@link ProviderContent} instead
+   * -- mirrors the custom-tool-call handling in {@link #toToolCall} -- so nothing is silently
+   * dropped from conversation history even if this connector can't otherwise act on it.
    */
   private void mapChunkedContent(List<JsonValue> chunks, List<Content> content) {
     for (final JsonValue chunkValue : chunks) {
@@ -199,8 +204,12 @@ public class OpenAiCompletionsResponseConverter {
       final Object type = raw.get("type");
       if ("thinking".equals(type)) {
         content.add(toReasoningContent(raw));
-      } else if ("text".equals(type) && raw.get("text") instanceof String text && !text.isBlank()) {
-        content.add(TextContent.textContent(text));
+      } else if ("text".equals(type)) {
+        if (raw.get("text") instanceof String text && !text.isBlank()) {
+          content.add(TextContent.textContent(text));
+        }
+      } else {
+        content.add(ProviderContent.providerContent(providerId, raw));
       }
     }
   }

@@ -375,14 +375,14 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
-  void skipsUnknownChunkTypesInChunkedContent() {
+  void preservesUnknownChunkTypesInChunkedContentAsProviderContent() {
     final ChatCompletion completion =
         baseCompletion(
             """
             {
               "role": "assistant",
               "content": [
-                {"type": "some_future_chunk_type", "data": "opaque"},
+                {"type": "reference", "reference_ids": [1, 2]},
                 {"type": "text", "text": "Hello there"}
               ]
             }
@@ -391,7 +391,10 @@ class OpenAiCompletionsResponseConverterTest {
     final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
-        .containsExactly(TextContent.textContent("Hello there"));
+        .containsExactly(
+            ProviderContent.providerContent(
+                "openai", Map.of("type", "reference", "reference_ids", List.of(1, 2))),
+            TextContent.textContent("Hello there"));
   }
 
   @Test

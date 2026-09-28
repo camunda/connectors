@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -70,12 +71,25 @@ import org.jspecify.annotations.Nullable;
  * thinking} chunk {@link OpenAiCompletionsResponseConverter} emits -- both are required, since a
  * payload shape alone doesn't uniquely identify the producing family: Anthropic's raw
  * thinking-block payload also keeps a {@code type: "thinking"} field after its own text extraction.
- * This is what Mistral's reasoning-capable models require to keep reasoning quality across turns.
- * Any other {@link ReasoningContent} (e.g. carried over from a different provider after a
- * mid-conversation provider switch) and every {@link ProviderContent} have no representation on
- * this family and are dropped. Tool results are always flattened to plain text.
+ * This is what Mistral's reasoning-capable models require to keep reasoning quality across turns. A
+ * {@link ProviderContent} is replayed the same way, in its original position, when it is similarly
+ * provider-tagged and its payload is shaped like one of the other chunk types {@link
+ * OpenAiCompletionsResponseConverter#mapChunkedContent} can emit (see {@link
+ * #isReplayableProviderContent}) -- this excludes the unrelated custom-tool-call {@link
+ * ProviderContent} this converter also produces, which is never chunk-shaped. Any other {@link
+ * ReasoningContent} or {@link ProviderContent} (e.g. carried over from a different provider after a
+ * mid-conversation provider switch) has no representation on this family and is dropped. Tool
+ * results are always flattened to plain text.
  */
 public class OpenAiCompletionsRequestConverter {
+
+  /**
+   * The chunk types {@link OpenAiCompletionsResponseConverter#mapChunkedContent} can wrap as a
+   * replayable {@link ProviderContent}: this endpoint's {@code ContentChunk} union minus {@code
+   * thinking}/{@code text}, which are never wrapped as {@link ProviderContent} in the first place.
+   */
+  private static final Set<String> REPLAYABLE_PROVIDER_CONTENT_CHUNK_TYPES =
+      Set.of("reference", "image_url", "document_url", "file", "input_audio");
 
   private final OpenAiContentConverter contentConverter;
   private final OpenAiCompletionsContentChunkStrategy contentChunkStrategy;
@@ -179,10 +193,10 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * Flattens plain content (text/document/object) to a single text blob, unless the message also
-   * carries a replayable chunked {@link ReasoningContent} (see the class Javadoc), in which case
-   * {@code content} is rebuilt as a chunked array instead via {@link #toChunkedContent}. Any other
-   * {@link ReasoningContent} and every {@link ProviderContent} have no wire representation on this
-   * family and are dropped.
+   * carries a replayable chunked {@link ReasoningContent} or {@link ProviderContent} (see the class
+   * Javadoc), in which case {@code content} is rebuilt as a chunked array instead via {@link
+   * #toChunkedContent}. Any other {@link ReasoningContent} or {@link ProviderContent} has no wire
+   * representation on this family and is dropped.
    *
    * <p>Returns {@code null} when nothing representable remains and there are no tool calls either:
    * the Completions API requires an assistant message to carry {@code content} unless it carries a
@@ -197,12 +211,16 @@ public class OpenAiCompletionsRequestConverter {
     final boolean hasChunkedReasoning =
         assistant.content().stream()
             .anyMatch(c -> c instanceof ReasoningContent rc && isChunkedReasoningContent(rc));
-    if (plainContent.isEmpty() && !hasChunkedReasoning && assistant.toolCalls().isEmpty()) {
+    final boolean hasReplayableProviderContent =
+        assistant.content().stream()
+            .anyMatch(c -> c instanceof ProviderContent pc && isReplayableProviderContent(pc));
+    final boolean useChunkedContent = hasChunkedReasoning || hasReplayableProviderContent;
+    if (plainContent.isEmpty() && !useChunkedContent && assistant.toolCalls().isEmpty()) {
       return null;
     }
 
     final var builder = ChatCompletionAssistantMessageParam.builder();
-    if (hasChunkedReasoning) {
+    if (useChunkedContent) {
       builder.content(JsonValue.from(toChunkedContent(assistant.content())));
     } else if (!plainContent.isEmpty()) {
       builder.content(toTextOutput(plainContent));
@@ -240,23 +258,52 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
+   * A {@link ProviderContent} is only replayable as its original chunk if it was produced by this
+   * same provider instance (mirrors {@link #isChunkedReasoningContent}) <em>and</em> its payload's
+   * {@code type} is one of the other chunk types {@link
+   * OpenAiCompletionsResponseConverter#mapChunkedContent} can wrap as {@link ProviderContent} --
+   * excluding {@code thinking}/{@code text}, which always become {@link ReasoningContent}/{@link
+   * TextContent} instead and never reach here as {@link ProviderContent}. The explicit allow-list
+   * (rather than "any non-thinking/text type string") matters: this converter also produces a
+   * {@link ProviderContent} for a custom tool call (see {@link
+   * OpenAiCompletionsResponseConverter#toToolCall}), whose raw payload shape is unrelated and must
+   * never be sent back as a content chunk.
+   */
+  private boolean isReplayableProviderContent(ProviderContent providerContent) {
+    return providerId.equals(providerContent.provider())
+        && providerContent.payload() instanceof Map<?, ?> payload
+        && payload.get("type") instanceof String type
+        && REPLAYABLE_PROVIDER_CONTENT_CHUNK_TYPES.contains(type);
+  }
+
+  /**
    * Rebuilds the assistant message's {@code content} as a chunked array, preserving the original
    * order of its {@link Content} entries: a replayable {@link ReasoningContent} (see {@link
    * #isChunkedReasoningContent}) becomes a {@code thinking} chunk via {@link
-   * #toChunkedThinkingChunk}, and every other plain content entry becomes a {@code text} chunk.
-   * Only called once {@link #assistantMessage} has established at least one replayable {@link
-   * ReasoningContent} is present, so the result is never empty.
+   * #toChunkedThinkingChunk}, a replayable {@link ProviderContent} (see {@link
+   * #isReplayableProviderContent}) is replayed verbatim via {@link #toChunkedProviderChunk}, and
+   * every other plain content entry becomes a {@code text} chunk. Only called once {@link
+   * #assistantMessage} has established at least one replayable {@link ReasoningContent} or {@link
+   * ProviderContent} is present, so the result is never empty.
    */
   private List<Map<String, Object>> toChunkedContent(List<Content> content) {
     final List<Map<String, Object>> chunks = new ArrayList<>();
     for (final Content c : content) {
       if (c instanceof ReasoningContent reasoning && isChunkedReasoningContent(reasoning)) {
         chunks.add(toChunkedThinkingChunk(reasoning));
+      } else if (c instanceof ProviderContent providerContent
+          && isReplayableProviderContent(providerContent)) {
+        chunks.add(toChunkedProviderChunk(providerContent));
       } else if (!(c instanceof ReasoningContent) && !(c instanceof ProviderContent)) {
         chunks.add(Map.of("type", "text", "text", toTextOutput(List.of(c))));
       }
     }
     return chunks;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> toChunkedProviderChunk(ProviderContent providerContent) {
+    return new LinkedHashMap<>((Map<String, Object>) providerContent.payload());
   }
 
   /**
