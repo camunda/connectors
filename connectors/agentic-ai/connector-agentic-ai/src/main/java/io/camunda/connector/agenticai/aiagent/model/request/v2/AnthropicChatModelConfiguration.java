@@ -511,7 +511,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 tooltip =
                     "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
-                defaultValue = "false",
+                defaultValue = "true",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
             @Nullable Boolean enabled) {}
