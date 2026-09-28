@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.openai.core.JsonField;
@@ -25,54 +25,26 @@ import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Accumulates a streamed OpenAI Chat Completions API response into a single {@link ChatCompletion}
- * the same way the vendor SDK's {@code ChatCompletionAccumulator} does, except for {@code content}:
- * that accumulator reads {@code delta.content()} through the SDK's typed (string-only) accessor,
- * which throws as soon as any delta carries a chunked array instead (see {@link
- * OpenAiCompletionsResponseConverter} for why an OpenAI-compatible endpoint like Mistral does
- * this). This accumulator reads the raw {@code delta._content()} value instead and self-detects,
- * per delta, whether it is a plain string or a chunk array -- exactly the same shape-detection the
- * response converter applies to the finished message, and independent of any caller-supplied flag
- * -- so it drives both reasoning and non-reasoning models correctly through the one class.
+ * Accumulates a streamed Mistral response into a single {@link ChatCompletion}, the same way the
+ * vendor SDK's {@code ChatCompletionAccumulator} does, except {@code content} may arrive as a
+ * chunked array (a {@code thinking} chunk, then a {@code text} chunk) instead of a plain string;
+ * the vendor accumulator's typed, string-only {@code content()} accessor throws on that shape. This
+ * class instead reads the raw {@code delta._content()} value and self-detects per delta whether it
+ * is a string or a chunk array.
  *
- * <p>A stream observed for a Magistral-class model runs through three phases: a plain string
- * (initial content before any chunk arrives, if any), then one or more chunked-array deltas
- * accumulating a {@code thinking} chunk's text one fragment at a time, then further chunked-array
- * deltas accumulating a {@code text} chunk once thinking is done -- observed in real traffic to
- * arrive in the very same delta as the thinking chunk's closing fragment. Once the array shape has
- * been observed at all, every open chunk is tracked by type and only a type change finalizes the
- * previously open chunk -- notably NOT a {@code thinking} chunk's own {@code closed} field, which
- * real traffic sets true on roughly every other delta throughout the entire reasoning phase and is
- * not an end-of-reasoning signal (per Mistral's own schema, it exists only for an unrelated
- * prefixing feature). The assembled message's {@code content} is emitted as a chunk array, even if
- * a later delta reverts to plain-string chunks (observed in real traffic once the thinking phase
- * has ended): those are simply appended to the currently open {@code text} chunk. A message that
- * never sees an array delta at all is emitted as a plain string, byte-identical to what the vendor
- * accumulator would have produced.
+ * <p>Duplicated wholesale rather than subclassing the vendor accumulator: it's a final Kotlin class
+ * with a private constructor reachable only via its own {@code create()}, and every field the
+ * content-accumulation logic would need to share is private, so there is no extension point to hook
+ * into. Everything but {@code content} mirrors the vendor accumulator field-for-field (find it in
+ * the {@code openai-java-core} sources jar) so an SDK upgrade can be diffed against it directly;
+ * log probabilities and the legacy singular {@code function_call} are dropped rather than ported
+ * since neither is ever read by this connector.
  *
- * <p>Everything other than {@code content} (id/created/model, tool calls, refusal, role, usage,
- * finish reason) is accumulated the same way the vendor accumulator does it, field for field and
- * method for method, deliberately kept structurally close to {@code
- * com.openai.helpers.ChatCompletionAccumulator} (find it in the {@code openai-java-core} sources
- * jar) so an SDK upgrade can be diffed against it directly; log probabilities are the one thing
- * dropped rather than ported, since this connector never requests them.
- *
- * <p>One deliberate behavioral divergence from the vendor accumulator: {@code usage} is applied to
- * the builder unconditionally, before that chunk's {@code choices} are processed, rather than
- * treating any usage-carrying chunk as choices-less. OpenAI always sends {@code usage} on its own
- * separate trailing chunk with an empty {@code choices} array, which is what the vendor accumulator
- * assumes; Mistral instead sends {@code usage} on the very same chunk that also carries the closing
- * delta and {@code finishReason}. Mirroring the vendor's ordering exactly would silently drop that
- * chunk's choices, leaving the final {@link ChatCompletion.Builder} without {@code choices} set and
- * failing with "choices is required, but was not set" once the stream completed.
- *
- * <p>Subclassing the vendor accumulator and overriding only content handling isn't possible: it's a
- * Kotlin class with no {@code open} modifier (final by default, cannot be extended), a private
- * constructor reachable only through its own {@code create()} factory, and every field the {@code
- * content}-accumulation logic would need to share with the rest of the class ({@code
- * messageContents}, {@code messageBuilders}, etc.) is {@code private}. There is no extension point
- * to hook a custom content strategy into, so this class re-implements the whole algorithm rather
- * than overriding a part of it.
+ * <p>One deliberate divergence from the vendor accumulator: {@code usage} is applied to the builder
+ * unconditionally, before that chunk's {@code choices} are processed. OpenAI always sends {@code
+ * usage} on its own trailing, choices-less chunk; Mistral sends it on the very same chunk that also
+ * carries the closing delta and {@code finishReason}. Mirroring the vendor's order would silently
+ * drop that chunk's choices and fail with "choices is required" once the stream completes.
  */
 final class ChunkedContentChatCompletionAccumulator {
 
@@ -96,11 +68,7 @@ final class ChunkedContentChatCompletionAccumulator {
     return new ChunkedContentChatCompletionAccumulator();
   }
 
-  /**
-   * Gets the final accumulated chat completion. Only valid after the last chunk (the one carrying
-   * the finish reason, plus an optional trailing usage-only chunk) has been passed to {@link
-   * #accumulate}, mirroring the vendor accumulator's {@code chatCompletion()}.
-   */
+  /** Only valid after the last chunk (finish reason, plus an optional trailing usage chunk). */
   ChatCompletion chatCompletion() {
     if (chatCompletion == null) {
       throw new IllegalStateException("Final chat completion chunk(s) not yet received.");
@@ -111,18 +79,10 @@ final class ChunkedContentChatCompletionAccumulator {
   ChatCompletionChunk accumulate(ChatCompletionChunk chunk) {
     final ChatCompletion.Builder builder = ensureChatCompletionBuilder();
 
-    // Set eagerly, unlike the vendor accumulator: OpenAI sends usage on its own trailing
-    // choices-less chunk, but Mistral sends it on the very same chunk that also carries the
-    // final finishReason -- setting it unconditionally here, before that chunk's choices are
-    // processed below, means both wire shapes end up with usage present on the built
-    // ChatCompletion. Deferring this behind the emptiness check below would silently drop the
-    // choices that arrive in that same combined chunk.
+    // Set eagerly, unlike the vendor accumulator -- see the class javadoc.
     chunk.usage().ifPresent(builder::usage);
 
     if (chunk.choices().isEmpty()) {
-      // A usage-only trailing chunk (OpenAI's shape). The chat completion, if already finished
-      // by an earlier chunk, needs rebuilding to pick up the usage just set above; if not yet
-      // finished, there is nothing more to do until the finishing chunk arrives.
       if (chunk.usage().isPresent() && chatCompletion != null) {
         chatCompletion = builder.build();
       }
@@ -228,8 +188,8 @@ final class ChunkedContentChatCompletionAccumulator {
           entry
               .getValue()
               .message(buildMessage(entry.getKey()))
-              // Log probabilities are never requested by this connector; set explicitly to null
-              // (rather than left unset) since the SDK's builder requires the field to be set.
+              // The SDK builder requires this field to be set even though this connector never
+              // requests log probabilities.
               .logprobs((ChatCompletion.Choice.Logprobs) null)
               .build());
     }
@@ -285,15 +245,13 @@ final class ChunkedContentChatCompletionAccumulator {
 
   /**
    * Accumulates one message's {@code content} deltas, self-detecting per delta whether the raw
-   * value is a plain string or a chunk array (see the class Javadoc). Once any array delta has been
-   * seen, accumulation switches to chunk mode for the rest of the message, even if a later delta
-   * reverts to a plain string -- that string is simply appended to the currently open {@code text}
-   * chunk (observed in real traffic once the thinking phase has ended). Any plain-string deltas
-   * seen before that switch are flushed as a leading {@code text} chunk rather than dropped. A
-   * {@code thinking} chunk's text is joined from single-item, single-fragment deltas -- the shape
-   * observed in real traffic -- but falls back to preserving every raw {@code thinking} item
-   * verbatim (see {@link #isSingleReconstructibleTextItem}) rather than silently collapsing
-   * structure this accumulator has never observed and can't safely merge.
+   * value is a plain string or a chunk array. Once any array delta has been seen, accumulation
+   * switches to chunk mode for the rest of the message, even if a later delta reverts to a plain
+   * string (observed in real traffic once the thinking phase has ended) -- that string is appended
+   * to the currently open {@code text} chunk. Only a chunk-type change closes the currently open
+   * chunk; a {@code thinking} chunk's own {@code closed} field is not treated as a signal (real
+   * traffic sets it true on roughly every other delta throughout the reasoning phase -- per
+   * Mistral's schema it exists only for an unrelated prefixing feature).
    */
   private static final class ContentAccumulator {
 
@@ -311,8 +269,7 @@ final class ChunkedContentChatCompletionAccumulator {
       if (chunks.isPresent()) {
         if (!chunked && !plainText.isEmpty()) {
           // Preserve any plain-string deltas seen before the first array delta as a leading text
-          // chunk -- build()'s chunked branch never reads plainText, so without this the prefix
-          // would otherwise be silently dropped.
+          // chunk instead of silently dropping them.
           closedChunks.add(Map.of("type", "text", "text", plainText.toString()));
           plainText.setLength(0);
         }
@@ -328,14 +285,11 @@ final class ChunkedContentChatCompletionAccumulator {
               text -> {
                 if (chunked) {
                   if (openChunkType == null) {
-                    // Defensive fallback: no chunk is currently open (not observed in real
-                    // traffic once chunk mode has started, since only a type change closes a
-                    // chunk and always opens the next one immediately). Starts a text chunk
-                    // rather than silently discarding the fragment.
+                    // Defensive fallback: not observed in real traffic once chunk mode has
+                    // started, since only a type change closes a chunk and always opens the
+                    // next one immediately.
                     openChunkType = "text";
                   }
-                  // A plain-string delta continues whichever chunk is (now) open (observed in real
-                  // traffic once the thinking phase has ended and a text chunk is already open).
                   openChunkText.append(text);
                 } else {
                   plainText.append(text);
@@ -353,11 +307,10 @@ final class ChunkedContentChatCompletionAccumulator {
       if (!(type instanceof String typeName)) {
         return;
       }
-      // Only thinking/text are true multi-delta streamed types, fragmented one piece at a time
-      // by design -- every other type (reference, image_url, document_url, file, input_audio)
-      // arrives whole in a single delta and must be treated as atomic: two back-to-back chunks
-      // of the same "other" type (e.g. two separate reference citations) are two distinct
-      // chunks, not one continuation, even though their type strings match.
+      // Only thinking/text are true multi-delta streamed types; every other type (reference,
+      // image_url, document_url, file, input_audio) arrives whole in a single delta, so two
+      // back-to-back chunks of the same "other" type are two distinct chunks, not one
+      // continuation.
       final boolean continuesOpenChunk =
           typeName.equals(openChunkType)
               && ("thinking".equals(typeName) || "text".equals(typeName));
@@ -365,9 +318,6 @@ final class ChunkedContentChatCompletionAccumulator {
         closeOpenChunk();
         openChunkType = typeName;
       }
-      // Carry over every other field a delta carries on this chunk (e.g. a per-delta `closed`
-      // flag, provider metadata, signatures) so closeOpenChunk doesn't have to synthesize them --
-      // last delta wins, matching how a field like `closed` flips true only once the chunk ends.
       raw.forEach(
           (key, value) -> {
             if (!"type".equals(key) && !"thinking".equals(key) && !"text".equals(key)) {
@@ -376,16 +326,9 @@ final class ChunkedContentChatCompletionAccumulator {
           });
       if ("thinking".equals(typeName)) {
         final Object thinking = raw.get("thinking");
-        // An empty thinking array is observed in real traffic immediately before the switch to
-        // text -- a no-op flush, not a signal, and must not affect reconstructibility (an empty
-        // list trivially satisfies "nothing to lose by joining", not the opposite).
         if (thinking instanceof List<?> items && !items.isEmpty()) {
-          // A single-item {"type":"text","text":...} list per delta is the only shape a joined
-          // string can reconstruct byte-identical (the common case: one delta = one fragment of a
-          // continuous thought). Any other shape -- more than one item in a delta's own thinking
-          // array, or an item carrying fields beyond type/text -- can't be safely collapsed into
-          // one synthesized item without silently losing structure, so fall back to preserving
-          // every raw item verbatim instead of joining text.
+          // Only a single-item {"type":"text","text":...} delta is byte-identically
+          // reconstructible from joined text; anything else must be preserved verbatim.
           if (!isSingleReconstructibleTextItem(items)) {
             openChunkThinkingReconstructible = false;
           }
@@ -396,12 +339,6 @@ final class ChunkedContentChatCompletionAccumulator {
             }
           }
         }
-        // `closed` is deliberately NOT treated as an end-of-reasoning signal here: real traffic
-        // sends it true on roughly every other delta throughout the entire thinking phase, not
-        // just the final one -- Mistral's own schema documents it as "currently only used for
-        // prefixing". Treating it as a closing signal fragments one logical thinking chunk into
-        // dozens of separate ones. Only a type change (below) legitimately closes a chunk; its
-        // value is still carried through to the final chunk via openChunkExtra above.
       } else if ("text".equals(typeName) && raw.get("text") instanceof String fragment) {
         openChunkText.append(fragment);
       }
@@ -427,17 +364,11 @@ final class ChunkedContentChatCompletionAccumulator {
             openChunkThinkingReconstructible
                 ? List.of(Map.of("type", "text", "text", openChunkText.toString()))
                 : List.copyOf(openChunkThinkingItems));
-        // Only default to closed if no delta on this chunk carried its own `closed` field --
-        // preserves a real false/other value instead of overriding it.
+        // Only default to closed if no delta on this chunk carried its own value.
         chunk.putIfAbsent("closed", true);
       } else if ("text".equals(openChunkType)) {
         chunk.put("text", openChunkText.toString());
       }
-      // Any other top-level chunk type (this endpoint's own ContentChunk union additionally
-      // allows reference, image_url, document_url, file, input_audio) carries none of its own
-      // state here beyond what openChunkExtra already collected per delta -- forcing a `text`
-      // field onto it would violate that chunk's own schema (e.g. ReferenceChunk has no `text`
-      // field and rejects unknown properties), making it impossible to replay.
       closedChunks.add(chunk);
       openChunkText.setLength(0);
       openChunkExtra.clear();

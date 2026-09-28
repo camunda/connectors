@@ -31,19 +31,4 @@ public interface OpenAiCompletionsStreamAssembler {
       return accumulator.chatCompletion();
     };
   }
-
-  /**
-   * Like {@link #accumulating()}, but additionally able to accumulate a chunked {@code content}
-   * array (as sent by e.g. Mistral's reasoning-capable models) instead of failing on it -- see
-   * {@link ChunkedContentChatCompletionAccumulator}. Detection is entirely shape-based, so this is
-   * also safe to use for a model that never sends a chunked array at all.
-   */
-  static OpenAiCompletionsStreamAssembler chunkedContentAware() {
-    return stream -> {
-      final ChunkedContentChatCompletionAccumulator accumulator =
-          ChunkedContentChatCompletionAccumulator.create();
-      stream.stream().forEach(accumulator::accumulate);
-      return accumulator.chatCompletion();
-    };
-  }
 }

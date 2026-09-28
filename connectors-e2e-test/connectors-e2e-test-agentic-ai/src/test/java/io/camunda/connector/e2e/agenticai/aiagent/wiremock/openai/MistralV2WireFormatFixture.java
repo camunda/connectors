@@ -35,8 +35,9 @@ import java.util.function.Function;
  * {@link OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them, at the
  * same default {@code /v1/chat/completions} path.
  *
- * <p>Chunked (Magistral-style) reasoning content is exercised separately in {@code
- * AgentSubProcessMistralReasoningTests}, not by this fixture's shared cross-provider scenarios.
+ * <p>Chunked reasoning content is exercised separately in {@code
+ * AgentSubProcessMistralReasoningTests}, not by this fixture's shared cross-provider scenarios --
+ * the same pattern every provider's reasoning coverage follows (Anthropic, Bedrock, OpenAI).
  */
 public final class MistralV2WireFormatFixture implements ProviderWireFormatFixture {
 

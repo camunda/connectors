@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -16,6 +16,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.core.http.StreamResponse;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -23,19 +24,18 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link ChunkedContentChatCompletionAccumulator} directly (rather than through {@link
- * OpenAiCompletionsStreamAssembler#chunkedContentAware()}) since it is the class carrying the
- * actual accumulation logic. The chunked-content fixtures mirror the exact delta shape observed in
- * a real streamed {@code magistral-medium-latest} response with {@code reasoning_effort=high}: a
- * run of array deltas each carrying one {@code thinking} chunk fragment, a single transition delta
- * whose array carries both the closing thinking fragment (marked {@code closed: true}) and the
- * opening {@code text} chunk fragment together, then a run of plain-string deltas for the rest of
- * the final answer.
+ * Exercises {@link ChunkedContentChatCompletionAccumulator} through {@link
+ * MistralCompletionsStreamAssembler}. The chunked-content fixtures mirror the exact delta shape
+ * observed in a real streamed {@code mistral-medium-latest} response with {@code
+ * reasoning_effort=high}: a run of array deltas each carrying one {@code thinking} chunk fragment,
+ * a single transition delta whose array carries both the closing thinking fragment (marked {@code
+ * closed: true}) and the opening {@code text} chunk fragment together, then a run of plain-string
+ * deltas for the rest of the final answer.
  */
 class ChunkedContentChatCompletionAccumulatorTest {
 
   private final OpenAiCompletionsStreamAssembler assembler =
-      OpenAiCompletionsStreamAssembler.chunkedContentAware();
+      new MistralCompletionsStreamAssembler();
 
   private static ChatCompletionChunk deltaChunk(String deltaJson) {
     return chunkFromJson(deltaJson, "null", "null");
@@ -57,7 +57,7 @@ class ChunkedContentChatCompletionAccumulatorTest {
           "id": "chatcmpl_123",
           "object": "chat.completion.chunk",
           "created": 0,
-          "model": "magistral-medium-latest",
+          "model": "mistral-medium-latest",
           "choices": [],
           "usage": %s
         }
@@ -74,7 +74,7 @@ class ChunkedContentChatCompletionAccumulatorTest {
           "id": "chatcmpl_123",
           "object": "chat.completion.chunk",
           "created": 0,
-          "model": "magistral-medium-latest",
+          "model": "mistral-medium-latest",
           "choices": [
             {
               "index": 0,

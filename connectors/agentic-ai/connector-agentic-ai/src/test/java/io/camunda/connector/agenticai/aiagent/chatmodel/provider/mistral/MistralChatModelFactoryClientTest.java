@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -301,7 +300,7 @@ class MistralChatModelFactoryClientTest {
                 new MistralReasoningContentDialect()),
             new OpenAiCompletionsResponseConverter(
                 MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
-            OpenAiCompletionsStreamAssembler.chunkedContentAware(),
+            new MistralCompletionsStreamAssembler(),
             oAuthClientCredentialsTokenResolver());
     final var configuration =
         new MistralChatModelConfiguration(

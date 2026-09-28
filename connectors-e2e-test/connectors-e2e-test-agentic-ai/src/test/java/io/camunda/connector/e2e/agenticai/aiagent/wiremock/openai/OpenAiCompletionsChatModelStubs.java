@@ -392,13 +392,13 @@ public final class OpenAiCompletionsChatModelStubs {
     }
 
     /**
-     * A chunked reasoning response, mirroring what a Mistral Magistral model returns: {@code
-     * content} is an array of a {@code thinking} chunk (carrying {@code reasoningText}, marked
-     * {@code closed: true}) followed by a {@code text} chunk (carrying {@code text}), ending the
-     * turn ({@code finish_reason: "stop"}). Emitted as a single already-assembled delta rather than
-     * fragmented across multiple deltas -- the streaming reassembly itself is covered by {@code
-     * ChunkedContentChatCompletionAccumulatorTest} in the connector module; this stub only needs to
-     * exercise the end-to-end response parsing and replay.
+     * A chunked reasoning response, mirroring what a Mistral reasoning-capable model returns:
+     * {@code content} is an array of a {@code thinking} chunk (carrying {@code reasoningText},
+     * marked {@code closed: true}) followed by a {@code text} chunk (carrying {@code text}), ending
+     * the turn ({@code finish_reason: "stop"}). Emitted as a single already-assembled delta rather
+     * than fragmented across multiple deltas -- the streaming reassembly itself is covered by
+     * {@code ChunkedContentChatCompletionAccumulatorTest} in the connector module; this stub only
+     * needs to exercise the end-to-end response parsing and replay.
      */
     public static Turn reasoning(
         String reasoningText, String text, int promptTokens, int completionTokens) {

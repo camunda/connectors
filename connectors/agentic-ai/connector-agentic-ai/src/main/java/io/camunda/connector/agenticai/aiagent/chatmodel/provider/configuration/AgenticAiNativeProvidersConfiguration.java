@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralCompletionsStreamAssembler;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
@@ -158,7 +159,7 @@ public class AgenticAiNativeProvidersConfiguration {
             mistralReasoningContentDialect),
         new OpenAiCompletionsResponseConverter(
             MISTRAL_ID, objectMapper, mistralReasoningContentDialect),
-        OpenAiCompletionsStreamAssembler.chunkedContentAware(),
+        new MistralCompletionsStreamAssembler(),
         oAuthClientCredentialsTokenResolver);
   }
 

@@ -12,13 +12,13 @@ import java.util.Optional;
 
 /**
  * Provider-specific hook for a Chat Completions {@code content} shape beyond OpenAI's own plain
- * string: some OpenAI-compatible endpoints (e.g. Mistral's reasoning-capable models) send, and
- * expect to have replayed, a {@code content} array of typed chunks instead. Whether a given
- * message's {@code content} is a plain string or a chunked array is detected from the raw wire
- * shape itself, unconditionally, by {@link OpenAiCompletionsRequestConverter} and {@link
- * OpenAiCompletionsResponseConverter}; this interface only supplies what a provider that uses such
- * chunks needs in order to build and interpret its own chunk types. The default, {@link #none()},
- * never recognizes anything, matching plain OpenAI's always-string content.
+ * string: some OpenAI-compatible endpoints send, and expect to have replayed, a {@code content}
+ * array of typed chunks instead. Whether a given message's {@code content} is a plain string or a
+ * chunked array is detected from the raw wire shape itself, unconditionally, by {@link
+ * OpenAiCompletionsRequestConverter} and {@link OpenAiCompletionsResponseConverter}; this interface
+ * only supplies what a provider that uses such chunks needs in order to build and interpret its own
+ * chunk types. The default, {@link #none()}, never recognizes anything, matching plain OpenAI's
+ * always-string content.
  */
 public interface OpenAiCompletionsContentDialect {
 
@@ -33,14 +33,28 @@ public interface OpenAiCompletionsContentDialect {
   /**
    * Maps one decoded chunk of a response's chunked {@code content} array (see {@link
    * OpenAiCompletionsResponseConverter#mapChunkedContent}) to domain {@link Content} if it is one
-   * of this dialect's own chunk types (e.g. Mistral's {@code thinking} chunk); empty if this
-   * dialect doesn't recognize it, so the caller falls back to the generic {@code text}/other
-   * handling.
+   * of this dialect's own chunk types; empty if this dialect doesn't recognize it, so the caller
+   * falls back to the generic {@code text}/other handling.
    */
   Optional<Content> mapChunk(Map<String, Object> raw, String providerId);
 
   /** Never recognizes anything: plain OpenAI's {@code content} is always a string. */
   static OpenAiCompletionsContentDialect none() {
-    return NoneContentDialect.INSTANCE;
+    return None.INSTANCE;
+  }
+
+  /** No-op implementation backing {@link #none()}. */
+  enum None implements OpenAiCompletionsContentDialect {
+    INSTANCE;
+
+    @Override
+    public Optional<Map<String, Object>> toReplayableChunk(Content content, String providerId) {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<Content> mapChunk(Map<String, Object> raw, String providerId) {
+      return Optional.empty();
+    }
   }
 }

@@ -32,12 +32,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * Mistral-only e2e coverage for Magistral-style chunked reasoning content: unlike OpenAI's own Chat
- * Completions family (input-only {@code reasoning_effort}, see {@code
- * AgentSubProcessOpenAiCompletionsReasoningEffortTests}), a Mistral Magistral response's {@code
- * content} is a chunked array (a {@code thinking} chunk followed by a {@code text} chunk) that the
- * connector parses into a {@link ReasoningContent} plus {@link TextContent}, and must replay
- * byte-faithfully on the next turn.
+ * Mistral-only e2e coverage for chunked reasoning content: unlike OpenAI's own Chat Completions
+ * family (input-only {@code reasoning_effort}, see {@code
+ * AgentSubProcessOpenAiCompletionsReasoningEffortTests}), a Mistral reasoning-capable model's
+ * {@code content} is a chunked array (a {@code thinking} chunk followed by a {@code text} chunk)
+ * that the connector parses into a {@link ReasoningContent} plus {@link TextContent}, and must
+ * replay byte-faithfully on the next turn.
  */
 class AgentSubProcessMistralReasoningTests extends BaseMistralSubProcessTest {
 
