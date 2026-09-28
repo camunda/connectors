@@ -918,6 +918,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().minLength()).isEqualTo(1);
       assertThat(property.getConstraints().maxLength()).isEqualTo(10);
+      assertThat(property.getConstraints().notEmpty()).isNull();
     }
 
     @Test
@@ -927,6 +928,26 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().minLength()).isNull();
       assertThat(property.getConstraints().maxLength()).isEqualTo(10);
+    }
+
+    @Test
+    void validationPresent_maxSize_optional() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("optionalPropertyWithMaxSize", template);
+      assertThat(property.getConstraints()).isNotNull();
+      assertThat(property.getConstraints().notEmpty()).isFalse();
+      assertThat(property.getConstraints().minLength()).isNull();
+      assertThat(property.getConstraints().maxLength()).isEqualTo(10);
+    }
+
+    @Test
+    void validationPresent_minSize_optional() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("optionalPropertyWithMinSize", template);
+      assertThat(property.getConstraints()).isNotNull();
+      assertThat(property.getConstraints().notEmpty()).isFalse();
+      assertThat(property.getConstraints().minLength()).isEqualTo(1);
+      assertThat(property.getConstraints().maxLength()).isNull();
     }
 
     @Test
