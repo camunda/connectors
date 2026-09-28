@@ -419,9 +419,14 @@ final class ChunkedContentChatCompletionAccumulator {
         // Only default to closed if no delta on this chunk carried its own `closed` field --
         // preserves a real false/other value instead of overriding it.
         chunk.putIfAbsent("closed", true);
-      } else {
+      } else if ("text".equals(openChunkType)) {
         chunk.put("text", openChunkText.toString());
       }
+      // Any other top-level chunk type (e.g. tool_reference, image_url, tool_file, document_url)
+      // carries none of its own state here beyond what openChunkExtra already collected per
+      // delta -- forcing a `text` field onto it would violate that chunk's own schema (e.g.
+      // ToolReferenceChunk has no `text` field and rejects unknown properties), making it
+      // impossible to replay.
       closedChunks.add(chunk);
       openChunkText.setLength(0);
       openChunkExtra.clear();
