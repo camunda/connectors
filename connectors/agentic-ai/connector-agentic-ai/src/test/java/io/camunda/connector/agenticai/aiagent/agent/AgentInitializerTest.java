@@ -481,6 +481,8 @@ class AgentInitializerTest {
     private static final long ORIGINAL_PROCESS_DEFINITION_KEY = 111111111L;
     private static final long MIGRATED_PROCESS_DEFINITION_KEY = 222222222L;
     private static final long PROCESS_INSTANCE_KEY = 987654321L;
+    private static final long AGENT_INSTANCE_KEY = 99999L;
+    private static final int LAST_ITERATION_KEY = 7;
 
     @Test
     void shouldTriggerToolUpdateWhenMetadataIsNull() {
@@ -537,6 +539,53 @@ class AgentInitializerTest {
                 assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
                 assertThat(res.agentContext().properties()).containsEntry("migrated", true);
               });
+    }
+
+    @Test
+    void shouldPreserveAgentInstanceKeyAndFingerprintHistoryWhenProcessDefinitionKeyChanged() {
+      final var originalMetadata =
+          new AgentMetadata(
+              ORIGINAL_PROCESS_DEFINITION_KEY,
+              PROCESS_INSTANCE_KEY,
+              AGENT_INSTANCE_KEY,
+              LAST_ITERATION_KEY,
+              Map.of(1, "fingerprint-a", 5, "fingerprint-b"));
+      final var agentContext =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withMetadata(originalMetadata)
+              .withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
+
+      mockJobContextMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+
+      final var updatedAgentContext =
+          agentContext.withToolDefinitions(TOOL_DEFINITIONS).withProperty("migrated", true);
+      when(toolsResolver.updateToolDefinitions(executionContext, agentContext))
+          .thenReturn(updatedAgentContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      // agentInstanceKey, lastIterationKey and configurationFingerprintHistory survive the
+      // migration; only processDefinitionKey is updated (processInstanceKey is invariant across a
+      // migration of the same running instance)
+      final var expectedMetadata =
+          new AgentMetadata(
+              MIGRATED_PROCESS_DEFINITION_KEY,
+              PROCESS_INSTANCE_KEY,
+              AGENT_INSTANCE_KEY,
+              LAST_ITERATION_KEY,
+              Map.of(1, "fingerprint-a", 5, "fingerprint-b"));
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
+                assertThat(res.agentContext().properties()).containsEntry("migrated", true);
+                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+              });
+      verify(toolsResolver).updateToolDefinitions(executionContext, agentContext);
     }
 
     @Test
