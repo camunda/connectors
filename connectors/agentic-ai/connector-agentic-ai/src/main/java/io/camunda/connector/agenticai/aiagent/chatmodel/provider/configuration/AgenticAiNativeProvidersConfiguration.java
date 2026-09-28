@@ -138,6 +138,7 @@ public class AgenticAiNativeProvidersConfiguration {
   public MistralChatModelFactory aiAgentMistralChatModelFactory(
       AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     return new MistralChatModelFactory(
@@ -149,7 +150,8 @@ public class AgenticAiNativeProvidersConfiguration {
             objectMapper,
             MISTRAL_ID),
         new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
-        OpenAiCompletionsStreamAssembler.chunkedContentAware());
+        OpenAiCompletionsStreamAssembler.chunkedContentAware(),
+        oAuthClientCredentialsTokenResolver);
   }
 
   @Bean

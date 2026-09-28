@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MISTRAL_API_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -34,11 +35,11 @@ import org.jspecify.annotations.Nullable;
  * Completions converters (see {@code MistralChatModelFactory}); this record only carries Mistral's
  * own connection details and the handful of parameters its API actually accepts.
  *
- * <p>The backend is modeled as a sealed union with a single member ({@link
- * MistralBackend.MistralApiBackend}) rather than a flat connection record, matching the convention
- * every other v2 provider follows ({@code ai-agent.md} §25.1): adding a second Mistral backend
- * later (e.g. Microsoft Foundry or AWS Bedrock Mantle) is then purely additive, with no change to
- * any existing template property path.
+ * <p>The backend is modeled as a sealed union ({@link MistralBackend.MistralApiBackend}, {@link
+ * MistralBackend.MistralCustomBackend}) rather than a flat connection record, matching the
+ * convention every other v2 provider follows ({@code ai-agent.md} §25.1): adding a further Mistral
+ * backend later (e.g. Microsoft Foundry or AWS Bedrock Mantle) is then purely additive, with no
+ * change to any existing template property path.
  */
 @TemplateSubType(id = MistralChatModelConfiguration.MISTRAL_ID, label = "Mistral AI")
 public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mistral)
@@ -71,7 +72,8 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = MistralBackend.MistralApiBackend.class, name = MISTRAL_API_ID)
+    @JsonSubTypes.Type(value = MistralBackend.MistralApiBackend.class, name = MISTRAL_API_ID),
+    @JsonSubTypes.Type(value = MistralBackend.MistralCustomBackend.class, name = CUSTOM_ID)
   })
   @TemplateDiscriminatorProperty(
       label = "Connection",
@@ -159,6 +161,77 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
               + redactValues(queryParameters)
               + ", bodyProperties="
               + redactValues(bodyProperties)
+              + "}";
+        }
+      }
+    }
+
+    @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")
+    record MistralCustomBackend(@Valid @NotNull CustomBackend custom) implements MistralBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String CUSTOM_ID = "custom";
+
+      @Override
+      public String type() {
+        return CUSTOM_ID;
+      }
+
+      @Override
+      public OpenAiRequestCustomizations requestCustomizations() {
+        return new OpenAiRequestCustomizations(
+            custom.headers(), custom.queryParameters(), custom.bodyProperties());
+      }
+
+      public record CustomBackend(
+          @NotBlank
+              @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint",
+                  description =
+                      "Base URL of the Mistral-compatible API; <code>/chat/completions</code> will be appended.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  placeholder = "https://api.mistral.ai/v1",
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String endpoint,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<String, Object> bodyProperties,
+          @Valid @NotNull OpenAiCustomEndpointAuthentication authentication) {
+
+        @Override
+        public String toString() {
+          return "CustomBackend{endpoint="
+              + endpoint
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
+              + ", authentication="
+              + authentication
               + "}";
         }
       }

@@ -11,10 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -166,5 +169,76 @@ class MistralChatModelConfigurationTest {
         (MistralChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.mistral().parameters()).isNull();
+  }
+
+  @Test
+  void deserialisesCustomBackendWithApiKeyAuthAndHeadersAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "mistral",
+          "mistral": {
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://custom.example.com/v1",
+                "headers": { "X-Custom-Header": "value" },
+                "authentication": { "type": "apiKey", "apiKey": "sk-custom-123" }
+              }
+            },
+            "model": { "model": "mistral-medium-latest" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(parsed.descriptiveProvider()).isEqualTo("mistral/custom");
+    final MistralChatModelConfiguration mistral = (MistralChatModelConfiguration) parsed;
+    assertThat(mistral.mistral().backend()).isInstanceOf(MistralCustomBackend.class);
+    final MistralCustomBackend custom = (MistralCustomBackend) mistral.mistral().backend();
+    assertThat(custom.custom().endpoint()).isEqualTo("https://custom.example.com/v1");
+    assertThat(custom.custom().headers()).containsEntry("X-Custom-Header", "value");
+    assertThat(custom.custom().authentication())
+        .isEqualTo(new ApiKeyAuthentication("sk-custom-123"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void rejectsBlankEndpointOnCustomBackend() {
+    final var config =
+        new MistralChatModelConfiguration(
+            new MistralConnection(
+                new MistralCustomBackend(
+                    new CustomBackend("", null, null, null, new ApiKeyAuthentication("sk-test"))),
+                new MistralModel("mistral-medium-latest"),
+                null,
+                null));
+
+    assertThat(validator.validate(config))
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("mistral.backend.custom.endpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
+  }
+
+  @Test
+  void redactsCustomBackendAuthenticationAndBodyPropertiesInToString() {
+    final var custom =
+        new CustomBackend(
+            "https://custom.example.com",
+            Map.of("Authorization", "sensitive"),
+            Map.of("api-version", "sensitive"),
+            Map.of("large_field", "sensitive"),
+            new ApiKeyAuthentication("sk-custom-super-secret"));
+
+    assertThat(custom.toString())
+        .contains("[REDACTED]")
+        .doesNotContain("sk-custom-super-secret")
+        .doesNotContain("sensitive");
   }
 }

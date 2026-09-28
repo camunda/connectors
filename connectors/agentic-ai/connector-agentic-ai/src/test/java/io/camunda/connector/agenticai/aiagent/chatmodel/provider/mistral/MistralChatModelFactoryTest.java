@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigura
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +53,7 @@ class MistralChatModelFactoryTest {
   private static final String MODEL_ID = "mistral-medium-latest";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
+  @Mock private OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,7 +77,8 @@ class MistralChatModelFactoryTest {
                 objectMapper,
                 MISTRAL_ID),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
-            OpenAiCompletionsStreamAssembler.chunkedContentAware());
+            OpenAiCompletionsStreamAssembler.chunkedContentAware(),
+            oAuthClientCredentialsTokenResolver);
   }
 
   private static MistralChatModelConfiguration config(

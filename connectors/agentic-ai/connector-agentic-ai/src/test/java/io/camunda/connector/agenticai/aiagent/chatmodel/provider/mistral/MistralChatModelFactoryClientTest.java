@@ -39,13 +39,19 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelC
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
@@ -150,6 +156,89 @@ class MistralChatModelFactoryClientTest {
   }
 
   @Test
+  void usesConfiguredBaseUrlForCustomBackend(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new MistralCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new ApiKeyAuthentication("custom-secret-key"))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/chat/completions"))
+            .withHeader("Authorization", equalTo("Bearer custom-secret-key")));
+  }
+
+  @Test
+  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new MistralCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/chat/completions"))
+            .withHeader("Authorization", equalTo("Bearer not-required")));
+  }
+
+  @Test
+  void customBackendAppliesHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new MistralCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                Map.of("X-Custom-Header", "header-value"),
+                Map.of("custom-query-param", "query-value"),
+                null,
+                new ApiKeyAuthentication("custom-secret-key"))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/chat/completions"))
+            .withHeader("X-Custom-Header", equalTo("header-value"))
+            .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void customBackendResolvesOAuthClientCredentialsBearerToken(WireMockRuntimeInfo wireMock) {
+    stubFor(
+        post(urlPathEqualTo("/oauth/token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "access_token": "oauth-access-token",
+                          "expires_in": 3600
+                        }
+                        """)));
+
+    executeAgainst(
+        new MistralCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new OAuthClientCredentialsAuthentication(
+                    wireMock.getHttpBaseUrl() + "/oauth/token",
+                    "client-123",
+                    "secret-123",
+                    null,
+                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
+                        .BASIC_AUTH_HEADER,
+                    null))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/chat/completions"))
+            .withHeader("Authorization", equalTo("Bearer oauth-access-token")));
+  }
+
+  @Test
   void appliesConfiguredProxyToBuiltClient() throws Exception {
     try (var fakeProxy = new FakeProxyServer(null, null)) {
       final var realHttpProxySupport =
@@ -192,6 +281,13 @@ class MistralChatModelFactoryClientTest {
     executeAgainst(httpProxySupport, backend);
   }
 
+  private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+    return new OAuthClientCredentialsTokenResolver(
+        new io.camunda.connector.http.client.authentication.OAuthService(),
+        new io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache(),
+        new io.camunda.connector.http.client.client.apache.CustomApacheHttpClient());
+  }
+
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, MistralBackend backend) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
@@ -204,7 +300,8 @@ class MistralChatModelFactoryClientTest {
                 objectMapper,
                 MISTRAL_ID),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
-            OpenAiCompletionsStreamAssembler.chunkedContentAware());
+            OpenAiCompletionsStreamAssembler.chunkedContentAware(),
+            oAuthClientCredentialsTokenResolver());
     final var configuration =
         new MistralChatModelConfiguration(
             new MistralConnection(backend, new MistralModel(MODEL_ID), null, null));
