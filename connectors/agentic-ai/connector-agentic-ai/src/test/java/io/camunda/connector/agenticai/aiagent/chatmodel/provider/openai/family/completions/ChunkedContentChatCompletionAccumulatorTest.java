@@ -16,6 +16,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.core.http.StreamResponse;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -312,19 +313,21 @@ class ChunkedContentChatCompletionAccumulatorTest {
   }
 
   @Test
-  void preservesATopLevelToolReferenceChunkWithoutInjectingASpuriousTextField() {
-    // Mistral's MessageOutputContentChunks schema allows a top-level tool_reference chunk
-    // alongside thinking/text (e.g. a web-search citation surfaced directly in the answer, not
-    // nested inside thinking). closeOpenChunk must not assume every non-thinking chunk type is a
-    // text chunk -- ToolReferenceChunk's own schema is additionalProperties:false with no `text`
-    // field, so tacking one on would make this chunk invalid to replay on the next turn.
+  void preservesATopLevelReferenceChunkWithoutInjectingASpuriousTextField() {
+    // The chat completions endpoint's own ContentChunk union allows a top-level `reference`
+    // chunk alongside thinking/text (a citation from a web-search-tool-augmented answer, not
+    // nested inside thinking -- ToolReferenceChunk/MessageOutputContentChunks are a different,
+    // richer schema this endpoint doesn't use). closeOpenChunk must not assume every
+    // non-thinking chunk type is a text chunk -- ReferenceChunk's own schema is
+    // additionalProperties:false with no `text` field, so tacking one on would make this chunk
+    // invalid to replay on the next turn.
     final ChatCompletion assembled =
         assemble(
             assembler,
             deltaChunk(
                 """
                 {"role": "assistant", "content": [
-                  {"type": "tool_reference", "tool": "web_search", "title": "Result A"},
+                  {"type": "reference", "reference_ids": [1, 2]},
                   {"type": "text", "text": "See source above."}
                 ]}
                 """),
@@ -334,14 +337,41 @@ class ChunkedContentChatCompletionAccumulatorTest {
     assertThat(chunks).hasSize(2);
 
     final var referenceChunk = chunks.get(0).convert(new TypeReference<Map<String, Object>>() {});
-    assertThat(referenceChunk.get("type")).isEqualTo("tool_reference");
-    assertThat(referenceChunk.get("tool")).isEqualTo("web_search");
-    assertThat(referenceChunk.get("title")).isEqualTo("Result A");
+    assertThat(referenceChunk.get("type")).isEqualTo("reference");
+    assertThat(referenceChunk.get("reference_ids")).isEqualTo(List.of(1, 2));
     assertThat(referenceChunk).doesNotContainKey("text");
 
     final var textChunk = chunks.get(1).convert(new TypeReference<Map<String, Object>>() {});
     assertThat(textChunk.get("type")).isEqualTo("text");
     assertThat(textChunk.get("text")).isEqualTo("See source above.");
+  }
+
+  @Test
+  void doesNotMergeTwoConsecutiveAtomicChunksOfTheSameType() {
+    // Unlike thinking/text, a `reference` chunk arrives whole in a single delta -- two separate
+    // ones back to back (e.g. two distinct citations) are two distinct chunks, not a
+    // continuation, even though their type strings match. Matching the previous chunk's type
+    // must not be read as "still open".
+    final ChatCompletion assembled =
+        assemble(
+            assembler,
+            deltaChunk(
+                """
+                {"role": "assistant", "content": [
+                  {"type": "reference", "reference_ids": [1]},
+                  {"type": "reference", "reference_ids": [2]}
+                ]}
+                """),
+            finishChunk("\"stop\""));
+
+    final var chunks = assembled.choices().get(0).message()._content().asArray().orElseThrow();
+    assertThat(chunks).hasSize(2);
+    assertThat(
+            chunks.get(0).convert(new TypeReference<Map<String, Object>>() {}).get("reference_ids"))
+        .isEqualTo(List.of(1));
+    assertThat(
+            chunks.get(1).convert(new TypeReference<Map<String, Object>>() {}).get("reference_ids"))
+        .isEqualTo(List.of(2));
   }
 
   @Test

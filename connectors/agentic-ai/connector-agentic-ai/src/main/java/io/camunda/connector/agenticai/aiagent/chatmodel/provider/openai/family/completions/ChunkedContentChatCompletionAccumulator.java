@@ -353,7 +353,15 @@ final class ChunkedContentChatCompletionAccumulator {
       if (!(type instanceof String typeName)) {
         return;
       }
-      if (!typeName.equals(openChunkType)) {
+      // Only thinking/text are true multi-delta streamed types, fragmented one piece at a time
+      // by design -- every other type (reference, image_url, document_url, file, input_audio)
+      // arrives whole in a single delta and must be treated as atomic: two back-to-back chunks
+      // of the same "other" type (e.g. two separate reference citations) are two distinct
+      // chunks, not one continuation, even though their type strings match.
+      final boolean continuesOpenChunk =
+          typeName.equals(openChunkType)
+              && ("thinking".equals(typeName) || "text".equals(typeName));
+      if (!continuesOpenChunk) {
         closeOpenChunk();
         openChunkType = typeName;
       }
@@ -425,11 +433,11 @@ final class ChunkedContentChatCompletionAccumulator {
       } else if ("text".equals(openChunkType)) {
         chunk.put("text", openChunkText.toString());
       }
-      // Any other top-level chunk type (e.g. tool_reference, image_url, tool_file, document_url)
-      // carries none of its own state here beyond what openChunkExtra already collected per
-      // delta -- forcing a `text` field onto it would violate that chunk's own schema (e.g.
-      // ToolReferenceChunk has no `text` field and rejects unknown properties), making it
-      // impossible to replay.
+      // Any other top-level chunk type (this endpoint's own ContentChunk union additionally
+      // allows reference, image_url, document_url, file, input_audio) carries none of its own
+      // state here beyond what openChunkExtra already collected per delta -- forcing a `text`
+      // field onto it would violate that chunk's own schema (e.g. ReferenceChunk has no `text`
+      // field and rejects unknown properties), making it impossible to replay.
       closedChunks.add(chunk);
       openChunkText.setLength(0);
       openChunkExtra.clear();
