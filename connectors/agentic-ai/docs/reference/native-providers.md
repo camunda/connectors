@@ -354,9 +354,13 @@ does not go through `OpenAiCompletionsStrategy` -- that class is typed to
 that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
 `MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
 pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of
-`mistral` through to the shared converters. There is one backend, `MistralApiBackend`
-(`mistral-api`) — the sealed backend axis exists so a second backend is purely additive later,
-without moving any existing template property.
+`mistral` through to the shared converters. The sealed backend axis has two members:
+`MistralApiBackend` (`mistral-api`), pointed at Mistral's own API, and `MistralCustomBackend`
+(`custom`), for a Mistral-compatible endpoint reached via a configurable base URL, reusing
+`OpenAiCustomEndpointAuthentication` (none / API key / OAuth 2.0 client credentials) and
+`OpenAiChatModelFactory`'s client-construction pattern wholesale — Mistral's custom-endpoint
+authentication model is identical to OpenAI's. Further backends remain purely additive, without
+moving any existing template property.
 
 ### Reasoning
 
