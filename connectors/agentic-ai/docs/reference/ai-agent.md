@@ -417,9 +417,8 @@ while `assistantMessage == null`.
 
 The next turn's `iterationKey` is determined by `AgentConversation.rehydrate()`:
 `AgentMetadata.lastIterationKey` (persisted by `toAgentContext()`, see above) is authoritative when
-present. The reconstructed turn count is used as a fallback when it's absent (pre-feature
-conversations, or right after a process definition migration reset — `AgentInitializerImpl` replaces
-metadata wholesale on migration) and, when a stored key is present, to cross-validate against it:
+present. The reconstructed turn count is used as a fallback when it's absent (conversations created
+before this field was introduced) and, when a stored key is present, to cross-validate against it:
 a mismatch is logged as a warning (reconstruction drift), not thrown.
 
 `TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
@@ -1241,17 +1240,13 @@ each property carries its own `@DefaultValue`.
 
 ### How Detection Works
 
-`AgentInitializerImpl.handleReadyState()`:
-
-```java
-if (agentMetadata == null
-    || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
-    agentContext = toolsResolver.updateToolDefinitions(executionContext, agentContext)
-        .withMetadata(executionMetadata);
-}
-```
-
-If the `processDefinitionKey` stored in the agent context doesn't match the current job's key, tool definitions are refreshed.
+`AgentInitializerImpl.resumeReadyAgent()` compares the job's current `processDefinitionKey` against
+the one stored in the agent context's metadata. A mismatch (or absent metadata, for a pre-existing
+agent context predating this field) triggers a tool definitions refresh. On a mismatch, only
+`processDefinitionKey` is updated on the existing metadata — `agentInstanceKey`, `lastIterationKey`,
+and `configurationFingerprintHistory` are preserved so the agent stays attached to its agent instance
+across the migration. `processInstanceKey` is never refreshed: migration acts on the running process
+instance itself, so its key is invariant.
 
 ### What's Allowed
 

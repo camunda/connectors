@@ -100,8 +100,8 @@ public final class AgentConversation {
   /**
    * Determines the next turn's iterationKey. The stored {@code lastIterationKey} on the agent
    * context metadata is authoritative when present; the reconstructed turn count is used as a
-   * fallback (pre-feature conversations, or right after a process definition migration reset) and
-   * to cross-validate the stored value, logging a warning on drift instead of failing silently.
+   * fallback for conversations created before this field was introduced, and to cross-validate the
+   * stored value, logging a warning on drift instead of failing silently.
    */
   private static int nextIterationKey(
       AgentContext agentContext, PreviousConversation previousConversation) {
