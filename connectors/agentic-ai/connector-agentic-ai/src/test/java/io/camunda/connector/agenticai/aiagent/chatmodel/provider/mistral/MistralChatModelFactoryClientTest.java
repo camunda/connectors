@@ -295,10 +295,10 @@ class MistralChatModelFactoryClientTest {
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsRequestConverter(
+                MISTRAL_ID,
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-                objectMapper,
-                MISTRAL_ID),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.chunkedContentAware(),
             oAuthClientCredentialsTokenResolver());

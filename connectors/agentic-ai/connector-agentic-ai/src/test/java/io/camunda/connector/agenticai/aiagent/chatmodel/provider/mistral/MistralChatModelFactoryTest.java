@@ -72,10 +72,10 @@ class MistralChatModelFactoryTest {
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsRequestConverter(
+                MISTRAL_ID,
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-                objectMapper,
-                MISTRAL_ID),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.chunkedContentAware(),
             oAuthClientCredentialsTokenResolver);
@@ -139,7 +139,7 @@ class MistralChatModelFactoryTest {
       clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
 
       try (ChatModel chatModel = factory.create(config(MODEL_ID, null))) {
-        verify(clientBuilder).baseUrl("https://api.mistral.ai/v1");
+        verify(clientBuilder).baseUrl(MistralChatModelFactory.DEFAULT_MISTRAL_API_ENDPOINT);
       }
     }
   }

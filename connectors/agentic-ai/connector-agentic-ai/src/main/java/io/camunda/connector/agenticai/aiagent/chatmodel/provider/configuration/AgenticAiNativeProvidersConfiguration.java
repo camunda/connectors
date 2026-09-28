@@ -113,10 +113,10 @@ public class AgenticAiNativeProvidersConfiguration {
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
             new OpenAiCompletionsRequestConverter(
+                OPENAI_ID,
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                objectMapper,
-                OPENAI_ID),
+                objectMapper),
             new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
@@ -145,10 +145,10 @@ public class AgenticAiNativeProvidersConfiguration {
         configuration.aiagent().chatModel(),
         httpProxySupport,
         new OpenAiCompletionsRequestConverter(
+            MISTRAL_ID,
             contentConverter,
             OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-            objectMapper,
-            MISTRAL_ID),
+            objectMapper),
         new OpenAiCompletionsResponseConverter(MISTRAL_ID, objectMapper),
         OpenAiCompletionsStreamAssembler.chunkedContentAware(),
         oAuthClientCredentialsTokenResolver);

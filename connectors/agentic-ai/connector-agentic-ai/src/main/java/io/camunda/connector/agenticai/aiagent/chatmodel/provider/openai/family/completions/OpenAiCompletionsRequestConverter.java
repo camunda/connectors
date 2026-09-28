@@ -91,20 +91,20 @@ public class OpenAiCompletionsRequestConverter {
   private static final Set<String> REPLAYABLE_PROVIDER_CONTENT_CHUNK_TYPES =
       Set.of("reference", "image_url", "document_url", "file", "input_audio");
 
+  private final String providerId;
   private final OpenAiContentConverter contentConverter;
   private final OpenAiCompletionsContentChunkStrategy contentChunkStrategy;
   private final ObjectMapper objectMapper;
-  private final String providerId;
 
   public OpenAiCompletionsRequestConverter(
+      String providerId,
       OpenAiContentConverter contentConverter,
       OpenAiCompletionsContentChunkStrategy contentChunkStrategy,
-      ObjectMapper objectMapper,
-      String providerId) {
+      ObjectMapper objectMapper) {
+    this.providerId = providerId;
     this.contentConverter = contentConverter;
     this.contentChunkStrategy = contentChunkStrategy;
     this.objectMapper = objectMapper;
-    this.providerId = providerId;
   }
 
   public ChatCompletionCreateParams toRequest(

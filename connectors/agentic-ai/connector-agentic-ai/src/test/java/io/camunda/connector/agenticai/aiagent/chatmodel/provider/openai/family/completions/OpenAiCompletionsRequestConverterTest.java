@@ -51,20 +51,20 @@ class OpenAiCompletionsRequestConverterTest {
   private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiCompletionsRequestConverter converter =
       new OpenAiCompletionsRequestConverter(
+          OPENAI_ID,
           contentConverter,
           OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-          objectMapper,
-          OPENAI_ID);
+          objectMapper);
 
   // Chunked reasoning replay only ever applies to a converter instance bound to the Mistral
   // provider (see OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- mirrors the real
   // production wiring in AgenticAiNativeProvidersConfiguration.
   private final OpenAiCompletionsRequestConverter mistralConverter =
       new OpenAiCompletionsRequestConverter(
+          MISTRAL_ID,
           contentConverter,
           OpenAiCompletionsContentChunkStrategy.mistral(objectMapper),
-          objectMapper,
-          MISTRAL_ID);
+          objectMapper);
 
   private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
       new OpenAiRequestCustomizations(null, null, null);

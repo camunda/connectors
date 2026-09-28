@@ -95,10 +95,10 @@ class OpenAiChatModelFactoryTest {
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
+                    OPENAI_ID,
                     contentConverter,
                     OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
-                    objectMapper,
-                    OPENAI_ID),
+                    objectMapper),
                 new OpenAiCompletionsResponseConverter(OPENAI_ID, objectMapper),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(
