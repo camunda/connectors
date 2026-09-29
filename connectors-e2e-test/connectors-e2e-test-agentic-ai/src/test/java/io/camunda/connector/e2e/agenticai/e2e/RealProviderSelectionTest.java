@@ -68,6 +68,57 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldSelectMistralForBundleCptOnlyWithItsCredential() {
+    environment.set("MISTRAL_API_KEY", "");
+
+    assertThat(AiAgentE2ETestIT.providers())
+        .extracting(AiAgentE2ETestIT.ProviderConfig::label)
+        .doesNotContain("mistral-v2/mistral-large-2512");
+
+    environment.set("MISTRAL_API_KEY", "key");
+
+    assertThat(AiAgentE2ETestIT.providers())
+        .filteredOn(p -> p.label().startsWith("mistral-v2/"))
+        .singleElement()
+        .satisfies(
+            p -> {
+              assertThat(p.label()).isEqualTo("mistral-v2/mistral-large-2512");
+              assertThat(p.properties())
+                  .containsEntry("provider.type", "mistral")
+                  .containsEntry("provider.mistral.backend.type", "mistral-api")
+                  .containsEntry(
+                      "provider.mistral.backend.mistral.apiKey", "{{secrets.MISTRAL_API_KEY}}");
+            });
+  }
+
+  @Test
+  void shouldSelectMistralForRealDocumentTestsOnlyWithItsCredentialAndGroup() {
+    environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");
+    environment.set("MISTRAL_API_KEY", "");
+
+    assertThat(DocumentToolCallResultsIT.providers()).isEmpty();
+
+    environment.set("MISTRAL_API_KEY", "key");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .singleElement()
+        .satisfies(
+            p -> {
+              assertThat(p.label()).isEqualTo("mistral-v2/mistral-large-2512");
+              assertThat(p.properties())
+                  .containsEntry("provider.type", "mistral")
+                  .containsEntry("provider.mistral.backend.type", "mistral-api")
+                  .containsEntry("provider.mistral.backend.mistral.apiKey", "key");
+            });
+
+    environment.set("REAL_LLM_PROVIDER_GROUP", "openai");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .doesNotContain("mistral-v2/mistral-large-2512");
+  }
+
+  @Test
   void shouldDisableVertexGemini37OnlyInShardedRuns() {
     environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
     environment.set("GOOGLE_VERTEX_AI_REGION", "region");
