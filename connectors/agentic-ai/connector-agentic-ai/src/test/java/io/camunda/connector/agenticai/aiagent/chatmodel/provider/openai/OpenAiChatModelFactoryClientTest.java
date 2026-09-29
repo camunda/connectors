@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -347,16 +348,30 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   @Test
-  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
-      WireMockRuntimeInfo wireMock) {
+  void customBackendWithNoAuthenticationSendsNoAuthorizationHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new OpenAiCustomBackend(
             new CustomBackend(
                 wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
+    verify(postRequestedFor(urlPathEqualTo("/responses")).withHeader("Authorization", absent()));
+  }
+
+  @Test
+  void customBackendWithNoAuthenticationAndCustomAuthorizationHeaderSendsCustomHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                Map.of("Authorization", "Bearer explicit-custom-value"),
+                null,
+                null,
+                new NoAuthentication())));
+
     verify(
         postRequestedFor(urlPathEqualTo("/responses"))
-            .withHeader("Authorization", equalTo("Bearer not-required")));
+            .withHeader("Authorization", equalTo("Bearer explicit-custom-value")));
   }
 
   @Test
