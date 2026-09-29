@@ -20,10 +20,11 @@ import io.camunda.connector.runtime.inbound.WebhookConnectorConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
-@AutoConfigureBefore(InboundConnectorsAutoConfiguration.class)
+@AutoConfigureBefore({InboundConnectorsAutoConfiguration.class, WebMvcAutoConfiguration.class})
 @ConditionalOnProperty(
     prefix = "camunda.connector.webhook",
     name = "enabled",

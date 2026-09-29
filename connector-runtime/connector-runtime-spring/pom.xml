@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.7.26</version>
+    <version>8.7.28</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -34,6 +34,10 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-fileupload2-core</artifactId>
     </dependency>
 
     <!-- The runtime provides enhanced metrics for logback if it is present -->

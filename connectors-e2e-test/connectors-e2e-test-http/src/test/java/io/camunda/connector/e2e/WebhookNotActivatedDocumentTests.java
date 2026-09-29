@@ -17,8 +17,9 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static io.camunda.connector.e2e.WebhookMultipartTestRequest.multipartRequest;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,9 +40,6 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,10 +54,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockPart;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
     classes = {
@@ -142,35 +137,17 @@ public class WebhookNotActivatedDocumentTests {
                 new ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
 
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
-    CompletableFuture<ResultActions> future = new CompletableFuture<>();
+    ZeebeTest.with(zeebeClient).deploy(model).createInstance();
     ClassPathResource textFile = new ClassPathResource("files/text.txt");
     ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");
     byte[] textFileContent = copyToByteArray(textFile.getInputStream());
     byte[] imageFileContent = copyToByteArray(imageFile.getInputStream());
 
-    try (var executor = Executors.newSingleThreadScheduledExecutor()) {
-      executor.schedule(
-          () -> {
-            try {
-              future.complete(
-                  mockMvc.perform(
-                      multipart(mockUrl)
-                          .part(
-                              new MockPart(
-                                  "param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
-                          .part(
-                              new MockPart(
-                                  "param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
-                          .header("THEHEADER", "THEVALUE")));
-            } catch (Exception e) {
-              future.completeExceptionally(e);
-            }
-          },
-          2,
-          TimeUnit.SECONDS);
-      future.get(10, TimeUnit.SECONDS);
-      verify(documentFactory, never()).create(any());
-    }
+    mockMvc
+        .perform(
+            multipartRequest(mockUrl, PNG_FILE, imageFileContent, TEXT_FILE, textFileContent)
+                .header("THEHEADER", "THEVALUE"))
+        .andExpect(status().isOk());
+    verify(documentFactory, never()).create(any());
   }
 }
