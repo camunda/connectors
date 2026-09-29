@@ -348,6 +348,29 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "uploadOperationFileName",
+    "label" : "Document file name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
+    "type" : "String"
+  }, {
     "id" : "authenticationConfiguration",
     "label" : "Azure Blob Storage credential",
     "optional" : true,
@@ -540,23 +563,6 @@
       } ]
     },
     "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "uploadOperationFileName",
-    "label" : "Document file name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "additionalProperties",
-    "binding" : {
-      "name" : "operation.fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operationDiscriminator",
-      "equals" : "uploadBlob",
-      "type" : "simple"
-    },
-    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
     "type" : "String"
   }, {
     "id" : "timeout",
