@@ -18,15 +18,20 @@ package io.camunda.connector.runtime.core.document;
 
 import static io.camunda.connector.runtime.core.document.DocumentDeserializationTest.createDocumentMock;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -91,6 +96,30 @@ class FeelPropertyDocumentInteropTest {
     StringProps bound = evaluate(PLAIN.convertValue(reference, Map.class), StringProps.class);
 
     assertThat(bound.value()).isEqualTo(base64("Hello World"));
+  }
+
+  @Test
+  void anIntrinsicFunctionReturnedByAnExpressionIsRefusedOnAStringProperty() {
+    // Evaluation results are bound without an intrinsic function executor: the function must be
+    // refused, never run through the property mapper's executor nor passed on as JSON text.
+    assertThatThrownBy(() -> evaluate(intrinsicFunction(), StringProps.class))
+        .hasRootCauseInstanceOf(UnsupportedOperationException.class)
+        .rootCause()
+        .hasMessageContaining("Intrinsic function dispatch is disabled");
+    verify(functions, never()).execute(any(), any());
+  }
+
+  @Test
+  void anInvalidDocumentReferenceFailsOnAStringProperty() {
+    // The document module took the payload but could not bind it: that error must surface rather
+    // than the payload being bound as its JSON text.
+    var invalid = Map.of(DocumentReferenceModel.DISCRIMINATOR_KEY, "unknown");
+
+    assertThatThrownBy(
+            () -> inboundMapper().convertValue(Map.of("value", invalid), StringProps.class))
+        .hasRootCauseInstanceOf(InvalidTypeIdException.class);
+    assertThatThrownBy(() -> evaluate(invalid, StringProps.class))
+        .hasRootCauseInstanceOf(InvalidTypeIdException.class);
   }
 
   @Test

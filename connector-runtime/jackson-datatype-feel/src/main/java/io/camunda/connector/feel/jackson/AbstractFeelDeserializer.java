@@ -192,6 +192,10 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * type get the first say — the document module's String deserializer, for instance, binds a
    * document reference or an intrinsic function. Only an object that none of them can bind to a
    * String is bound as its JSON text instead.
+   *
+   * <p>That case is told apart by the mismatch being reported for the String itself, at the root: a
+   * payload a registered deserializer did take, but could not bind — an unknown document type, say
+   * — fails on a type of its own and propagates rather than turning into JSON text.
    */
   @SuppressWarnings("unchecked")
   protected static <R> R bindOrWriteAsJson(JsonNode node, JavaType targetType, NodeBinder<R> binder)
@@ -199,7 +203,10 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     try {
       return binder.bind();
     } catch (MismatchedInputException e) {
-      if (targetType.getRawClass() == String.class && node.isObject()) {
+      if (targetType.getRawClass() == String.class
+          && node.isObject()
+          && e.getTargetType() == String.class
+          && e.getPath().isEmpty()) {
         return (R) BLANK_OBJECT_MAPPER.writeValueAsString(node);
       }
       throw e;
