@@ -1171,7 +1171,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                    (see version.zstd-jni). -->
               <requireProperty>
                 <property>version.box-sdk</property>
-                <regex>^5\.16\.0$</regex>
+                <regex>^5\.17\.0$</regex>
                 <regexMessage>
 version.box-sdk was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override can
 be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remove the
