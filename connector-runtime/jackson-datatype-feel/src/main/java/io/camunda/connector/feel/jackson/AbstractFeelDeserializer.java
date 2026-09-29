@@ -171,21 +171,38 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
         return null;
       }
       JsonNode jsonNode = BLANK_OBJECT_MAPPER.valueToTree(result);
-      try {
-        // The result mapper, not the caller's context: conversion runs the result back through the
-        // deserializers, and the property mapper's would treat a string in it as expression source.
-        return resultReader(ctx, targetType).readValue(jsonNode);
-      } catch (MismatchedInputException e) {
-        // Only now that no registered String deserializer (e.g. the document module's, which binds
-        // a document reference) could take the object, bind it as its JSON.
-        if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
-          return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
-        }
-        throw e;
-      }
+      // The result mapper, not the caller's context: conversion runs the result back through the
+      // deserializers, and the property mapper's would treat a string in it as expression source.
+      return bindOrWriteAsJson(
+          jsonNode, targetType, () -> resultReader(ctx, targetType).readValue(jsonNode));
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
+    }
+  }
+
+  /** Binds a node to a target type; see {@link #bindOrWriteAsJson}. */
+  @FunctionalInterface
+  protected interface NodeBinder<R> {
+    R bind() throws IOException;
+  }
+
+  /**
+   * Binds {@code node} with {@code binder}, so that the deserializers registered for the target
+   * type get the first say — the document module's String deserializer, for instance, binds a
+   * document reference or an intrinsic function. Only an object that none of them can bind to a
+   * String is bound as its JSON text instead.
+   */
+  @SuppressWarnings("unchecked")
+  protected static <R> R bindOrWriteAsJson(JsonNode node, JavaType targetType, NodeBinder<R> binder)
+      throws IOException {
+    try {
+      return binder.bind();
+    } catch (MismatchedInputException e) {
+      if (targetType.getRawClass() == String.class && node.isObject()) {
+        return (R) BLANK_OBJECT_MAPPER.writeValueAsString(node);
+      }
+      throw e;
     }
   }
 
