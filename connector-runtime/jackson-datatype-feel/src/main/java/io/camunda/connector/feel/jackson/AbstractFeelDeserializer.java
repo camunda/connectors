@@ -205,12 +205,20 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     } catch (MismatchedInputException e) {
       if (targetType.getRawClass() == String.class
           && node.isObject()
-          && e.getTargetType() == String.class
-          && e.getPath().isEmpty()) {
+          && isMismatchOf(e, targetType)) {
         return (R) BLANK_OBJECT_MAPPER.writeValueAsString(node);
       }
       throw e;
     }
+  }
+
+  /**
+   * Whether {@code e} reports that the target type itself cannot take the node's shape, as opposed
+   * to a failure inside a deserializer that did take it, which is reported for a type of its own or
+   * further down the path.
+   */
+  protected static boolean isMismatchOf(MismatchedInputException e, JavaType targetType) {
+    return e.getTargetType() == targetType.getRawClass() && e.getPath().isEmpty();
   }
 
   /**

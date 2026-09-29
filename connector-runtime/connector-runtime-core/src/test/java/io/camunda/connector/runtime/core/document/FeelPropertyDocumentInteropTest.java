@@ -43,6 +43,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleSecretReference;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.Base64;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * intrinsic functions to the document module rather than binding them as plain JSON. A document
  * returned by an expression materialises too; an intrinsic function returned by one does not run,
  * since evaluation results are bound without an intrinsic function executor.
+ *
+ * <p>The inbound mapper, the one production mapper with {@code @FEEL} enabled, dispatches no
+ * intrinsic function either, so there one given directly is refused. Whether the document module
+ * gets a function at all is checked on a mapper with live dispatch.
  */
 @ExtendWith(MockitoExtension.class)
 class FeelPropertyDocumentInteropTest {
@@ -80,13 +85,24 @@ class FeelPropertyDocumentInteropTest {
   }
 
   @Test
-  void anIntrinsicFunctionIsExecutedOnAStringProperty() {
+  void anIntrinsicFunctionReachesTheDocumentModuleOnAStringProperty() {
     when(functions.execute(any(), any())).thenReturn("executed");
 
     var bound =
-        inboundMapper().convertValue(Map.of("value", intrinsicFunction()), StringProps.class);
+        liveDispatchMapper().convertValue(Map.of("value", intrinsicFunction()), StringProps.class);
 
     assertThat(bound.value()).isEqualTo("executed");
+  }
+
+  @Test
+  void anIntrinsicFunctionIsRefusedOnAStringPropertyOfTheInboundMapper() {
+    assertThatThrownBy(
+            () ->
+                inboundMapper()
+                    .convertValue(Map.of("value", intrinsicFunction()), StringProps.class))
+        .hasRootCauseInstanceOf(UnsupportedOperationException.class)
+        .rootCause()
+        .hasMessageContaining("Intrinsic function dispatch is disabled");
   }
 
   @Test
@@ -123,10 +139,28 @@ class FeelPropertyDocumentInteropTest {
   }
 
   @Test
-  void aPlainObjectIsStillSerializedOnAStringProperty() throws Exception {
-    StringProps bound = evaluate(Map.of("a", 1), StringProps.class);
+  void anInvalidDocumentReferenceGivenAsJsonTextFailsOnAStringProperty() {
+    var invalidAsText = "{\"" + DocumentReferenceModel.DISCRIMINATOR_KEY + "\":\"unknown\"}";
 
-    assertThat(bound.value()).isEqualTo("{\"a\":1}");
+    assertThatThrownBy(
+            () -> inboundMapper().convertValue(Map.of("value", invalidAsText), StringProps.class))
+        .hasRootCauseInstanceOf(InvalidTypeIdException.class);
+  }
+
+  @Test
+  void jsonTextTheTargetCannotTakeIsStillBoundAsTextOnAStringProperty() {
+    var bound = inboundMapper().convertValue(Map.of("value", "[1,2]"), StringProps.class);
+
+    assertThat(bound.value()).isEqualTo("[1,2]");
+  }
+
+  @Test
+  void aPlainObjectIsStillSerializedOnAStringProperty() throws Exception {
+    var direct = inboundMapper().convertValue(Map.of("value", Map.of("a", 1)), StringProps.class);
+    StringProps evaluated = evaluate(Map.of("a", 1), StringProps.class);
+
+    assertThat(direct.value()).isEqualTo("{\"a\":1}");
+    assertThat(evaluated.value()).isEqualTo("{\"a\":1}");
   }
 
   @Test
@@ -146,11 +180,11 @@ class FeelPropertyDocumentInteropTest {
   }
 
   @Test
-  void anIntrinsicFunctionIsExecutedOnAnObjectProperty() {
+  void anIntrinsicFunctionReachesTheDocumentModuleOnAnObjectProperty() {
     when(functions.execute(any(), any())).thenReturn("executed");
 
     var bound =
-        inboundMapper().convertValue(Map.of("value", intrinsicFunction()), ObjectProps.class);
+        liveDispatchMapper().convertValue(Map.of("value", intrinsicFunction()), ObjectProps.class);
 
     assertThat(bound.value()).isEqualTo("executed");
   }
@@ -169,12 +203,23 @@ class FeelPropertyDocumentInteropTest {
         .readValue("{\"value\":\"=expression\"}", type);
   }
 
-  /** The inbound property mapper, as the runtime wires it. */
+  /** The inbound property mapper, as the runtime wires it: intrinsic function dispatch disabled. */
   private ObjectMapper inboundMapper() {
+    return mapper(new DisabledIntrinsicFunctionExecutor());
+  }
+
+  /**
+   * The inbound mapper's modules, but with intrinsic functions dispatched to {@link #functions}.
+   */
+  private ObjectMapper liveDispatchMapper() {
+    return mapper(functions);
+  }
+
+  private ObjectMapper mapper(IntrinsicFunctionExecutor executor) {
     var mapper = ConnectorsObjectMapperSupplier.getCopy();
     mapper.registerModules(
         new JacksonModuleDocumentDeserializer(
-            factory, functions, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()),
+            factory, executor, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()),
         new JacksonModuleFeelFunction(FeelEvaluationResultMapper.create(factory)),
         new JacksonModuleSecretReference(),
         new JacksonModuleDocumentSerializer());
