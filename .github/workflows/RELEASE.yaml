@@ -8,6 +8,11 @@ on:
         description: 'Version to release (e.g., 8.7.0, 8.7.1). Make sure to select the correct branch.'
         required: true
         type: string
+      camunda-version:
+        description: 'Camunda artifact version (version.camunda) to build against (e.g., 8.7.0). Leave empty to keep the version from pom.xml.'
+        required: false
+        type: string
+        default: ''
       skip-maven-release:
         description: 'Skip Maven release'
         required: false
@@ -101,7 +106,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Determine Maven cache key
         id: maven-cache-key
@@ -176,6 +181,12 @@ jobs:
         run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ inputs.version }}
+
+      - name: Set Camunda artifact version
+        if: ${{ inputs.camunda-version != '' }}
+        run: ./mvnw -B versions:set-property -Dproperty=version.camunda -DnewVersion=${CAMUNDA_VERSION} -DgenerateBackupPoms=false -f parent
+        env:
+          CAMUNDA_VERSION: ${{ inputs.camunda-version }}
 
       - name: Compile and Test
         run: ./mvnw -B -U package source:jar javadoc:jar -Pe2eExcluded
@@ -346,7 +357,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Secrets
         id: secrets
