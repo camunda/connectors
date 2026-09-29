@@ -14,6 +14,7 @@ import com.anthropic.core.ObjectMappers;
 import com.anthropic.helpers.MessageAccumulator;
 import com.anthropic.models.messages.CacheCreation;
 import com.anthropic.models.messages.Container;
+import com.anthropic.models.messages.Diagnostics;
 import com.anthropic.models.messages.DirectCaller;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageDeltaUsage;
@@ -610,6 +611,7 @@ class AnthropicMessageResponseConverterTest {
             .id("msg-1")
             .container((Container) null)
             .content(List.of())
+            .diagnostics((Diagnostics) null)
             .model("test-model")
             .stopDetails((RefusalStopDetails) null)
             .stopReason((com.anthropic.models.messages.StopReason) null)
