@@ -16,9 +16,9 @@
     "text generation"
   ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
-  "version": 5,
+  "version": 4,
   "engines": {
-    "camunda": "^8.10"
+    "camunda": "^8.6"
   },
   "category": {
     "id": "connectors",
@@ -70,20 +70,6 @@
       "type": "Hidden"
     },
     {
-      "id": "authenticationConfiguration",
-      "label": "Authentication credential",
-      "tooltip": "Choose a reusable authentication credential, or configure a one-time API key below.",
-      "description": "Note: Azure OpenAI accepts only an API key credential (location <code>headers</code>, key name exactly <code>api-key</code>) or a bearer/OAuth 2.0 credential sent as a standard <code>Authorization: Bearer</code> header — the latter is the only option when local API key authentication is disabled, and must use the scope <code>https://cognitiveservices.azure.com/.default</code>. Basic authentication is not supported. An API key credential with the key sent as a query parameter instead of a header, or with any key name other than <code>api-key</code>, and a Basic credential, all pass template and binding validation but silently send a malformed request, so they fail at runtime against Azure OpenAI. The credential's own URL field is not used by this connector.",
-      "optional": true,
-      "group": "authentication",
-      "binding": {
-        "name": "authenticationConfiguration",
-        "type": "zeebe:input"
-      },
-      "type": "Configuration",
-      "configurationTemplate": "io.camunda.connectors:rest-authentication:1"
-    },
-    {
       "id": "authentication.type",
       "label": "Type",
       "description": "Choose the authentication type",
@@ -93,12 +79,7 @@
         "name": "authentication.type",
         "type": "zeebe:input"
       },
-      "type": "Hidden",
-      "condition": {
-        "property": "authenticationConfiguration",
-        "isEmpty": true,
-        "type": "simple"
-      }
+      "type": "Hidden"
     },
     {
       "id": "authentication.apiKeyLocation",
@@ -108,12 +89,7 @@
         "name": "authentication.apiKeyLocation",
         "type": "zeebe:input"
       },
-      "type": "Hidden",
-      "condition": {
-        "property": "authenticationConfiguration",
-        "isEmpty": true,
-        "type": "simple"
-      }
+      "type": "Hidden"
     },
     {
       "id": "authentication.name",
@@ -125,18 +101,9 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "allMatch": [
-          {
-            "property": "authentication.type",
-            "equals": "apiKey",
-            "type": "simple"
-          },
-          {
-            "property": "authenticationConfiguration",
-            "isEmpty": true,
-            "type": "simple"
-          }
-        ]
+        "property": "authentication.type",
+        "equals": "apiKey",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -154,18 +121,9 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "allMatch": [
-          {
-            "property": "authentication.type",
-            "equals": "apiKey",
-            "type": "simple"
-          },
-          {
-            "property": "authenticationConfiguration",
-            "isEmpty": true,
-            "type": "simple"
-          }
-        ]
+        "property": "authentication.type",
+        "equals": "apiKey",
+        "type": "simple"
       },
       "type": "String"
     },
@@ -1341,7 +1299,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "5",
+      "value": "4",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -1420,415 +1378,5 @@
   ],
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 513 512'%3E%3Cg clip-path='url(%23a)'%3E%3Crect width='512' height='512' x='.25' fill='%23fff' rx='76'/%3E%3Cpath fill='url(%23b)' d='M.25 76.8v358.4c0 42.411 34.39 76.8 76.8 76.8h358.4c42.411 0 76.8-34.389 76.8-76.8V76.8c0-42.41-34.389-76.8-76.8-76.8H77.05C34.64 0 .25 34.39.25 76.8ZM307.45 0v102.4c0 113.095 91.705 204.8 204.8 204.8h-102.4c-113.095 0-204.772 91.648-204.8 204.743V409.6c0-113.095-91.705-204.8-204.8-204.8h102.4c113.095 0 204.8-91.705 204.8-204.8Z'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id='b' cx='0' cy='0' r='1' gradientTransform='rotate(45 -176.261 403.94) scale(321.165 437.107)' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2383B9F9'/%3E%3Cstop offset='1' stop-color='%230078D4'/%3E%3C/radialGradient%3E%3CclipPath id='a'%3E%3Crect width='512' height='512' x='.25' fill='%23fff' rx='76'/%3E%3C/clipPath%3E%3C/defs%3E%3C/svg%3E"
-  },
-  "configurationTemplates": [
-    {
-      "id": "io.camunda.connectors:rest-authentication:1",
-      "kind": "CREDENTIAL",
-      "version": 2,
-      "name": "REST Authentication",
-      "properties": [
-        {
-          "id": "authentication.type",
-          "label": "Type",
-          "description": "Choose the authentication mechanism this credential provides.",
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.type",
-            "type": "property"
-          },
-          "type": "Dropdown",
-          "choices": [
-            {
-              "name": "API key",
-              "value": "apiKey"
-            },
-            {
-              "name": "Basic",
-              "value": "basic"
-            },
-            {
-              "name": "Bearer token",
-              "value": "bearer"
-            },
-            {
-              "name": "OAuth 2.0",
-              "value": "oauth-client-credentials-flow"
-            },
-            {
-              "name": "OAuth 2.0 Refresh Token",
-              "value": "oauth-refresh-token"
-            }
-          ]
-        },
-        {
-          "id": "authentication.apiKeyLocation",
-          "label": "Api key location",
-          "value": "headers",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.apiKeyLocation",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "apiKey",
-            "type": "simple"
-          },
-          "tooltip": "Send API key in header or as query parameter.",
-          "type": "Dropdown",
-          "choices": [
-            {
-              "name": "Headers",
-              "value": "headers"
-            },
-            {
-              "name": "Query parameters",
-              "value": "query"
-            }
-          ]
-        },
-        {
-          "id": "authentication.name",
-          "label": "API key name",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.name",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "apiKey",
-            "type": "simple"
-          },
-          "type": "String"
-        },
-        {
-          "id": "authentication.value",
-          "label": "API key value",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.value",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "apiKey",
-            "type": "simple"
-          },
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.username",
-          "label": "Username",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.username",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "basic",
-            "type": "simple"
-          },
-          "type": "String"
-        },
-        {
-          "id": "authentication.password",
-          "label": "Password",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.password",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "basic",
-            "type": "simple"
-          },
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.token",
-          "label": "Bearer token",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.token",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "bearer",
-            "type": "simple"
-          },
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.oauthTokenEndpoint",
-          "label": "OAuth 2.0 token endpoint",
-          "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
-              "message": "Must be a http(s) URL"
-            }
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.oauthTokenEndpoint",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "type": "String"
-        },
-        {
-          "id": "authentication.clientId",
-          "label": "Client ID",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.clientId",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "tooltip": "Your application's client ID from the OAuth client",
-          "type": "String"
-        },
-        {
-          "id": "authentication.clientSecret",
-          "label": "Client secret",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.clientSecret",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "tooltip": "Your application's client secret from the OAuth client",
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.audience",
-          "label": "Audience",
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.audience",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "tooltip": "The unique identifier of the target API you want to access",
-          "type": "String"
-        },
-        {
-          "id": "authentication.clientAuthentication",
-          "label": "Client authentication",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.clientAuthentication",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "tooltip": "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
-          "type": "Dropdown",
-          "choices": [
-            {
-              "name": "Send client credentials in body",
-              "value": "credentialsBody"
-            },
-            {
-              "name": "Send as Basic Auth header",
-              "value": "basicAuthHeader"
-            }
-          ]
-        },
-        {
-          "id": "authentication.scopes",
-          "label": "Scopes",
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.scopes",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-client-credentials-flow",
-            "type": "simple"
-          },
-          "tooltip": "The scopes which you want to request authorization for",
-          "placeholder": "read:contacts",
-          "type": "String"
-        },
-        {
-          "id": "authentication.oauthRefreshToken.oauthTokenEndpoint",
-          "label": "OAuth 2.0 token endpoint",
-          "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
-              "message": "Must be a http(s) URL"
-            }
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.oauthTokenEndpoint",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-refresh-token",
-            "type": "simple"
-          },
-          "type": "String"
-        },
-        {
-          "id": "authentication.oauthRefreshToken.clientId",
-          "label": "Client ID",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.clientId",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-refresh-token",
-            "type": "simple"
-          },
-          "tooltip": "Your application's client ID from the OAuth client",
-          "type": "String"
-        },
-        {
-          "id": "authentication.oauthRefreshToken.clientSecret",
-          "label": "Client secret",
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.clientSecret",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-refresh-token",
-            "type": "simple"
-          },
-          "tooltip": "Your application's client secret from the OAuth client",
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.oauthRefreshToken.refreshToken",
-          "label": "Refresh token",
-          "constraints": {
-            "notEmpty": true
-          },
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.refreshToken",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-refresh-token",
-            "type": "simple"
-          },
-          "tooltip": "The refresh token used to obtain a new access token",
-          "type": "String",
-          "secret": true
-        },
-        {
-          "id": "authentication.oauthRefreshToken.scopes",
-          "label": "Scopes",
-          "group": "authentication",
-          "binding": {
-            "name": "authentication.scopes",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "equals": "oauth-refresh-token",
-            "type": "simple"
-          },
-          "tooltip": "The scopes to request authorization for (space-separated)",
-          "type": "String"
-        },
-        {
-          "id": "url",
-          "label": "URL",
-          "description": "The endpoint this credential is bound to. Required for basic, bearer and API key authentication; not shown for OAuth, which carries its own token endpoint.",
-          "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^((http://|https://|secrets|\\{\\{).*$)",
-              "message": "Must be a http(s) URL"
-            }
-          },
-          "group": "endpoint",
-          "binding": {
-            "name": "url",
-            "type": "property"
-          },
-          "condition": {
-            "property": "authentication.type",
-            "oneOf": [
-              "apiKey",
-              "basic",
-              "bearer"
-            ],
-            "type": "simple"
-          },
-          "type": "String"
-        }
-      ]
-    }
-  ]
+  }
 }

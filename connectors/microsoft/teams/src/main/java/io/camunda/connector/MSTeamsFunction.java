@@ -12,12 +12,13 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.MicrosoftEntraConfiguration;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.operation.OperationFactory;
 
 @OutboundConnector(
     name = "MS Teams",
-    inputVariables = {"authentication", "data"},
+    inputVariables = {"authenticationConfiguration", "authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -45,7 +46,8 @@ import io.camunda.connector.operation.OperationFactory;
       "notification"
     },
     inputDataClass = MSTeamsRequest.class,
-    version = 9,
+    configurations = {MicrosoftEntraConfiguration.class},
+    version = 10,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

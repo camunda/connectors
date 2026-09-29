@@ -22,9 +22,14 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.io.InputStream;
+import org.apache.hc.core5.http.ConnectionClosedException;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CamundaDocumentStoreImpl.class);
 
   private final CamundaClient camundaClient;
   private final @Nullable String physicalTenantId;
@@ -70,12 +75,39 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
+    try {
+      return fetchDocumentContent(reference);
+    } catch (RuntimeException e) {
+      // The Camunda client's HTTP pool can hand out a keep-alive connection the server has just
+      // closed, and Apache's default retry strategy never retries ConnectionClosedException. The
+      // request is an idempotent GET and the dead connection is discarded, so retry once.
+      if (!isConnectionClosed(e)) {
+        throw e;
+      }
+      LOG.debug(
+          "Connection closed while fetching content of document {}, retrying once",
+          reference.getDocumentId(),
+          e);
+      return fetchDocumentContent(reference);
+    }
+  }
+
+  private InputStream fetchDocumentContent(CamundaDocumentReference reference) {
     return camundaClient
         .newDocumentContentGetRequest(reference.getDocumentId())
         .contentHash(reference.getContentHash())
         .storeId(reference.getStoreId())
         .send()
         .join();
+  }
+
+  private static boolean isConnectionClosed(Throwable e) {
+    for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+      if (cause instanceof ConnectionClosedException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
