@@ -8,6 +8,11 @@ on:
         description: 'Version to release (e.g., 8.7.0, 8.7.1). Make sure to select the correct branch.'
         required: true
         type: string
+      camunda-version:
+        description: 'Camunda artifact version (version.zeebe) to build against (e.g., 8.6.0). Leave empty to keep the version from pom.xml.'
+        required: false
+        type: string
+        default: ''
       skip-maven-release:
         description: 'Skip Maven release'
         required: false
@@ -149,6 +154,12 @@ jobs:
         run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ inputs.version }}
+
+      - name: Set Camunda artifact version
+        if: ${{ inputs.camunda-version != '' }}
+        run: mvn -B versions:set-property -Dproperty=version.zeebe -DnewVersion=${CAMUNDA_VERSION} -DgenerateBackupPoms=false -f parent
+        env:
+          CAMUNDA_VERSION: ${{ inputs.camunda-version }}
 
       - name: Compile and Test
         run: mvn -B package source:jar javadoc:jar -Pe2eExcluded
