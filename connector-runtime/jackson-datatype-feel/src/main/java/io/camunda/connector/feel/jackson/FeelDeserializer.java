@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
@@ -89,36 +90,46 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
       } else if (outputType.isJavaLangObject()
           && ((textValue.startsWith("\"") && textValue.endsWith("\""))
               || (textValue.startsWith("'") && textValue.endsWith("'")))) {
-        return handleNormalJsonNode(node, jacksonCtx);
+        return bindJsonNode(node, jacksonCtx);
       } else {
-        var jsonFactory = jacksonCtx.getParser().getCodec().getFactory();
-        try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {
-          // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
-          // string)
-          JsonNode jsonNode = jsonParser.readValueAsTree();
-          if (jsonNode != null && !jsonNode.isNull()) {
-            return handleNormalJsonNode(jsonNode, jacksonCtx);
+        // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
+        // string)
+        JsonNode jsonNode = parseJson(textValue, jacksonCtx);
+        if (jsonNode != null && !jsonNode.isNull()) {
+          try {
+            return bindJsonNode(jsonNode, jacksonCtx);
+          } catch (MismatchedInputException e) {
+            // JSON the target type cannot take in that shape, e.g. "[1,2]" for a String, is bound
+            // as the text it is below. A payload a deserializer took but could not bind, e.g. an
+            // unknown document type, is an error of its own and propagates.
+            if (!isMismatchOf(e, outputType)) {
+              throw e;
+            }
           }
-        } catch (IOException e) {
-          // ignore, this is just a string, we will take care of it below
         }
       }
     }
-    return handleNormalJsonNode(node, jacksonCtx);
+    return bindJsonNode(node, jacksonCtx);
   }
 
-  protected Object handleNormalJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  /** The JSON the text holds, or {@code null} when it holds none, i.e. it's just a string. */
+  private static JsonNode parseJson(String textValue, DeserializationContext context) {
+    var jsonFactory = context.getParser().getCodec().getFactory();
+    try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {
+      return jsonParser.readValueAsTree();
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  protected Object bindJsonNode(JsonNode node, DeserializationContext context) throws IOException {
 
     if (node == null || node.isNull()) {
       return null;
     }
-    if (outputType.getRawClass() == String.class && node.isObject()) {
-      return BLANK_OBJECT_MAPPER.writeValueAsString(node);
-    }
     // The caller's context, not the result mapper: this branch binds the model's own text, which
     // is exactly the case that may hold expressions and secret references.
-    return context.readTreeAsValue(node, outputType);
+    return bindOrWriteAsJson(node, outputType, () -> context.readTreeAsValue(node, outputType));
   }
 
   protected Object handleListLikeFormat(String textValue) {
