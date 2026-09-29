@@ -25,7 +25,7 @@
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.14.2</version.nullaway>
     <version.anthropic-java>2.66.0</version.anthropic-java>
-    <version.openai-java>4.70.0</version.openai-java>
+    <version.openai-java>4.71.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
   </properties>
 
