@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.6.29</version>
+    <version>8.6.31</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -23,6 +23,11 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>

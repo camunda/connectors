@@ -24,8 +24,24 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
-  /** Configuration for the inbound webhook connector. */
-  public record Webhook(boolean enabled) {}
+  /**
+   * Configuration for inbound webhooks.
+   *
+   * @param enabled whether webhook endpoints are enabled
+   * @param maxRequestBodyBytes maximum raw body size; {@code multipart/form-data} requests instead
+   *     use {@code spring.servlet.multipart.max-file-size} and {@code
+   *     spring.servlet.multipart.max-request-size}
+   * @param rateLimit global request rate limiting shared by all registered webhook paths; servlet
+   *     multipart parsing can occur before this limit is evaluated
+   */
+  public record Webhook(boolean enabled, int maxRequestBodyBytes, RateLimit rateLimit) {
+
+    public Webhook(boolean enabled) {
+      this(enabled, 10 * 1024 * 1024, new RateLimit(true, 1000));
+    }
+  }
+
+  public record RateLimit(boolean enabled, double permitsPerSecond) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(boolean enabled, long interval) {}
