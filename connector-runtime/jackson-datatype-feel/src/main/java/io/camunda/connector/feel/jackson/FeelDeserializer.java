@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
@@ -113,12 +114,18 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
     if (node == null || node.isNull()) {
       return null;
     }
-    if (outputType.getRawClass() == String.class && node.isObject()) {
-      return BLANK_OBJECT_MAPPER.writeValueAsString(node);
+    try {
+      // The caller's context, not the result mapper: this branch binds the model's own text, which
+      // is exactly the case that may hold expressions and secret references.
+      return context.readTreeAsValue(node, outputType);
+    } catch (MismatchedInputException e) {
+      // Only now that no registered String deserializer (e.g. the document module's, which binds
+      // document references and intrinsic functions) could take the object, bind it as its JSON.
+      if (outputType.getRawClass() == String.class && node.isObject()) {
+        return BLANK_OBJECT_MAPPER.writeValueAsString(node);
+      }
+      throw e;
     }
-    // The caller's context, not the result mapper: this branch binds the model's own text, which
-    // is exactly the case that may hold expressions and secret references.
-    return context.readTreeAsValue(node, outputType);
   }
 
   protected Object handleListLikeFormat(String textValue) {

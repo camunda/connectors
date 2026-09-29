@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -170,12 +171,18 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
         return null;
       }
       JsonNode jsonNode = BLANK_OBJECT_MAPPER.valueToTree(result);
-      if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
-        return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
+      try {
+        // The result mapper, not the caller's context: conversion runs the result back through the
+        // deserializers, and the property mapper's would treat a string in it as expression source.
+        return resultReader(ctx, targetType).readValue(jsonNode);
+      } catch (MismatchedInputException e) {
+        // Only now that no registered String deserializer (e.g. the document module's, which binds
+        // a document reference) could take the object, bind it as its JSON.
+        if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
+          return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
+        }
+        throw e;
       }
-      // The result mapper, not the caller's context: conversion runs the result back through the
-      // deserializers, and the property mapper's would treat a string in it as expression source.
-      return resultReader(ctx, targetType).readValue(jsonNode);
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
