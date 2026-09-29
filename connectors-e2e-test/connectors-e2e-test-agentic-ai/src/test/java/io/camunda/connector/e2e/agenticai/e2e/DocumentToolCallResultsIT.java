@@ -67,6 +67,7 @@ import org.springframework.core.io.ResourceLoader;
  *
  * <ul>
  *   <li>{@code OPENAI_API_KEY} - OpenAI API key
+ *   <li>{@code MISTRAL_API_KEY} - Mistral API key
  *   <li>{@code ANTHROPIC_API_KEY} - Anthropic API key
  *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
  *       AWS Bedrock Mantle backend credentials (region defaults to us-east-1)
@@ -242,6 +243,7 @@ class DocumentToolCallResultsIT {
             openAiResponsesV2("gpt-5.4"),
             openAiCompletionsV2("gpt-4.1"),
             openAiCompletionsV2("gpt-5.4"),
+            mistralV2("mistral-large-2512"),
             // Anthropic (v1)
             anthropicV1("claude-sonnet-4-6"),
             anthropicV1("claude-haiku-4-5-20251001"),
@@ -321,6 +323,23 @@ class DocumentToolCallResultsIT {
             "provider.openai.api.type",
             "completions",
             "provider.openai.model.model",
+            model));
+  }
+
+  static ProviderConfig mistralV2(String model) {
+    return new ProviderConfig(
+        "mistral-v2/" + model,
+        RealLlmProviderGroup.MISTRAL,
+        List.of("MISTRAL_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "mistral",
+            "provider.mistral.backend.type",
+            "mistral-api",
+            "provider.mistral.backend.mistral.apiKey",
+            envOrPlaceholder("MISTRAL_API_KEY"),
+            "provider.mistral.model.model",
             model));
   }
 

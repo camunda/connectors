@@ -67,6 +67,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * export CONNECTORS_IMAGE_NAME=camunda/connectors-bundle CONNECTORS_IMAGE_VERSION=local
  * export OPENAI_API_KEY=...                  # the OpenAI rows
+ * export MISTRAL_API_KEY=...                 # the native Mistral row
  * export ANTHROPIC_API_KEY=...               # the Anthropic rows
  * export ANTHROPIC_BEDROCK_API_KEY=...       # the Anthropic Bedrock Mantle row
  * export AWS_BEDROCK_API_KEY=...             # the Bedrock Converse row
@@ -172,6 +173,7 @@ public class AiAgentE2ETestIT {
           .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR", "DEBUG")
           .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR_AGENTICAI", "TRACE")
           .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
+          .withConnectorsSecret("MISTRAL_API_KEY", env("MISTRAL_API_KEY", ""))
           .withConnectorsSecret("ANTHROPIC_API_KEY", env("ANTHROPIC_API_KEY", ""))
           .withConnectorsSecret("ANTHROPIC_BEDROCK_API_KEY", env("ANTHROPIC_BEDROCK_API_KEY", ""))
           .withConnectorsSecret("AWS_BEDROCK_API_KEY", env("AWS_BEDROCK_API_KEY", ""))
@@ -376,6 +378,9 @@ public class AiAgentE2ETestIT {
             // and tool results differently, so each needs to run the scenarios
             openAiResponsesV2("gpt-4.1"),
             openAiCompletionsV2("gpt-4.1"),
+            // Native Mistral (v2); exercises tool batching, dependent tool rounds and feedback
+            // against the packaged connectors bundle rather than the in-process smoke runtime.
+            mistralV2("mistral-large-2512"),
             // Anthropic (v1)
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
@@ -432,6 +437,18 @@ public class AiAgentE2ETestIT {
             "provider.openai.backend.openai.apiKey", "{{secrets.OPENAI_API_KEY}}",
             "provider.openai.api.type", apiFamily,
             "provider.openai.model.model", model));
+  }
+
+  static ProviderConfig mistralV2(String model) {
+    return new ProviderConfig(
+        "mistral-v2/" + model,
+        List.of("MISTRAL_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "mistral",
+            "provider.mistral.backend.type", "mistral-api",
+            "provider.mistral.backend.mistral.apiKey", "{{secrets.MISTRAL_API_KEY}}",
+            "provider.mistral.model.model", model));
   }
 
   /** Anthropic, v1 (LangChain4j-backed). */
