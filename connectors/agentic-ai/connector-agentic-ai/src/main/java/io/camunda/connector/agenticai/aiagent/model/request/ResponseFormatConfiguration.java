@@ -75,6 +75,14 @@ public sealed interface ResponseFormatConfiguration {
           String schemaName)
       implements ResponseFormatConfiguration {
 
+    public static final String DEFAULT_SCHEMA_NAME = "Response";
+
+    public JsonResponseFormatConfiguration {
+      if (schemaName == null || schemaName.isBlank()) {
+        schemaName = DEFAULT_SCHEMA_NAME;
+      }
+    }
+
     /**
      * {@code false} both when no schema was configured ({@code null}) and when one was configured
      * as an empty object ({@code ={}} via FEEL) -- an empty schema constrains nothing, so it's
