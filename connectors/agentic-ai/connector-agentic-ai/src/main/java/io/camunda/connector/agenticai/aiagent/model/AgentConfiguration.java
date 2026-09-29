@@ -85,7 +85,7 @@ public record AgentConfiguration(
             chatModel.model(),
             chatModel.descriptiveProvider(),
             systemPrompt.prompt(),
-            String.valueOf(limits != null ? limits.maxModelCalls() : null),
+            String.valueOf(maxModelCalls()),
             String.valueOf(toolDefinitions));
     try {
       var digest =
