@@ -512,6 +512,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5-h2</artifactId>
+        <version>${version.httpcore5}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${version.kafka-clients}</version>
