@@ -344,11 +344,13 @@ Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything e
 
 `MistralChatModel` reuses the OpenAI Completions family's converters
 (`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`) wholesale, since
-Mistral's Chat Completions API is the same wire format as OpenAI's, but supplies its own content
-chunk strategy and stream assembler: `OpenAiCompletionsContentChunkStrategy.mistral(...)` maps a
-PDF to Mistral's `document_url` chunk instead of OpenAI's `file`/`file_data` shape, and
-`OpenAiCompletionsStreamAssembler.chunkedContentAware()` drives the chunked reasoning content
-covered below -- OpenAI's own wiring uses `.openAi(...)` and `.accumulating()` instead. It also
+Mistral's Chat Completions API is OpenAI-compatible, but supplies its own content chunk strategy
+and stream assembler: `MistralDocumentUrlContentChunkStrategy` (in the `provider.mistral` package,
+extending the shared `OpenAiFileContentChunkStrategy`) maps a PDF to Mistral's `document_url` chunk
+instead of OpenAI's `file`/`file_data` shape, and `MistralCompletionsStreamAssembler` (implementing
+the shared `OpenAiCompletionsStreamAssembler`) drives the chunked reasoning content covered below --
+OpenAI's own wiring uses the shared `OpenAiCompletionsContentChunkStrategy.openAi(...)` and
+`OpenAiCompletionsStreamAssembler.accumulating()` instead. It also
 does not go through `OpenAiCompletionsStrategy` -- that class is typed to
 `OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
 that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
@@ -391,9 +393,9 @@ and that same structural shape.
   replayed after a mid-conversation provider switch.
 - **Streaming**: `ChatCompletionAccumulator` (the openai-java SDK helper this converter chain
   otherwise reuses) can't accumulate array-shaped content deltas, so streamed Mistral responses use a
-  separate `ChunkedContentChatCompletionAccumulator` — a manual reimplementation of the same
-  accumulation algorithm that additionally self-detects string-vs-array shape per delta, wired in via
-  `OpenAiCompletionsStreamAssembler.chunkedContentAware()`.
+  separate `ChunkedContentChatCompletionAccumulator` (in the `provider.mistral` package) — a manual
+  reimplementation of the same accumulation algorithm that additionally self-detects string-vs-array
+  shape per delta, wired in via `MistralCompletionsStreamAssembler`.
 
 `MistralParameters.effort` maps onto the same `reasoning_effort` field OpenAI Completions uses.
 `MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: Mistral's API-wide `ReasoningEffort`
