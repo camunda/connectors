@@ -14,6 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -45,7 +46,7 @@ public sealed interface ResponseFormatConfiguration {
                       + "will still be available as <code>response.responseText</code>.",
               type = TemplateProperty.PropertyType.Boolean,
               optional = true)
-          Boolean parseJson)
+          @Nullable Boolean parseJson)
       implements ResponseFormatConfiguration {}
 
   @TemplateSubType(id = "json", label = "JSON")
@@ -62,7 +63,7 @@ public sealed interface ResponseFormatConfiguration {
                       + "version of the response will be available as <code>response.responseJson</code>.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> schema,
+          @Nullable Map<String, Object> schema,
       @FEEL
           @TemplateProperty(
               group = "response",
