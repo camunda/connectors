@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.23.0</version.mockito>
+    <version.mockito>5.24.0</version.mockito>
     <version.junit-jupiter>5.14.4</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.3</version.jackson-bom>
@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.55.2</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.55.3</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -101,7 +101,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>1.45.2</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260901-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260913-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260902-2.0.0</version.google-api-services-docs>
@@ -140,7 +140,7 @@ limitations under the License.</license.inlineheader>
          this branch has no box-java-sdk, so kafka-clients is the only path bringing zstd-jni into
          the bundles. Remove once kafka-clients ships zstd-jni >= 1.5.7-14.
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-18</version.zstd-jni>
+    <version.zstd-jni>1.5.7-19</version.zstd-jni>
 
     <!-- CVE-2026-55856 / CVE-2026-55857: override mariadb-java-client transitive version brought
          in by spring-boot-dependencies. connectors/jdbc/pom.xml already declares this dependency
@@ -185,7 +185,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.10.2</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
   </properties>
 
