@@ -313,7 +313,7 @@ jobs:
     name: Trigger SaaS E2E tests
     runs-on: ubuntu-latest
     needs: [ build-image ]
-    if: needs.build-image.outputs.connectors-version != ''
+    if: needs.build-image.outputs.connectors-version != '' && vars.SAAS_E2E_ENABLED == 'true'
     # Must stay above `wait-downstream`'s own 50min deadline. When this fires
     # first the runner kills the step mid-poll, the job lands as `cancelled`,
     # and the loop's timeout path never runs -- so the failure surfaces with
