@@ -20,7 +20,8 @@ public record RefreshTokenAuthentication(
             group = "authentication",
             id = "refresh.token",
             label = "Refresh token",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         String token,
     @FEEL
         @NotBlank
@@ -46,7 +47,8 @@ public record RefreshTokenAuthentication(
             optional = true,
             tooltip =
                 "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         String clientSecret)
     implements MicrosoftAuthentication {
 
