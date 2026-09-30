@@ -25,6 +25,7 @@ import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.CacheCreation;
 import com.anthropic.models.messages.Container;
+import com.anthropic.models.messages.Diagnostics;
 import com.anthropic.models.messages.DirectCaller;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageDeltaUsage;
@@ -399,6 +400,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
             .id("msg-test-sse-%s".formatted(id))
             .container((Container) null)
             .content(List.of())
+            .diagnostics((Diagnostics) null)
             .model("test-model")
             .stopDetails((RefusalStopDetails) null)
             .stopReason((StopReason) null)
