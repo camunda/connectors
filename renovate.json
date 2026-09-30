@@ -15,7 +15,8 @@
     "* * * * 0,6"
   ],
   "labels": [
-    "dependencies"
+    "dependencies",
+    "e2e-tests"
   ],
   "timezone": "Europe/Berlin",
   "customManagers": [
