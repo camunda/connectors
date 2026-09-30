@@ -52,6 +52,8 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.auth.token.credentials.SdkTokenProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.SdkEventLoopGroup;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClientBuilder;
@@ -74,9 +76,20 @@ class BedrockConverseChatModelFactoryTest {
   private static final String SIGV4_SCHEME_ID = "aws.auth#sigv4";
   private static final String BEARER_SCHEME_ID = "smithy.api#httpBearerAuth";
 
+  /**
+   * Every {@code testBuilder()} call builds a real (non-mocked) {@link BedrockRuntimeAsyncClient}
+   * backed by a real Netty HTTP client, so its {@code close()} is real too. Left to build its own
+   * event-loop group, the SDK owns its lifecycle and blocks {@code close()} on Netty's graceful
+   * shutdown (~2s quiet period) — paid once per test. Handing it this externally-owned group
+   * instead makes the SDK treat it as caller-managed and skip that wait on {@code close()}; its
+   * single thread is torn down with the test JVM, same as any other test-scoped resource left
+   * unclosed.
+   */
+  private static final SdkEventLoopGroup SHARED_EVENT_LOOP_GROUP =
+      SdkEventLoopGroup.builder().numberOfThreads(1).build();
+
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
-  private final AgenticAiHttpProxySupport proxySupport =
-      spy(new AgenticAiHttpProxySupport(proxyConfiguration));
+  private final AgenticAiHttpProxySupport proxySupport = proxySupportSpy(proxyConfiguration);
 
   private final ChatModelProperties config =
       new ChatModelProperties(
@@ -95,6 +108,17 @@ class BedrockConverseChatModelFactoryTest {
           config, proxySupport, requestConverter, responseConverter, new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
+
+  private static AgenticAiHttpProxySupport proxySupportSpy(ProxyConfiguration proxyConfiguration) {
+    final var proxySupportSpy = spy(new AgenticAiHttpProxySupport(proxyConfiguration));
+    doAnswer(
+            invocation ->
+                ((NettyNioAsyncHttpClient.Builder) invocation.callRealMethod())
+                    .eventLoopGroup(SHARED_EVENT_LOOP_GROUP))
+        .when(proxySupportSpy)
+        .createAwsAsyncHttpClientBuilder(any());
+    return proxySupportSpy;
+  }
 
   @Test
   void supportsBedrockV2Config() {
