@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.JsonValue;
 import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
@@ -36,17 +35,29 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Maps an accumulated OpenAI Chat Completions API SDK {@link ChatCompletion} to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code content}/{@code
- * refusal} become {@link TextContent} and function tool calls become {@link ToolCall}s. A custom
- * tool call (only reachable when a request customization configures a custom tool) has no
- * provider-neutral representation in this domain model and is captured losslessly as {@link
- * ProviderContent} instead of being silently dropped. This message shape carries no
- * reasoning/thinking field, so no {@link ReasoningContent} is ever emitted, though {@code
+ * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: plain string {@code
+ * content}/{@code refusal} become {@link TextContent} and function tool calls become {@link
+ * ToolCall}s. A custom tool call (only reachable when a request customization configures a custom
+ * tool) has no provider-neutral representation in this domain model and is captured losslessly as
+ * {@link ProviderContent} instead of being silently dropped, though {@code
  * completion_tokens_details.reasoning_tokens} is still surfaced via {@link
  * AgentMetrics.TokenUsage}.
+ *
+ * <p>Some OpenAI-compatible endpoints (e.g. Mistral's reasoning-capable models) send {@code
+ * content} as an array of typed chunks instead of a plain string. Whether {@code content} is a
+ * plain string or a chunked array is detected from the raw JSON shape of the field itself -- not
+ * from a caller-supplied flag -- so it works uniformly regardless of provider; what to do with a
+ * given chunk's own {@code type} is delegated to the injected {@link
+ * OpenAiCompletionsContentDialect} (see {@link #mapChunkedContent}): a chunk type the dialect
+ * recognizes (e.g. Mistral's {@code thinking} chunk, tagged with this converter's configured {@code
+ * providerId} for byte-faithful replay -- see {@link
+ * OpenAiCompletionsRequestConverter#assistantMessage}) becomes whatever domain {@link Content} the
+ * dialect produces; a plain {@code text} chunk becomes a {@link TextContent}; any other chunk type
+ * becomes a {@link ProviderContent}, all in their original order.
  *
  * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
  * ContentFilteredException} instead of returning a result, carrying the assistant message and
@@ -55,10 +66,17 @@ import java.util.Map;
  */
 public class OpenAiCompletionsResponseConverter {
 
+  private final String providerId;
   private final ObjectMapper objectMapper;
+  private final OpenAiCompletionsContentDialect contentDialect;
 
-  public OpenAiCompletionsResponseConverter(ObjectMapper objectMapper) {
+  public OpenAiCompletionsResponseConverter(
+      String providerId,
+      ObjectMapper objectMapper,
+      OpenAiCompletionsContentDialect contentDialect) {
+    this.providerId = providerId;
     this.objectMapper = objectMapper;
+    this.contentDialect = contentDialect;
   }
 
   public ChatResult toResult(ChatCompletion completion, Duration executionTime) {
@@ -89,7 +107,7 @@ public class OpenAiCompletionsResponseConverter {
     final List<ChatCompletion.Choice> choices = completion.choices();
     if (choices.isEmpty()) {
       throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response contained no choices");
+          ERROR_CODE_FAILED_MODEL_CALL, "%s response contained no choices".formatted(providerId));
     }
     return choices.get(0);
   }
@@ -107,10 +125,7 @@ public class OpenAiCompletionsResponseConverter {
     final ChatCompletionMessage message = choice.message();
 
     final List<Content> content = new ArrayList<>();
-    message
-        .content()
-        .filter(text -> !text.isBlank())
-        .ifPresent(text -> content.add(TextContent.textContent(text)));
+    mapContent(message, content);
     // A refusal has no dedicated domain content type; kept as TextContent so the declination stays
     // visible in the partial result once toResult() throws ContentFilteredException for it (see
     // hasRefusal).
@@ -125,7 +140,7 @@ public class OpenAiCompletionsResponseConverter {
         .ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls, content)));
 
     final Map<String, Object> openAiMetadata =
-        Map.of(OPENAI_ID, Map.of("stopReason", choice.finishReason().asString()));
+        Map.of(providerId, Map.of("stopReason", choice.finishReason().asString()));
 
     return AssistantMessage.builder()
         .content(content)
@@ -154,13 +169,66 @@ public class OpenAiCompletionsResponseConverter {
     };
   }
 
+  /**
+   * Maps {@code content} to domain {@link Content}, self-detecting the wire shape from the raw JSON
+   * value rather than a caller-supplied flag (see the class Javadoc): a plain string maps to a
+   * single {@link TextContent}, while a chunked array (thinking/text chunks) is unpacked by {@link
+   * #mapChunkedContent}.
+   */
+  private void mapContent(ChatCompletionMessage message, List<Content> content) {
+    final Optional<List<JsonValue>> chunkedContent = message._content().asArray();
+    if (chunkedContent.isPresent()) {
+      mapChunkedContent(chunkedContent.get(), content);
+      return;
+    }
+    message
+        .content()
+        .filter(text -> !text.isBlank())
+        .ifPresent(text -> content.add(TextContent.textContent(text)));
+  }
+
+  /**
+   * Unpacks a chunked {@code content} array into domain {@link Content}, one entry per chunk, in
+   * original order: a chunk the injected {@link OpenAiCompletionsContentDialect} recognizes (e.g.
+   * Mistral's {@code thinking} chunk) becomes whatever domain {@link Content} it produces; a plain
+   * {@code text} chunk becomes a {@link TextContent}; any other chunk type (this endpoint's own
+   * {@code ContentChunk} union additionally allows {@code reference}/{@code image_url}/{@code
+   * document_url}/{@code file}/{@code input_audio}, e.g. a citation from a web-search-tool-
+   * augmented answer) has no provider-neutral representation and is preserved losslessly as {@link
+   * ProviderContent} instead -- mirrors the custom-tool-call handling in {@link #toToolCall} -- so
+   * nothing is silently dropped from conversation history even if this connector can't otherwise
+   * act on it.
+   */
+  private void mapChunkedContent(List<JsonValue> chunks, List<Content> content) {
+    for (final JsonValue chunkValue : chunks) {
+      final Map<String, Object> raw =
+          chunkValue.convert(new TypeReference<Map<String, Object>>() {});
+      if (raw == null) {
+        continue;
+      }
+      contentDialect
+          .mapChunk(raw, providerId)
+          .ifPresentOrElse(content::add, () -> mapGenericChunk(raw, content));
+    }
+  }
+
+  private void mapGenericChunk(Map<String, Object> raw, List<Content> content) {
+    if ("text".equals(raw.get("type"))) {
+      if (raw.get("text") instanceof String text && !text.isBlank()) {
+        content.add(TextContent.textContent(text));
+      }
+    } else {
+      content.add(ProviderContent.providerContent(providerId, raw));
+    }
+  }
+
   private void toToolCall(
       ChatCompletionMessageToolCall call, List<ToolCall> toolCalls, List<Content> content) {
     if (call.function().isEmpty()) {
       // Only function tool calls have a provider-neutral representation; a custom tool call (see
       // the class Javadoc) is preserved losslessly as ProviderContent instead, so the agent loop
       // still sees the model's output even though it can't act on it as a tool call.
-      content.add(ProviderContent.providerContent(OPENAI_ID, toRawMap(call)));
+      content.add(ProviderContent.providerContent(providerId, toRawMap(call)));
       return;
     }
 

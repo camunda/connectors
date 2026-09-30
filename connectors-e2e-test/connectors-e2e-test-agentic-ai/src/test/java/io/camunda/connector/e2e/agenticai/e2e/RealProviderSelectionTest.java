@@ -49,6 +49,25 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldSelectMistralRowsOnlyWhenGroupIsMistral() {
+    environment.set("MISTRAL_API_KEY", "key");
+    environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");
+
+    assertThat(RealProviderApiSmokeIT.providers())
+        .extracting(RealProviderApiSmokeIT.ProviderConfig::label)
+        .containsExactly(
+            "mistral-v2/mistral-large-2512",
+            "mistral-v2/mistral-medium-3-5",
+            "mistral-v2/ministral-14b-2512");
+
+    environment.set("REAL_LLM_PROVIDER_GROUP", "openai");
+
+    assertThat(RealProviderApiSmokeIT.providers())
+        .extracting(RealProviderApiSmokeIT.ProviderConfig::label)
+        .noneMatch(label -> label.startsWith("mistral-v2/"));
+  }
+
+  @Test
   void shouldDisableVertexGemini37OnlyInShardedRuns() {
     environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
     environment.set("GOOGLE_VERTEX_AI_REGION", "region");

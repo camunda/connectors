@@ -16,6 +16,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -41,7 +43,15 @@ class OpenAiCompletionsResponseConverterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final OpenAiCompletionsResponseConverter converter =
-      new OpenAiCompletionsResponseConverter(objectMapper);
+      new OpenAiCompletionsResponseConverter(
+          "openai", objectMapper, OpenAiCompletionsContentDialect.none());
+
+  // Mistral's thinking-chunk vocabulary is only ever recognized by a converter instance wired with
+  // MistralReasoningContentDialect -- mirrors the real production wiring in
+  // AgenticAiNativeProvidersConfiguration.
+  private final OpenAiCompletionsResponseConverter mistralConverter =
+      new OpenAiCompletionsResponseConverter(
+          "mistral", objectMapper, new MistralReasoningContentDialect());
 
   private static ChatCompletion completionFromJson(String json) {
     try {
@@ -263,9 +273,10 @@ class OpenAiCompletionsResponseConverterTest {
 
   @Test
   void dropsNonStandardReasoningFieldFromMessage() {
-    // Chat Completions has no standard reasoning/thinking field on the message; this simulates a
-    // nonstandard extension carrying one, verifying it is never surfaced as ReasoningContent --
-    // reasoning support is deferred for the Completions family.
+    // Chat Completions has no standard top-level reasoning/thinking message field (reasoning is
+    // only ever carried inside a chunked `content` array, see the chunked-content tests above);
+    // this simulates a nonstandard extension carrying one instead, verifying it is never surfaced
+    // as ReasoningContent.
     final ChatCompletion completion =
         baseCompletion(
             """
@@ -282,6 +293,143 @@ class OpenAiCompletionsResponseConverterTest {
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("Hello there"));
     assertThat(result.assistantMessage().content()).noneMatch(ReasoningContent.class::isInstance);
+  }
+
+  @Test
+  void mapsChunkedThinkingAndTextContentToReasoningAndTextContent() {
+    // Mirrors a real Mistral non-streaming response: content is an array of typed chunks instead
+    // of a plain string, self-detected from the raw JSON shape (see
+    // OpenAiCompletionsResponseConverter#mapContent); the thinking chunk itself is only recognized
+    // by MistralReasoningContentDialect.
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": [{"type": "text", "text": "5 + 7 is 12."}],
+                  "closed": true
+                },
+                {"type": "text", "text": "The answer is 12."}
+              ]
+            }
+            """);
+
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(
+            new ReasoningContent(
+                "mistral", Map.of("type", "thinking", "closed", true), "5 + 7 is 12.", null),
+            TextContent.textContent("The answer is 12."));
+  }
+
+  @Test
+  void mapsChunkedThinkingOnlyContentWithoutTrailingTextChunk() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "length",
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "thinking", "thinking": [{"type": "text", "text": "still thinking"}]}
+              ]
+            }
+            """);
+
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(
+            new ReasoningContent("mistral", Map.of("type", "thinking"), "still thinking", null));
+  }
+
+  @Test
+  void keepsMultiItemThinkingArrayInPayloadInsteadOfCollapsingIt() {
+    // A multi-item thinking array (or one whose item carries extra fields) can't be reconstructed
+    // byte-identical from the joined text alone, so it must stay in the payload verbatim -- see
+    // MistralReasoningContentDialect#isThinkingReconstructible.
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "stop",
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": [
+                    {"type": "text", "text": "5 + 7 "},
+                    {"type": "text", "text": "is 12."}
+                  ],
+                  "closed": true
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+
+    final var reasoning = (ReasoningContent) result.assistantMessage().content().get(0);
+    assertThat(reasoning.text()).isEqualTo("5 + 7 is 12.");
+    assertThat(reasoning.payload())
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsEntry(
+            "thinking",
+            List.of(
+                Map.of("type", "text", "text", "5 + 7 "),
+                Map.of("type", "text", "text", "is 12.")));
+  }
+
+  @Test
+  void treatsThinkingChunkAsGenericProviderContentWhenDialectDoesNotRecognizeIt() {
+    // Unlike mistralConverter, this converter's OpenAiCompletionsContentDialect.none() doesn't
+    // recognize Mistral's thinking-chunk vocabulary, so it falls back to the generic
+    // unknown-chunk-type handling instead of ReasoningContent.
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "thinking", "thinking": [{"type": "text", "text": "5 + 7 is 12."}]}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ProviderContent.class,
+            providerContent -> assertThat(providerContent.provider()).isEqualTo("openai"));
+  }
+
+  @Test
+  void preservesUnknownChunkTypesInChunkedContentAsProviderContent() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {
+              "role": "assistant",
+              "content": [
+                {"type": "reference", "reference_ids": [1, 2]},
+                {"type": "text", "text": "Hello there"}
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(
+            ProviderContent.providerContent(
+                "openai", Map.of("type", "reference", "reference_ids", List.of(1, 2))),
+            TextContent.textContent("Hello there"));
   }
 
   @Test
