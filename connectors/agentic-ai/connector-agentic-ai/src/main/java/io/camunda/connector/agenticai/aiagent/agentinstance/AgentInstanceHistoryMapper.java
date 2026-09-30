@@ -37,6 +37,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -206,9 +207,19 @@ public class AgentInstanceHistoryMapper {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
-      case ReasoningContent reasoningContent -> objectHistoryContent(reasoningContent);
+      case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> objectHistoryContent(providerContent);
     };
+  }
+
+  private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {
+    final var historyObject = new LinkedHashMap<String, Object>();
+    historyObject.put("camunda.agenticai.content.type", "reasoning");
+    if (StringUtils.isNotBlank(reasoningContent.text())) {
+      historyObject.put("text", reasoningContent.text());
+    }
+    historyObject.put("payload", reasoningContent.payload());
+    return objectHistoryContent(historyObject);
   }
 
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {
