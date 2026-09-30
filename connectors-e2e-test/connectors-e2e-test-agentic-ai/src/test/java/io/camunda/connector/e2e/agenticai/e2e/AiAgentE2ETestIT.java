@@ -617,7 +617,7 @@ public class AiAgentE2ETestIT {
     }
 
     boolean isEnabled() {
-      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
+      return enabled && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
 
     @Override
