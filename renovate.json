@@ -11,7 +11,8 @@
   "timezone": "Europe/Berlin",
   "labels": [
     "dependencies",
-    "no milestone"
+    "no milestone",
+    "e2e-tests"
   ],
   "prHourlyLimit": 10,
   "customManagers": [
