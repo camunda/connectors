@@ -1,0 +1,146 @@
+name: AWS AgentCore real-provider CPT (PR)
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  run-agentcore-cpt:
+    runs-on: gcp-core-8-default
+    timeout-minutes: 45
+    if: |
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'ai-agent-model-e2e-test'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Check for AgentCore changes
+        id: changes
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            agentcore:
+              - 'connectors/aws/aws-bedrock-agentcore-long-term-memory/**'
+              - 'connectors/aws/aws-bedrock-agentcore-runtime/**'
+              - 'connectors/aws/aws-bedrock-codeinterpreter/**'
+              - 'connectors-e2e-test/connectors-e2e-test-aws/connectors-e2e-test-aws-agentcore/**'
+              - '.github/workflows/AGENTCORE_CPT_PR.yml'
+
+      - name: Import build secrets
+        if: steps.changes.outputs.agentcore == 'true'
+        id: build-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: Import AgentCore test credentials
+        if: steps.changes.outputs.agentcore == 'true'
+        id: aws-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_AWS_ACCESS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_AWS_SECRET_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_AGENT_RUNTIME_ARN;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_AWS_ACCESS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_AWS_SECRET_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_MEMORY_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_NAMESPACE;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_EXPECTED_RECORD_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_EXPECTED_RECORD_CONTENT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_EXPECTED_SECOND_RECORD_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AGENTCORE_LTM_EXPECTED_SECOND_RECORD_CONTENT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite BEDROCK_CI_AWS_ACCESS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite BEDROCK_CI_AWS_SECRET_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite BEDROCK_CI_AWS_REGION;
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        if: steps.changes.outputs.agentcore == 'true'
+        with:
+          distribution: temurin
+          java-version: "21.0.12+101.0.LTS"
+
+      - name: Create settings.xml
+        if: steps.changes.outputs.agentcore == 'true'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.build-secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.build-secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven cache
+        if: steps.changes.outputs.agentcore == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-node@v7.0.0
+        if: steps.changes.outputs.agentcore == 'true'
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        if: steps.changes.outputs.agentcore == 'true'
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Install reactor dependencies
+        if: steps.changes.outputs.agentcore == 'true'
+        run: |
+          ./mvnw --batch-mode install -DskipTests -DskipChecks \
+            --projects connectors-e2e-test/connectors-e2e-test-aws/connectors-e2e-test-aws-agentcore \
+            --also-make
+
+      - name: Run real AgentCore CPT
+        if: steps.changes.outputs.agentcore == 'true'
+        env:
+          AGENTCORE_AWS_ACCESS_KEY: ${{ steps.aws-secrets.outputs.AGENTCORE_AWS_ACCESS_KEY }}
+          AGENTCORE_AWS_SECRET_KEY: ${{ steps.aws-secrets.outputs.AGENTCORE_AWS_SECRET_KEY }}
+          AGENTCORE_AWS_REGION: ${{ steps.aws-secrets.outputs.AGENTCORE_AWS_REGION }}
+          AGENTCORE_AGENT_RUNTIME_ARN: ${{ steps.aws-secrets.outputs.AGENTCORE_AGENT_RUNTIME_ARN }}
+          AGENTCORE_LTM_AWS_ACCESS_KEY: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_AWS_ACCESS_KEY }}
+          AGENTCORE_LTM_AWS_SECRET_KEY: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_AWS_SECRET_KEY }}
+          AGENTCORE_LTM_AWS_REGION: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_AWS_REGION }}
+          AGENTCORE_LTM_MEMORY_ID: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_MEMORY_ID }}
+          AGENTCORE_LTM_NAMESPACE: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_NAMESPACE }}
+          AGENTCORE_LTM_EXPECTED_RECORD_ID: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_EXPECTED_RECORD_ID }}
+          AGENTCORE_LTM_EXPECTED_RECORD_CONTENT: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_EXPECTED_RECORD_CONTENT }}
+          AGENTCORE_LTM_EXPECTED_SECOND_RECORD_ID: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_EXPECTED_SECOND_RECORD_ID }}
+          AGENTCORE_LTM_EXPECTED_SECOND_RECORD_CONTENT: ${{ steps.aws-secrets.outputs.AGENTCORE_LTM_EXPECTED_SECOND_RECORD_CONTENT }}
+          BEDROCK_CI_AWS_ACCESS_KEY: ${{ steps.aws-secrets.outputs.BEDROCK_CI_AWS_ACCESS_KEY }}
+          BEDROCK_CI_AWS_SECRET_KEY: ${{ steps.aws-secrets.outputs.BEDROCK_CI_AWS_SECRET_KEY }}
+          BEDROCK_CI_AWS_REGION: ${{ steps.aws-secrets.outputs.BEDROCK_CI_AWS_REGION }}
+        run: |
+          ./mvnw --batch-mode verify \
+            -pl connectors-e2e-test/connectors-e2e-test-aws/connectors-e2e-test-aws-agentcore \
+            -Pit-real-agentcore \
+            -Dit.test=RealAgentCoreCptIT

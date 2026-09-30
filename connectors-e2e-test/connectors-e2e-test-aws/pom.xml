@@ -21,6 +21,7 @@
     <module>connectors-e2e-test-aws-lambda</module>
     <module>connectors-e2e-test-aws-sns</module>
     <module>connectors-e2e-test-aws-sqs</module>
+    <module>connectors-e2e-test-aws-agentcore</module>
   </modules>
 
   <dependencies>
