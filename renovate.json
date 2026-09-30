@@ -6,7 +6,8 @@
   "pinDigests": true,
   "labels": [
     "dependencies",
-    "no milestone"
+    "no milestone",
+    "e2e-tests"
   ],
   "hostRules": [
     {
