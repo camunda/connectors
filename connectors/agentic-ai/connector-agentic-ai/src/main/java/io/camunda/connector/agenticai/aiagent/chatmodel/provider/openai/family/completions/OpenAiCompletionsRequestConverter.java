@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
@@ -299,7 +301,8 @@ public class OpenAiCompletionsRequestConverter {
                     .name(json.schemaName())
                     .schema(
                         objectMapper.convertValue(
-                            OpenAiStrictJsonSchemas.forStrictMode(json.schema(), objectMapper),
+                            OpenAiStrictJsonSchemas.forStrictMode(
+                                requireNonNull(json.schema()), objectMapper),
                             ResponseFormatJsonSchema.JsonSchema.Schema.class))
                     .strict(true)
                     .build())

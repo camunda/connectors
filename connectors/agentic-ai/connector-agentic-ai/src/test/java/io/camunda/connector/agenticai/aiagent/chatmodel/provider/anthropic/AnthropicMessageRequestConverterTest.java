@@ -470,6 +470,18 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
+  void treatsEmptyJsonSchemaAsNoSchema() {
+    final var response =
+        new AgentTaskResponseConfiguration(
+            new JsonResponseFormatConfiguration(Map.of(), null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toMessageCreateParams(model(null), response, snapshot);
+
+    assertThat(params.outputConfig()).isEmpty();
+  }
+
+  @Test
   void configuresStructuredOutputFromJsonSchema() {
     final Map<String, Object> schema =
         Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));

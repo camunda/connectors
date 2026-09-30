@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v1.shared;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.time.Duration;
+import org.jspecify.annotations.Nullable;
 
 public record TimeoutConfiguration(
     @TemplateProperty(
@@ -20,4 +21,4 @@ public record TimeoutConfiguration(
             feel = FeelMode.optional,
             optional = true,
             defaultValueType = TemplateProperty.DefaultValueType.String)
-        Duration timeout) {}
+        @Nullable Duration timeout) {}
