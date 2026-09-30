@@ -23,6 +23,7 @@ enum RealLlmProviderGroup {
   VERTEX,
   BEDROCK,
   ANTHROPIC,
+  MISTRAL,
   LOCAL;
 
   boolean isSelected() {
