@@ -121,6 +121,16 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void unsetMaxModelCallsYieldsSameFingerprintAsExplicitDefault() {
+      final var unset = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
+      final var explicit =
+          configuration("gpt-4o", "Be nice.", AgentConfiguration.DEFAULT_MAX_MODEL_CALLS, List.of())
+              .fingerprint();
+
+      assertThat(unset).isEqualTo(explicit);
+    }
+
+    @Test
     void changedMaxModelCallsYieldsDifferentFingerprint() {
       final var first = configuration("gpt-4o", "Be nice.", 10, List.of()).fingerprint();
       final var second = configuration("gpt-4o", "Be nice.", 20, List.of()).fingerprint();

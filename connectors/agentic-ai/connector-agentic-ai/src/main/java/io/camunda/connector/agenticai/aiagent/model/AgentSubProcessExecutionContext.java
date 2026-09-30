@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
@@ -93,7 +94,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
    * part of the generic {@link
    * io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
    */
-  public AgentSubProcessResponseConfiguration response() {
+  public @Nullable AgentSubProcessResponseConfiguration response() {
     return data.response();
   }
 }

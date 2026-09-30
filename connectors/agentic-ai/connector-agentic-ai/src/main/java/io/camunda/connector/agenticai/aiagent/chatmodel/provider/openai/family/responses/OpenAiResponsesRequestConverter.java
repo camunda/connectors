@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
+import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
@@ -375,7 +376,8 @@ public class OpenAiResponsesRequestConverter {
                         .name(json.schemaName())
                         .schema(
                             objectMapper.convertValue(
-                                OpenAiStrictJsonSchemas.forStrictMode(json.schema(), objectMapper),
+                                OpenAiStrictJsonSchemas.forStrictMode(
+                                    requireNonNull(json.schema()), objectMapper),
                                 ResponseFormatTextJsonSchemaConfig.Schema.class))
                         .strict(true)
                         .build()))
