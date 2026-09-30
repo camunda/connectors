@@ -26,7 +26,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     description =
         "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-connector/",
+        "https://docs.camunda.io/docs/8.10/components/early-access/alpha/a2a-client/a2a-client-connector/",
     engineVersion = "^8.9",
     version = 0,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),

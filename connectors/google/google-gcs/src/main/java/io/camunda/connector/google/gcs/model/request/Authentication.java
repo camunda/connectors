@@ -17,7 +17,7 @@ public class Authentication {
       group = "authentication",
       label = "JSON key of the service account",
       tooltip =
-          "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
+          "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
       feel = FeelMode.optional)
   @NotBlank
   private String jsonKey;
