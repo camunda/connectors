@@ -235,7 +235,7 @@ public class SqsQueueConsumerTest {
                   return builder.build();
                 })
             .toList();
-    assertThat(activities.get(0).healthChange().getStatus()).isEqualTo(Health.Status.DOWN);
+    assertThat(activities.get(0).healthChange()).isEqualTo(Health.down(queueMissing));
     assertThat(activities.get(1).healthChange()).isEqualTo(Health.up());
     verify(context).reportHealth(Health.down());
   }
