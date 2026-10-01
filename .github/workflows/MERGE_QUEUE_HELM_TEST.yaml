@@ -425,17 +425,6 @@ jobs:
                   }
                 }'
 
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
-
       - name: Wait for downstream workflow to finish
         id: wait-downstream
         if: steps.check-downstream.outputs.enabled == 'true'
@@ -879,17 +868,6 @@ jobs:
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
             -Pit-real-llm \
             --batch-mode
-
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: run-ai-agent-cpt
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x
