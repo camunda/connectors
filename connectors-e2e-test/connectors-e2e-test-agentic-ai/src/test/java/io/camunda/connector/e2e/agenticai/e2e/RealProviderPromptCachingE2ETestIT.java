@@ -53,7 +53,6 @@ class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
             template -> {
               provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
               template.property("data.systemPrompt.prompt", "=longSystemPrompt");

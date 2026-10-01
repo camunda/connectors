@@ -87,7 +87,6 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
             template ->
                 template
                     .property("data.response.format.type", "json")
@@ -135,7 +134,6 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
             template ->
                 template
                     .property("data.response.format.type", "json")

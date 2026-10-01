@@ -95,7 +95,6 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
-            systemPrompt,
             template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
 
     var instance =
@@ -123,7 +122,6 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
-            DOCUMENT_SYSTEM_PROMPT,
             template -> {});
 
     var instance =
