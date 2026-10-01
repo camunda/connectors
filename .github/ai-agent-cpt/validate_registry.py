@@ -30,17 +30,13 @@ def load_registry(path):
     if not isinstance(registry, dict):
         fail("registry must be an object")
     profiles = registry.get("credentialProfiles")
-    if not isinstance(profiles, dict):
-        fail("credentialProfiles must be an object")
-    for profile_name, profile in profiles.items():
-        if not isinstance(profile, dict):
-            fail(f"{profile_name}: credential profile must be an object")
-        for field in ("vaultSecrets", "environment"):
-            values = profile.get(field)
-            if not isinstance(values, list) or not all(
-                isinstance(value, str) for value in values
-            ):
-                fail(f"{profile_name}: {field} must be an array of strings")
+    if (
+        not isinstance(profiles, list)
+        or not profiles
+        or not all(isinstance(profile, str) and profile for profile in profiles)
+        or len(profiles) != len(set(profiles))
+    ):
+        fail("credentialProfiles must be a non-empty array of unique strings")
     rows = registry.get("rows")
     if not isinstance(rows, list) or not rows:
         fail("rows must be a non-empty array")
