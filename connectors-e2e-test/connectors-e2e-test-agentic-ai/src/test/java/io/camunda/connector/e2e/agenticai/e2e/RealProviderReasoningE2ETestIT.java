@@ -57,7 +57,6 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            systemPrompt,
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =

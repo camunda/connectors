@@ -760,7 +760,6 @@ abstract class RealProviderApiSmokeSupport {
       ProviderConfig provider,
       String templatePath,
       String bpmnResource,
-      String systemPrompt,
       Consumer<ElementTemplate> customize) {
     var template = ElementTemplate.from(templatePath);
 

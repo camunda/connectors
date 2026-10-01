@@ -50,11 +50,7 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
   void toolCallLoopSurfacesPlantedFact(ProviderConfig provider) {
     var model =
         buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
-            template -> {});
+            provider, AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH, BPMN_RESOURCE, template -> {});
 
     var instance =
         startAgent(
@@ -82,7 +78,6 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            DEFAULT_SYSTEM_PROMPT,
             template ->
                 template.property(
                     "data.userPrompt.prompt",
