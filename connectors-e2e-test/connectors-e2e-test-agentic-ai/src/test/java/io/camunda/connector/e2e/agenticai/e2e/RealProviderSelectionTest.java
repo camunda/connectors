@@ -117,6 +117,16 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldDisablePromptCachingOnlyForNativeBedrockDocumentProviders() {
+    var promptCachingProperty = "provider.bedrock.model.parameters.promptCaching.enabled";
+
+    assertThat(DocumentToolCallResultsIT.bedrockV1("model").properties())
+        .doesNotContainKey(promptCachingProperty);
+    assertThat(DocumentToolCallResultsIT.bedrockV2("model").properties())
+        .containsEntry(promptCachingProperty, "false");
+  }
+
+  @Test
   void shouldSelectTheExpectedRowsForEachCapabilitySuite() {
     setAllProviderCredentials();
     environment.set("REAL_LLM_PROVIDER_GROUP", "");
