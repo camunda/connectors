@@ -72,8 +72,10 @@ abstract class RealProviderApiSmokeSupport {
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
           + "guess or fabricate a value for a tool argument - only use a value you actually "
           + "received from a previous tool result. If a tool's input depends on another tool's "
-          + "result, call only that first tool now and wait for its result before calling the "
-          + "dependent tool in a later turn - never call both in the same turn.";
+          + "result, call only the prerequisite tool in the first model invocation. After its "
+          + "result appears in the conversation, immediately call the dependent tool in the next "
+          + "model invocation before answering. Do not wait for another user message, and never "
+          + "call both tools in the same model invocation.";
 
   protected static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
@@ -311,7 +313,9 @@ abstract class RealProviderApiSmokeSupport {
             "provider.bedrock.authentication.apiKey",
             envOrPlaceholder("AWS_BEDROCK_API_KEY"),
             "provider.bedrock.model.model",
-            model),
+            model,
+            "provider.bedrock.model.parameters.promptCaching.enabled",
+            "false"),
         capabilityProperties,
         true);
   }
