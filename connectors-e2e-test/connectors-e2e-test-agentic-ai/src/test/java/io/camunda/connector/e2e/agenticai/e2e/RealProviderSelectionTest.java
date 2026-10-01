@@ -117,6 +117,23 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldUseBoundedThinkingBudgetForVertexGemini25() {
+    environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
+    environment.set("GOOGLE_VERTEX_AI_REGION", "region");
+    environment.set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}");
+    environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
+
+    assertThat(RealProviderApiSmokeSupport.providersWithReasoning())
+        .singleElement()
+        .extracting(
+            provider ->
+                provider
+                    .propertiesFor(RealProviderApiSmokeSupport.Capability.REASONING)
+                    .get("provider.googleGemini.model.parameters.thinking.thinkingBudget"))
+        .isEqualTo("2048");
+  }
+
+  @Test
   void shouldDisablePromptCachingOnlyForNativeBedrockDocumentProviders() {
     var promptCachingProperty = "provider.bedrock.model.parameters.promptCaching.enabled";
 

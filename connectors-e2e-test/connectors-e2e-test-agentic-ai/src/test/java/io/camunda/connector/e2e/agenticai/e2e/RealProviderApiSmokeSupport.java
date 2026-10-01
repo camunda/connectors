@@ -663,7 +663,8 @@ abstract class RealProviderApiSmokeSupport {
                             "provider.googleGemini.model.parameters.thinking.thinkingLevel",
                             "high")))
             .disabledInShardedRun(),
-        // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
+        // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level. Keep the
+        // budget bounded so the model also has room to produce its final answer.
         // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
         googleGeminiV2(
             "gemini-2.5-pro",
@@ -672,8 +673,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING,
                     Map.of(
-                        "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                        "24576"))),
+                        "provider.googleGemini.model.parameters.thinking.thinkingBudget", "2048"))),
         googleGeminiVertexAiV2(
             "gemini-2.5-pro",
             Map.of(
@@ -682,7 +682,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.REASONING,
                     Map.of(
                         "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                        "24576"))));
+                        "2048"))));
   }
 
   static Stream<ProviderConfig> providers() {
