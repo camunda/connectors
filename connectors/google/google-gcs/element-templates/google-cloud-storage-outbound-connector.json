@@ -24,9 +24,6 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "additionalProperties",
-    "label" : "Additional properties"
-  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -388,6 +385,29 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "uploadOperationFileName",
+    "label" : "Document file name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
+    "type" : "String"
+  }, {
     "id" : "authentication.jsonKey",
     "label" : "JSON key of the service account",
     "optional" : false,
@@ -401,23 +421,6 @@
       "type" : "zeebe:input"
     },
     "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "uploadOperationFileName",
-    "label" : "Document file name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "additionalProperties",
-    "binding" : {
-      "name" : "operation.fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operationDiscriminator",
-      "equals" : "uploadObject",
-      "type" : "simple"
-    },
-    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
     "type" : "String"
   }, {
     "id" : "version",
