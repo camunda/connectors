@@ -42,8 +42,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,6 +100,7 @@ import org.springframework.core.io.ResourceLoader;
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
+@Tag(RealProviderCapabilityTags.DOCUMENT_TOOL_CALL_RESULTS)
 class DocumentToolCallResultsIT {
 
   private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsIT.class);
@@ -123,6 +126,11 @@ class DocumentToolCallResultsIT {
 
   @BeforeEach
   void clearDocumentStore() {
+    InMemoryDocumentStore.INSTANCE.clear();
+  }
+
+  @AfterEach
+  void clearDocumentStoreAfterTest() {
     InMemoryDocumentStore.INSTANCE.clear();
   }
 

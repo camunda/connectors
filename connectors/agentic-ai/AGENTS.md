@@ -187,29 +187,22 @@ Real-provider / real-LLM acceptance coverage for this module lives in
 `connectors-e2e-test/connectors-e2e-test-agentic-ai/` and is intentionally split in two dimensions:
 
 1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
-   maintainer applies the `ai-agent-model-e2e-test` label. It has separate matrix legs for:
-    - `AiAgentE2ETestIT` with a locally built connector bundle image
-    - `RealProviderApiSmokeIT` for the OpenAI provider group
-    - `RealProviderApiSmokeIT` for the Vertex provider group
-    - `RealProviderApiSmokeIT` for the Bedrock provider group
+   maintainer applies the `ai-agent-model-e2e-test` label. The registry in
+   `.github/ai-agent-cpt/registry.json` defines the bundle test leg and the native-provider
+   capability-group legs. The workflow validates that registry and uses its generated matrix.
 
    The workflow is label-triggered only; later pushes require the label to be re-applied. Fork PRs do
    not receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
    for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
-   changed. Matrix execution is capped below full parallelism (`max-parallel: 2`) because each leg has
-   its own runner and repeats checkout, Vault imports, tool setup, and Maven bootstrap.
-2. **Provider capabilities**: `RealProviderApiSmokeIT.ProviderConfig` declares each provider/model row
+   changed. Matrix execution is capped at four concurrent legs.
+2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
    provider labels. If a scenario needs provider-specific element-template properties, put them in the
    row's `capabilityProperties` entry for that capability.
 
-   Capability-focused scenarios map to these parameterized test methods:
-    - `STRUCTURED_OUTPUT` → `structuredOutputReturnsSchemaConformingJson`
-    - `REASONING` → `reasoningEnabledProducesReasoningContent`
-    - `PROMPT_CACHING` → `promptCachingReportsCacheReadAndWriteTokens`
-    - `MULTIMODAL_USER_MESSAGE` → `documentInUserMessageIsReadByModel` and
-      `documentInToolResultIsReadByModel`
+   Capability-focused scenarios live in the `RealProvider*E2ETestIT` classes and use JUnit tags
+   matching the registry's `groups` values.
 
    The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
    `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
@@ -219,10 +212,10 @@ Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mist
 run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
 shard-only behavior, disabled rows, or provider group membership.
 
-To run the default in-process real-provider suite locally, set `RUN_NATIVE_LLM_E2E=true`,
-`REAL_LLM_PROVIDER_GROUP`, and the credentials for the provider group you want to exercise. Provider
-rows whose required environment variables are missing are skipped, so a green run may cover only the
-rows you configured.
+To run a capability suite locally, set `RUN_NATIVE_LLM_E2E=true`, `REAL_LLM_PROVIDER_GROUP`, and the
+credentials for the provider group you want to exercise. Provider rows whose required environment
+variables are missing are skipped locally; set `REQUIRE_NATIVE_LLM_PROVIDER=true` to fail instead
+when no provider row is selected.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
@@ -230,10 +223,12 @@ export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
 ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
   -Pit-real-llm \
-  -Dit.test=RealProviderApiSmokeIT
+  -Dgroups=core-smoke
 ```
 
-To run one capability from the command line, select its method with Failsafe's `-Dit.test`:
+Use the corresponding group name (`structured-output`, `reasoning`, `prompt-caching`, or
+`multimodal-documents`) to run another capability suite. The bundle-backed `AiAgentE2ETestIT` and
+`DocumentToolCallResultsIT` are selected by class with `-Dit.test`.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
@@ -241,25 +236,22 @@ export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
 ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
   -Pit-real-llm \
-  -Dit.test='RealProviderApiSmokeIT#structuredOutputReturnsSchemaConformingJson'
+  -Dit.test=RealProviderStructuredOutputE2ETestIT
 ```
 
-Combine methods in the same class with `+` when you need more than one capability in a single run.
+For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
+Set the same environment variables in **Run configuration → Environment variables**, keep the working
+directory at the repository root, and use the `connectors-e2e-test-agentic-ai` module classpath. Check
+the test output for skipped parameterized invocations before treating a green IDE run as full provider
+coverage.
 
-For JetBrains IDEs, create a JUnit run configuration for `RealProviderApiSmokeIT` or one method from
-the table above. Set the same environment variables in **Run configuration → Environment variables**,
-keep the working directory at the repository root, and use the `connectors-e2e-test-agentic-ai` module
-classpath. Check the test output for skipped parameterized invocations before treating a green IDE run
-as full provider coverage.
-
-`DocumentToolCallResultsIT` is not part of the default `it-real-llm` Maven profile because it needs
-Bedrock judge credentials in addition to the provider credentials. The PR workflow opts into it
-explicitly with `-Dit.test` for the shards that support document assertions. Do not add it back to the
-default profile unless every existing `-Pit-real-llm` caller also imports those judge credentials.
-Run it locally by selecting it explicitly and setting the judge credentials plus whichever provider
-credentials you want its rows to exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended
-provider group; otherwise, every row whose credentials are available can run. For example, select
-only the OpenAI rows:
+`DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
+match the `*E2ETestIT` class pattern. Its scenarios need Bedrock judge credentials in addition to the
+provider credentials, so the PR workflow selects it only in matrix legs whose credential profiles
+include the judge. Run it locally with `-Dgroups=document-tool-results` and set the judge credentials
+plus whichever provider credentials you want its rows to exercise. Always set
+`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
+available can run. For example, select only the OpenAI rows:
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
@@ -268,7 +260,7 @@ export AWS_BEDROCK_ACCESS_KEY=...
 export AWS_BEDROCK_SECRET_KEY=...
 export OPENAI_API_KEY=...
 ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm -Dit.test=DocumentToolCallResultsIT
+  -Pit-real-llm -Dgroups=document-tool-results
 ```
 
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
@@ -325,7 +317,7 @@ Before claiming a change is complete:
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
 - [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
-- [ ] Real-provider changes update the `RealProviderApiSmokeIT` provider/capability matrix and
+- [ ] Real-provider changes update the `RealProviderApiSmokeSupport` provider/capability matrix and
   `RealProviderSelectionTest` where applicable.
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.

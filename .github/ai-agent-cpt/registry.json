@@ -1,0 +1,155 @@
+{
+  "credentialProfiles": {
+    "openai": {
+      "vaultSecrets": ["secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY"],
+      "environment": ["OPENAI_API_KEY"]
+    },
+    "vertex": {
+      "vaultSecrets": [
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION"
+      ],
+      "environment": [
+        "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON",
+        "GOOGLE_VERTEX_AI_PROJECT_ID",
+        "GOOGLE_VERTEX_AI_REGION"
+      ]
+    },
+    "bedrock-provider": {
+      "vaultSecrets": [
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION"
+      ],
+      "environment": [
+        "AWS_BEDROCK_API_KEY",
+        "AWS_BEDROCK_REGION",
+        "ANTHROPIC_BEDROCK_API_KEY",
+        "ANTHROPIC_BEDROCK_REGION"
+      ]
+    },
+    "bedrock-judge": {
+      "vaultSecrets": [
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY",
+        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY"
+      ],
+      "environment": [
+        "AWS_BEDROCK_ACCESS_KEY",
+        "AWS_BEDROCK_SECRET_KEY"
+      ]
+    },
+    "bundle": {
+      "vaultSecrets": [],
+      "environment": []
+    }
+  },
+  "rows": [
+    {
+      "id": "bundle-e2e",
+      "name": "AI Agent bundle E2E",
+      "providerGroup": "",
+      "groups": "",
+      "testClasses": "AiAgentE2ETestIT",
+      "buildBundle": true,
+      "mavenProjects": "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": [
+        "bundle",
+        "openai",
+        "vertex",
+        "bedrock-provider",
+        "bedrock-judge"
+      ],
+      "ci": true
+    },
+    {
+      "id": "openai-native",
+      "name": "OpenAI native capability CPT",
+      "providerGroup": "openai",
+      "groups": "core-smoke | structured-output | reasoning",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai"],
+      "ci": true
+    },
+    {
+      "id": "vertex-native",
+      "name": "Vertex native capability CPT",
+      "providerGroup": "vertex",
+      "groups": "core-smoke | reasoning",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["vertex"],
+      "ci": true
+    },
+    {
+      "id": "bedrock-native",
+      "name": "Bedrock native capability CPT",
+      "providerGroup": "bedrock",
+      "groups": "core-smoke | reasoning",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider"],
+      "ci": true
+    },
+    {
+      "id": "openai-documents",
+      "name": "OpenAI document capability CPT",
+      "providerGroup": "openai",
+      "groups": "multimodal-documents | document-tool-results",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai", "bedrock-judge"],
+      "ci": true
+    },
+    {
+      "id": "bedrock-documents",
+      "name": "Bedrock document capability CPT",
+      "providerGroup": "bedrock",
+      "groups": "multimodal-documents | document-tool-results",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider", "bedrock-judge"],
+      "ci": true
+    },
+    {
+      "id": "openai-prompt-caching",
+      "name": "OpenAI prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": "prompt-caching",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai"],
+      "ci": false
+    },
+    {
+      "id": "vertex-prompt-caching",
+      "name": "Vertex prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": "prompt-caching",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["vertex"],
+      "ci": false
+    },
+    {
+      "id": "bedrock-prompt-caching",
+      "name": "Bedrock prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": "prompt-caching",
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider"],
+      "ci": false
+    }
+  ]
+}
