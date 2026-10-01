@@ -13,6 +13,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -69,7 +70,10 @@ public class SqsQueueConsumer implements Runnable {
       try {
         receiveMessageResponse = sqsClient.receiveMessage(receiveMessageRequest);
       } catch (Exception e) {
-        backoff = backoff == null ? INITIAL_BACKOFF : min(backoff.multipliedBy(2), MAX_BACKOFF);
+        backoff =
+            backoff == null
+                ? INITIAL_BACKOFF
+                : Collections.min(List.of(backoff.multipliedBy(2), MAX_BACKOFF));
         if (!awaitAfterReceiveFailure(e, backoff)) {
           break;
         }
@@ -149,10 +153,6 @@ public class SqsQueueConsumer implements Runnable {
                 .withTag(ActivityLogTag.CONSUMER)
                 .withMessage("Resumed receiving messages from SQS queue")
                 .andReportHealth(Health.up()));
-  }
-
-  private static Duration min(Duration a, Duration b) {
-    return a.compareTo(b) <= 0 ? a : b;
   }
 
   private void handleCorrelationResult(Message message, CorrelationResult result) {
