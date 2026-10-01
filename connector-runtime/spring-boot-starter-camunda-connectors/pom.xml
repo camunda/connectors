@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-runtime-parent</artifactId>
-    <version>8.10.0-alpha5</version>
+    <version>8.10.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -87,6 +87,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <!-- WebhookConnectorAutoConfiguration directly references WebMvcAutoConfiguration. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-webmvc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -177,6 +182,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
