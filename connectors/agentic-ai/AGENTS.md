@@ -190,6 +190,8 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    maintainer applies the `ai-agent-model-e2e-test` label. The registry in
    `.github/ai-agent-cpt/registry.json` defines the bundle test leg and the native-provider
    capability-group legs. The workflow validates that registry and uses its generated matrix.
+   Credential profile names are selected by the registry, while their Vault and environment wiring
+   remains explicit in the workflow.
 
    The workflow is label-triggered only; later pushes require the label to be re-applied. Fork PRs do
    not receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
@@ -226,9 +228,11 @@ export OPENAI_API_KEY=...
   -Dgroups=core-smoke
 ```
 
-Use the corresponding group name (`structured-output`, `reasoning`, `prompt-caching`, or
-`multimodal-documents`) to run another capability suite. The bundle-backed `AiAgentE2ETestIT` and
-`DocumentToolCallResultsIT` are selected by class with `-Dit.test`.
+Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
+run another capability suite. Prompt-caching rows are intentionally unsharded: unset
+`REAL_LLM_PROVIDER_GROUP`, provide credentials only for the provider you want to exercise, and use
+`-Dgroups=prompt-caching`. The bundle-backed `AiAgentE2ETestIT` and `DocumentToolCallResultsIT` are
+selected by class with `-Dit.test`.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
