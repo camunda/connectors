@@ -76,6 +76,7 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasReasoningContent()
-                .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
+                .hasResponseTextSatisfying(
+                    text -> Assertions.assertThat(normalizeShortAnswer(text)).isEqualTo("23")));
   }
 }

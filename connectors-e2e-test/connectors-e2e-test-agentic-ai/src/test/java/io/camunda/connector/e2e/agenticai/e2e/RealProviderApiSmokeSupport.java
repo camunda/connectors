@@ -18,10 +18,14 @@ package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.search.enums.IncidentState;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
+import io.camunda.client.api.search.enums.UserTaskState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -32,15 +36,17 @@ import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +60,7 @@ abstract class RealProviderApiSmokeSupport {
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
-  private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
+  private static final Duration POLL_INTERVAL = Duration.ofSeconds(1);
 
   // Fabricated nonce facts — cannot originate from model training, so their presence in the answer
   // proves the tool was actually invoked and consumed.
@@ -70,12 +76,7 @@ abstract class RealProviderApiSmokeSupport {
   static final String DEFAULT_SYSTEM_PROMPT =
       "You are a precise assistant. When the user asks for a classified or internal code name, "
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
-          + "guess or fabricate a value for a tool argument - only use a value you actually "
-          + "received from a previous tool result. When the user's request requires a tool whose "
-          + "input depends on another tool's result, call only the prerequisite tool in the first "
-          + "model invocation. After its result appears in the conversation, immediately call the "
-          + "dependent tool in the next model invocation before answering. Do not wait for another "
-          + "user message, and never call both tools in the same model invocation.";
+          + "guess or fabricate information that should come from a tool result.";
 
   protected static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
@@ -811,40 +812,33 @@ abstract class RealProviderApiSmokeSupport {
    */
   protected void completeUserFeedback(
       ProcessInstanceEvent instance, Map<String, Object> variables) {
-    awaitActiveElementOrIncident(instance, "User_Feedback");
-
-    final var tasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(instance.getProcessInstanceKey()))
-            .send()
-            .join();
-    final var taskKey =
-        tasks.items().stream()
-            .max((a, b) -> Long.compare(a.getUserTaskKey(), b.getUserTaskKey()))
-            .orElseThrow()
-            .getUserTaskKey();
-
+    final var taskKey = awaitCreatedUserTaskOrIncident(instance, "User_Feedback");
     camundaClient.newCompleteUserTaskCommand(taskKey).variables(variables).send().join();
   }
 
-  protected void awaitActiveElementOrIncident(ProcessInstanceEvent instance, String elementId) {
-    final var deadline = Instant.now().plus(PROCESS_TIMEOUT);
-    while (Instant.now().isBefore(deadline)) {
-      if (hasActiveIncident(instance)) {
-        throw new AssertionError(
-            ("Process instance %d raised an incident before reaching element '%s' - failing fast "
-                    + "instead of waiting out the remaining timeout")
-                .formatted(instance.getProcessInstanceKey(), elementId));
-      }
-      if (hasActiveElement(instance, elementId)) {
-        return;
-      }
-    }
+  protected AgentSubProcessResponse readAgentResponseAtUserFeedback(ProcessInstanceEvent instance) {
+    awaitCreatedUserTaskOrIncident(instance, "User_Feedback");
+    return readAgentResponse(instance);
+  }
 
-    throw new AssertionError(
-        "Timed out waiting for process instance %d to reach element '%s'"
-            .formatted(instance.getProcessInstanceKey(), elementId));
+  private long awaitCreatedUserTaskOrIncident(ProcessInstanceEvent instance, String elementId) {
+    return awaitOrFailOnIncident(
+        instance,
+        "created user task '" + elementId + "'",
+        () ->
+            camundaClient
+                .newUserTaskSearchRequest()
+                .filter(
+                    f ->
+                        f.processInstanceKey(instance.getProcessInstanceKey())
+                            .elementId(elementId)
+                            .state(UserTaskState.CREATED))
+                .send()
+                .join()
+                .items()
+                .stream()
+                .map(task -> task.getUserTaskKey())
+                .max(Long::compare));
   }
 
   /**
@@ -858,15 +852,17 @@ abstract class RealProviderApiSmokeSupport {
   protected void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
     awaitCompletionOrIncident(instance);
+    Assertions.assertThat(readAgentResponse(instance)).satisfies(assertions);
+  }
 
+  protected AgentSubProcessResponse readAgentResponse(ProcessInstanceEvent instance) {
     final var responseRef = new AtomicReference<AgentSubProcessResponse>();
     assertThat(instance)
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
             map -> responseRef.set(objectMapper.convertValue(map, AgentSubProcessResponse.class)));
-
-    Assertions.assertThat(responseRef.get()).satisfies(assertions);
+    return responseRef.get();
   }
 
   /**
@@ -903,58 +899,109 @@ abstract class RealProviderApiSmokeSupport {
     return text.replaceAll("[\u2010\u2011\u2012\u2013\u2014\u2212]", "-");
   }
 
+  /** Removes harmless surrounding whitespace, punctuation, quotes, and Markdown emphasis. */
+  protected static String normalizeShortAnswer(String text) {
+    return text.strip().replaceAll("^[\\s`*_\"']+|[\\s`*_\"'.!]+$", "");
+  }
+
   /**
    * Waits for the process instance to complete, but fails fast on an active incident instead of
    * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
    * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
    * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
-   * Polls both conditions on this thread with a short per-check timeout: {@code CamundaAssert}'s
-   * data source is bound to the test thread, so checking off a background thread (e.g. racing two
-   * {@code CompletableFuture}s) fails with "No data source is set".
+   * Polls both conditions on the test thread at a bounded interval and reports the process state
+   * and incident messages on timeout.
    */
   protected void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
-    final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
-    while (Instant.now().isBefore(deadline)) {
-      if (hasActiveIncident(instance)) {
-        throw new AssertionError(
-            ("Process instance %d raised an incident instead of completing - failing fast "
-                    + "instead of waiting out the remaining timeout")
-                .formatted(instance.getProcessInstanceKey()));
-      }
-      if (isCompleted(instance)) {
-        return;
-      }
-    }
-
-    throw new AssertionError(
-        "Timed out waiting for process instance %d to complete"
-            .formatted(instance.getProcessInstanceKey()));
+    awaitOrFailOnIncident(
+        instance,
+        "completion",
+        () -> isCompleted(instance) ? Optional.of(instance) : Optional.empty());
   }
 
-  private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
+  private <T> T awaitOrFailOnIncident(
+      ProcessInstanceEvent instance, String awaited, Supplier<Optional<T>> outcome) {
+    final Settled<T> settled;
     try {
-      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
-      return true;
-    } catch (AssertionError e) {
-      return false;
+      settled =
+          await()
+              .alias(awaited + " of process instance " + instance.getProcessInstanceKey())
+              .pollInSameThread()
+              .pollInterval(POLL_INTERVAL)
+              .atMost(PROCESS_TIMEOUT)
+              .until(
+                  () -> new Settled<>(outcome.get(), activeIncidents(instance)),
+                  Settled::isSettled);
+    } catch (ConditionTimeoutException e) {
+      throw new AssertionError(
+          ("Timed out after %s waiting for %s of process instance %d. "
+                  + "Current state: %s. Active incidents: %s")
+              .formatted(
+                  PROCESS_TIMEOUT,
+                  awaited,
+                  instance.getProcessInstanceKey(),
+                  processInstanceState(instance),
+                  describeIncidents(activeIncidents(instance))),
+          e);
+    }
+
+    if (!settled.incidents().isEmpty()) {
+      throw new AssertionError(
+          "Process instance %d raised an incident instead of reaching %s: %s"
+              .formatted(
+                  instance.getProcessInstanceKey(),
+                  awaited,
+                  describeIncidents(settled.incidents())));
+    }
+    return settled.value().orElseThrow();
+  }
+
+  private record Settled<T>(Optional<T> value, List<String> incidents) {
+    boolean isSettled() {
+      return value.isPresent() || !incidents.isEmpty();
     }
   }
 
-  private static boolean hasActiveElement(ProcessInstanceEvent instance, String elementId) {
-    try {
-      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveElements(elementId);
-      return true;
-    } catch (AssertionError e) {
-      return false;
-    }
+  private List<String> activeIncidents(ProcessInstanceEvent instance) {
+    return camundaClient
+        .newIncidentSearchRequest()
+        .filter(
+            f -> f.processInstanceKey(instance.getProcessInstanceKey()).state(IncidentState.ACTIVE))
+        .send()
+        .join()
+        .items()
+        .stream()
+        .map(incident -> incident.getElementId() + ": " + incident.getErrorMessage())
+        .toList();
   }
 
-  private static boolean isCompleted(ProcessInstanceEvent instance) {
-    try {
-      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).isCompleted();
-      return true;
-    } catch (AssertionError e) {
-      return false;
-    }
+  private boolean isCompleted(ProcessInstanceEvent instance) {
+    return !camundaClient
+        .newProcessInstanceSearchRequest()
+        .filter(
+            f ->
+                f.processInstanceKey(instance.getProcessInstanceKey())
+                    .state(ProcessInstanceState.COMPLETED))
+        .send()
+        .join()
+        .items()
+        .isEmpty();
+  }
+
+  private String processInstanceState(ProcessInstanceEvent instance) {
+    final var instances =
+        camundaClient
+            .newProcessInstanceSearchRequest()
+            .filter(f -> f.processInstanceKey(instance.getProcessInstanceKey()))
+            .send()
+            .join()
+            .items();
+    return instances.isEmpty()
+        ? "not returned by process-instance search"
+        : instances.stream().map(item -> item.getState().name()).distinct().toList().toString();
+  }
+
+  private static String describeIncidents(List<String> incidents) {
+    return incidents.isEmpty() ? "none" : String.join("; ", incidents);
   }
 }

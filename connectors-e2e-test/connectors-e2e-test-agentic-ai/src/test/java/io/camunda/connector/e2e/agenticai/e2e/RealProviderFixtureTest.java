@@ -1,0 +1,66 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.e2e;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Objects;
+import org.junit.jupiter.api.Test;
+
+class RealProviderFixtureTest {
+
+  @Test
+  void shouldExposeOnlyScenarioRelevantTools() throws IOException {
+    assertThat(serviceTaskIds("real-provider-api-smoke.bpmn"))
+        .containsExactly("Lookup_Classified_Fact");
+    assertThat(serviceTaskIds("real-provider-multi-tool.bpmn"))
+        .containsExactlyInAnyOrder("Lookup_Classified_Fact", "Lookup_Access_Authorization");
+  }
+
+  @Test
+  void shouldAcceptDeterministicDocumentFactsWithoutJudge() {
+    var response =
+        """
+        Project Zypherion is scheduled to launch on March 15, 2026.
+        The organization has 847 employees across 12 offices.
+        The report was prepared by Dr. Kael Thrennix, Chief Analytics Officer.
+        """;
+
+    DocumentToolCallResultsIT.assertNestedStructureResponse(Map.of("responseText", response));
+  }
+
+  @Test
+  void shouldNormalizeOnlyPresentationAroundShortAnswers() {
+    assertThat(RealProviderApiSmokeSupport.normalizeShortAnswer(" **23.** ")).isEqualTo("23");
+    assertThat(RealProviderApiSmokeSupport.normalizeShortAnswer("The answer is 23"))
+        .isNotEqualTo("23");
+  }
+
+  private Iterable<String> serviceTaskIds(String resource) throws IOException {
+    try (var input =
+        Objects.requireNonNull(
+            getClass().getClassLoader().getResourceAsStream(resource), "Missing " + resource)) {
+      return Bpmn.readModelFromStream(input).getModelElementsByType(ServiceTask.class).stream()
+          .map(ServiceTask::getId)
+          .toList();
+    }
+  }
+}
