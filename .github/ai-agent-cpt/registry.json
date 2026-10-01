@@ -1,50 +1,5 @@
 {
-  "credentialProfiles": {
-    "openai": {
-      "vaultSecrets": ["secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY"],
-      "environment": ["OPENAI_API_KEY"]
-    },
-    "vertex": {
-      "vaultSecrets": [
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION"
-      ],
-      "environment": [
-        "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON",
-        "GOOGLE_VERTEX_AI_PROJECT_ID",
-        "GOOGLE_VERTEX_AI_REGION"
-      ]
-    },
-    "bedrock-provider": {
-      "vaultSecrets": [
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION"
-      ],
-      "environment": [
-        "AWS_BEDROCK_API_KEY",
-        "AWS_BEDROCK_REGION",
-        "ANTHROPIC_BEDROCK_API_KEY",
-        "ANTHROPIC_BEDROCK_REGION"
-      ]
-    },
-    "bedrock-judge": {
-      "vaultSecrets": [
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY",
-        "secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY"
-      ],
-      "environment": [
-        "AWS_BEDROCK_ACCESS_KEY",
-        "AWS_BEDROCK_SECRET_KEY"
-      ]
-    },
-    "bundle": {
-      "vaultSecrets": [],
-      "environment": []
-    }
-  },
+  "credentialProfiles": ["openai", "vertex", "bedrock-provider", "bedrock-judge", "bundle"],
   "rows": [
     {
       "id": "bundle-e2e",
