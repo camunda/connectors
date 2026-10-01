@@ -22,7 +22,9 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,6 +46,88 @@ import org.springframework.boot.test.context.SpringBootTest;
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 @Tag(RealProviderCapabilityTags.STRUCTURED_OUTPUT)
 class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport {
+
+  private static final String ACCESS_JOB_TYPE = "lookup-access-authorization";
+  private static final String NONCE_ACCESS_CODE = "Vantablack-3";
+  private static final String ACCESS_AUTHORIZATION_SECRET =
+      "ACCESS AUTHORIZATION: The access authorization code is " + NONCE_ACCESS_CODE + ".";
+  private static final String MULTI_TOOL_RESPONSE_SCHEMA =
+      "{\"type\":\"object\","
+          + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"accessCode\":{\"type\":\"string\"}},"
+          + "\"required\":[\"codeName\",\"accessCode\"]}";
+
+  private final AtomicReference<String> capturedAccessAuthorizationCodeName = new AtomicReference<>();
+
+  @BeforeEach
+  void mockAccessAuthorizationTool() {
+    processTestContext
+        .mockJobWorker(ACCESS_JOB_TYPE)
+        .withHandler(
+            (jobClient, job) -> {
+              var codeName = String.valueOf(job.getVariablesAsMap().get("codeName"));
+              capturedAccessAuthorizationCodeName.set(codeName);
+              if (codeName.isBlank() || "null".equals(codeName)) {
+                throw new IllegalStateException(
+                    "Lookup Access Authorization called without a resolvable codeName argument");
+              }
+              jobClient
+                  .newCompleteCommand(job)
+                  .variable("toolCallResult", ACCESS_AUTHORIZATION_SECRET)
+                  .send()
+                  .join();
+            });
+  }
+
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("providersWithStructuredOutput")
+  void structuredOutputWithMultipleToolCallsReturnsSchemaConformingJson(ProviderConfig provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            DEFAULT_SYSTEM_PROMPT,
+            template ->
+                template
+                    .property("data.response.format.type", "json")
+                    .property("data.response.format.schema", "=" + MULTI_TOOL_RESPONSE_SCHEMA)
+                    .property("data.response.format.schemaName", "ClassifiedAccess"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
+            Map.of(
+                "userPrompt",
+                "What is the internal project code name, and what is the access authorization "
+                    + "code? Use your lookup tools to get both, then return them as JSON."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .metricsSatisfy(
+                    metrics -> Assertions.assertThat(metrics.toolCalls()).isEqualTo(2))
+                .hasResponseJsonSatisfying(
+                    json -> {
+                      @SuppressWarnings("unchecked")
+                      var map = (Map<String, Object>) json;
+                      Assertions.assertThat(map).containsKeys("codeName", "accessCode");
+                      Assertions.assertThat(
+                              normalizeDashes(String.valueOf(map.get("codeName"))))
+                          .contains(NONCE_CODE_NAME);
+                      Assertions.assertThat(
+                              normalizeDashes(String.valueOf(map.get("accessCode"))))
+                          .contains(NONCE_ACCESS_CODE);
+                    }));
+
+    Assertions.assertThat(normalizeDashes(capturedAccessAuthorizationCodeName.get()))
+        .as("codeName argument passed to Lookup Access Authorization")
+        .contains(NONCE_CODE_NAME);
+  }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")
