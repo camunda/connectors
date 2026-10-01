@@ -36,7 +36,7 @@ jobs:
           repo-token: ${{ steps.app-token.outputs.token }}
           days-before-issue-stale: 180
           days-before-issue-close: 14
-          days-before-pr-stale: 23
+          days-before-pr-stale: 15
           days-before-pr-close: 7
           stale-issue-label: stale
           stale-pr-label: stale
@@ -57,8 +57,14 @@ jobs:
             This pull request has been automatically closed because it has not had recent
             activity. Please reopen if this is still relevant.
 
+      - name: Count closed issues and PRs
+        id: count
+        env:
+          CLOSED: ${{ steps.stale.outputs.closed-issues-prs }}
+        run: echo "closed=$(jq length <<< "${CLOSED:-[]}")" >> "$GITHUB_OUTPUT"
+
       - name: Send Slack notification
-        if: steps.stale.outputs.closed-issues-prs != '[]'
+        if: steps.count.outputs.closed != '0'
         uses: slackapi/slack-github-action@v4.0.0
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -71,7 +77,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Stale bot report* :broom:\n\nClosed *${{ steps.stale.outputs.closed-issues-prs }}* stale issues/PRs this week.\n\nSee the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|full run details>."
+                    "text": "*Stale bot report* :broom:\n\nClosed *${{ steps.count.outputs.closed }}* stale issues/PRs this week.\n\nSee the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|full run details>."
                   }
                 }
               ]
