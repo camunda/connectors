@@ -54,6 +54,18 @@ class RealProviderFixtureTest {
         .isNotEqualTo("23");
   }
 
+  @Test
+  void shouldAcceptBedrockMemoryTokenResponse() {
+    var response =
+        """
+        The internal project code name is **Zypherion-9**, with clearance level **Onyx-7**.
+
+        MEMORY TOKEN: blargensoth
+        """;
+
+    assertThat(RealProviderCoreE2ETestIT.extractMemoryToken(response)).isEqualTo("blargensoth");
+  }
+
   private Iterable<String> serviceTaskIds(String resource) throws IOException {
     try (var input =
         Objects.requireNonNull(
