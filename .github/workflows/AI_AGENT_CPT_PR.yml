@@ -214,7 +214,7 @@ jobs:
         env:
           MAVEN_PROJECTS: ${{ matrix.maven-projects }}
         run: |
-          ./mvnw --batch-mode install -DskipTests -DskipChecks \
+          ./mvnw --batch-mode -T1C install -DskipTests -DskipChecks \
             --projects "$MAVEN_PROJECTS" \
             --also-make
 
