@@ -411,7 +411,9 @@ class DocumentToolCallResultsIT {
             "provider.bedrock.region",
             "eu-central-1",
             "provider.bedrock.model.model",
-            model));
+            model,
+            "provider.bedrock.model.parameters.promptCaching.enabled",
+            "false"));
   }
 
   /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */

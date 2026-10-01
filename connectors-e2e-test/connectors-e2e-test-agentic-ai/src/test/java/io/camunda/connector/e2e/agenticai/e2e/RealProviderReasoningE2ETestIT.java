@@ -49,8 +49,9 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningContent(ProviderConfig provider) {
     final var systemPrompt =
-        "You are a careful reasoner. Think step by step before answering. Before providing your "
-            + "final answer, break down your reasoning step-by-step.";
+        "You are a careful reasoner. Solve arithmetic directly without tools, and never claim that "
+            + "you need a calculation tool. Think step by step before answering. Before providing "
+            + "your final answer, break down your reasoning step-by-step.";
     var model =
         buildModel(
             provider,
