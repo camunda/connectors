@@ -69,7 +69,11 @@ abstract class RealProviderApiSmokeSupport {
 
   static final String DEFAULT_SYSTEM_PROMPT =
       "You are a precise assistant. When the user asks for a classified or internal code name, "
-          + "you MUST call the Lookup Classified Fact tool and quote its result verbatim.";
+          + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
+          + "guess or fabricate a value for a tool argument - only use a value you actually "
+          + "received from a previous tool result. If a tool's input depends on another tool's "
+          + "result, call only that first tool now and wait for its result before calling the "
+          + "dependent tool in a later turn - never call both in the same turn.";
 
   protected static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
@@ -235,6 +239,7 @@ abstract class RealProviderApiSmokeSupport {
         true);
   }
 
+  // Same wire format as anthropic-api, just signed and routed through an Azure Foundry resource.
   static ProviderConfig anthropicFoundryV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -258,6 +263,8 @@ abstract class RealProviderApiSmokeSupport {
         true);
   }
 
+  // Same backend as anthropicFoundryV2, authenticated via Entra ID client credentials instead.
+  // No capability matrix: the always-on scenarios already exercise the same request/response path.
   static ProviderConfig anthropicFoundryClientCredentialsV2(String model) {
     return new ProviderConfig(
         "anthropic-foundry-client-credentials-v2/" + model,
@@ -385,6 +392,7 @@ abstract class RealProviderApiSmokeSupport {
         false);
   }
 
+  // No "family" parameter here unlike openAiV2: Mistral has no API-family axis of its own.
   static ProviderConfig mistralV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
@@ -609,6 +617,8 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
+        // Mistral does not reliably report a cache hit within the scenario's two calls, and
+        // mistral-medium-3-5 hangs on tool-history plus json_schema; keep only observed capabilities.
         mistralV2(
             "mistral-large-2512",
             Map.of(
