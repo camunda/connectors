@@ -193,10 +193,11 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    Credential profile names are selected by the registry, while their Vault and environment wiring
    remains explicit in the workflow.
 
-   The workflow is label-triggered only; later pushes require the label to be re-applied. Fork PRs do
-   not receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
-   for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
-   changed. Matrix execution is capped at four concurrent legs.
+   Applying the label starts the first run. Later pushes start another run while the label remains,
+   and removing it pauses future credential-bearing runs. Fork PRs do not receive Vault-backed
+   credentials. The workflow also runs a paths filter first, so it only pays for images or real
+   providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself changed. Matrix
+   execution is capped at four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
