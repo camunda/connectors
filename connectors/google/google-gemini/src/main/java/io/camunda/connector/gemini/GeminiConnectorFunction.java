@@ -16,14 +16,15 @@ import io.camunda.connector.gemini.caller.GeminiCaller;
 import io.camunda.connector.gemini.model.GeminiRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.google.model.GoogleCredentialConfiguration;
 import java.util.HashMap;
 
 @OutboundConnector(
     name = "Google Gemini Outbound Connector",
-    inputVariables = {"authentication", "input"},
+    inputVariables = {"authentication", "googleCredential", "input"},
     type = "io.camunda:google-gemini:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.GoogleGemini.v1",
     name = "Generate Content with Google Gemini",
     description =
@@ -41,7 +42,8 @@ import java.util.HashMap;
       "multimodal"
     },
     inputDataClass = GeminiRequest.class,
-    version = 3,
+    version = 4,
+    configurations = {GoogleCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
