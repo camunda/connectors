@@ -411,9 +411,7 @@ class DocumentToolCallResultsIT {
             "provider.bedrock.region",
             "eu-central-1",
             "provider.bedrock.model.model",
-            model,
-            "provider.bedrock.model.parameters.promptCaching.enabled",
-            "false"));
+            model));
   }
 
   /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */
@@ -435,7 +433,9 @@ class DocumentToolCallResultsIT {
             "provider.bedrock.region",
             "eu-central-1",
             "provider.bedrock.model.model",
-            model));
+            model,
+            "provider.bedrock.model.parameters.promptCaching.enabled",
+            "false"));
   }
 
   /** Docker Model Runner, v1 (LangChain4j-backed; OpenAI-compatible). */

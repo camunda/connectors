@@ -280,7 +280,7 @@ public class AiAgentE2ETestIT {
             """
             Look up the list of users, take the second user in that list, and then check the \
             status of the order that user has placed. Tell me the order status and the tracking \
-            number.""");
+            number. Perform both lookups now without asking for confirmation.""");
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 

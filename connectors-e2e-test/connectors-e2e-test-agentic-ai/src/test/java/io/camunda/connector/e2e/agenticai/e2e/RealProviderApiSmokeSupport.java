@@ -71,11 +71,11 @@ abstract class RealProviderApiSmokeSupport {
       "You are a precise assistant. When the user asks for a classified or internal code name, "
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim. Never "
           + "guess or fabricate a value for a tool argument - only use a value you actually "
-          + "received from a previous tool result. If a tool's input depends on another tool's "
-          + "result, call only the prerequisite tool in the first model invocation. After its "
-          + "result appears in the conversation, immediately call the dependent tool in the next "
-          + "model invocation before answering. Do not wait for another user message, and never "
-          + "call both tools in the same model invocation.";
+          + "received from a previous tool result. When the user's request requires a tool whose "
+          + "input depends on another tool's result, call only the prerequisite tool in the first "
+          + "model invocation. After its result appears in the conversation, immediately call the "
+          + "dependent tool in the next model invocation before answering. Do not wait for another "
+          + "user message, and never call both tools in the same model invocation.";
 
   protected static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
