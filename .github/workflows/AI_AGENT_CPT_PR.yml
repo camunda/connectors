@@ -6,19 +6,17 @@ name: AI Agent CPT Tests (PR)
 # This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
 # feeds unrelated SM/SaaS E2E triggers.
 #
-# This listens only for `labeled`, not `synchronize`, so later pushes require a maintainer to review
-# the new commits and re-apply the label before another credential-bearing run starts.
+# Applying the label starts the first run. Later pushes start another run while the label remains on
+# the PR, so removing the label pauses credential-bearing runs.
 #
 # The image-backed E2E class and in-process provider capability groups are separate matrix legs.
 on:
   pull_request:
-    types: [ labeled ]
+    types: [ labeled, synchronize ]
 
-# Scoped to the PR number + the label name, so a re-labeling event gets its own group and cancels
-# any run still in flight for that PR - there's only one trigger shape now (the label being
-# applied), so this no longer needs to reconcile a separate `synchronize` case with it.
+# Scoped to the PR number so a new push or re-labeling event cancels any older run for that PR.
 concurrency:
-  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -37,7 +35,7 @@ jobs:
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test')
     steps:
       - uses: actions/checkout@v7
         with:
@@ -73,12 +71,12 @@ jobs:
         include: ${{ fromJSON(needs.setup.outputs.matrix || '[]') }}
     # Fork PRs get no secrets from `pull_request` by design (never widen this to
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
-    # account to unvetted fork code before review). This workflow listens for `labeled` only.
+    # account to unvetted fork code before review).
     if: |
       needs.setup.outputs.ai == 'true' &&
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test')
     steps:
       - uses: actions/checkout@v7
         with:
