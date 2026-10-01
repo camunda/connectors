@@ -142,6 +142,9 @@
       "name" : "Google Gemini",
       "value" : "google-gemini"
     }, {
+      "name" : "Mistral AI",
+      "value" : "mistral"
+    }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
     } ]
@@ -1555,7 +1558,7 @@
   }, {
     "id" : "provider.openai.backend.custom.endpoint",
     "label" : "API endpoint",
-    "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+    "description" : "Base URL of the OpenAI-compatible API. <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2058,6 +2061,367 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.type",
+    "label" : "Connection",
+    "description" : "Specify how the Mistral API is reached.",
+    "value" : "mistral-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Mistral API",
+      "value" : "mistral-api"
+    }, {
+      "name" : "Custom / compatible endpoint",
+      "value" : "custom"
+    } ]
+  }, {
+    "id" : "provider.mistral.backend.mistral.apiKey",
+    "label" : "Mistral API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.mistral.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "value" : "https://api.mistral.ai/v1",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.custom.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Mistral-compatible API. <code>/chat/completions</code> will be appended.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "https://api.mistral.ai/v1",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.type",
+    "label" : "Authentication",
+    "description" : "Authentication for the compatible API.",
+    "value" : "none",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
+    } ]
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The OAuth token endpoint",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client ID from the OAuth client",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Your application's client secret from the OAuth client",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.audience",
+    "label" : "Audience",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The unique identifier of the target API you want to access",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "provider.mistral.backend.custom.authentication.scopes",
+    "label" : "Scopes",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.custom.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The scopes which you want to request authorization for (e.g., read:contacts)",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.mistral.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
       "type" : "simple"
     },
     "type" : "String"
@@ -2638,9 +3002,140 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.mistral.backend.mistral.headers",
+    "label" : "Headers",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.mistral.queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.mistral.bodyProperties",
+    "label" : "Body properties",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.mistral.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "mistral-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.mistral.backend.custom.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.backend.custom.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.mistral.backend.custom.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.mistral.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "mistral",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2656,7 +3151,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
@@ -2782,7 +3277,7 @@
     "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
     "label" : "Enable prompt caching",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "model",
     "binding" : {
@@ -2799,7 +3294,6 @@
   }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2815,13 +3309,14 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID or inference profile ID. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
     "placeholder" : "us.amazon.nova-2-lite-v1:0",
     "type" : "String"
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
     "label" : "Enable prompt caching",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "model",
     "binding" : {
@@ -2838,7 +3333,6 @@
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2854,7 +3348,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "tooltip" : "On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created.",
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
@@ -2950,7 +3444,6 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2966,6 +3459,7 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
@@ -3025,9 +3519,56 @@
       "value" : "high"
     } ]
   }, {
+    "id" : "provider.mistral.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.mistral.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Specify the model ID. See the <a href=\"https://docs.mistral.ai/getting-started/models/models_overview/\" target=\"_blank\">models documentation</a>.",
+    "placeholder" : "mistral-medium-latest",
+    "type" : "String"
+  }, {
+    "id" : "provider.mistral.parameters.effort",
+    "label" : "Effort",
+    "optional" : false,
+    "value" : "modelDefault",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.mistral.parameters.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls how many tokens the model spends thinking before responding. Only supported on reasoning-capable models.<br><br>See the <a href=\"https://docs.mistral.ai/capabilities/reasoning/\" target=\"_blank\">Mistral reasoning documentation</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
+      "name" : "none",
+      "value" : "none"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    } ]
+  }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "Identifier of the model to use.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -3043,6 +3584,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
@@ -3370,10 +3912,61 @@
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
+    "id" : "provider.mistral.parameters.maxTokens",
+    "label" : "Max tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.mistral.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1.5. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.mistral.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.mistral.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "mistral",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.mistral.ai/api/endpoint/chat\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "=\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "value" : "=\"You are **TaskAgent**, a helpful, capable agent that can handle a wide variety of customer requests using your own knowledge **and** any tools explicitly provided to you at runtime. Prefer a provided tool over guessing whenever it would give a more accurate or reliable answer, and only use tools that were explicitly configured for you (never assume a tool exists). You can call the same tool multiple times with different inputs if that helps complete the request. If no tool fits the request, answer from your own knowledge; if you can't produce a reliable answer, say so plainly and explain why, rather than guessing.\"",
     "constraints" : {
       "notEmpty" : true
     },

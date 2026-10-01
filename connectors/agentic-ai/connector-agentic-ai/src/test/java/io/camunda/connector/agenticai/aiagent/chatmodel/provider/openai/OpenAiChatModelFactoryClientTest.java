@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -14,6 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,6 +30,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -344,16 +348,30 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   @Test
-  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
-      WireMockRuntimeInfo wireMock) {
+  void customBackendWithNoAuthenticationSendsNoAuthorizationHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new OpenAiCustomBackend(
             new CustomBackend(
                 wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
+    verify(postRequestedFor(urlPathEqualTo("/responses")).withHeader("Authorization", absent()));
+  }
+
+  @Test
+  void customBackendWithNoAuthenticationAndCustomAuthorizationHeaderSendsCustomHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                Map.of("Authorization", "Bearer explicit-custom-value"),
+                null,
+                null,
+                new NoAuthentication())));
+
     verify(
         postRequestedFor(urlPathEqualTo("/responses"))
-            .withHeader("Authorization", equalTo("Bearer not-required")));
+            .withHeader("Authorization", equalTo("Bearer explicit-custom-value")));
   }
 
   @Test
@@ -546,8 +564,14 @@ class OpenAiChatModelFactoryClientTest {
             chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
-                new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-                new OpenAiCompletionsResponseConverter(objectMapper),
+                new OpenAiCompletionsRequestConverter(
+                    OPENAI_ID,
+                    contentConverter,
+                    OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+                    objectMapper,
+                    OpenAiCompletionsContentDialect.none()),
+                new OpenAiCompletionsResponseConverter(
+                    OPENAI_ID, objectMapper, OpenAiCompletionsContentDialect.none()),
                 OpenAiCompletionsStreamAssembler.accumulating()),
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),

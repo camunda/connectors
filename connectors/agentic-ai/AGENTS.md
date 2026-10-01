@@ -181,6 +181,96 @@ flavor).
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
 ```
 
+#### Real-LLM CPT coverage
+
+Real-provider / real-LLM acceptance coverage for this module lives in
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/` and is intentionally split in two dimensions:
+
+1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
+   maintainer applies the `ai-agent-model-e2e-test` label. It has separate matrix legs for:
+    - `AiAgentE2ETestIT` with a locally built connector bundle image
+    - `RealProviderApiSmokeIT` for the OpenAI provider group
+    - `RealProviderApiSmokeIT` for the Vertex provider group
+    - `RealProviderApiSmokeIT` for the Bedrock provider group
+
+   The workflow is label-triggered only; later pushes require the label to be re-applied. Fork PRs do
+   not receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
+   for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
+   changed. Matrix execution is capped below full parallelism (`max-parallel: 2`) because each leg has
+   its own runner and repeats checkout, Vault imports, tool setup, and Maven bootstrap.
+2. **Provider capabilities**: `RealProviderApiSmokeIT.ProviderConfig` declares each provider/model row
+   together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
+   `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
+   provider labels. If a scenario needs provider-specific element-template properties, put them in the
+   row's `capabilityProperties` entry for that capability.
+
+   Capability-focused scenarios map to these parameterized test methods:
+    - `STRUCTURED_OUTPUT` → `structuredOutputReturnsSchemaConformingJson`
+    - `REASONING` → `reasoningEnabledProducesReasoningContent`
+    - `PROMPT_CACHING` → `promptCachingReportsCacheReadAndWriteTokens`
+    - `MULTIMODAL_USER_MESSAGE` → `documentInUserMessageIsReadByModel` and
+      `documentInToolResultIsReadByModel`
+
+   The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
+   `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
+   capability. When debugging one capability, run the matching method instead of the whole class.
+
+Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mistral`, or `local`) to
+run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
+shard-only behavior, disabled rows, or provider group membership.
+
+To run the default in-process real-provider suite locally, set `RUN_NATIVE_LLM_E2E=true`,
+`REAL_LLM_PROVIDER_GROUP`, and the credentials for the provider group you want to exercise. Provider
+rows whose required environment variables are missing are skipped, so a green run may cover only the
+rows you configured.
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm \
+  -Dit.test=RealProviderApiSmokeIT
+```
+
+To run one capability from the command line, select its method with Failsafe's `-Dit.test`:
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm \
+  -Dit.test='RealProviderApiSmokeIT#structuredOutputReturnsSchemaConformingJson'
+```
+
+Combine methods in the same class with `+` when you need more than one capability in a single run.
+
+For JetBrains IDEs, create a JUnit run configuration for `RealProviderApiSmokeIT` or one method from
+the table above. Set the same environment variables in **Run configuration → Environment variables**,
+keep the working directory at the repository root, and use the `connectors-e2e-test-agentic-ai` module
+classpath. Check the test output for skipped parameterized invocations before treating a green IDE run
+as full provider coverage.
+
+`DocumentToolCallResultsIT` is not part of the default `it-real-llm` Maven profile because it needs
+Bedrock judge credentials in addition to the provider credentials. The PR workflow opts into it
+explicitly with `-Dit.test` for the shards that support document assertions. Do not add it back to the
+default profile unless every existing `-Pit-real-llm` caller also imports those judge credentials.
+Run it locally by selecting it explicitly and setting the judge credentials plus whichever provider
+credentials you want its rows to exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended
+provider group; otherwise, every row whose credentials are available can run. For example, select
+only the OpenAI rows:
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export AWS_BEDROCK_ACCESS_KEY=...
+export AWS_BEDROCK_SECRET_KEY=...
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm -Dit.test=DocumentToolCallResultsIT
+```
+
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
 those selectively. Ensure that all e2e tests pass after completing a major work item.
 
@@ -235,6 +325,8 @@ Before claiming a change is complete:
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
 - [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
+- [ ] Real-provider changes update the `RealProviderApiSmokeIT` provider/capability matrix and
+  `RealProviderSelectionTest` where applicable.
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
@@ -287,17 +379,18 @@ derived template regardless of when the task-marker script runs.
 
 ### Deprecation marker (v1 only)
 
-Only the v1 AI Agent Task and Sub-process templates whose minimum Camunda version is 8.10 carry a
-top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)` appended to
-their `name`: the current main/hybrid templates (version 13) and their `versioned/` snapshots at
-versions 10–12. Earlier v1 versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2
-templates. For the generated main/hybrid templates, both transform scripts accept optional
-`deprecationMessage` / `deprecationDocumentationRef` Maven properties — wired only into the v1
-executions in `pom.xml` — and each script strips any inherited `deprecated` block before deciding its
-own and appending `(Deprecated)` to `name` if not already present, the same pattern used for the agent
-definition marker above. `versioned/` snapshots are static and were patched by hand instead (three
-pre-8.10 snapshots already carried an unrelated legacy `"deprecated": true` boolean flag and were left
-untouched).
+Only the current main/hybrid v1 AI Agent Task and Sub-process templates (version 13, minimum Camunda
+8.10) carry a top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)`
+appended to their `name`. Their `versioned/` snapshots at versions 10–12 do not: Web Modeler never
+offers an Update action on a deprecated template, so deprecating those older versions too would strand
+anyone still on them with no click-path to version 13 (see #8431's follow-up revert). Earlier v1
+versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2 templates. For the generated
+main/hybrid templates, both transform scripts accept optional `deprecationMessage` /
+`deprecationDocumentationRef` Maven properties — wired only into the v1 executions in `pom.xml` — and
+each script strips any inherited `deprecated` block before deciding its own and appending `(Deprecated)`
+to `name` if not already present, the same pattern used for the agent definition marker above.
+`versioned/` snapshots are static and are patched by hand instead (three pre-8.10 snapshots already
+carried an unrelated legacy `"deprecated": true` boolean flag and were left untouched).
 
 ## Key entry points
 

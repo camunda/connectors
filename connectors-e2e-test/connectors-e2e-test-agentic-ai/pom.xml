@@ -58,6 +58,7 @@
             <configuration>
               <includes>
                 <include>**/*E2ETestIT.java</include>
+                <include>**/RealProviderApiSmokeIT.java</include>
               </includes>
               <systemPropertyVariables>
                 <!-- Surfaces the connectors container log; scoped to this suite by pointing at a

@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
@@ -21,8 +24,14 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCh
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -107,8 +116,14 @@ public class AgenticAiNativeProvidersConfiguration {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
-            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-            new OpenAiCompletionsResponseConverter(objectMapper),
+            new OpenAiCompletionsRequestConverter(
+                OPENAI_ID,
+                contentConverter,
+                OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+                objectMapper,
+                OpenAiCompletionsContentDialect.none()),
+            new OpenAiCompletionsResponseConverter(
+                OPENAI_ID, objectMapper, OpenAiCompletionsContentDialect.none()),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
         new OpenAiResponsesStrategy(
@@ -121,6 +136,30 @@ public class AgenticAiNativeProvidersConfiguration {
         completionsStrategy,
         responsesStrategy,
         foundryCredentialResolver,
+        oAuthClientCredentialsTokenResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public MistralChatModelFactory aiAgentMistralChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgenticAiHttpProxySupport httpProxySupport,
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var mistralReasoningContentDialect = new MistralReasoningContentDialect();
+    return new MistralChatModelFactory(
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        new OpenAiCompletionsRequestConverter(
+            MISTRAL_ID,
+            contentConverter,
+            new MistralDocumentUrlContentChunkStrategy(objectMapper),
+            objectMapper,
+            mistralReasoningContentDialect),
+        new OpenAiCompletionsResponseConverter(
+            MISTRAL_ID, objectMapper, mistralReasoningContentDialect),
+        new MistralCompletionsStreamAssembler(),
         oAuthClientCredentialsTokenResolver);
   }
 

@@ -53,8 +53,10 @@ import org.slf4j.LoggerFactory;
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
   /**
-   * openai-java requires a credential source to build a client at all; this is sent as a
-   * placeholder {@code Authorization} header for {@link NoAuthentication} custom backends.
+   * openai-java requires a credential source to build a client at all, so {@link NoAuthentication}
+   * custom backends configure this as a placeholder API key. The {@code Authorization} header it
+   * would otherwise produce is stripped via {@code removeHeaders("Authorization")}, so no header is
+   * actually sent on the wire.
    */
   private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
@@ -168,7 +170,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     builder.baseUrl(connection.endpoint());
 
     switch (connection.authentication()) {
-      case NoAuthentication ignored -> builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY);
+      case NoAuthentication ignored ->
+          builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY).removeHeaders("Authorization");
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
           builder.credential(

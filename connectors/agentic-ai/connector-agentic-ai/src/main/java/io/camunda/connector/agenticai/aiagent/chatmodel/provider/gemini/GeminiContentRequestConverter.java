@@ -242,7 +242,7 @@ public class GeminiContentRequestConverter {
       return;
     }
     builder.responseMimeType("application/json");
-    if (json.schema() != null) {
+    if (json.hasSchema()) {
       builder.responseJsonSchema(json.schema());
     }
   }
