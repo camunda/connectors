@@ -12,6 +12,7 @@ import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignor
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,18 +32,30 @@ public class SqsQueueConsumer implements Runnable {
   private static final List<MessageSystemAttributeName> ALL_SYSTEM_ATTRIBUTES =
       List.of(MessageSystemAttributeName.ALL);
   private static final List<String> ALL_ATTRIBUTES_KEY = List.of("All");
+  private static final Duration INITIAL_BACKOFF = Duration.ofSeconds(1);
+  private static final Duration MAX_BACKOFF = Duration.ofSeconds(60);
 
   private final SqsClient sqsClient;
   private final SqsInboundProperties properties;
   private final InboundConnectorContext context;
   private final AtomicBoolean queueConsumerActive;
+  private final Sleeper sleeper;
 
   public SqsQueueConsumer(
       SqsClient sqsClient, SqsInboundProperties properties, InboundConnectorContext context) {
+    this(sqsClient, properties, context, duration -> Thread.sleep(duration.toMillis()));
+  }
+
+  SqsQueueConsumer(
+      SqsClient sqsClient,
+      SqsInboundProperties properties,
+      InboundConnectorContext context,
+      Sleeper sleeper) {
     this.sqsClient = sqsClient;
     this.properties = properties;
     this.context = context;
     this.queueConsumerActive = new AtomicBoolean(true);
+    this.sleeper = sleeper;
   }
 
   @Override
@@ -51,12 +64,20 @@ public class SqsQueueConsumer implements Runnable {
 
     final ReceiveMessageRequest receiveMessageRequest = createReceiveMessageRequest();
     ReceiveMessageResponse receiveMessageResponse;
+    Duration backoff = null;
     do {
       try {
         receiveMessageResponse = sqsClient.receiveMessage(receiveMessageRequest);
       } catch (Exception e) {
-        LOGGER.error("Failed to receive messages from SQS queue", e);
+        backoff = backoff == null ? INITIAL_BACKOFF : min(backoff.multipliedBy(2), MAX_BACKOFF);
+        if (!awaitAfterReceiveFailure(e, backoff)) {
+          break;
+        }
         continue;
+      }
+      if (backoff != null) {
+        backoff = null;
+        reportRecovered();
       }
       try {
         List<Message> messages = receiveMessageResponse.messages();
@@ -87,6 +108,51 @@ public class SqsQueueConsumer implements Runnable {
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
     context.reportHealth(Health.down());
+  }
+
+  // Returns false if the consumer was interrupted while waiting and should stop.
+  private boolean awaitAfterReceiveFailure(Exception e, Duration backoff) {
+    if (backoff.equals(INITIAL_BACKOFF)) {
+      LOGGER.error(
+          "Failed to receive messages from SQS queue {}, retrying with backoff",
+          properties.getQueue().url(),
+          e);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Failed to receive messages from SQS queue", e)
+                  .andReportHealth(Health.down(e)));
+    } else {
+      LOGGER.warn(
+          "Still failing to receive messages from SQS queue {}, retrying in {}: {}",
+          properties.getQueue().url(),
+          backoff,
+          e.getMessage());
+    }
+    try {
+      sleeper.sleep(backoff);
+      return true;
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+      return false;
+    }
+  }
+
+  private void reportRecovered() {
+    LOGGER.info("Resumed receiving messages from SQS queue {}", properties.getQueue().url());
+    context.log(
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage("Resumed receiving messages from SQS queue")
+                .andReportHealth(Health.up()));
+  }
+
+  private static Duration min(Duration a, Duration b) {
+    return a.compareTo(b) <= 0 ? a : b;
   }
 
   private void handleCorrelationResult(Message message, CorrelationResult result) {
@@ -146,5 +212,10 @@ public class SqsQueueConsumer implements Runnable {
 
   public void setQueueConsumerActive(final boolean isQueueConsumerActive) {
     this.queueConsumerActive.set(isQueueConsumerActive);
+  }
+
+  @FunctionalInterface
+  interface Sleeper {
+    void sleep(Duration duration) throws InterruptedException;
   }
 }
