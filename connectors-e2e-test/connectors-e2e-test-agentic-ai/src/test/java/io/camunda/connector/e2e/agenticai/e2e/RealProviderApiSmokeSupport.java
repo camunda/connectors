@@ -618,7 +618,8 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         // Mistral does not reliably report a cache hit within the scenario's two calls, and
-        // mistral-medium-3-5 hangs on tool-history plus json_schema; keep only observed capabilities.
+        // mistral-medium-3-5 hangs on tool-history plus json_schema; keep only observed
+        // capabilities.
         mistralV2(
             "mistral-large-2512",
             Map.of(
