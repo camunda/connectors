@@ -40,6 +40,7 @@ import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -73,7 +74,6 @@ import org.springframework.core.io.ResourceLoader;
  *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
  *       AWS Bedrock Mantle backend credentials (region defaults to us-east-1)
  *   <li>{@code AWS_BEDROCK_ACCESS_KEY} / {@code AWS_BEDROCK_SECRET_KEY} - AWS Bedrock credentials
- *       (also used for the judge LLM)
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
  *       http://localhost:12434/engines/llama.cpp/v1)
  *   <li>{@code OLLAMA_URL} - Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1)
@@ -86,13 +86,6 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      // Judge LLM configuration (uses Bedrock Haiku for cost efficiency)
-      "camunda.process-test.judge.chat-model.provider=amazon-bedrock",
-      "camunda.process-test.judge.chat-model.model=eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-      "camunda.process-test.judge.chat-model.region=eu-central-1",
-      "camunda.process-test.judge.chat-model.credentials.access-key=${AWS_BEDROCK_ACCESS_KEY:NOT_SET}",
-      "camunda.process-test.judge.chat-model.credentials.secret-key=${AWS_BEDROCK_SECRET_KEY:NOT_SET}",
-      "camunda.process-test.judge.threshold=0.6",
       "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -164,12 +157,12 @@ class DocumentToolCallResultsIT {
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "singleDocument", agent))
-        .hasVariableSatisfiesJudge(
             "agent",
-            """
-					The agent called Analyze_Single_Document, received a PDF document, and produced
-					a response that mentions Project Zypherion and the launch date March 15, 2026.""");
+            Object.class,
+            agent -> {
+              logAgentResponse(provider, "singleDocument", agent);
+              assertProjectLaunchFacts(agent);
+            });
   }
 
   // ---------------------------------------------------------------------------
@@ -193,13 +186,14 @@ class DocumentToolCallResultsIT {
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "multipleDocuments", agent))
-        .hasVariableSatisfiesJudge(
             "agent",
-            """
-					The agent called Search_Documents, received two PDF documents, and produced
-					a response that mentions both: Project Zypherion launching on March 15, 2026,
-					and a headcount of 847 employees across 12 offices.""");
+            Object.class,
+            agent -> {
+              logAgentResponse(provider, "multipleDocuments", agent);
+              var normalizedResponse = normalizedResponse(agent);
+              assertProjectLaunchFacts(normalizedResponse);
+              assertHeadcountFacts(normalizedResponse);
+            });
   }
 
   // ---------------------------------------------------------------------------
@@ -225,15 +219,12 @@ class DocumentToolCallResultsIT {
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "nestedStructure", agent))
-        .hasVariableSatisfiesJudge(
             "agent",
-            """
-					The agent called Fetch_Report, received documents embedded in a nested structure,
-					and produced a response that references all three documents:
-					1. Project Zypherion launching on March 15, 2026
-					2. A headcount of 847 employees across 12 offices
-					3. The report was prepared by Dr. Kael Thrennix, Chief Analytics Officer""");
+            Object.class,
+            agent -> {
+              logAgentResponse(provider, "nestedStructure", agent);
+              assertNestedStructureResponse(agent);
+            });
   }
 
   // ---------------------------------------------------------------------------
@@ -576,6 +567,45 @@ class DocumentToolCallResultsIT {
         provider.label(),
         scenario,
         responseText);
+  }
+
+  static void assertNestedStructureResponse(Object agent) {
+    var normalizedResponse = normalizedResponse(agent);
+    assertProjectLaunchFacts(normalizedResponse);
+    assertHeadcountFacts(normalizedResponse);
+    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
+        .as("normalized response containing author facts")
+        .contains("kaelthrennix", "chiefanalyticsofficer");
+  }
+
+  private static void assertProjectLaunchFacts(Object agent) {
+    assertProjectLaunchFacts(normalizedResponse(agent));
+  }
+
+  private static void assertProjectLaunchFacts(String normalizedResponse) {
+    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
+        .as("normalized response containing project launch facts")
+        .contains("zypherion")
+        .matches(".*(?:march15(?:th)?2026|15(?:th)?march2026|03152026|20260315).*");
+  }
+
+  private static void assertHeadcountFacts(String normalizedResponse) {
+    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
+        .as("normalized response containing headcount facts")
+        .contains("847", "12");
+  }
+
+  private static String normalizedResponse(Object agent) {
+    if (!(agent instanceof Map<?, ?> agentMap)) {
+      throw new AssertionError("Expected agent result to be a map");
+    }
+
+    var responseText = agentMap.get("responseText");
+    org.assertj.core.api.Assertions.assertThat(responseText)
+        .as("agent responseText")
+        .isInstanceOf(String.class);
+
+    return ((String) responseText).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
   }
 
   private static String envOrPlaceholder(String envVar) {

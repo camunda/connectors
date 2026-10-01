@@ -193,11 +193,11 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    Credential profile names are selected by the registry, while their Vault and environment wiring
    remains explicit in the workflow.
 
-   Applying the label starts the first run. Later pushes start another run while the label remains,
-   and removing it pauses future credential-bearing runs. Fork PRs do not receive Vault-backed
-   credentials. The workflow also runs a paths filter first, so it only pays for images or real
-   providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself changed. Matrix
-   execution is capped at four concurrent legs.
+   Applying the label authorizes one run for the PR's current head SHA. After every push or other
+   head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
+   receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
+   for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
+   changed. Matrix execution is capped at four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
@@ -251,18 +251,16 @@ the test output for skipped parameterized invocations before treating a green ID
 coverage.
 
 `DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
-match the `*E2ETestIT` class pattern. Its scenarios need Bedrock judge credentials in addition to the
-provider credentials, so the PR workflow selects it only in matrix legs whose credential profiles
-include the judge. Run it locally with `-Dgroups=document-tool-results` and set the judge credentials
-plus whichever provider credentials you want its rows to exercise. Always set
-`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
-available can run. For example, select only the OpenAI rows:
+match the `*E2ETestIT` class pattern. Its active scenario deterministically checks the provider's
+final response for the facts contained in every nested document; it does not require a separate judge
+model. Run it locally with `-Dgroups=document-tool-results` and set whichever provider credentials you
+want its rows to exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended provider group;
+otherwise, every row whose credentials are available can run. For example, select only the OpenAI
+rows:
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
 export REAL_LLM_PROVIDER_GROUP=openai
-export AWS_BEDROCK_ACCESS_KEY=...
-export AWS_BEDROCK_SECRET_KEY=...
 export OPENAI_API_KEY=...
 ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
   -Pit-real-llm -Dgroups=document-tool-results

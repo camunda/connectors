@@ -6,17 +6,17 @@ name: AI Agent CPT Tests (PR)
 # This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
 # feeds unrelated SM/SaaS E2E triggers.
 #
-# Applying the label starts the first run. Later pushes start another run while the label remains on
-# the PR, so removing the label pauses credential-bearing runs.
+# Applying the label authorizes the PR's current head SHA for one run. After every push, remove and
+# reapply the label to authorize the new SHA.
 #
 # The image-backed E2E class and in-process provider capability groups are separate matrix legs.
 on:
   pull_request:
-    types: [ labeled, synchronize ]
+    types: [ labeled ]
 
-# Scoped to the PR number so a new push or re-labeling event cancels any older run for that PR.
+# Scoped to the PR and label so an unrelated label event cannot cancel an authorized run.
 concurrency:
-  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
   cancel-in-progress: true
 
 permissions:
@@ -35,11 +35,7 @@ jobs:
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test') &&
-      (
-        github.event.action == 'synchronize' ||
-        github.event.label.name == 'ai-agent-model-e2e-test'
-      )
+      github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -80,11 +76,7 @@ jobs:
       needs.setup.outputs.ai == 'true' &&
       github.event.pull_request.state != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(github.event.pull_request.labels.*.name, 'ai-agent-model-e2e-test') &&
-      (
-        github.event.action == 'synchronize' ||
-        github.event.label.name == 'ai-agent-model-e2e-test'
-      )
+      github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -147,10 +139,9 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      # Document assertions use Bedrock Haiku as their judge, including in the OpenAI shard.
-      - name: Import document judge secrets
-        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-judge')
-        id: document-judge-secrets
+      - name: Import Bedrock document provider secrets
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-documents')
+        id: bedrock-document-secrets
         uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
@@ -286,8 +277,8 @@ jobs:
           TEST_CLASSES: ${{ matrix.test-classes }}
           TEST_GROUPS: ${{ matrix.groups }}
           OPENAI_API_KEY: ${{ steps.openai-secret.outputs.OPENAI_API_KEY }}
-          AWS_BEDROCK_ACCESS_KEY: ${{ steps.document-judge-secrets.outputs.IDP_AWS_ACCESSKEY }}
-          AWS_BEDROCK_SECRET_KEY: ${{ steps.document-judge-secrets.outputs.IDP_AWS_SECRETKEY }}
+          AWS_BEDROCK_ACCESS_KEY: ${{ steps.bedrock-document-secrets.outputs.IDP_AWS_ACCESSKEY }}
+          AWS_BEDROCK_SECRET_KEY: ${{ steps.bedrock-document-secrets.outputs.IDP_AWS_SECRETKEY }}
           AWS_BEDROCK_REGION: ${{ steps.bedrock-provider-secrets.outputs.IDP_AWS_REGION }}
           AWS_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_AWS_KEY }}
           ANTHROPIC_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY }}

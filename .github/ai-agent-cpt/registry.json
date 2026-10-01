@@ -1,5 +1,5 @@
 {
-  "credentialProfiles": ["openai", "vertex", "bedrock-provider", "bedrock-judge", "bundle"],
+  "credentialProfiles": ["openai", "vertex", "bedrock-provider", "bedrock-documents", "bundle"],
   "rows": [
     {
       "id": "bundle-e2e",
@@ -13,8 +13,7 @@
         "bundle",
         "openai",
         "vertex",
-        "bedrock-provider",
-        "bedrock-judge"
+        "bedrock-provider"
       ],
       "ci": true
     },
@@ -59,7 +58,7 @@
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
-      "credentialProfiles": ["openai", "bedrock-judge"],
+      "credentialProfiles": ["openai"],
       "ci": true
     },
     {
@@ -70,7 +69,7 @@
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
-      "credentialProfiles": ["bedrock-provider", "bedrock-judge"],
+      "credentialProfiles": ["bedrock-provider", "bedrock-documents"],
       "ci": true
     },
     {

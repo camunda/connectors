@@ -48,6 +48,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport {
 
   private static final String ACCESS_JOB_TYPE = "lookup-access-authorization";
+  private static final String MULTI_TOOL_BPMN_RESOURCE = "classpath:real-provider-multi-tool.bpmn";
+  private static final String MULTI_TOOL_SYSTEM_PROMPT =
+      DEFAULT_SYSTEM_PROMPT
+          + " When the user's request requires a tool whose input depends on another tool's result, "
+          + "call only the prerequisite tool in the first model invocation. After its result "
+          + "appears in the conversation, immediately call the dependent tool in the next model "
+          + "invocation before answering. Do not wait for another user message, and never call both "
+          + "tools in the same model invocation.";
   private static final String NONCE_ACCESS_CODE = "Vantablack-3";
   private static final String ACCESS_AUTHORIZATION_SECRET =
       "ACCESS AUTHORIZATION: The access authorization code is " + NONCE_ACCESS_CODE + ".";
@@ -86,7 +94,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         buildModel(
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
+            MULTI_TOOL_BPMN_RESOURCE,
             template ->
                 template
                     .property("data.response.format.type", "json")
@@ -97,7 +105,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         startAgent(
             model,
             PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
+            MULTI_TOOL_SYSTEM_PROMPT,
             Map.of(
                 "userPrompt",
                 "What is the internal project code name, and what is the access authorization "

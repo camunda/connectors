@@ -22,6 +22,8 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -44,6 +46,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 @Tag(RealProviderCapabilityTags.CORE)
 class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
+
+  private static final Pattern MEMORY_TOKEN =
+      Pattern.compile("(?i)MEMORY TOKEN:\\s*([a-z]{12,})\\b");
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
@@ -73,6 +78,10 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
   void userFeedbackLoopReplaysAssistantTextOnFollowUp(ProviderConfig provider) {
+    final var initialPrompt =
+        "What is the internal project code name? Use your lookup tool. In your final answer, invent "
+            + "a lowercase alphabetic memory token of at least 12 letters that does not occur in "
+            + "the tool result, and put it on its own final line as 'MEMORY TOKEN: <token>'.";
     var model =
         buildModel(
             provider,
@@ -84,22 +93,31 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
                     "=if (is defined(followUpInput)) then followUpInput else userPrompt"));
 
     var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
-            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
+        startAgent(model, PROCESS_ID, DEFAULT_SYSTEM_PROMPT, Map.of("userPrompt", initialPrompt));
 
-    // Turn 1 completes with a plain text answer - no follow-up tool call.
+    // Capture evidence that exists only in turn 1's completed assistant text. It is deliberately
+    // neither a planted tool fact nor supplied by either user prompt.
+    final var firstResponse = readAgentResponseAtUserFeedback(instance);
+    final var firstResponseText =
+        Objects.requireNonNull(firstResponse.responseText(), "Turn 1 response text");
+    final var matcher = MEMORY_TOKEN.matcher(firstResponseText);
+    Assertions.assertThat(matcher.find())
+        .as("turn 1 response contains an invented memory token")
+        .isTrue();
+    final var memoryToken = matcher.group(1);
+    Assertions.assertThat(PLANTED_SECRET).doesNotContainIgnoringCase(memoryToken);
+    Assertions.assertThat(initialPrompt).doesNotContainIgnoringCase(memoryToken);
+    Assertions.assertThat(DEFAULT_SYSTEM_PROMPT).doesNotContainIgnoringCase(memoryToken);
+
     completeUserFeedback(
         instance,
         Map.of(
             "userSatisfied",
             false,
             "followUpInput",
-            "Also tell me the clearance level you just found, in one short sentence."));
+            "What memory token did you write in your immediately preceding answer? Reply with the "
+                + "token only. Do not call a tool."));
 
-    // Turn 2's request replays turn 1's completed assistant text message from history.
     completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     assertAgentResponse(
@@ -109,6 +127,7 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
                 .isReady()
                 .hasResponseTextSatisfying(
                     text ->
-                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
+                        Assertions.assertThat(normalizeShortAnswer(text))
+                            .isEqualToIgnoringCase(memoryToken)));
   }
 }
