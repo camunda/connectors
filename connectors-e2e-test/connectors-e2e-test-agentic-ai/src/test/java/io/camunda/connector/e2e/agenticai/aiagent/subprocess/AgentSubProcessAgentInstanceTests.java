@@ -16,13 +16,10 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
@@ -33,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -40,17 +38,73 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
 
+  private static final String SLOW_TOOL_ID = "A_Complex_Tool";
+
   @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
+
+  @Autowired private CamundaProcessTestContext processTestContext;
+
+  private CountDownLatch slowToolGate;
+
+  @AfterEach
+  void releaseSlowToolGate() {
+    // never leave the mocked job worker blocked if a test fails before releasing the gate
+    if (slowToolGate != null) {
+      slowToolGate.countDown();
+    }
+  }
+
+  /**
+   * Mocks the slow tool's job worker so that it only completes once the test releases the returned
+   * gate. This makes "slow tool still in flight" deterministic instead of a wall-clock race.
+   */
+  private CountDownLatch gateSlowTool() {
+    final var gate = new CountDownLatch(1);
+    slowToolGate = gate;
+    processTestContext
+        .mockJobWorker("a-complex-tool")
+        .withHandler(
+            (client, job) -> {
+              if (!gate.await(60, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Slow tool gate was not released in time");
+              }
+              client
+                  .newCompleteCommand(job.getKey())
+                  .variables(Map.of("toolCallResult", "slow tool done"))
+                  .execute();
+            });
+    return gate;
+  }
+
+  private void verifyFastToolResultReportedWhileSlowToolInFlight(
+      ZeebeTest zeebeTest, String fastToolCallId) {
+    // generous timeout: the report is guaranteed to happen, we wait for it instead of racing it
+    verify(agentInstanceClient, timeout(30_000))
+        .applyToolCallResults(
+            any(AgentExecutionContext.class),
+            any(AgentInstanceKey.class),
+            argThat(
+                (List<ToolCallResult> results) ->
+                    results.stream().anyMatch(r -> fastToolCallId.equals(r.id()))),
+            any(AgentConversationTurn.class));
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
+  }
 
   /**
    * Happy path: one tool call (SuperfluxProduct) followed by a final answer.
@@ -197,21 +251,14 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * Two tools completing at genuinely different real times (a fast script task and an HTTP download
-   * delayed via WireMock) in the same tool-calling round: each TOOL_RESULT's {@code completedAt}
-   * must reflect its own completion, not a shared turn-end timestamp. Regression guard for #7597.
+   * Two tools completing at genuinely different real times (a fast script task and a service task
+   * held back by a test-controlled gate) in the same tool-calling round: each TOOL_RESULT's {@code
+   * completedAt} must reflect its own completion, not a shared turn-end timestamp. Regression guard
+   * for #7597.
    */
   @Test
   void shouldRecordDistinctCompletedAtPerToolBasedOnActualCompletionTime() throws Exception {
-    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test.pdf";
-    stubFor(
-        get(urlPathEqualTo("/slow-test.pdf"))
-            .atPriority(1)
-            .willReturn(
-                aResponse()
-                    .withBodyFile("test.pdf")
-                    .withHeader("Content-Type", "application/pdf")
-                    .withFixedDelay(3000)));
+    final var gate = gateSlowTool();
 
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
@@ -219,15 +266,23 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             10,
             20,
             ToolCall.of("fast-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
-            ToolCall.of("slow-001", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+            ToolCall.of("slow-001", SLOW_TOOL_ID, "{}")),
         Turn.text("Done.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                Map.of("userPrompt", "Calculate the superflux product and download a file")));
+        createProcessInstance(
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
+
+    // staggered completion triggers the early-report path; account for it before
+    // noMoreInteractions()
+    verifyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-001");
+
+    // guarantees the completedAt gap (lower bound) asserted below
+    Thread.sleep(2_500);
+    gate.countDown();
+    awaitProcessCompletion(zeebeTest);
 
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
@@ -246,7 +301,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                 new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
                 turn ->
                     turn.fromUserPrompt("Calculate the superflux product and download a file")
-                        .callingTools("SuperfluxProduct", "Download_A_File"))
+                        .callingTools("SuperfluxProduct", SLOW_TOOL_ID))
             .finalAnswerTurn(
                 new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
                 turn -> {
@@ -257,23 +312,12 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                           turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
                 });
 
-    // staggered completion also triggers the early-report path; account for it before
-    // noMoreInteractions()
-    verify(agentInstanceClient)
-        .applyToolCallResults(
-            any(AgentExecutionContext.class),
-            any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.stream().anyMatch(r -> "fast-001".equals(r.id()))),
-            any(AgentConversationTurn.class));
-
     verifier.noMoreInteractions();
 
     // Loose role check: the staggered early-report path can write a TOOL_RESULT row twice.
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
-        .hasToolResultsFor("SuperfluxProduct", "Download_A_File")
+        .hasToolResultsFor("SuperfluxProduct", SLOW_TOOL_ID)
         .verify();
   }
 
@@ -285,15 +329,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
    */
   @Test
   void shouldReportFastToolResultToHistoryWhileSlowToolStillInFlight() throws Exception {
-    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test-streaming.pdf";
-    stubFor(
-        get(urlPathEqualTo("/slow-test-streaming.pdf"))
-            .atPriority(1)
-            .willReturn(
-                aResponse()
-                    .withBodyFile("test.pdf")
-                    .withHeader("Content-Type", "application/pdf")
-                    .withFixedDelay(3000)));
+    final var gate = gateSlowTool();
 
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
@@ -301,23 +337,19 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             10,
             20,
             ToolCall.of("fast-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
-            ToolCall.of("slow-002", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+            ToolCall.of("slow-002", SLOW_TOOL_ID, "{}")),
         Turn.text("Done.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
-    awaitProcessCompletion(
+    final var zeebeTest =
         createProcessInstance(
-            Map.of("userPrompt", "Calculate the superflux product and download a file")));
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
 
-    verify(agentInstanceClient)
-        .applyToolCallResults(
-            any(AgentExecutionContext.class),
-            any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.stream().anyMatch(r -> "fast-002".equals(r.id()))),
-            any(AgentConversationTurn.class));
+    verifyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-002");
+
+    gate.countDown();
+    awaitProcessCompletion(zeebeTest);
   }
 
   /**
