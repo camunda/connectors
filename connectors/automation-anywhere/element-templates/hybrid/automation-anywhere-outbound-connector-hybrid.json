@@ -179,7 +179,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.multipleLogin",
     "label" : "Multiple login",
@@ -260,7 +261,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.token",
     "label" : "Token",
@@ -285,7 +287,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "operation.queueId",
     "label" : "Work queue ID",
@@ -559,7 +562,8 @@
         "equals" : "passwordBasedAuthentication",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.multipleLogin",
       "label" : "Multiple login",
@@ -617,7 +621,8 @@
         "equals" : "apiKeyAuthentication",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.token",
       "label" : "Token",
@@ -634,7 +639,8 @@
         "equals" : "tokenBasedAuthentication",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {
