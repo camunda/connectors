@@ -56,7 +56,8 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"accessCode\":{\"type\":\"string\"}},"
           + "\"required\":[\"codeName\",\"accessCode\"]}";
 
-  private final AtomicReference<String> capturedAccessAuthorizationCodeName = new AtomicReference<>();
+  private final AtomicReference<String> capturedAccessAuthorizationCodeName =
+      new AtomicReference<>();
 
   @BeforeEach
   void mockAccessAuthorizationTool() {
@@ -109,18 +110,15 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .metricsSatisfy(
-                    metrics -> Assertions.assertThat(metrics.toolCalls()).isEqualTo(2))
+                .metricsSatisfy(metrics -> Assertions.assertThat(metrics.toolCalls()).isEqualTo(2))
                 .hasResponseJsonSatisfying(
                     json -> {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
                       Assertions.assertThat(map).containsKeys("codeName", "accessCode");
-                      Assertions.assertThat(
-                              normalizeDashes(String.valueOf(map.get("codeName"))))
+                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(
-                              normalizeDashes(String.valueOf(map.get("accessCode"))))
+                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
                           .contains(NONCE_ACCESS_CODE);
                     }));
 
