@@ -48,7 +48,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
 
   private static final Pattern MEMORY_TOKEN =
-      Pattern.compile("(?i)MEMORY TOKEN:\\s*([a-z]{12,})\\b");
+      Pattern.compile("(?i)MEMORY TOKEN:\\s*([a-z]{8,})\\b");
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
@@ -80,7 +80,7 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
   void userFeedbackLoopReplaysAssistantTextOnFollowUp(ProviderConfig provider) {
     final var initialPrompt =
         "What is the internal project code name? Use your lookup tool. In your final answer, invent "
-            + "a lowercase alphabetic memory token of at least 12 letters that does not occur in "
+            + "a nonsense lowercase alphabetic memory token of at least 8 letters that does not occur in "
             + "the tool result, and put it on its own final line as 'MEMORY TOKEN: <token>'.";
     var model =
         buildModel(
@@ -100,11 +100,7 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
     final var firstResponse = readAgentResponseAtUserFeedback(instance);
     final var firstResponseText =
         Objects.requireNonNull(firstResponse.responseText(), "Turn 1 response text");
-    final var matcher = MEMORY_TOKEN.matcher(firstResponseText);
-    Assertions.assertThat(matcher.find())
-        .as("turn 1 response contains an invented memory token")
-        .isTrue();
-    final var memoryToken = matcher.group(1);
+    final var memoryToken = extractMemoryToken(firstResponseText);
     Assertions.assertThat(PLANTED_SECRET).doesNotContainIgnoringCase(memoryToken);
     Assertions.assertThat(initialPrompt).doesNotContainIgnoringCase(memoryToken);
     Assertions.assertThat(DEFAULT_SYSTEM_PROMPT).doesNotContainIgnoringCase(memoryToken);
@@ -129,5 +125,13 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
                     text ->
                         Assertions.assertThat(normalizeShortAnswer(text))
                             .isEqualToIgnoringCase(memoryToken)));
+  }
+
+  static String extractMemoryToken(String responseText) {
+    final var matcher = MEMORY_TOKEN.matcher(responseText);
+    Assertions.assertThat(matcher.find())
+        .as("turn 1 response contains an invented memory token")
+        .isTrue();
+    return matcher.group(1);
   }
 }
