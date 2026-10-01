@@ -53,7 +53,7 @@ import java.util.function.Function;
       "file storage"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage",
     icon = "icon.svg")
 public class ObjectStorageConnectorFunction implements OutboundConnectorFunction {
 
