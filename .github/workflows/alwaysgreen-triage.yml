@@ -1,0 +1,456 @@
+# description: Classifies a failed AlwaysGreen run and dispatches the fix agent.
+#              The run it classifies is `run_id` when given, and the calling run
+#              otherwise — so a caller that IS the failing run can omit it, while the
+#              watcher in connectors-streak-detector.yml and a manual replay both name
+#              their target. Artifacts are read from whichever run that resolves to.
+# type: CI
+# owner: @camunda/test-automation-team
+---
+name: AlwaysGreen Triage
+
+on:
+  workflow_call:
+    inputs:
+      base_ref:
+        description: 'Branch the failing run was on (main, stable/8.x)'
+        required: true
+        type: string
+      run_id:
+        description: >
+          AlwaysGreen run to classify. Optional: a caller that IS the failing run leaves
+          it unset and `github.run_id` is used. The watcher in
+          connectors-streak-detector.yml is a separate run judging a finished one, so it
+          has to name its target.
+        required: false
+        type: string
+        default: ''
+      run_attempt:
+        description: >
+          Attempt of run_id to classify. The watcher gates on one attempt's jobs, and a
+          bare run request answers with whatever attempt is newest at that moment, so
+          without this a re-run landing in between has discovery reading a different
+          attempt than the one that was judged. Empty means latest, which is right for a
+          replay.
+        required: false
+        type: string
+        default: ''
+      chart_version:
+        description: 'Chart directory the run deployed, e.g. camunda-platform-8.10'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Classify and report, but do not dispatch'
+        required: false
+        type: boolean
+        default: false
+      max_dispatches:
+        description: 'Cap on fix-agent dispatches for this run'
+        required: false
+        type: number
+        default: 2
+      parent_slack_ts:
+        description: >
+          ts of the post-failure-feedback message for this failure. When set, triage
+          replies in that thread instead of starting a new one.
+        required: false
+        type: string
+        default: ''
+      parent_slack_channel:
+        description: 'Channel of parent_slack_ts'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  TEST_OWNER: '@camunda/test-automation-team'
+  ALERT_CHANNEL_ID: 'C0AK0AVKRL0'
+
+jobs:
+  triage:
+    name: Classify and dispatch
+    if: ${{ github.ref_protected }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      fix_matrix: ${{ steps.handoff.outputs.fix_matrix }}
+    # The in-flight check is a read taken before the dispatch write, and nothing made
+    # the two atomic. MERGE_QUEUE_HELM_TEST.yaml puts the commit SHA in its concurrency
+    # group on protected branches, deliberately, so consecutive pushes run in parallel —
+    # two of them 13 seconds apart is a real, observed pattern. Two such runs could both
+    # fail, both reach triage, both see no agent running for the key, and both dispatch
+    # it: two agents editing the same specs, which is the one thing the dedupe layers
+    # exist to prevent.
+    #
+    # Serialising triage per branch closes it without new state: the second run waits,
+    # and by the time it reads, the first run's fix agent exists and is visible. The
+    # dispatch step already blocks until it can resolve that run, so the ordering holds.
+    #
+    # cancel-in-progress stays false — cancelling a triage would drop a real failure on
+    # the floor. A third concurrent run displaces the queued second one, which is the
+    # safe direction: a skipped triage re-triages on the next failure, a duplicate PR
+    # does not un-happen.
+    concurrency:
+      group: alwaysgreen-triage-${{ github.repository }}-${{ inputs.base_ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          sparse-checkout: .github
+          persist-credentials: false
+
+      # Without this the symptom is actions/checkout's "Can't find action.yml", which
+      # reads as a missing checkout rather than a checkout of the wrong tree.
+      - name: Verify the tooling is present
+        run: |
+          set -euo pipefail
+          missing=""
+          for p in .github/actions/alwaysgreen-flag .github/scripts/alwaysgreen/discover.py; do
+            [ -e "$p" ] || missing="${missing} ${p}"
+          done
+          if [ -n "${missing}" ]; then
+            echo "::error::AlwaysGreen tooling missing from the checked-out ref:${missing}"
+            exit 1
+          fi
+
+      # Kill switch and mode, from ALWAYSGREEN_FIX_AGENT at
+      # secret/data/products/qa/ci/common:
+      #
+      #   disabled  nothing runs; the job exits immediately
+      #   dry-run   classify and report, dispatch nothing   (default when unset)
+      #   enabled   dispatch fix agents
+      - name: Resolve run mode
+        id: mode
+        uses: ./.github/actions/alwaysgreen-flag
+        with:
+          vault-addr: ${{ secrets.VAULT_ADDR }}
+          vault-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          dry-run-override: ${{ inputs.dry_run }}
+
+      - name: Report disabled and stop
+        if: ${{ steps.mode.outputs.active != 'true' }}
+        run: |
+          {
+            echo "## AlwaysGreen Triage — disabled"
+            echo ""
+            echo "\`ALWAYSGREEN_FIX_AGENT\` at \`secret/data/products/qa/ci/common\` is"
+            echo "\`disabled\`, so no classification or dispatch ran. Set it to"
+            echo "\`dry-run\` or \`enabled\` in Vault to re-enable."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::AlwaysGreen triage is disabled by the Vault feature flag."
+
+
+      - name: Set up Python
+        if: ${{ steps.mode.outputs.active == 'true' }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Resolve target run
+        if: ${{ steps.mode.outputs.active == 'true' }}
+        id: target
+        env:
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          INPUT_BASE_REF: ${{ inputs.base_ref }}
+          CALLER_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # The fallback serves a workflow_call that omits run_id, where github.run_id is
+          # the caller's own run — exactly the run that failed. It does not apply to
+          # a workflow_call that names one, which is how the watcher targets a run it
+          # is not part of.
+          run_id="${INPUT_RUN_ID:-$CALLER_RUN_ID}"
+          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id must be numeric, got '$run_id'"
+            exit 1
+          fi
+          # Canonical spellings only. This is not just input hygiene: the job's
+          # concurrency group is built from the raw input, while discovery normalises
+          # `refs/heads/main` and queue refs down to `main`. Accepting a non-canonical
+          # spelling would put a manual replay in a different concurrency group from
+          # the automatic triage for the same branch, while both derive the same
+          # dispatch key — reopening the double-dispatch race the group exists to
+          # close. Rejecting outright keeps group and key in agreement by construction.
+          case "$INPUT_BASE_REF" in
+            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            *)
+              echo "::error::base_ref must be one of main, stable/8.7, stable/8.8, stable/8.9 — got '$INPUT_BASE_REF'"
+              exit 1
+              ;;
+          esac
+          {
+            echo "run_id=${run_id}"
+            echo "base_ref=${INPUT_BASE_REF}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate GitHub App Token
+        if: ${{ steps.mode.outputs.active == 'true' }}
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors,c8-cross-component-e2e-tests
+
+      - name: Discover and plan
+        id: plan
+        if: ${{ steps.mode.outputs.active == 'true' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+          RUN_ID: ${{ steps.target.outputs.run_id }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
+          MAX_DISPATCHES: ${{ inputs.max_dispatches || '2' }}
+          # Repository variables are not exported to the process environment on their
+          # own, so without these two lines the dials the module docstrings advertise
+          # cannot be turned: discover.py would always see its compiled-in defaults.
+          # Empty when the variable is unset, which is what _ttl_hours falls back on.
+          ALWAYSGREEN_RUN_ATTEMPT: ${{ inputs.run_attempt }}
+          ALWAYSGREEN_PR_LOCK_TTL_HOURS: ${{ vars.ALWAYSGREEN_PR_LOCK_TTL_HOURS }}
+          ALWAYSGREEN_PATH_CLAIM_TTL_HOURS: ${{ vars.ALWAYSGREEN_PATH_CLAIM_TTL_HOURS }}
+          # Explicit rather than relying on the script default, so a replay dispatched
+          # from a fork or a rename still reads the repository it is actually running in.
+          ALWAYSGREEN_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/alwaysgreen/discover.py \
+            --run-id "$RUN_ID" \
+            --base-ref "$BASE_REF" \
+            --max-dispatches "$MAX_DISPATCHES" \
+            --out /tmp/alwaysgreen-plan.json
+          echo "count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Write job summary
+        if: ${{ always() && steps.mode.outputs.active == 'true' }}
+        env:
+          RUN_ID: ${{ steps.target.outputs.run_id }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
+        run: |
+          set -euo pipefail
+          [ -f /tmp/alwaysgreen-plan.json ] || exit 0
+          {
+            echo "## AlwaysGreen Triage"
+            echo ""
+            echo "- run: ${RUN_ID} (\`${BASE_REF}\`)"
+            echo "- mode: ${{ steps.mode.outputs.mode }} (dispatch=${{ steps.mode.outputs.dispatch }})"
+            echo ""
+            candidates=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
+            if [ "$candidates" -gt 0 ] && [ "${{ steps.mode.outputs.dispatch }}" = "true" ]; then
+              echo "### Dispatching"
+              echo ""
+              echo "| Surface | Specs | Deterministic | Key |"
+              echo "|---|---|---|---|"
+              jq -r '.dispatches[] | "| \(.surface) | \(.test_specs | length) | \([.test_specs[] | select(.deterministic)] | length) | `\(.dispatch_key)` |"' \
+                /tmp/alwaysgreen-plan.json
+              echo ""
+            elif [ "$candidates" -gt 0 ]; then
+              echo "### Would dispatch — withheld, mode is \`${{ steps.mode.outputs.mode }}\`"
+              echo ""
+              echo "| Surface | Specs | Deterministic | Key |"
+              echo "|---|---|---|---|"
+              jq -r '.dispatches[] | "| \(.surface) | \(.test_specs | length) | \([.test_specs[] | select(.deterministic)] | length) | `\(.dispatch_key)` |"' \
+                /tmp/alwaysgreen-plan.json
+              echo ""
+              echo "Set \`ALWAYSGREEN_FIX_AGENT\` to \`enabled\` in Vault to dispatch these."
+              echo ""
+            else
+              echo "> No dispatchable candidates."
+              echo ""
+            fi
+            if [ "$(jq '.suppressed | length' /tmp/alwaysgreen-plan.json)" -gt 0 ]; then
+              echo "### Suppressed"
+              echo ""
+              jq -r '.suppressed[] | "- `\(.surface)`: \(.reason)\(if .detail != "" then " (\(.detail))" else "" end)\(if (.specs // []) | length > 0 then "\n  - " + ((.specs) | join("\n  - ")) else "" end)"' \
+                /tmp/alwaysgreen-plan.json
+              echo ""
+            fi
+            if [ "$(jq '.noise | length' /tmp/alwaysgreen-plan.json)" -gt 0 ]; then
+              echo "### Not diagnosable (no dispatch)"
+              echo ""
+              jq -r '.noise[] | "- \(.verdict): \(.job)"' /tmp/alwaysgreen-plan.json
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post Slack summary
+        id: slack
+        # The token is a repository secret rather than a Vault read, so there is no
+        # import step to gate on — an absent secret makes the step a no-op instead.
+        #
+        # Every active triage posts, whatever it concluded. It used to also require a
+        # dispatch candidate or a parent thread, which silently dropped the one branch
+        # written for the remaining case: the ":information_source: nothing to dispatch"
+        # text below could never be sent. That was survivable while triage only ran from
+        # inside the pipeline, where a failing stage had already produced a feedback
+        # message to thread under. The watcher brings exactly the runs that have neither
+        # — a build or Helm failure, a stable-branch leg whose feedback gate was skipped,
+        # a surface that is classified but not dispatchable — so the old condition would
+        # have left the failures this workflow exists to surface in the job summary only.
+        if: ${{ steps.mode.outputs.active == 'true' }}
+        continue-on-error: true
+        env:
+          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PARENT_TS: ${{ inputs.parent_slack_ts }}
+          PARENT_CHANNEL: ${{ inputs.parent_slack_channel }}
+          PLAN_OUTCOME: ${{ steps.plan.outcome }}
+          DISPATCHED: ${{ steps.mode.outputs.dispatch }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
+          # The run being classified, from the resolved target rather than from the plan.
+          # The plan is missing in exactly the case that needs this most -- a discovery
+          # failure -- and now that every active triage posts, the two no-dispatch
+          # branches are the ones a medic actually receives for a watcher-only failure.
+          # Without it the alert links the listener's own run and the reader has to go
+          # hunting for the pipeline that broke.
+          TARGET_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.target.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          [ -f /tmp/alwaysgreen-plan.json ] || echo '{"dispatches":[],"suppressed":[],"noise":[],"blame":{}}' > /tmp/alwaysgreen-plan.json
+          count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
+          failing_url=$(jq -r '.run_url // ""' /tmp/alwaysgreen-plan.json)
+          [ -n "$failing_url" ] || failing_url="${TARGET_RUN_URL}"
+          surfaces=$(jq -r '[.dispatches[].surface] | join(", ")' /tmp/alwaysgreen-plan.json)
+
+          if [ "${PLAN_OUTCOME}" != "success" ]; then
+            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+          elif [ "${count}" != "0" ] && [ "${DISPATCHED}" = "true" ]; then
+            text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${BASE_REF}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+          elif [ "${count}" != "0" ]; then
+            # Candidates found but the gate is closed. Say so plainly: an announced
+            # dispatch that never happened is worse than no message at all.
+            text=":mag: *AlwaysGreen: would dispatch — withheld* on \`${BASE_REF}\`"$'\n'"${count} agent(s) held back: ${surfaces}"$'\n'"Fix-agent dispatch is off for this run."$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+          else
+            # Nothing actionable. Name the reasons so the thread explains itself without
+            # anyone opening the run.
+            reasons=$(jq -r '
+              ([.suppressed[]? | .reason] + [.noise[]? | .verdict])
+              | if length == 0 then "no failing job mapped to a known surface"
+                else (group_by(.) | map("\(.[0]) x\(length)") | join(", ")) end' \
+              /tmp/alwaysgreen-plan.json 2>/dev/null || echo "unknown")
+            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+          fi
+
+          # Thread onto the post-failure-feedback message when the caller handed one
+          # down, so one failure produces one Slack thread. Falling back to a new
+          # top-level message keeps SaaS-only failures (whose stage posts no feedback)
+          # and Slack outages reported rather than silent.
+          if [ -n "${PARENT_TS}" ] && [ -n "${PARENT_CHANNEL}" ]; then
+            channel="${PARENT_CHANNEL}"
+            payload=$(jq -nc --arg channel "$channel" --arg ts "${PARENT_TS}" --arg text "$text" \
+              '{channel: $channel, thread_ts: $ts, text: $text, mrkdwn: true}')
+          else
+            channel="${{ env.ALERT_CHANNEL_ID }}"
+            payload=$(jq -nc --arg channel "$channel" --arg text "$text" \
+              '{channel: $channel, text: $text, mrkdwn: true}')
+          fi
+
+          resp=$(curl -sS -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${SLACK_TOKEN}" \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            -d "$payload" || echo '{}')
+          [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ] \
+            || echo "::warning::Slack post failed: $(jq -r '.error // "unknown"' <<<"$resp")"
+
+          # The fix agent must reply as a sibling in the SAME thread, so pass the parent
+          # ts through when threading; our own reply's ts would nest nothing useful.
+          out_ts="${PARENT_TS:-$(jq -r '.ts // ""' <<<"$resp")}"
+          {
+            echo "ts=${out_ts}"
+            # This message's own ts, which is NOT out_ts when threading: editing the
+            # parent's ts would overwrite the post-failure-feedback message instead.
+            echo "self_ts=$(jq -r '.ts // ""' <<<"$resp")"
+            echo "channel=$(jq -r --arg c "$channel" '.channel // $c' <<<"$resp")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prepare fix jobs
+        id: handoff
+        if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outcome == 'success' && steps.plan.outputs.count != '0' }}
+        env:
+          SLACK_TS: ${{ steps.slack.outputs.ts }}
+          SLACK_CHANNEL: ${{ steps.slack.outputs.channel }}
+          TRIAGE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          fix_matrix=$(jq -c \
+            --arg triage_run_url "$TRIAGE_RUN_URL" \
+            --arg slack_ts "${SLACK_TS:-}" \
+            --arg slack_channel "${SLACK_CHANNEL:-}" '
+              . as $plan |
+              [.dispatches[] | . + {
+                evidence: {
+                  run_url: (.evidence_run_url // ""),
+                  repo: (.evidence_repo // "")
+                },
+                failing_run_url: $plan.run_url,
+                triage_run_url: $triage_run_url,
+                blame: {
+                  reviewer: ($plan.blame.reviewer // ""),
+                  author: ($plan.blame.author // ""),
+                  pr: (($plan.blame.pr_number // "") | tostring)
+                },
+                slack: {ts: $slack_ts, channel: $slack_channel}
+              }]' /tmp/alwaysgreen-plan.json)
+          echo "fix_matrix=${fix_matrix}" >> "$GITHUB_OUTPUT"
+
+      - name: Flag discovery failure
+        if: ${{ steps.mode.outputs.active == 'true' && steps.plan.outcome != 'success' }}
+        run: |
+          echo "::warning::AlwaysGreen discovery failed; no fix agent was dispatched for this run."
+          {
+            echo "## AlwaysGreen Triage"
+            echo ""
+            echo ":warning: Discovery failed — see the \`Discover and plan\` step. No agent dispatched."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload triage artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: alwaysgreen-triage-${{ steps.target.outputs.run_id }}-${{ github.run_attempt }}
+          path: /tmp/alwaysgreen-plan.json
+          retention-days: 14
+          if-no-files-found: warn
+
+  fix:
+    name: Run credential-isolated fix agent
+    needs: triage
+    if: ${{ needs.triage.outputs.fix_matrix != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        fix: ${{ fromJSON(needs.triage.outputs.fix_matrix) }}
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    uses: ./.github/workflows/alwaysgreen-fix.yml
+    secrets: inherit
+    with:
+      dispatch_key: ${{ matrix.fix.dispatch_key }}
+      base_ref: ${{ matrix.fix.base_ref }}
+      surface: ${{ matrix.fix.surface }}
+      test_specs: ${{ toJSON(matrix.fix.test_specs) }}
+      fingerprints: ${{ toJSON(matrix.fix.fingerprints) }}
+      evidence: ${{ toJSON(matrix.fix.evidence) }}
+      failing_run_url: ${{ matrix.fix.failing_run_url }}
+      triage_run_url: ${{ matrix.fix.triage_run_url }}
+      blame: ${{ toJSON(matrix.fix.blame) }}
+      slack: ${{ toJSON(matrix.fix.slack) }}
