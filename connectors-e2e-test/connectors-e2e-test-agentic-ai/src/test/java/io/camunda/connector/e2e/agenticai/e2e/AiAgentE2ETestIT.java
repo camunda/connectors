@@ -286,7 +286,8 @@ public class AiAgentE2ETestIT {
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
     awaitCompletion(processInstance);
-    assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
+    // Providers may repeat the same read-only prerequisite lookup in one model response.
+    assertThatProcessInstance(processInstance).hasCompletedElements("ListUsers");
     assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
 
     // one call per tool request plus one to answer: the rounds cannot have been batched
