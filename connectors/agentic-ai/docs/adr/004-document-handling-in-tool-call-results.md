@@ -103,6 +103,11 @@ A document is rendered as a pair of adjacent content blocks: a self-closing `<do
 attributes, immediately followed by a `DocumentContent` block carrying the actual bytes. The pairs are grouped under a
 short preamble that names the source (tool calls vs event data) and makes the pair structure explicit.
 
+> The tag attributes are superseded by the id-only format of the document flow
+> ([`design/ai-agent-document-flow.md`](../design/ai-agent-document-flow.md), Step 3 notes): the model sees
+> `<doc id fileName contentType [toolName] [toolCallId] />` and never a store id, content hash or URL. The
+> pair structure and preambles described here are unchanged.
+
 Attribute names mirror the JSON field names emitted by the standard `DocumentSerializer` (e.g. `documentId`, `storeId`,
 `url`, `name`), so the model can correlate a reference in the tool result JSON with its content block 1:1 without
 inferring partial-id matches. The tag shape is dispatched on the document's reference type:

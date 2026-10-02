@@ -167,3 +167,86 @@ Migration path to the stores: implement `DocumentRegistryStorage` against `Conve
 The handler and the composer do not change; `AgentContext.documents` stays readable (empty for new
 conversations) so persisted state from this layout still loads, and the seeding scan covers any
 conversation without a stored registry.
+
+### Step 3 notes: rendering documents to the model
+
+Hook points (`connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/`):
+
+- `aiagent/model/message/DocumentReferenceXmlTag.java`: the tag, a record of `id`, `fileName`,
+  `contentType`, `toolName`, `toolCallId`; built from a `Document`, or from a registry entry (used
+  by the eviction note). `aiagent/model/document/DocumentHandle.java` derives the attributes
+  (`idFor`, `fileNameFor`, `contentTypeFor`); `DocumentRegistryEntry.from` uses the same functions.
+- `aiagent/agent/AgentConversationTurnInputComposerImpl.java`: `createDocumentPairs` (tool result and
+  event documents) and `createUserPromptMessage` (user prompt documents) put the tag text before each
+  `DocumentContent`.
+- `aiagent/chatmodel/provider/ModelFacingJson.java`: JSON text for the model; a `Document` at any
+  depth renders as its tag. Used by every provider path that serializes message or tool result
+  object content (see below).
+- `aiagent/model/document/EvictedDocumentsNote.java`, called from `AgentConversation.window`: the
+  eviction note.
+
+Tag format: `<doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />`,
+attributes in that order, XML-escaped, blank or unknown attributes omitted (no placeholders).
+`id` is `DocumentHandle.idFor`. `fileName` is the Camunda metadata file name, the external
+reference `name` or the inline `name`; for an external document without a name it is the last path
+segment of the URL without query and fragment (percent-decoded, only when not blank), never the URL.
+`contentType` comes from the Camunda metadata or the inline document; it is omitted for external
+documents because their metadata is only available after a download. `toolName` and `toolCallId`
+are present for documents that came from a tool result. The tag never carries a store id, content
+hash, other metadata or URL. Registry entries use the same functions, so reading the registry no
+longer downloads an external document just to fill `contentType`.
+
+User prompt documents carry a tag without tool attributes, in the same pair shape as the extracted
+tool result and event documents.
+
+Per provider, a `Document` inside tool result content (a bare document or nested in object content)
+now serializes as the tag, not as the Camunda reference JSON. A bare document is the tag text; a
+nested one is the tag string inside the JSON value (quotes escaped by JSON):
+
+| Provider path | Where | Rendering |
+|---------------|-------|-----------|
+| langchain4j | `ToolCallConverterImpl.contentElementAsString`, `ContentConverterImpl.convertToString` | tag text / JSON with tag strings |
+| Anthropic | `AnthropicContentConverter.toToolResultBlocks`, `toContentBlockParams` (object content) | text block |
+| OpenAI completions (and the Mistral dialect) | `OpenAiCompletionsRequestConverter.toolResultMessages`, `OpenAiFileContentChunkStrategy` | text |
+| OpenAI responses | `OpenAiContentConverter.toResponsesToolResultOutputItems`, `toResponsesContentParts` | `input_text` |
+| Bedrock Converse | `BedrockConverseContentConverter.toToolResultBlocks` (`BedrockConverseDocuments` with the tag mapper) | `json` block with tag strings; a bare document or non-map value as `text` |
+| Gemini | `GeminiContentConverter.toFunctionResponseParts`, `toParts` (object content) | `functionResponse` output string |
+
+Native tool result documents: no provider embeds a document inside the tool result entry (Anthropic
+`tool_result`, OpenAI `function_call_output`, Bedrock `toolResult`, Gemini `functionResponse` all
+carry text/JSON only). The real bytes travel in the user message that follows the tool results, where
+the tag text precedes each native block. So the id the model sees in the tool result entry and next
+to the native block is the same. Two native block names are not the id: the Bedrock `DocumentBlock.name`
+is a hash derived from the id (Bedrock charset rules) and the OpenAI `input_file.filename` is the file
+name; the preceding tag text is what carries the id.
+
+Eviction note: when the conversation is windowed (`AgentConversation.window(size)`), the registry of
+the current `AgentContext` is compared with the windowed messages. A registry document is visible
+when its id appears as `DocumentContent` of a user message, as a `Document` in a tool result content
+tree (`ContentTreeDocumentWalker`), or as the id of a `<doc/>` tag in user or tool result text. If
+at least one document is not visible, a user message is appended to the snapshot only: the preamble
+`EvictedDocumentsNote.PREAMBLE` plus the tag of each such document (`DocumentReferenceXmlTag.from(entry)`:
+id, file name, content type, tool origin). It is never part of `allMessages()`, never persisted and
+leaves the frozen system prompt alone.
+
+Why a trailing note and not a system prompt addition or a rewritten message: the system prompt is
+frozen per agent instance; stored messages must stay byte-stable for replay and prompt caching; the
+note is the only thing that changes when the window slides, and it is a suffix, so cached prefixes
+stay valid. Message ordering: the note follows tool result and document messages that are user role
+anyway (the existing document message does the same). It is skipped when the windowed messages end
+with an assistant message (a continuation round resumes on that message), so such a round does not
+repeat the note it already had in the first round of the invocation.
+
+Gaps:
+
+- Documents referenced from the content of an evicted assistant message only are not tracked; only
+  registry documents are listed. A registry that was seeded from an old conversation is as complete
+  as the seeding scan.
+- The note does not describe a document's content; the model can address it by id (steps 4 to 6 add
+  passing and returning by id).
+- External documents have no `contentType` in any tag, because it would require a download.
+- A file name derived from a URL path segment can still carry an identifier chosen by the URL owner
+  (for example a token as the last segment); only the `name` of the reference or Camunda metadata
+  is fully under the connector user's control.
+- The e2e suite was updated to the new shape (`ToolCallResultDocumentAssertions`, the tool calling,
+  MCP and user prompt document tests) and compiles; it was not run for this step.

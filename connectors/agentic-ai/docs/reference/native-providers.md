@@ -72,7 +72,7 @@ for the whole prefix (system prompt, tools, prior messages); there are no per-me
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference
+A document inside a tool result always renders as its `<doc id=... />` tag
 (`AnthropicContentConverter.toToolResultBlocks`), never embedded natively, so the bytes the
 composer's `<doc/>` fallback message already delivers aren't sent twice.
 
@@ -167,14 +167,13 @@ always reports a distinct cache-write count in `TokenUsage`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as the JSON reference the runtime's standard
-`DocumentSerializer` writes — the same shape an embedded document gets
-(`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
-fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
-as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
+A document inside a tool result always renders as its `<doc id=... />` tag, the same tag the
+composer's `<doc/>` fallback message carries, so the model can correlate the two 1:1
+(`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) — never
+embedded as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
 the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
 trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
-`DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
+`DocumentBlock.name` in both places. The nested document is rendered as its tag, never round-tripped
 through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
 recurse forever.
 
