@@ -78,6 +78,19 @@ class RealProviderFixtureTest {
   }
 
   @Test
+  void shouldAcceptExactNovaDocumentResponseSpellingRegression() {
+    var response =
+        """
+        The full report consists of three documents:
+        1. The cover page states: Report prepared by Dr. Kael Thrennix, Chief Analytics Officer.
+        2. Attachment 1 indicates the launch of Project Zephirion on March 15, 2026.
+        3. Attachment 2 states a total headcount of 847 employees across 12 offices.
+        """;
+
+    DocumentToolCallResultsIT.assertNestedStructureResponse(Map.of("responseText", response));
+  }
+
+  @Test
   void shouldRejectArbitraryDocumentCodeNameNearMatch() {
     var response =
         """
