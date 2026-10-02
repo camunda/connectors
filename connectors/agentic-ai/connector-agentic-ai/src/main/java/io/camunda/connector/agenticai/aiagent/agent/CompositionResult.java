@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
@@ -34,10 +35,21 @@ public sealed interface CompositionResult {
    */
   record NoInput() implements CompositionResult {}
 
-  /** Messages assembled and ready to be applied to the conversation. */
-  record NextTurn(List<Message> messages) implements CompositionResult {
+  /**
+   * Messages assembled and ready to be applied to the conversation.
+   *
+   * @param documents the documents that entered the conversation with these messages (user prompt,
+   *     tool call results and events), to be registered in the document registry
+   */
+  record NextTurn(List<Message> messages, List<IngestedDocument> documents)
+      implements CompositionResult {
     public NextTurn {
       messages = List.copyOf(messages);
+      documents = List.copyOf(documents);
+    }
+
+    public NextTurn(List<Message> messages) {
+      this(messages, List.of());
     }
   }
 }

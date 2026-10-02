@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -512,5 +513,70 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
             });
+  }
+
+  @Test
+  void firstTurn_userPromptDocuments_areIngestedWithoutOrigin() {
+    var promptDoc = createDocument("prompt data", "text/plain", "prompt.txt");
+    var input =
+        AgentInput.from(new UserPromptConfiguration("Hello?", List.of(promptDoc)), List.of());
+
+    var result = composer.compose(CONFIG, CTX, TurnReconstructor.reconstruct(List.of()), input);
+
+    assertThat(((CompositionResult.NextTurn) result).documents())
+        .containsExactly(new IngestedDocument(promptDoc, null, null));
+  }
+
+  @Test
+  void toolResultTurn_documentsAreIngestedWithToolOriginFollowedByEventDocuments() {
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null);
+    var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var nestedToolDoc = createDocument("nested data", "text/plain", "nested.txt");
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(Map.of("file", toolDoc, "more", List.of(Map.of("d", nestedToolDoc))))
+                    .build(),
+                ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
+                ToolCallResult.builder().content(Map.of("file", eventDoc)).build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+
+    assertThat(((CompositionResult.NextTurn) result).documents())
+        .containsExactlyInAnyOrder(
+            new IngestedDocument(toolDoc, "abcdef", "getWeather"),
+            new IngestedDocument(nestedToolDoc, "abcdef", "getWeather"),
+            new IngestedDocument(eventDoc, null, null))
+        .last()
+        .isEqualTo(new IngestedDocument(eventDoc, null, null));
+  }
+
+  @Test
+  void toolResultTurn_withoutDocuments_ingestsNone() {
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
   }
 }

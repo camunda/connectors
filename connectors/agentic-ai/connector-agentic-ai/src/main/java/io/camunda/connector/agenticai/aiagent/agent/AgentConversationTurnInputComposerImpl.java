@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -83,9 +84,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
 
+    // events are composed first but follow the prompt or tool call results in the turn
+    final var eventDocuments = new ArrayList<IngestedDocument>();
+    final var ingestedDocuments = new ArrayList<IngestedDocument>();
+
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
-            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
+            .map(
+                eventResult ->
+                    createEventMessage(
+                        eventResult, interruptToolCallsOnEventResults, eventDocuments))
             .toList();
 
     List<Message> messages = new ArrayList<>();
@@ -117,13 +125,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .metadata(defaultMessageMetadata())
               .build();
       messages.add(toolCallResultMessage);
-      final var documentMessage = createDocumentMessageForToolResults(toolCallResults);
+      final var documentMessage =
+          createDocumentMessageForToolResults(toolCallResults, ingestedDocuments);
       if (documentMessage != null) {
         messages.add(documentMessage);
       }
       messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(agentInput.userPrompt()));
+      messages.add(createUserPromptMessage(agentInput.userPrompt(), ingestedDocuments));
       messages.addAll(eventMessages);
     }
 
@@ -134,10 +143,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
 
-    return new CompositionResult.NextTurn(messages);
+    ingestedDocuments.addAll(eventDocuments);
+    return new CompositionResult.NextTurn(messages, ingestedDocuments);
   }
 
-  private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+  private @Nullable UserMessage createUserPromptMessage(
+      AgentInput.UserPrompt userPrompt, List<IngestedDocument> ingestedDocuments) {
 
     final var content = new ArrayList<Content>();
 
@@ -154,6 +165,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       LOGGER.debug("Not adding user message as no user content was found to add.");
       return null;
     }
+
+    userPrompt
+        .documents()
+        .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, null, null)));
 
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
@@ -208,11 +223,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return new ToolCallResultsResolution(orderedToolCallResults, true);
   }
 
-  private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
+  private @Nullable UserMessage createDocumentMessageForToolResults(
+      List<ToolCallResult> results, List<IngestedDocument> ingestedDocuments) {
     final var toolCallDocuments = documentExtractor.extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
       return null;
     }
+    collectIngestedDocuments(toolCallDocuments, ingestedDocuments);
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
@@ -225,7 +242,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private Message createEventMessage(
-      ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
+      ToolCallResult eventResult,
+      boolean interruptToolCallsOnEventResults,
+      List<IngestedDocument> ingestedDocuments) {
     Object eventContent = eventResult.content();
 
     List<Content> userMessageContent = new ArrayList<>();
@@ -247,6 +266,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // on the rendered tag, but the extraction shape is otherwise the same
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
+      collectIngestedDocuments(eventDocuments, ingestedDocuments);
       userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
       userMessageContent.addAll(createDocumentPairs(eventDocuments));
     }
@@ -255,6 +275,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
+  }
+
+  private static void collectIngestedDocuments(
+      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups,
+      List<IngestedDocument> ingestedDocuments) {
+    for (var group : documentGroups) {
+      for (var doc : group.documents()) {
+        ingestedDocuments.add(new IngestedDocument(doc, group.toolCallId(), group.toolCallName()));
+      }
+    }
   }
 
   private List<Content> createDocumentPairs(

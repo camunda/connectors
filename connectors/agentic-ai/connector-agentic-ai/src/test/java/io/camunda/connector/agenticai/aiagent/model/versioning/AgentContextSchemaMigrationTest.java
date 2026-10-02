@@ -519,6 +519,65 @@ class AgentContextSchemaMigrationTest {
     }
 
     @Test
+    void legacyContextWithoutDocumentsBindsToEmptyRegistryAndKeepsSchemaVersion() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "conversation": {"type": "in-process", "conversationId": "test", "messages": []},
+                "properties": {}
+              }
+              """);
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      assertThat(agentContext.documents()).isEmpty();
+      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    }
+
+    @Test
+    void currentVersionContextKeepsItsPersistedDocuments() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "schemaVersion": %d,
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "documents": [
+                  {
+                    "id": "doc-1",
+                    "reference": {"camunda.document.type": "camunda", "storeId": "in-memory", "documentId": "doc-1"},
+                    "fileName": "a.txt",
+                    "toolName": "search",
+                    "toolCallId": "call-1"
+                  }
+                ]
+              }
+              """
+                  .formatted(AgentContext.CURRENT_SCHEMA_VERSION));
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      assertThat(agentContext.documents())
+          .singleElement()
+          .satisfies(
+              entry -> {
+                assertThat(entry.id()).isEqualTo("doc-1");
+                assertThat(entry.reference()).containsEntry("storeId", "in-memory");
+                assertThat(entry.toolCallId()).isEqualTo("call-1");
+              });
+    }
+
+    @Test
     void pointerConversationWithoutMessagesIsUntouched() throws Exception {
       JsonNode tree =
           objectMapper.readTree(

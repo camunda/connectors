@@ -59,9 +59,15 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
@@ -70,7 +76,12 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -83,6 +94,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -104,6 +116,10 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private DocumentRegistryStorage documentRegistryStorage =
+      new AgentContextDocumentRegistryStorage();
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -761,6 +777,105 @@ class AgentSubProcessRequestHandlerTest {
 
     // limit blocks the 2nd round — the chat model is called exactly once
     verify(chatModel, times(1)).execute(any());
+  }
+
+  @Test
+  void persistsDocumentsFromTheComposedTurnInTheReturnedAgentContext() {
+    final var document = createDocument("tool data", "tool.txt");
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(document, "call-1", "search"))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var context = response.responseValue().context();
+    assertThat(context.documents())
+        .singleElement()
+        .satisfies(
+            entry -> {
+              assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
+              assertThat(entry.toolName()).isEqualTo("search");
+              assertThat(entry.toolCallId()).isEqualTo("call-1");
+              assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
+            });
+    assertThat(response.variables().get("agentContext")).isEqualTo(context);
+  }
+
+  @Test
+  void extendsTheRegistryPersistedInTheAgentContextWithoutReseedingFromHistory() {
+    final var known = createDocument("known", "known.txt");
+    final var historic = createDocument("historic", "historic.txt");
+    final var fresh = createDocument("fresh", "fresh.txt");
+    final var knownEntry =
+        DocumentRegistryEntry.from(new IngestedDocument(known, "call-0", "search"));
+    final var history =
+        List.<Message>of(
+            userMessage(List.of(DocumentContent.documentContent(historic))),
+            assistantMessage("hello"));
+    final var context =
+        INITIAL_AGENT_CONTEXT
+            .withConversation(
+                InProcessConversationContext.builder("conv").messages(history).build())
+            .withDocuments(List.of(knownEntry));
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE), List.of(new IngestedDocument(fresh, null, null))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().documents())
+        .extracting(DocumentRegistryEntry::id)
+        .containsExactly(DocumentHandle.idFor(known), DocumentHandle.idFor(fresh));
+  }
+
+  @Test
+  void seedsAnEmptyRegistryFromTheStoredConversation() {
+    final var historic = createDocument("historic", "historic.txt");
+    final var fresh = createDocument("fresh", "fresh.txt");
+    final var history =
+        List.<Message>of(
+            userMessage(List.of(DocumentContent.documentContent(historic))),
+            assistantMessage("hello"));
+    final var context =
+        INITIAL_AGENT_CONTEXT.withConversation(
+            InProcessConversationContext.builder("conv").messages(history).build());
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE), List.of(new IngestedDocument(fresh, null, null))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().documents())
+        .extracting(DocumentRegistryEntry::id)
+        .containsExactly(DocumentHandle.idFor(historic), DocumentHandle.idFor(fresh));
+  }
+
+  private Document createDocument(String content, String fileName) {
+    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+        .create(
+            DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName(fileName)
+                .build());
   }
 
   private void mockSystemPrompt() {

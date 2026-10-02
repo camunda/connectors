@@ -33,6 +33,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -65,6 +68,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final DocumentRegistryStorage documentRegistryStorage;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -73,7 +77,8 @@ public abstract class BaseAgentRequestHandler<
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      DocumentRegistryStorage documentRegistryStorage) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -81,6 +86,7 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.documentRegistryStorage = documentRegistryStorage;
   }
 
   @Override
@@ -137,10 +143,10 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
-        case CompositionResult.NextTurn(var newMessages) ->
+        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                agentContext,
+                registerDocuments(agentContext, loadedMessages, newDocuments),
                 configuration,
                 previousConversation,
                 newMessages,
@@ -148,6 +154,22 @@ public abstract class BaseAgentRequestHandler<
                 store);
       };
     }
+  }
+
+  /**
+   * Returns the agent context carrying the document registry extended by the documents that enter
+   * the conversation with this turn. A context without a persisted registry that already has a
+   * conversation is seeded from the stored messages first.
+   */
+  private AgentContext registerDocuments(
+      AgentContext agentContext,
+      List<Message> loadedMessages,
+      List<IngestedDocument> newDocuments) {
+    var registry = documentRegistryStorage.load(agentContext);
+    if (registry.isEmpty() && !loadedMessages.isEmpty()) {
+      registry = DocumentRegistry.fromMessages(loadedMessages);
+    }
+    return documentRegistryStorage.store(agentContext, registry.withDocuments(newDocuments));
   }
 
   /**

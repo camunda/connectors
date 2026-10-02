@@ -9,7 +9,9 @@ package io.camunda.connector.agenticai.aiagent.model;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
@@ -154,6 +156,30 @@ class AgentConversationTest {
     var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
+  }
+
+  @Test
+  void documentRegistryOfTheRehydratedContextSurvivesEveryCopyOnWrite() {
+    var entry =
+        new DocumentRegistryEntry(
+            "doc-1", Map.of("camunda.document.type", "camunda"), null, null, null, null);
+    var context = BASE_CONTEXT.withDocuments(List.of(entry));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            context,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    var ingested = conv.ingest(assistantMessage("hello"), AgentMetrics.empty());
+    var stored =
+        ingested.withStoredConversation(InProcessConversationContext.builder("conv").build());
+
+    assertThat(ingested.toAgentContext().documents()).containsExactly(entry);
+    assertThat(stored.toAgentContext().documents()).containsExactly(entry);
+    assertThat(ingested.nextContinuationRound().toAgentContext().documents())
+        .containsExactly(entry);
   }
 
   @Test
