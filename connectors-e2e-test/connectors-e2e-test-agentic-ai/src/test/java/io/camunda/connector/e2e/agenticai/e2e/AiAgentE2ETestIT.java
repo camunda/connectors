@@ -250,9 +250,10 @@ public class AiAgentE2ETestIT {
         deployAndStart(
             provider,
             """
-            I need two things: use your date and time tool to tell me which day of the week it \
-            is, and also use your joke tool to fetch a random joke for me. Repeat the joke \
-            exactly as the tool returns it.""");
+            Use your date and time tool and your joke tool before giving your final answer. After \
+            both tools have returned, provide one final response containing the day of the week \
+            and the joke exactly as the tool returned it. If you mention one result while calling \
+            the other tool, repeat both results in the final response.""");
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
