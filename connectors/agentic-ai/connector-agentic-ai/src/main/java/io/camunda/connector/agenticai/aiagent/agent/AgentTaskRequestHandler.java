@@ -29,7 +29,8 @@ public class AgentTaskRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage) {
+      DocumentRegistryStorage documentRegistryStorage,
+      LocalToolCallHandler localToolCallHandler) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -38,7 +39,8 @@ public class AgentTaskRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage);
+        documentRegistryStorage,
+        localToolCallHandler);
   }
 
   @Override

@@ -39,9 +39,11 @@ import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -50,6 +52,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -69,6 +72,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final DocumentRegistryStorage documentRegistryStorage;
+  private final LocalToolCallHandler localToolCallHandler;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -78,7 +82,8 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage) {
+      DocumentRegistryStorage documentRegistryStorage,
+      LocalToolCallHandler localToolCallHandler) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -87,6 +92,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.documentRegistryStorage = documentRegistryStorage;
+    this.localToolCallHandler = localToolCallHandler;
   }
 
   @Override
@@ -244,8 +250,10 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Drives the given chat model until it returns a {@code Completed} result, ingesting each round
-   * (including intermediate {@code Continuation} rounds) as its own turn.
+   * Drives the given chat model until it returns a {@code Completed} result whose tool calls (if
+   * any) are left to the process, ingesting each round as its own turn. Further rounds are
+   * intermediate {@code Continuation} rounds and rounds that follow tool calls the agent answered
+   * itself (see {@link LocalToolCallHandler}).
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -254,7 +262,7 @@ public abstract class BaseAgentRequestHandler<
       ChatModel chatModel,
       @Nullable AgentInstanceKey agentInstanceKey) {
     var workingConversation = conversation;
-    boolean continued;
+    boolean anotherRound;
     do {
       LOGGER.debug(
           "Sending turn (iterationKey={}) to the model",
@@ -267,11 +275,19 @@ public abstract class BaseAgentRequestHandler<
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
-      continued = chatResult instanceof ChatResult.Continuation;
-      // Exactly one status per round (engine constraint): a continuation round re-asserts THINKING
-      // alongside its assistant item, the final round sends its terminal status instead.
-      final var status =
+      final boolean continued = chatResult instanceof ChatResult.Continuation;
+      final var localResults =
           continued
+              ? Optional.<List<ToolCallResult>>empty()
+              : localToolCallHandler.handle(
+                  workingConversation, workingConversation.currentTurn().toolCalls());
+      anotherRound = continued || localResults.isPresent();
+
+      // Exactly one status per round (engine constraint): a round that is followed by another one
+      // within this job re-asserts THINKING alongside its assistant item, the final round sends its
+      // terminal status instead.
+      final var status =
+          anotherRound
               ? AgentInstanceUpdateStatus.THINKING
               : nextAgentInstanceState(workingConversation.currentTurnMetrics().toolCalls());
       agentInstanceClient.applyTurnCompletion(
@@ -288,8 +304,27 @@ public abstract class BaseAgentRequestHandler<
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
         workingConversation = workingConversation.nextContinuationRound();
+      } else if (localResults.isPresent()) {
+        LOGGER.debug(
+            "Answered the tool calls of turn (iterationKey={}) locally; calling the model again",
+            workingConversation.currentTurn().iterationKey());
+
+        throwIfLimitsReached(workingConversation, agentConfiguration);
+        workingConversation =
+            workingConversation.nextLocalToolRound(
+                ToolCallResultMessage.builder()
+                    .results(localResults.get().stream().map(ToolCallResultContent::from).toList())
+                    .build());
+        // the previous turn is the one whose tool calls these results answer
+        agentInstanceClient.applyTurnStart(
+            executionContext,
+            agentConfiguration,
+            agentInstanceKey,
+            workingConversation.currentTurn(),
+            workingConversation.lastTurn(),
+            OffsetDateTime.now());
       }
-    } while (continued);
+    } while (anotherRound);
     return workingConversation;
   }
 

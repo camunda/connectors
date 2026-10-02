@@ -96,6 +96,10 @@ class AgentTaskRequestHandlerTest {
   private DocumentRegistryStorage documentRegistryStorage =
       new AgentContextDocumentRegistryStorage();
 
+  @Spy
+  private LocalToolCallHandler localToolCallHandler =
+      new LocalToolCallHandlerImpl(List.of(new DocumentParameterToolCallInspector()));
+
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;

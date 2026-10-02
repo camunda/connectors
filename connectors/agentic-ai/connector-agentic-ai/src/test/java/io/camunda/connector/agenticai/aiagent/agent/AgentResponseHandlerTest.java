@@ -108,6 +108,63 @@ class AgentResponseHandlerTest {
         .ingest(assistantMessage, new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0));
   }
 
+  @Test
+  void handsTheDocumentReferenceToTheProcessWhileTheStoredMessageKeepsTheId() {
+    final var document =
+        new io.camunda.connector.runtime.core.document.DocumentFactoryImpl(
+                io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore.INSTANCE)
+            .create(
+                io.camunda.connector.api.document.DocumentCreationRequest.from(
+                        "data".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var registry =
+        io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument(
+                        document, null, null)));
+    final var documentId =
+        io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle.idFor(document);
+    final var toolCall =
+        new io.camunda.connector.agenticai.aiagent.model.tool.ToolCall(
+            "call-1", "upload", java.util.Map.of("doc", documentId, "note", "x"));
+    final var assistantMessage = assistantMessage("uploading", List.of(toolCall));
+    final var config =
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+            .withToolDefinitions(
+                List.of(
+                    io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition.builder()
+                        .name("upload")
+                        .inputSchema(java.util.Map.of())
+                        .documentParameters(List.of("/properties/doc"))
+                        .build()));
+    final var conversation =
+        AgentConversation.rehydrate(
+                config,
+                BASE_AGENT_CONTEXT.withDocuments(registry.entries()),
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of())
+            .ingest(assistantMessage, AgentMetrics.empty());
+
+    final var response = responseHandler.createResponse(conversation);
+
+    assertThat(response.toolCalls())
+        .singleElement()
+        .satisfies(
+            call -> {
+              assertThat(call.metadata().id()).isEqualTo("call-1");
+              assertThat(call.arguments())
+                  .containsEntry("doc", registry.findById(documentId).orElseThrow().reference())
+                  .containsEntry("note", "x");
+            });
+    assertThat(conversation.allMessages().getLast()).isEqualTo(assistantMessage);
+    assertThat(assistantMessage.toolCalls().getFirst().arguments())
+        .containsEntry("doc", documentId);
+  }
+
   @Nested
   class Text {
 

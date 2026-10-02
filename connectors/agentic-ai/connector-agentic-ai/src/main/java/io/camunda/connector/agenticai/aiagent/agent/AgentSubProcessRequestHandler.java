@@ -40,7 +40,8 @@ public class AgentSubProcessRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage) {
+      DocumentRegistryStorage documentRegistryStorage,
+      LocalToolCallHandler localToolCallHandler) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -49,7 +50,8 @@ public class AgentSubProcessRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage);
+        documentRegistryStorage,
+        localToolCallHandler);
   }
 
   @Override
@@ -96,9 +98,9 @@ public class AgentSubProcessRequestHandler
       AgentResponse agentResponse,
       @Nullable AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    // cancel remaining instances if any tool call in this turn's input was interrupted
+    // cancel remaining instances if any tool call in this invocation's input was interrupted
     boolean cancelRemainingInstances =
-        conversation != null && conversation.currentTurn().hasInterruptedToolCallResults();
+        conversation != null && conversation.hasInterruptedToolCallResultsInInvocation();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",

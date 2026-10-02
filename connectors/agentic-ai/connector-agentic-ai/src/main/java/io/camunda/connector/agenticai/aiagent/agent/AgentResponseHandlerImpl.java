@@ -61,8 +61,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                 .assistantMessage(),
             "Cannot create an agent response: the last turn has no assistant message");
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    // the stored assistant message keeps the document ids the model sent; only the tool call
+    // handed to the process carries the document references
+    final var resolvedToolCalls =
+        DocumentParameterResolver.resolveAll(
+            rawToolCalls,
+            conversation.configuration().toolDefinitions(),
+            conversation.documentRegistry());
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
+        gatewayToolHandlers.transformToolCalls(agentContext, resolvedToolCalls).stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 

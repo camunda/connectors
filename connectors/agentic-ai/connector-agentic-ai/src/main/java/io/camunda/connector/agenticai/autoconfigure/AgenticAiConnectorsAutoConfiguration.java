@@ -37,6 +37,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterToolCallInspector;
+import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandler;
+import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -300,6 +304,18 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public DocumentParameterToolCallInspector aiAgentDocumentParameterToolCallInspector() {
+    return new DocumentParameterToolCallInspector();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public LocalToolCallHandler aiAgentLocalToolCallHandler(List<ToolCallInspector> inspectors) {
+    return new LocalToolCallHandlerImpl(inspectors);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
@@ -332,7 +348,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage) {
+      DocumentRegistryStorage documentRegistryStorage,
+      LocalToolCallHandler localToolCallHandler) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -341,7 +358,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage);
+        documentRegistryStorage,
+        localToolCallHandler);
   }
 
   @Bean
@@ -376,7 +394,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage) {
+      DocumentRegistryStorage documentRegistryStorage,
+      LocalToolCallHandler localToolCallHandler) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -385,7 +404,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage);
+        documentRegistryStorage,
+        localToolCallHandler);
   }
 
   @Bean
