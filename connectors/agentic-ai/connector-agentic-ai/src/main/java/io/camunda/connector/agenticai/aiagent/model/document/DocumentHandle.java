@@ -9,15 +9,19 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Derives a stable id for a document, verbatim wherever possible.
@@ -58,6 +62,62 @@ public final class DocumentHandle {
    */
   public static String idFor(Document document) {
     return idForReference(document.reference(), document);
+  }
+
+  /**
+   * Returns the file name the model is shown for the given document, or {@code null} when none is
+   * known:
+   *
+   * <ul>
+   *   <li>{@link ExternalDocumentReference} → the reference {@code name}, else the last path
+   *       segment of the URL without query and fragment (when not blank); never the URL itself
+   *   <li>any other reference → the file name of the document metadata (Camunda metadata, inline
+   *       {@code name})
+   * </ul>
+   */
+  public static @Nullable String fileNameFor(Document document) {
+    if (document.reference() instanceof ExternalDocumentReference ref) {
+      return StringUtils.isNotBlank(ref.name()) ? ref.name() : lastPathSegment(ref.url());
+    }
+    final DocumentMetadata metadata = document.metadata();
+    return metadata != null ? StringUtils.trimToNull(metadata.getFileName()) : null;
+  }
+
+  /**
+   * Returns the content type the model is shown for the given document, or {@code null} when it is
+   * not known without fetching the content. Metadata of external documents is only available by
+   * downloading the document, so it is never consulted for them.
+   */
+  public static @Nullable String contentTypeFor(Document document) {
+    if (document.reference() instanceof ExternalDocumentReference) {
+      return null;
+    }
+    final DocumentMetadata metadata = document.metadata();
+    return metadata != null ? StringUtils.trimToNull(metadata.getContentType()) : null;
+  }
+
+  private static @Nullable String lastPathSegment(@Nullable String url) {
+    if (StringUtils.isBlank(url)) {
+      return null;
+    }
+    var withoutSuffix = url;
+    final int suffixStart = StringUtils.indexOfAny(withoutSuffix, '?', '#');
+    if (suffixStart >= 0) {
+      withoutSuffix = withoutSuffix.substring(0, suffixStart);
+    }
+    final int schemeEnd = withoutSuffix.indexOf("://");
+    final int pathStart = withoutSuffix.indexOf('/', schemeEnd >= 0 ? schemeEnd + 3 : 0);
+    if (pathStart < 0) {
+      return null;
+    }
+    final var path = withoutSuffix.substring(pathStart);
+    final var segment = path.substring(path.lastIndexOf('/') + 1);
+    try {
+      return StringUtils.trimToNull(
+          URLDecoder.decode(segment.replace("+", "%2B"), StandardCharsets.UTF_8));
+    } catch (IllegalArgumentException e) {
+      return StringUtils.trimToNull(segment);
+    }
   }
 
   private static String idForReference(DocumentReference reference, Document document) {

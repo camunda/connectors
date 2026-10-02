@@ -7,145 +7,148 @@
 package io.camunda.connector.agenticai.aiagent.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
+import io.camunda.connector.runtime.core.document.InlineDocument;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Answers;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class DocumentReferenceXmlTagTest {
 
-  private static final String DOCUMENT_ID = "25ece9fa-aeea-423d-98ed-67c1f08b137b";
+  private final DocumentFactoryImpl documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  @Mock private Document doc;
-  @Mock private DocumentMetadata metadata;
+  @Test
+  void camundaDocumentRendersIdFileNameContentTypeAndToolOrigin() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .contentType("application/pdf")
+                .fileName("report.pdf")
+                .build());
 
-  @Nested
-  class CamundaDocumentReferenceTag {
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private CamundaDocumentReference ref;
-
-    @BeforeEach
-    void setUp() {
-      when(doc.reference()).thenReturn(ref);
-      when(doc.metadata()).thenReturn(metadata);
-    }
-
-    @Test
-    void generatesFullTagWithAllAttributes() {
-      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
-      when(ref.getStoreId()).thenReturn("in-memory");
-      when(metadata.getContentType()).thenReturn("application/pdf");
-      when(metadata.getFileName()).thenReturn("report.pdf");
-
-      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(CamundaDocumentReferenceXmlTag.class);
-      assertThat(tag.toXml())
-          .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />"
-                  .formatted(DOCUMENT_ID));
-    }
-
-    @Test
-    void omitsBlankAttributes() {
-      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
-
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc documentId=\"%s\" />".formatted(DOCUMENT_ID));
-    }
-
-    @Test
-    void escapesSpecialCharactersInToolName() {
-      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
-          .isEqualTo("<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" />");
-    }
+    assertThat(DocumentReferenceXmlTag.from(doc, "call_abc", "search").toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
+                .formatted(DocumentHandle.idFor(doc)));
   }
 
-  @Nested
-  class ExternalDocumentReferenceTag {
+  @Test
+  void camundaDocumentWithoutToolOriginOmitsToolAttributes() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("a.txt")
+                .build());
 
-    @Mock private ExternalDocumentReference ref;
-
-    @BeforeEach
-    void setUp() {
-      when(doc.reference()).thenReturn(ref);
-    }
-
-    @Test
-    void generatesFullTagWithAllAttributes() {
-      when(ref.url()).thenReturn("https://example.com/report.pdf");
-      when(ref.name()).thenReturn("Quarterly Report");
-
-      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(ExternalDocumentReferenceXmlTag.class);
-      assertThat(tag.toXml())
-          .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" />");
-    }
-
-    @Test
-    void omitsBlankNameAndToolContext() {
-      when(ref.url()).thenReturn("https://example.com/report.pdf");
-
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc url=\"https://example.com/report.pdf\" />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInUrl() {
-      when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
-
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc url=\"https://example.com/path?q=a&amp;b=&quot;c&quot;\" />");
-    }
+    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
+                .formatted(DocumentHandle.idFor(doc)));
   }
 
-  @Nested
-  class GenericDocumentReferenceTag {
+  @Test
+  void camundaDocumentNeverExposesStoreIdContentHashOrDocumentIdAttribute() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("a.txt")
+                .build());
 
-    /** Custom reference subtype that isn't recognized by the tag's dispatch switch. */
-    private record CustomDocumentReference(String id) implements DocumentReference {}
+    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool").toXml())
+        .doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
+  }
 
-    @Test
-    void emitsToolContextForUnrecognizedReference() {
-      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
+  @Test
+  void camundaDocumentWithoutMetadataOmitsFileNameAndContentType() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build());
 
-      var tag = DocumentReferenceXmlTag.from(doc, "call_1", "search");
-      assertThat(tag).isInstanceOf(GenericDocumentReferenceXmlTag.class);
-      assertThat(tag.toXml()).isEqualTo("<doc toolName=\"search\" toolCallId=\"call_1\" />");
-    }
+    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+        .startsWith("<doc id=\"%s\"".formatted(DocumentHandle.idFor(doc)))
+        .doesNotContain("fileName", "contentType", "toolName", "toolCallId");
+  }
 
-    @Test
-    void emitsMinimalTagForUnrecognizedReferenceWithoutToolContext() {
-      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
+  @Test
+  void externalDocumentUsesReferenceNameAndNeverRendersTheUrlOrFetchesMetadata() {
+    // the downloader fails on use: rendering must not trigger a download for the content type
+    final var doc =
+        new ExternalDocument(
+            "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
 
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
-    }
+    final var xml = DocumentReferenceXmlTag.from(doc, "call_abc", "search").toXml();
 
-    @Test
-    void emitsMinimalTagForNullReference() {
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
-    }
+    assertThat(xml)
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"Quarterly Report\" toolName=\"search\" toolCallId=\"call_abc\" />"
+                .formatted(DocumentHandle.idFor(doc)));
+    assertThat(xml).doesNotContain("example.com", "secret", "url");
+  }
 
-    @Test
-    void escapesSpecialCharactersInToolName() {
-      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>&'").toXml())
-          .isEqualTo(
-              "<doc toolName=\"tool&lt;with&quot;quotes&gt;&amp;&apos;\" toolCallId=\"call_1\" />");
-    }
+  @Test
+  void externalDocumentWithoutNameFallsBackToLastPathSegmentWithoutQueryAndFragment() {
+    final var doc =
+        new ExternalDocument(
+            "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
+
+    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"my file.pdf\" />".formatted(DocumentHandle.idFor(doc)));
+  }
+
+  @Test
+  void externalDocumentWithoutNameAndWithoutPathSegmentOmitsFileName() {
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new ExternalDocument("https://example.com", null, u -> null))
+                .fileName())
+        .isNull();
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new ExternalDocument("https://example.com/dir/?t=1", "", u -> null))
+                .fileName())
+        .isNull();
+  }
+
+  @Test
+  void inlineDocumentRendersNameAndContentType() {
+    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+
+    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "gen").toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
+                .formatted(DocumentHandle.idFor(doc)));
+  }
+
+  @Test
+  void escapesSpecialCharactersInAttributes() {
+    final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
+
+    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
+        .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
+        .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
+  }
+
+  @Test
+  void registryEntryRendersTheSameTagAsTheDocument() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("a.txt")
+                .build());
+    final var entry = DocumentRegistryEntry.from(new IngestedDocument(doc, "call_1", "tool"));
+
+    assertThat(DocumentReferenceXmlTag.from(entry))
+        .isEqualTo(DocumentReferenceXmlTag.from(doc, "call_1", "tool"));
   }
 }

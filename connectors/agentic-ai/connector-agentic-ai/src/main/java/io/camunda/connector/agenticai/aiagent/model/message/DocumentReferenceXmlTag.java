@@ -6,133 +6,65 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.message;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Represents a self-closing XML tag used to label a document in the synthetic user message, e.g.:
+ * The self-closing XML tag that is the only way the model sees a document, e.g.:
  *
  * <pre>{@code
- * <doc toolName="search" toolCallId="call_abc" documentId="25ece9fa-aeea-..." storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
+ * <doc id="25ece9fa-aeea-..." fileName="report.pdf" contentType="application/pdf" toolName="search" toolCallId="call_abc" />
  * }</pre>
  *
- * <p>Attribute names mirror the JSON field names emitted by the standard {@code DocumentSerializer}
- * so the model can correlate references in the tool result JSON with the actual document content
- * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted.
- *
- * <p>Only {@link CamundaDocumentReferenceXmlTag} carries {@code contentType} and {@code fileName}:
- * Camunda references read their metadata in-memory from the document store on resolve, so surfacing
- * those fields here is free. External documents would have to HTTP-fetch the response headers to
- * learn their content type or filename — the tag deliberately omits the metadata block for those to
- * avoid a download just to render a label.
+ * <p>{@code id} is the {@link DocumentHandle#idFor stable document id}. The tag never carries a
+ * store id, content hash, other metadata or URL (an external URL may be a presigned one). Null or
+ * blank attributes are omitted; {@code toolName} and {@code toolCallId} are only present for
+ * documents that came from a tool result.
  */
-public sealed interface DocumentReferenceXmlTag {
+public record DocumentReferenceXmlTag(
+    String id,
+    @Nullable String fileName,
+    @Nullable String contentType,
+    @Nullable String toolName,
+    @Nullable String toolCallId) {
 
-  @Nullable String toolCallId();
-
-  @Nullable String toolName();
-
-  String toXml();
-
-  /**
-   * Creates a tag from a document and its tool call context. Dispatches on the {@link Document}'s
-   * reference type:
-   *
-   * <ul>
-   *   <li>{@link CamundaDocumentReference} → {@link CamundaDocumentReferenceXmlTag}
-   *   <li>{@link ExternalDocumentReference} → {@link ExternalDocumentReferenceXmlTag}
-   *   <li>any other reference type (including inline) → {@link GenericDocumentReferenceXmlTag}
-   * </ul>
-   */
-  static DocumentReferenceXmlTag from(
+  /** Creates a tag from a document and its tool call context. */
+  public static DocumentReferenceXmlTag from(
       Document document, @Nullable String toolCallId, @Nullable String toolName) {
-    return switch (document.reference()) {
-      case CamundaDocumentReference ref -> {
-        // Camunda references carry metadata in-memory, so reading it back here is free.
-        final DocumentMetadata md = document.metadata();
-        yield new CamundaDocumentReferenceXmlTag(
-            toolCallId,
-            toolName,
-            ref.getDocumentId(),
-            ref.getStoreId(),
-            md != null ? md.getContentType() : null,
-            md != null ? md.getFileName() : null);
-      }
-      case ExternalDocumentReference ref ->
-          new ExternalDocumentReferenceXmlTag(toolCallId, toolName, ref.url(), ref.name());
-      case null, default -> new GenericDocumentReferenceXmlTag(toolCallId, toolName);
-    };
+    return new DocumentReferenceXmlTag(
+        DocumentHandle.idFor(document),
+        DocumentHandle.fileNameFor(document),
+        DocumentHandle.contentTypeFor(document),
+        toolName,
+        toolCallId);
   }
 
-  /** Creates a tag from a document without tool call context (e.g. for event documents). */
-  static DocumentReferenceXmlTag from(Document document) {
+  /** Creates a tag from a document without tool call context (e.g. for user prompt documents). */
+  public static DocumentReferenceXmlTag from(Document document) {
     return from(document, null, null);
   }
 
-  record CamundaDocumentReferenceXmlTag(
-      @Nullable String toolCallId,
-      @Nullable String toolName,
-      String documentId,
-      @Nullable String storeId,
-      @Nullable String contentType,
-      @Nullable String fileName)
-      implements DocumentReferenceXmlTag {
-
-    @Override
-    public String toXml() {
-      var attributes = new LinkedHashMap<String, String>();
-      attributes.put("toolName", toolName);
-      attributes.put("toolCallId", toolCallId);
-      attributes.put("documentId", documentId);
-      attributes.put("storeId", storeId);
-      attributes.put("contentType", contentType);
-      attributes.put("fileName", fileName);
-      return renderTag(attributes);
-    }
+  /** Creates a tag from a registry entry. */
+  public static DocumentReferenceXmlTag from(DocumentRegistryEntry entry) {
+    return new DocumentReferenceXmlTag(
+        entry.id(), entry.fileName(), entry.contentType(), entry.toolName(), entry.toolCallId());
   }
 
-  record ExternalDocumentReferenceXmlTag(
-      @Nullable String toolCallId, @Nullable String toolName, String url, @Nullable String name)
-      implements DocumentReferenceXmlTag {
-
-    @Override
-    public String toXml() {
-      var attributes = new LinkedHashMap<String, String>();
-      attributes.put("toolName", toolName);
-      attributes.put("toolCallId", toolCallId);
-      attributes.put("url", url);
-      attributes.put("name", name);
-      return renderTag(attributes);
-    }
+  public String toXml() {
+    final var sb = new StringBuilder("<doc");
+    appendAttribute(sb, "id", id);
+    appendAttribute(sb, "fileName", fileName);
+    appendAttribute(sb, "contentType", contentType);
+    appendAttribute(sb, "toolName", toolName);
+    appendAttribute(sb, "toolCallId", toolCallId);
+    return sb.append(" />").toString();
   }
 
-  record GenericDocumentReferenceXmlTag(@Nullable String toolCallId, @Nullable String toolName)
-      implements DocumentReferenceXmlTag {
-
-    @Override
-    public String toXml() {
-      var attributes = new LinkedHashMap<String, String>();
-      attributes.put("toolName", toolName);
-      attributes.put("toolCallId", toolCallId);
-      return renderTag(attributes);
-    }
-  }
-
-  private static String renderTag(Map<String, String> attributes) {
-    var sb = new StringBuilder("<doc");
-    attributes.forEach((name, value) -> appendAttribute(sb, name, value));
-    sb.append(" />");
-    return sb.toString();
-  }
-
-  private static void appendAttribute(StringBuilder sb, String name, String value) {
+  private static void appendAttribute(StringBuilder sb, String name, @Nullable String value) {
     if (StringUtils.isNotBlank(value)) {
       sb.append(" %s=\"%s\"".formatted(name, StringEscapeUtils.escapeXml10(value)));
     }

@@ -158,8 +158,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    // add documents
-    userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+    // add documents, each labelled with its tag
+    for (var doc : userPrompt.documents()) {
+      content.add(textContent(DocumentReferenceXmlTag.from(doc).toXml()));
+      content.add(DocumentContent.documentContent(doc));
+    }
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");

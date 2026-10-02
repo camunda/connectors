@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -195,7 +196,7 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void firstTurn_withUserPromptDocuments_addsDocumentContent() {
-    var document = mock(Document.class);
+    var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
             new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
@@ -205,7 +206,13 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
     var userMessage = (UserMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
-    assertThat(userMessage.content()).contains(DocumentContent.documentContent(document));
+    assertThat(userMessage.content())
+        .containsExactly(
+            textContent("Tell me a story"),
+            textContent(
+                "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" />"
+                    .formatted(DocumentHandle.idFor(document))),
+            DocumentContent.documentContent(document));
   }
 
   @Test
@@ -402,7 +409,11 @@ class AgentConversationTurnInputComposerImplTest {
                       textContent(
                           AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(documentMessage.content())
-                  .contains(DocumentContent.documentContent(weatherDoc));
+                  .contains(
+                      textContent(
+                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"
+                              .formatted(DocumentHandle.idFor(weatherDoc))),
+                      DocumentContent.documentContent(weatherDoc));
             });
   }
 
@@ -509,7 +520,11 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(eventMessage.content())
                   .contains(
                       textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
-                  .contains(DocumentContent.documentContent(eventDoc));
+                  .contains(
+                      textContent(
+                          "<doc id=\"%s\" fileName=\"event.pdf\" contentType=\"application/pdf\" />"
+                              .formatted(DocumentHandle.idFor(eventDoc))),
+                      DocumentContent.documentContent(eventDoc));
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
             });

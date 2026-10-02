@@ -64,12 +64,11 @@ public record DocumentRegistryEntry(
 
   public static DocumentRegistryEntry from(IngestedDocument ingested) {
     final var document = ingested.document();
-    final var metadata = document.metadata();
     return new DocumentRegistryEntry(
         DocumentHandle.idFor(document),
         serializeReference(document),
-        metadata != null ? metadata.getFileName() : null,
-        metadata != null ? metadata.getContentType() : null,
+        DocumentHandle.fileNameFor(document),
+        DocumentHandle.contentTypeFor(document),
         ingested.toolName(),
         ingested.toolCallId());
   }

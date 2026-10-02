@@ -22,12 +22,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -143,6 +142,19 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
+   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding a {@code <doc/>}
+   * tag that exposes the document id only: no store id, content hash or URL.
+   */
+  public static void assertDocumentTagPart(JsonNode part) {
+    assertThat(part.path("type").asText()).as("document tag part type").isEqualTo("text");
+    assertThat(part.path("text").asText())
+        .as("document tag text")
+        .startsWith("<doc id=\"")
+        .endsWith(" />")
+        .doesNotContain("storeId", "contentHash", "documentId", "http");
+  }
+
+  /**
    * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
    * classification used by user-prompt document tests.
    */
@@ -206,13 +218,12 @@ public final class ToolCallResultDocumentAssertions {
         Consumer<JsonNode> contentBlockAssertion) {
       final var metadata = reference.metadata();
       return new ExtractedDocument(
-          new CamundaDocumentReferenceXmlTag(
-                  toolCallId,
-                  toolName,
+          new DocumentReferenceXmlTag(
                   reference.documentId(),
-                  reference.storeId(),
+                  metadata != null ? metadata.getFileName() : null,
                   metadata != null ? metadata.getContentType() : null,
-                  metadata != null ? metadata.getFileName() : null)
+                  toolName,
+                  toolCallId)
               .toXml(),
           contentBlockAssertion);
     }
@@ -224,8 +235,10 @@ public final class ToolCallResultDocumentAssertions {
         ExternalDocumentReferenceModel reference,
         Consumer<JsonNode> contentBlockAssertion) {
       return new ExtractedDocument(
-          new ExternalDocumentReferenceXmlTag(
-                  toolCallId, toolName, reference.url(), reference.name())
+          DocumentReferenceXmlTag.from(
+                  new ExternalDocument(reference.url(), reference.name(), url -> null),
+                  toolCallId,
+                  toolName)
               .toXml(),
           contentBlockAssertion);
     }

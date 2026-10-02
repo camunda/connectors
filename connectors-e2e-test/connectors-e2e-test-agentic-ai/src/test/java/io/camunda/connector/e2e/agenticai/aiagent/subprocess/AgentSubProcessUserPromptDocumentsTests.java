@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -81,12 +82,15 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userMessage.contentParts())
         .as("user message should have multipart content")
         .isNotEmpty();
-    assertThat(userMessage.contentParts().size()).as("expected text + document block").isEqualTo(2);
+    assertThat(userMessage.contentParts().size())
+        .as("expected text + <doc/> tag + document block")
+        .isEqualTo(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
+    assertDocumentTagPart(userMessage.contentParts().get(1));
     assertDocumentContentBlockJson(
-        userMessage.contentParts().get(1), contentBlockType(filename), mimeType(filename));
+        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -132,13 +136,15 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts()).isNotEmpty();
     assertThat(userMessage.contentParts().size())
-        .as("expected text + 2 document blocks")
-        .isEqualTo(3);
+        .as("expected text + 2 (<doc/> tag + document block) pairs")
+        .isEqualTo(5);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentContentBlockJson(userMessage.contentParts().get(1), "text", "text/plain");
-    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "base64", "image/jpeg");
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "text", "text/plain");
+    assertDocumentTagPart(userMessage.contentParts().get(3));
+    assertDocumentContentBlockJson(userMessage.contentParts().get(4), "base64", "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,

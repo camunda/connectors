@@ -24,14 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
@@ -110,13 +110,12 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
 
     // synthetic user message carrying the extracted document content
     final var expectedXmlTag =
-        new CamundaDocumentReferenceXmlTag(
-                "aaa111",
-                "Download_A_File",
+        new DocumentReferenceXmlTag(
                 documentReference.documentId(),
-                documentReference.storeId(),
+                documentReference.metadata().getFileName(),
                 documentReference.metadata().getContentType(),
-                documentReference.metadata().getFileName())
+                "Download_A_File",
+                "aaa111")
             .toXml();
     assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedXmlTag, type, mimeType);
 
@@ -177,10 +176,12 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertThat(externalRef.url()).isEqualTo(docUrl);
     assertThat(externalRef.name()).isEqualTo(docName);
 
-    // synthetic user message: external doc rendered as <doc url="…" name="…" /> + content block
+    // synthetic user message: external doc rendered as <doc id="…" fileName="…" /> + content block
     final var expectedXmlTag =
-        new ExternalDocumentReferenceXmlTag(
-                "ext111", "External_File_Reference", externalRef.url(), externalRef.name())
+        DocumentReferenceXmlTag.from(
+                new ExternalDocument(externalRef.url(), externalRef.name(), url -> null),
+                "ext111",
+                "External_File_Reference")
             .toXml();
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4), expectedXmlTag, "base64", "application/pdf");
