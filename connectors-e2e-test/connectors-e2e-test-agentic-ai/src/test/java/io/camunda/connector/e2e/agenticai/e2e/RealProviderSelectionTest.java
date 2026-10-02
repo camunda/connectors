@@ -67,9 +67,12 @@ class RealProviderSelectionTest {
   }
 
   @Test
-  void shouldFailStrictModeWhenNoProviderIsEnabled() {
-    environment.set("REAL_LLM_PROVIDER_GROUP", "");
-    environment.set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+  void shouldFailStrictModeWhenSelectedMistralGroupHasNoCredentials() {
+    environment
+        .set("MISTRAL_API_KEY", "ambient")
+        .remove("MISTRAL_API_KEY")
+        .set("REAL_LLM_PROVIDER_GROUP", "mistral")
+        .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
 
     assertThatThrownBy(() -> RealProviderApiSmokeSupport.providers().toList())
         .isInstanceOf(IllegalStateException.class)
@@ -118,10 +121,13 @@ class RealProviderSelectionTest {
 
   @Test
   void shouldUseBoundedThinkingBudgetForVertexGemini25() {
-    environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
-    environment.set("GOOGLE_VERTEX_AI_REGION", "region");
-    environment.set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}");
-    environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
+    environment
+        .set("GOOGLE_GEMINI_API_KEY", "ambient")
+        .remove("GOOGLE_GEMINI_API_KEY")
+        .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
+        .set("GOOGLE_VERTEX_AI_REGION", "region")
+        .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")
+        .set("REAL_LLM_PROVIDER_GROUP", "vertex");
 
     assertThat(RealProviderApiSmokeSupport.providersWithReasoning())
         .singleElement()

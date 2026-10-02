@@ -49,6 +49,66 @@ class RealProviderFixtureTest {
   }
 
   @Test
+  void shouldAcceptExactBedrockDocumentResponseSpellingRegression() {
+    var response =
+        """
+        ### Document Content Description
+
+        **1. Cover Page:**
+        - **Title:** Report prepared by Dr. Kael Thrennix, Chief Analytics Officer
+        - **Details:** This is the cover page of the report, indicating the author and their role.
+
+        **2. Attachment 1:**
+        - **Content:** "Project Zyperion launched on March 15, 2026"
+        - **Details:** This document provides the launch date of Project Zyperion.
+
+        **3. Attachment 2:**
+        - **Content:** "Total headcount: 847 employees across 12 offices"
+        - **Details:** This document provides organizational statistics, specifically the total \
+        number of employees and the number of offices.
+
+        **Summary:**
+        The full report consists of a cover page authored by Dr. Kael Thrennix, Chief Analytics \
+        Officer. It includes two attachments: one detailing the launch date of Project Zyperion \
+        (March 15, 2026) and another providing organizational statistics (847 employees across 12 \
+        offices).
+        """;
+
+    DocumentToolCallResultsIT.assertNestedStructureResponse(Map.of("responseText", response));
+  }
+
+  @Test
+  void shouldRejectArbitraryDocumentCodeNameNearMatch() {
+    var response =
+        """
+        Project Zypharion launched on March 15, 2026.
+        The organization has 847 employees across 12 offices.
+        The report was prepared by Dr. Kael Thrennix, Chief Analytics Officer.
+        """;
+
+    assertThatThrownBy(
+            () ->
+                DocumentToolCallResultsIT.assertNestedStructureResponse(
+                    Map.of("responseText", response)))
+        .isInstanceOf(AssertionError.class);
+  }
+
+  @Test
+  void shouldRejectNestedDocumentResponseMissingCoverDocumentFacts() {
+    var response =
+        """
+        Project Zyperion launched on March 15, 2026.
+        The organization has 847 employees across 12 offices.
+        """;
+
+    assertThatThrownBy(
+            () ->
+                DocumentToolCallResultsIT.assertNestedStructureResponse(
+                    Map.of("responseText", response)))
+        .isInstanceOf(AssertionError.class);
+  }
+
+  @Test
   void shouldNormalizeOnlyPresentationAroundShortAnswers() {
     assertThat(RealProviderApiSmokeSupport.normalizeShortAnswer(" **23.** ")).isEqualTo("23");
     assertThat(RealProviderApiSmokeSupport.normalizeShortAnswer("The answer is 23"))
