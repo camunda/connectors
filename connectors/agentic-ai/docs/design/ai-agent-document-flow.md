@@ -26,8 +26,8 @@ Design and build notes for the document flow of camunda/experience-pdp#81 in the
 
 `BaseAgentRequestHandler.driveContinuationLoop` re-calls the model only on `ChatResult.Continuation`;
 `AgentConversation.nextContinuationRound()` opens a pending turn with empty input. A turn that
-carries synthetic tool results needs a sibling primitive. Not a blocker; the primitive is added in
-step 4. Obligations of every extra round: `throwIfLimitsReached` before the round (bounds retries at
+carries synthetic tool results uses the sibling primitive `AgentConversation.nextLocalToolRound`.
+Obligations of every extra round: `throwIfLimitsReached` before the round (bounds retries at
 `maxModelCalls`), agent instance history reporting for the synthetic input, and a persist/reload
 round trip through `TurnReconstructor` without `lastIterationKey` drift.
 
@@ -250,3 +250,93 @@ Gaps:
   is fully under the connector user's control.
 - The e2e suite was updated to the new shape (`ToolCallResultDocumentAssertions`, the tool calling,
   MCP and user prompt document tests) and compiles; it was not run for this step.
+
+### Step 4 notes: documents into tools
+
+Hook points (`connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/`):
+
+- `aiagent/agent/BaseAgentRequestHandler.java`: `driveContinuationLoop` (:258). After each
+  `Completed` result is ingested, `localToolCallHandler.handle` (:282) inspects the tool calls of the
+  assistant message. If it answers them, the loop reports the round with status `THINKING`,
+  checks `throwIfLimitsReached`, opens the next round with `AgentConversation.nextLocalToolRound`
+  (:314) and reports its start with `applyTurnStart` (:319), then calls the model again. Both
+  flavors share it.
+- `aiagent/model/AgentConversation.java`: `nextLocalToolRound` (:178) closes the ingested turn and
+  opens a pending turn (iterationKey + 1) whose input is the given `ToolCallResultMessage`; it
+  requires the results to cover exactly the tool calls of the closed turn. `documentRegistry()`
+  (:255) is the registry of the working conversation's context; it already contains the documents
+  ingested by this invocation's input (`registerDocuments` stores them before `rehydrate`).
+  `hasInterruptedToolCallResultsInInvocation` (:263) replaces the current-turn check of
+  `AgentSubProcessRequestHandler` (:103): the interrupted results of the first round must still
+  cancel the remaining tool instances after a local round replaced the current turn.
+- `aiagent/agent/AgentResponseHandlerImpl.java` (`createResponse`, :67): the seam for the process
+  variable. `DocumentParameterResolver.resolveAll` runs on the raw tool calls of the assistant
+  message, before the gateway transformation, using the tool definitions of the configuration and
+  `conversation.documentRegistry()`. Only the `ToolCallProcessVariable` (and so the element
+  activation variable `toolCall` of the sub-process flavor and the task flavor's `toolCalls`)
+  carries the references; the persisted assistant message keeps the ids the model sent.
+- `aiagent/agent/DocumentParameterResolver.java`: walks the arguments along the pointers of
+  `ToolDefinition.documentParameters`: `/properties/x` is `arguments.x`, `/items` every element of
+  the array, nested pointers recurse through objects and arrays. An id is replaced by the registry
+  entry's `reference` map (`camunda.document.type`, `storeId`, `documentId`, `contentHash`,
+  `metadata`; the same shape other connectors emit and consume). A missing or `null` argument is
+  left alone (optional parameters). The original arguments are never modified.
+- `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`: `DocumentParameterToolCallInspector`
+  and `LocalToolCallHandler` beans; every `ToolCallInspector` bean joins the handler.
+
+Local handler abstraction (`aiagent/agent/`): `LocalToolCallHandler.handle(conversation, toolCalls)`
+returns `Optional<List<ToolCallResult>>`: empty when every call goes to the process, otherwise one
+result per call. The implementation, `LocalToolCallHandlerImpl`, asks every `ToolCallInspector`
+(`inspect(toolCall, LocalToolCallContext)`, context = tool definitions + document registry) for a
+`ToolCallVerdict` per call: `Pass` or `Answer(content)`. The first `Answer` of a call wins.
+`DocumentParameterToolCallInspector` is the only inspector; the `return_documents` handler of step 5
+is a second one that answers its own calls with the real result.
+
+Batch policy (see "Mixed batches" above): if at least one call of the batch gets an `Answer`, every
+call is answered in the loop. Passed calls get `LocalToolCallHandlerImpl.NOT_EXECUTED`
+("Not executed because another tool call in the same batch failed. Resend this call separately or
+after fixing the failed call."). Tools never run for any call of such a batch.
+
+Error text of an invalid document parameter (one sentence per invalid value, then the known
+documents; at most 50 are listed, the rest is counted):
+
+```
+Unknown document id 'x' for parameter 'docs[1]'. Known documents:
+<doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />
+```
+
+The parameter path is `name`, `parent.name` for nested objects and `name[i]` for array elements. A
+blank or non-string value reads "Parameter 'p' must be the id of a known document (a non-blank
+string).", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
+registry the list is replaced by "No documents are known.". Results are plain text: no provider has
+a tool error flag in the domain model, so the model reads the text.
+
+Loop obligations:
+
+- Limit: `throwIfLimitsReached` runs before every local round, so retries are bounded by
+  `maxModelCalls` (the invocation fails with the existing max-model-calls error code, like a
+  continuation round).
+- Agent instance history: the assistant turn of a round followed by a local round is completed with
+  `THINKING` (not `TOOL_CALLING`); the local round starts with `applyTurnStart` whose input is the
+  synthetic tool result message and whose previous turn is the closing turn, so each result is
+  correlated to its tool call and reported as a `TOOL_RESULT` item with `loopIteration` + 1.
+  Exactly one status per call, as before. No other `AgentInstanceClient` call changed, so the
+  existing `verifyNoMoreInteractions` expectations hold.
+- Persistence: the stored messages read `assistant(tool calls) -> tool results -> assistant`, which
+  `TurnReconstructor` splits into one turn per assistant message. `lastIterationKey` is stamped from
+  the final round and equals the reconstructed turn count, so the drift warning does not fire. The
+  windowing filter evicts the tool results together with their assistant message, as for any
+  tool call round.
+- Metrics: every round counts as a model call (`jobMetrics` sums the rolled-in turns).
+
+Behavior notes: validation looks only at ad-hoc tools whose definition has `documentParameters`;
+the tool name is the lookup key. A failing resolution in `createResponse` (not reachable after
+validation) throws `IllegalStateException`. A model that reuses a tool call id across rounds
+reuses the agent instance history item id of the earlier result; ids are assigned by the providers
+and unique in practice.
+
+Open point, gateway tools (MCP, A2A): out of scope. Their definitions never carry
+`documentParameters`, the gateway handler seam (`transformToolCalls`) is unchanged and runs after the
+document resolution, which leaves their calls untouched. Passing documents into gateway tools needs
+its own design (the gateway wraps the call arguments in an envelope the handler builds).
+
