@@ -19,7 +19,8 @@ public record PasswordBasedAuthentication(
             id = "passwordBassesUsername",
             group = "authentication")
         String username,
-    @NotBlank @TemplateProperty(label = "Password", group = "authentication") String password,
+    @NotBlank @TemplateProperty(label = "Password", group = "authentication", secret = true)
+        String password,
     @NotNull
         @TemplateProperty(
             label = "Multiple login",
