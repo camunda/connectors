@@ -120,12 +120,5 @@
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>org.wiremock</groupId>
-      <artifactId>wiremock-standalone</artifactId>
-      <version>${version.wiremock}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 </project>
