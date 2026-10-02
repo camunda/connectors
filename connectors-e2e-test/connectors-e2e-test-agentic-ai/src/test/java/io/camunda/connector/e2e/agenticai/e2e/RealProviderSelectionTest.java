@@ -101,42 +101,20 @@ class RealProviderSelectionTest {
   }
 
   @Test
-  void shouldDisableVertexGemini37OnlyInShardedRuns() {
-    environment.set("GOOGLE_VERTEX_AI_PROJECT_ID", "project");
-    environment.set("GOOGLE_VERTEX_AI_REGION", "region");
-    environment.set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}");
-    environment.set("REAL_LLM_PROVIDER_GROUP", "");
-
-    assertThat(RealProviderApiSmokeSupport.providers())
-        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
-        .contains("google-gemini-vertex-ai-v2/gemini-3.7-flash");
-
-    environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
-
-    assertThat(RealProviderApiSmokeSupport.providers())
-        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
-        .contains("google-gemini-vertex-ai-v2/gemini-2.5-pro")
-        .doesNotContain("google-gemini-vertex-ai-v2/gemini-3.7-flash");
-  }
-
-  @Test
-  void shouldUseBoundedThinkingBudgetForVertexGemini25() {
+  void shouldUseGlobalEndpointForVertexGemini37InShardedRuns() {
     environment
         .set("GOOGLE_GEMINI_API_KEY", "ambient")
         .remove("GOOGLE_GEMINI_API_KEY")
         .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
-        .set("GOOGLE_VERTEX_AI_REGION", "region")
         .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")
         .set("REAL_LLM_PROVIDER_GROUP", "vertex");
 
-    assertThat(RealProviderApiSmokeSupport.providersWithReasoning())
+    assertThat(RealProviderApiSmokeSupport.providers())
         .singleElement()
         .extracting(
             provider ->
-                provider
-                    .propertiesFor(RealProviderApiSmokeSupport.Capability.REASONING)
-                    .get("provider.googleGemini.model.parameters.thinking.thinkingBudget"))
-        .isEqualTo("2048");
+                provider.properties().get("provider.googleGemini.backend.googleVertexAi.region"))
+        .isEqualTo("global");
   }
 
   @Test
@@ -175,9 +153,7 @@ class RealProviderSelectionTest {
             "mistral-v2/mistral-medium-3-5",
             "mistral-v2/ministral-14b-2512",
             "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash",
-            "google-gemini-v2/gemini-2.5-pro",
-            "google-gemini-vertex-ai-v2/gemini-2.5-pro");
+            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithStructuredOutput()))
         .containsExactlyInAnyOrder(
@@ -209,9 +185,7 @@ class RealProviderSelectionTest {
             "openai-foundry-responses-v2/gpt-5.5",
             "mistral-v2/mistral-medium-3-5",
             "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash",
-            "google-gemini-v2/gemini-2.5-pro",
-            "google-gemini-vertex-ai-v2/gemini-2.5-pro");
+            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithPromptCaching()))
         .containsExactlyInAnyOrder(
@@ -229,9 +203,7 @@ class RealProviderSelectionTest {
             "openai-foundry-responses-v2/gpt-4.1",
             "openai-foundry-completions-v2/gpt-4.1",
             "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash",
-            "google-gemini-v2/gemini-2.5-pro",
-            "google-gemini-vertex-ai-v2/gemini-2.5-pro");
+            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithMultimodalUserMessage()))
         .containsExactlyInAnyOrder(
@@ -252,9 +224,7 @@ class RealProviderSelectionTest {
             "mistral-v2/mistral-medium-3-5",
             "mistral-v2/ministral-14b-2512",
             "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash",
-            "google-gemini-v2/gemini-2.5-pro",
-            "google-gemini-vertex-ai-v2/gemini-2.5-pro");
+            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
   }
 
   private void setAllProviderCredentials() {
