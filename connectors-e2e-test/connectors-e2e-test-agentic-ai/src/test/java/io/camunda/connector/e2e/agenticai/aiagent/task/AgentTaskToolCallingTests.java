@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,6 +92,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
@@ -159,6 +161,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();

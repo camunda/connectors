@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,6 +70,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
