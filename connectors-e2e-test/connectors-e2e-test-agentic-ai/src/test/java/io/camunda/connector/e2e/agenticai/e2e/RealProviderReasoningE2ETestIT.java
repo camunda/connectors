@@ -1,0 +1,121 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.e2e;
+
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+
+import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
+import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest(
+    classes = {TestConnectorRuntimeApplication.class},
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=false",
+      "camunda.connector.polling.enabled=false",
+      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
+    },
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@CamundaSpringProcessTest
+@EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
+@Tag(RealProviderCapabilityTags.REASONING)
+class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
+
+  private static final String CHICKEN_COUNT = "(\\d+|twenty(?:-|\\s+)three)";
+  private static final List<Pattern> CHICKEN_COUNT_CONCLUSIONS =
+      List.of(
+          Pattern.compile("(?i)\\bthere\\s+(?:are|were)\\s+" + CHICKEN_COUNT + "\\s+chickens?\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:the\\s+)?(?:number|count)\\s+of\\s+chickens?\\s+"
+                  + "(?:is|equals|=|:)\\s*"
+                  + CHICKEN_COUNT
+                  + "\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:the\\s+farmer|the\\s+farm|we|he|she)\\s+"
+                  + "(?:has|have)\\s+"
+                  + CHICKEN_COUNT
+                  + "\\s+chickens?\\b"),
+          Pattern.compile("(?i)\\bchickens?\\s*(?:are|is|equals|=|:)\\s*" + CHICKEN_COUNT + "\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:answer|therefore|thus|hence|so)\\s*(?:is|=|:|,)?\\s*"
+                  + CHICKEN_COUNT
+                  + "\\s+chickens?\\b"),
+          Pattern.compile("(?im)^\\s*(?:[-+#>]\\s*)*" + CHICKEN_COUNT + "\\s+chickens?[.!]?\\s*$"));
+
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("providersWithReasoning")
+  void reasoningEnabledProducesReasoningAndAnswerContent(ProviderConfig provider) {
+    final var systemPrompt =
+        "You are a careful reasoner. Solve arithmetic directly without tools, and never claim that "
+            + "you need a calculation tool. Think step by step before answering.";
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            systemPrompt,
+            Map.of(
+                "userPrompt",
+                "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
+                    + "many chickens are there? You may include an explanation, but conclude by "
+                    + "explicitly stating how many chickens there are in the form 'There are N "
+                    + "chickens.'"));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .hasReasoningContent()
+                .hasResponseTextSatisfying(
+                    RealProviderReasoningE2ETestIT::assertCorrectChickenCountConclusion));
+  }
+
+  static void assertCorrectChickenCountConclusion(String responseText) {
+    final var markdownNormalized = responseText.replaceAll("[*_`]", "");
+    final var statedCounts =
+        CHICKEN_COUNT_CONCLUSIONS.stream()
+            .flatMap(pattern -> pattern.matcher(markdownNormalized).results())
+            .map(match -> match.group(1))
+            .toList();
+
+    Assertions.assertThat(statedCounts)
+        .as("affirmative chicken-count conclusions in response <%s>", responseText)
+        .isNotEmpty()
+        .allSatisfy(
+            count -> Assertions.assertThat(count).matches("(?i)(?:0*23|twenty(?:-|\\s+)three)"));
+  }
+}
