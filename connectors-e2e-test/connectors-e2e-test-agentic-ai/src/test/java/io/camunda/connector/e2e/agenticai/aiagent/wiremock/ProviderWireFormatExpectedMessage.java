@@ -24,6 +24,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Provider-agnostic counterpart of {@code BaseAgentTest.ExpectedMessage}, asserting against the
@@ -56,7 +57,10 @@ sealed interface ProviderWireFormatExpectedMessage {
   }
 
   static ProviderWireFormatExpectedMessage userWithDocument(String text) {
-    return user(ExpectedContentPart.text(text), ExpectedContentPart.attachment());
+    return user(
+        ExpectedContentPart.text(text),
+        ExpectedContentPart.documentTag(),
+        ExpectedContentPart.attachment());
   }
 
   static ProviderWireFormatExpectedMessage assistant(String text) {
@@ -172,6 +176,10 @@ sealed interface ProviderWireFormatExpectedMessage {
       return new Text(text);
     }
 
+    static ExpectedContentPart documentTag() {
+      return new DocumentTag();
+    }
+
     static ExpectedContentPart attachment() {
       return new Attachment();
     }
@@ -186,6 +194,27 @@ sealed interface ProviderWireFormatExpectedMessage {
         assertThat(actual.text())
             .as("text of content part %d of message %d", partIndex, messageIndex)
             .isEqualTo(text);
+      }
+    }
+
+    /**
+     * The id-only {@code <doc id="..." ... />} tag rendered as a text part before a document's
+     * content; it must carry the document id and none of the store internals.
+     */
+    record DocumentTag() implements ExpectedContentPart {
+
+      private static final Pattern DOC_TAG =
+          Pattern.compile("<doc id=\"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\"[^>]*/>");
+
+      @Override
+      public void assertMatches(int messageIndex, int partIndex, RecordedContentPart actual) {
+        assertThat(actual.isText())
+            .as("content part %d of message %d is text", partIndex, messageIndex)
+            .isTrue();
+        assertThat(actual.text().strip())
+            .as("document tag of content part %d of message %d", partIndex, messageIndex)
+            .matches(DOC_TAG)
+            .doesNotContain("storeId", "contentHash");
       }
     }
 
