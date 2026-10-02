@@ -48,11 +48,15 @@ public record UploadObject(
     @TemplateProperty(
             label = "Document file name",
             id = "uploadOperationFileName",
-            group = "additionalProperties",
+            group = "operation",
             tooltip =
                 "By default, the file's metadata name is used unless a custom name is specified.",
             optional = true,
             feel = FeelMode.optional,
-            binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
+            binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "operation_document_documentSource",
+                    equals = "camunda"))
         String fileName)
     implements ObjectStorageOperation {}
