@@ -248,7 +248,7 @@ class DocumentToolCallResultsIT {
             anthropicV2("claude-sonnet-5-5"),
             anthropicV2("claude-haiku-4-5-20251001"),
             // Anthropic (v2), AWS Bedrock Mantle backend
-            anthropicBedrockMantleV2("claude-sonnet-5-5"),
+            anthropicBedrockMantleV2("claude-sonnet-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock, v1 (Anthropic models via cross-region inference)
             bedrockV1("global.anthropic.claude-sonnet-5-5"),

@@ -474,12 +474,11 @@ abstract class RealProviderApiSmokeSupport {
                     Map.of(
                         "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                         "provider.anthropic.model.parameters.effort", "high"))),
-        // Same model/capability config as the anthropic-api claude-sonnet-5-5 row above, minus
-        // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
-        // confirm this endpoint doesn't support it:
+        // Bedrock Mantle does not expose claude-sonnet-5-5 yet. It also rejects
+        // output_config.format, so structured output remains undeclared:
         // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
         anthropicBedrockMantleV2(
-            "claude-sonnet-5-5",
+            "claude-sonnet-5",
             Map.of(
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
@@ -528,26 +527,22 @@ abstract class RealProviderApiSmokeSupport {
                 Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
         // Claude via the native Converse path: a permanent cross-check that the generic
         // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
-        // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5-5
-        // only
-        // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
-        // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
-        // SDK's
-        // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
+        // cross-region inference ID (no in-region endpoint for this model). STRUCTURED_OUTPUT is
+        // deliberately NOT declared: outputConfig.textFormat is a genuine Converse field
+        // (confirmed via the SDK's own ConverseRequest.outputConfig()), but AWS's Converse
+        // structured-output model
         // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
         // not yet include claude-sonnet-5-5 — the model itself rejects it with a 400
         // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
         // API
-        // call.
+        // call. REASONING is also undeclared because adaptive thinking did not yield a separate
+        // reasoning-content block in the live response.
         bedrockConverseV2(
             "global.anthropic.claude-sonnet-5-5",
             Map.of(
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
-                    Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
-                Capability.REASONING,
-                    Map.of(
-                        "provider.bedrock.bodyProperties", "={thinking: {type: \"adaptive\"}}"))),
+                    Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"))),
         // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
         // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
         openAiResponsesV2(
@@ -557,9 +552,10 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
-        // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
+        // gpt-6-astra defaults to reasoning and rejects function tools on Chat Completions unless
+        // reasoning_effort is "none". Keep the latest proven tool-capable model on this API family.
         openAiCompletionsV2(
-            "gpt-6-astra",
+            "gpt-5.5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -586,7 +582,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
         openAiFoundryCompletionsV2(
-            "gpt-6-astra",
+            "gpt-5.5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
