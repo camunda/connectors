@@ -141,6 +141,42 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void mapsOnlyFinalAnswerWhenResponseContainsCommentary() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "output_text", "text": "Intermediate text", "annotations": []}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "output_text", "text": "{\\"answer\\":\\"done\\"}", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
+  }
+
+  @Test
   void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
     // A blank output_text part alongside a function_call must not crash TextContent.
     final Response response =
