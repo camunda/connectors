@@ -13,6 +13,7 @@ import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleDocsServiceSupplier;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.google.model.GoogleCredentialConfiguration;
 import io.camunda.google.supplier.GoogleDriveServiceSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory;
       "document management"
     },
     inputDataClass = GoogleDriveRequest.class,
-    version = 9,
+    version = 10,
+    configurations = {GoogleCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -43,7 +45,7 @@ import org.slf4j.LoggerFactory;
     icon = "icon.svg")
 @OutboundConnector(
     name = "Google Docs",
-    inputVariables = {"authentication", "resource", "documentReturnFormat"},
+    inputVariables = {"authentication", "googleCredential", "resource", "documentReturnFormat"},
     type = "io.camunda:google-drive:1")
 public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
