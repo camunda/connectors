@@ -15,6 +15,7 @@ import com.google.genai.JsonSerializable;
 import com.google.genai.types.Blob;
 import com.google.genai.types.FunctionResponse;
 import com.google.genai.types.Part;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -65,10 +66,10 @@ public class GeminiContentConverter {
           ContentType.APPLICATION_XML,
           ContentType.create("application/yaml"));
 
-  private final ObjectMapper objectMapper;
+  private final ModelFacingJson modelFacingJson;
 
   public GeminiContentConverter(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+    this.modelFacingJson = new ModelFacingJson(objectMapper);
   }
 
   public List<Part> toParts(List<Content> content) {
@@ -184,9 +185,9 @@ public class GeminiContentConverter {
 
   /**
    * Converts a {@link ProviderContent} payload straight to a {@link Part} using the Gemini SDK's
-   * own {@link JsonSerializable#objectMapper()} rather than the injected {@link #objectMapper} --
-   * {@link Part} is built via an AutoValue builder whose fields are {@code Optional<...>}, which
-   * requires the SDK's {@code Jdk8Module} registration to deserialize correctly (mirrors {@code
+   * own {@link JsonSerializable#objectMapper()} rather than the injected mapper -- {@link Part} is
+   * built via an AutoValue builder whose fields are {@code Optional<...>}, which requires the SDK's
+   * {@code Jdk8Module} registration to deserialize correctly (mirrors {@code
    * AnthropicContentConverter} using {@code com.anthropic.core.ObjectMappers.jsonMapper()} for the
    * equivalent lossless round-trip).
    */
@@ -226,7 +227,7 @@ public class GeminiContentConverter {
 
   private String writeAsJson(Object value) {
     try {
-      return objectMapper.writeValueAsString(value);
+      return modelFacingJson.write(value);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize content to JSON", e);
     }

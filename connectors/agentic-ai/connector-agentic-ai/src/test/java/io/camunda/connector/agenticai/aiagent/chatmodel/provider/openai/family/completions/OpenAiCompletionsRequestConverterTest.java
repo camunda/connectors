@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.Mistral
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -40,9 +41,13 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -195,7 +200,7 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void emitsJsonReferenceForToolResultDocuments() throws Exception {
+  void emitsTagForToolResultDocuments() throws Exception {
     // never embedded natively for a tool result - the composer's synthetic <doc/> fallback
     // message already delivers the actual bytes, so embedding it here as well would send it to
     // the model twice; see OpenAiCompletionsRequestConverter#toTextOutput
@@ -230,14 +235,49 @@ class OpenAiCompletionsRequestConverterTest {
 
     final var tool = params.messages().get(0).asTool();
     assertThat(tool.toolCallId()).isEqualTo("call_1");
-    // Must be exactly the document's own reference JSON (whatever JacksonModuleDocumentSerializer
-    // produces for it), joined with the text on its own line -- not the polymorphic Content
-    // envelope ("{"type":"document","document":{...}}") toTextOutput's fallback would otherwise
-    // serialize.
-    final var expectedReference = objectMapper.writeValueAsString(document);
+    // Must be exactly the document's <doc/> tag, joined with the text on its own line -- not the
+    // document reference JSON and not the polymorphic Content envelope
+    // ("{"type":"document","document":{...}}") toTextOutput's fallback would otherwise serialize.
     assertThat(tool.content().asText())
-        .isEqualTo("here is the report\n" + expectedReference)
-        .doesNotContain("\"type\":\"document\"");
+        .isEqualTo(
+            "here is the report\n<doc id=\"%s\" fileName=\"report.pdf\" />"
+                .formatted(DocumentHandle.idFor(document)))
+        .doesNotContain("\"type\":\"document\"", "example.com", "camunda.document.type");
+  }
+
+  @Test
+  void emitsTagForDocumentsNestedInToolResultObjectContent() throws Exception {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("fetch_report")
+                                .content(
+                                    List.of(
+                                        ObjectContent.objectContent(
+                                            Map.of("attachments", List.of(document)))))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), null, snapshot);
+
+    assertThat(params.messages().get(0).asTool().content().asText())
+        .isEqualTo(
+            "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
+                .formatted(DocumentHandle.idFor(document)))
+        .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
   }
 
   @Test

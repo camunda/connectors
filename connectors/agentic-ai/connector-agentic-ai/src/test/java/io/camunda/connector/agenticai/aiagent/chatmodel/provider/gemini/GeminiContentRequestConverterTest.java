@@ -16,6 +16,7 @@ import com.google.genai.types.FunctionCall;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -72,7 +73,7 @@ class GeminiContentRequestConverterTest {
     Mockito.when(document.metadata()).thenReturn(metadata);
     Mockito.when(metadata.getContentType()).thenReturn(contentType);
     Mockito.when(document.asByteArray()).thenReturn(bytes);
-    // stubbed so a tool-result document (flattened to a JSON reference) can serialize this mock
+    // stubbed so a tool-result document (flattened to its <doc/> tag) can serialize this mock
     // via JacksonModuleDocumentSerializer, which dispatches on Document#reference()
     Mockito.when(document.reference())
         .thenReturn(new ExternalDocumentReferenceModel("https://example.com/document", "document"));
@@ -509,7 +510,7 @@ class GeminiContentRequestConverterTest {
     final var parts = contents.get(0).parts().orElseThrow();
     assertThat(parts).hasSize(1);
 
-    // the document is flattened to a JSON reference rather than embedded natively (see
+    // the document is flattened to its <doc/> tag rather than embedded natively (see
     // GeminiContentConverter#toFunctionResponseParts), but still wrapped in a functionResponse
     // like the text content, so both merge into one functionResponse instead of leaving the
     // document as an uncorrelated sibling part.
@@ -519,8 +520,7 @@ class GeminiContentRequestConverterTest {
         .isEqualTo(
             List.of(
                 "described",
-                "{\"url\":\"https://example.com/document\",\"name\":\"document\","
-                    + "\"camunda.document.type\":\"external\"}"));
+                "<doc id=\"%s\" fileName=\"document\" />".formatted(DocumentHandle.idFor(doc))));
   }
 
   @Test
@@ -551,9 +551,7 @@ class GeminiContentRequestConverterTest {
     assertThat(functionResponse.id()).contains("call-1");
     assertThat(functionResponse.name()).contains("readDocument");
     assertThat(functionResponse.response().orElseThrow().get("output"))
-        .isEqualTo(
-            "{\"url\":\"https://example.com/document\",\"name\":\"document\","
-                + "\"camunda.document.type\":\"external\"}");
+        .isEqualTo("<doc id=\"%s\" fileName=\"document\" />".formatted(DocumentHandle.idFor(doc)));
   }
 
   @Test

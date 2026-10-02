@@ -18,8 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,7 +30,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
@@ -102,18 +100,18 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: document serialized as a document reference (parsed from the tool message text)
+    // tool result: the document shown as a <doc/> tag (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    final var documentReference = parseDocumentReference(lastMessages.get(3).content());
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    final var documentTag = parseDocumentTag(lastMessages.get(3).content());
+    assertThat(documentTag.contentType()).isEqualTo(mimeType);
 
     // synthetic user message carrying the extracted document content
     final var expectedXmlTag =
         new DocumentReferenceXmlTag(
-                documentReference.documentId(),
-                documentReference.metadata().getFileName(),
-                documentReference.metadata().getContentType(),
+                documentTag.id(),
+                documentTag.fileName(),
+                documentTag.contentType(),
                 "Download_A_File",
                 "aaa111")
             .toXml();
@@ -170,18 +168,20 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: external document reference serialized as { url, name }
+    // tool result: external document shown as a <doc/> tag with its name, never its URL
     assertRole(lastMessages.get(3), "tool");
-    final var externalRef = parseExternalDocumentReference(lastMessages.get(3).content());
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
+    final var externalTag = parseDocumentTag(lastMessages.get(3).content());
+    assertThat(externalTag.fileName()).isEqualTo(docName);
+    assertThat(lastMessages.get(3).content()).doesNotContain(docUrl);
 
     // synthetic user message: external doc rendered as <doc id="…" fileName="…" /> + content block
     final var expectedXmlTag =
-        DocumentReferenceXmlTag.from(
-                new ExternalDocument(externalRef.url(), externalRef.name(), url -> null),
-                "ext111",
-                "External_File_Reference")
+        new DocumentReferenceXmlTag(
+                externalTag.id(),
+                externalTag.fileName(),
+                externalTag.contentType(),
+                "External_File_Reference",
+                "ext111")
             .toXml();
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4), expectedXmlTag, "base64", "application/pdf");

@@ -12,6 +12,7 @@ import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiDocumentParts;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -29,10 +30,10 @@ import java.util.List;
  */
 public class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentChunkStrategy {
 
-  private final ObjectMapper objectMapper;
+  private final ModelFacingJson modelFacingJson;
 
   protected OpenAiFileContentChunkStrategy(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+    this.modelFacingJson = new ModelFacingJson(objectMapper);
   }
 
   @Override
@@ -114,7 +115,7 @@ public class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentC
 
   private String writeAsJson(Object value) {
     try {
-      return objectMapper.writeValueAsString(value);
+      return modelFacingJson.write(value);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize content to JSON", e);
     }

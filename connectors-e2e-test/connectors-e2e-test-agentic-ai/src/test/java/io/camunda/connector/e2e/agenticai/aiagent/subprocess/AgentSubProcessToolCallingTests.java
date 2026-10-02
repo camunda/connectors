@@ -19,8 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -111,12 +110,12 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: document reference serialized as JSON
+    // tool result: the document shown as a <doc/> tag
     final var toolResultText = lastMessages.get(3).content();
-    final var documentReference = parseDocumentReference(toolResultText);
+    final var documentTag = parseDocumentTag(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    assertThat(documentTag.contentType()).isEqualTo(mimeType);
 
     // document user message: extracted document content (decoded from wire format)
     assertExtractedDocumentsUserMessage(
@@ -124,7 +123,7 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
         ExtractedDocument.forToolCall(
             "aaa111",
             "Download_A_File",
-            documentReference,
+            documentTag,
             block -> assertDocumentContentBlockJson(block, type, mimeType)));
 
     assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
@@ -180,19 +179,19 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: external document reference serialized as { url, name }
+    // tool result: external document shown as a <doc/> tag with its name, never its URL
     final var toolResultText = lastMessages.get(3).content();
-    final var externalRef = parseExternalDocumentReference(toolResultText);
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
+    final var externalTag = parseDocumentTag(toolResultText);
+    assertThat(externalTag.fileName()).isEqualTo(docName);
+    assertThat(toolResultText).doesNotContain(docUrl);
 
     // document user message: external doc rendered with content block
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4),
-        ExtractedDocument.forExternalToolCall(
+        ExtractedDocument.forToolCall(
             "ext111",
             "External_File_Reference",
-            externalRef,
+            externalTag,
             block -> assertDocumentContentBlockJson(block, "base64", "application/pdf")));
 
     assertAgentResponse(

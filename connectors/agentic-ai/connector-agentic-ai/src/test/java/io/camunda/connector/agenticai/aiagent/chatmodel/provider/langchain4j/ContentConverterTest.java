@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
@@ -137,20 +137,17 @@ class ContentConverterTest {
     }
 
     @Test
-    void serializesDocumentsAsReferencesInObjectContent()
-        throws JsonProcessingException, JSONException {
+    void rendersDocumentsAsTagsInObjectContent() throws JsonProcessingException, JSONException {
       final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
       final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
-      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
-      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
+      final var doc3 =
+          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null);
 
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
       content.put("document1", doc1);
       content.put("document2", doc2);
-      content.put(
-          "document3",
-          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
+      content.put("document3", doc3);
 
       final var stringResult = contentConverter.convertToString(content);
 
@@ -158,38 +155,15 @@ class ContentConverterTest {
           """
           {
             "hello": "world",
-            "document1": {
-              "camunda.document.type": "camunda",
-              "storeId": "in-memory",
-              "documentId": "%s",
-              "contentHash": "%s",
-              "metadata": {
-                "contentType": "text/plain",
-                "fileName": "test.txt"
-              }
-            },
-            "document2": {
-              "camunda.document.type": "camunda",
-              "storeId": "in-memory",
-              "documentId": "%s",
-              "contentHash": "%s",
-              "metadata": {
-                "contentType": "application/pdf",
-                "fileName": "test.pdf"
-              }
-            },
-            "document3": {
-              "camunda.document.type": "external",
-              "url": "https://example.com/report.pdf",
-              "name": "Quarterly Report"
-            }
+            "document1": "<doc id=\\"%s\\" fileName=\\"test.txt\\" contentType=\\"text/plain\\" />",
+            "document2": "<doc id=\\"%s\\" fileName=\\"test.pdf\\" contentType=\\"application/pdf\\" />",
+            "document3": "<doc id=\\"%s\\" fileName=\\"Quarterly Report\\" />"
           }
           """
               .formatted(
-                  doc1Ref.getDocumentId(),
-                  doc1Ref.getContentHash(),
-                  doc2Ref.getDocumentId(),
-                  doc2Ref.getContentHash()),
+                  DocumentHandle.idFor(doc1),
+                  DocumentHandle.idFor(doc2),
+                  DocumentHandle.idFor(doc3)),
           stringResult,
           true);
     }

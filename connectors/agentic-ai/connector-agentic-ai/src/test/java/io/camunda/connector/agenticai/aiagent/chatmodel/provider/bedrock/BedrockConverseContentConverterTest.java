@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -47,20 +48,18 @@ class BedrockConverseContentConverterTest {
   }
 
   /**
-   * Asserts the given JSON value is the standard serialized reference of an inline document - the
-   * exact shape the runtime's {@code DocumentSerializer} writes, and therefore the shape the {@code
-   * <doc/>} tag of the composer's synthetic message correlates against.
+   * Asserts the given JSON value is the {@code <doc/>} tag of the document: the id is the only
+   * identifying attribute, so no store id, content hash or content leaves the connector.
    */
-  private static void assertInlineDocumentReference(
-      software.amazon.awssdk.core.document.Document json,
-      String content,
-      String fileName,
-      String contentType) {
-    assertThat(json.isMap()).isTrue();
-    assertThat(json.asMap())
-        .extractingByKeys("camunda.document.type", "content", "name", "contentType")
-        .extracting(software.amazon.awssdk.core.document.Document::asString)
-        .containsExactly("inline", content, fileName, contentType);
+  private static void assertDocumentTag(
+      software.amazon.awssdk.core.document.Document json, Document document, String fileName) {
+    assertThat(json.isString()).isTrue();
+    assertThat(json.asString())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"%s\" contentType=\"%s\" />"
+                .formatted(
+                    DocumentHandle.idFor(document), fileName, document.metadata().getContentType()))
+        .doesNotContain("content=", "camunda.document.type", "storeId", "contentHash");
   }
 
   @Nested
@@ -330,11 +329,11 @@ class BedrockConverseContentConverterTest {
       "notes.txt, text/plain",
       "archive.zip, application/zip"
     })
-    void mapsDocumentToJsonReferenceRegardlessOfContentType(String fileName, String contentType) {
+    void mapsDocumentToTagTextRegardlessOfContentType(String fileName, String contentType) {
       // The composer echoes every tool-result document in a separate synthetic user message, which
       // is where its real bytes are delivered; embedding it here as well would send it twice and
       // trip Converse's duplicate-document-name validation. Content type is therefore irrelevant
-      // here - even one with no native block shape at all just becomes a reference.
+      // here - even one with no native block shape at all just becomes a tag.
       final var doc = inlineDocument("fake-bytes", fileName, contentType);
 
       final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
@@ -342,9 +341,11 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).image()).isNull();
       assertThat(blocks.get(0).document()).isNull();
-      final var json = blocks.get(0).json();
-      assertThat(json).isNotNull();
-      assertInlineDocumentReference(json, "fake-bytes", fileName, contentType);
+      assertThat(blocks.get(0).text())
+          .isEqualTo(
+              "<doc id=\"%s\" fileName=\"%s\" contentType=\"%s\" />"
+                  .formatted(DocumentHandle.idFor(doc), fileName, contentType))
+          .doesNotContain("fake-bytes", "camunda.document.type");
     }
 
     @Test
@@ -378,7 +379,7 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
-    void mapsObjectContentWithEmbeddedDocumentToJsonBlockWithSerializedReference() {
+    void mapsObjectContentWithEmbeddedDocumentToJsonBlockWithTag() {
       // A tool result whose value isn't a plain string is lifted into a single ObjectContent
       // wrapping the raw tree verbatim (ToolCallResultContent#contentFromObject) - documents
       // embedded inside it (e.g. a FEEL-composed {attachments: [doc]}) are never split out
@@ -386,7 +387,7 @@ class BedrockConverseContentConverterTest {
       // document content reaches the model separately, via the provider-agnostic synthetic
       // document-echo message (AgentConversationTurnInputComposerImpl) - inlining it here as a
       // native document block too would send it twice and trip Bedrock's "duplicate document
-      // names" validation, so this converter only ever emits the serialized reference.
+      // names" validation, so this converter only ever emits the tag.
       final var doc = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
 
       final var blocks =
@@ -398,13 +399,11 @@ class BedrockConverseContentConverterTest {
       assertThat(json).isNotNull();
       final var attachments = json.asMap().get("attachments").asList();
       assertThat(attachments).hasSize(1);
-      assertInlineDocumentReference(
-          attachments.get(0), "fake-pdf-bytes", "report.pdf", "application/pdf");
+      assertDocumentTag(attachments.get(0), doc, "report.pdf");
     }
 
     @Test
-    void
-        mapsObjectContentWithMultipleNestedEmbeddedDocumentsToSerializedReferencesWithoutRecursing() {
+    void mapsObjectContentWithMultipleNestedEmbeddedDocumentsToTagsWithoutRecursing() {
       final var cover = inlineDocument("fake-png-bytes", "cover.png", "image/png");
       final var report = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
 
@@ -420,16 +419,8 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks).hasSize(1);
       final var json = blocks.get(0).json();
       assertThat(json).isNotNull();
-      assertInlineDocumentReference(
-          json.asMap().get("attachments").asList().get(0),
-          "fake-pdf-bytes",
-          "report.pdf",
-          "application/pdf");
-      assertInlineDocumentReference(
-          json.asMap().get("metadata").asMap().get("cover"),
-          "fake-png-bytes",
-          "cover.png",
-          "image/png");
+      assertDocumentTag(json.asMap().get("attachments").asList().get(0), report, "report.pdf");
+      assertDocumentTag(json.asMap().get("metadata").asMap().get("cover"), cover, "cover.png");
     }
 
     @Test

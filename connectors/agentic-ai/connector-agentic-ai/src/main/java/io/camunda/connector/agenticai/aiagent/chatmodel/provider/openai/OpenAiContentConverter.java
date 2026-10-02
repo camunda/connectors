@@ -15,6 +15,7 @@ import com.openai.models.responses.ResponseInputImage;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -37,10 +38,10 @@ import java.util.List;
  */
 public class OpenAiContentConverter {
 
-  private final ObjectMapper objectMapper;
+  private final ModelFacingJson modelFacingJson;
 
   public OpenAiContentConverter(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+    this.modelFacingJson = new ModelFacingJson(objectMapper);
   }
 
   public List<ResponseInputContent> toResponsesContentParts(List<Content> content) {
@@ -136,7 +137,7 @@ public class OpenAiContentConverter {
 
   public String writeAsJson(Object value) {
     try {
-      return objectMapper.writeValueAsString(value);
+      return modelFacingJson.write(value);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize content to JSON", e);
     }
