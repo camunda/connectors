@@ -45,6 +45,64 @@ class AgentToolsResolverTest {
   }
 
   @Nested
+  class ReservedToolNames {
+
+    private static final ToolDefinition RESERVED_TOOL =
+        ToolDefinition.builder()
+            .name("return_documents")
+            .description("Clashes with the built-in tool")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    @Test
+    void rejectsAnAdHocToolWithTheReservedNameOnToolDiscovery() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME");
+                assertThat(e.getMessage()).contains("return_documents", "reserved");
+              });
+    }
+
+    @Test
+    void rejectsAGatewayToolWithTheReservedName() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(),
+                  List.of(
+                      GatewayToolDefinition.builder()
+                          .type("mcp")
+                          .name("return_documents")
+                          .build())));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));
+    }
+
+    @Test
+    void rejectsAReservedToolNameIntroducedByAProcessMigration() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.updateToolDefinitions(executionContext, AgentContext.empty()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));
+    }
+  }
+
+  @Nested
   class UpdateToolDefinitions {
 
     private static final ToolDefinition TOOL_1 =

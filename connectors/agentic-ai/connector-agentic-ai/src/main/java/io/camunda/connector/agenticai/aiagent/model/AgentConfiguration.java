@@ -65,6 +65,11 @@ public record AgentConfiguration(
         .orElse(DEFAULT_MAX_MODEL_CALLS);
   }
 
+  /** Whether the response configuration opts in to returning documents. */
+  public boolean returnsDocuments() {
+    return response != null && Boolean.TRUE.equals(response.includeDocuments());
+  }
+
   /** Returns a copy carrying the given tool definitions in place of the current ones. */
   public AgentConfiguration withToolDefinitions(List<ToolDefinition> toolDefinitions) {
     return new AgentConfiguration(

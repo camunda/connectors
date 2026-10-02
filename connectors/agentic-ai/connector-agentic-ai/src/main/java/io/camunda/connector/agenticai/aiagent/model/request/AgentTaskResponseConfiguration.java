@@ -23,8 +23,24 @@ public record AgentTaskResponseConfiguration(
                     + "and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
-        @Nullable Boolean includeAssistantMessage)
+        @Nullable Boolean includeAssistantMessage,
+    @TemplateProperty(
+            group = "response",
+            label = "Include documents",
+            description = "Let the agent return documents as part of the result object.",
+            tooltip =
+                "When enabled, the agent can attach documents it knows (from the user prompt, tool results or events) "
+                    + "to its final response by calling a built-in tool. The documents will be available as <code>response.documents</code>, "
+                    + "a list of document references that can be passed to other connectors.",
+            type = TemplateProperty.PropertyType.Boolean,
+            optional = true)
+        @Nullable Boolean includeDocuments)
     implements ResponseConfiguration {
+
+  public AgentTaskResponseConfiguration(
+      ResponseFormatConfiguration format, @Nullable Boolean includeAssistantMessage) {
+    this(format, includeAssistantMessage, null);
+  }
 
   public AgentTaskResponseConfiguration {
     if (format == null) {

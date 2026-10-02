@@ -41,7 +41,7 @@ public class DocumentParameterToolCallInspector implements ToolCallInspector {
     };
   }
 
-  private static String knownDocuments(DocumentRegistry registry) {
+  static String knownDocuments(DocumentRegistry registry) {
     if (registry.isEmpty()) {
       return "No documents are known.";
     }

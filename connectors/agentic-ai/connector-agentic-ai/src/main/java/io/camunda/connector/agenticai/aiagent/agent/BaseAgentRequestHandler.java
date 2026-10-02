@@ -278,7 +278,7 @@ public abstract class BaseAgentRequestHandler<
       final boolean continued = chatResult instanceof ChatResult.Continuation;
       final var localResults =
           continued
-              ? Optional.<List<ToolCallResult>>empty()
+              ? Optional.<LocalToolCallHandler.LocalToolCallAnswers>empty()
               : localToolCallHandler.handle(
                   workingConversation, workingConversation.currentTurn().toolCalls());
       anotherRound = continued || localResults.isPresent();
@@ -310,11 +310,15 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn().iterationKey());
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
+        final var answers = localResults.get();
         workingConversation =
-            workingConversation.nextLocalToolRound(
-                ToolCallResultMessage.builder()
-                    .results(localResults.get().stream().map(ToolCallResultContent::from).toList())
-                    .build());
+            workingConversation
+                .nextLocalToolRound(
+                    ToolCallResultMessage.builder()
+                        .results(
+                            answers.results().stream().map(ToolCallResultContent::from).toList())
+                        .build())
+                .withReturnDocumentIds(answers.returnDocumentIds());
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(
             executionContext,

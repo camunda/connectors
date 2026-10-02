@@ -17,12 +17,21 @@ import java.util.List;
  * @param toolDefinitions the tool definitions in effect for this invocation
  * @param documents the documents known to the agent, including the ones that entered the
  *     conversation with this invocation's input
+ * @param returnDocumentsEnabled whether the built-in {@code return_documents} tool is offered
  */
 public record LocalToolCallContext(
-    List<ToolDefinition> toolDefinitions, DocumentRegistry documents) {
+    List<ToolDefinition> toolDefinitions,
+    DocumentRegistry documents,
+    boolean returnDocumentsEnabled) {
+
+  public LocalToolCallContext(List<ToolDefinition> toolDefinitions, DocumentRegistry documents) {
+    this(toolDefinitions, documents, false);
+  }
 
   public static LocalToolCallContext from(AgentConversation conversation) {
     return new LocalToolCallContext(
-        conversation.configuration().toolDefinitions(), conversation.documentRegistry());
+        conversation.configuration().toolDefinitions(),
+        conversation.documentRegistry(),
+        conversation.configuration().returnsDocuments());
   }
 }

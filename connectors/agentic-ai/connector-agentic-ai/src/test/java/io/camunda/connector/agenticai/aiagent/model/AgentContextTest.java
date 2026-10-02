@@ -176,6 +176,45 @@ class AgentContextTest {
     assertThat(deserialized).isEqualTo(context);
   }
 
+  @Test
+  void returnDocumentIdsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+      throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.returnDocumentIds()).isEmpty();
+
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("returnDocumentIds");
+  }
+
+  @Test
+  void agentContextWithoutReturnDocumentIdsFieldBindsToEmptyList() throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 1,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.returnDocumentIds()).isEmpty();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
+  void returnDocumentIdsAreSerializedAndDeserialized() throws JsonProcessingException {
+    final var context = AgentContext.builder().returnDocumentIds(List.of("doc-2", "doc-1")).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized).contains("\"returnDocumentIds\":[\"doc-2\",\"doc-1\"]");
+    assertThat(deserialized.returnDocumentIds()).containsExactly("doc-2", "doc-1");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -192,6 +231,7 @@ class AgentContextTest {
                     metrics,
                     toolDefinitions,
                     InProcessConversationContext.builder("test-conversation").build(),
+                    List.of(),
                     List.of(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)

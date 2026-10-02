@@ -60,17 +60,20 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -143,7 +146,9 @@ class AgentSubProcessRequestHandlerTest {
 
   @Spy
   private LocalToolCallHandler localToolCallHandler =
-      new LocalToolCallHandlerImpl(List.of(new DocumentParameterToolCallInspector()));
+      new LocalToolCallHandlerImpl(
+          List.of(
+              new DocumentParameterToolCallInspector(), new ReturnDocumentsToolCallInspector()));
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -953,6 +958,182 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(response.completionConditionFulfilled()).isTrue();
     assertThat(response.elementActivations()).isEmpty();
+  }
+
+  @Test
+  void answersAReturnDocumentsCallLocallyAndRecordsTheSelectionInTheAgentContext() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                new AgentTaskResponseConfiguration(null, null, true)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    // a real tool call batched with the selection is answered locally as well
+    final var returnCall =
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(documentId)));
+    final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("here you go"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    // the built-in tool is offered in every request
+    assertThat(chatModelRequestCaptor.getAllValues())
+        .allSatisfy(
+            request ->
+                assertThat(request.snapshot().toolDefinitions())
+                    .extracting(ToolDefinition::name)
+                    .contains(ReturnDocumentsTool.NAME));
+
+    // the document is not visible in the window (only its id is), so a note follows the results
+    final var results =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().stream()
+            .filter(ToolCallResultMessage.class::isInstance)
+            .map(ToolCallResultMessage.class::cast)
+            .findFirst()
+            .orElseThrow()
+            .results();
+    assertThat(results).extracting(r -> r.id()).containsExactly("call-1", "call-2");
+    assertThat(results.get(0).content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            TextContent.class,
+            text ->
+                assertThat(text.text())
+                    .isEqualTo("Selected 1 document(s) to return: " + documentId));
+    assertThat(results.get(1).content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            TextContent.class,
+            text -> assertThat(text.text()).isEqualTo(LocalToolCallHandlerImpl.NOT_EXECUTED));
+
+    // the selection is persisted with the agent context; the built-in tool is not
+    final var context = response.responseValue().context();
+    assertThat(context.returnDocumentIds()).containsExactly(documentId);
+    assertThat(context.toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(ReturnDocumentsTool.NAME);
+    assertThat(response.responseValue().toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
+  }
+
+  @Test
+  void answersAReturnDocumentsCallWithAnUnknownIdWithAnErrorAndRecordsNothing() {
+    final var document = createDocument("report data", "report.txt");
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                new AgentTaskResponseConfiguration(null, null, true)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of("bogus")));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("sorry"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var results =
+        ((ToolCallResultMessage)
+                chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+            .results();
+    assertThat(results)
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(result.content())
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                        TextContent.class,
+                        text ->
+                            assertThat(text.text())
+                                .startsWith(
+                                    "Unknown document id 'bogus' for parameter 'ids[0]'.")));
+    assertThat(response.responseValue().context().returnDocumentIds()).isEmpty();
+  }
+
+  @Test
+  void doesNotOfferOrAnswerReturnDocumentsWithoutOptIn() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of("x")));
+    mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(returnCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(1)).execute(any());
+    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(ReturnDocumentsTool.NAME);
+    // not offered, so the call is an ordinary (unknown) tool call for the process
+    assertThat(response.responseValue().toolCalls()).hasSize(1);
+  }
+
+  @Test
+  void carriesTheReturnedDocumentsIntoTheAgentResponseVariable() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("here you go"));
+    final var reference = Map.<String, Object>of("camunda.document.type", "camunda");
+    when(responseHandler.createResponse(any(AgentConversation.class)))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseText("here you go")
+                    .documents(List.of(reference))
+                    .build());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.variables().get("agent"))
+        .isInstanceOfSatisfying(
+            AgentSubProcessResponse.class,
+            agent -> assertThat(agent.documents()).containsExactly(reference));
   }
 
   @Test

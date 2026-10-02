@@ -20,8 +20,21 @@ import java.util.Optional;
 public interface LocalToolCallHandler {
 
   /**
-   * Returns one result per tool call (same order) when the batch is answered locally, or empty when
-   * every call proceeds to the process.
+   * Returns the answers when the batch is answered locally, or empty when every call proceeds to
+   * the process.
    */
-  Optional<List<ToolCallResult>> handle(AgentConversation conversation, List<ToolCall> toolCalls);
+  Optional<LocalToolCallAnswers> handle(AgentConversation conversation, List<ToolCall> toolCalls);
+
+  /**
+   * The answers of a locally answered batch.
+   *
+   * @param results one result per tool call, in the order of the calls
+   * @param returnDocumentIds the documents the answers select for the final response of the agent
+   */
+  record LocalToolCallAnswers(List<ToolCallResult> results, List<String> returnDocumentIds) {
+    public LocalToolCallAnswers {
+      results = List.copyOf(results);
+      returnDocumentIds = List.copyOf(returnDocumentIds);
+    }
+  }
 }

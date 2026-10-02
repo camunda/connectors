@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.ReturnDocumentsToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
@@ -306,6 +307,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public DocumentParameterToolCallInspector aiAgentDocumentParameterToolCallInspector() {
     return new DocumentParameterToolCallInspector();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ReturnDocumentsToolCallInspector aiAgentReturnDocumentsToolCallInspector() {
+    return new ReturnDocumentsToolCallInspector();
   }
 
   @Bean

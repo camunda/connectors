@@ -16,10 +16,12 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -28,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -167,6 +170,76 @@ class AgentConversationTest {
     var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
+  }
+
+  @Test
+  void window_appendsTheReturnDocumentsToolWhenTheResponseConfigurationOptsIn() {
+    var optedIn =
+        new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                null,
+                null,
+                null,
+                null,
+                new AgentTaskResponseConfiguration(null, null, true))
+            .withToolDefinitions(TOOL_DEFINITIONS);
+    var conv =
+        AgentConversation.rehydrate(
+            optedIn,
+            BASE_CONTEXT,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    var snapshot = conv.window(20);
+
+    assertThat(snapshot.toolDefinitions())
+        .containsExactlyElementsOf(
+            Stream.concat(TOOL_DEFINITIONS.stream(), Stream.of(ReturnDocumentsTool.definition()))
+                .toList());
+    // the built-in tool is neither configuration nor persisted state
+    assertThat(conv.configuration().toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
+    assertThat(conv.toAgentContext().toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
+  }
+
+  @Test
+  void window_doesNotOfferTheReturnDocumentsToolWhenNotOptedIn() {
+    var notOptedIn =
+        new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                null,
+                null,
+                null,
+                null,
+                new AgentTaskResponseConfiguration(null, null, false))
+            .withToolDefinitions(TOOL_DEFINITIONS);
+    var conv =
+        AgentConversation.rehydrate(
+            notOptedIn,
+            BASE_CONTEXT,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
+    assertThat(rehydrate(List.of(), List.of(userMessage("hi"))).window(20).toolDefinitions())
+        .isEqualTo(TOOL_DEFINITIONS);
+  }
+
+  @Test
+  void withReturnDocumentIds_accumulatesAnOrderedUnionAndKeepsItInTheAgentContext() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+
+    var updated =
+        conv.withReturnDocumentIds(List.of("b", "a"))
+            .withReturnDocumentIds(List.of("a", "c"))
+            .withReturnDocumentIds(List.of());
+
+    assertThat(conv.returnDocumentIds()).isEmpty();
+    assertThat(updated.returnDocumentIds()).containsExactly("b", "a", "c");
+    assertThat(updated.toAgentContext().returnDocumentIds()).containsExactly("b", "a", "c");
   }
 
   @Test

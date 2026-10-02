@@ -17,7 +17,8 @@ import java.util.Optional;
 /**
  * Applies the {@link ToolCallInspector}s to every tool call of a batch. When at least one call is
  * answered by an inspector, every call of the batch is answered here: answered calls get their
- * answer, calls that passed get a "not executed" result.
+ * answer, calls that passed get a "not executed" result. The documents selected by the answers are
+ * reported along with the results.
  */
 public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
 
@@ -32,7 +33,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
   }
 
   @Override
-  public Optional<List<ToolCallResult>> handle(
+  public Optional<LocalToolCallAnswers> handle(
       AgentConversation conversation, List<ToolCall> toolCalls) {
     if (inspectors.isEmpty() || toolCalls.isEmpty()) {
       return Optional.empty();
@@ -46,12 +47,16 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
 
     final var completedAt = OffsetDateTime.now();
     final var results = new ArrayList<ToolCallResult>(toolCalls.size());
+    final var returnDocumentIds = new ArrayList<String>();
     for (int i = 0; i < toolCalls.size(); i++) {
       final var toolCall = toolCalls.get(i);
-      final Object content =
-          verdicts.get(i) instanceof ToolCallVerdict.Answer answer
-              ? answer.content()
-              : NOT_EXECUTED;
+      final Object content;
+      if (verdicts.get(i) instanceof ToolCallVerdict.Answer answer) {
+        content = answer.content();
+        returnDocumentIds.addAll(answer.returnDocumentIds());
+      } else {
+        content = NOT_EXECUTED;
+      }
       results.add(
           ToolCallResult.builder()
               .id(toolCall.id())
@@ -60,7 +65,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
               .completedAt(completedAt)
               .build());
     }
-    return Optional.of(results);
+    return Optional.of(new LocalToolCallAnswers(results, returnDocumentIds));
   }
 
   private ToolCallVerdict inspect(ToolCall toolCall, LocalToolCallContext context) {

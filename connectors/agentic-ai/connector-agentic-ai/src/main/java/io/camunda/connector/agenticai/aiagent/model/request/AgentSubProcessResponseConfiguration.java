@@ -26,6 +26,17 @@ public record AgentSubProcessResponseConfiguration(
         @Nullable Boolean includeAssistantMessage,
     @TemplateProperty(
             group = "response",
+            label = "Include documents",
+            description = "Let the agent return documents as part of the result object.",
+            tooltip =
+                "When enabled, the agent can attach documents it knows (from the user prompt, tool results or events) "
+                    + "to its final response by calling a built-in tool. The documents will be available as <code>response.documents</code>, "
+                    + "a list of document references that can be passed to other connectors.",
+            type = TemplateProperty.PropertyType.Boolean,
+            optional = true)
+        @Nullable Boolean includeDocuments,
+    @TemplateProperty(
+            group = "response",
             label = "Include agent context",
             description = "Include the agent context as part of the result object.",
             tooltip =
@@ -34,6 +45,13 @@ public record AgentSubProcessResponseConfiguration(
             optional = true)
         @Nullable Boolean includeAgentContext)
     implements ResponseConfiguration {
+
+  public AgentSubProcessResponseConfiguration(
+      ResponseFormatConfiguration format,
+      @Nullable Boolean includeAssistantMessage,
+      @Nullable Boolean includeAgentContext) {
+    this(format, includeAssistantMessage, null, includeAgentContext);
+  }
 
   public AgentSubProcessResponseConfiguration {
     if (format == null) {

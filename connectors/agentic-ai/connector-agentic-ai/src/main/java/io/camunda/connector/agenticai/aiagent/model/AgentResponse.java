@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -28,7 +29,8 @@ public record AgentResponse(
     List<ToolCallProcessVariable> toolCalls,
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
-    @Nullable Object responseJson)
+    @Nullable Object responseJson,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Map<String, Object>> documents)
     implements AgentResponseBuilder.With {
 
   public static AgentResponseBuilder builder() {
@@ -121,6 +123,24 @@ public record AgentResponse(
                         .name("sampleTool")
                         .arguments(Map.of("input1", "value1", "input2", 42))
                         .build())))
+        .build();
+  }
+
+  @DataExample(id = "withDocuments", feel = "=documents")
+  public static AgentResponse exampleResultWithDocuments() {
+    return AgentResponse.builder()
+        .context(exampleResultWithTextResponse().context())
+        .responseText("The report is attached.")
+        .documents(
+            List.of(
+                Map.ofEntries(
+                    Map.entry("camunda.document.type", "camunda"),
+                    Map.entry("storeId", "in-memory"),
+                    Map.entry("documentId", "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10"),
+                    Map.entry("contentHash", "9f86d081884c7d659a2feaa0c55ad015"),
+                    Map.entry(
+                        "metadata",
+                        Map.of("contentType", "application/pdf", "fileName", "report.pdf")))))
         .build();
   }
 }

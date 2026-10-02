@@ -35,6 +35,7 @@ public record AgentContext(
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<DocumentRegistryEntry> documents,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> returnDocumentIds,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
@@ -58,6 +59,7 @@ public record AgentContext(
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     Objects.requireNonNull(documents, "Documents must not be null");
+    Objects.requireNonNull(returnDocumentIds, "Return document ids must not be null");
   }
 
   public AgentContext withProperty(String key, Object value) {

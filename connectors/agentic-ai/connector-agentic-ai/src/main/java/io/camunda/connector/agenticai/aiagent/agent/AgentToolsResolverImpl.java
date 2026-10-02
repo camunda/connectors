@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRes
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
@@ -42,7 +43,24 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
   @Override
   public AdHocToolsSchemaResponse loadAdHocToolsSchema(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    return toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    final var adHocToolsSchema =
+        toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    rejectReservedToolNames(adHocToolsSchema);
+    return adHocToolsSchema;
+  }
+
+  private void rejectReservedToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
+    final var reserved =
+        adHocToolsSchema.toolDefinitions().stream()
+                .anyMatch(toolDefinition -> ReturnDocumentsTool.NAME.equals(toolDefinition.name()))
+            || adHocToolsSchema.gatewayToolDefinitions().stream()
+                .anyMatch(gatewayTool -> ReturnDocumentsTool.NAME.equals(gatewayTool.name()));
+    if (reserved) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME,
+          "The tool name '%s' is reserved for a built-in tool of the AI Agent. Rename the ad-hoc sub-process element with this ID."
+              .formatted(ReturnDocumentsTool.NAME));
+    }
   }
 
   @Override

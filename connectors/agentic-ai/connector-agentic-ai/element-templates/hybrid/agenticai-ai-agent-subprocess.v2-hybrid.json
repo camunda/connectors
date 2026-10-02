@@ -4770,6 +4770,19 @@
     "tooltip" : "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
     "type" : "Boolean"
   }, {
+    "id" : "data.response.includeDocuments",
+    "label" : "Include documents",
+    "description" : "Let the agent return documents as part of the result object.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.includeDocuments",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "When enabled, the agent can attach documents it knows (from the user prompt, tool results or events) to its final response by calling a built-in tool. The documents will be available as <code>response.documents</code>, a list of document references that can be passed to other connectors.",
+    "type" : "Boolean"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",

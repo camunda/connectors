@@ -12,12 +12,14 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCo
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -228,6 +230,26 @@ public final class AgentConversation {
         precedingConfigurationFingerprint);
   }
 
+  /**
+   * Returns a new instance whose agent context selects the given documents for the final response,
+   * in addition to the ones already selected (ordered union, no duplicates).
+   */
+  public AgentConversation withReturnDocumentIds(List<String> documentIds) {
+    var merged = new LinkedHashSet<>(currentContext.returnDocumentIds());
+    merged.addAll(documentIds);
+    if (merged.size() == currentContext.returnDocumentIds().size()) {
+      return this;
+    }
+    return new AgentConversation(
+        configuration,
+        currentContext.withReturnDocumentIds(List.copyOf(merged)),
+        systemMessage,
+        previousTurns,
+        currentTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
+  }
+
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
   public @Nullable SystemMessage systemMessage() {
     return systemMessage;
@@ -254,6 +276,11 @@ public final class AgentConversation {
    */
   public DocumentRegistry documentRegistry() {
     return DocumentRegistry.of(currentContext.documents());
+  }
+
+  /** Returns the ids of the documents selected for the final response so far. */
+  public List<String> returnDocumentIds() {
+    return currentContext.returnDocumentIds();
   }
 
   /**
@@ -309,11 +336,19 @@ public final class AgentConversation {
    * <p>When registry documents of the {@link AgentContext#documents() context} are not visible in
    * the windowed messages, the snapshot ends with a transient user message listing them (see {@link
    * EvictedDocumentsNote}); {@link #allMessages()} and the stored conversation are not affected.
+   *
+   * <p>When the response configuration opts in to returning documents, the snapshot's tool
+   * definitions end with the built-in {@link ReturnDocumentsTool}; it is never part of the
+   * configuration or the persisted tool definitions.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
     var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(windowed, documentRegistry());
-    return new ConversationSnapshot(withEvictedDocumentsNote, configuration.toolDefinitions());
+    var toolDefinitions = new ArrayList<>(configuration.toolDefinitions());
+    if (configuration.returnsDocuments()) {
+      toolDefinitions.add(ReturnDocumentsTool.definition());
+    }
+    return new ConversationSnapshot(withEvictedDocumentsNote, toolDefinitions);
   }
 
   /**

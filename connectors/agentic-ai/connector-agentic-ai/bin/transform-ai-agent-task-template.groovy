@@ -37,6 +37,21 @@ def systemPromptOverrideFileById = [:]
     }
 }
 
+// optional: "templateId=propertyId" tuples (one per line) of properties dropped from the template,
+// keyed by the generated template's own id. Duplicated in
+// transform-ai-agent-sub-process-template.groovy since each script is invoked as a standalone
+// gmavenplus execution.
+def omittedProperties = binding.hasVariable('omittedProperties') ? omittedProperties : null
+def omittedPropertyIdsByTemplateId = [:].withDefault { [] }
+((String) (omittedProperties ?: "")).eachLine { line ->
+    line = line.trim()
+    if (!line) return
+    def parts = line.split('=', 2)
+    if (parts.length == 2) {
+        omittedPropertyIdsByTemplateId[parts[0].trim()] << parts[1].trim()
+    }
+}
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -51,6 +66,7 @@ def json = mapper.readValue(file, Map.class)
 // this script never changes a template's own id, so it is the stable lookup key
 def systemPromptOverrideFile = systemPromptOverrideFileById[(String) json.id]
 def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
+def omittedPropertyIds = omittedPropertyIdsByTemplateId[(String) json.id]
 
 if (deprecationMessage) {
     def orderedJson = new LinkedHashMap()
@@ -93,6 +109,10 @@ def updatedProperties = []
 ((List) json.get('properties')).each { property ->
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
+        return
+    }
+
+    if (property.id in omittedPropertyIds) {
         return
     }
 

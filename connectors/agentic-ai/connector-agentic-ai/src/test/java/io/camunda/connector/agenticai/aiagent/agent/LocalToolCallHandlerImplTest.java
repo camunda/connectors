@@ -68,7 +68,8 @@ class LocalToolCallHandlerImplTest {
     final var results =
         new LocalToolCallHandlerImpl(List.of(REJECT_BAD))
             .handle(conversation, List.of(CALL_A, CALL_B))
-            .orElseThrow();
+            .orElseThrow()
+            .results();
 
     assertThat(results)
         .satisfiesExactly(
@@ -93,10 +94,28 @@ class LocalToolCallHandlerImplTest {
     final var results =
         new LocalToolCallHandlerImpl(List.of(REJECT_BAD, other))
             .handle(conversation, List.of(CALL_A))
-            .orElseThrow();
+            .orElseThrow()
+            .results();
 
     assertThat(results)
         .singleElement()
         .satisfies(r -> assertThat(r.content()).isEqualTo("rejected"));
+  }
+
+  @Test
+  void collectsTheReturnedDocumentsOfTheAnswers() {
+    final ToolCallInspector selecting =
+        (toolCall, context) ->
+            "a".equals(toolCall.id())
+                ? new ToolCallVerdict.Answer("selected", List.of("doc-1", "doc-2"))
+                : new ToolCallVerdict.Pass();
+
+    final var answers =
+        new LocalToolCallHandlerImpl(List.of(selecting))
+            .handle(conversation, List.of(CALL_A, CALL_B))
+            .orElseThrow();
+
+    assertThat(answers.returnDocumentIds()).containsExactly("doc-1", "doc-2");
+    assertThat(answers.results()).hasSize(2);
   }
 }
