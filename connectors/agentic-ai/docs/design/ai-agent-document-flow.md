@@ -340,3 +340,83 @@ Open point, gateway tools (MCP, A2A): out of scope. Their definitions never carr
 document resolution, which leaves their calls untouched. Passing documents into gateway tools needs
 its own design (the gateway wraps the call arguments in an envelope the handler builds).
 
+### Step 5 notes: documents out
+
+Hook points (`connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/`):
+
+- `aiagent/model/document/ReturnDocumentsTool.java`: the built-in tool. `NAME = "return_documents"`,
+  one required parameter `ids` (array of strings, the ids of `<doc/>` tags). The definition declares
+  `/properties/ids/items` as document parameter, so the inspector reuses `DocumentParameterResolver`
+  and its error texts (`Unknown document id 'x' for parameter 'ids[1]'. Known documents: ...`).
+- `aiagent/model/request/ResponseConfiguration.java`: `includeDocuments()`, implemented by
+  `AgentTaskResponseConfiguration` and `AgentSubProcessResponseConfiguration` (template property
+  `data.response.includeDocuments`, label "Include documents", group `response`, optional boolean,
+  off by default). `AgentConfiguration.returnsDocuments()` is the single switch.
+- `aiagent/model/AgentConversation.java`: `window` (:344) appends `ReturnDocumentsTool.definition()`
+  to the snapshot's tool definitions when `returnsDocuments()`. It is not part of
+  `AgentConfiguration.toolDefinitions()` nor of `AgentContext.toolDefinitions`, so toggling the option
+  is invisible to the migration check (`AgentToolsResolverImpl.updateChangedToolDefinitions`) and to the
+  configuration fingerprint. `withReturnDocumentIds` (:237) and `returnDocumentIds` (:282) maintain the
+  selection in the working context.
+- `aiagent/agent/ReturnDocumentsToolCallInspector.java`: a second `ToolCallInspector`, bean
+  `aiAgentReturnDocumentsToolCallInspector`. It only acts while the option is on
+  (`LocalToolCallContext.returnDocumentsEnabled`); with the option off a `return_documents` call is an
+  ordinary call of an unknown tool. Valid call: `Answer("Selected N document(s) to return: id1, id2",
+  returnDocumentIds)`. Missing, empty or non-array `ids` and unknown ids: an error answer listing the
+  known documents, nothing selected.
+- `aiagent/agent/ToolCallVerdict.java`, `LocalToolCallHandler.java`, `LocalToolCallHandlerImpl.java`:
+  the only change to the Step 4 abstraction. `Answer` carries the documents the answer selects
+  (`returnDocumentIds`, empty by default) and `handle` returns `LocalToolCallAnswers(results,
+  returnDocumentIds)` instead of the bare result list. The batch policy is untouched.
+- `aiagent/agent/BaseAgentRequestHandler.java` (`driveContinuationLoop`, :321): after
+  `nextLocalToolRound` the selection of the answers is merged into the working conversation with
+  `withReturnDocumentIds`. No other loop change.
+- `aiagent/agent/AgentResponseHandlerImpl.java` (`createResponse`, :53, documents at :84): for a response without tool
+  calls, `documents` is built from the selection (registry entry `reference` maps, selection order, ids
+  not in the registry skipped) when the option is on, and the selection is cleared in the returned
+  context either way.
+- `aiagent/model/AgentResponse.java`, `AgentSubProcessResponse.java`: new `documents` field
+  (`List<Map<String, Object>>`, omitted from JSON when empty). `AgentSubProcessRequestHandler.
+  createAgentResponseVariable` copies it into the `agent` variable; the task flavor returns the
+  `AgentResponse` itself, so `agent.documents` is available in both. `AgentResponse` has a `withDocuments`
+  `@DataExample` for the result documentation of the task template.
+- `aiagent/agent/AgentToolsResolverImpl.java` (`loadAdHocToolsSchema`): rejects an ad-hoc or gateway
+  tool element named `return_documents` with `ConnectorException` code `RESERVED_TOOL_NAME`
+  (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`). `loadAdHocToolsSchema` runs on tool discovery and
+  on process migration (`updateToolDefinitions`), so both paths are covered.
+
+Persistence and semantics: `AgentContext.returnDocumentIds` (`List<String>`, `@JsonInclude(NON_EMPTY)`,
+a missing field binds to an empty list, no schema version bump) holds the selection because
+`return_documents` can be called in an earlier job than the final response (a batch answered locally
+is followed by another model round, but real tool calls may run between two selections).
+
+- Accumulate: every valid call adds its ids to the selection (ordered union, duplicates dropped), also
+  across jobs and turns of the same run.
+- Consumed on the final response: a response without tool calls returns the selection as `documents`
+  and clears it in the returned `agentContext`. A response with tool calls leaves it alone.
+- No retract: there is no tool to remove an id. Chosen over "each call replaces the selection" because
+  models call the tool more than once and a replacing call silently drops earlier picks; the cost is an
+  unwanted pick staying in the response until the run ends. A document is only ever returned if the
+  model named it, and the answer text lists what was selected by that call.
+- A selection recorded in a batch whose other calls went unanswered (mixed-batch policy) stays recorded:
+  the model received the "Selected ..." result for it.
+- Option off: no tool in the snapshot, no `documents`, a stale selection (option toggled mid-run) is
+  cleared with the final response without being returned.
+
+Mixed batches: a valid `return_documents` call together with real tool calls answers the whole batch
+locally (the real calls get `NOT_EXECUTED`), an invalid one gets its error, per the Step 4 policy. The
+loop then calls the model again, which counts against `maxModelCalls`.
+
+Template impact: `data.response.includeDocuments` appears in the v2 AI Agent Task and Sub-process
+templates (main and hybrid). The v1 templates are deprecated and frozen, and the request data classes
+are shared, so the generated property is dropped from them by the `omittedProperties` tuples in the
+connector `pom.xml` (`templateId=propertyId`), applied by both transform scripts; the v1 JSON is
+byte-identical to before. No template version bump: v2 is still at its first version and a new optional
+property that defaults to off needs no migration; the `element-templates/README.md` rows are unchanged.
+
+Gaps:
+
+- `<doc/>` ids the model sends in the final text instead of calling the tool are not interpreted.
+- The returned references are the registry snapshots, including inline documents with their content
+  (see the Step 2 size notes).
+- The e2e coverage (CPT with WireMock) comes in step 6; the e2e module compiles against this change.
