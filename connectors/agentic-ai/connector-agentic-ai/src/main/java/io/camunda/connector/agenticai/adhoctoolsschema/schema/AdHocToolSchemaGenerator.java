@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,4 +16,10 @@ import java.util.Map;
  */
 public interface AdHocToolSchemaGenerator {
   Map<String, Object> generateToolSchema(AdHocToolElement element);
+
+  /**
+   * Returns the parameters of the generated schema which carry a document reference, as JSON
+   * pointers into the schema returned by {@link #generateToolSchema(AdHocToolElement)}.
+   */
+  List<String> resolveDocumentParameters(AdHocToolElement element);
 }

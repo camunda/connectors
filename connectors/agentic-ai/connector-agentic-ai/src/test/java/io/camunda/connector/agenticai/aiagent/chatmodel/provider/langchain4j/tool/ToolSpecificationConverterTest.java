@@ -123,6 +123,58 @@ class ToolSpecificationConverterTest {
   }
 
   @Test
+  void convertsDocumentParameterSchemaToStringSchemaWithoutMetadata() {
+    final var hint = "Pass the id of a <doc/> tag of a known document.";
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("a_tool")
+            .description("Reads documents")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "doc",
+                        Map.of("type", "string", "description", hint),
+                        "docs",
+                        Map.of(
+                            "type",
+                            "array",
+                            "items",
+                            Map.of("type", "string", "description", hint))),
+                    "required",
+                    List.of("doc", "docs")))
+            .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
+            .build();
+
+    final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
+
+    assertThat(toolSpecification.parameters().properties().get("doc"))
+        .isInstanceOfSatisfying(
+            JsonStringSchema.class, schema -> assertThat(schema.description()).isEqualTo(hint));
+    assertThat(toolSpecification.parameters().properties().get("docs"))
+        .isInstanceOfSatisfying(
+            JsonArraySchema.class,
+            schema -> assertThat(schema.items()).isInstanceOf(JsonStringSchema.class));
+    assertThat(toolSpecification.toString()).doesNotContain("documentParameters");
+  }
+
+  @Test
+  void asToolSpecificationRejectsUnmappedDocumentType() {
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("a_tool")
+            .inputSchema(
+                Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))))
+            .build();
+
+    assertThatThrownBy(() -> toolSpecificationConverter.asToolSpecification(toolDefinition))
+        .isInstanceOf(ToolSpecificationConverterImpl.ParseSchemaException.class)
+        .hasMessageContaining("Unknown JSON schema element type 'document'");
+  }
+
+  @Test
   void asToolSpecificationThrowsExceptionWhenToolDefinitionSchemaIsNotAnObjectSchema() {
     final var toolDefinition =
         ToolDefinition.builder()

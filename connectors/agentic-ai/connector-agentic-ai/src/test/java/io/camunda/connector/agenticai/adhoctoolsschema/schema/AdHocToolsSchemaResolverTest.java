@@ -56,6 +56,22 @@ class AdHocToolsSchemaResolverTest {
             });
   }
 
+  @Test
+  void carriesDocumentParametersIntoToolDefinition() {
+    final var element =
+        AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+    when(schemaGenerator.resolveDocumentParameters(element)).thenReturn(List.of("/properties/doc"));
+
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
+    assertThat(schemaResponse.toolDefinitions())
+        .singleElement()
+        .satisfies(
+            toolDefinition ->
+                assertThat(toolDefinition.documentParameters()).containsExactly("/properties/doc"));
+  }
+
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"  "})

@@ -192,6 +192,41 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
+  void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
+    final var HINT = "Pass the id of a <doc/> tag of a known document.";
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of("type", "string", "description", "A document. " + HINT),
+                "docs",
+                Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+            List.of(
+                ToolDefinition.builder()
+                    .name("ReadDocuments")
+                    .description("desc")
+                    .inputSchema(schema)
+                    .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
+                    .build()));
+
+    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    final var properties = toolNode.path("input_schema").path("properties");
+    assertThat(properties.path("doc").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("docs").path("items").path("type").asText()).isEqualTo("string");
+    assertThat(toolNode.toString()).doesNotContain("documentParameters");
+  }
+
+  @Test
   void mapsAssistantToolCallsAndToolResults() {
     final var snapshot =
         new ConversationSnapshot(

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -392,6 +393,112 @@ class AdHocToolSchemaGeneratorTest {
           "required": ["requiredParam", "defaultRequiredParam"]
         }
         """);
+  }
+
+  @Test
+  void mapsDocumentTypeToStringWithHint() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter("toolCall.doc", "The invoice", "document"),
+                new AdHocToolElementParameter("toolCall.note", "A note", "string")));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "doc": {
+              "type": "string",
+              "description": "The invoice Pass the id of a <doc/> tag of a known document."
+            },
+            "note": {
+              "type": "string",
+              "description": "A note"
+            }
+          },
+          "required": ["doc", "note"]
+        }
+        """);
+    assertThat(generator.resolveDocumentParameters(element)).containsExactly("/properties/doc");
+  }
+
+  @Test
+  void usesOnlyHintWhenDocumentParameterHasNoDescription() {
+    final var element =
+        createToolElement(List.of(new AdHocToolElementParameter("toolCall.doc", null, "document")));
+
+    assertThat(generator.generateToolSchema(element))
+        .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("doc"))
+        .isEqualTo(
+            Map.of(
+                "type",
+                "string",
+                "description",
+                AdHocToolSchemaGeneratorImpl.DOCUMENT_PARAMETER_HINT));
+  }
+
+  @Test
+  void mapsDocumentArrayItems() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.docs",
+                    "The attachments",
+                    "array",
+                    Map.of("items", Map.of("type", "document")))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "docs": {
+              "type": "array",
+              "description": "The attachments",
+              "items": {
+                "type": "string",
+                "description": "Pass the id of a <doc/> tag of a known document."
+              }
+            }
+          },
+          "required": ["docs"]
+        }
+        """);
+    assertThat(generator.resolveDocumentParameters(element))
+        .containsExactly("/properties/docs/items");
+  }
+
+  @Test
+  void mapsDocumentTypesInNestedObjectsAndEscapesPointerSegments() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.request",
+                    null,
+                    "object",
+                    Map.of(
+                        "properties",
+                        Map.of(
+                            "a/b", Map.of("type", "document"),
+                            "list",
+                                Map.of("type", "array", "items", Map.of("type", "document")))))));
+
+    assertThat(generator.resolveDocumentParameters(element))
+        .containsExactlyInAnyOrder(
+            "/properties/request/properties/a~1b", "/properties/request/properties/list/items");
+  }
+
+  @Test
+  void resolvesNoDocumentParametersWithoutDocumentTypes() {
+    final var element =
+        createToolElement(List.of(new AdHocToolElementParameter("toolCall.param1", "d", "string")));
+
+    assertThat(generator.resolveDocumentParameters(element)).isEmpty();
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

@@ -44,3 +44,41 @@ persisted state is needed. The AI Agent Task flavor follows the same rule becaus
 ## 4. Open points, blockers, gaps
 
 To be filled while building (see steps).
+
+### Step 1 notes: document parameters in the tool definition
+
+Hook points (`connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/`):
+
+- `adhoctoolsschema/schema/AdHocToolSchemaGeneratorImpl.java`: `generateToolSchema` and
+  `resolveDocumentParameters` share one pass; `mapDocumentTypes` rewrites `document` nodes.
+- `adhoctoolsschema/schema/AdHocToolsSchemaResolverImpl.java` (`createToolDefinition`): copies the
+  document parameters from the generator into the `ToolDefinition`.
+- `aiagent/model/tool/ToolDefinition.java`: new field `documentParameters`.
+- `AgentToolsResolverImpl.updateChangedToolDefinitions` and `AgentInitializerImpl` need no change:
+  they compare/store whole `ToolDefinition` records.
+
+Representation: `ToolDefinition.documentParameters` is a `List<String>` of JSON pointers into
+`inputSchema` (`/properties/doc`, `/properties/docs/items`, `/properties/req/properties/file`;
+`~` and `/` in property names are escaped as `~0` and `~1`). It is `@JsonInclude(NON_EMPTY)` and
+normalized to an empty list, so a tool without document parameters serializes and compares equal to
+a definition persisted before the field existed. The field lives outside the schema, so no provider
+converter (langchain4j, Anthropic, Bedrock, Gemini, OpenAI completions/responses) sees it; they only
+read `name`, `description` and `inputSchema`. No configuration fingerprint covers tool definitions;
+the only comparison is record equality in `updateChangedToolDefinitions`.
+
+Nested support: parameter type `document` is mapped at the top level, as array `items`, and
+recursively through object `properties` and array `items` of a parameter schema. `document` inside
+`anyOf`/`oneOf`/`$ref` is not mapped and reaches the provider converters as an unknown type.
+
+Schema example for `fromAi(toolCall.docs, "The attachments", "array", {"items": {"type": "document"}})`:
+
+```json
+{"type": "object",
+ "properties": {"docs": {"type": "array", "description": "The attachments",
+   "items": {"type": "string",
+             "description": "Pass the id of a <doc/> tag of a known document."}}},
+ "required": ["docs"]}
+```
+
+with `documentParameters = ["/properties/docs/items"]`. A top-level `document` parameter becomes
+`{"type": "string", "description": "<desc> Pass the id of a <doc/> tag of a known document."}`.

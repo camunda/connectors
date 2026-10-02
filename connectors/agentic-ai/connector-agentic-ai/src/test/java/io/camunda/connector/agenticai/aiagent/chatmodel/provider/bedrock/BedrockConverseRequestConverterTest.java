@@ -390,6 +390,45 @@ class BedrockConverseRequestConverterTest {
     }
 
     @Test
+    void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
+      final var HINT = "Pass the id of a <doc/> tag of a known document.";
+      final Map<String, Object> schema =
+          Map.of(
+              "type",
+              "object",
+              "properties",
+              Map.of(
+                  "doc",
+                  Map.of("type", "string", "description", "A document. " + HINT),
+                  "docs",
+                  Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+              "required",
+              List.of("doc", "docs"));
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+              List.of(
+                  ToolDefinition.builder()
+                      .name("ReadDocuments")
+                      .description("desc")
+                      .inputSchema(schema)
+                      .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
+                      .build()));
+
+      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+
+      final var toolSpec = request.toolConfig().tools().get(0).toolSpec();
+      final var schemaDoc = toolSpec.inputSchema().json().asMap();
+      assertThat(schemaDoc.keySet()).containsExactlyInAnyOrder("type", "properties", "required");
+      final var properties = schemaDoc.get("properties").asMap();
+      assertThat(properties.get("doc").asMap().get("type").asString()).isEqualTo("string");
+      assertThat(properties.get("docs").asMap().get("items").asMap().get("type").asString())
+          .isEqualTo("string");
+      assertThat(toolSpec.toString()).doesNotContain("documentParameters");
+    }
+
+    @Test
     void omitsToolConfigWhenNoToolDefinitions() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 

@@ -641,6 +641,40 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
+    final var HINT = "Pass the id of a <doc/> tag of a known document.";
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of("type", "string", "description", "A document. " + HINT),
+                "docs",
+                Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            List.of(
+                ToolDefinition.builder()
+                    .name("ReadDocuments")
+                    .description("desc")
+                    .inputSchema(schema)
+                    .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
+                    .build()));
+
+    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+
+    final var declaration =
+        config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
+    assertThat(declaration.parametersJsonSchema()).contains(schema);
+    assertThat(declaration.toJson()).doesNotContain("documentParameters");
+  }
+
+  @Test
   void noToolDefinitionsEmitsNoTools() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
