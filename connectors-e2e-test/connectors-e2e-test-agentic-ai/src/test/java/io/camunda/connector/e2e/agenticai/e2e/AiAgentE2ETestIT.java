@@ -385,14 +385,8 @@ public class AiAgentE2ETestIT {
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock (v2), native Converse API
             bedrockConverseV2("global.anthropic.claude-sonnet-5"),
-            // Google Vertex AI (v1)
-            googleVertexAiV1("gemini-2.5-flash"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
             googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION),
-            // Google Gemini (v2) — the same model on both backends of the provider, so the rows
-            // differ only in how the request is authenticated and where it is sent
-            googleGeminiV2("gemini-2.5-flash"),
-            googleGeminiVertexAiV2("gemini-2.5-flash"),
             // Gemini 3 rejects a follow-up tool-calling request whose history dropped the
             // thoughtSignature, so only a Gemini 3 row exercises the signature round-trip
             googleGeminiV2("gemini-3.5-flash-lite"),

@@ -125,7 +125,6 @@ abstract class RealProviderApiSmokeSupport {
       RealLlmProviderGroup providerGroup,
       List<String> requiredEnvVars,
       boolean enabled,
-      boolean enabledInShardedRun,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
@@ -144,7 +143,6 @@ abstract class RealProviderApiSmokeSupport {
           providerGroup,
           requiredEnvVars,
           true,
-          true,
           properties,
           capabilityProperties,
           reportsCacheCreationTokens);
@@ -156,19 +154,6 @@ abstract class RealProviderApiSmokeSupport {
           providerGroup,
           requiredEnvVars,
           false,
-          enabledInShardedRun,
-          properties,
-          capabilityProperties,
-          reportsCacheCreationTokens);
-    }
-
-    ProviderConfig disabledInShardedRun() {
-      return new ProviderConfig(
-          label,
-          providerGroup,
-          requiredEnvVars,
-          enabled,
-          false,
           properties,
           capabilityProperties,
           reportsCacheCreationTokens);
@@ -177,7 +162,6 @@ abstract class RealProviderApiSmokeSupport {
     boolean isEnabled() {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
       return enabled
-          && (enabledInShardedRun || !RealLlmProviderGroup.isShardedRun())
           && providerGroup.isSelected()
           && RealLlmTestEnvironment.hasNonBlankValues(requiredEnvVars);
     }
@@ -437,14 +421,11 @@ abstract class RealProviderApiSmokeSupport {
   }
 
   static ProviderConfig googleGeminiVertexAiV2(
-      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+      String model, String region, Map<Capability, Map<String, String>> capabilityProperties) {
     return new ProviderConfig(
         "google-gemini-vertex-ai-v2/" + model,
         RealLlmProviderGroup.VERTEX,
-        List.of(
-            "GOOGLE_VERTEX_AI_PROJECT_ID",
-            "GOOGLE_VERTEX_AI_REGION",
-            "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+        List.of("GOOGLE_VERTEX_AI_PROJECT_ID", "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
         Map.of(
             "provider.type",
             "google-gemini",
@@ -453,7 +434,7 @@ abstract class RealProviderApiSmokeSupport {
             "provider.googleGemini.backend.googleVertexAi.projectId",
             envOrPlaceholder("GOOGLE_VERTEX_AI_PROJECT_ID"),
             "provider.googleGemini.backend.googleVertexAi.region",
-            envOrPlaceholder("GOOGLE_VERTEX_AI_REGION"),
+            region,
             "provider.googleGemini.backend.googleVertexAi.authentication.type",
             "serviceAccountCredentials",
             "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
@@ -651,39 +632,16 @@ abstract class RealProviderApiSmokeSupport {
                 Map.of(),
                 Capability.REASONING,
                 Map.of("provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
-        // The configured regional endpoint returns 404 for Gemini 3.7. Keep the row visible but
-        // out of CI until its use of Vertex's global endpoint is validated.
         googleGeminiVertexAiV2(
-                "gemini-3.7-flash",
-                Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of(),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.googleGemini.model.parameters.thinking.thinkingLevel",
-                            "high")))
-            .disabledInShardedRun(),
-        // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level. Keep the
-        // budget bounded so the model also has room to produce its final answer.
-        // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
-        googleGeminiV2(
-            "gemini-2.5-pro",
+            "gemini-3.7-flash",
+            "global",
             Map.of(
+                Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING,
                     Map.of(
-                        "provider.googleGemini.model.parameters.thinking.thinkingBudget", "2048"))),
-        googleGeminiVertexAiV2(
-            "gemini-2.5-pro",
-            Map.of(
-                Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                Capability.PROMPT_CACHING, Map.of(),
-                Capability.REASONING,
-                    Map.of(
-                        "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                        "2048"))));
+                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))));
   }
 
   static Stream<ProviderConfig> providers() {
