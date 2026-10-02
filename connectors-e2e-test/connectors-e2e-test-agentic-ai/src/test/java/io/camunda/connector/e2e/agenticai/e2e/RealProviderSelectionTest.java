@@ -41,8 +41,8 @@ class RealProviderSelectionTest {
         .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
         .filteredOn(label -> label.startsWith("openai-") && !label.startsWith("openai-foundry-"))
         .containsExactlyInAnyOrder(
-            "openai-responses-v2/gpt-5.5",
-            "openai-completions-v2/gpt-5.5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-6-astra",
             "openai-responses-v2/gpt-4.1",
             "openai-completions-v2/gpt-4.1");
 
@@ -135,96 +135,96 @@ class RealProviderSelectionTest {
     assertThat(labels(RealProviderApiSmokeSupport.providers()))
         .containsExactlyInAnyOrder(
             "anthropic-v2/claude-sonnet-4-6",
-            "anthropic-v2/claude-sonnet-5",
-            "anthropic-bedrock-mantle-v2/claude-sonnet-5",
-            "anthropic-foundry-v2/claude-sonnet-5",
-            "anthropic-foundry-client-credentials-v2/claude-sonnet-5",
+            "anthropic-v2/claude-sonnet-5-5",
+            "anthropic-bedrock-mantle-v2/claude-sonnet-5-5",
+            "anthropic-foundry-v2/claude-sonnet-5-5",
+            "anthropic-foundry-client-credentials-v2/claude-sonnet-5-5",
             "bedrock-converse-v2/openai.gpt-oss-120b-1:0",
-            "bedrock-converse-v2/global.anthropic.claude-sonnet-5",
-            "openai-responses-v2/gpt-5.5",
-            "openai-completions-v2/gpt-5.5",
+            "bedrock-converse-v2/global.anthropic.claude-sonnet-5-5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-6-astra",
             "openai-responses-v2/gpt-4.1",
             "openai-completions-v2/gpt-4.1",
-            "openai-foundry-responses-v2/gpt-5.5",
-            "openai-foundry-completions-v2/gpt-5.5",
+            "openai-foundry-responses-v2/gpt-6.1-sol",
+            "openai-foundry-completions-v2/gpt-6-astra",
             "openai-foundry-responses-v2/gpt-4.1",
             "openai-foundry-completions-v2/gpt-4.1",
             "mistral-v2/mistral-large-2512",
             "mistral-v2/mistral-medium-3-5",
             "mistral-v2/ministral-14b-2512",
-            "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
+            "google-gemini-v2/gemini-3.8-flash",
+            "google-gemini-vertex-ai-v2/gemini-3.8-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithStructuredOutput()))
         .containsExactlyInAnyOrder(
             "anthropic-v2/claude-sonnet-4-6",
-            "anthropic-v2/claude-sonnet-5",
-            "anthropic-foundry-v2/claude-sonnet-5",
-            "openai-responses-v2/gpt-5.5",
-            "openai-completions-v2/gpt-5.5",
+            "anthropic-v2/claude-sonnet-5-5",
+            "anthropic-foundry-v2/claude-sonnet-5-5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-6-astra",
             "openai-responses-v2/gpt-4.1",
             "openai-completions-v2/gpt-4.1",
-            "openai-foundry-responses-v2/gpt-5.5",
-            "openai-foundry-completions-v2/gpt-5.5",
+            "openai-foundry-responses-v2/gpt-6.1-sol",
+            "openai-foundry-completions-v2/gpt-6-astra",
             "openai-foundry-responses-v2/gpt-4.1",
             "openai-foundry-completions-v2/gpt-4.1",
             "mistral-v2/mistral-large-2512",
             "mistral-v2/ministral-14b-2512",
-            "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
+            "google-gemini-v2/gemini-3.8-flash",
+            "google-gemini-vertex-ai-v2/gemini-3.8-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithReasoning()))
         .containsExactlyInAnyOrder(
             "anthropic-v2/claude-sonnet-4-6",
-            "anthropic-v2/claude-sonnet-5",
-            "anthropic-bedrock-mantle-v2/claude-sonnet-5",
-            "anthropic-foundry-v2/claude-sonnet-5",
+            "anthropic-v2/claude-sonnet-5-5",
+            "anthropic-bedrock-mantle-v2/claude-sonnet-5-5",
+            "anthropic-foundry-v2/claude-sonnet-5-5",
             "bedrock-converse-v2/openai.gpt-oss-120b-1:0",
-            "bedrock-converse-v2/global.anthropic.claude-sonnet-5",
-            "openai-responses-v2/gpt-5.5",
-            "openai-foundry-responses-v2/gpt-5.5",
+            "bedrock-converse-v2/global.anthropic.claude-sonnet-5-5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-foundry-responses-v2/gpt-6.1-sol",
             "mistral-v2/mistral-medium-3-5",
-            "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
+            "google-gemini-v2/gemini-3.8-flash",
+            "google-gemini-vertex-ai-v2/gemini-3.8-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithPromptCaching()))
         .containsExactlyInAnyOrder(
             "anthropic-v2/claude-sonnet-4-6",
-            "anthropic-v2/claude-sonnet-5",
-            "anthropic-bedrock-mantle-v2/claude-sonnet-5",
-            "anthropic-foundry-v2/claude-sonnet-5",
-            "bedrock-converse-v2/global.anthropic.claude-sonnet-5",
-            "openai-responses-v2/gpt-5.5",
-            "openai-completions-v2/gpt-5.5",
+            "anthropic-v2/claude-sonnet-5-5",
+            "anthropic-bedrock-mantle-v2/claude-sonnet-5-5",
+            "anthropic-foundry-v2/claude-sonnet-5-5",
+            "bedrock-converse-v2/global.anthropic.claude-sonnet-5-5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-6-astra",
             "openai-responses-v2/gpt-4.1",
             "openai-completions-v2/gpt-4.1",
-            "openai-foundry-responses-v2/gpt-5.5",
-            "openai-foundry-completions-v2/gpt-5.5",
+            "openai-foundry-responses-v2/gpt-6.1-sol",
+            "openai-foundry-completions-v2/gpt-6-astra",
             "openai-foundry-responses-v2/gpt-4.1",
             "openai-foundry-completions-v2/gpt-4.1",
-            "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
+            "google-gemini-v2/gemini-3.8-flash",
+            "google-gemini-vertex-ai-v2/gemini-3.8-flash");
 
     assertThat(labels(RealProviderApiSmokeSupport.providersWithMultimodalUserMessage()))
         .containsExactlyInAnyOrder(
             "anthropic-v2/claude-sonnet-4-6",
-            "anthropic-v2/claude-sonnet-5",
-            "anthropic-bedrock-mantle-v2/claude-sonnet-5",
-            "anthropic-foundry-v2/claude-sonnet-5",
-            "bedrock-converse-v2/global.anthropic.claude-sonnet-5",
-            "openai-responses-v2/gpt-5.5",
-            "openai-completions-v2/gpt-5.5",
+            "anthropic-v2/claude-sonnet-5-5",
+            "anthropic-bedrock-mantle-v2/claude-sonnet-5-5",
+            "anthropic-foundry-v2/claude-sonnet-5-5",
+            "bedrock-converse-v2/global.anthropic.claude-sonnet-5-5",
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-6-astra",
             "openai-responses-v2/gpt-4.1",
             "openai-completions-v2/gpt-4.1",
-            "openai-foundry-responses-v2/gpt-5.5",
-            "openai-foundry-completions-v2/gpt-5.5",
+            "openai-foundry-responses-v2/gpt-6.1-sol",
+            "openai-foundry-completions-v2/gpt-6-astra",
             "openai-foundry-responses-v2/gpt-4.1",
             "openai-foundry-completions-v2/gpt-4.1",
             "mistral-v2/mistral-large-2512",
             "mistral-v2/mistral-medium-3-5",
             "mistral-v2/ministral-14b-2512",
-            "google-gemini-v2/gemini-3.7-flash",
-            "google-gemini-vertex-ai-v2/gemini-3.7-flash");
+            "google-gemini-v2/gemini-3.8-flash",
+            "google-gemini-vertex-ai-v2/gemini-3.8-flash");
   }
 
   private void setAllProviderCredentials() {

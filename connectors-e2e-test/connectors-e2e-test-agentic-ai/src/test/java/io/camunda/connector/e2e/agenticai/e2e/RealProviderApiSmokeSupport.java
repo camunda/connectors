@@ -460,11 +460,11 @@ abstract class RealProviderApiSmokeSupport {
                     Map.of(
                         "provider.anthropic.model.parameters.thinking.mode", "enabled",
                         "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))),
-        // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
+        // claude-sonnet-5-5 does NOT accept "enabled"; it only allows "adaptive" (the model
         // decides whether to think). At effort "high" it reliably thinks on a genuinely
         // multi-step prompt, but this is model choice, not an API-level guarantee.
         anthropicV2(
-            "claude-sonnet-5",
+            "claude-sonnet-5-5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -474,12 +474,12 @@ abstract class RealProviderApiSmokeSupport {
                     Map.of(
                         "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                         "provider.anthropic.model.parameters.effort", "high"))),
-        // Same model/capability config as the anthropic-api claude-sonnet-5 row above, minus
+        // Same model/capability config as the anthropic-api claude-sonnet-5-5 row above, minus
         // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
         // confirm this endpoint doesn't support it:
         // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
         anthropicBedrockMantleV2(
-            "claude-sonnet-5",
+            "claude-sonnet-5-5",
             Map.of(
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
@@ -489,7 +489,7 @@ abstract class RealProviderApiSmokeSupport {
                         "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                         "provider.anthropic.model.parameters.effort", "high"))),
         anthropicFoundryV2(
-            "claude-sonnet-5",
+            "claude-sonnet-5-5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -499,7 +499,7 @@ abstract class RealProviderApiSmokeSupport {
                     Map.of(
                         "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                         "provider.anthropic.model.parameters.effort", "high"))),
-        anthropicFoundryClientCredentialsV2("claude-sonnet-5"),
+        anthropicFoundryClientCredentialsV2("claude-sonnet-5-5"),
         // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
         // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
         // for this model ("This model doesn't support the outputConfig field"), matching its
@@ -528,19 +528,19 @@ abstract class RealProviderApiSmokeSupport {
                 Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
         // Claude via the native Converse path: a permanent cross-check that the generic
         // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
-        // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5
+        // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5-5
         // only
         // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
         // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
         // SDK's
         // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
         // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
-        // not yet include claude-sonnet-5 — the model itself rejects it with a 400
+        // not yet include claude-sonnet-5-5 — the model itself rejects it with a 400
         // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
         // API
         // call.
         bedrockConverseV2(
-            "global.anthropic.claude-sonnet-5",
+            "global.anthropic.claude-sonnet-5-5",
             Map.of(
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
@@ -551,7 +551,7 @@ abstract class RealProviderApiSmokeSupport {
         // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
         // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
         openAiResponsesV2(
-            "gpt-5.5",
+            "gpt-6.1-sol",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -559,7 +559,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
         // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
         openAiCompletionsV2(
-            "gpt-5.5",
+            "gpt-6-astra",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -579,14 +579,14 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.PROMPT_CACHING, Map.of())),
         // Same models/capabilities as the openai-api rows above, via the foundry backend.
         openAiFoundryResponsesV2(
-            "gpt-5.5",
+            "gpt-6.1-sol",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
         openAiFoundryCompletionsV2(
-            "gpt-5.5",
+            "gpt-6-astra",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -622,7 +622,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
         googleGeminiV2(
-            "gemini-3.7-flash",
+            "gemini-3.8-flash",
             Map.of(
                 Capability.STRUCTURED_OUTPUT,
                 Map.of(),
@@ -633,7 +633,7 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.REASONING,
                 Map.of("provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
         googleGeminiVertexAiV2(
-            "gemini-3.7-flash",
+            "gemini-3.8-flash",
             "global",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
