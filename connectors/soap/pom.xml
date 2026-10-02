@@ -86,7 +86,7 @@
     <dependency>
       <groupId>org.apache.wss4j</groupId>
       <artifactId>wss4j-ws-security-common</artifactId>
-      <version>4.0.1</version>
+      <version>${version.wss4j}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
