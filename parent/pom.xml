@@ -117,13 +117,13 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.36.0</version.amqp-client>
+    <version.amqp-client>5.37.0</version.amqp-client>
     <version.netty>4.2.18.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.1</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.4</version.logback>
+    <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.8</version.aws-sdk2>
+    <version.aws-sdk2>2.55.10</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260921-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.73.0</version.google-genai>
+    <version.google-genai>1.75.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -187,7 +187,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.6</version.azure-identity>
-    <version.azure-core>1.59.1</version.azure-core>
+    <version.azure-core>1.60.0</version.azure-core>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <version.bouncycastle>1.86</version.bouncycastle>
@@ -200,10 +200,10 @@ limitations under the License.</license.inlineheader>
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
 
-    <version.wss4j>4.0.1</version.wss4j>
+    <version.wss4j>4.0.2</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.51.0</version.slack>
+    <version.slack>1.52.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
