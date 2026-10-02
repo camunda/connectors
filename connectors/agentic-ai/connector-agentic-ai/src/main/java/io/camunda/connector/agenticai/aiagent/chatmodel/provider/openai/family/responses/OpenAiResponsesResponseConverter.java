@@ -97,8 +97,8 @@ public class OpenAiResponsesResponseConverter {
    * "blocked" outcome across both mechanisms.
    */
   private boolean hasRefusal(Response response) {
-    return responseMessages(response)
-        .filter(message -> isAnswerMessage(response, message))
+    return response.output().stream()
+        .flatMap(item -> item.message().stream())
         .flatMap(message -> message.content().stream())
         .flatMap(content -> content.refusal().stream())
         .map(ResponseOutputRefusal::refusal)
@@ -133,13 +133,11 @@ public class OpenAiResponsesResponseConverter {
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
-        if (!isAnswerMessage(response, message)) {
-          continue;
-        }
         // The first message item's own id, not response.id() (the envelope this turn came from).
         // The API gives no guarantee of at most one message item per response (its own docs warn
-        // against assuming the first output item is the message). When phased output is present,
-        // commentary is excluded and the final answer's id and content are retained.
+        // against assuming the first output item is the message), so if it ever produces more
+        // than one, only the first's id survives, the same way their content is already
+        // flattened into one list.
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
@@ -166,23 +164,6 @@ public class OpenAiResponsesResponseConverter {
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))
         .build();
-  }
-
-  private java.util.stream.Stream<ResponseOutputMessage> responseMessages(Response response) {
-    return response.output().stream().flatMap(item -> item.message().stream());
-  }
-
-  private boolean isAnswerMessage(Response response, ResponseOutputMessage message) {
-    final boolean hasFinalAnswerMessage =
-        responseMessages(response)
-            .anyMatch(
-                candidate ->
-                    candidate
-                        .phase()
-                        .filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals)
-                        .isPresent());
-    return !hasFinalAnswerMessage
-        || message.phase().filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals).isPresent();
   }
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
