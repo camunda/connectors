@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
@@ -64,6 +65,36 @@ class RealProviderFixtureTest {
         """;
 
     assertThat(RealProviderCoreE2ETestIT.extractMemoryToken(response)).isEqualTo("blargensoth");
+  }
+
+  @Test
+  void shouldAcceptNaturalAffirmativeChickenCountConclusions() {
+    assertThat(
+            java.util.List.of(
+                "Solving the equations gives 23 and 12. Therefore, there are **23** chickens.",
+                "After substitution, the number of chickens is `23`.",
+                "## Answer\n\nChickens: __23__.",
+                "The rabbit count is 12.\n\n- **23 chickens.**",
+                "Consequently, there are twenty-three chickens."))
+        .allSatisfy(RealProviderReasoningE2ETestIT::assertCorrectChickenCountConclusion);
+  }
+
+  @Test
+  void shouldRejectIncidentalChickenCount() {
+    assertThatThrownBy(
+            () ->
+                RealProviderReasoningE2ETestIT.assertCorrectChickenCountConclusion(
+                    "The arithmetic includes 23, and the other equation includes 12."))
+        .isInstanceOf(AssertionError.class);
+  }
+
+  @Test
+  void shouldRejectWrongChickenCountConclusionEvenWhen23IsMentioned() {
+    assertThatThrownBy(
+            () ->
+                RealProviderReasoningE2ETestIT.assertCorrectChickenCountConclusion(
+                    "One intermediate value is 23, but there are 12 chickens."))
+        .isInstanceOf(AssertionError.class);
   }
 
   private Iterable<String> serviceTaskIds(String resource) throws IOException {

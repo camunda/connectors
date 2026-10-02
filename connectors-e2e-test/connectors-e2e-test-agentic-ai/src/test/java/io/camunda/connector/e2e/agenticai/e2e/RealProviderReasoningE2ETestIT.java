@@ -21,7 +21,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AG
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -45,6 +47,27 @@ import org.springframework.boot.test.context.SpringBootTest;
 @Tag(RealProviderCapabilityTags.REASONING)
 class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
 
+  private static final String CHICKEN_COUNT = "(\\d+|twenty(?:-|\\s+)three)";
+  private static final List<Pattern> CHICKEN_COUNT_CONCLUSIONS =
+      List.of(
+          Pattern.compile("(?i)\\bthere\\s+(?:are|were)\\s+" + CHICKEN_COUNT + "\\s+chickens?\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:the\\s+)?(?:number|count)\\s+of\\s+chickens?\\s+"
+                  + "(?:is|equals|=|:)\\s*"
+                  + CHICKEN_COUNT
+                  + "\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:the\\s+farmer|the\\s+farm|we|he|she)\\s+"
+                  + "(?:has|have)\\s+"
+                  + CHICKEN_COUNT
+                  + "\\s+chickens?\\b"),
+          Pattern.compile("(?i)\\bchickens?\\s*(?:are|is|equals|=|:)\\s*" + CHICKEN_COUNT + "\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:answer|therefore|thus|hence|so)\\s*(?:is|=|:|,)?\\s*"
+                  + CHICKEN_COUNT
+                  + "\\s+chickens?\\b"),
+          Pattern.compile("(?im)^\\s*(?:[-+#>]\\s*)*" + CHICKEN_COUNT + "\\s+chickens?[.!]?\\s*$"));
+
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningAndAnswerContent(ProviderConfig provider) {
@@ -66,7 +89,9 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
             Map.of(
                 "userPrompt",
                 "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
-                    + "many chickens are there?"));
+                    + "many chickens are there? You may include an explanation, but conclude by "
+                    + "explicitly stating how many chickens there are in the form 'There are N "
+                    + "chickens.'"));
     completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     assertAgentResponse(
@@ -75,6 +100,25 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasReasoningContent()
-                .hasResponseTextSatisfying(text -> Assertions.assertThat(text).isNotBlank()));
+                .hasResponseTextSatisfying(
+                    RealProviderReasoningE2ETestIT::assertCorrectChickenCountConclusion));
+  }
+
+  static void assertCorrectChickenCountConclusion(String responseText) {
+    final var markdownNormalized = responseText.replaceAll("[*_`]", "");
+    final var statedCounts =
+        CHICKEN_COUNT_CONCLUSIONS.stream()
+            .flatMap(pattern -> pattern.matcher(markdownNormalized).results())
+            .map(match -> parseChickenCount(match.group(1)))
+            .toList();
+
+    Assertions.assertThat(statedCounts)
+        .as("affirmative chicken-count conclusions in response <%s>", responseText)
+        .isNotEmpty()
+        .allSatisfy(count -> Assertions.assertThat(count).isEqualTo(23));
+  }
+
+  private static int parseChickenCount(String count) {
+    return count.chars().allMatch(Character::isDigit) ? Integer.parseInt(count) : 23;
   }
 }
