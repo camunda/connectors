@@ -283,10 +283,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
-
-      - name: Fetch main branch
-        run: git fetch origin main
 
       - name: Configure git user
         run: |
