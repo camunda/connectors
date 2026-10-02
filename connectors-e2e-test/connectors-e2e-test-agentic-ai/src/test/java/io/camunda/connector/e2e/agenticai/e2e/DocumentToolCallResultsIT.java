@@ -235,26 +235,26 @@ class DocumentToolCallResultsIT {
     return Stream.of(
             // OpenAI (v1)
             openAiV1("gpt-4.1"),
-            openAiV1("gpt-5.4"),
+            openAiV1("gpt-5.5"),
             // OpenAI (v2)
             openAiResponsesV2("gpt-4.1"),
-            openAiResponsesV2("gpt-5.4"),
+            openAiResponsesV2("gpt-5.5"),
             openAiCompletionsV2("gpt-4.1"),
-            openAiCompletionsV2("gpt-5.4"),
+            openAiCompletionsV2("gpt-5.5"),
             // Anthropic (v1)
-            anthropicV1("claude-sonnet-4-6"),
+            anthropicV1("claude-sonnet-5-5"),
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
-            anthropicV2("claude-sonnet-4-6"),
+            anthropicV2("claude-sonnet-5-5"),
             anthropicV2("claude-haiku-4-5-20251001"),
             // Anthropic (v2), AWS Bedrock Mantle backend
-            anthropicBedrockMantleV2("claude-sonnet-5"),
+            anthropicBedrockMantleV2("claude-sonnet-5-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock, v1 (Anthropic models via cross-region inference)
-            bedrockV1("global.anthropic.claude-sonnet-5"),
+            bedrockV1("global.anthropic.claude-sonnet-5-5"),
             bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
             // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
-            bedrockV2("global.anthropic.claude-sonnet-5"),
+            bedrockV2("global.anthropic.claude-sonnet-5-5"),
             bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
             // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
             bedrockV2("eu.amazon.nova-2-lite-v1:0"),

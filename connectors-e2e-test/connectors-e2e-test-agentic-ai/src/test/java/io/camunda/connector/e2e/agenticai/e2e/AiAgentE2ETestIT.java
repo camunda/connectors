@@ -372,11 +372,11 @@ public class AiAgentE2ETestIT {
   static Stream<ProviderConfig> providers() {
     return Stream.of(
             // OpenAI (v1)
-            openAiV1("gpt-4o"),
+            openAiV1("gpt-6-astra"),
             // OpenAI (v2) — both API families build different wire requests and unwrap tool calls
             // and tool results differently, so each needs to run the scenarios
-            openAiResponsesV2("gpt-4.1"),
-            openAiCompletionsV2("gpt-4.1"),
+            openAiResponsesV2("gpt-6.1-sol"),
+            openAiCompletionsV2("gpt-6-astra"),
             // Anthropic (v1)
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
@@ -384,7 +384,7 @@ public class AiAgentE2ETestIT {
             // Anthropic (v2), AWS Bedrock Mantle backend
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock (v2), native Converse API
-            bedrockConverseV2("global.anthropic.claude-sonnet-5"),
+            bedrockConverseV2("global.anthropic.claude-sonnet-5-5"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
             googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION),
             // Gemini 3 rejects a follow-up tool-calling request whose history dropped the
