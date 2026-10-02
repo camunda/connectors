@@ -343,17 +343,6 @@ jobs:
                   }
                 }'
 
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
-
       - name: Wait for downstream workflow to finish
         id: wait-downstream
         if: steps.check-downstream.outputs.enabled == 'true'
@@ -796,6 +785,7 @@ jobs:
             -Pit-real-llm \
             --batch-mode
 
+<<<<<<< HEAD
       - name: Observe build status
         if: always()
         continue-on-error: true
@@ -810,6 +800,11 @@ jobs:
   # Final job: hand a failed run to AlwaysGreen triage, which classifies the failure
   # and dispatches the fix agent. github.run_id here is this run, so the SM Playwright
   # report and the SaaS downstream-context artifact are both readable from it.
+=======
+  # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
+  # listener on the default branch, so one gate covers this branch and every stable/8.x
+  # instead of a per-branch `if:` that only this copy of the file ever received.
+>>>>>>> aba133b (fix(ci): remove stale build status observers (#9240))
   #
   # tooling_ref pins the scripts to main. A reusable workflow's checkout follows the
   # CALLER's ref, so without it a stable/8.x run would need the whole
