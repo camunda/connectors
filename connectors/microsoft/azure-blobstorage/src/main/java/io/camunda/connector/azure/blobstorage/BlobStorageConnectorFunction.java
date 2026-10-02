@@ -53,7 +53,7 @@ import java.util.function.Function;
       "cloud storage"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
     icon = "icon.svg")
 public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
 

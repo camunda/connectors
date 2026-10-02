@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-webhook-connector/",
+        "https://docs.camunda.io/docs/8.10/components/early-access/alpha/a2a-client/a2a-client-webhook-connector/",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),

@@ -52,7 +52,7 @@ public interface PromptConfiguration {
               description = "Documents to be included in the user prompt.",
               tooltip =
                   "Referenced documents will be automatically added to the user prompt. "
-                      + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
+                      + "<a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
