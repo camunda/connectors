@@ -97,6 +97,15 @@ class RealProviderFixtureTest {
         .isInstanceOf(AssertionError.class);
   }
 
+  @Test
+  void shouldRejectOutOfRangeChickenCountConclusionAsAnAssertionFailure() {
+    assertThatThrownBy(
+            () ->
+                RealProviderReasoningE2ETestIT.assertCorrectChickenCountConclusion(
+                    "There are 999999999999999999999999999999 chickens."))
+        .isInstanceOf(AssertionError.class);
+  }
+
   private Iterable<String> serviceTaskIds(String resource) throws IOException {
     try (var input =
         Objects.requireNonNull(

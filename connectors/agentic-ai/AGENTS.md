@@ -196,8 +196,8 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    Applying the label authorizes one run for the PR's current head SHA. After every push or other
    head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
    receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
-   for images or real providers when Agentic AI code, Agentic AI e2e tests, or the workflow itself
-   changed. Matrix execution is capped at four concurrent legs.
+   for images or real providers when Agentic AI code, Agentic AI e2e tests, the CPT registry, or its
+   workflow inputs changed. Matrix execution is capped at four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
@@ -232,8 +232,8 @@ export OPENAI_API_KEY=...
 Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
 run another capability suite. Prompt-caching rows are intentionally unsharded: unset
 `REAL_LLM_PROVIDER_GROUP`, provide credentials only for the provider you want to exercise, and use
-`-Dgroups=prompt-caching`. The bundle-backed `AiAgentE2ETestIT` and `DocumentToolCallResultsIT` are
-selected by class with `-Dit.test`.
+`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with `-Dit.test`;
+native capability legs, including `DocumentToolCallResultsIT`, are selected by their JUnit groups.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
