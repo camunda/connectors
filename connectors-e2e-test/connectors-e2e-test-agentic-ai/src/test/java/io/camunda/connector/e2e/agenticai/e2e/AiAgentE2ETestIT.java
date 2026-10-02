@@ -372,11 +372,11 @@ public class AiAgentE2ETestIT {
   static Stream<ProviderConfig> providers() {
     return Stream.of(
             // OpenAI (v1)
-            openAiV1("gpt-6-astra"),
+            openAiV1("gpt-4o"),
             // OpenAI (v2) — both API families build different wire requests and unwrap tool calls
             // and tool results differently, so each needs to run the scenarios
             openAiResponsesV2("gpt-6.1-sol"),
-            openAiCompletionsV2("gpt-6-astra"),
+            openAiCompletionsV2("gpt-5.5"),
             // Anthropic (v1)
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
