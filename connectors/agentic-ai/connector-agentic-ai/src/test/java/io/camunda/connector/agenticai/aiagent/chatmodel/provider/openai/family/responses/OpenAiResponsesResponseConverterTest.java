@@ -141,6 +141,80 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void mapsOnlyFinalAnswerWhenResponseContainsCommentary() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {
+                    "type": "output_text",
+                    "text": "CLASSIFIED FACT SHEET...",
+                    "annotations": []
+                  }
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "output_text", "text": "{\\"answer\\":\\"done\\"}", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
+  }
+
+  @Test
+  void retainsAllUnphasedMessages() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "First", "annotations": []}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_2",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "Second", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("First"), TextContent.textContent("Second"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_1");
+  }
+
+  @Test
   void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
     // A blank output_text part alongside a function_call must not crash TextContent.
     final Response response =
@@ -191,6 +265,79 @@ class OpenAiResponsesResponseConverterTest {
                   .containsExactly(TextContent.textContent("I can't help with that."));
               assertThat(assistantMessage.toolCalls()).isEmpty();
             });
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForFinalAnswerRefusalAfterCommentary() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "output_text", "text": "Checking the request", "annotations": []}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "refusal", "refusal": "I can't help with that."}
+                ]
+              }
+            ]
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e ->
+                assertThat(e.partialResult().assistantMessage().content())
+                    .containsExactly(TextContent.textContent("I can't help with that.")));
+  }
+
+  @Test
+  void ignoresCommentaryRefusalWhenFinalAnswerExists() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "refusal", "refusal": "Intermediate refusal"}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "output_text", "text": "{\\"answer\\":\\"done\\"}", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
   }
 
   @Test
