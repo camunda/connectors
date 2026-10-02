@@ -109,16 +109,13 @@ class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
     final var statedCounts =
         CHICKEN_COUNT_CONCLUSIONS.stream()
             .flatMap(pattern -> pattern.matcher(markdownNormalized).results())
-            .map(match -> parseChickenCount(match.group(1)))
+            .map(match -> match.group(1))
             .toList();
 
     Assertions.assertThat(statedCounts)
         .as("affirmative chicken-count conclusions in response <%s>", responseText)
         .isNotEmpty()
-        .allSatisfy(count -> Assertions.assertThat(count).isEqualTo(23));
-  }
-
-  private static int parseChickenCount(String count) {
-    return count.chars().allMatch(Character::isDigit) ? Integer.parseInt(count) : 23;
+        .allSatisfy(
+            count -> Assertions.assertThat(count).matches("(?i)(?:0*23|twenty(?:-|\\s+)three)"));
   }
 }
