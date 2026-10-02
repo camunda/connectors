@@ -10,6 +10,8 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -250,10 +252,16 @@ public final class AgentConversation {
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions}.
+   *
+   * <p>When registry documents of the {@link AgentContext#documents() context} are not visible in
+   * the windowed messages, the snapshot ends with a transient user message listing them (see {@link
+   * EvictedDocumentsNote}); {@link #allMessages()} and the stored conversation are not affected.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+    var withEvictedDocumentsNote =
+        EvictedDocumentsNote.appendTo(windowed, DocumentRegistry.of(currentContext.documents()));
+    return new ConversationSnapshot(withEvictedDocumentsNote, configuration.toolDefinitions());
   }
 
   /**
