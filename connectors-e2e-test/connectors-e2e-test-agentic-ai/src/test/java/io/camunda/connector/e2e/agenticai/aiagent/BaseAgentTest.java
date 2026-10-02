@@ -35,6 +35,7 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
@@ -103,7 +104,8 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
                   .keystorePassword(HTTPS_KEYSTORE_PASSWORD)
                   .keyManagerPassword(HTTPS_KEYSTORE_PASSWORD)
                   .keystoreType("PKCS12")
-                  .notifier(new ConsoleNotifier(true)))
+                  .notifier(new ConsoleNotifier(true))
+                  .extensions(new DocumentIdPlaceholderTransformer()))
           .configureStaticDsl(true)
           .build();
 

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_documents" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Agentic_AI_Connectors_Documents" name="Agentic AI Connectors Documents" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_start</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="StartEvent_1" targetRef="Gateway_merge" />
+    <bpmn:exclusiveGateway id="Gateway_merge">
+      <bpmn:incoming>Flow_start</bpmn:incoming>
+      <bpmn:incoming>Flow_tool_results</bpmn:incoming>
+      <bpmn:outgoing>Flow_to_agent</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_to_agent" sourceRef="Gateway_merge" targetRef="AI_Agent" />
+    <bpmn:serviceTask id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>My document handling AI agent</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="0" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_to_agent</bpmn:incoming>
+      <bpmn:outgoing>Flow_agent_done</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_agent_done" sourceRef="AI_Agent" targetRef="Gateway_tool_calls" />
+    <bpmn:exclusiveGateway id="Gateway_tool_calls" name="Includes tool calls?">
+      <bpmn:incoming>Flow_agent_done</bpmn:incoming>
+      <bpmn:outgoing>Flow_no_tool_calls</bpmn:outgoing>
+      <bpmn:outgoing>Flow_tool_calls</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_no_tool_calls" name="no" sourceRef="Gateway_tool_calls" targetRef="EndEvent_ExecuteAgent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolCalls)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_tool_calls" name="yes" sourceRef="Gateway_tool_calls" targetRef="Agent_Tools">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_ExecuteAgent">
+      <bpmn:incoming>Flow_no_tool_calls</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
+      <bpmn:extensionElements>
+        <zeebe:adHoc activeElementsCollection="=[toolCall._meta.name]" />
+        <zeebe:ioMapping>
+          <zeebe:input target="toolCallResult" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_tool_calls</bpmn:incoming>
+      <bpmn:outgoing>Flow_tool_results</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:extensionElements>
+          <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
+        </bpmn:extensionElements>
+      </bpmn:multiInstanceLoopCharacteristics>
+      <bpmn:serviceTask id="Download_A_File" name="Download a file" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
+        <bpmn:documentation>Download a file from the provided URL</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="0" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="GET" target="method" />
+            <zeebe:input source="=fromAi(toolCall.url, &#34;The URL to download the file from&#34;)" target="url" />
+            <zeebe:input source="=true" target="storeResponse" />
+            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=20" target="readTimeoutInSeconds" />
+            <zeebe:input source="=false" target="ignoreNullValues" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: {&#10;    status: response.status,&#10;    document: response.document&#10;  }&#10;}" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Upload_A_File" name="Upload a file" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
+        <bpmn:documentation>Upload a known document to the archive</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="0" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="=uploadUrl" target="url" />
+            <zeebe:input source="={&#34;Content-Type&#34;: &#34;multipart/form-data&#34;}" target="headers" />
+            <zeebe:input source="={&#10;  file: fromAi(toolCall.document, &#34;The document to upload.&#34;, &#34;document&#34;),&#10;  label: &#34;from-agent&#34;&#10;}" target="body" />
+            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=20" target="readTimeoutInSeconds" />
+            <zeebe:input source="=false" target="ignoreNullValues" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: {&#10;    status: response.status&#10;  }&#10;}" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:scriptTask id="Ping" name="Ping">
+        <bpmn:documentation>Answers pong. Use it to check that tools work.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=&#34;pong&#34;" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_tool_results" name="Tool results" sourceRef="Agent_Tools" targetRef="Gateway_merge" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Agentic_AI_Connectors_Documents">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"><dc:Bounds x="100" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_merge_di" bpmnElement="Gateway_merge"><dc:Bounds x="176" y="100" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AI_Agent_di" bpmnElement="AI_Agent"><dc:Bounds x="266" y="100" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_tool_calls_di" bpmnElement="Gateway_tool_calls"><dc:Bounds x="406" y="100" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ExecuteAgent_di" bpmnElement="EndEvent_ExecuteAgent"><dc:Bounds x="496" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Agent_Tools_di" bpmnElement="Agent_Tools" isExpanded="true"><dc:Bounds x="572" y="100" width="400" height="240" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Download_A_File_di" bpmnElement="Download_A_File"><dc:Bounds x="592" y="160" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Upload_A_File_di" bpmnElement="Upload_A_File"><dc:Bounds x="732" y="160" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Ping_di" bpmnElement="Ping"><dc:Bounds x="872" y="160" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start"><di:waypoint x="136" y="118" /><di:waypoint x="176" y="125" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_to_agent_di" bpmnElement="Flow_to_agent"><di:waypoint x="226" y="125" /><di:waypoint x="266" y="140" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_agent_done_di" bpmnElement="Flow_agent_done"><di:waypoint x="366" y="140" /><di:waypoint x="406" y="125" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_no_tool_calls_di" bpmnElement="Flow_no_tool_calls"><di:waypoint x="456" y="125" /><di:waypoint x="496" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_tool_calls_di" bpmnElement="Flow_tool_calls"><di:waypoint x="456" y="125" /><di:waypoint x="572" y="220" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_tool_results_di" bpmnElement="Flow_tool_results"><di:waypoint x="972" y="220" /><di:waypoint x="176" y="125" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
