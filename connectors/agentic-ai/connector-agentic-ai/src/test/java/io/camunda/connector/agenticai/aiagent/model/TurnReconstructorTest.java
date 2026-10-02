@@ -103,4 +103,54 @@ class TurnReconstructorTest {
     assertThat(turn.inputMessages()).containsExactly(expectedInput);
     assertThat(turn.hasToolCalls()).isEqualTo(expectedHasToolCalls);
   }
+
+  @Test
+  void
+      toolCallRoundAnsweredWithinTheInvocation_isReconstructedAsItsOwnTurnWithoutIterationKeyDrift() {
+    // assistant(tool calls) -> synthetic tool results -> assistant, as persisted by a local tool
+    // round
+    var u = userMessage("what's the weather?");
+    var a1 = assistantMessage("let me check", TOOL_CALLS);
+    var synthetic = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var a2 = assistantMessage("calling the tools", TOOL_CALLS);
+
+    var configuration =
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+    var conversation =
+        AgentConversation.rehydrate(
+                configuration,
+                AgentContext.builder()
+                    .state(AgentState.READY)
+                    .metadata(new AgentMetadata(1L, 1L, null, null))
+                    .build(),
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of(u))
+            .ingest(a1, AgentMetrics.empty())
+            .nextLocalToolRound(synthetic)
+            .ingest(a2, AgentMetrics.empty());
+
+    var persisted = conversation.allMessages();
+    assertThat(persisted).containsExactly(u, a1, synthetic, a2);
+
+    var storedContext = conversation.toAgentContext();
+    var result = TurnReconstructor.reconstruct(persisted, storedContext.metadata());
+    assertThat(result.turns()).hasSize(2);
+    assertTurn(result.turns().get(0), 1, true, u);
+    assertTurn(result.turns().get(1), 2, true, synthetic);
+    assertThat(result.turns().get(1).assistantMessage()).isEqualTo(a2);
+    assertThat(result.turns().get(1).toolCallsById()).containsKeys("abcdef", "fedcba");
+
+    // the stored lastIterationKey equals the reconstructed turn count, so no drift is detected and
+    // the next invocation continues right after the last round
+    assertThat(storedContext.metadata().lastIterationKey()).isEqualTo(result.turns().size());
+    var nextInvocation =
+        AgentConversation.rehydrate(
+            configuration,
+            storedContext,
+            result,
+            null,
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+    assertThat(nextInvocation.currentTurn().iterationKey()).isEqualTo(3);
+  }
 }
