@@ -95,24 +95,31 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
     var instance =
         startAgent(model, PROCESS_ID, DEFAULT_SYSTEM_PROMPT, Map.of("userPrompt", initialPrompt));
 
-    // Capture evidence that exists only in turn 1's completed assistant text. It is deliberately
-    // neither a planted tool fact nor supplied by either user prompt.
+    // Capture evidence that exists only in turn 1's completed assistant text. The follow-up asks
+    // the model to extract it from the request's conversation history, not to rely on
+    // autobiographical memory.
     final var firstResponse = readAgentResponseAtUserFeedback(instance);
     final var firstResponseText =
         Objects.requireNonNull(firstResponse.responseText(), "Turn 1 response text");
     final var memoryToken = extractMemoryToken(firstResponseText);
-    Assertions.assertThat(PLANTED_SECRET).doesNotContainIgnoringCase(memoryToken);
-    Assertions.assertThat(initialPrompt).doesNotContainIgnoringCase(memoryToken);
-    Assertions.assertThat(DEFAULT_SYSTEM_PROMPT).doesNotContainIgnoringCase(memoryToken);
+    Assertions.assertThat(PLANTED_SECRET)
+        .as("tool response does not supply the dynamic token")
+        .doesNotContainIgnoringCase(memoryToken);
+    Assertions.assertThat(initialPrompt)
+        .as("initial user input does not supply the dynamic token")
+        .doesNotContainIgnoringCase(memoryToken);
+    Assertions.assertThat(DEFAULT_SYSTEM_PROMPT)
+        .as("system input does not supply the dynamic token")
+        .doesNotContainIgnoringCase(memoryToken);
+    final var followUpPrompt =
+        "Treat the conversation history included in this request as input data. In the immediately "
+            + "preceding assistant/model message, find the line beginning 'MEMORY TOKEN:' and copy "
+            + "the value after the colon. Return only that value. Do not call a tool.";
+    Assertions.assertThat(followUpPrompt)
+        .as("follow-up user input does not supply the dynamic token")
+        .doesNotContainIgnoringCase(memoryToken);
 
-    completeUserFeedback(
-        instance,
-        Map.of(
-            "userSatisfied",
-            false,
-            "followUpInput",
-            "What memory token did you write in your immediately preceding answer? Reply with the "
-                + "token only. Do not call a tool."));
+    completeUserFeedback(instance, Map.of("userSatisfied", false, "followUpInput", followUpPrompt));
 
     completeUserFeedback(instance, Map.of("userSatisfied", true));
 
