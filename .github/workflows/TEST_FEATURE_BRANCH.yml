@@ -30,7 +30,7 @@ jobs:
         if: steps.resolve-maven.outputs.has-wrapper != 'true'
         uses: stCarolas/setup-maven@v5
         with:
-          maven-version: 3.9.16
+          maven-version: 3.10.0
 
       - name: Import Secrets
         id: secrets
