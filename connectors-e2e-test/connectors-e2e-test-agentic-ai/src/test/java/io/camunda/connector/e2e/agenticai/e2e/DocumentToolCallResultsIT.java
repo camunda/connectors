@@ -161,7 +161,7 @@ class DocumentToolCallResultsIT {
             Object.class,
             agent -> {
               logAgentResponse(provider, "singleDocument", agent);
-              assertProjectLaunchFacts(agent);
+              assertProjectLaunchFacts(normalizedResponse(agent));
             });
   }
 
@@ -576,10 +576,6 @@ class DocumentToolCallResultsIT {
     org.assertj.core.api.Assertions.assertThat(normalizedResponse)
         .as("normalized response containing author facts")
         .contains("kaelthrennix", "chiefanalyticsofficer");
-  }
-
-  private static void assertProjectLaunchFacts(Object agent) {
-    assertProjectLaunchFacts(normalizedResponse(agent));
   }
 
   private static void assertProjectLaunchFacts(String normalizedResponse) {
