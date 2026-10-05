@@ -1,0 +1,5 @@
+services:
+  httpbin:
+    image: mccutchen/go-httpbin
+    ports:
+      - "8081:8080"
