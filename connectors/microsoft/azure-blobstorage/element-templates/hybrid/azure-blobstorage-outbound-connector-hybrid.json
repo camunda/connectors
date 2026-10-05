@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.azure.blobstorage.v1-hybrid",
   "description" : "Upload and download files from Azure Blob Storage.",
   "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage", "download blob", "upload blob", "download file", "upload file", "blob storage", "file storage", "cloud storage" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
   "version" : 7,
   "category" : {
     "id" : "connectors",
@@ -434,7 +434,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String",
     "secret" : true
   }, {
@@ -461,7 +461,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String",
     "secret" : true
   }, {
@@ -488,7 +488,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
@@ -514,7 +514,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
@@ -540,7 +540,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String",
     "secret" : true
   }, {
@@ -567,7 +567,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "timeout",
@@ -739,7 +739,7 @@
         "equals" : "SAS",
         "type" : "simple"
       },
-      "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+      "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
       "type" : "String",
       "secret" : true
     }, {
@@ -758,7 +758,7 @@
         "equals" : "SAS",
         "type" : "simple"
       },
-      "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+      "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
       "type" : "String",
       "secret" : true
     }, {
@@ -777,7 +777,7 @@
         "equals" : "oAuth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+      "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
       "type" : "String"
     }, {
       "id" : "authentication.clientId",
@@ -795,7 +795,7 @@
         "equals" : "oAuth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+      "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
       "type" : "String"
     }, {
       "id" : "authentication.clientSecret",
@@ -813,7 +813,7 @@
         "equals" : "oAuth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+      "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
       "type" : "String",
       "secret" : true
     }, {
@@ -832,7 +832,7 @@
         "equals" : "oAuth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+      "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
       "type" : "String"
     } ]
   } ],
