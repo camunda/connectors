@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -93,7 +94,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
 
     final Map<String, Object> resolvedArguments;
-    if (tool.definition().documentParameters().isEmpty()) {
+    if (!DocumentParameterSchema.hasDocumentParameters(tool.definition().inputSchema())) {
       resolvedArguments = arguments;
     } else {
       switch (DocumentParameterResolver.resolve(toolCall, tool.definition(), documents)) {
@@ -132,7 +133,8 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
     final var definition =
         conversation.configuration().toolDefinitions().stream()
             .filter(candidate -> candidate.name().equals(toolCall.name()))
-            .filter(candidate -> !candidate.documentParameters().isEmpty())
+            .filter(
+                candidate -> DocumentParameterSchema.hasDocumentParameters(candidate.inputSchema()))
             .findFirst();
     if (definition.isEmpty()) {
       return null;

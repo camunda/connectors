@@ -93,11 +93,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void toolDefinitionDeclaresTheDocumentParameterAsString() throws Exception {
+  void toolDefinitionDeclaresTheDocumentParameterAsDocumentAndTheProviderGetsAString()
+      throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(finalTurn());
 
-    awaitProcessCompletion(startProcess(e -> e));
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
+    // the model provider sees a string schema with the hint
     final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
     final var parameters = toolParameters(rawRequest, "Upload_A_File");
     final var document = parameters.path("properties").path("document");
@@ -107,8 +109,21 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .endsWith("Pass the id of a <doc/> tag of a known document.");
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
-    // the pointers to document parameters stay inside the agent
-    assertThat(rawRequest).doesNotContain("documentParameters");
+    // the persisted tool definition keeps the authored type
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          final var upload =
+              agentResponse.context().toolDefinitions().stream()
+                  .filter(definition -> "Upload_A_File".equals(definition.name()))
+                  .findFirst()
+                  .orElseThrow();
+          assertThat(upload.inputSchema().toString())
+              .contains("type=document")
+              .contains("description=The document to upload.")
+              .doesNotContain("Pass the id of a <doc/> tag");
+        });
+
     // the option for returning documents is off: no built-in tool
     assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().toolNames())
         .containsExactlyInAnyOrder("Download_A_File", "Upload_A_File", "Ping", "Slow_Tool");

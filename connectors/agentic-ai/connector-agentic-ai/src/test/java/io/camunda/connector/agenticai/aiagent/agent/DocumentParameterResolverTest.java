@@ -20,8 +20,8 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void replacesATopLevelIdWithTheDocumentReference() {
-    final var result = resolve(Map.of("doc", firstId, "other", "kept"), "/properties/doc");
+    final var result = resolve(Map.of("doc", firstId, "other", "kept"), object("doc", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -61,7 +61,7 @@ class DocumentParameterResolverTest {
   @Test
   void replacesEveryElementOfAnArray() {
     final var result =
-        resolve(Map.of("docs", List.of(firstId, secondId)), "/properties/docs/items");
+        resolve(Map.of("docs", List.of(firstId, secondId)), object("docs", array(DOC)));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -81,8 +81,7 @@ class DocumentParameterResolverTest {
             List.of(Map.of("file", secondId), Map.of("file", firstId)));
 
     final var result =
-        resolve(
-            arguments, "/properties/req/properties/file", "/properties/rows/items/properties/file");
+        resolve(arguments, object("req", object("file", DOC), "rows", array(object("file", DOC))));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -102,22 +101,22 @@ class DocumentParameterResolverTest {
     final var withNull = new java.util.HashMap<String, Object>();
     withNull.put("doc", null);
 
-    assertThat(resolve(Map.of(), "/properties/doc")).isEqualTo(new Resolution.Resolved(Map.of()));
-    assertThat(resolve(withNull, "/properties/doc")).isEqualTo(new Resolution.Resolved(withNull));
+    assertThat(resolve(Map.of(), object("doc", DOC))).isEqualTo(new Resolution.Resolved(Map.of()));
+    assertThat(resolve(withNull, object("doc", DOC))).isEqualTo(new Resolution.Resolved(withNull));
   }
 
   @Test
   void doesNotModifyTheOriginalArguments() {
     final var arguments = Map.<String, Object>of("doc", firstId);
 
-    resolve(arguments, "/properties/doc");
+    resolve(arguments, object("doc", DOC));
 
     assertThat(arguments).containsEntry("doc", firstId);
   }
 
   @Test
   void reportsAnUnknownId() {
-    assertThat(resolve(Map.of("doc", "nope"), "/properties/doc"))
+    assertThat(resolve(Map.of("doc", "nope"), object("doc", DOC)))
         .isEqualTo(
             new Resolution.Invalid(List.of("Unknown document id 'nope' for parameter 'doc'.")));
   }
@@ -127,8 +126,7 @@ class DocumentParameterResolverTest {
     final var result =
         resolve(
             Map.of("docs", List.of(firstId, "nope"), "req", Map.of("file", "gone")),
-            "/properties/docs/items",
-            "/properties/req/properties/file");
+            object("docs", array(DOC), "req", object("file", DOC)));
 
     assertThat(result)
         .isEqualTo(
@@ -140,7 +138,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void reportsABlankId() {
-    assertThat(resolve(Map.of("doc", "  "), "/properties/doc"))
+    assertThat(resolve(Map.of("doc", "  "), object("doc", DOC)))
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
             invalid ->
@@ -156,7 +154,7 @@ class DocumentParameterResolverTest {
     arguments.put("b", Map.of("documentId", firstId));
     arguments.put("c", Arrays.asList(firstId, null));
 
-    assertThat(resolve(arguments, "/properties/a", "/properties/b", "/properties/c/items"))
+    assertThat(resolve(arguments, object("a", DOC, "b", DOC, "c", array(DOC))))
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
             invalid ->
@@ -169,13 +167,13 @@ class DocumentParameterResolverTest {
 
   @Test
   void reportsAnArrayParameterThatIsNotAnArray() {
-    assertThat(resolve(Map.of("docs", firstId), "/properties/docs/items"))
+    assertThat(resolve(Map.of("docs", firstId), object("docs", array(DOC))))
         .isEqualTo(new Resolution.Invalid(List.of("Parameter 'docs' must be an array.")));
   }
 
   @Test
-  void unescapesPropertyNamesOfThePointer() {
-    final var result = resolve(Map.of("a/b~c", firstId), "/properties/a~1b~0c");
+  void resolvesPropertyNamesWithSpecialCharacters() {
+    final var result = resolve(Map.of("a/b~c", firstId), object("a/b~c", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -185,13 +183,67 @@ class DocumentParameterResolverTest {
   }
 
   @Test
+  void substituteKnownReferencesReplacesKnownIdsAndLeavesEverythingElseAsGiven() {
+    final var definition =
+        ToolDefinition.builder()
+            .name("tool")
+            .inputSchema(object("doc", DOC, "docs", array(DOC), "req", object("file", DOC)))
+            .build();
+    final var arguments =
+        Map.<String, Object>of(
+            "doc",
+            firstId,
+            "docs",
+            List.of(secondId, "nope"),
+            "req",
+            Map.of("file", "gone", "note", "n"),
+            "other",
+            "kept");
+
+    final var result =
+        DocumentParameterResolver.substituteKnownReferences(arguments, definition, registry);
+
+    assertThat(result)
+        .containsEntry("doc", reference(firstId))
+        .containsEntry("docs", List.of(reference(secondId), "nope"))
+        .containsEntry("req", Map.of("file", "gone", "note", "n"))
+        .containsEntry("other", "kept");
+    assertThat(arguments).containsEntry("doc", firstId);
+  }
+
+  @Test
+  void substituteKnownReferencesToleratesValuesOfAnUnexpectedShape() {
+    final var definition =
+        ToolDefinition.builder()
+            .name("tool")
+            .inputSchema(object("doc", DOC, "docs", array(DOC), "req", object("file", DOC)))
+            .build();
+    final var arguments = new java.util.HashMap<String, Object>();
+    arguments.put("doc", 42);
+    arguments.put("docs", firstId);
+    arguments.put("req", "not an object");
+
+    assertThat(DocumentParameterResolver.substituteKnownReferences(arguments, definition, registry))
+        .isEqualTo(arguments);
+    assertThat(DocumentParameterResolver.substituteKnownReferences(Map.of(), definition, registry))
+        .isEmpty();
+  }
+
+  @Test
+  void substituteKnownReferencesLeavesToolsWithoutDocumentParametersAlone() {
+    final var definition =
+        ToolDefinition.builder().name("other").inputSchema(Map.of("type", "object")).build();
+
+    assertThat(
+            DocumentParameterResolver.substituteKnownReferences(
+                Map.of("doc", firstId), definition, registry))
+        .containsEntry("doc", firstId);
+  }
+
+  @Test
   void resolveAllOnlyTouchesToolCallsOfToolsWithDocumentParameters() {
     final var withDocs =
-        ToolDefinition.builder()
-            .name("upload")
-            .inputSchema(Map.of())
-            .documentParameters(List.of("/properties/doc"))
-            .build();
+        ToolDefinition.builder().name("upload").inputSchema(object("doc", DOC)).build();
     final var withoutDocs = ToolDefinition.builder().name("other").inputSchema(Map.of()).build();
     final var uploadCall = new ToolCall("1", "upload", Map.of("doc", firstId));
     final var otherCall = new ToolCall("2", "other", Map.of("doc", firstId));
@@ -209,11 +261,7 @@ class DocumentParameterResolverTest {
   @Test
   void resolveAllRejectsToolCallsThatWereNotValidated() {
     final var definition =
-        ToolDefinition.builder()
-            .name("upload")
-            .inputSchema(Map.of())
-            .documentParameters(List.of("/properties/doc"))
-            .build();
+        ToolDefinition.builder().name("upload").inputSchema(object("doc", DOC)).build();
 
     assertThatThrownBy(
             () ->
@@ -225,13 +273,23 @@ class DocumentParameterResolverTest {
         .hasMessageContaining("nope");
   }
 
-  private Resolution resolve(Map<String, Object> arguments, String... pointers) {
-    final var definition =
-        ToolDefinition.builder()
-            .name("tool")
-            .inputSchema(Map.of())
-            .documentParameters(new ArrayList<>(Arrays.asList(pointers)))
-            .build();
+  private static final Map<String, Object> DOC = Map.of("type", "document");
+
+  private static Map<String, Object> array(Map<String, Object> items) {
+    return Map.of("type", "array", "items", items);
+  }
+
+  /** An object schema from alternating property names and schemas, in declaration order. */
+  private static Map<String, Object> object(Object... namesAndSchemas) {
+    final var properties = new LinkedHashMap<String, Object>();
+    for (int i = 0; i < namesAndSchemas.length; i += 2) {
+      properties.put((String) namesAndSchemas[i], namesAndSchemas[i + 1]);
+    }
+    return Map.of("type", "object", "properties", properties);
+  }
+
+  private Resolution resolve(Map<String, Object> arguments, Map<String, Object> inputSchema) {
+    final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return DocumentParameterResolver.resolve(
         new ToolCall("call", "tool", arguments), definition, registry);
   }

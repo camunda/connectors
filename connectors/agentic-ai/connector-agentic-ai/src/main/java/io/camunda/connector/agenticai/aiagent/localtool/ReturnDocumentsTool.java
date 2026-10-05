@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import java.util.Collections;
@@ -52,10 +53,9 @@ public final class ReturnDocumentsTool implements LocalTool {
                       "description",
                       "The ids of the <doc/> tags of the documents to return.",
                       "items",
-                      Map.of("type", "string"))),
+                      Map.of("type", DocumentParameterSchema.TYPE_DOCUMENT))),
               "required",
-              List.of(PARAMETER_IDS)),
-          List.of("/properties/" + PARAMETER_IDS + "/items"));
+              List.of(PARAMETER_IDS)));
 
   // An insertion-ordered map built through the canonical constructor of the record: the definition
   // is part of the configuration fingerprint and of the request sent to the model, which need the

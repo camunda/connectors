@@ -42,7 +42,31 @@ public final class DocumentFlowAssertions {
       assertThat(bodies.get(i))
           .as("LLM request %d", i + 1)
           .doesNotContain("storeId", "contentHash", "camunda.document.type");
+      assertNoDocumentTypeInToolSchemas(bodies.get(i), i + 1);
     }
+  }
+
+  /**
+   * Asserts that no tool schema of the request uses the schema type {@code document}: the model
+   * provider only knows JSON schema types.
+   */
+  private static void assertNoDocumentTypeInToolSchemas(String rawRequestBody, int requestNumber) {
+    final JsonNode body;
+    try {
+      body = OBJECT_MAPPER.readTree(rawRequestBody);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unparseable request body: " + rawRequestBody, e);
+    }
+    body.path("tools")
+        .forEach(
+            tool ->
+                assertThat(
+                        tool.path("function").path("parameters").findValues("type").stream()
+                            .map(JsonNode::asText))
+                    .as(
+                        "schema types of tool '%s' in LLM request %d",
+                        tool.path("function").path("name").asText(), requestNumber)
+                    .doesNotContain("document"));
   }
 
   /**

@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_ITEMS;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_TYPE;
@@ -28,15 +27,6 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   public static final String DEFAULT_EXPECTED_PARAMETER_NAMESPACE = "toolCall.";
   public static final List<String> DEFAULT_RESTRICTED_PARAM_NAMES = List.of("_meta");
 
-  /** Parameter type which marks a parameter as a reference to a known document. */
-  public static final String TYPE_DOCUMENT = "document";
-
-  public static final String DOCUMENT_PARAMETER_HINT =
-      "Pass the id of a <doc/> tag of a known document.";
-
-  private record GeneratedSchema(
-      Map<String, Object> inputSchema, List<String> documentParameters) {}
-
   private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;
 
@@ -52,16 +42,6 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
 
   @Override
   public Map<String, Object> generateToolSchema(AdHocToolElement element) {
-    return generate(element).inputSchema();
-  }
-
-  @Override
-  public List<String> resolveDocumentParameters(AdHocToolElement element) {
-    return generate(element).documentParameters();
-  }
-
-  private GeneratedSchema generate(AdHocToolElement element) {
-    final List<String> documentParameters = new ArrayList<>();
     Map<String, Object> properties = new LinkedHashMap<>();
     List<String> required = new ArrayList<>();
 
@@ -102,12 +82,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                 propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
               }
 
-              properties.put(
-                  parameterName,
-                  mapDocumentTypes(
-                      propertySchema,
-                      "/" + PROPERTY_PROPERTIES + "/" + escapePointerSegment(parameterName),
-                      documentParameters));
+              properties.put(parameterName, propertySchema);
 
               if (isParameterRequired(element, parameter)) {
                 required.add(parameterName);
@@ -119,58 +94,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
     inputSchema.put(PROPERTY_PROPERTIES, properties);
     inputSchema.put(PROPERTY_REQUIRED, required);
 
-    return new GeneratedSchema(inputSchema, List.copyOf(documentParameters));
-  }
-
-  /**
-   * Replaces schema nodes of type {@code document} with a string schema carrying a hint and records
-   * their JSON pointer. Descends into object properties and array items.
-   */
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> mapDocumentTypes(
-      Map<String, Object> schema, String pointer, List<String> documentParameters) {
-    final var result = new LinkedHashMap<>(schema);
-    final var type = result.get(PROPERTY_TYPE);
-
-    if (TYPE_DOCUMENT.equals(type)) {
-      result.put(PROPERTY_TYPE, TYPE_STRING);
-      final var description = result.get(PROPERTY_DESCRIPTION);
-      result.put(
-          PROPERTY_DESCRIPTION,
-          description instanceof String text && StringUtils.isNotBlank(text)
-              ? text + " " + DOCUMENT_PARAMETER_HINT
-              : DOCUMENT_PARAMETER_HINT);
-      documentParameters.add(pointer);
-    } else if (result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> nested) {
-      final var mapped = new LinkedHashMap<String, Object>();
-      ((Map<String, Object>) nested)
-          .forEach(
-              (name, value) ->
-                  mapped.put(
-                      name,
-                      value instanceof Map<?, ?> child
-                          ? mapDocumentTypes(
-                              (Map<String, Object>) child,
-                              pointer
-                                  + "/"
-                                  + PROPERTY_PROPERTIES
-                                  + "/"
-                                  + escapePointerSegment(name),
-                              documentParameters)
-                          : value));
-      result.put(PROPERTY_PROPERTIES, mapped);
-    } else if (result.get(PROPERTY_ITEMS) instanceof Map<?, ?> items) {
-      result.put(
-          PROPERTY_ITEMS,
-          mapDocumentTypes(
-              (Map<String, Object>) items, pointer + "/" + PROPERTY_ITEMS, documentParameters));
-    }
-
-    return result;
-  }
-
-  private static String escapePointerSegment(String segment) {
-    return segment.replace("~", "~0").replace("/", "~1");
+    return inputSchema;
   }
 
   private String parameterName(AdHocToolElement element, AdHocToolElementParameter parameter) {

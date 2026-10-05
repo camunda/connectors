@@ -17,6 +17,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -123,9 +124,9 @@ class ToolSpecificationConverterTest {
   }
 
   @Test
-  void convertsDocumentParameterSchemaToStringSchemaWithoutMetadata() {
-    final var hint = "Pass the id of a <doc/> tag of a known document.";
-    final var toolDefinition =
+  void convertsDocumentParameterSchemaToStringSchemaWithHint() {
+    final var hint = DocumentParameterSchema.PROVIDER_HINT;
+    final var authored =
         ToolDefinition.builder()
             .name("a_tool")
             .description("Reads documents")
@@ -136,28 +137,30 @@ class ToolSpecificationConverterTest {
                     "properties",
                     Map.of(
                         "doc",
-                        Map.of("type", "string", "description", hint),
+                        Map.of("type", "document", "description", "A document."),
                         "docs",
-                        Map.of(
-                            "type",
-                            "array",
-                            "items",
-                            Map.of("type", "string", "description", hint))),
+                        Map.of("type", "array", "items", Map.of("type", "document"))),
                     "required",
                     List.of("doc", "docs")))
-            .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
             .build();
+    // the schema of a conversation snapshot, as derived where the snapshot is built
+    final var toolDefinition =
+        DocumentParameterSchema.toProviderToolDefinitions(List.of(authored)).getFirst();
 
     final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
 
     assertThat(toolSpecification.parameters().properties().get("doc"))
         .isInstanceOfSatisfying(
-            JsonStringSchema.class, schema -> assertThat(schema.description()).isEqualTo(hint));
+            JsonStringSchema.class,
+            schema -> assertThat(schema.description()).isEqualTo("A document. " + hint));
     assertThat(toolSpecification.parameters().properties().get("docs"))
         .isInstanceOfSatisfying(
             JsonArraySchema.class,
-            schema -> assertThat(schema.items()).isInstanceOf(JsonStringSchema.class));
-    assertThat(toolSpecification.toString()).doesNotContain("documentParameters");
+            schema ->
+                assertThat(schema.items())
+                    .isInstanceOfSatisfying(
+                        JsonStringSchema.class,
+                        items -> assertThat(items.description()).isEqualTo(hint)));
   }
 
   @Test

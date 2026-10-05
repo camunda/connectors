@@ -62,7 +62,6 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
         .name(element.elementId())
         .description(element.documentationWithNameFallback())
         .inputSchema(schemaGenerator.generateToolSchema(element))
-        .documentParameters(schemaGenerator.resolveDocumentParameters(element))
         .build();
   }
 }

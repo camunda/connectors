@@ -35,13 +35,14 @@ class LocalToolBuilderTest {
 
     assertThat(tool.definition().name()).isEqualTo("lookup");
     assertThat(tool.definition().description()).isEqualTo("Looks something up.");
-    assertThat(tool.definition().documentParameters()).containsExactly("/properties/file");
     assertThat(tool.definition().inputSchema())
         .containsEntry("type", "object")
         .containsEntry("required", List.of("query"));
     @SuppressWarnings("unchecked")
     final var properties = (Map<String, Object>) tool.definition().inputSchema().get("properties");
     assertThat(properties).containsOnlyKeys("query", "file");
+    assertThat(properties.get("file"))
+        .isEqualTo(Map.of("type", "document", "description", "The file"));
   }
 
   @Test

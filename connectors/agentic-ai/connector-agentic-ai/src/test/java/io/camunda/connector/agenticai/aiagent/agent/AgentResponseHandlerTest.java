@@ -137,8 +137,12 @@ class AgentResponseHandlerTest {
                 List.of(
                     io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition.builder()
                         .name("upload")
-                        .inputSchema(java.util.Map.of())
-                        .documentParameters(List.of("/properties/doc"))
+                        .inputSchema(
+                            java.util.Map.of(
+                                "type",
+                                "object",
+                                "properties",
+                                java.util.Map.of("doc", java.util.Map.of("type", "document"))))
                         .build()));
     final var conversation =
         AgentConversation.rehydrate(

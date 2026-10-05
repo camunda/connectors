@@ -7,19 +7,13 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Generates a JSON schema from an identified ad-hoc tool element including parameter definitions
- * resolved from tagging functions such as fromAi().
+ * resolved from tagging functions such as fromAi(). A parameter of type {@code document} keeps that
+ * type in the schema.
  */
 public interface AdHocToolSchemaGenerator {
   Map<String, Object> generateToolSchema(AdHocToolElement element);
-
-  /**
-   * Returns the parameters of the generated schema which carry a document reference, as JSON
-   * pointers into the schema returned by {@link #generateToolSchema(AdHocToolElement)}.
-   */
-  List<String> resolveDocumentParameters(AdHocToolElement element);
 }

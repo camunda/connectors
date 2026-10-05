@@ -131,8 +131,12 @@ class AgentTaskRequestHandlerTest {
                     Stream.of(
                         ToolDefinition.builder()
                             .name("upload")
-                            .inputSchema(Map.of())
-                            .documentParameters(List.of("/properties/doc"))
+                            .inputSchema(
+                                Map.of(
+                                    "type",
+                                    "object",
+                                    "properties",
+                                    Map.of("doc", Map.of("type", "document"))))
                             .build()))
                 .toList());
     mockConfiguration();

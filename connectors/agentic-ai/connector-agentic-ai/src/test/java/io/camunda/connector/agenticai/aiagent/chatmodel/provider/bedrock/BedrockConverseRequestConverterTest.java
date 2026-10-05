@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConversePromptCaching;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -433,8 +434,8 @@ class BedrockConverseRequestConverterTest {
     }
 
     @Test
-    void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
-      final var HINT = "Pass the id of a <doc/> tag of a known document.";
+    void sendsDocumentParametersAsStringSchemaWithHint() {
+      final var HINT = DocumentParameterSchema.PROVIDER_HINT;
       final Map<String, Object> schema =
           Map.of(
               "type",
@@ -442,22 +443,22 @@ class BedrockConverseRequestConverterTest {
               "properties",
               Map.of(
                   "doc",
-                  Map.of("type", "string", "description", "A document. " + HINT),
+                  Map.of("type", "document", "description", "A document."),
                   "docs",
-                  Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+                  Map.of("type", "array", "items", Map.of("type", "document"))),
               "required",
               List.of("doc", "docs"));
       final var snapshot =
           new ConversationSnapshot(
               List.of(
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
-              List.of(
-                  ToolDefinition.builder()
-                      .name("ReadDocuments")
-                      .description("desc")
-                      .inputSchema(schema)
-                      .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
-                      .build()));
+              DocumentParameterSchema.toProviderToolDefinitions(
+                  List.of(
+                      ToolDefinition.builder()
+                          .name("ReadDocuments")
+                          .description("desc")
+                          .inputSchema(schema)
+                          .build())));
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
@@ -466,9 +467,11 @@ class BedrockConverseRequestConverterTest {
       assertThat(schemaDoc.keySet()).containsExactlyInAnyOrder("type", "properties", "required");
       final var properties = schemaDoc.get("properties").asMap();
       assertThat(properties.get("doc").asMap().get("type").asString()).isEqualTo("string");
-      assertThat(properties.get("docs").asMap().get("items").asMap().get("type").asString())
-          .isEqualTo("string");
-      assertThat(toolSpec.toString()).doesNotContain("documentParameters");
+      assertThat(properties.get("doc").asMap().get("description").asString())
+          .isEqualTo("A document. " + HINT);
+      final var items = properties.get("docs").asMap().get("items").asMap();
+      assertThat(items.get("type").asString()).isEqualTo("string");
+      assertThat(items.get("description").asString()).isEqualTo(HINT);
     }
 
     @Test

@@ -396,7 +396,7 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void mapsDocumentTypeToStringWithHint() throws Exception {
+  void keepsDocumentTypeInTheSchema() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -410,8 +410,8 @@ class AdHocToolSchemaGeneratorTest {
           "type": "object",
           "properties": {
             "doc": {
-              "type": "string",
-              "description": "The invoice Pass the id of a <doc/> tag of a known document."
+              "type": "document",
+              "description": "The invoice"
             },
             "note": {
               "type": "string",
@@ -421,26 +421,20 @@ class AdHocToolSchemaGeneratorTest {
           "required": ["doc", "note"]
         }
         """);
-    assertThat(generator.resolveDocumentParameters(element)).containsExactly("/properties/doc");
   }
 
   @Test
-  void usesOnlyHintWhenDocumentParameterHasNoDescription() {
+  void keepsDocumentTypeWithoutDescription() {
     final var element =
         createToolElement(List.of(new AdHocToolElementParameter("toolCall.doc", null, "document")));
 
     assertThat(generator.generateToolSchema(element))
         .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("doc"))
-        .isEqualTo(
-            Map.of(
-                "type",
-                "string",
-                "description",
-                AdHocToolSchemaGeneratorImpl.DOCUMENT_PARAMETER_HINT));
+        .isEqualTo(Map.of("type", "document"));
   }
 
   @Test
-  void mapsDocumentArrayItems() throws Exception {
+  void keepsDocumentTypeOfArrayItems() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -460,20 +454,17 @@ class AdHocToolSchemaGeneratorTest {
               "type": "array",
               "description": "The attachments",
               "items": {
-                "type": "string",
-                "description": "Pass the id of a <doc/> tag of a known document."
+                "type": "document"
               }
             }
           },
           "required": ["docs"]
         }
         """);
-    assertThat(generator.resolveDocumentParameters(element))
-        .containsExactly("/properties/docs/items");
   }
 
   @Test
-  void mapsDocumentTypesInNestedObjectsAndEscapesPointerSegments() {
+  void keepsDocumentTypesInNestedObjects() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -484,21 +475,28 @@ class AdHocToolSchemaGeneratorTest {
                     Map.of(
                         "properties",
                         Map.of(
-                            "a/b", Map.of("type", "document"),
+                            "file",
+                            Map.of("type", "document"),
                             "list",
-                                Map.of("type", "array", "items", Map.of("type", "document")))))));
+                            Map.of("type", "array", "items", Map.of("type", "document")))))));
 
-    assertThat(generator.resolveDocumentParameters(element))
-        .containsExactlyInAnyOrder(
-            "/properties/request/properties/a~1b", "/properties/request/properties/list/items");
-  }
-
-  @Test
-  void resolvesNoDocumentParametersWithoutDocumentTypes() {
-    final var element =
-        createToolElement(List.of(new AdHocToolElementParameter("toolCall.param1", "d", "string")));
-
-    assertThat(generator.resolveDocumentParameters(element)).isEmpty();
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object",
+              "properties": {
+                "file": {"type": "document"},
+                "list": {"type": "array", "items": {"type": "document"}}
+              }
+            }
+          },
+          "required": ["request"]
+        }
+        """);
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

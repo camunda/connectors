@@ -41,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingDisplay;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -243,8 +244,8 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
-    final var HINT = "Pass the id of a <doc/> tag of a known document.";
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.PROVIDER_HINT;
     final Map<String, Object> schema =
         Map.of(
             "type",
@@ -252,29 +253,32 @@ class AnthropicMessageRequestConverterTest {
             "properties",
             Map.of(
                 "doc",
-                Map.of("type", "string", "description", "A document. " + HINT),
+                Map.of("type", "document", "description", "A document."),
                 "docs",
-                Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+                Map.of("type", "array", "items", Map.of("type", "document"))),
             "required",
             List.of("doc", "docs"));
     final var snapshot =
         new ConversationSnapshot(
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
-            List.of(
-                ToolDefinition.builder()
-                    .name("ReadDocuments")
-                    .description("desc")
-                    .inputSchema(schema)
-                    .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
-                    .build()));
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
 
     final var params = converter.toMessageCreateParams(model(null), null, snapshot);
 
     final var toolNode = requestBodyAsJson(params).path("tools").get(0);
     final var properties = toolNode.path("input_schema").path("properties");
     assertThat(properties.path("doc").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("doc").path("description").asText())
+        .isEqualTo("A document. " + HINT);
     assertThat(properties.path("docs").path("items").path("type").asText()).isEqualTo("string");
-    assertThat(toolNode.toString()).doesNotContain("documentParameters");
+    assertThat(properties.path("docs").path("items").path("description").asText()).isEqualTo(HINT);
+    assertThat(toolNode.toString()).doesNotContain("\"type\":\"document\"");
   }
 
   @Test

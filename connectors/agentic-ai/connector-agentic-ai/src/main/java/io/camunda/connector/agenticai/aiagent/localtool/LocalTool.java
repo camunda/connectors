@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -31,9 +30,10 @@ import org.jspecify.annotations.Nullable;
  * <ol>
  *   <li>The call is looked up among the tools that are {@link #isAvailable available} for the
  *       agent; other calls go to the process.
- *   <li>The parameters the {@link ToolDefinition#documentParameters() definition declares as
- *       document parameters} are checked and resolved: an unknown document id answers the call with
- *       an error result listing the known documents and the tool does not run.
+ *   <li>The parameters the {@link DocumentParameterSchema document parameters} of the definition,
+ *       the schema nodes of type {@code document}, are checked and resolved: an unknown document id
+ *       answers the call with an error result listing the known documents and the tool does not
+ *       run.
  *   <li>{@link #call} runs. A {@link LocalToolException} or an {@link LocalToolResult#error error
  *       result} answers the call with an error the model can act on; any other exception propagates
  *       and fails the job.
@@ -93,7 +93,6 @@ public interface LocalTool {
     private final @Nullable ToolDefinition definition;
     private @Nullable String description;
     private Map<String, Object> inputSchema = LocalToolSchema.object().build();
-    private List<String> documentParameters = List.of();
     private Predicate<AgentConfiguration> availability = configuration -> true;
 
     private Builder(String name, @Nullable ToolDefinition definition) {
@@ -107,27 +106,17 @@ public interface LocalTool {
     }
 
     /**
-     * The JSON schema of the arguments, an object schema. Declare document parameters with {@link
-     * #documentParameters}.
+     * The JSON schema of the arguments, an object schema. A parameter of schema type {@code
+     * document} is a document parameter.
      */
     public Builder inputSchema(Map<String, Object> inputSchema) {
       this.inputSchema = inputSchema;
       return this;
     }
 
-    /** The schema of the arguments, together with the document parameters it declares. */
+    /** The schema of the arguments. */
     public Builder inputSchema(LocalToolSchema schema) {
       this.inputSchema = schema.build();
-      this.documentParameters = schema.documentParameters();
-      return this;
-    }
-
-    /**
-     * The parameters of the schema that carry a document, as JSON pointers into the schema (see
-     * {@link ToolDefinition#documentParameters()}).
-     */
-    public Builder documentParameters(List<String> documentParameters) {
-      this.documentParameters = documentParameters;
       return this;
     }
 
@@ -165,10 +154,7 @@ public interface LocalTool {
       // the canonical constructor keeps the order of the schema; the record builder would copy it
       // into an immutable map of unspecified order
       return new ToolDefinition(
-          name,
-          description,
-          Collections.unmodifiableMap(new LinkedHashMap<>(inputSchema)),
-          documentParameters);
+          name, description, Collections.unmodifiableMap(new LinkedHashMap<>(inputSchema)));
     }
   }
 }

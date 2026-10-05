@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.localtool;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -31,7 +32,6 @@ public final class LocalToolSchema {
 
   private final Map<String, Object> properties = new LinkedHashMap<>();
   private final List<String> required = new ArrayList<>();
-  private final List<String> documentParameters = new ArrayList<>();
 
   private LocalToolSchema() {}
 
@@ -66,17 +66,11 @@ public final class LocalToolSchema {
   }
 
   /**
-   * A document parameter: the model passes the id of a known {@code <doc/>} tag, the tool receives
-   * the document.
+   * A document parameter, schema type {@code document}: the model passes the id of a known {@code
+   * <doc/>} tag, the tool receives the document.
    */
   public LocalToolSchema document(String name, String description, boolean isRequired) {
-    property(
-        name,
-        "string",
-        description + " Pass the id of a <doc/> tag of a known document.",
-        isRequired);
-    documentParameters.add("/properties/" + escape(name));
-    return this;
+    return property(name, DocumentParameterSchema.TYPE_DOCUMENT, description, isRequired);
   }
 
   /** The schema as a map: {@code {"type": "object", "properties": ..., "required": [...]}}. */
@@ -88,11 +82,6 @@ public final class LocalToolSchema {
       schema.put("required", List.copyOf(required));
     }
     return Collections.unmodifiableMap(schema);
-  }
-
-  /** The JSON pointers of the document parameters declared so far. */
-  public List<String> documentParameters() {
-    return List.copyOf(documentParameters);
   }
 
   private LocalToolSchema property(
@@ -109,9 +98,5 @@ public final class LocalToolSchema {
       required.add(name);
     }
     return this;
-  }
-
-  private static String escape(String name) {
-    return name.replace("~", "~0").replace("/", "~1");
   }
 }

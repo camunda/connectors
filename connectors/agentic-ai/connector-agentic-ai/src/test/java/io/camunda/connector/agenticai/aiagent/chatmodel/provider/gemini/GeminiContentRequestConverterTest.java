@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -639,8 +640,8 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
-  void doesNotSendDocumentParametersMetadataAndKeepsDocumentSchemaAsString() {
-    final var HINT = "Pass the id of a <doc/> tag of a known document.";
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.PROVIDER_HINT;
     final Map<String, Object> schema =
         Map.of(
             "type",
@@ -648,28 +649,41 @@ class GeminiContentRequestConverterTest {
             "properties",
             Map.of(
                 "doc",
-                Map.of("type", "string", "description", "A document. " + HINT),
+                Map.of("type", "document", "description", "A document."),
                 "docs",
-                Map.of("type", "array", "items", Map.of("type", "string", "description", HINT))),
+                Map.of("type", "array", "items", Map.of("type", "document"))),
             "required",
             List.of("doc", "docs"));
     final var snapshot =
         new ConversationSnapshot(
             List.of(),
-            List.of(
-                ToolDefinition.builder()
-                    .name("ReadDocuments")
-                    .description("desc")
-                    .inputSchema(schema)
-                    .documentParameters(List.of("/properties/doc", "/properties/docs/items"))
-                    .build()));
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
 
     final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
 
     final var declaration =
         config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
-    assertThat(declaration.parametersJsonSchema()).contains(schema);
-    assertThat(declaration.toJson()).doesNotContain("documentParameters");
+    assertThat(declaration.parametersJsonSchema())
+        .contains(
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of(
+                    "doc",
+                    Map.of("type", "string", "description", "A document. " + HINT),
+                    "docs",
+                    Map.of(
+                        "type", "array", "items", Map.of("type", "string", "description", HINT))),
+                "required",
+                List.of("doc", "docs")));
+    assertThat(declaration.toJson()).doesNotContain("\"type\":\"document\"");
   }
 
   @Test

@@ -50,8 +50,8 @@ class LocalToolCallHandlerImplTest {
   private static final ToolDefinition UPLOAD =
       ToolDefinition.builder()
           .name("upload")
-          .inputSchema(Map.of())
-          .documentParameters(List.of("/properties/doc"))
+          .inputSchema(
+              Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))))
           .build();
   private static final ToolDefinition WEATHER =
       ToolDefinition.builder().name("getWeather").inputSchema(Map.of()).build();

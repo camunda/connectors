@@ -57,19 +57,22 @@ class AdHocToolsSchemaResolverTest {
   }
 
   @Test
-  void carriesDocumentParametersIntoToolDefinition() {
+  void keepsTheDocumentTypeOfTheGeneratedSchema() {
     final var element =
         AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
+    final var schema =
+        Map.<String, Object>of(
+            "type",
+            "object",
+            "properties",
+            Map.of("doc", Map.of("type", "document", "description", "The invoice")));
 
-    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
-    when(schemaGenerator.resolveDocumentParameters(element)).thenReturn(List.of("/properties/doc"));
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
 
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
-        .satisfies(
-            toolDefinition ->
-                assertThat(toolDefinition.documentParameters()).containsExactly("/properties/doc"));
+        .satisfies(toolDefinition -> assertThat(toolDefinition.inputSchema()).isEqualTo(schema));
   }
 
   @ParameterizedTest

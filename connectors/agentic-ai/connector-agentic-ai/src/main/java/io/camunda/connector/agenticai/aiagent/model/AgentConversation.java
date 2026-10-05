@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -365,7 +366,9 @@ public final class AgentConversation {
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
     var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(windowed, documentRegistry());
-    return new ConversationSnapshot(withEvictedDocumentsNote, configuration.toolDefinitions());
+    return new ConversationSnapshot(
+        withEvictedDocumentsNote,
+        DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));
   }
 
   /**

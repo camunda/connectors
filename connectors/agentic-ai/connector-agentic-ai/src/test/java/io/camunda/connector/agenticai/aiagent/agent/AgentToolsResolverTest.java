@@ -190,8 +190,8 @@ class AgentToolsResolverTest {
           ToolDefinition.builder()
               .name("tool1")
               .description("Tool 1 description")
-              .inputSchema(Map.of("type", "object"))
-              .documentParameters(List.of("/properties/doc"))
+              .inputSchema(
+                  Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))))
               .build();
       final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
 
@@ -210,7 +210,9 @@ class AgentToolsResolverTest {
     @Test
     void updatesToolDefinitionWhenDocumentParametersChange() {
       final var agentContext = AgentContext.empty().withToolDefinitions(List.of(TOOL_1));
-      final var withDocuments = TOOL_1.withDocumentParameters(List.of("/properties/doc"));
+      final var withDocuments =
+          TOOL_1.withInputSchema(
+              Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))));
 
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));
