@@ -797,19 +797,28 @@ final var resolution =
 // either we have all results or we interrupted the missing tool calls
 // if incomplete, we wait on further tool call results to be added
 if (!resolution.complete()) {
-    return new CompositionResult.Deferred(resolution.results());
+    return new CompositionResult.Deferred(resolution.arrivedResults());
 }
 ```
 
-The method correlates and gateway (MCP/A2A) transforms the available results, then checks each tool
-call from the last assistant message against them (`ToolCallResultsResolution(results, complete)`):
+The method correlates and gateway (MCP/A2A) transforms the available results, merges them with the
+results the agent answered itself for the same assistant message
+(`AgentContext.pendingLocalToolCallResults`, see the document flow design notes), then checks each
+tool call from the last assistant message against them
+(`ToolCallResultsResolution(results, arrivedResults, complete)`):
 - If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
-  ordered to match the original tool call order
-- If missing and NOT interrupting: `complete` is `false`; `results` holds only the ones that arrived
-  so far → `compose` returns `CompositionResult.Deferred(results)` (ADR 011) → handler reports them
-  to agent instance history and completes as a no-op
+  ordered to match the original tool call order (local and process results interleaved as the calls
+  were issued)
+- If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
+  results that arrived so far → `compose` returns `CompositionResult.Deferred(arrivedResults)`
+  (ADR 011) → handler reports them to agent instance history and completes as a no-op. Only calls
+  handed to the process are waited for, and pending local results are not reported here
 - If missing and interrupting (due to event): `complete` is `true`; cancelled results are added for
-  the missing tool calls, alongside the present ones
+  the missing tool calls (never for locally answered ones), alongside the present ones
+
+The handler clears `pendingLocalToolCallResults` when it applies a `NextTurn`, so the results are
+consumed once and cannot reach a later turn; only pending results whose id is a tool call id of the
+last assistant message are ever used.
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -857,6 +866,10 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
   the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
+- **Local results are not streamed.** Results the agent answered itself (`pendingLocalToolCallResults`)
+  are not part of `arrivedResults`: they would be re-reported by every incomplete job, and the
+  history has no `historyItemId` dedup yet. They are reported exactly once, with the batch-complete
+  `applyTurnStart` of the next turn.
 - **Strict failure.** This call runs before job completion, synchronously, like every other
   `AgentInstanceClient` write since [ADR 013](../adr/013-unified-agent-instance-turn-updates.md) — a
   failure fails the job.
@@ -1801,6 +1814,16 @@ lease-fenced `update()` mechanism).
   with neither text/object/etc.
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
+
+**Tool calls answered by the agent itself.** Calls answered locally (the built-in `return_documents`,
+calls rejected for an unknown document id; see the document flow design notes) appear in history like
+any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
+every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
+`applyTurnStart` that carries the results: in the synthetic round of the same job when the agent
+answered every call, in the next job together with the process results otherwise. They use the
+tool-call id as `historyItemId`, `elementId` equal to the tool name (there is no BPMN element), the
+local `completedAt` and the originating arguments, like every other result. A mixed batch completes
+its job with `TOOL_CALLING`, a fully local batch with `THINKING` followed by the next round.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` items key off the domain

@@ -50,27 +50,28 @@ referenced by id in tool calls, and leave through the response.
    or message object content as its tag, for every provider path. `AgentConversation.window` (:344)
    appends the eviction note (`EvictedDocumentsNote.appendTo`, :346) to the windowed snapshot and, when
    `AgentConfiguration.returnsDocuments()`, the `return_documents` tool definition (:348).
-5. **Model loop.** `BaseAgentRequestHandler.driveContinuationLoop` (:258) windows the conversation
-   (:271), calls the model (:272), ingests the assistant message, and then either ends the loop or
-   opens another round: `nextContinuationRound` (`AgentConversation`:161) for provider
-   continuations, `nextLocalToolRound` (`AgentConversation`:180, called at :316) for tool calls the
-   agent answered itself.
-6. **Local tool handling.** `localToolCallHandler.handle` (:282) asks every `ToolCallInspector`
+5. **Model loop.** `BaseAgentRequestHandler.driveContinuationLoop` windows the conversation, calls the
+   model, ingests the assistant message, and then either ends the loop or opens another round:
+   `nextContinuationRound` (`AgentConversation`) for provider continuations, `nextLocalToolRound`
+   (`AgentConversation`) when the agent answered every tool call of the message itself.
+6. **Local tool handling.** `localToolCallHandler.handle` asks every `ToolCallInspector`
    (`DocumentParameterToolCallInspector`, `ReturnDocumentsToolCallInspector`; beans at
-   `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`:308-320) for a verdict per call. If any
-   call is answered locally the whole batch is answered locally (section 3.6), the round is reported
-   to the agent instance history with `applyTurnStart` (:323), `throwIfLimitsReached` (:312) bounds
-   the rounds, and the selection of `return_documents` is merged with `withReturnDocumentIds` (:321,
-   `AgentConversation`:237).
-7. **Response.** `AgentResponseHandlerImpl.createResponse` (:53). For tool calls,
-   `DocumentParameterResolver.resolveAll` (:69, `aiagent/agent/DocumentParameterResolver.java`:76)
-   replaces document ids by registry references in the process variable only. For a response without
-   tool calls the selection is turned into `documents` (:87) and cleared.
-   `AgentSubProcessRequestHandler.createAgentResponseVariable` (:134, `.documents(...)` at :141)
-   copies `documents` into the `agent` variable; the task flavor returns the `AgentResponse` itself.
-   `AgentSubProcessRequestHandler` (:103) uses `AgentConversation.hasInterruptedToolCallResultsInInvocation`
-   (:290) so that interrupted results of the first round still cancel the remaining tool instances
-   after a local round replaced the current turn.
+   `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`) for a verdict per call and splits the
+   batch into local results and the calls that remain for the process (section 3.6). The selection of
+   `return_documents` is merged with `withReturnDocumentIds` in both outcomes. Without remaining calls the
+   loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the local
+   results are kept as `AgentContext.pendingLocalToolCallResults` (`withPendingLocalToolCallResults`) and
+   the loop ends with the normal tool calling status.
+7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending local results
+   answer, then `DocumentParameterResolver.resolveAll` replaces document ids by registry references in the
+   process variable only. For a response without tool calls the selection is turned into `documents` and
+   cleared. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `documents` into the `agent`
+   variable; the task flavor returns the `AgentResponse` itself. `AgentSubProcessRequestHandler` uses
+   `AgentConversation.hasInterruptedToolCallResultsInInvocation` so that interrupted results of the first
+   round still cancel the remaining tool instances after a local round replaced the current turn.
+8. **Next job.** `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults` merges the pending
+   local results with the arrived process results (section 3.6); `BaseAgentRequestHandler.converse` clears
+   the pending field when it applies the turn.
 
 Both flavors share `BaseAgentRequestHandler`, so everything above applies to both.
 
@@ -83,7 +84,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
 | 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id fileName contentType [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
 | 3 | Documents out are a built-in tool `return_documents`, handled in the model loop. | The tool must never become a BPMN element activation. |
-| 4 | An unknown document id yields an error tool result and a retry in the same job. | No incident; the tool does not run. |
+| 4 | An unknown document id yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
 
 ### 3.2 Document parameter representation
@@ -184,19 +185,56 @@ invocation.
 
 ### 3.6 Batch policy (mixed batches)
 
-The composer waits for a result for every tool call id of the last assistant message. A batch is
-therefore answered either fully locally or fully by BPMN. If any call in a batch is local
-(`return_documents`) or invalid (unknown document id), every call of the batch is answered in the loop:
-local calls get their real result, invalid calls get an error result, and the remaining valid real calls
-get `LocalToolCallHandlerImpl.NOT_EXECUTED` ("Not executed because another tool call in the same batch
-failed. Resend this call separately or after fixing the failed call."). Tools never run for any call
-of such a batch. The loop then calls the model again. The first `Answer` of a call wins when several
-inspectors answer. No new persisted state is needed, and both flavors follow the rule because they
-share `BaseAgentRequestHandler`.
+A batch is split per call. `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
+`LocalToolCallSplit(localResults, remainingCalls, returnDocumentIds)`:
 
-Reason: answering part of a batch and starting BPMN activations for the rest would leave the composer
-waiting on ids it can no longer correlate, and would execute tools next to calls the model must
-correct anyway.
+- **Local calls.** A call answered by a `ToolCallInspector` (`Answer`) gets its result immediately: the
+  built-in `return_documents`, and any call whose document parameter is not a known id (an error result
+  listing the known documents). The first `Answer` wins when several inspectors answer.
+- **Remaining calls.** Every other call passes and goes to the process like any tool call.
+
+The request handler then proceeds by what is left:
+
+| Remaining calls | What happens | Model calls |
+|-----------------|--------------|-------------|
+| none | The local results become the input of a synthetic round of the same job (`nextLocalToolRound`); the model is called again. The round counts against `maxModelCalls` (`throwIfLimitsReached`). | one more in the job |
+| some | The job completes with only the remaining calls activated (`ToolCallProcessVariable` list and element activations hold only them, status `TOOL_CALLING`). The local results are stored in `AgentContext.pendingLocalToolCallResults`. | none extra |
+
+The selection of `return_documents` is recorded in `AgentContext.returnDocumentIds` immediately in both
+cases.
+
+**Pending local results.** `AgentContext.pendingLocalToolCallResults` is a `List<ToolCallResult>`,
+`@JsonInclude(NON_EMPTY)`, a missing field binds to an empty list, no schema version bump. It rides in
+`agentContext` like the registry, so it reaches the next job whatever the conversation store is (the stores
+only handle the conversation pointer), and it is written by the same job completion that activates the
+real calls. Content is whatever the inspector answered (text today); `completedAt` is the time of the local
+answer.
+
+**Merging in the next job.** `resolveOrderedToolCallResults` looks up each tool call id of the last
+assistant message first in the pending local results, then in the arrived process results (gateway
+transformed; local results are never transformed). The `ToolCallResultMessage` keeps the order of the calls.
+
+- *Partial arrival.* The composer waits for the real calls only. Missing real calls make the result
+  `Deferred`; its `arrivedResults` hold the process results only, so local results are not re-reported
+  by incomplete jobs.
+- *Event interrupt.* Only real calls without a result are cancelled; a locally answered call keeps its
+  result.
+- *Consumption.* `BaseAgentRequestHandler.converse` clears the pending field when it applies the composed
+  turn (`NextTurn`), so the results are consumed once and the field cannot reach a later turn. Pending
+  results whose id is not a tool call id of the last assistant message are ignored.
+- *Both flavors.* The sub-process and the task flavor share `BaseAgentRequestHandler`, so both follow the
+  rule: the sub-process activates the remaining calls as elements, the task flavor returns only them in
+  `toolCalls`.
+
+**Adding a local tool.** Implement `ToolCallInspector`, return `Answer(content, returnDocumentIds)` for
+the tool's calls and `Pass` for every other call, and register the bean. The verdict concerns the single
+call, so the tool works the same alone, with other local tools or with real calls in one batch. State a
+local tool changes is carried by the verdict, as `returnDocumentIds` is today (`LocalToolCallSplit` carries
+the aggregate); a new kind of state needs its own field there and in the handler.
+
+Reason: the real calls are valid work the model asked for, and running them without an extra model call
+keeps a mixed batch at one round. Per-call splitting needs only the results of the local calls to survive
+until the process results are in, which `agentContext` already carries.
 
 ### 3.7 Error text
 
@@ -213,7 +251,7 @@ blank or non-string value reads "Parameter 'p' must be the id of a known documen
 string).", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
 registry the list is replaced by "No documents are known.". Results are plain text because no provider
 has a tool error flag in the domain model, so the model reads the text. Reason: the list of known tags
-lets the model correct itself in one retry without any further tool call.
+lets the model correct itself in one retry without any further tool call. The error result reaches the model with its next request: in the synthetic round when the whole batch was local, in the next job together with the results of the real calls of the batch otherwise (section 3.6).
 
 ### 3.8 `return_documents` semantics
 
@@ -236,13 +274,14 @@ select nothing.
   because models call the tool more than once and a replacing call silently drops earlier picks. The
   cost is that an unwanted pick stays in the response until the run ends. A document is only ever
   returned if the model named it, and the answer text lists what that call selected.
-- A selection recorded in a batch whose other calls went unanswered (3.6) stays recorded, because the
-  model received the "Selected ..." result for it.
+- A selection recorded in a batch that also holds real calls (3.6) is persisted with that job, before the
+  real calls ran, because the model receives the "Selected ..." result for it with the results of the batch.
 - Option off: no tool in the snapshot, no `documents`; a stale selection (option toggled mid-run) is
   cleared with the final response without being returned.
 
-A valid `return_documents` call together with real tool calls answers the whole batch locally (the
-real calls get `NOT_EXECUTED`); the extra model call counts against `maxModelCalls`.
+A valid `return_documents` call together with real tool calls costs no extra model call: the real calls run
+and the model receives all results in the call order (3.6). Only a batch made of local calls alone starts a
+synthetic round, which counts against `maxModelCalls`.
 
 ### 3.9 Reserved name
 
@@ -288,10 +327,10 @@ section 5.
   references; the persisted assistant message keeps the ids the model sent, and the original arguments
   are never modified. A missing or `null` argument is left alone (optional parameters). Resolution
   runs on the raw tool calls before the gateway transformation, so gateway tool calls stay untouched.
-- **Local handler abstraction.** `LocalToolCallHandler.handle(conversation, toolCalls)` returns
-  `Optional<LocalToolCallAnswers(results, returnDocumentIds)>`: empty when every call goes to the
-  process, otherwise one result per call. Inspectors return `Pass` or `Answer(content,
-  returnDocumentIds)`. Reason: the loop stays generic and a future local tool is one more inspector.
+- **Local handler abstraction.** `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
+  `LocalToolCallSplit(localResults, remainingCalls, returnDocumentIds)`; inspectors return `Pass` or
+  `Answer(content, returnDocumentIds)`. Reason: the loop stays generic and a future local tool is one more
+  inspector (3.6).
 - **Registry shape.** `DocumentRegistry` is an immutable, insertion-ordered, id-keyed value
   (`findById`, `entries`, `withDocuments`, `of`, `fromMessages`); the first registration of an id wins
   and re-adding a known id returns the same instance. `DocumentRegistryEntry` holds `id`, `reference`
@@ -300,10 +339,11 @@ section 5.
   no `DocumentFactory`; it binds back to a `Document` through the regular document deserializer
   (covered by a test). The entry serializer uses a private `ObjectMapper` with the document serializer
   module and `NON_NULL` inclusion; dates are ISO strings.
-- **Loop obligations of an extra round.** `throwIfLimitsReached` before the round (retries are bounded
+- **Loop obligations of a synthetic round.** `throwIfLimitsReached` before the round (retries are bounded
   by `maxModelCalls` and fail with the existing max-model-calls error code); agent instance history
   reporting for the synthetic input; a persist and reload round trip through `TurnReconstructor`
-  without `lastIterationKey` drift (see 5 for reporting details).
+  without `lastIterationKey` drift (see 5 and 5.1 for reporting details). A mixed batch opens no round and
+  has none of these obligations beyond the history reporting of the next job.
 
 ## 4. Registry storage
 
@@ -346,9 +386,9 @@ registry is seeded from the stored messages: `DocumentContent` of user messages 
 synthetic tool call document messages, so gateway documents are covered) and the content trees of tool
 call results (origin retained). The seed is best effort; a conversation that legitimately has no
 documents is rescanned on every turn (the messages are loaded anyway). On downgrade, an older
-connector runtime ignores `documents` and `returnDocumentIds` (`ignoreUnknown`) and drops them on its
-next write; the next upgraded run reseeds the registry from the messages, but the selection of
-`return_documents` and documents known only from evicted or unscanned content are lost.
+connector runtime ignores `documents`, `returnDocumentIds` and `pendingLocalToolCallResults`
+(`ignoreUnknown`) and drops them on its next write; the next upgraded run reseeds the registry from the messages, but the selection of
+`return_documents` and documents known only from evicted or unscanned content are lost. A mixed batch in flight at the moment of the downgrade is not completed by the older runtime, which waits for results of the calls the agent answered itself.
 
 **Migration path to the stores.** Implement `DocumentRegistryStorage` against `ConversationSession`
 (store the registry next to the messages, keyed by the conversation pointer), then switch the bean.
@@ -363,22 +403,53 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | # | Finding | Severity | Detail |
 |---|---------|----------|--------|
 | 1 | Large inline documents | High (rare trigger) | Content is stored in the registry and in the tool result, and again in `agent.documents` when returned. A large inline image can push the job completion past the 4 MB broker message limit; there is no size guard or fallback to a reference-only entry. |
-| 2 | Mixed batch costs an extra model call | Medium | The composer waits for all tool call ids, so one invalid or local call turns the whole batch into a local round and the real calls are not executed ("resend separately"). Every such round counts against `maxModelCalls` and adds latency and token cost. |
+| 2 | Local answers of a mixed batch are visible late | Low | The local results of a batch that also holds real calls reach the model and the agent instance history only with the next job, when the real calls have completed; a real call that never completes holds them back. A batch made of local calls alone is answered in the same job. |
 | 3 | Gateway tools unsupported | Medium | MCP and A2A tool definitions never carry `documentParameters`; a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
-| 6 | Tracker and history reporting | Low (handled) | Local rounds are reported as `THINKING`, results as `TOOL_RESULT` items with `loopIteration` + 1, and one status per call as before. Documents themselves are not reported to the tracker. |
+| 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content. |
 | 7 | Seeded registry completeness | Low | The seed scan is best effort and rescans conversations without documents every turn. |
 | 8 | File name from a URL path segment | Low | For an external document without a name the last URL path segment becomes the file name and can carry an owner-chosen identifier (for example a token). Only a reference `name` or Camunda metadata is fully controlled by the connector user. |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose definition has
 `documentParameters` (the tool name is the lookup key); a failing resolution in `createResponse`
 (unreachable after validation) throws `IllegalStateException`; the assistant turn of a round followed
-by a local round completes with `THINKING` instead of `TOOL_CALLING`; metrics count every round as a
-model call (`jobMetrics` sums the rolled-in turns); persisted messages read `assistant(tool calls) ->
+by a synthetic local round completes with `THINKING` instead of `TOOL_CALLING`, while a mixed batch completes
+with `TOOL_CALLING`; metrics count every round as a model call (`jobMetrics` sums the rolled-in turns) and
+every tool call the model issued as a tool call of its turn, local or not; persisted messages read `assistant(tool calls) ->
 tool results -> assistant`, which `TurnReconstructor` splits into one turn per assistant message, so
 `lastIterationKey` equals the reconstructed turn count and the drift warning does not fire; the
 windowing filter evicts the tool results together with their assistant message.
+
+### 5.1 History and visibility reporting of local calls
+
+Reporting goes through the same `AgentInstanceClient` calls as for any turn; there is no local-specific
+call. What is reported:
+
+| Case | Calls (in order) | Local result items |
+|------|------------------|--------------------|
+| Batch with no remaining call (synthetic round) | `applyTurnStart` (turn input), `applyTurnCompletion` with `THINKING` (assistant item with all calls), `applyTurnStart` of the synthetic turn (input = the local results), the next `applyTurnCompletion` with the terminal status | `TOOL_RESULT` items in the synthetic `applyTurnStart`, `loopIteration` = assistant turn + 1 |
+| Mixed batch | `applyTurnStart`, `applyTurnCompletion` with `TOOL_CALLING` (assistant item with all calls, local and real). The next job: `applyTurnStart` with the merged results | `TOOL_RESULT` items in the `applyTurnStart` of the next job, exactly once, in call order with the process results |
+| Mixed batch, partial arrival (`Deferred`) | `applyToolCallResults` with the arrived process results only | none; reported with the complete batch |
+
+Each local `TOOL_RESULT` item correlates to its call like any result: `toolCallId` and `toolName` of the
+call, the originating arguments (looked up in the previous turn), `historyItemId` = tool call id, local
+`completedAt` as `producedAt`. `elementId` equals the tool name because a local call has no BPMN element.
+The `ASSISTANT` item lists every call of the message; the per-turn metrics count them all in `toolCalls`
+(a measure of what the model requested, consistent with the listed calls and the status choice
+`IDLE`/`TOOL_CALLING`). Unit tests: `AgentSubProcessRequestHandlerTest` and `AgentTaskRequestHandlerTest`
+(call order, status and arguments), `CamundaAgentInstanceClientTest` (merged local and process results
+as items), `AgentConversationTurnInputComposerImplTest` (what `Deferred` carries).
+
+What cannot be represented:
+
+- The history has no marker that a result came from the agent and not from a tool element; a consumer sees
+  `elementId` = tool name with no matching element. A local result and a real one are otherwise alike.
+- A local answer is not visible before the next job (mixed batch), see blocker 2.
+- The documents the agent returns are not reported; the selection of `return_documents` appears only as the
+  text of its result.
+- The rows written by `Deferred` streaming duplicate with the batch-complete write until the history
+  dedups by `historyItemId`; local results avoid that by not being streamed.
 
 ## 6. Gaps compared with camunda/experience-pdp#81
 
@@ -426,8 +497,9 @@ windowing filter evicts the tool results together with their assistant message.
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest`, `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/agent/DocumentParameterResolverTest`, `DocumentParameterToolCallInspectorTest`, `LocalToolCallHandlerImplTest` |
+| Documents into tools | `aiagent/agent/DocumentParameterResolverTest`, `DocumentParameterToolCallInspectorTest`, `LocalToolCallHandlerImplTest` (per-call split, order, first answer wins) |
 | Documents out | `aiagent/agent/ReturnDocumentsToolCallInspectorTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (reserved name), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
+| Mixed batches | `AgentSubProcessRequestHandlerTest` / `AgentTaskRequestHandlerTest` (one model call, only real calls activated, pending results, status, clearing), `AgentResponseHandlerDocumentsTest` (local calls not emitted), `AgentConversationTurnInputComposerImplTest` (merge in call order, partial arrival, interrupt, no gateway transform, foreign ids ignored), `AgentConversationTest` (`withPendingLocalToolCallResults`), `AgentContextTest` and `AgentContextSchemaMigrationTest` (persistence round trip, missing field), `CamundaAgentInstanceClientTest` (history items of merged results) |
 
 ### End-to-end tests (`connectors-e2e-test/connectors-e2e-test-agentic-ai`, WireMock model)
 
@@ -454,10 +526,12 @@ result tag, so the model-visible id and the id in `agent.documents` are compared
 |----------|------|--------|
 | (a) schema | `toolDefinitionDeclaresTheDocumentParameterAsString` | The first raw request has `type: string` plus the hint for the document parameter, `required`, and no `documentParameters` anywhere; no `return_documents` while the option is off. |
 | (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `return_documents` (local round), final text; `agent.documents` holds the Camunda reference (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
-| (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | Error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
+| (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its document message, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
 | (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.documents` on the `AgentResponse`). |
+| (g) mixed batch | `mixedBatchOfReturnDocumentsAndARealToolCostsNoExtraModelCall` (both flavors) | `return_documents` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.documents` holds the document, nothing pending afterwards. |
+| (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
 of every recorded model request for `storeId`, `contentHash` and `camunda.document.type`. It runs in
