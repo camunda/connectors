@@ -177,6 +177,13 @@ class AgentTaskRequestHandlerTest {
             any(),
             any(),
             eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+    // the local result is reported right away, without a status of its own
+    final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
+    verify(agentInstanceClient)
+        .applyToolCallResults(
+            eq(agentExecutionContext), any(), reportedResultsCaptor.capture(), any());
+    assertThat(reportedResultsCaptor.getValue())
+        .isEqualTo(agentResponse.context().pendingLocalToolCallResults());
   }
 
   @Test

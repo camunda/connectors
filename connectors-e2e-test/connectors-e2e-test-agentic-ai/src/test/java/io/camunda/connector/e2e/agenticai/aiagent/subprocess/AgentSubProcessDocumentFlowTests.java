@@ -29,6 +29,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.as
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentsWithPingTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentsWithSlowToolTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
@@ -49,6 +50,9 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.assertions.JobSelectors;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -58,6 +62,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
@@ -73,6 +78,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
+
+  @Autowired private CamundaProcessTestContext processTestContext;
 
   @Override
   protected Resource testProcess() {
@@ -104,7 +111,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(rawRequest).doesNotContain("documentParameters");
     // the option for returning documents is off: no built-in tool
     assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().toolNames())
-        .containsExactlyInAnyOrder("Download_A_File", "Upload_A_File", "Ping");
+        .containsExactlyInAnyOrder("Download_A_File", "Upload_A_File", "Ping", "Slow_Tool");
     assertNoDocumentInternalsInLlmRequests();
   }
 
@@ -149,7 +156,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
     assertThat(recorded.requests().getFirst().toolNames())
-        .containsExactlyInAnyOrder("Download_A_File", "Upload_A_File", "Ping", "return_documents");
+        .containsExactlyInAnyOrder(
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "return_documents");
 
     // the id the model works with is the one shown with the downloaded document
     final var downloadResult = recorded.requests().get(1).messages().get(3);
@@ -295,6 +303,42 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .hasToolResultsFor("return_documents", "Ping")
         .hasToolCallsWithElementId("return_documents", null)
         .hasToolCallsWithElementId("Ping", "Ping")
+        .verify();
+  }
+
+  /**
+   * The local result of a mixed batch is in the agent instance history as soon as the job that
+   * answered it completes, while the real call of the batch is still running. The next job reports
+   * it again with the merged results, and the history still holds it exactly once.
+   */
+  @Test
+  void localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique()
+      throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentsWithSlowToolTurn(), finalTurn());
+
+    final var zeebeTest = startProcess(e -> e.property("data.response.includeDocuments", "=true"));
+    final var processInstance = zeebeTest.getProcessInstanceEvent();
+    CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
+    final var agentInstanceKey =
+        AgentInstanceEngineVerifier.awaitAgentInstanceKey(
+            camundaClient, processInstance.getProcessInstanceKey());
+
+    // the slow tool has not answered, the local result is already reported
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasExactlyToolResultsInOrder("Download_A_File", "return_documents")
+        .verify();
+    CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
+
+    processTestContext.completeJob(
+        JobSelectors.byElementId("Slow_Tool")
+            .and(JobSelectors.byProcessInstanceKey(processInstance.getProcessInstanceKey())),
+        Map.of("toolCallResult", "slow tool done"));
+    awaitProcessCompletion(zeebeTest);
+
+    // the next job reported the local result again: no duplicate, call order kept
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasExactlyToolResultsInOrder("Download_A_File", "return_documents", "Slow_Tool")
         .verify();
   }
 

@@ -189,6 +189,46 @@ public class AgentInstanceEngineVerifier {
   }
 
   /**
+   * Asserts the committed TOOL_RESULT items are exactly the ones of the given tools, in {@code
+   * historyItemKey} order. A result reported twice would show up as a repeated name, so this also
+   * proves that every result is in the history exactly once.
+   */
+  public AgentInstanceEngineVerifier hasExactlyToolResultsInOrder(String... toolNames) {
+    historyChecks.add(
+        history ->
+            assertThat(
+                    history.stream()
+                        .filter(item -> item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
+                        .flatMap(item -> item.getToolCalls().stream())
+                        .map(AgentInstanceHistoryToolCall::getToolName)
+                        .toList())
+                .as("committed TOOL_RESULT tool names in history order")
+                .containsExactly(toolNames));
+    return this;
+  }
+
+  /**
+   * Awaits the agent instance of a process instance and returns its key, for an agent that has not
+   * finished yet.
+   */
+  public static long awaitAgentInstanceKey(CamundaClient client, long processInstanceKey) {
+    return await()
+        .alias("agent instance of process instance " + processInstanceKey)
+        .atMost(Duration.ofSeconds(30))
+        .ignoreExceptions()
+        .until(
+            () ->
+                client
+                    .newAgentInstanceSearchRequest()
+                    .filter(f -> f.processInstanceKey(processInstanceKey))
+                    .execute()
+                    .items(),
+            items -> !items.isEmpty())
+        .getFirst()
+        .getAgentInstanceKey();
+  }
+
+  /**
    * Asserts the tool calls of the history (ASSISTANT items) and the TOOL_RESULT items of the given
    * tool carry the given element id, {@code null} for a tool without a BPMN element.
    */

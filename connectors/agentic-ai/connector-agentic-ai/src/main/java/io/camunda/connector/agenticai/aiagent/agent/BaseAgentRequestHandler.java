@@ -343,6 +343,16 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn().iterationKey(),
             split.remainingCalls().size());
 
+        // the local results become visible in the history right away, correlated to the assistant
+        // turn that was just completed (no status change: the round already carries its one
+        // status). The next job reports them again with its turn start under the same history item
+        // ids, which the engine deduplicates.
+        agentInstanceClient.applyToolCallResults(
+            executionContext,
+            agentInstanceKey,
+            split.localResults(),
+            workingConversation.currentTurn());
+
         // the results join the process results of the remaining calls in the next job
         workingConversation =
             workingConversation.withPendingLocalToolCallResults(split.localResults());

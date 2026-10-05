@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
@@ -971,8 +972,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages().get(2)).isEqualTo(message);
             });
 
-    // history: one turn start, one completion with the status of a tool calling turn; the local
-    // result is reported with the next job's turn start together with the process result
+    // history: one turn start, one completion with the status of a tool calling turn, then the
+    // local result right away (status-less), correlated to the completed assistant turn
     final var inOrder = inOrder(agentInstanceClient);
     inOrder
         .verify(agentInstanceClient)
@@ -985,8 +986,19 @@ class AgentSubProcessRequestHandlerTest {
             turnCaptor.capture(),
             any(),
             eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+    final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyToolCallResults(
+            eq(agentExecutionContext),
+            any(),
+            reportedResultsCaptor.capture(),
+            same(turnCaptor.getValue()));
     inOrder.verifyNoMoreInteractions();
     assertThat(turnCaptor.getValue().toolCalls()).containsExactly(badCall, otherCall);
+    // the reported result is the one kept pending, with the same completion timestamp
+    assertThat(reportedResultsCaptor.getValue())
+        .isEqualTo(agentResponse.context().pendingLocalToolCallResults());
   }
 
   @Test

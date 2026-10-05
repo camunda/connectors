@@ -1232,6 +1232,19 @@ class CamundaAgentInstanceClientTest {
 
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
 
+    private AgentConfiguration configuration() {
+      return new AgentConfiguration(
+          new OpenAiProviderConfiguration(
+              new OpenAiProviderConfiguration.OpenAiConnection(
+                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
+          null,
+          null,
+          null,
+          null,
+          null);
+    }
+
     @Test
     void shouldSkipWhenAgentInstanceKeyIsNull() {
       final var previousTurn =
@@ -1298,6 +1311,83 @@ class CamundaAgentInstanceClientTest {
                 assertThat(item.getLoopIteration()).isEqualTo(4);
                 assertThat(item.getProducedAt()).isEqualTo(completedAt);
               });
+    }
+
+    @Test
+    void shouldReportALocalResultEarlyUnderTheSameItemAsTheMergedTurnStartOfTheNextJob() {
+      givenUpdateCommand();
+      final var configuration = configuration();
+      final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
+      final var localResult =
+          ToolCallResult.builder()
+              .id("local")
+              .name("return_documents")
+              .content("Selected 1 document(s) to return: doc-1")
+              .completedAt(completedAt)
+              .build();
+      final var realResult =
+          ToolCallResultContent.builder()
+              .id("real")
+              .name("getWeather")
+              .elementId("getWeather")
+              .content(List.of(TextContent.textContent("sunny")))
+              .completedAt(OffsetDateTime.parse("2026-07-02T09:59:50Z"))
+              .build();
+      final var assistantTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("local")
+                              .name("return_documents")
+                              .arguments(Map.of("ids", List.of("doc-1")))
+                              .build(),
+                          ToolCall.builder()
+                              .id("real")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var nextTurn =
+          new AgentConversationTurn(
+              2,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(ToolCallResultContent.from(localResult), realResult))
+                      .build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+
+      // first job: the local result is reported right after the assistant turn
+      client.applyToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          List.of(localResult),
+          assistantTurn);
+      // next job: the merged results are reported with the turn start
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          nextTurn,
+          Optional.of(assistantTurn),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      verify(updateCommandStep4, times(2)).history(historyCaptor.capture());
+      final var early = historyCaptor.getAllValues().get(0).getFirst();
+      final var merged = historyCaptor.getAllValues().get(1).getFirst();
+      // everything the engine's dedup by history item id would otherwise have to pick between
+      // is identical, so it is irrelevant which of the two writes it keeps
+      assertThat(early.getHistoryItemId()).isEqualTo("local");
+      assertThat(early.getLoopIteration()).isEqualTo(2);
+      assertThat(early.getProducedAt()).isEqualTo(completedAt);
+      assertThat(merged).usingRecursiveComparison().isEqualTo(early);
     }
 
     @Test

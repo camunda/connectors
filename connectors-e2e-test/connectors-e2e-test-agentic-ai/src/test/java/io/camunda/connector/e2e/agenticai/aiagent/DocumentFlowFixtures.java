@@ -50,6 +50,7 @@ public final class DocumentFlowFixtures {
   public static final String UPLOAD_CALL_ID = "call_upload";
   public static final String RETURN_CALL_ID = "call_return";
   public static final String PING_CALL_ID = "call_ping";
+  public static final String SLOW_TOOL_CALL_ID = "call_slow";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
@@ -106,6 +107,20 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             RETURN_CALL_ID, "return_documents", "{\"ids\": [\"%s\"]}".formatted(documentId(0))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
+  }
+
+  /**
+   * One assistant message with a valid {@code return_documents} call and a real {@code Slow_Tool}
+   * call, which keeps running until the test completes its job.
+   */
+  public static Turn returnDocumentsWithSlowToolTurn() {
+    return Turn.toolCalls(
+        "I will return the document and run the slow tool.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID, "return_documents", "{\"ids\": [\"%s\"]}".formatted(documentId(0))),
+        ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
   /** One assistant message with an upload of an unknown document id and a real {@code Ping}. */
