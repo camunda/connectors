@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.api.document.Document;
@@ -127,6 +128,32 @@ class DocumentReferenceXmlTagTest {
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
                 .formatted(DocumentHandle.idFor(doc)));
+  }
+
+  @Test
+  void omitsAFileNameThatEqualsTheId() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .documentId("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
+                .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
+                .contentType("text/plain")
+                .build());
+    final var entry = DocumentRegistryEntry.from(new IngestedDocument(doc, "call_1", "tool"));
+    final var expected =
+        "<doc id=\"0f6b0a1e-aaaa-bbbb-cccc-0123456789ab\" contentType=\"text/plain\""
+            + " toolName=\"tool\" toolCallId=\"call_1\" />";
+
+    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool").toXml()).isEqualTo(expected);
+    assertThat(DocumentReferenceXmlTag.from(entry).toXml()).isEqualTo(expected);
+    assertThat(DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsText())
+        .doesNotContain("fileName");
+  }
+
+  @Test
+  void keepsAFileNameThatDiffersFromTheId() {
+    assertThat(new DocumentReferenceXmlTag("doc-1", "doc-1.txt", null, null, null).toXml())
+        .isEqualTo("<doc id=\"doc-1\" fileName=\"doc-1.txt\" />");
   }
 
   @Test

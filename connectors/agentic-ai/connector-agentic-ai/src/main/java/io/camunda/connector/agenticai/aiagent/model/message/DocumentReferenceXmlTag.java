@@ -23,7 +23,8 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code id} is the {@link DocumentHandle#idFor stable document id}. The tag never carries a
  * store id, content hash, other metadata or URL (an external URL may be a presigned one). Null or
  * blank attributes are omitted; {@code toolName} and {@code toolCallId} are only present for
- * documents that came from a tool result.
+ * documents that came from a tool result. A file name that equals the id (a document stored without
+ * a name of its own) is omitted as well, it would only repeat the id.
  */
 public record DocumentReferenceXmlTag(
     String id,
@@ -31,6 +32,12 @@ public record DocumentReferenceXmlTag(
     @Nullable String contentType,
     @Nullable String toolName,
     @Nullable String toolCallId) {
+
+  public DocumentReferenceXmlTag {
+    if (fileName != null && fileName.equals(id)) {
+      fileName = null;
+    }
+  }
 
   /** Creates a tag from a document and its tool call context. */
   public static DocumentReferenceXmlTag from(
