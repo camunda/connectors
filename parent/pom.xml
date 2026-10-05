@@ -176,7 +176,7 @@ limitations under the License.</license.inlineheader>
 
     <version.netty>4.2.18.Final</version.netty>
 
-    <version.snappy-java>1.1.10.8</version.snappy-java>
+    <version.snappy-java>1.1.10.10</version.snappy-java>
     <version.commons-codec>1.22.1</version.commons-codec>
     <version.guava>33.7.2-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
