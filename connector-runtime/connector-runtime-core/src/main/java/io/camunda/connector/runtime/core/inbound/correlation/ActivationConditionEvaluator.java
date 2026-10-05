@@ -118,9 +118,36 @@ public class ActivationConditionEvaluator {
     }
   }
 
+  /**
+   * An older version whose activation condition cannot be evaluated is left out rather than failing
+   * the input, so it cannot block the latest version.
+   */
   private List<InboundConnectorElement> getMatchingElements(
       List<InboundConnectorElement> elements, Object context) {
-    return elements.stream().filter(e -> isActivationConditionMet(e, context)).toList();
+    var matchingElements = new ArrayList<InboundConnectorElement>();
+    for (var element : elements) {
+      try {
+        if (isActivationConditionMet(element, context)) {
+          matchingElements.add(element);
+        }
+      } catch (ConnectorInputException e) {
+        if (!isOlderVersion(element, elements)) {
+          throw e;
+        }
+        LOG.warn(
+            "Skipping element '{}' (version {}): {}",
+            element.element().elementId(),
+            element.element().version(),
+            e.getMessage());
+      }
+    }
+    return matchingElements;
+  }
+
+  private static boolean isOlderVersion(
+      InboundConnectorElement element, List<InboundConnectorElement> elements) {
+    return elements.stream()
+        .anyMatch(other -> other.element().version() > element.element().version());
   }
 
   /**

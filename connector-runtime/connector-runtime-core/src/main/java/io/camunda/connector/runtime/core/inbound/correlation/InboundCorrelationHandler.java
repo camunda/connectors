@@ -122,9 +122,11 @@ public class InboundCorrelationHandler {
 
   /**
    * Correlates the input to each element, latest version first. There is more than one element only
-   * when the input matches several process versions publishing distinct messages. The first failure
-   * is returned so the input is retried as a whole: elements already correlated are then correlated
-   * again, as for any retried input.
+   * when the input matches several process versions publishing distinct messages.
+   *
+   * <p>An older version the input is invalid for is skipped, as retrying would never succeed and
+   * would block the latest version. Any other failure is returned so the input is retried as a
+   * whole: elements already correlated are then correlated again, as for any retried input.
    */
   private CorrelationResult correlateAll(
       List<InboundConnectorElement> elementsToCorrelate, Object variables, String messageId) {
@@ -134,7 +136,13 @@ public class InboundCorrelationHandler {
     }
     for (var element : elementsToCorrelate.subList(1, elementsToCorrelate.size())) {
       var result = correlateInternal(element, variables, messageId);
-      if (result instanceof Failure) {
+      if (result instanceof Failure.InvalidInput invalidInput) {
+        LOG.warn(
+            "Skipping element '{}' (version {}): {}",
+            element.element().elementId(),
+            element.element().version(),
+            invalidInput.message());
+      } else if (result instanceof Failure) {
         return result;
       }
     }

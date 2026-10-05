@@ -481,6 +481,28 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
+    @DisplayName("An older version whose activation condition cannot be evaluated is skipped")
+    void olderVersionWithInvalidActivationCondition_isSkipped() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      when(v2.activationCondition()).thenReturn("=");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10);
+    }
+
+    @Test
+    @DisplayName("The latest version's invalid activation condition still fails the input")
+    void latestVersionWithInvalidActivationCondition_throws() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
+      when(v10.activationCondition()).thenReturn("=");
+
+      assertThrows(
+          ConnectorInputException.class,
+          () -> evaluator.checkActivation(List.of(v2, v10), Map.of("id", "1")));
+    }
+
+    @Test
     @DisplayName("The latest version is kept even when its correlation key cannot be evaluated")
     void latestVersionWithoutCorrelationKey_isKept() {
       var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");

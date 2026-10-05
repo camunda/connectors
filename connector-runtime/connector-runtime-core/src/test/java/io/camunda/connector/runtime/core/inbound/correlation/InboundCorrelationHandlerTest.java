@@ -255,6 +255,28 @@ public class InboundCorrelationHandlerTest {
     }
 
     @Test
+    void invalidInputForOlderVersion_isSkipped() {
+      // given
+      var v2 = mock(InboundConnectorElement.class);
+      when(v2.correlationPoint())
+          .thenReturn(new StandaloneMessageCorrelationPoint("msg-v2", "=id", "=missing", null));
+      when(v2.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 2, 2, "step", "default"));
+      var v10 = versionedMessageElement(10, "msg-v10");
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(v2, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      verify(camundaClient, times(1)).newPublishMessageCommand();
+      verify(dummyCommand).messageName("msg-v10");
+    }
+
+    @Test
     void failedPublishForOlderVersion_isReturned() {
       // given
       var v2 = versionedMessageElement(2, "msg-v2");

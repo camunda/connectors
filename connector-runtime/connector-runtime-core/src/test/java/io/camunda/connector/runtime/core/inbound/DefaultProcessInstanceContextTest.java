@@ -33,6 +33,7 @@ import io.camunda.client.api.response.EvaluateExpressionResponse;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
@@ -41,6 +42,8 @@ import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentDeserializationTest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -163,6 +166,43 @@ class DefaultProcessInstanceContextTest {
     // then: resolved through tenant-b's factory, matching the reader attribute set from
     // context.getDefinition().physicalTenantId()
     assertThat(result.getDocument().reference()).isEqualTo(ref);
+  }
+
+  @Test
+  void correlate_onlyUsesTheElementsOfTheInstancesOwnVersion() {
+    // given: an executable holding the elements of two process versions
+    var v2 = mock(InboundConnectorElement.class);
+    when(v2.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 2, 2002L, "step", "default"));
+    var v10 = mock(InboundConnectorElement.class);
+    when(v10.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 2010L, "step", "default"));
+
+    var intermediateContext = mock(InboundIntermediateConnectorContextImpl.class);
+    when(intermediateContext.connectorElements()).thenReturn(List.of(v2, v10));
+    when(intermediateContext.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type", "tenant-A", "dedup", List.of(), null));
+
+    var elementInstance = mock(ElementInstance.class);
+    when(elementInstance.getProcessDefinitionKey()).thenReturn(2002L);
+    when(elementInstance.getElementId()).thenReturn("step");
+    when(elementInstance.getElementInstanceKey()).thenReturn(1L);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    var context =
+        new DefaultProcessInstanceContext(
+            intermediateContext,
+            elementInstance,
+            obj -> {},
+            correlationHandler,
+            mapper,
+            mock(CamundaClient.class));
+
+    // when
+    context.correlate(Map.of("id", "1"));
+
+    // then
+    verify(correlationHandler).correlate(eq(List.of(v2)), any(CorrelationRequest.class));
   }
 
   public static class DocumentProps {

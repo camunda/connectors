@@ -33,6 +33,8 @@ import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
@@ -111,8 +113,21 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   public void correlate(final Object variables) {
     String messageId = elementInstance.getElementId() + elementInstance.getElementInstanceKey();
     correlationHandler.correlate(
-        context.connectorElements(),
+        ownVersionElements(),
         CorrelationRequest.builder().variables(variables).messageId(messageId).build());
+  }
+
+  /**
+   * The connector elements of the process version this instance runs on. The executable can hold
+   * elements of several versions, but the polled data belongs to this instance only.
+   */
+  private List<InboundConnectorElement> ownVersionElements() {
+    var processDefinitionKey = elementInstance.getProcessDefinitionKey();
+    var ownVersionElements =
+        context.connectorElements().stream()
+            .filter(e -> Objects.equals(processDefinitionKey, e.element().processDefinitionKey()))
+            .toList();
+    return ownVersionElements.isEmpty() ? context.connectorElements() : ownVersionElements;
   }
 
   @Override
