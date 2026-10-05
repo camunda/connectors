@@ -101,6 +101,22 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
+  /**
+   * Asserts the instance lists the tool without a BPMN element, as a local tool of the agent is.
+   */
+  public AgentInstanceEngineVerifier hasToolWithoutElementId(String toolName) {
+    instanceChecks.add(
+        instance ->
+            assertThat(instance.getTools())
+                .as("tool '%s' without a BPMN element", toolName)
+                .anySatisfy(
+                    tool -> {
+                      assertThat(tool.getName()).isEqualTo(toolName);
+                      assertThat(tool.getElementId()).isNull();
+                    }));
+    return this;
+  }
+
   /** Asserts the create-time CONFIGURATION item, i.e. the lowest-keyed one. */
   public AgentInstanceEngineVerifier createdWithConfigurationItem(
       String model, String provider, int maxModelCalls) {
@@ -168,6 +184,30 @@ public class AgentInstanceEngineVerifier {
                   .map(AgentInstanceHistoryToolCall::getToolName)
                   .toList();
           assertThat(resultToolNames).as("tool result tool names").contains(toolNames);
+        });
+    return this;
+  }
+
+  /**
+   * Asserts the tool calls of the history (ASSISTANT items) and the TOOL_RESULT items of the given
+   * tool carry the given element id, {@code null} for a tool without a BPMN element.
+   */
+  public AgentInstanceEngineVerifier hasToolCallsWithElementId(String toolName, String elementId) {
+    historyChecks.add(
+        history -> {
+          final var calls =
+              history.stream()
+                  .filter(
+                      item ->
+                          item.getRole() == AgentInstanceHistoryRole.ASSISTANT
+                              || item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
+                  .flatMap(item -> item.getToolCalls().stream())
+                  .filter(call -> toolName.equals(call.getToolName()))
+                  .toList();
+          assertThat(calls).as("history tool calls of '%s'", toolName).isNotEmpty();
+          assertThat(calls)
+              .as("element id of the history tool calls of '%s'", toolName)
+              .allSatisfy(call -> assertThat(call.getElementId()).isEqualTo(elementId));
         });
     return this;
   }

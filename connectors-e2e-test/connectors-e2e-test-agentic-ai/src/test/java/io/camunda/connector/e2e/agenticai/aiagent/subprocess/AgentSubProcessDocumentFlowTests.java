@@ -46,9 +46,11 @@ import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -266,6 +268,34 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * The agent instance lists the available local tool without a BPMN element and reports its call
+   * and its result next to the real call of the batch.
+   */
+  @Test
+  void agentInstanceHistoryReportsTheLocalToolAndItsCalls() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentsWithPingTurn(), finalTurn());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            startProcess(e -> e.property("data.response.includeDocuments", "=true")));
+
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey()));
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasToolsContaining("Download_A_File", "Upload_A_File", "Ping", "return_documents")
+        .hasToolWithoutElementId("return_documents")
+        .hasToolResultsFor("return_documents", "Ping")
+        .hasToolCallsWithElementId("return_documents", null)
+        .hasToolCallsWithElementId("Ping", "Ping")
+        .verify();
   }
 
   /**
