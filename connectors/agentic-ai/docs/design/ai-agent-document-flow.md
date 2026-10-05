@@ -37,18 +37,18 @@ referenced by id in tool calls, and leave through the response.
    documents (`createEventMessage`, :247). The list is ordered prompt and tool results first, events
    last, matching the message order.
 3. **Registry.** `BaseAgentRequestHandler.converse` (:119) passes the new documents to
-   `registerDocuments` (:170). It loads the registry through `DocumentRegistryStorage`, seeds it from
+   `registerDocuments` (:178). It loads the registry through `DocumentRegistryStorage`, seeds it from
    the loaded messages when it is empty and a conversation exists, adds the new documents and returns
-   the agent context carrying the result. `proceed` (:200) rehydrates the `AgentConversation` from
-   that context, so every copy-on-write step and `AgentConversation.toAgentContext()` (:361) carry the
+   the agent context carrying the result. `proceed` (:208) rehydrates the `AgentConversation` from
+   that context, so every copy-on-write step and `AgentConversation.toAgentContext()` (:378) carry the
    registry, and it is persisted by the same job completion as the rest of `agentContext`
    (`AgentContext.documents`, `aiagent/model/AgentContext.java`:37). The `Deferred`, `NoInput` and
    no-op paths do not register anything because nothing enters the conversation there.
 4. **Rendering.** The composer puts a `<doc .../>` tag (`aiagent/model/message/DocumentReferenceXmlTag.java`)
    before each `DocumentContent` (`createDocumentPairs` :293, `createUserPromptMessage` :150).
    `aiagent/chatmodel/provider/ModelFacingJson.java` renders a `Document` at any depth of tool result
-   or message object content as its tag, for every provider path. `AgentConversation.window` (:344)
-   appends the eviction note (`EvictedDocumentsNote.appendTo`, :346) to the windowed snapshot. The tool
+   or message object content as its tag, for every provider path. `AgentConversation.window` (:365)
+   appends the eviction note (`EvictedDocumentsNote.appendTo`, :367) to the windowed snapshot. The tool
    definitions of the snapshot are those of `AgentConfiguration.toolDefinitions()`: the tools of the
    process plus the available local tools, among them `return_documents` while `returnsDocuments()`
    (section 9).
@@ -98,9 +98,9 @@ property names are escaped as `~0` and `~1`). It is `@JsonInclude(NON_EMPTY)` an
 empty list, so a tool without document parameters serializes and compares equal to a definition
 persisted before the field existed. The field lives outside the schema, so no provider converter
 (langchain4j, Anthropic, Bedrock, Gemini, OpenAI completions/responses) sees it; they only read
-`name`, `description` and `inputSchema`. `AgentToolsResolverImpl.updateChangedToolDefinitions` (:116)
+`name`, `description` and `inputSchema`. `AgentToolsResolverImpl.updateChangedToolDefinitions` (:128)
 and `AgentInitializerImpl` need no change because they compare and store whole `ToolDefinition`
-records. No configuration fingerprint covers tool definitions.
+records. The configuration fingerprint covers the tool definitions offered in an invocation (the process tools and the available local tools, section 9), not the persisted `AgentContext.toolDefinitions` alone.
 
 Reason: pointers keep the schema sent to the provider free of non-standard keywords, let the resolver
 walk arguments without re-deriving the schema, and keep the persisted tool definitions backward
@@ -358,7 +358,7 @@ section 5.
 **Where.** `AgentContext.documents` (`List<DocumentRegistryEntry>`, `@JsonInclude(NON_EMPTY)`),
 accessed through `DocumentRegistryStorage` (`DocumentRegistry load(AgentContext)`, `AgentContext
 store(AgentContext, DocumentRegistry)`). The only implementation, `AgentContextDocumentRegistryStorage`
-(bean at `AgenticAiConnectorsAutoConfiguration`:302), reads and writes `AgentContext.documents()`.
+(bean at `AgenticAiConnectorsAutoConfiguration`:316), reads and writes `AgentContext.documents()`.
 
 **Store independence.** The registry rides in `agentContext`. The `ConversationSession`
 implementations (in-process, Camunda document, AWS AgentCore) only read the context and return the
@@ -418,6 +418,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content. |
 | 7 | Seeded registry completeness | Low | The seed scan is best effort and rescans conversations without documents every turn. |
 | 8 | File name from a URL path segment | Low | For an external document without a name the last URL path segment becomes the file name and can carry an owner-chosen identifier (for example a token). Only a reference `name` or Camunda metadata is fully controlled by the connector user. |
+| 9 | Order of process tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map whose iteration order differs per JVM, so the configuration fingerprint (which hashes the tool definitions) of a process tool with several top-level schema entries can differ between connector workers. A job that lands on another worker can then report an extra `CONFIGURATION` history item. The definitions of local tools keep their declared order. |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose definition has
 `documentParameters` (the tool name is the lookup key); a failing resolution in `createResponse`
@@ -582,15 +583,17 @@ the way tools are registered with other agent frameworks. Code is in
 
 ### 9.1 How other frameworks define a tool
 
-Verified means read from the sources in the local Maven repository (versions in the table); the OpenAI
-Agents SDK row is from its public documentation and not verified against sources here.
+Verified means read from the sources jars in the local Maven repository, at the versions in the table.
+LangChain4j `ToolExecutor` and the error handlers are in the `langchain4j` artifact (the module depends on
+`langchain4j-core` only, same version), Spring AI is not a dependency of the module. The OpenAI Agents SDK
+row is from its public documentation and not verified against sources here.
 
 | | Definition | Executor | Arguments | Context | Result | Errors | Enablement | State |
 |---|---|---|---|---|---|---|---|---|
-| LangChain4j 1.20.2 (verified) | `ToolSpecification` (name, description, `JsonObjectSchema`, metadata); from `@Tool` methods via `ToolSpecifications` | `ToolExecutor.execute(ToolExecutionRequest, memoryId)`; `executeWithContext` with `InvocationContext` | arguments JSON string; `@Tool` methods are bound by reflection, `@P` describes parameters | memory id, `InvocationContext` | `String`, or `ToolExecutionResult` (`isError`, result text or contents, attributes); `ReturnBehavior` (`TO_LLM`, `IMMEDIATE`) | `ToolExecutionErrorHandler`; default of the sync path hands the execution error to the model as text, argument errors are rethrown | `ToolProvider.provideTools(request)`, `isDynamic()` per request | none in the tool; memory by id |
-| Spring AI 2.0.0 (verified) | `ToolDefinition` (name, description, input schema string); `ToolMetadata.returnDirect` | `ToolCallback.call(String toolInput [, ToolContext])`; `FunctionToolCallback.builder(name, BiFunction<I, ToolContext, O>)`; `MethodToolCallback` for `@Tool` | JSON string; `FunctionToolCallback` binds to `inputType` and derives the schema | `ToolContext`, a read-only `Map<String,Object>` | any `O`, converted to a string by `ToolCallResultConverter` | `ToolExecutionExceptionProcessor`; default hands a `RuntimeException` message to the model, other throwables are rethrown | `ToolCallbackProvider`/`ToolCallbackResolver` per request | none in the tool; context map from the caller |
-| Anthropic Java SDK 2.66.0 tool runner (verified) | `BetaTool`; `BetaRunnableTool.of(Class<T>, run)` derives it from a class | `run`: typed `T` to `ToolResultBlockParam.Content` | JSON bound to the class, local schema validation | none | `String` or content blocks | the runner catches any `Exception` and answers `is_error` with `Error: <message>`; an unknown or unavailable tool also gives an error result | `availableToolNames` of the runner | none |
-| MCP Java SDK 2.0.1 (verified) | `McpSchema.Tool` (name, description, input schema) inside `McpServerFeatures.SyncToolSpecification` | `BiFunction<McpSyncServerExchange, CallToolRequest, CallToolResult>` | `CallToolRequest` holds a `Map` | the exchange (session, client capabilities) | `CallToolResult` (content list, `isError`, structured content, meta) | the handler returns `isError` itself | tools added and removed at runtime on the server | none |
+| LangChain4j 1.20.2 (verified, sources) | `ToolSpecification` (name, description, `JsonObjectSchema`, metadata); from `@Tool` methods via `ToolSpecifications` | `ToolExecutor.execute(ToolExecutionRequest, memoryId)`; `executeWithContext` with `InvocationContext` | arguments JSON string; `@Tool` methods are bound by reflection, `@P` describes parameters | memory id, `InvocationContext` | `String`, or `ToolExecutionResult` (`isError`, result text or contents, attributes); `ReturnBehavior` (`TO_LLM`, `IMMEDIATE`) | `ToolExecutionErrorHandler`; default of the sync path hands the execution error to the model as text, argument errors are rethrown | `ToolProvider.provideTools(request)`, `isDynamic()` per request | none in the tool; memory by id |
+| Spring AI 2.0.0 (verified, sources) | `ToolDefinition` (name, description, input schema string); `ToolMetadata.returnDirect` | `ToolCallback.call(String toolInput [, ToolContext])`; `FunctionToolCallback.builder(name, BiFunction<I, ToolContext, O>)`; `MethodToolCallback` for `@Tool` | JSON string; `FunctionToolCallback` binds to `inputType` and derives the schema | `ToolContext`, a read-only `Map<String,Object>` | any `O`, converted to a string by `ToolCallResultConverter` | `ToolExecutionExceptionProcessor`; default hands a `RuntimeException` message to the model, other throwables are rethrown | `ToolCallbackProvider`/`ToolCallbackResolver` per request | none in the tool; context map from the caller |
+| Anthropic Java SDK 2.66.0 tool runner (verified, sources) | `BetaTool`; `BetaRunnableTool.of(Class<T>, run)` derives it from a class | `run`: typed `T` to `ToolResultBlockParam.Content` | JSON bound to the class, local schema validation | none | `String` or content blocks | the runner catches any `Exception` and answers `is_error` with `Error: <message>`; an unknown or unavailable tool also gives an error result | `availableToolNames` of the runner | none |
+| MCP Java SDK 2.0.1 (verified, sources) | `McpSchema.Tool` (name, description, input schema) inside `McpServerFeatures.SyncToolSpecification` | `BiFunction<McpSyncServerExchange, CallToolRequest, CallToolResult>` | `CallToolRequest` holds a `Map` | the exchange (session, client capabilities) | `CallToolResult` (content list, `isError`, structured content, meta) | the handler returns `isError` itself | tools added and removed at runtime on the server | none |
 | OpenAI Agents SDK (documentation, not verified) | `FunctionTool` (name, description, JSON schema, strict); `@function_tool` derives it from a function signature | `on_invoke_tool(ctx, input_json)` | JSON string bound to the signature | `RunContextWrapper` with a user-defined context object | any value, converted to text | `failure_error_function` turns an exception into model-visible text by default | `is_enabled` flag or callable | the mutable context object |
 
 ### 9.2 What we adapt and why
@@ -730,9 +733,15 @@ local tools is checked when the registry is created (startup).
 3. Register it as a Spring bean of type `LocalTool` (`@Bean`); `LocalToolRegistryImpl` collects every bean.
 4. Report failures the model can act on with `LocalToolResult.error` or `LocalToolException`; let bugs
    propagate.
-5. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
+5. Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the definition is part
+   of the configuration fingerprint and of the request sent to the model, and `Map.of` iterates in a
+   different order in every JVM. `LocalToolSchema` does this and `LocalTool.builder` keeps the order of the
+   map it is given; construct a definition by hand with the `ToolDefinition` constructor, not
+   `ToolDefinition.builder()` (the record builder copies the schema into an immutable map of unspecified
+   order).
+6. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
    persisted `AgentContext`; use `AgentContext.properties()` for free-form state.
-6. Test it through `LocalToolCallHandlerImpl` with a conversation, as `LocalToolCallHandlerImplTest` does
+7. Test it through `LocalToolCallHandlerImpl` with a conversation, as `LocalToolCallHandlerImplTest` does
    with the test-only `SaveNoteTool`. Add an end-to-end test when the tool changes what crosses a job
    boundary.
 

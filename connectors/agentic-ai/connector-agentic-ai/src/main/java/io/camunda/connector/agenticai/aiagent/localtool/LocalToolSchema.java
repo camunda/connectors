@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,10 @@ import java.util.Map;
  * A small fluent builder of the object schema of a local tool's arguments. It covers flat
  * parameters; pass a {@link Map} schema to {@link LocalTool.Builder#inputSchema(Map)} for anything
  * more elaborate.
+ *
+ * <p>The maps keep the order of declaration, so the schema serializes to the same bytes in every
+ * JVM; the definition is part of the configuration fingerprint and of the request sent to the
+ * model. Build a schema passed as a {@link Map} the same way.
  *
  * <pre>{@code
  * LocalToolSchema.object()
@@ -52,9 +57,11 @@ public final class LocalToolSchema {
 
   /** An array of strings. */
   public LocalToolSchema stringArray(String name, String description, boolean isRequired) {
-    properties.put(
-        name,
-        Map.of("type", "array", "description", description, "items", Map.of("type", "string")));
+    final var array = new LinkedHashMap<String, Object>();
+    array.put("type", "array");
+    array.put("description", description);
+    array.put("items", Map.of("type", "string"));
+    properties.put(name, Collections.unmodifiableMap(array));
     return markRequired(name, isRequired);
   }
 
@@ -76,11 +83,11 @@ public final class LocalToolSchema {
   public Map<String, Object> build() {
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
-    schema.put("properties", Map.copyOf(properties));
+    schema.put("properties", Collections.unmodifiableMap(new LinkedHashMap<>(properties)));
     if (!required.isEmpty()) {
       schema.put("required", List.copyOf(required));
     }
-    return schema;
+    return Collections.unmodifiableMap(schema);
   }
 
   /** The JSON pointers of the document parameters declared so far. */
@@ -90,7 +97,10 @@ public final class LocalToolSchema {
 
   private LocalToolSchema property(
       String name, String type, String description, boolean isRequired) {
-    properties.put(name, Map.of("type", type, "description", description));
+    final var property = new LinkedHashMap<String, Object>();
+    property.put("type", type);
+    property.put("description", description);
+    properties.put(name, Collections.unmodifiableMap(property));
     return markRequired(name, isRequired);
   }
 

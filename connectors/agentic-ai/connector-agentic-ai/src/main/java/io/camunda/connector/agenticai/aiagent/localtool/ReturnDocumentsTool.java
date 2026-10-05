@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,30 +35,38 @@ public final class ReturnDocumentsTool implements LocalTool {
   public static final String PARAMETER_IDS = "ids";
 
   private static final ToolDefinition DEFINITION =
-      ToolDefinition.builder()
-          .name(NAME)
-          .description(
-              "Attaches documents to your final response. Call this before you give your final"
-                  + " answer for every document the response must contain. Pass the ids of the"
-                  + " <doc/> tags of the documents; the ids accumulate over several calls.")
-          .inputSchema(
+      new ToolDefinition(
+          NAME,
+          "Attaches documents to your final response. Call this before you give your final"
+              + " answer for every document the response must contain. Pass the ids of the"
+              + " <doc/> tags of the documents; the ids accumulate over several calls.",
+          ordered(
+              "type",
+              "object",
+              "properties",
               Map.of(
-                  "type",
-                  "object",
-                  "properties",
-                  Map.of(
-                      PARAMETER_IDS,
-                      Map.of(
-                          "type",
-                          "array",
-                          "description",
-                          "The ids of the <doc/> tags of the documents to return.",
-                          "items",
-                          Map.of("type", "string"))),
-                  "required",
-                  List.of(PARAMETER_IDS)))
-          .documentParameters(List.of("/properties/" + PARAMETER_IDS + "/items"))
-          .build();
+                  PARAMETER_IDS,
+                  ordered(
+                      "type",
+                      "array",
+                      "description",
+                      "The ids of the <doc/> tags of the documents to return.",
+                      "items",
+                      Map.of("type", "string"))),
+              "required",
+              List.of(PARAMETER_IDS)),
+          List.of("/properties/" + PARAMETER_IDS + "/items"));
+
+  // An insertion-ordered map built through the canonical constructor of the record: the definition
+  // is part of the configuration fingerprint and of the request sent to the model, which need the
+  // same bytes in every JVM (the record builder copies maps into an immutable map of salted order).
+  private static Map<String, Object> ordered(Object... keysAndValues) {
+    final var map = new LinkedHashMap<String, Object>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return Collections.unmodifiableMap(map);
+  }
 
   /** The arguments of a call: the selected documents, resolved from the ids the model sent. */
   record Arguments(@Nullable List<Document> ids) {}

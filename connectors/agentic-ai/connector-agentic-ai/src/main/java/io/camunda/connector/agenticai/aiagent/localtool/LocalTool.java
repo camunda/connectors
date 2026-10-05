@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -160,12 +162,13 @@ public interface LocalTool {
       if (definition != null) {
         return definition;
       }
-      return ToolDefinition.builder()
-          .name(name)
-          .description(description)
-          .inputSchema(inputSchema)
-          .documentParameters(documentParameters)
-          .build();
+      // the canonical constructor keeps the order of the schema; the record builder would copy it
+      // into an immutable map of unspecified order
+      return new ToolDefinition(
+          name,
+          description,
+          Collections.unmodifiableMap(new LinkedHashMap<>(inputSchema)),
+          documentParameters);
     }
   }
 }

@@ -45,6 +45,51 @@ class LocalToolBuilderTest {
   }
 
   @Test
+  void keepsTheSchemaInDeclarationOrder() {
+    final var schema =
+        LocalToolSchema.object()
+            .string("zeta", "z", true)
+            .integer("alpha", "a", false)
+            .stringArray("mid", "m", true)
+            .build();
+
+    assertThat(schema.keySet()).containsExactly("type", "properties", "required");
+    @SuppressWarnings("unchecked")
+    final var properties = (Map<String, Object>) schema.get("properties");
+    assertThat(properties.keySet()).containsExactly("zeta", "alpha", "mid");
+    @SuppressWarnings("unchecked")
+    final var alpha = (Map<String, Object>) properties.get("alpha");
+    assertThat(alpha.keySet()).containsExactly("type", "description");
+    @SuppressWarnings("unchecked")
+    final var mid = (Map<String, Object>) properties.get("mid");
+    assertThat(mid.keySet()).containsExactly("type", "description", "items");
+  }
+
+  @Test
+  void keepsTheOrderOfAMapSchemaInTheDefinition() {
+    final var schema = new java.util.LinkedHashMap<String, Object>();
+    schema.put("type", "object");
+    schema.put("properties", Map.of());
+    schema.put("required", List.of());
+
+    final var tool = LocalTool.builder("t").inputSchema(schema).handler((call, context) -> null);
+
+    assertThat(tool.definition().inputSchema().keySet())
+        .containsExactly("type", "properties", "required");
+  }
+
+  @Test
+  void theReturnDocumentsDefinitionKeepsADeterministicKeyOrder() {
+    final var schema = new ReturnDocumentsTool().definition().inputSchema();
+
+    assertThat(schema.keySet()).containsExactly("type", "properties", "required");
+    @SuppressWarnings("unchecked")
+    final var ids =
+        (Map<String, Object>) ((Map<String, Object>) schema.get("properties")).get("ids");
+    assertThat(ids.keySet()).containsExactly("type", "description", "items");
+  }
+
+  @Test
   void bindsTheArgumentsToTheTypeOfTheHandler() {
     record Args(String query, int limit) {}
     final var tool =

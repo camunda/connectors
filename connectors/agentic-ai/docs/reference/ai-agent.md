@@ -2053,6 +2053,8 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    fails the job.
 3. Change agent state only with `LocalToolResult.withContextUpdate(agentContext -> ...)`; the framework
    applies the updates in call order. Never keep state in the tool.
+   Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the definition feeds the
+   configuration fingerprint and the request to the model, which need the same bytes in every JVM.
 4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans, rejects
    duplicate names at startup and reserves every registered name against ad-hoc and gateway tool elements
    (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for an agent or not.
