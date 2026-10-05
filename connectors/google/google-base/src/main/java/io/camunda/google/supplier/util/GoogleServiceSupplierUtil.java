@@ -18,6 +18,9 @@ import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 
 public final class GoogleServiceSupplierUtil {
 
@@ -34,7 +37,8 @@ public final class GoogleServiceSupplierUtil {
 
   public static Credentials getCredentials(Authentication auth) {
     if (auth.authType() == AuthenticationType.BEARER) {
-      AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
+      AccessToken accessToken =
+          new AccessToken(auth.bearerToken(), Date.from(Instant.now().plus(1, ChronoUnit.HOURS)));
       GoogleCredentials googleCredentials = new GoogleCredentials(accessToken);
       return googleCredentials;
     }
