@@ -296,12 +296,12 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - KTD5. **Retry-stable run identity.** The run's trace id and anchor span id are derived by hashing the process instance key and the run-starting job key, which stay the same across retries, timeout re-activations, and incident resolution. The anchor is started as a live root span at the start of the run-starting job through a narrowly scoped ID-generator hook on the runtime's tracer provider, and it is ended only when that job completes successfully; failed attempts never end it, so it is exported once. Governs R5, R17, AE8. (session-settled: user-approved — chosen over random ids per attempt: a failed run-starting job would otherwise split the run into two traces)
 - KTD6. **Session identifier.** Reuse the identifier stored in the run tracing state; otherwise use the agent context's existing conversation id; otherwise derive one from the first job's process instance key and element instance key. It is set on every span, because Langfuse v4 does not inherit trace-level attributes. Governs R12. (session-settled: user-approved — chosen over the conversation store's id: that id only exists after the first job's store write and changes when a first job is retried)
 - KTD7. **Per-job telemetry session with a single-ended `invoke_agent` span.** The session opens lazily once the job is known to do agent work (tool-discovery dispatch or a turn) with the job's start time as span start, so partial-result and other no-op jobs emit nothing. The `invoke_agent` span is ended exactly once by whichever comes first: the handler's exception path (outcome failed, rethrow unchanged), the success callback (outcome completed), or the failure callback (outcome superseded, BPMN error, or command failure). The handler's existing store listener and the telemetry listener are composed so that a telemetry failure never affects the store callback. Governs R6, R15, R17, R18.
-- KTD8. **`chat` spans wrap the one provider-neutral chat-model call site**, so every provider and every continuation round is covered. Token usage is set only on `chat` spans (Langfuse skips usage on agent spans; R11 totals computed from the normalized token usage, where input excludes cache). Rejections map to a low-cardinality `error.type` taken from the existing model error codes; other exceptions map to their class name. Governs R7, R10, R11.
+- KTD8. **`chat` spans wrap the one provider-neutral chat-model call site**, so every provider and every continuation round is covered. Token usage is set only on `chat` spans (Langfuse skips usage on agent spans; R11 totals computed from the normalized token usage, where input excludes cache). Rejections map to a low-cardinality `error.type` taken from the existing model error codes; other exceptions map to their class name. Error spans carry only error status and `error.type`; exception messages, status descriptions, and exception events are attached only when content capture is on, because provider error bodies and parameter-parsing messages can contain prompt or tool content. Governs R7, R10, R11, R20.
 - KTD9. **`execute_tool` spans are built in the success callback** from tool-execution records captured while the turn composes its input: start is the dispatch time stored in the run tracing state when the previous turn issued the tool calls, end is the engine's `completedAt`; cancelled tools get outcome cancelled without error status; results without a stored dispatch time become zero-length spans at completion with a marker attribute. Names and call ids come from the originating tool call, element ids from the result. Governs R8, R16.
 - KTD10. **Anchor root is a Camunda-named INTERNAL span (agent name plus "run") without `gen_ai.operation.name`**, carrying agent name, session identifier, run trigger, and Camunda identity. Keeping the GenAI operation off the anchor keeps `invoke_agent` durations and backend type mapping honest, since the anchor's duration is only the first job's. PoC exit criterion 1 checks the rendering; the fallback is a GenAI-typed anchor. Governs R5, R24.
 - KTD11. **Attempt discriminator is a short hash of the job's lease token**, set as an attribute on the job's `invoke_agent` span; the raw token is never exported. Retries count is not on the connector SDK job context and is not added in the PoC. Governs R17.
 - KTD12. **Sampling uses the runtime's configured sampler.** The anchor root is the only span sampled by ratio; every later span is parented to the persisted context with its sampled flag, so a run is all-in or all-out. The PoC configuration and docs set the probability to 1.0. Governs R3.
-- KTD13. **Run boundary.** A job starts a new run when no tracing state exists, when the state is closed, or when the state is stale: its iteration key differs from the agent context's last iteration key, its process instance differs, or it is open while the previous turn ended without tool calls. The state is closed in the context written by the job whose response has no tool calls. A new run links to the previous anchor when one is readable. Governs R4, R13, R28.
+- KTD13. **Run boundary.** A job starts a new run when no tracing state exists, when the state is closed, or when the state is stale: its iteration key differs from the agent context's last iteration key, its process instance differs, or it is open while a previous turn exists and ended without tool calls (an open state written by a tool-discovery dispatch, with no previous turn yet, continues the run). The state is closed in the context written by the job whose response has no tool calls. A new run links to the previous anchor when one is readable. Governs R4, R13, R28.
 - KTD14. **Attribute vocabulary lives in one constants-and-mapping class pinned to semantic-conventions-genai main as of 2026-10-02**, not in the stale incubating semconv Java artifact. Provider names use the well-known values (`anthropic`, `openai`, `aws.bedrock`, `gcp.gemini`, `gcp.vertex_ai`, `mistral_ai`, `azure.ai.openai`); finish reasons use the schema's normalized set (`stop`, `length`, `content_filter`, `tool_call`, `error`). Governs R24.
 
 ### High-Level Technical Design
@@ -368,7 +368,7 @@ stateDiagram-v2
 
 ### Sequencing
 
-U1 records the decision. U2 sets up dependencies and configuration. U3, U4, and U5 build independent components on top of it. U6 combines them into the per-job session. U7 wires the handler. U8 proves job-level behavior end to end. U9 documents and validates against real backends.
+U1 records the decision. U2 sets up dependencies and configuration. U3 and U4 build independent components on top of U2; U5 builds on U2 and U3. U6 combines them into the per-job session. U7 wires the handler. U8 proves job-level behavior end to end. U9 documents and validates against real backends.
 
 ```mermaid
 flowchart TB
@@ -376,6 +376,7 @@ flowchart TB
   U2 --> U3
   U2 --> U4
   U2 --> U5
+  U3 --> U5
   U3 --> U6
   U4 --> U6
   U5 --> U6
@@ -431,8 +432,9 @@ flowchart TB
 1. Ask the user before adding dependencies (repository rule), presenting the KTD2 list with Boot-managed versions.
 2. Add a nested tracing properties record under the AI Agent properties (KTD3 names and defaults).
 3. Add a tracing configuration imported by the master auto-configuration: the real tracer bean when the enable property is true and an `OpenTelemetry` bean exists, else the NO_OP tracer.
-4. In the runtime application, add the KTD2 runtime dependencies (listed as ignored in the dependency-analysis plugin like the Prometheus registry) and exclude Boot's Micrometer Tracing auto-configuration.
-5. Every new package gets a `package-info.java`.
+4. Declare Boot's OTel tracing auto-configuration module as an optional dependency of the agentic-ai module, because registering the KTD5 root-ID hook needs its tracer-provider customizer type; the hook's configuration is guarded by a class-presence condition so runtimes without the module start normally and get the NO_OP tracer.
+5. In the runtime application, add the KTD2 runtime dependencies (listed as ignored in the dependency-analysis plugin like the Prometheus registry) and exclude Boot's Micrometer Tracing auto-configuration.
+6. Every new package gets a `package-info.java`.
 
 **Patterns to follow:** `McpClientConfiguration` (off-by-default `@ConditionalOnBooleanProperty`, own sub-configuration imported from the master auto-configuration); the Prometheus registry entry in `apps/connector-runtime-application/pom.xml`.
 
@@ -502,6 +504,7 @@ flowchart TB
 - Closed state: a new run linked to the previous anchor, same session. Covers AE4.
 - Stale state (iteration key mismatch, different process instance, or open while the previous turn had no tool calls): a new run linked to the old anchor. Covers AE7.
 - Malformed entry: treated as no state, no exception.
+- Open state written by a tool-discovery dispatch and no previous turn: the first turn continues the same run.
 - Session identifier: stored value wins, then the existing conversation id, then derivation from process and element instance keys.
 - Serialization round-trip through the connectors object mapper keeps all fields.
 
@@ -524,7 +527,8 @@ flowchart TB
 
 **Approach:**
 - The tracer interface has a NO_OP implementation and a real implementation on the runtime `OpenTelemetry` bean with its own instrumentation scope.
-- Anchor creation sets the derived ids through an ID-generator wrapper registered on the runtime's tracer provider: it returns the requested ids once for the current thread and delegates to random ids otherwise.
+- Anchor creation sets the derived ids through an ID-generator wrapper registered on the runtime's tracer provider through Boot's tracer-provider customizer: it returns the requested ids once for the current thread and delegates to random ids otherwise.
+- After starting an anchor, the tracer compares the span's ids with the derived ids; on a mismatch (hook not installed) it logs one warning, persists the actual ids, and the run loses retry stability but stays one trace for its later jobs.
 - Child spans take a remote parent context rebuilt from the run state, including its sampled flag.
 - `execute_tool` spans take explicit start and end timestamps.
 - Status and `error.type` are set without requiring exceptions.
@@ -540,6 +544,7 @@ flowchart TB
 - An anchor that is never ended is never exported.
 - The anchor carries a link to the previous anchor when given one.
 - The NO_OP tracer creates nothing and never throws.
+- Without the ID-generator hook installed, an anchor gets random ids, the tracer reports the actual ids for persistence, and one warning is logged.
 
 **Verification:** Tracer tests pass against the OTel SDK test exporter.
 
@@ -577,6 +582,7 @@ flowchart TB
 - Tool record without dispatch time: zero-length span at completion with the marker attribute.
 - Attempt attribute is a hash and differs from the raw lease token.
 - An exporter or attribute failure inside the session does not propagate.
+- Content capture off and a model call failing with an exception whose message contains prompt text: the exported spans carry error status and `error.type` only, with no status description and no exception event. Covers AE5.
 
 **Verification:** Session tests pass, and each end path produces exactly one `invoke_agent` span.
 
@@ -606,7 +612,7 @@ flowchart TB
 7. Compose the store listener with the telemetry listener, each isolated; give the discovery dispatch its telemetry listener.
 8. Catch exceptions around the agent work only to end the session as failed, then rethrow the same exception.
 
-The Task handler receives the tracer through the shared base and stays functional, but the PoC does not validate it (R26 is deferred).
+The Task handler bean is wired with the NO_OP tracer in the PoC, so Task jobs write no tracing state and emit no spans until R26 is planned with its per-pass analysis.
 
 **Execution note:** Keep existing handler test expectations green first; add the new tracer as a mock or NO_OP in both handler tests, because `@InjectMocks` leaves unmatched constructor arguments null.
 
@@ -620,6 +626,7 @@ The Task handler receives the tracer through the shared base and stays functiona
 - Model rejection: the same coded connector exception is still thrown and the session is ended as failed.
 - Store listener throws on completion: the telemetry listener still runs, and the reverse.
 - Tracing disabled: handler behavior and persisted context are identical to today (no tracing entry written).
+- Tracing enabled: the Task handler still receives the NO_OP tracer, and a Task turn writes no tracing entry.
 
 **Verification:** All existing handler and listener-delegation tests pass unchanged apart from constructor wiring, and the new scenarios pass.
 
@@ -637,7 +644,7 @@ The Task handler receives the tracer through the shared base and stays functiona
 - Create: `connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/java/io/camunda/connector/e2e/agenticai/aiagent/subprocess/AgentSubProcessTracingTests.java`
 
 **Approach:**
-- A test configuration provides an OTel SDK with an always-on sampler and an in-memory exporter as the `OpenTelemetry` bean, and the test class enables agent tracing through test properties.
+- A test configuration provides an OTel SDK built with the production root-ID generator, an always-on sampler, and an in-memory exporter as the `OpenTelemetry` bean, and the test class enables agent tracing through test properties.
 - The exporter is reset before each test.
 - Assertions wait for spans with Awaitility, because completion callbacks run after the complete command.
 - Scenarios are driven by WireMock provider stubs and held-back tool jobs, and the process test context completes the held-back tool job.
@@ -651,7 +658,7 @@ The Task handler receives the tracer through the shared base and stays functiona
 - Covers F3 / AE4. User feedback after the final answer starts a second trace with the same session identifier and a link to the first anchor.
 - Covers F2 / AE2. A model stub fails once on the consuming turn and the job is retried: two `invoke_agent` spans (failed and completed), two `chat` spans, `execute_tool` spans once.
 - Covers AE8. The run-starting job fails once after its model call: both attempts' spans share one trace id and session identifier, and exactly one anchor is exported.
-- Covers AE5. With content capture off, no exported span carries content attributes; with it on, `chat` spans carry input and output messages.
+- Covers AE5. With content capture off, no exported span carries content attributes, status descriptions, or exception events, including on a failed model call; with it on, `chat` spans carry input and output messages.
 - Tracing disabled for one test class: no spans exported and the agent context has no tracing entry.
 
 **Verification:** The new e2e class passes alongside the existing agentic-ai e2e suite.
@@ -685,7 +692,7 @@ The Task handler receives the tracer through the shared base and stays functiona
 ## System-Wide Impact
 
 - The default bundle runtime gains the OTel SDK and an exporter that stays inactive until an endpoint is configured; Boot's Observation-to-span bridge is excluded so other connectors' HTTP and scheduled work produce no spans.
-- Runtimes that embed the connector without the runtime application see only the OTel API on the classpath and get the NO_OP tracer.
+- Runtimes that embed the connector without the runtime application see the OTel API, the SDK trace types, and an optional Boot module reference; without an `OpenTelemetry` bean they get the NO_OP tracer.
 - The `agentContext` process variable grows by one small entry when tracing is enabled; nothing changes when it is disabled.
 - The agent-instance history API, element templates, and the SaaS bundle are untouched.
 
