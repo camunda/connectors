@@ -38,9 +38,10 @@ public final class ReturnDocumentsTool implements LocalTool {
   private static final ToolDefinition DEFINITION =
       new ToolDefinition(
           NAME,
-          "Attaches documents to your final response. Call this before you give your final"
-              + " answer for every document the response must contain. Pass the ids of the"
-              + " <doc/> tags of the documents; the ids accumulate over several calls.",
+          "Attaches documents to your final response. Use this only for documents the user"
+              + " should receive in your answer; do not use it for documents you only pass to"
+              + " other tools. Pass the ids of the <doc/> tags; the ids accumulate over several"
+              + " calls.",
           ordered(
               "type",
               "object",

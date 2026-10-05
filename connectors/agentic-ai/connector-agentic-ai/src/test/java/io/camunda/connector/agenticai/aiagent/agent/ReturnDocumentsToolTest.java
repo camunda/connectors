@@ -78,6 +78,19 @@ class ReturnDocumentsToolTest {
           new AgentTaskResponseConfiguration(null, null, false));
 
   @Test
+  void definitionRestrictsTheToolToDocumentsTheUserShouldReceive() {
+    final var definition = new ReturnDocumentsTool().definition();
+
+    assertThat(definition.description())
+        .isEqualTo(
+            "Attaches documents to your final response. Use this only for documents the user"
+                + " should receive in your answer; do not use it for documents you only pass to"
+                + " other tools. Pass the ids of the <doc/> tags; the ids accumulate over several"
+                + " calls.");
+    assertThat(definition.inputSchema().toString()).contains("type=document");
+  }
+
+  @Test
   void isOfferedOnlyWhileTheResponseConfigurationOptsIn() {
     assertThat(handler.availableToolDefinitions(ENABLED))
         .containsExactly(new ReturnDocumentsTool().definition());
