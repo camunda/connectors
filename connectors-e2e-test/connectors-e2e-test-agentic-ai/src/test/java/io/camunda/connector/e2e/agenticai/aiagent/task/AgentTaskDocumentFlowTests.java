@@ -20,14 +20,18 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertCamundaDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentsWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
@@ -124,6 +128,74 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         zeebeTest,
         agentResponse ->
             AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  @Test
+  void mixedBatchOfReturnDocumentsAndARealToolCostsNoExtraModelCall() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentsWithPingTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+
+    final var documentId =
+        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
+    final var messages = recorded.lastRequest().messages();
+    final var results = messages.subList(messages.size() - 2, messages.size());
+    assertThat(results)
+        .extracting(m -> m.toolCallId())
+        .containsExactly(RETURN_CALL_ID, PING_CALL_ID);
+    assertThat(results.get(0).content()).contains(documentId);
+    assertThat(results.get(1).content()).contains("pong");
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasNoToolCalls()
+              .hasResponseText(FINAL_TEXT);
+          assertThat(agentResponse.documents()).hasSize(1);
+          assertCamundaDocumentReference(agentResponse.documents().getFirst(), documentId);
+          assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
+        });
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  @Test
+  void mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()),
+        unknownUploadWithPingTurn(),
+        uploadTurn(),
+        finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(4);
+
+    final var messages = recorded.requests().get(2).messages();
+    final var results = messages.subList(messages.size() - 2, messages.size());
+    assertThat(results)
+        .extracting(m -> m.toolCallId())
+        .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
+    assertThat(results.get(0).content())
+        .startsWith("Unknown document id 'no-such-document' for parameter 'document'.");
+    assertThat(results.get(1).content()).contains("pong");
+
+    assertThat(uploadCount()).isEqualTo(1);
+    assertUploaded(servedFile(DOWNLOADED_FILE));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT);
+          assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
+        });
     assertNoDocumentInternalsInLlmRequests();
   }
 
