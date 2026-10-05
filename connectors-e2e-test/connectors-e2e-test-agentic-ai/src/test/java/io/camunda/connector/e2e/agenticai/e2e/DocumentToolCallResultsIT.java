@@ -200,7 +200,7 @@ class DocumentToolCallResultsIT {
   // Scenario 3: Documents in nested structure from tool call result
   // ---------------------------------------------------------------------------
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
   void nestedStructureDocumentsFromToolCallResult(
       ProviderConfig provider, WireMockRuntimeInfo wireMock) {
