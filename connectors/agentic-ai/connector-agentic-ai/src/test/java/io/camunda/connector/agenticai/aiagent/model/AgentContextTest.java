@@ -162,12 +162,9 @@ class AgentContextTest {
     final var entry =
         new DocumentRegistryEntry(
             "doc-1",
+            new DocumentRegistryEntry.Origin("search", "call-1"),
             Map.of(
-                "camunda.document.type", "camunda", "storeId", "in-memory", "documentId", "doc-1"),
-            "report.pdf",
-            "application/pdf",
-            "search",
-            "call-1");
+                "camunda.document.type", "camunda", "storeId", "in-memory", "documentId", "doc-1"));
     final var context = AgentContext.builder().documents(List.of(entry)).build();
 
     final var serialized = objectMapper.writeValueAsString(context);

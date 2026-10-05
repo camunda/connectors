@@ -50,8 +50,13 @@ public record DocumentReferenceXmlTag(
 
   /** Creates a tag from a registry entry. */
   public static DocumentReferenceXmlTag from(DocumentRegistryEntry entry) {
+    final var origin = entry.origin();
     return new DocumentReferenceXmlTag(
-        entry.id(), entry.fileName(), entry.contentType(), entry.toolName(), entry.toolCallId());
+        entry.id(),
+        DocumentHandle.fileNameFor(entry.reference()),
+        DocumentHandle.contentTypeFor(entry.reference()),
+        origin == null ? null : origin.toolName(),
+        origin == null ? null : origin.toolCallId());
   }
 
   public String toXml() {

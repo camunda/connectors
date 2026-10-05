@@ -1356,8 +1356,8 @@ class AgentSubProcessRequestHandlerTest {
         .satisfies(
             entry -> {
               assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-              assertThat(entry.toolName()).isEqualTo("search");
-              assertThat(entry.toolCallId()).isEqualTo("call-1");
+              assertThat(entry.origin())
+                  .isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
               assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
             });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);

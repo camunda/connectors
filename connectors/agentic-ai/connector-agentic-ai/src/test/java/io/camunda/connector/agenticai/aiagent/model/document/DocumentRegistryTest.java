@@ -67,10 +67,10 @@ class DocumentRegistryTest {
     assertThat(registry.findById(DocumentHandle.idFor(second)))
         .hasValueSatisfying(
             entry -> {
-              assertThat(entry.fileName()).isEqualTo("two.txt");
-              assertThat(entry.contentType()).isEqualTo("text/plain");
-              assertThat(entry.toolName()).isEqualTo("search");
-              assertThat(entry.toolCallId()).isEqualTo("call-1");
+              assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("two.txt");
+              assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("text/plain");
+              assertThat(entry.origin())
+                  .isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
             });
   }
 
@@ -88,7 +88,7 @@ class DocumentRegistryTest {
 
     assertThat(registry.size()).isEqualTo(1);
     assertThat(registry.findById(DocumentHandle.idFor(doc)))
-        .hasValueSatisfying(entry -> assertThat(entry.toolCallId()).isEqualTo("call-1"));
+        .hasValueSatisfying(entry -> assertThat(entry.origin().toolCallId()).isEqualTo("call-1"));
   }
 
   @Test
@@ -104,9 +104,9 @@ class DocumentRegistryTest {
 
   @Test
   void ofDeduplicatesEntriesByIdKeepingTheFirst() {
-    final var entry1 = new DocumentRegistryEntry("a", Map.of("k", "1"), null, null, null, null);
-    final var entry2 = new DocumentRegistryEntry("a", Map.of("k", "2"), null, null, null, null);
-    final var entry3 = new DocumentRegistryEntry("b", Map.of("k", "3"), null, null, null, null);
+    final var entry1 = new DocumentRegistryEntry("a", null, Map.of("k", "1"));
+    final var entry2 = new DocumentRegistryEntry("a", null, Map.of("k", "2"));
+    final var entry3 = new DocumentRegistryEntry("b", null, Map.of("k", "3"));
 
     assertThat(DocumentRegistry.of(List.of(entry1, entry2, entry3)).entries())
         .containsExactly(entry1, entry3);
@@ -138,7 +138,9 @@ class DocumentRegistryTest {
     final var registry = DocumentRegistry.fromMessages(messages);
 
     assertThat(registry.entries())
-        .extracting(DocumentRegistryEntry::id, DocumentRegistryEntry::toolCallId)
+        .extracting(
+            DocumentRegistryEntry::id,
+            entry -> entry.origin() == null ? null : entry.origin().toolCallId())
         .containsExactly(
             tuple(DocumentHandle.idFor(userDoc), null),
             tuple(DocumentHandle.idFor(toolDoc), "call-1"),

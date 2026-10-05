@@ -30,21 +30,29 @@ import org.jspecify.annotations.Nullable;
  * the registry needs no {@code DocumentFactory}. For external documents it includes the URL, and
  * for inline documents the full content, so it must never be rendered to the model.
  *
+ * <p>The file name and content type the model is shown are not stored: {@link
+ * DocumentHandle#fileNameFor(Map)} and {@link DocumentHandle#contentTypeFor(Map)} read them from
+ * the reference.
+ *
  * @param id the {@link DocumentHandle#idFor stable id} the registry is keyed by
- * @param toolName the tool that returned the document, {@code null} for user prompt and event
+ * @param origin the tool call that returned the document, {@code null} for user prompt and event
  *     documents
- * @param toolCallId the tool call that returned the document, {@code null} for user prompt and
- *     event documents
+ * @param reference the document reference JSON
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentRegistryEntry(
-    String id,
-    Map<String, Object> reference,
-    @Nullable String fileName,
-    @Nullable String contentType,
-    @Nullable String toolName,
-    @Nullable String toolCallId) {
+    String id, @Nullable Origin origin, Map<String, Object> reference) {
+
+  /**
+   * The tool call that returned a document.
+   *
+   * @param toolName the name of the tool
+   * @param toolCallId the id of the tool call
+   */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record Origin(@Nullable String toolName, @Nullable String toolCallId) {}
 
   private static final ObjectMapper REFERENCE_MAPPER =
       new ObjectMapper()
@@ -64,13 +72,12 @@ public record DocumentRegistryEntry(
 
   public static DocumentRegistryEntry from(IngestedDocument ingested) {
     final var document = ingested.document();
+    final var origin =
+        ingested.toolName() == null && ingested.toolCallId() == null
+            ? null
+            : new Origin(ingested.toolName(), ingested.toolCallId());
     return new DocumentRegistryEntry(
-        DocumentHandle.idFor(document),
-        serializeReference(document),
-        DocumentHandle.fileNameFor(document),
-        DocumentHandle.contentTypeFor(document),
-        ingested.toolName(),
-        ingested.toolCallId());
+        DocumentHandle.idFor(document), origin, serializeReference(document));
   }
 
   private static Map<String, Object> serializeReference(Document document) {

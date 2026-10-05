@@ -291,8 +291,7 @@ class AgentConversationTest {
   @Test
   void documentRegistryOfTheRehydratedContextSurvivesEveryCopyOnWrite() {
     var entry =
-        new DocumentRegistryEntry(
-            "doc-1", Map.of("camunda.document.type", "camunda"), null, null, null, null);
+        new DocumentRegistryEntry("doc-1", null, Map.of("camunda.document.type", "camunda"));
     var context = BASE_CONTEXT.withDocuments(List.of(entry));
     var conv =
         AgentConversation.rehydrate(

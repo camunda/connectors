@@ -56,10 +56,9 @@ class DocumentRegistryEntryTest {
         DocumentRegistryEntry.from(new IngestedDocument(document, "call-1", "search"));
 
     assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-    assertThat(entry.fileName()).isEqualTo("report.pdf");
-    assertThat(entry.contentType()).isEqualTo("application/pdf");
-    assertThat(entry.toolName()).isEqualTo("search");
-    assertThat(entry.toolCallId()).isEqualTo("call-1");
+    assertThat(entry.origin()).isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
+    assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("report.pdf");
+    assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("application/pdf");
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "camunda")
         .containsEntry("storeId", "in-memory")
@@ -95,8 +94,51 @@ class DocumentRegistryEntryTest {
         .containsEntry("camunda.document.type", "external")
         .containsEntry("url", "https://example.com/a.pdf?token=secret")
         .containsEntry("name", "a.pdf");
-    assertThat(entry.toolName()).isNull();
-    assertThat(entry.toolCallId()).isNull();
+    assertThat(entry.origin()).isNull();
+  }
+
+  @Test
+  void entryOfADocumentWithoutAToolCallHasNoOrigin() throws JsonProcessingException {
+    final var entry =
+        DocumentRegistryEntry.from(new IngestedDocument(camundaDocument("hello"), null, null));
+
+    assertThat(entry.origin()).isNull();
+    assertThat(objectMapper.readTree(objectMapper.writeValueAsString(entry)).has("origin"))
+        .isFalse();
+  }
+
+  @Test
+  void serializesTheIdThenTheOriginThenTheUntouchedReference() throws JsonProcessingException {
+    final var document = camundaDocument("hello");
+    final var entry =
+        DocumentRegistryEntry.from(new IngestedDocument(document, "call-1", "search"));
+
+    final var json = objectMapper.readTree(objectMapper.writeValueAsString(entry));
+
+    assertThat(json.fieldNames()).toIterable().containsExactly("id", "origin", "reference");
+    assertThat(json.get("id").asText()).isEqualTo(DocumentHandle.idFor(document));
+    assertThat(json.get("origin").toString())
+        .isEqualTo("{\"toolName\":\"search\",\"toolCallId\":\"call-1\"}");
+    assertThat(objectMapper.convertValue(json.get("reference"), Map.class))
+        .isEqualTo(entry.reference());
+    // no file name or content type next to the reference
+    assertThat(json.toString()).doesNotContain("\"fileName\":\"report.pdf\",\"contentType\"");
+    assertThat(json.has("fileName")).isFalse();
+    assertThat(json.has("contentType")).isFalse();
+  }
+
+  @Test
+  void unknownPropertiesAreIgnoredWhenReadingAnEntry() throws JsonProcessingException {
+    final var json =
+        """
+        {"id":"d1","future":true,"origin":{"toolName":"t","toolCallId":"c","future":1},
+         "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}""";
+
+    final var entry = objectMapper.readValue(json, DocumentRegistryEntry.class);
+
+    assertThat(entry.id()).isEqualTo("d1");
+    assertThat(entry.origin()).isEqualTo(new DocumentRegistryEntry.Origin("t", "c"));
+    assertThat(entry.reference()).containsEntry("name", "y.txt");
   }
 
   @Test

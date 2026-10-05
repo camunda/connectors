@@ -15,11 +15,11 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -69,55 +69,78 @@ public final class DocumentHandle {
    * known:
    *
    * <ul>
-   *   <li>{@link ExternalDocumentReference} → the reference {@code name}, else the last path
-   *       segment of the URL without query and fragment (when not blank); never the URL itself
-   *   <li>any other reference → the file name of the document metadata (Camunda metadata, inline
-   *       {@code name})
+   *   <li>{@link CamundaDocumentReference} → the file name of the document metadata
+   *   <li>{@link ExternalDocumentReference}, {@link InlineDocumentReference} → the reference {@code
+   *       name}
    * </ul>
+   *
+   * Same result as {@link #fileNameFor(Map)} for the serialized reference of the document.
    */
   public static @Nullable String fileNameFor(Document document) {
-    if (document.reference() instanceof ExternalDocumentReference ref) {
-      return StringUtils.isNotBlank(ref.name()) ? ref.name() : lastPathSegment(ref.url());
-    }
-    final DocumentMetadata metadata = document.metadata();
-    return metadata != null ? StringUtils.trimToNull(metadata.getFileName()) : null;
+    return switch (document.reference()) {
+      case ExternalDocumentReference ref -> StringUtils.trimToNull(ref.name());
+      case InlineDocumentReference ref -> StringUtils.trimToNull(ref.name());
+      case null, default -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? StringUtils.trimToNull(metadata.getFileName()) : null;
+      }
+    };
   }
 
   /**
    * Returns the content type the model is shown for the given document, or {@code null} when it is
-   * not known without fetching the content. Metadata of external documents is only available by
-   * downloading the document, so it is never consulted for them.
+   * not known without fetching the content: the content type of the Camunda document metadata or
+   * the {@code contentType} of an inline reference. Metadata of external documents is only
+   * available by downloading the document, so they have none.
+   *
+   * <p>Same result as {@link #contentTypeFor(Map)} for the serialized reference of the document.
    */
   public static @Nullable String contentTypeFor(Document document) {
-    if (document.reference() instanceof ExternalDocumentReference) {
-      return null;
-    }
-    final DocumentMetadata metadata = document.metadata();
-    return metadata != null ? StringUtils.trimToNull(metadata.getContentType()) : null;
+    return switch (document.reference()) {
+      case ExternalDocumentReference ignored -> null;
+      case InlineDocumentReference ref -> StringUtils.trimToNull(ref.contentType());
+      case null, default -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? StringUtils.trimToNull(metadata.getContentType()) : null;
+      }
+    };
   }
 
-  private static @Nullable String lastPathSegment(@Nullable String url) {
-    if (StringUtils.isBlank(url)) {
-      return null;
-    }
-    var withoutSuffix = url;
-    final int suffixStart = StringUtils.indexOfAny(withoutSuffix, '?', '#');
-    if (suffixStart >= 0) {
-      withoutSuffix = withoutSuffix.substring(0, suffixStart);
-    }
-    final int schemeEnd = withoutSuffix.indexOf("://");
-    final int pathStart = withoutSuffix.indexOf('/', schemeEnd >= 0 ? schemeEnd + 3 : 0);
-    if (pathStart < 0) {
-      return null;
-    }
-    final var path = withoutSuffix.substring(pathStart);
-    final var segment = path.substring(path.lastIndexOf('/') + 1);
-    try {
-      return StringUtils.trimToNull(
-          URLDecoder.decode(segment.replace("+", "%2B"), StandardCharsets.UTF_8));
-    } catch (IllegalArgumentException e) {
-      return StringUtils.trimToNull(segment);
-    }
+  /**
+   * The file name of a serialized document reference (see {@link #fileNameFor(Document)}): {@code
+   * metadata.fileName} of a Camunda reference, {@code name} of an external or inline one.
+   */
+  public static @Nullable String fileNameFor(Map<String, Object> reference) {
+    return switch (referenceType(reference)) {
+      case "camunda" -> metadataValue(reference, "fileName");
+      case "external", "inline" -> text(reference.get("name"));
+      default -> null;
+    };
+  }
+
+  /**
+   * The content type of a serialized document reference (see {@link #contentTypeFor(Document)}):
+   * {@code metadata.contentType} of a Camunda reference, {@code contentType} of an inline one, none
+   * for an external one.
+   */
+  public static @Nullable String contentTypeFor(Map<String, Object> reference) {
+    return switch (referenceType(reference)) {
+      case "camunda" -> metadataValue(reference, "contentType");
+      case "inline" -> text(reference.get("contentType"));
+      default -> null;
+    };
+  }
+
+  private static String referenceType(Map<String, Object> reference) {
+    return reference.get("camunda.document.type") instanceof String type ? type : "";
+  }
+
+  private static @Nullable String metadataValue(Map<String, Object> reference, String key) {
+    return reference.get("metadata") instanceof Map<?, ?> metadata ? text(metadata.get(key)) : null;
+  }
+
+  private static @Nullable String text(@Nullable Object value) {
+    return value instanceof String string ? StringUtils.trimToNull(string) : null;
   }
 
   private static String idForReference(DocumentReference reference, Document document) {

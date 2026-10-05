@@ -11,12 +11,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class DocumentReferenceXmlTagTest {
@@ -95,28 +97,26 @@ class DocumentReferenceXmlTagTest {
   }
 
   @Test
-  void externalDocumentWithoutNameFallsBackToLastPathSegmentWithoutQueryAndFragment() {
+  void externalDocumentWithoutNameOmitsFileNameInsteadOfTakingItFromTheUrl() {
     final var doc =
         new ExternalDocument(
             "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
 
     assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"my file.pdf\" />".formatted(DocumentHandle.idFor(doc)));
+        .isEqualTo("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(doc)));
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new ExternalDocument("https://example.com/x", "", u -> null))
+                .fileName())
+        .isNull();
   }
 
   @Test
-  void externalDocumentWithoutNameAndWithoutPathSegmentOmitsFileName() {
-    assertThat(
-            DocumentReferenceXmlTag.from(
-                    new ExternalDocument("https://example.com", null, u -> null))
-                .fileName())
-        .isNull();
-    assertThat(
-            DocumentReferenceXmlTag.from(
-                    new ExternalDocument("https://example.com/dir/?t=1", "", u -> null))
-                .fileName())
-        .isNull();
+  void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
+    final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
+
+    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+        .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(DocumentHandle.idFor(doc)));
   }
 
   @Test
@@ -140,15 +140,34 @@ class DocumentReferenceXmlTagTest {
 
   @Test
   void registryEntryRendersTheSameTagAsTheDocument() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                .contentType("text/plain")
-                .fileName("a.txt")
-                .build());
-    final var entry = DocumentRegistryEntry.from(new IngestedDocument(doc, "call_1", "tool"));
+    final var documents =
+        List.<Document>of(
+            documentFactory.create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("a.txt")
+                    .build()),
+            documentFactory.create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build()),
+            new ExternalDocument(
+                "https://example.com/files/report.pdf?t=secret", "Report", u -> null),
+            new ExternalDocument("https://example.com/files/report.pdf?t=secret", null, u -> null),
+            new InlineDocument("{\"a\":1}", "data.json", "application/json"),
+            new InlineDocument("{\"a\":1}", "data.json", null));
 
-    assertThat(DocumentReferenceXmlTag.from(entry))
-        .isEqualTo(DocumentReferenceXmlTag.from(doc, "call_1", "tool"));
+    for (final var doc : documents) {
+      for (final var origin : List.of(List.<String>of(), List.of("call_1", "tool"))) {
+        final var toolCallId = origin.isEmpty() ? null : origin.get(0);
+        final var toolName = origin.isEmpty() ? null : origin.get(1);
+        final var entry =
+            DocumentRegistryEntry.from(new IngestedDocument(doc, toolCallId, toolName));
+
+        assertThat(DocumentReferenceXmlTag.from(entry))
+            .as("%s from %s", doc.reference(), origin)
+            .isEqualTo(DocumentReferenceXmlTag.from(doc, toolCallId, toolName));
+        assertThat(DocumentReferenceXmlTag.from(entry).toXml())
+            .isEqualTo(DocumentReferenceXmlTag.from(doc, toolCallId, toolName).toXml());
+      }
+    }
   }
 }
