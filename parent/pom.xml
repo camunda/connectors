@@ -970,8 +970,9 @@ limitations under the License.</license.inlineheader>
                 <regex>^3\.9\.2$</regex>
                 <regexMessage>
 version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
-If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
-the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property
+and the lz4-java dependencyManagement entry. Remove this enforcer rule only if the new version also
+ships snappy-java &gt;= 1.1.10.10, so both overrides can be removed.
 Likewise check if the snappy-java CVE-2026-90559 override can be removed: if the new kafka-clients
 version ships snappy-java &gt;= 1.1.10.10, remove the version.snappy-java property and its explicit
 dependency in connectors/kafka/pom.xml.
