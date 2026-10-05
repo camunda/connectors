@@ -1201,7 +1201,7 @@ limitations under the License.</license.inlineheader>
                    check whether the dd-plist override can be removed (see version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.20\.2$</regex>
+                <regex>^1\.21\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
 If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
@@ -1217,7 +1217,7 @@ See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
                    not only on a langchain4j bump. -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.20\.2$</regex>
+                <regex>^1\.21\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the junrar GHSA-h9h9-2rmf-rvhp override can be removed.
 If the Tika version pinned in connectors/embeddings-vector-database/pom.xml ships a
@@ -1257,7 +1257,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                    (see version.zstd-jni). -->
               <requireProperty>
                 <property>version.box-sdk</property>
-                <regex>^5\.17\.0$</regex>
+                <regex>^5\.18\.0$</regex>
                 <regexMessage>
 version.box-sdk was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override can
 be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remove the
