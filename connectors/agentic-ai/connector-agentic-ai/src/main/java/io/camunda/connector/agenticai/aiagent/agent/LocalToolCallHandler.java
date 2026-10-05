@@ -28,7 +28,8 @@ import java.util.List;
  *       same job and the model is called again;
  *   <li>calls are left for the process: only those are activated, the local results are kept in the
  *       agent context and merged with the process results when the next job composes its input, so
- *       the model sees one result per tool call without an extra model call.
+ *       the model sees one result per tool call without an extra model call. The local results are
+ *       reported to the agent instance history by the job that answers them.
  * </ul>
  */
 public interface LocalToolCallHandler {

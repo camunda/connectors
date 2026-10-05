@@ -863,13 +863,13 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
   (§9) and there is no state to track what an earlier job already reported. A result that arrives
   while other tool calls in the same turn are still outstanding is reported by every subsequent
   incomplete job that still observes it, plus once more by `applyTurnStart` once
-  the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
+  the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` item writes in total.
+  The engine deduplicates the repeats by `historyItemId`, so the history holds each result once.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
-- **Local results are not streamed.** Results the agent answered itself (`pendingLocalToolCallResults`)
-  are not part of `arrivedResults`: they would be re-reported by every incomplete job, and the
-  history has no `historyItemId` dedup yet. They are reported exactly once, with the batch-complete
-  `applyTurnStart` of the next turn.
+- **Local results are not part of `arrivedResults`.** Results the agent answered itself
+  (`pendingLocalToolCallResults`) are reported by the job that answers them (see §23), so incomplete jobs
+  do not write them again.
 - **Strict failure.** This call runs before job completion, synchronously, like every other
   `AgentInstanceClient` write since [ADR 013](../adr/013-unified-agent-instance-turn-updates.md) — a
   failure fails the job.
@@ -1819,15 +1819,17 @@ lease-fenced `update()` mechanism).
 `return_documents`, calls rejected for an unknown document id; see the document flow design notes)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
-`applyTurnStart` that carries the results: in the synthetic round of the same job when the agent
-answered every call, in the next job together with the process results otherwise. They use the
+`applyTurnStart` of the synthetic round of the same job when the agent answered every call. When real
+calls remain (a mixed batch), `applyToolCallResults` writes them right after the turn completion of the job
+that answered them, so they are visible while the real calls still run; the next job's `applyTurnStart`
+carries them again with the process results under the same `historyItemId` and the engine keeps one row. They use the
 tool-call id as `historyItemId`, no `elementId` (there is no BPMN element), the local `completedAt` and
 the originating arguments, like every other result; an error result is plain text content, the history
 has no result status. A mixed batch completes
 its job with `TOOL_CALLING`, a fully local batch with `THINKING` followed by the next round.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
-retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` items key off the domain
+retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
 `Message.id()` (ADR 012); `TOOL_RESULT` items key off the originating tool-call id (so a streamed
 early report and the later batch write for the same result dedup for free), falling back to a
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
@@ -1881,8 +1883,9 @@ mismatch.
 `Deferred` branch — before the turn's tool-call batch is complete — reporting whichever results have
 arrived so far as a batched, status-less `update()`, one `TOOL_RESULT` item per result, same mapping
 as above. Its iteration key (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the
-batch-complete write's key is. These items duplicate what `applyTurnStart` writes again once the batch
-completes; the duplicate row persists until `historyItemId`-based dedup lands (camunda/camunda#58792). See
+batch-complete write's key is. `applyTurnStart` writes these items again once the batch
+completes; the engine deduplicates them by `historyItemId` (camunda/camunda#58792), so no duplicate row remains. The
+same call reports the local results of a mixed batch right after the turn completion of the job that answers them. See
 [§9](#9-tool-completion) and
 [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
