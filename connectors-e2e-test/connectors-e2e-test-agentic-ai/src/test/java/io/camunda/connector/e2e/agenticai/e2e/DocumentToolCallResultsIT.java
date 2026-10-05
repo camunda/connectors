@@ -232,39 +232,48 @@ class DocumentToolCallResultsIT {
   // ---------------------------------------------------------------------------
 
   static Stream<ProviderConfig> providers() {
+    final var selectedProviders = providerCatalog().filter(ProviderConfig::isEnabled).toList();
+    if (RealLlmTestEnvironment.isProviderRequired() && selectedProviders.isEmpty()) {
+      throw new IllegalStateException(
+          "No enabled real document providers were selected; check provider credentials and "
+              + "REAL_LLM_PROVIDER_GROUP");
+    }
+    return selectedProviders.stream();
+  }
+
+  private static Stream<ProviderConfig> providerCatalog() {
     return Stream.of(
-            // OpenAI (v1)
-            openAiV1("gpt-4.1"),
-            openAiV1("gpt-5.5"),
-            // OpenAI (v2)
-            openAiResponsesV2("gpt-4.1"),
-            openAiResponsesV2("gpt-5.5"),
-            openAiCompletionsV2("gpt-4.1"),
-            openAiCompletionsV2("gpt-5.5"),
-            // Anthropic (v1)
-            anthropicV1("claude-sonnet-5-5"),
-            anthropicV1("claude-haiku-4-5-20251001"),
-            // Anthropic (v2)
-            anthropicV2("claude-sonnet-5-5"),
-            anthropicV2("claude-haiku-4-5-20251001"),
-            // Anthropic (v2), AWS Bedrock Mantle backend
-            anthropicBedrockMantleV2("claude-sonnet-5"),
-            anthropicBedrockMantleV2("claude-haiku-4-5"),
-            // AWS Bedrock, v1 (Anthropic models via cross-region inference)
-            bedrockV1("global.anthropic.claude-sonnet-5-5"),
-            bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
-            bedrockV2("global.anthropic.claude-sonnet-5-5"),
-            bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
-            bedrockV2("eu.amazon.nova-2-lite-v1:0"),
-            // Docker Model Runner (OpenAI-compatible)
-            dockerModelRunnerV1("ai/gemma4:latest").disabled(),
-            dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
-            // Ollama (OpenAI-compatible)
-            ollamaV1("qwen3.6:latest").disabled(),
-            ollamaV1("llama3.1:8b").disabled())
-        .filter(ProviderConfig::isEnabled);
+        // OpenAI (v1)
+        openAiV1("gpt-4.1"),
+        openAiV1("gpt-5.5"),
+        // OpenAI (v2)
+        openAiResponsesV2("gpt-4.1"),
+        openAiResponsesV2("gpt-5.5"),
+        openAiCompletionsV2("gpt-4.1"),
+        openAiCompletionsV2("gpt-5.5"),
+        // Anthropic (v1)
+        anthropicV1("claude-sonnet-5-5"),
+        anthropicV1("claude-haiku-4-5-20251001"),
+        // Anthropic (v2)
+        anthropicV2("claude-sonnet-5-5"),
+        anthropicV2("claude-haiku-4-5-20251001"),
+        // Anthropic (v2), AWS Bedrock Mantle backend
+        anthropicBedrockMantleV2("claude-sonnet-5"),
+        anthropicBedrockMantleV2("claude-haiku-4-5"),
+        // AWS Bedrock, v1 (Anthropic models via cross-region inference)
+        bedrockV1("global.anthropic.claude-sonnet-5-5"),
+        bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
+        bedrockV2("global.anthropic.claude-sonnet-5-5"),
+        bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
+        bedrockV2("eu.amazon.nova-2-lite-v1:0"),
+        // Docker Model Runner (OpenAI-compatible)
+        dockerModelRunnerV1("ai/gemma4:latest").disabled(),
+        dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
+        // Ollama (OpenAI-compatible)
+        ollamaV1("qwen3.6:latest").disabled(),
+        ollamaV1("llama3.1:8b").disabled());
   }
 
   /** OpenAI, v1 (LangChain4j-backed). */

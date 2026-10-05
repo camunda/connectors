@@ -82,6 +82,17 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldFailStrictModeWhenSelectedGroupHasNoDocumentProviders() {
+    environment.set("REAL_LLM_PROVIDER_GROUP", "vertex").set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+
+    assertThatThrownBy(() -> DocumentToolCallResultsIT.providers().toList())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(
+            "No enabled real document providers were selected; check provider credentials and "
+                + "REAL_LLM_PROVIDER_GROUP");
+  }
+
+  @Test
   void shouldSelectMistralRowsOnlyWhenGroupIsMistral() {
     environment.set("MISTRAL_API_KEY", "key");
     environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");
@@ -101,7 +112,7 @@ class RealProviderSelectionTest {
   }
 
   @Test
-  void shouldUseGlobalEndpointForVertexGemini37InShardedRuns() {
+  void shouldUseGlobalEndpointForVertexGemini38InShardedRuns() {
     environment
         .set("GOOGLE_GEMINI_API_KEY", "ambient")
         .remove("GOOGLE_GEMINI_API_KEY")
