@@ -48,18 +48,21 @@ referenced by id in tool calls, and leave through the response.
    before each `DocumentContent` (`createDocumentPairs` :293, `createUserPromptMessage` :150).
    `aiagent/chatmodel/provider/ModelFacingJson.java` renders a `Document` at any depth of tool result
    or message object content as its tag, for every provider path. `AgentConversation.window` (:344)
-   appends the eviction note (`EvictedDocumentsNote.appendTo`, :346) to the windowed snapshot and, when
-   `AgentConfiguration.returnsDocuments()`, the `return_documents` tool definition (:348).
+   appends the eviction note (`EvictedDocumentsNote.appendTo`, :346) to the windowed snapshot. The tool
+   definitions of the snapshot are those of `AgentConfiguration.toolDefinitions()`: the tools of the
+   process plus the available local tools, among them `return_documents` while `returnsDocuments()`
+   (section 9).
 5. **Model loop.** `BaseAgentRequestHandler.driveContinuationLoop` windows the conversation, calls the
    model, ingests the assistant message, and then either ends the loop or opens another round:
    `nextContinuationRound` (`AgentConversation`) for provider continuations, `nextLocalToolRound`
    (`AgentConversation`) when the agent answered every tool call of the message itself.
-6. **Local tool handling.** `localToolCallHandler.handle` asks every `ToolCallInspector`
-   (`DocumentParameterToolCallInspector`, `ReturnDocumentsToolCallInspector`; beans at
-   `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`) for a verdict per call and splits the
-   batch into local results and the calls that remain for the process (section 3.6). The selection of
-   `return_documents` is merged with `withReturnDocumentIds` in both outcomes. Without remaining calls the
-   loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the local
+6. **Local tool handling.** `localToolCallHandler.handle` runs the call of every available `LocalTool`
+   (`return_documents` is one, section 9; the tools are beans collected by `LocalToolRegistry`,
+   `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`), answers the calls of process tools whose
+   document parameter is not a known id, and splits the batch into local results and the calls that
+   remain for the process (section 3.6). The context updates of the local results (the selection of
+   `return_documents`) are applied to the conversation the handler returns, in both outcomes. Without
+   remaining calls the loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the local
    results are kept as `AgentContext.pendingLocalToolCallResults` (`withPendingLocalToolCallResults`) and
    the loop ends with the normal tool calling status.
 7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending local results
@@ -83,7 +86,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 |---|----------|--------|
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
 | 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id fileName contentType [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
-| 3 | Documents out are a built-in tool `return_documents`, handled in the model loop. | The tool must never become a BPMN element activation. |
+| 3 | Documents out are a built-in local tool `return_documents`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
 | 4 | An unknown document id yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
 
@@ -186,12 +189,15 @@ invocation.
 ### 3.6 Batch policy (mixed batches)
 
 A batch is split per call. `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
-`LocalToolCallSplit(localResults, remainingCalls, returnDocumentIds)`:
+`LocalToolCallSplit(conversation, localResults, remainingCalls)`; `conversation` is the input conversation
+with the context updates of the local results applied:
 
-- **Local calls.** A call answered by a `ToolCallInspector` (`Answer`) gets its result immediately: the
-  built-in `return_documents`, and any call whose document parameter is not a known id (an error result
-  listing the known documents). The first `Answer` wins when several inspectors answer.
-- **Remaining calls.** Every other call passes and goes to the process like any tool call.
+- **Local calls.** A call of an available local tool (section 9) is run by the agent and gets its result
+  immediately: the built-in `return_documents` and every other registered tool. A call of a process tool
+  whose document parameter is not a known id is answered with an error result listing the known
+  documents.
+- **Remaining calls.** Every other call goes to the process like any tool call, also a call of a local
+  tool that is not available for this agent.
 
 The request handler then proceeds by what is left:
 
@@ -200,15 +206,15 @@ The request handler then proceeds by what is left:
 | none | The local results become the input of a synthetic round of the same job (`nextLocalToolRound`); the model is called again. The round counts against `maxModelCalls` (`throwIfLimitsReached`). | one more in the job |
 | some | The job completes with only the remaining calls activated (`ToolCallProcessVariable` list and element activations hold only them, status `TOOL_CALLING`). The local results are stored in `AgentContext.pendingLocalToolCallResults`. | none extra |
 
-The selection of `return_documents` is recorded in `AgentContext.returnDocumentIds` immediately in both
-cases.
+The context updates of the local results, for `return_documents` the selection in
+`AgentContext.returnDocumentIds`, are applied immediately in both cases.
 
 **Pending local results.** `AgentContext.pendingLocalToolCallResults` is a `List<ToolCallResult>`,
 `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty list, no schema version bump. It rides in
 `agentContext` like the registry, so it reaches the next job whatever the conversation store is (the stores
 only handle the conversation pointer), and it is written by the same job completion that activates the
-real calls. Content is whatever the inspector answered (text today); `completedAt` is the time of the local
-answer.
+real calls. Content is whatever the local tool answered (text or object content); `completedAt` is the time of the
+local answer.
 
 **Merging in the next job.** `resolveOrderedToolCallResults` looks up each tool call id of the last
 assistant message first in the pending local results, then in the arrived process results (gateway
@@ -226,11 +232,9 @@ transformed; local results are never transformed). The `ToolCallResultMessage` k
   rule: the sub-process activates the remaining calls as elements, the task flavor returns only them in
   `toolCalls`.
 
-**Adding a local tool.** Implement `ToolCallInspector`, return `Answer(content, returnDocumentIds)` for
-the tool's calls and `Pass` for every other call, and register the bean. The verdict concerns the single
-call, so the tool works the same alone, with other local tools or with real calls in one batch. State a
-local tool changes is carried by the verdict, as `returnDocumentIds` is today (`LocalToolCallSplit` carries
-the aggregate); a new kind of state needs its own field there and in the handler.
+**Adding a local tool.** Register a `LocalTool` bean (section 9). The call is handled on its own, so the
+tool works the same alone, with other local tools or with real calls in one batch. State a local tool
+changes goes through the context updates of its result, applied in call order.
 
 Reason: the real calls are valid work the model asked for, and running them without an extra model call
 keeps a mixed batch at one round. Per-call splitting needs only the results of the local calls to survive
@@ -255,13 +259,15 @@ lets the model correct itself in one retry without any further tool call. The er
 
 ### 3.8 `return_documents` semantics
 
-`ReturnDocumentsTool` (`aiagent/model/document/ReturnDocumentsTool.java`) has `NAME =
+`ReturnDocumentsTool` (`aiagent/localtool/ReturnDocumentsTool.java`) is a `LocalTool` with `NAME =
 "return_documents"` and one required parameter `ids` (array of strings, the ids of `<doc/>` tags). It
-declares `/properties/ids/items` as document parameter, so the inspector reuses
-`DocumentParameterResolver` and its error texts. `ReturnDocumentsToolCallInspector` acts only while the
-option is on. A valid call answers "Selected N document(s) to return: id1, id2" and carries the ids;
-missing, empty or non-array `ids` and unknown ids give an error answer listing the known documents and
-select nothing.
+declares `/properties/ids/items` as document parameter, so the framework resolves the ids to the documents
+of the registry and reports unknown ids with the texts of 3.7 before the tool runs; the tool receives
+`List<Document>` and takes the selection ids from `DocumentHandle.idFor`. It is available while the option
+is on. A valid call answers "Selected N document(s) to return: id1, id2" and selects the documents with a
+context update (ordered union into `AgentContext.returnDocumentIds`). Missing or empty `ids` give an error
+answer listing the known documents; unknown ids and a non-array `ids` give the errors of 3.7. An error
+answer selects nothing.
 
 - **Accumulate.** Every valid call adds its ids to the selection (ordered union, duplicates dropped),
   also across jobs and turns of the same run. The selection lives in `AgentContext.returnDocumentIds`
@@ -285,11 +291,12 @@ synthetic round, which counts against `maxModelCalls`.
 
 ### 3.9 Reserved name
 
-`AgentToolsResolverImpl.loadAdHocToolsSchema` (:44) rejects an ad-hoc or gateway tool element named
-`return_documents` with a `ConnectorException` (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`, raised
-at :60). `loadAdHocToolsSchema` runs on tool discovery and on process migration
-(`updateToolDefinitions`), so both paths are covered. Reason: a BPMN element with that name would
-collide with the built-in tool in the snapshot and silently lose to it.
+`AgentToolsResolverImpl.loadAdHocToolsSchema` rejects an ad-hoc or gateway tool element named like any
+registered local tool (`LocalToolRegistry.toolNames()`, today `return_documents`) with a
+`ConnectorException` (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`). The check ignores whether the tool
+is available for the agent (section 9.6). `loadAdHocToolsSchema` runs on tool discovery and on process
+migration (`updateToolDefinitions`), so both paths are covered. Reason: a BPMN element with that name would
+collide with the local tool in the tool list and silently lose to it.
 
 ### 3.10 Configuration option `includeDocuments`
 
@@ -297,11 +304,12 @@ collide with the built-in tool in the snapshot and silently lose to it.
 implemented by `AgentTaskResponseConfiguration` and `AgentSubProcessResponseConfiguration` (template
 property `data.response.includeDocuments`, label "Include documents", group `response`, optional
 boolean, off by default). `AgentConfiguration.returnsDocuments()` (:69) is the single switch; the
-inspector reads it through `LocalToolCallContext` (:35). `window` appends the tool definition to the
-snapshot only; it is neither part of `AgentConfiguration.toolDefinitions()` nor of
-`AgentContext.toolDefinitions`, so toggling the option is invisible to the migration check
-(`updateChangedToolDefinitions`) and to the configuration fingerprint. Reason: existing agents see no
-new tool, no new response field and no persisted-state change unless the modeler opts in.
+tool's `isAvailable` reads it. `BaseAgentRequestHandler.converse` puts the definitions of the available local
+tools after the process tools in `AgentConfiguration.toolDefinitions()` for the invocation; they are not part
+of `AgentContext.toolDefinitions`, so toggling the option is invisible to the migration check
+(`updateChangedToolDefinitions`) and no persisted tool list changes. The configuration fingerprint covers the
+offered tools, so the toggle shows up as a new `CONFIGURATION` history item (section 5.1). Reason: existing
+agents see no new tool, no new response field and no persisted-state change unless the modeler opts in.
 
 ### 3.11 Templates and versions (v1 frozen)
 
@@ -328,9 +336,9 @@ section 5.
   are never modified. A missing or `null` argument is left alone (optional parameters). Resolution
   runs on the raw tool calls before the gateway transformation, so gateway tool calls stay untouched.
 - **Local handler abstraction.** `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
-  `LocalToolCallSplit(localResults, remainingCalls, returnDocumentIds)`; inspectors return `Pass` or
-  `Answer(content, returnDocumentIds)`. Reason: the loop stays generic and a future local tool is one more
-  inspector (3.6).
+  `LocalToolCallSplit(conversation, localResults, remainingCalls)`; a local tool returns a `LocalToolResult`
+  with content and context updates. Reason: the loop stays generic and a future local tool is one more
+  bean (3.6, section 9).
 - **Registry shape.** `DocumentRegistry` is an immutable, insertion-ordered, id-keyed value
   (`findById`, `entries`, `withDocuments`, `of`, `fromMessages`); the first registration of an id wins
   and re-adding a known id returns the same instance. `DocumentRegistryEntry` holds `id`, `reference`
@@ -426,6 +434,15 @@ windowing filter evicts the tool results together with their assistant message.
 Reporting goes through the same `AgentInstanceClient` calls as for any turn; there is no local-specific
 call. What is reported:
 
+**Definitions.** The tool list of a `CONFIGURATION` history item holds the process tools and the available
+local tools (`AgentConfiguration.toolDefinitions()`, section 3.10), mapped by `AgentInstanceToolMapper`. A
+local tool is an `AgentTool` with name and description and **no element id** (`null`): the engine field is
+the "BPMN element ID of the tool" and is nullable. Only available tools are listed. The fingerprint of
+the configuration covers the offered tools, so enabling `includeDocuments` on a running agent adds a
+`CONFIGURATION` item with the new tool list.
+
+**Calls and results.**
+
 | Case | Calls (in order) | Local result items |
 |------|------------------|--------------------|
 | Batch with no remaining call (synthetic round) | `applyTurnStart` (turn input), `applyTurnCompletion` with `THINKING` (assistant item with all calls), `applyTurnStart` of the synthetic turn (input = the local results), the next `applyTurnCompletion` with the terminal status | `TOOL_RESULT` items in the synthetic `applyTurnStart`, `loopIteration` = assistant turn + 1 |
@@ -434,18 +451,29 @@ call. What is reported:
 
 Each local `TOOL_RESULT` item correlates to its call like any result: `toolCallId` and `toolName` of the
 call, the originating arguments (looked up in the previous turn), `historyItemId` = tool call id, local
-`completedAt` as `producedAt`. `elementId` equals the tool name because a local call has no BPMN element.
+`completedAt` as `producedAt`. The `elementId` of the call entry is `null` because a local call has no BPMN
+element, for the call in the `ASSISTANT` item and for the result (`AgentInstanceHistoryMapper` recognizes the
+call by `LocalToolRegistry.toolNames()`, which is safe because those names are reserved, 3.9). The result
+text is the content of the `TOOL_RESULT` item, an error result included.
 The `ASSISTANT` item lists every call of the message; the per-turn metrics count them all in `toolCalls`
 (a measure of what the model requested, consistent with the listed calls and the status choice
 `IDLE`/`TOOL_CALLING`). Unit tests: `AgentSubProcessRequestHandlerTest` and `AgentTaskRequestHandlerTest`
 (call order, status and arguments), `CamundaAgentInstanceClientTest` (merged local and process results
-as items), `AgentConversationTurnInputComposerImplTest` (what `Deferred` carries).
+as items, local tools in the `CONFIGURATION` item), `AgentInstanceToolMapperTest` and
+`AgentInstanceHistoryMapperTest` (no element id for local tools), `AgentConversationTurnInputComposerImplTest`
+(what `Deferred` carries). End to end: `AgentSubProcessDocumentFlowTests` reads the agent instance back
+through the query API (`agentInstanceHistoryReportsTheLocalToolAndItsCalls`).
 
 What cannot be represented:
 
-- The history has no marker that a result came from the agent and not from a tool element; a consumer sees
-  `elementId` = tool name with no matching element. A local result and a real one are otherwise alike.
-- A local answer is not visible before the next job (mixed batch), see blocker 2.
+- The history API has no tool kind and no result status. A local tool is recognizable only by the missing
+  element id on its tool entry and on its call entries; a local result and a real one are otherwise alike. An
+  error result of a local tool (invalid document id, `LocalToolException`, invalid arguments) is plain
+  text content, the same way the model reads it.
+- A local answer in a mixed batch is not visible before the next job (blocker 2). Reporting it when it is
+  computed would repeat it with the next job's `applyTurnStart`, which carries all results of the batch,
+  until the history dedups by `historyItemId` (camunda/camunda#58792); the local results are therefore
+  reported once, with the batch.
 - The documents the agent returns are not reported; the selection of `return_documents` appears only as the
   text of its result.
 - The rows written by `Deferred` streaming duplicate with the batch-complete write until the history
@@ -495,10 +523,12 @@ What cannot be represented:
 | Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest`, `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest` |
 | Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (including `serializedEntrySizes`), `DocumentHandleTest` |
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest`, `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` |
-| Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` |
+| Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/agent/DocumentParameterResolverTest`, `DocumentParameterToolCallInspectorTest`, `LocalToolCallHandlerImplTest` (per-call split, order, first answer wins) |
-| Documents out | `aiagent/agent/ReturnDocumentsToolCallInspectorTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (reserved name), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
+| Documents into tools | `aiagent/agent/DocumentParameterResolverTest`, `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
+| Documents out | `aiagent/agent/ReturnDocumentsToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (reserved name), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
+| Local tool API | `aiagent/localtool/LocalToolBuilderTest`, `LocalToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/LocalToolCallHandlerImplTest` (including a mixed batch with a real call) |
+| Agent instance history of local tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest`, `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id) |
 | Mixed batches | `AgentSubProcessRequestHandlerTest` / `AgentTaskRequestHandlerTest` (one model call, only real calls activated, pending results, status, clearing), `AgentResponseHandlerDocumentsTest` (local calls not emitted), `AgentConversationTurnInputComposerImplTest` (merge in call order, partial arrival, interrupt, no gateway transform, foreign ids ignored), `AgentConversationTest` (`withPendingLocalToolCallResults`), `AgentContextTest` and `AgentContextSchemaMigrationTest` (persistence round trip, missing field), `CamundaAgentInstanceClientTest` (history items of merged results) |
 
 ### End-to-end tests (`connectors-e2e-test/connectors-e2e-test-agentic-ai`, WireMock model)
@@ -541,3 +571,173 @@ document flow tests.
 
 Not covered: the real-provider document tests (`DocumentToolCallResultsIT`) and gateway tools (MCP,
 A2A), because the feature does not apply to them.
+
+## 9. Local tool API
+
+A local tool is a tool the agent runs itself: the model sees its definition next to the tools of the
+process, the agent answers the call and no BPMN element is activated. `return_documents` is the first one;
+loading a skill or saving a memory are the next. Authors register a tool, a definition plus a handler,
+the way tools are registered with other agent frameworks. Code is in
+`aiagent/localtool/` (public API and registry) and `aiagent/agent/LocalToolCallHandlerImpl` (execution).
+
+### 9.1 How other frameworks define a tool
+
+Verified means read from the sources in the local Maven repository (versions in the table); the OpenAI
+Agents SDK row is from its public documentation and not verified against sources here.
+
+| | Definition | Executor | Arguments | Context | Result | Errors | Enablement | State |
+|---|---|---|---|---|---|---|---|---|
+| LangChain4j 1.20.2 (verified) | `ToolSpecification` (name, description, `JsonObjectSchema`, metadata); from `@Tool` methods via `ToolSpecifications` | `ToolExecutor.execute(ToolExecutionRequest, memoryId)`; `executeWithContext` with `InvocationContext` | arguments JSON string; `@Tool` methods are bound by reflection, `@P` describes parameters | memory id, `InvocationContext` | `String`, or `ToolExecutionResult` (`isError`, result text or contents, attributes); `ReturnBehavior` (`TO_LLM`, `IMMEDIATE`) | `ToolExecutionErrorHandler`; default of the sync path hands the execution error to the model as text, argument errors are rethrown | `ToolProvider.provideTools(request)`, `isDynamic()` per request | none in the tool; memory by id |
+| Spring AI 2.0.0 (verified) | `ToolDefinition` (name, description, input schema string); `ToolMetadata.returnDirect` | `ToolCallback.call(String toolInput [, ToolContext])`; `FunctionToolCallback.builder(name, BiFunction<I, ToolContext, O>)`; `MethodToolCallback` for `@Tool` | JSON string; `FunctionToolCallback` binds to `inputType` and derives the schema | `ToolContext`, a read-only `Map<String,Object>` | any `O`, converted to a string by `ToolCallResultConverter` | `ToolExecutionExceptionProcessor`; default hands a `RuntimeException` message to the model, other throwables are rethrown | `ToolCallbackProvider`/`ToolCallbackResolver` per request | none in the tool; context map from the caller |
+| Anthropic Java SDK 2.66.0 tool runner (verified) | `BetaTool`; `BetaRunnableTool.of(Class<T>, run)` derives it from a class | `run`: typed `T` to `ToolResultBlockParam.Content` | JSON bound to the class, local schema validation | none | `String` or content blocks | the runner catches any `Exception` and answers `is_error` with `Error: <message>`; an unknown or unavailable tool also gives an error result | `availableToolNames` of the runner | none |
+| MCP Java SDK 2.0.1 (verified) | `McpSchema.Tool` (name, description, input schema) inside `McpServerFeatures.SyncToolSpecification` | `BiFunction<McpSyncServerExchange, CallToolRequest, CallToolResult>` | `CallToolRequest` holds a `Map` | the exchange (session, client capabilities) | `CallToolResult` (content list, `isError`, structured content, meta) | the handler returns `isError` itself | tools added and removed at runtime on the server | none |
+| OpenAI Agents SDK (documentation, not verified) | `FunctionTool` (name, description, JSON schema, strict); `@function_tool` derives it from a function signature | `on_invoke_tool(ctx, input_json)` | JSON string bound to the signature | `RunContextWrapper` with a user-defined context object | any value, converted to text | `failure_error_function` turns an exception into model-visible text by default | `is_enabled` flag or callable | the mutable context object |
+
+### 9.2 What we adapt and why
+
+- **Definition and handler are one registered object** (LangChain4j, Spring AI, MCP all pair them). A tool
+  is one `LocalTool` bean; the registry collects the beans.
+- **Typed arguments, no reflection scan.** The Anthropic runner and Spring's `FunctionToolCallback` bind the
+  JSON to a type. `LocalTool.builder(..).handler(Class<A>, handler)` does that with the connector
+  `ObjectMapper`. Annotation scanning (`@Tool`, `MethodToolCallback`) and schema derivation from a class are
+  not adopted: the module has no schema generator, and LangChain4j's must not be imported outside the
+  LangChain4j adapter (invariant I1). The schema is a `Map` or the small `LocalToolSchema` builder.
+- **Context as the second handler argument** (Spring `ToolContext`, MCP exchange, OpenAI context).
+  `LocalToolContext` is read-only and narrow: configuration, agent properties, documents, agent instance
+  key, `ObjectMapper`.
+- **A result object with an error flag** (LangChain4j `isError`, MCP `isError`, Anthropic `is_error`).
+  `LocalToolResult` has content, the flag, and context updates. The flag stays inside the agent because the
+  domain tool result has no error flag (blocker 4); the model reads the message as text.
+- **Dynamic enablement** (OpenAI `is_enabled`, LangChain4j dynamic providers, MCP add/remove).
+  `LocalTool.isAvailable(AgentConfiguration)` is evaluated per invocation.
+- **Declarative document parameters.** None of the frameworks has them; the existing
+  `ToolDefinition.documentParameters` pointers (3.2) are honored for local tools, so a tool that takes a
+  document never validates ids itself.
+- **State through context updates.** The frameworks keep state in the caller (memory id, context map, mutable
+  context object). The agent runs one job after the other, possibly on different workers, so state must live
+  in the persisted `AgentContext`: a result can carry `UnaryOperator<AgentContext>` updates that the
+  framework applies. This has no verified counterpart; it follows from where the agent keeps state.
+- **Error semantics differ.** Every framework above hands any (runtime) exception to the model by default.
+  A local tool is code of the connector, not a user integration, and it can change agent state, so an
+  unexpected exception must not turn into text the model reads: it propagates and fails the job like any
+  other connector error. Expected failures are reported with `LocalToolException` or `LocalToolResult.error`.
+- **Not adopted:** return-direct behavior (the model loop decides what happens after a result), asynchronous
+  executors, tool search.
+
+### 9.3 The API
+
+```java
+public interface LocalTool {
+  ToolDefinition definition();
+  default boolean isAvailable(AgentConfiguration configuration) { return true; }
+  LocalToolResult call(LocalToolCall call, LocalToolContext context);
+
+  static Builder builder(String name);
+  static Builder builder(ToolDefinition definition);
+  // Builder: description(String), inputSchema(Map | LocalToolSchema), documentParameters(List<String>),
+  //          available(Predicate<AgentConfiguration>),
+  //          handler(Handler)                      // raw call
+  //          handler(Class<A>, TypedHandler<A>)    // arguments bound to A
+}
+
+public record LocalToolCall(String id, String name,
+    Map<String, Object> arguments,          // as the model sent them (document ids)
+    Map<String, Object> resolvedArguments)  // declared document parameters replaced by the references
+{ <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
+
+public record LocalToolContext(AgentConfiguration configuration, Map<String, Object> properties,
+    DocumentRegistry documents, @Nullable AgentInstanceKey agentInstanceKey, ObjectMapper objectMapper) {}
+
+public record LocalToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {
+  static LocalToolResult success(Object content);
+  static LocalToolResult error(String message);
+  LocalToolResult withContextUpdate(UnaryOperator<AgentContext> update);
+}
+
+public class LocalToolException extends RuntimeException {}   // an error the model can act on
+public interface LocalToolRegistry { Set<String> toolNames(); List<LocalTool> availableTools(AgentConfiguration);
+    Optional<LocalTool> findAvailable(String name, AgentConfiguration); List<ToolDefinition> availableToolDefinitions(AgentConfiguration); }
+```
+
+`LocalToolSchema.object().string(..).integer(..).number(..).bool(..).stringArray(..).document(..).build()`
+creates a flat object schema; `document(..)` also records the JSON pointer of the document parameter.
+
+### 9.4 What the framework does
+
+1. **Offering.** `BaseAgentRequestHandler.converse` appends `availableToolDefinitions` to the process tools in
+   `AgentConfiguration.toolDefinitions()`. Every provider converter, the window and the agent instance
+   `CONFIGURATION` item read that list; the persisted `AgentContext.toolDefinitions` never contain local tools.
+2. **Split.** For each call of the last assistant message, in order: a call of an available local tool runs;
+   a call of a process tool with an invalid document parameter is answered with an error; every other call
+   remains for the process (3.6). A call of a registered but unavailable local tool remains for the process.
+3. **Document parameters.** If the definition declares document parameters, `DocumentParameterResolver`
+   resolves them against the registry first. An invalid value answers the call with the error text of 3.7 and
+   the tool does not run. The tool sees `arguments` (ids) and `resolvedArguments` (references).
+4. **Run.** The tool runs with a `LocalToolContext` of the working conversation. The typed handler binds
+   `resolvedArguments` to its type; a parameter of type `Document` receives the registry document, and an
+   argument that does not fit the type answers the call with "Invalid arguments for tool '<name>': ...".
+5. **Result.** The content becomes the `ToolCallResult` (text or object content, a `Document` inside renders
+   as its tag, 3.4). The context updates are applied to the working conversation in order, call after call,
+   so a later call of the batch sees the state an earlier one left. An error result carries no update.
+   The results follow the paths of 3.6 (synthetic round or pending results) and are reported as in 5.1.
+
+### 9.5 Errors
+
+| Situation | Outcome |
+|---|---|
+| `LocalToolException` thrown, or `LocalToolResult.error(..)` | error result with the message; logged at debug; no context update |
+| invalid document parameter | error result of 3.7; the tool does not run |
+| arguments do not fit the typed handler | error result "Invalid arguments for tool '<name>': <reason>" |
+| any other exception (bug, I/O failure, `ConnectorException`) | propagates; the job fails or becomes an incident like any connector error |
+
+### 9.6 Availability and reserved names
+
+`isAvailable` is evaluated against the configuration of the invocation, both when the definitions are offered
+and when calls are split, so they cannot diverge. The task flavor evaluates its input per iteration, so
+availability can change between jobs; a call of a tool that is no longer available goes to the process.
+
+Names are reserved for every registered tool, available or not (3.9). Reasoning: availability depends on a
+configuration that can change while the agent runs, and a BPMN element that is valid today must not turn into
+a collision on the next iteration; the check also has no configuration at hand on process migration. The
+cost is that a modeler cannot name an element `return_documents` even with the option off. Uniqueness among
+local tools is checked when the registry is created (startup).
+
+### 9.7 Add a local tool
+
+1. Pick a name (it becomes reserved) and write the definition: description, input schema, and the
+   `documentParameters` if the tool takes documents.
+2. Write the handler. Typed arguments are the usual case:
+
+   ```java
+   record Note(@Nullable String text) {}
+
+   LocalTool saveNote =
+       LocalTool.builder("save_note")
+           .description("Saves a note for later.")
+           .inputSchema(LocalToolSchema.object().string("text", "The text of the note", true))
+           .available(configuration -> configuration.memory() != null)
+           .handler(
+               Note.class,
+               (note, context) -> {
+                 if (note.text() == null || note.text().isBlank()) {
+                   return LocalToolResult.error("The note must not be blank.");
+                 }
+                 return LocalToolResult.success("Saved.")
+                     .withContextUpdate(agentContext -> agentContext.withProperty("lastNote", note.text()));
+               });
+   ```
+
+3. Register it as a Spring bean of type `LocalTool` (`@Bean`); `LocalToolRegistryImpl` collects every bean.
+4. Report failures the model can act on with `LocalToolResult.error` or `LocalToolException`; let bugs
+   propagate.
+5. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
+   persisted `AgentContext`; use `AgentContext.properties()` for free-form state.
+6. Test it through `LocalToolCallHandlerImpl` with a conversation, as `LocalToolCallHandlerImplTest` does
+   with the test-only `SaveNoteTool`. Add an end-to-end test when the tool changes what crosses a job
+   boundary.
+
+### 9.8 Limits
+
+- The schema helper is flat; build nested schemas as a `Map`.
+- Document parameters of local tools use the same pointers and the same limits as 3.3 (no `anyOf`/`oneOf`).
+- A local tool cannot start another model call or activate a BPMN element.

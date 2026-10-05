@@ -1196,7 +1196,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc tool element uses the reserved built-in tool name `return_documents` |
+| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element uses the name of a registered local tool (today `return_documents`) |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
@@ -1815,14 +1815,15 @@ lease-fenced `update()` mechanism).
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
 
-**Tool calls answered by the agent itself.** Calls answered locally (the built-in `return_documents`,
-calls rejected for an unknown document id; see the document flow design notes) appear in history like
-any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
+**Tool calls answered by the agent itself.** Calls answered locally (local tools such as the built-in
+`return_documents`, calls rejected for an unknown document id; see the document flow design notes)
+appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
 `applyTurnStart` that carries the results: in the synthetic round of the same job when the agent
 answered every call, in the next job together with the process results otherwise. They use the
-tool-call id as `historyItemId`, `elementId` equal to the tool name (there is no BPMN element), the
-local `completedAt` and the originating arguments, like every other result. A mixed batch completes
+tool-call id as `historyItemId`, no `elementId` (there is no BPMN element), the local `completedAt` and
+the originating arguments, like every other result; an error result is plain text content, the history
+has no result status. A mixed batch completes
 its job with `TOOL_CALLING`, a fully local batch with `THINKING` followed by the next round.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
@@ -1846,7 +1847,11 @@ namespaced) `toolName`. For tool results it is resolved once on the model in
 `AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
 tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
-gateway element id parsed from the namespaced name.
+gateway element id parsed from the namespaced name; for local tools (calls, results and the tool entry
+of the `CONFIGURATION` item) it is `null`, because the engine field is nullable and a local tool has no
+BPMN element. `LocalToolRegistry.toolNames()` identifies them (those names are reserved).
+The tool list of a `CONFIGURATION` item holds the process tools plus the available local tools
+(`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
@@ -1935,6 +1940,7 @@ a new provider, store, or contributor. The SPIs:
 | `SystemPromptContributor` | system-prompt contribution      | [§25.2](#252-add-a-systempromptcontributor) |
 | `ConversationStore`       | conversation memory backend     | [§25.3](#253-add-a-conversationstore) |
 | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [§19](#19-gateway-tool-pattern) |
+| `LocalTool`               | tool the agent runs itself      | [§25.4](#254-add-a-local-tool) |
 
 ### I5. Conversation stores follow the write-ahead, pointer-based contract
 
@@ -2027,3 +2033,31 @@ write-ahead, pointer-based storage contract in [§6](#6-conversation-memory) (in
 `ConversationStoreRegistryImpl` selects the store by `type()`. Reference implementation: the in-process
 store (`InProcessConversationStore` and its session/context). For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
+
+<a id="254-add-a-local-tool"></a>
+
+### 25.4 Add a local tool
+
+A local tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
+implementation: `ReturnDocumentsTool` (`aiagent/localtool`), wired in
+`AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentsLocalTool`). The full API, the research behind
+it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
+
+1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
+   `LocalToolSchema` helper; declare document parameters with `LocalToolSchema.document` or
+   `documentParameters`), optionally `available(configuration -> ...)`, and a `handler`. Use
+   `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. Or implement
+   `LocalTool` directly.
+2. Return `LocalToolResult.success(content)`; report failures the model can act on with
+   `LocalToolResult.error(message)` or a thrown `LocalToolException`. Any other exception propagates and
+   fails the job.
+3. Change agent state only with `LocalToolResult.withContextUpdate(agentContext -> ...)`; the framework
+   applies the updates in call order. Never keep state in the tool.
+4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans, rejects
+   duplicate names at startup and reserves every registered name against ad-hoc and gateway tool elements
+   (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for an agent or not.
+5. The framework offers the tool while `isAvailable(AgentConfiguration)` holds, resolves declared document
+   parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
+   and its calls to agent instance history without an element id, and handles mixed batches with real calls
+   (design notes). Test it through `LocalToolCallHandlerImpl` (see `LocalToolCallHandlerImplTest`
+   with the test-only `SaveNoteTool`).

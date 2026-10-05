@@ -146,8 +146,8 @@ suite will enforce (epic #7537):
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
   `*Impl`. Wire impls as Spring beans, depend on the interface.
-- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
+- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
+  gateway tool, or local tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
 ## Working in this module
@@ -345,9 +345,10 @@ Before claiming a change is complete:
 
 ## Extension points
 
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
-implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19).
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a local
+tool (a tool the agent runs itself, such as `return_documents`) by implementing the SPI and registering
+a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
+tools: §19; local tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
 
 ## Element templates
 
