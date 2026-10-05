@@ -177,8 +177,14 @@ public class InboundCorrelationHandlerTest {
     // given
     var startEventElement = mock(InboundConnectorElement.class);
     when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(startEventElement.element())
+        .thenReturn(
+            new ProcessElementWithRuntimeData("process1", 0, 0, "startEventElementId", "default"));
     var messageElement = mock(InboundConnectorElement.class);
     when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(messageElement.element())
+        .thenReturn(
+            new ProcessElementWithRuntimeData("process1", 0, 0, "messageElementId", "default"));
 
     // when
     var result =
@@ -189,6 +195,82 @@ public class InboundCorrelationHandlerTest {
     assertThat(result).isInstanceOf(Failure.InvalidInput.class);
     assertThat(((Failure.InvalidInput) result).message())
         .contains("Multiple connectors are activated");
+  }
+
+  @Nested
+  class CrossVersionCorrelation {
+
+    private InboundConnectorElement versionedMessageElement(int version, String messageName) {
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint())
+          .thenReturn(new StandaloneMessageCorrelationPoint(messageName, "=id", null, null));
+      when(element.element())
+          .thenReturn(
+              new ProcessElementWithRuntimeData("process1", version, version, "step", "default"));
+      return element;
+    }
+
+    @Test
+    void sameMessage_publishedOnceForLatestVersion() {
+      // given
+      var v9 = versionedMessageElement(9, "msg");
+      var v10 = versionedMessageElement(10, "msg");
+      when(v9.resultExpression()).thenReturn("={v9: id}");
+      when(v10.resultExpression()).thenReturn("={v10: id}");
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(v9, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      assertThat(((Success.MessagePublished) result).activatedElement().version()).isEqualTo(10);
+      verify(camundaClient, times(1)).newPublishMessageCommand();
+      verify(dummyCommand).messageName("msg");
+      verify(dummyCommand).variables((Object) Map.of("v10", "1"));
+    }
+
+    @Test
+    void differentMessageNames_publishedForEveryVersion() {
+      // given
+      var v2 = versionedMessageElement(2, "msg-v2");
+      var v10 = versionedMessageElement(10, "msg-v10");
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(v2, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      assertThat(((Success.MessagePublished) result).activatedElement().version()).isEqualTo(10);
+      verify(camundaClient, times(2)).newPublishMessageCommand();
+      var inOrder = inOrder(dummyCommand);
+      inOrder.verify(dummyCommand).messageName("msg-v10");
+      inOrder.verify(dummyCommand).messageName("msg-v2");
+      verify(dummyCommand, times(2)).correlationKey("1");
+    }
+
+    @Test
+    void failedPublishForOlderVersion_isReturned() {
+      // given
+      var v2 = versionedMessageElement(2, "msg-v2");
+      var v10 = versionedMessageElement(10, "msg-v10");
+
+      when(camundaClient.newPublishMessageCommand())
+          .thenReturn(new PublishMessageCommandDummy())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
+
+      // when
+      var result = handler.correlate(List.of(v2, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Failure.ZeebeClientStatus.class);
+      assertThat(((Failure.ZeebeClientStatus) result).status()).isEqualTo("UNAVAILABLE");
+    }
   }
 
   @Nested

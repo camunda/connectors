@@ -399,6 +399,136 @@ public class ActivationConditionEvaluatorTest {
   }
 
   @Nested
+  @DisplayName("Matching elements from different process versions")
+  class CrossVersion {
+
+    private InboundConnectorElement createVersionedMessageElement(
+        String elementId,
+        int version,
+        String messageName,
+        String resultExpression,
+        String correlationKeyExpression) {
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint())
+          .thenReturn(
+              new StandaloneMessageCorrelationPoint(
+                  messageName, correlationKeyExpression, null, Duration.ofHours(1)));
+      when(element.element())
+          .thenReturn(
+              new ProcessElementWithRuntimeData(
+                  "process1", version, version, elementId, "default"));
+      when(element.activationCondition()).thenReturn("");
+      when(element.resultExpression()).thenReturn(resultExpression);
+      return element;
+    }
+
+    private List<InboundConnectorElement> resolve(
+        List<InboundConnectorElement> elements, Map<String, Object> context) {
+      var resolution = evaluator.resolveActivation(elements, context);
+      assertThat(resolution.result()).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      return resolution.elementsToCorrelate();
+    }
+
+    @Test
+    @DisplayName("Same message, different resultExpression: the latest version wins")
+    void sameMessage_incompatible_latestVersionWins() {
+      var v9 = createVersionedMessageElement("step", 9, "msg", "=v9", "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg", "=v10", "=id");
+
+      var result = evaluator.checkActivation(List.of(v9, v10), Map.of("id", "1"));
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(((ActivationCheckResult.Success.CanActivate) result).activatedElement().version())
+          .isEqualTo(10);
+      assertThat(resolve(List.of(v9, v10), Map.of("id", "1"))).containsExactly(v10);
+    }
+
+    @Test
+    @DisplayName("Different message names: every version is correlated, latest first")
+    void differentMessageNames_allCorrelated() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", "=v2", "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", "=v10", "=id");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10, v2);
+    }
+
+    @Test
+    @DisplayName("Same message name, different correlation keys: every version is correlated")
+    void differentCorrelationKeys_allCorrelated() {
+      var v2 = createVersionedMessageElement("step", 2, "msg", null, "=legacyId");
+      var v10 = createVersionedMessageElement("step", 10, "msg", null, "=id");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1", "legacyId", "L-1")))
+          .containsExactly(v10, v2);
+    }
+
+    @Test
+    @DisplayName("Different key expressions evaluating to the same key: the latest version wins")
+    void differentKeyExpressions_sameKey_latestVersionWins() {
+      var v2 = createVersionedMessageElement("step", 2, "msg", null, "=string(id)");
+      var v10 = createVersionedMessageElement("step", 10, "msg", null, "=id");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10);
+    }
+
+    @Test
+    @DisplayName("An older version whose correlation key cannot be evaluated is skipped")
+    void olderVersionWithoutCorrelationKey_isSkipped() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=missing.key");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10);
+    }
+
+    @Test
+    @DisplayName("The latest version is kept even when its correlation key cannot be evaluated")
+    void latestVersionWithoutCorrelationKey_isKept() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=missing.key");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10, v2);
+    }
+
+    @Test
+    @DisplayName("Start event of the latest version and catch event of an older version")
+    void latestStartEvent_olderCatchEvent_bothCorrelated() {
+      var v2 = createVersionedMessageElement("step", 2, "msg", null, "=id");
+      var v10Start = mock(InboundConnectorElement.class);
+      when(v10Start.correlationPoint())
+          .thenReturn(new StartEventCorrelationPoint("process1", 10, 10));
+      when(v10Start.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 10, "start", "default"));
+      when(v10Start.activationCondition()).thenReturn("");
+
+      assertThat(resolve(List.of(v2, v10Start), Map.of("id", "1"))).containsExactly(v10Start, v2);
+    }
+
+    @Test
+    @DisplayName("Distinct messages with a synchronous response cannot be fanned out")
+    void distinctMessages_synchronousResponse_tooManyMatchingElements() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
+      when(v10.synchronousResponse()).thenReturn(true);
+
+      var result = evaluator.checkActivation(List.of(v2, v10), Map.of("id", "1"));
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("Several matches within one of the versions keep the regular compatibility check")
+    void severalMatchesWithinOneVersion_tooManyMatchingElements() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v10a = createVersionedMessageElement("stepA", 10, "msg-a", null, "=id");
+      var v10b = createVersionedMessageElement("stepB", 10, "msg-b", null, "=id");
+
+      var result = evaluator.checkActivation(List.of(v2, v10a, v10b), Map.of("id", "1"));
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+  }
+
+  @Nested
   @DisplayName("consumeUnmatchedEvents flag")
   class ConsumeUnmatchedEvents {
 

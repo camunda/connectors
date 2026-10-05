@@ -21,8 +21,13 @@ import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +55,15 @@ public class ActivationConditionEvaluator {
    */
   public ActivationCheckResult checkActivation(
       List<InboundConnectorElement> elements, Object context) {
+    return resolveActivation(elements, context).result();
+  }
+
+  /**
+   * Same as {@link #checkActivation}, but also returns the elements the input must be correlated
+   * to. This is a single element, except when the matching elements belong to different versions of
+   * the process (see {@link #resolveCrossVersionTargets}).
+   */
+  ActivationResolution resolveActivation(List<InboundConnectorElement> elements, Object context) {
     var matchingElements = getMatchingElements(elements, context);
 
     if (matchingElements.isEmpty()) {
@@ -57,21 +71,27 @@ public class ActivationConditionEvaluator {
           elements.stream()
               .map(InboundConnectorElement::consumeUnmatchedEvents)
               .anyMatch(e -> e.equals(Boolean.TRUE));
-      return new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents);
+      return ActivationResolution.failure(
+          new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents));
     }
 
     if (matchingElements.size() > 1) {
+      var crossVersionTargets = resolveCrossVersionTargets(matchingElements, context);
+      if (crossVersionTargets != null) {
+        return ActivationResolution.success(crossVersionTargets);
+      }
       // Multiple elements match - check if they are compatible message elements
       var compatibilityResult = checkMessageElementCompatibility(matchingElements);
       if (compatibilityResult.compatible()) {
-        return new ActivationCheckResult.Success.CanActivate(
-            Objects.requireNonNull(compatibilityResult.element()).element());
+        return ActivationResolution.success(
+            List.of(Objects.requireNonNull(compatibilityResult.element())));
       }
-      return new ActivationCheckResult.Failure.TooManyMatchingElements(
-          Objects.requireNonNull(compatibilityResult.reason()));
+      return ActivationResolution.failure(
+          new ActivationCheckResult.Failure.TooManyMatchingElements(
+              Objects.requireNonNull(compatibilityResult.reason())));
     }
 
-    return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
+    return ActivationResolution.success(List.of(matchingElements.getFirst()));
   }
 
   /**
@@ -101,6 +121,95 @@ public class ActivationConditionEvaluator {
   private List<InboundConnectorElement> getMatchingElements(
       List<InboundConnectorElement> elements, Object context) {
     return elements.stream().filter(e -> isActivationConditionMet(e, context)).toList();
+  }
+
+  /**
+   * Resolves an input matching elements of different process versions, one element per version.
+   * Zeebe routes a message by its name and correlation key only, so elements publishing different
+   * messages can all be correlated. Elements publishing the same message cannot be told apart: the
+   * latest version wins, as when only the latest version was active.
+   *
+   * <p>An older version whose correlation key cannot be evaluated against the input is skipped, so
+   * it cannot block the latest version.
+   *
+   * @return the elements to correlate, latest version first, or {@code null} if the matching
+   *     elements are not spread over versions and the regular compatibility check applies
+   */
+  private @Nullable List<InboundConnectorElement> resolveCrossVersionTargets(
+      List<InboundConnectorElement> matchingElements, Object context) {
+    var elementsByVersion =
+        matchingElements.stream().collect(Collectors.groupingBy(e -> e.element().version()));
+    if (elementsByVersion.size() < 2
+        || elementsByVersion.values().stream().anyMatch(sameVersion -> sameVersion.size() > 1)) {
+      // several matches within one version is a modeling issue, not a versioning one
+      return null;
+    }
+
+    var latestFirst =
+        matchingElements.stream()
+            .sorted(
+                Comparator.comparingInt((InboundConnectorElement e) -> e.element().version())
+                    .reversed())
+            .toList();
+    var latestVersion = latestFirst.getFirst().element().version();
+
+    Map<Object, List<InboundConnectorElement>> elementsByTarget = new LinkedHashMap<>();
+    for (var element : latestFirst) {
+      Object target = element;
+      if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
+        var correlationKey = evaluateCorrelationKey(point.correlationKeyExpression(), context);
+        if (correlationKey != null) {
+          target = new CorrelationTarget(point.messageName(), correlationKey);
+        } else if (element.element().version() != latestVersion) {
+          LOG.warn(
+              "Skipping element '{}' (version {}): its correlation key '{}' cannot be evaluated"
+                  + " against the input",
+              element.element().elementId(),
+              element.element().version(),
+              point.correlationKeyExpression());
+          continue;
+        }
+        // the latest version keeps its own target, its correlation then reports the failure
+      }
+      elementsByTarget.computeIfAbsent(target, t -> new ArrayList<>()).add(element);
+    }
+
+    if (elementsByTarget.size() > 1
+        && latestFirst.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
+      // a synchronous response can only come from a single correlation
+      return null;
+    }
+
+    return elementsByTarget.values().stream()
+        .map(
+            sameMessage -> {
+              var latest = sameMessage.getFirst();
+              if (sameMessage.size() > 1) {
+                var compatibilityResult = checkMessageElementCompatibility(sameMessage);
+                if (!compatibilityResult.compatible()) {
+                  LOG.warn(
+                      "Input matches elements of different versions publishing the same message,"
+                          + " using '{}' (version {}): {}",
+                      latest.element().elementId(),
+                      latest.element().version(),
+                      compatibilityResult.reason());
+                }
+              }
+              return latest;
+            })
+        .toList();
+  }
+
+  private @Nullable String evaluateCorrelationKey(
+      @Nullable String correlationKeyExpression, Object context) {
+    if (correlationKeyExpression == null || correlationKeyExpression.isBlank()) {
+      return null;
+    }
+    try {
+      return feelExpressionEvaluator.evaluate(correlationKeyExpression, String.class, context);
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   /**
@@ -231,6 +340,26 @@ public class ActivationConditionEvaluator {
           .formatted(elementsWithVersions, mismatchDetails);
     }
   }
+
+  /**
+   * The outcome of {@link #resolveActivation}: the activation check result, and on success the
+   * elements to correlate (latest version first).
+   */
+  record ActivationResolution(
+      ActivationCheckResult result, List<InboundConnectorElement> elementsToCorrelate) {
+    static ActivationResolution success(List<InboundConnectorElement> elementsToCorrelate) {
+      return new ActivationResolution(
+          new ActivationCheckResult.Success.CanActivate(elementsToCorrelate.getFirst().element()),
+          elementsToCorrelate);
+    }
+
+    static ActivationResolution failure(ActivationCheckResult.Failure failure) {
+      return new ActivationResolution(failure, List.of());
+    }
+  }
+
+  /** The message an element publishes, as Zeebe routes it. */
+  private record CorrelationTarget(String messageName, String correlationKey) {}
 
   private record CompatibilityResult(
       boolean compatible, @Nullable InboundConnectorElement element, @Nullable String reason) {

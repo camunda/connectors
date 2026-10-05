@@ -34,11 +34,11 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.correlation.ActivationConditionEvaluator.ActivationResolution;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
@@ -95,27 +95,50 @@ public class InboundCorrelationHandler {
   public CorrelationResult correlate(
       List<InboundConnectorElement> elements, CorrelationRequest correlationRequest) {
 
-    final ActivationCheckResult activationCheckResult;
+    final ActivationResolution resolution;
     try {
-      activationCheckResult = canActivate(elements, correlationRequest.getVariables());
+      resolution =
+          activationConditionEvaluator.resolveActivation(
+              elements, correlationRequest.getVariables());
     } catch (ConnectorInputException e) {
       LOG.info("Failed to evaluate activation condition", e);
       return new CorrelationResult.Failure.InvalidInput(
           "Failed to evaluate activation condition against the provided input", e);
     }
 
-    return switch (activationCheckResult) {
+    return switch (resolution.result()) {
       case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement ->
           new ActivationConditionNotMet(noMatchingElement.discardUnmatchedEvents());
       case ActivationCheckResult.Failure.TooManyMatchingElements tooMany ->
           new Failure.InvalidInput(
               "Multiple connectors are activated for the same input: " + tooMany.reason(), null);
-      case ActivationCheckResult.Success.CanActivate canActivate ->
-          correlateInternal(
-              findMatchingElement(elements, canActivate.activatedElement()),
+      case ActivationCheckResult.Success.CanActivate ignored ->
+          correlateAll(
+              resolution.elementsToCorrelate(),
               correlationRequest.getVariables(),
               correlationRequest.getMessageId());
     };
+  }
+
+  /**
+   * Correlates the input to each element, latest version first. There is more than one element only
+   * when the input matches several process versions publishing distinct messages. The first failure
+   * is returned so the input is retried as a whole: elements already correlated are then correlated
+   * again, as for any retried input.
+   */
+  private CorrelationResult correlateAll(
+      List<InboundConnectorElement> elementsToCorrelate, Object variables, String messageId) {
+    var latestResult = correlateInternal(elementsToCorrelate.getFirst(), variables, messageId);
+    if (latestResult instanceof Failure) {
+      return latestResult;
+    }
+    for (var element : elementsToCorrelate.subList(1, elementsToCorrelate.size())) {
+      var result = correlateInternal(element, variables, messageId);
+      if (result instanceof Failure) {
+        return result;
+      }
+    }
+    return latestResult;
   }
 
   protected CorrelationResult correlateInternal(
@@ -364,14 +387,6 @@ public class InboundCorrelationHandler {
       result = new Failure.Other(ex);
     }
     return result;
-  }
-
-  private InboundConnectorElement findMatchingElement(
-      List<InboundConnectorElement> elements, ProcessElement contentElement) {
-    return elements.stream()
-        .filter(e -> e.element().elementId().equals(contentElement.elementId()))
-        .findFirst()
-        .get();
   }
 
   public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
