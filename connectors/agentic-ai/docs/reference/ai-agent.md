@@ -1841,7 +1841,9 @@ retried batch write, and the same result written by two jobs, dedup against the 
 early report and the later batch write for the same result dedup for free), falling back to a
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
-too.
+too. The fingerprint is a SHA-256 over model, provider, system prompt, model-call limit and a canonical
+form of the tool definitions (map keys sorted recursively, list order kept, numbers compared by value), so
+it does not change when the tool schemas are reordered by a persistence round trip.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
@@ -2063,8 +2065,9 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    fails the job.
 3. Change agent state only with `LocalToolResult.withContextUpdate(agentContext -> ...)`; the framework
    applies the updates in call order. Never keep state in the tool.
-   Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the definition feeds the
-   configuration fingerprint and the request to the model, which need the same bytes in every JVM.
+   Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request to the model
+   carries the schema in the order of the map, which should be the same in every JVM. The configuration
+   fingerprint is independent of that order.
 4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans, rejects
    duplicate names at startup and reserves every registered name against ad-hoc and gateway tool elements
    (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for an agent or not.

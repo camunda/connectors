@@ -455,7 +455,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
 | 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the arguments of a call show the document reference, which holds the content of an inline document). |
 | 7 | Seeded registry completeness | Low | The seed scan is best effort and rescans conversations without documents every turn. |
-| 8 | Order of process tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map whose iteration order differs per JVM, so the configuration fingerprint (which hashes the tool definitions) of a process tool with several top-level schema entries can differ between connector workers. A job that lands on another worker can then report an extra `CONFIGURATION` history item. The definitions of local tools keep their declared order, and the schema derived for the provider keeps the order of the definition it is derived from. |
+| 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose input schema declares
 document parameters (the tool name is the lookup key); a failing resolution in `createResponse`
@@ -802,12 +802,12 @@ local tools is checked when the registry is created (startup).
 3. Register it as a Spring bean of type `LocalTool` (`@Bean`); `LocalToolRegistryImpl` collects every bean.
 4. Report failures the model can act on with `LocalToolResult.error` or `LocalToolException`; let bugs
    propagate.
-5. Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the definition is part
-   of the configuration fingerprint and of the request sent to the model, and `Map.of` iterates in a
-   different order in every JVM. `LocalToolSchema` does this and `LocalTool.builder` keeps the order of the
-   map it is given; construct a definition by hand with the `ToolDefinition` constructor, not
-   `ToolDefinition.builder()` (the record builder copies the schema into an immutable map of unspecified
-   order).
+5. Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request sent to the
+   model carries the schema in the order of the map, and `Map.of` iterates in a different order in every JVM.
+   The configuration fingerprint does not depend on this order (it hashes the schema with sorted keys).
+   `LocalToolSchema` does this and `LocalTool.builder` keeps the order of the map it is given; construct a
+   definition by hand with the `ToolDefinition` constructor, not `ToolDefinition.builder()` (the record
+   builder copies the schema into an immutable map of unspecified order).
 6. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
    persisted `AgentContext`; use `AgentContext.properties()` for free-form state.
 7. Test it through `LocalToolCallHandlerImpl` with a conversation, as `LocalToolCallHandlerImplTest` does
