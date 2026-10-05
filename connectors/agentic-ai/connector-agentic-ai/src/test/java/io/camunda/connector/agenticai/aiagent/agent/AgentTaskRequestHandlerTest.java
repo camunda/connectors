@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -56,10 +57,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -111,6 +115,63 @@ class AgentTaskRequestHandlerTest {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+  }
+
+  @Test
+  void handsOnlyTheValidCallsOfABatchWithAnUnknownDocumentIdToTheProcess() {
+    final var contextWithUploadTool =
+        INITIAL_AGENT_CONTEXT.withToolDefinitions(
+            Stream.concat(
+                    TOOL_DEFINITIONS.stream(),
+                    Stream.of(
+                        ToolDefinition.builder()
+                            .name("upload")
+                            .inputSchema(Map.of())
+                            .documentParameters(List.of("/properties/doc"))
+                            .build()))
+                .toList());
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(contextWithUploadTool, List.of()));
+
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build());
+    when(responseHandler.createResponse(any(AgentConversation.class)))
+        .thenAnswer(
+            i -> {
+              final var conversation = i.getArgument(0, AgentConversation.class);
+              return AgentResponse.builder()
+                  .context(conversation.toAgentContext())
+                  .toolCalls(List.of(ToolCallProcessVariable.from(otherCall)))
+                  .build();
+            });
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(1)).execute(any());
+    final var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
+    assertThat(agentResponse.context().pendingLocalToolCallResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("call-1");
+              assertThat(result.content())
+                  .asString()
+                  .startsWith("Unknown document id 'bogus' for parameter 'doc'.");
+            });
+    verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            any(),
+            any(),
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING));
   }
 
   @Test

@@ -970,6 +970,95 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldReportLocalAndProcessResultsOfOneAssistantMessageAsToolResultsInCallOrder() {
+      givenUpdateCommand();
+      final var configuration = configuration("Be nice.", List.of());
+      final var localCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
+      final var processCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
+      final var localResult =
+          ToolCallResult.builder()
+              .id("local")
+              .name("return_documents")
+              .content("Selected 1 document(s) to return: doc-1")
+              .completedAt(localCompletedAt)
+              .build();
+      final var processResult =
+          ToolCallResultContent.builder()
+              .id("real")
+              .name("getWeather")
+              .elementId("getWeather")
+              .content(List.of(TextContent.textContent("sunny")))
+              .completedAt(processCompletedAt)
+              .build();
+      final var turn =
+          new AgentConversationTurn(
+              2,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(ToolCallResultContent.from(localResult), processResult))
+                      .build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("local")
+                              .name("return_documents")
+                              .arguments(Map.of("ids", List.of("doc-1")))
+                              .build(),
+                          ToolCall.builder()
+                              .id("real")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.of(previousTurn),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      // the configuration is unchanged; each result is one item correlated to its own call
+      assertThat(historyCaptor.getValue())
+          .satisfiesExactly(
+              local -> {
+                assertThat(local.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(local.getHistoryItemId()).isEqualTo("local");
+                assertThat(local.getLoopIteration()).isEqualTo(2);
+                assertThat(local.getProducedAt()).isEqualTo(localCompletedAt);
+                assertThat(local.getToolCalls())
+                    .singleElement()
+                    .satisfies(
+                        tc -> {
+                          assertThat(tc.getToolCallId()).isEqualTo("local");
+                          assertThat(tc.getToolName()).isEqualTo("return_documents");
+                          assertThat(tc.getArguments())
+                              .containsExactlyEntriesOf(Map.of("ids", List.of("doc-1")));
+                        });
+              },
+              real -> {
+                assertThat(real.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(real.getHistoryItemId()).isEqualTo("real");
+                assertThat(real.getProducedAt()).isEqualTo(processCompletedAt);
+                assertThat(real.getToolCalls())
+                    .singleElement()
+                    .satisfies(tc -> assertThat(tc.getToolCallId()).isEqualTo("real"));
+              });
+    }
+
+    @Test
     void shouldThrowWhenToolResultHasNoOriginatingToolCall() {
       final var configuration = configuration("Be nice.", List.of());
       final var turn =
