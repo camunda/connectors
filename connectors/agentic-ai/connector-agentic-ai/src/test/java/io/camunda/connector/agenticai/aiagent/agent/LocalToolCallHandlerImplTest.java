@@ -51,53 +51,77 @@ class LocalToolCallHandlerImplTest {
               : new ToolCallVerdict.Pass();
 
   @Test
-  void answersNothingWithoutInspectors() {
-    assertThat(new LocalToolCallHandlerImpl(List.of()).handle(conversation, List.of(CALL_A)))
-        .isEmpty();
+  void leavesEveryCallToTheProcessWithoutInspectors() {
+    final var split = new LocalToolCallHandlerImpl(List.of()).handle(conversation, List.of(CALL_A));
+
+    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.remainingCalls()).containsExactly(CALL_A);
   }
 
   @Test
-  void answersNothingWhenEveryCallPasses() {
-    assertThat(
-            new LocalToolCallHandlerImpl(List.of(REJECT_BAD)).handle(conversation, List.of(CALL_B)))
-        .isEmpty();
+  void leavesEveryCallToTheProcessWhenEveryCallPasses() {
+    final var split =
+        new LocalToolCallHandlerImpl(List.of(REJECT_BAD)).handle(conversation, List.of(CALL_B));
+
+    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.answersAllCalls()).isFalse();
+    assertThat(split.remainingCalls()).containsExactly(CALL_B);
   }
 
   @Test
-  void answersTheWholeBatchWhenOneCallIsAnswered() {
-    final var results =
+  void splitsTheBatchPerCall() {
+    final var split =
         new LocalToolCallHandlerImpl(List.of(REJECT_BAD))
-            .handle(conversation, List.of(CALL_A, CALL_B))
-            .orElseThrow()
-            .results();
+            .handle(conversation, List.of(CALL_A, CALL_B));
 
-    assertThat(results)
-        .satisfiesExactly(
-            first -> {
-              assertThat(first.id()).isEqualTo("a");
-              assertThat(first.name()).isEqualTo("tool");
-              assertThat(first.content()).isEqualTo("rejected");
-              assertThat(first.completedAt()).isNotNull();
-            },
-            second -> {
-              assertThat(second.id()).isEqualTo("b");
-              assertThat(second.name()).isEqualTo("tool");
-              assertThat(second.content()).isEqualTo(LocalToolCallHandlerImpl.NOT_EXECUTED);
-              assertThat(second.completedAt()).isNotNull();
+    assertThat(split.answersAllCalls()).isFalse();
+    assertThat(split.remainingCalls()).containsExactly(CALL_B);
+    assertThat(split.localResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("a");
+              assertThat(result.name()).isEqualTo("tool");
+              assertThat(result.content()).isEqualTo("rejected");
+              assertThat(result.completedAt()).isNotNull();
             });
+  }
+
+  @Test
+  void answersEveryCallLocallyWhenNoCallIsLeft() {
+    final ToolCallInspector answerAll = (toolCall, context) -> new ToolCallVerdict.Answer("done");
+
+    final var split =
+        new LocalToolCallHandlerImpl(List.of(answerAll))
+            .handle(conversation, List.of(CALL_A, CALL_B));
+
+    assertThat(split.answersAllCalls()).isTrue();
+    assertThat(split.remainingCalls()).isEmpty();
+    assertThat(split.localResults()).extracting(r -> r.id()).containsExactly("a", "b");
+  }
+
+  @Test
+  void keepsTheOrderOfTheCallsInBothParts() {
+    final var third = new ToolCall("c", "tool", Map.of("flag", "bad"));
+    final var fourth = new ToolCall("d", "tool", Map.of("flag", "ok"));
+
+    final var split =
+        new LocalToolCallHandlerImpl(List.of(REJECT_BAD))
+            .handle(conversation, List.of(CALL_B, CALL_A, fourth, third));
+
+    assertThat(split.localResults()).extracting(r -> r.id()).containsExactly("a", "c");
+    assertThat(split.remainingCalls()).containsExactly(CALL_B, fourth);
   }
 
   @Test
   void firstAnsweringInspectorWins() {
     final ToolCallInspector other = (toolCall, context) -> new ToolCallVerdict.Answer("other");
 
-    final var results =
+    final var split =
         new LocalToolCallHandlerImpl(List.of(REJECT_BAD, other))
-            .handle(conversation, List.of(CALL_A))
-            .orElseThrow()
-            .results();
+            .handle(conversation, List.of(CALL_A));
 
-    assertThat(results)
+    assertThat(split.localResults())
         .singleElement()
         .satisfies(r -> assertThat(r.content()).isEqualTo("rejected"));
   }
@@ -110,12 +134,12 @@ class LocalToolCallHandlerImplTest {
                 ? new ToolCallVerdict.Answer("selected", List.of("doc-1", "doc-2"))
                 : new ToolCallVerdict.Pass();
 
-    final var answers =
+    final var split =
         new LocalToolCallHandlerImpl(List.of(selecting))
-            .handle(conversation, List.of(CALL_A, CALL_B))
-            .orElseThrow();
+            .handle(conversation, List.of(CALL_A, CALL_B));
 
-    assertThat(answers.returnDocumentIds()).containsExactly("doc-1", "doc-2");
-    assertThat(answers.results()).hasSize(2);
+    assertThat(split.returnDocumentIds()).containsExactly("doc-1", "doc-2");
+    assertThat(split.localResults()).hasSize(1);
+    assertThat(split.remainingCalls()).containsExactly(CALL_B);
   }
 }

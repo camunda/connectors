@@ -115,7 +115,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
       if (!resolution.complete()) {
-        return new CompositionResult.Deferred(resolution.results());
+        return new CompositionResult.Deferred(resolution.arrivedResults());
       }
 
       final var toolCallResults = resolution.results();
@@ -177,11 +177,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * @param results the currently resolved, correlated and gateway-transformed results, in tool-call
-   *     order; partial (arrived-so-far) when {@code complete} is {@code false}
+   * @param results the currently resolved results in tool-call order: the results the agent
+   *     answered itself, the correlated and gateway-transformed process results and, when
+   *     interrupting, the cancelled ones; partial when {@code complete} is {@code false}
+   * @param arrivedResults the process results among {@code results} (correlated and
+   *     gateway-transformed), in tool-call order
    * @param complete whether every tool call has a result (or was cancelled via interrupt)
    */
-  private record ToolCallResultsResolution(List<ToolCallResult> results, boolean complete) {}
+  private record ToolCallResultsResolution(
+      List<ToolCallResult> results, List<ToolCallResult> arrivedResults, boolean complete) {}
 
   private ToolCallResultsResolution resolveOrderedToolCallResults(
       AgentContext agentContext,
@@ -193,14 +197,23 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var toolCallResultsById =
         transformedToolCallResults.stream()
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
+    // answered by the agent when the tool calls were issued; never gateway-transformed
+    final var localToolCallResultsById =
+        agentContext.pendingLocalToolCallResults().stream()
+            .collect(Collectors.toMap(ToolCallResult::id, Function.identity(), (a, b) -> a));
 
     final var missingToolCalls = new ArrayList<ToolCall>();
     final var orderedToolCallResults = new ArrayList<ToolCallResult>();
+    final var arrivedToolCallResults = new ArrayList<ToolCallResult>();
     toolCalls.forEach(
         toolCall -> {
+          final var localResult = localToolCallResultsById.get(toolCall.id());
           final var result = toolCallResultsById.get(toolCall.id());
-          if (result != null) {
+          if (localResult != null) {
+            orderedToolCallResults.add(localResult);
+          } else if (result != null) {
             orderedToolCallResults.add(result);
+            arrivedToolCallResults.add(result);
           } else {
             missingToolCalls.add(toolCall);
             if (interruptMissingToolCalls) {
@@ -220,10 +233,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return new ToolCallResultsResolution(orderedToolCallResults, false);
+      return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, false);
     }
 
-    return new ToolCallResultsResolution(orderedToolCallResults, true);
+    return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, true);
   }
 
   private @Nullable UserMessage createDocumentMessageForToolResults(

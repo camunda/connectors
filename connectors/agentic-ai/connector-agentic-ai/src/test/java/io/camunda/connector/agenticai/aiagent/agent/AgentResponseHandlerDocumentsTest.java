@@ -24,9 +24,11 @@ import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -107,6 +109,28 @@ class AgentResponseHandlerDocumentsTest {
     assertThat(response.toolCalls()).hasSize(1);
     assertThat(response.documents()).isEmpty();
     assertThat(response.context().returnDocumentIds()).containsExactly(reportId);
+  }
+
+  @Test
+  void handsOnlyTheCallsThePendingLocalResultsDoNotAnswerToTheProcess() {
+    final var localCall = new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of());
+    final var realCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var local =
+        ToolCallResult.builder().id("call-1").name(ReturnDocumentsTool.NAME).content("ok").build();
+
+    final var response =
+        responseHandler.createResponse(
+            conversation(
+                    true, List.of(reportId), assistantMessage("both", List.of(localCall, realCall)))
+                .withPendingLocalToolCallResults(List.of(local)));
+
+    assertThat(response.toolCalls())
+        .extracting(call -> call.metadata().id())
+        .containsExactly("call-2");
+    // the batch is not final, the selection stays and no documents are returned yet
+    assertThat(response.documents()).isEmpty();
+    assertThat(response.context().returnDocumentIds()).containsExactly(reportId);
+    assertThat(response.context().pendingLocalToolCallResults()).containsExactly(local);
   }
 
   @Test

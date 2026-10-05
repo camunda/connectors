@@ -131,7 +131,7 @@ class ReturnDocumentsToolCallInspectorTest {
   }
 
   @Test
-  void answersTheWholeMixedBatchAndSelectsOnlyTheValidReturnCall() {
+  void answersTheLocalCallsOfAMixedBatchAndLeavesTheRealCallToTheProcess() {
     final var handler =
         new LocalToolCallHandlerImpl(List.of(new DocumentParameterToolCallInspector(), inspector));
     final var toolCalls =
@@ -158,15 +158,15 @@ class ReturnDocumentsToolCallInspectorTest {
                 List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", toolCalls), AgentMetrics.empty());
 
-    final var answers = handler.handle(conversation, toolCalls).orElseThrow();
+    final var answers = handler.handle(conversation, toolCalls);
 
     assertThat(answers.returnDocumentIds()).containsExactly(reportId);
-    assertThat(answers.results()).extracting(ToolCallResult::id).containsExactly("r1", "r2", "t1");
-    assertThat(answers.results().get(0).content())
+    assertThat(answers.localResults()).extracting(ToolCallResult::id).containsExactly("r1", "r2");
+    assertThat(answers.remainingCalls()).extracting(ToolCall::id).containsExactly("t1");
+    assertThat(answers.localResults().get(0).content())
         .isEqualTo("Selected 1 document(s) to return: " + reportId);
-    assertThat(answers.results().get(1).content().toString())
+    assertThat(answers.localResults().get(1).content().toString())
         .startsWith("Unknown document id 'bogus' for parameter 'ids[0]'.");
-    assertThat(answers.results().get(2).content()).isEqualTo(LocalToolCallHandlerImpl.NOT_EXECUTED);
   }
 
   private ToolCallVerdict inspect(Map<String, Object> arguments, LocalToolCallContext context) {

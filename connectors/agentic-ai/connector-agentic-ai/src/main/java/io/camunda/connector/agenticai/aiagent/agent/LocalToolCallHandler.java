@@ -10,31 +10,65 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Decides whether the tool calls of an assistant message are answered by the agent itself. The
- * process only completes a tool call batch when it has a result for every call, so a batch is
- * answered either fully here or fully by the process.
+ * Splits the tool calls of an assistant message into calls the agent answers itself and calls it
+ * hands to the process.
+ *
+ * <p>Every call is decided on its own: a call answered by a {@link ToolCallInspector} (a built-in
+ * tool, an invalid call) gets its result immediately, every other call is left to the process. The
+ * request handler then proceeds depending on what is left:
+ *
+ * <ul>
+ *   <li>no call is left for the process: the local results become the input of another round of the
+ *       same job and the model is called again;
+ *   <li>calls are left for the process: only those are activated, the local results are kept in the
+ *       agent context and merged with the process results when the next job composes its input, so
+ *       the model sees one result per tool call without an extra model call.
+ * </ul>
+ *
+ * <p>A new locally handled tool plugs in by implementing a {@link ToolCallInspector} that answers
+ * its calls with {@link ToolCallVerdict.Answer} and registering it as a bean; neither the handler
+ * nor the loop change.
  */
 public interface LocalToolCallHandler {
 
   /**
-   * Returns the answers when the batch is answered locally, or empty when every call proceeds to
-   * the process.
+   * Splits {@code toolCalls}, the tool calls of the last assistant message of {@code conversation}.
    */
-  Optional<LocalToolCallAnswers> handle(AgentConversation conversation, List<ToolCall> toolCalls);
+  LocalToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls);
 
   /**
-   * The answers of a locally answered batch.
+   * The outcome of splitting a batch.
    *
-   * @param results one result per tool call, in the order of the calls
-   * @param returnDocumentIds the documents the answers select for the final response of the agent
+   * @param localResults the results of the calls answered by the agent, in the order of the calls
+   * @param remainingCalls the calls that go to the process, in the order of the calls
+   * @param returnDocumentIds the documents the local answers select for the final response of the
+   *     agent
    */
-  record LocalToolCallAnswers(List<ToolCallResult> results, List<String> returnDocumentIds) {
-    public LocalToolCallAnswers {
-      results = List.copyOf(results);
+  record LocalToolCallSplit(
+      List<ToolCallResult> localResults,
+      List<ToolCall> remainingCalls,
+      List<String> returnDocumentIds) {
+    public LocalToolCallSplit {
+      localResults = List.copyOf(localResults);
+      remainingCalls = List.copyOf(remainingCalls);
       returnDocumentIds = List.copyOf(returnDocumentIds);
+    }
+
+    /** A split in which every call goes to the process. */
+    public static LocalToolCallSplit allRemaining(List<ToolCall> toolCalls) {
+      return new LocalToolCallSplit(List.of(), toolCalls, List.of());
+    }
+
+    /** Returns {@code true} if the agent answered at least one call itself. */
+    public boolean hasLocalResults() {
+      return !localResults.isEmpty();
+    }
+
+    /** Returns {@code true} if the agent answered every call (and there was at least one). */
+    public boolean answersAllCalls() {
+      return hasLocalResults() && remainingCalls.isEmpty();
     }
   }
 }

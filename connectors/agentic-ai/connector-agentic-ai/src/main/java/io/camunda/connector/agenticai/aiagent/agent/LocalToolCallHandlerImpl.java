@@ -12,19 +12,14 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Applies the {@link ToolCallInspector}s to every tool call of a batch. When at least one call is
- * answered by an inspector, every call of the batch is answered here: answered calls get their
- * answer, calls that passed get a "not executed" result. The documents selected by the answers are
- * reported along with the results.
+ * Applies the {@link ToolCallInspector}s to every tool call of a batch. A call answered by an
+ * inspector becomes a local result, every other call remains for the process. The first {@link
+ * ToolCallVerdict.Answer} of a call wins when several inspectors answer. The documents selected by
+ * the answers are reported along with the results.
  */
 public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
-
-  static final String NOT_EXECUTED =
-      "Not executed because another tool call in the same batch failed. "
-          + "Resend this call separately or after fixing the failed call.";
 
   private final List<ToolCallInspector> inspectors;
 
@@ -33,42 +28,34 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
   }
 
   @Override
-  public Optional<LocalToolCallAnswers> handle(
-      AgentConversation conversation, List<ToolCall> toolCalls) {
+  public LocalToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
     if (inspectors.isEmpty() || toolCalls.isEmpty()) {
-      return Optional.empty();
+      return LocalToolCallSplit.allRemaining(toolCalls);
     }
 
     final var context = LocalToolCallContext.from(conversation);
-    final var verdicts = toolCalls.stream().map(toolCall -> inspect(toolCall, context)).toList();
-    if (verdicts.stream().allMatch(ToolCallVerdict.Pass.class::isInstance)) {
-      return Optional.empty();
-    }
-
     final var completedAt = OffsetDateTime.now();
-    final var results = new ArrayList<ToolCallResult>(toolCalls.size());
+    final var localResults = new ArrayList<ToolCallResult>();
+    final var remainingCalls = new ArrayList<ToolCall>();
     final var returnDocumentIds = new ArrayList<String>();
-    for (int i = 0; i < toolCalls.size(); i++) {
-      final var toolCall = toolCalls.get(i);
-      final Object content;
-      if (verdicts.get(i) instanceof ToolCallVerdict.Answer answer) {
-        content = answer.content();
+    for (final var toolCall : toolCalls) {
+      if (answer(toolCall, context) instanceof ToolCallVerdict.Answer answer) {
+        localResults.add(
+            ToolCallResult.builder()
+                .id(toolCall.id())
+                .name(toolCall.name())
+                .content(answer.content())
+                .completedAt(completedAt)
+                .build());
         returnDocumentIds.addAll(answer.returnDocumentIds());
       } else {
-        content = NOT_EXECUTED;
+        remainingCalls.add(toolCall);
       }
-      results.add(
-          ToolCallResult.builder()
-              .id(toolCall.id())
-              .name(toolCall.name())
-              .content(content)
-              .completedAt(completedAt)
-              .build());
     }
-    return Optional.of(new LocalToolCallAnswers(results, returnDocumentIds));
+    return new LocalToolCallSplit(localResults, remainingCalls, returnDocumentIds);
   }
 
-  private ToolCallVerdict inspect(ToolCall toolCall, LocalToolCallContext context) {
+  private ToolCallVerdict answer(ToolCall toolCall, LocalToolCallContext context) {
     for (final var inspector : inspectors) {
       final var verdict = inspector.inspect(toolCall, context);
       if (verdict instanceof ToolCallVerdict.Answer) {

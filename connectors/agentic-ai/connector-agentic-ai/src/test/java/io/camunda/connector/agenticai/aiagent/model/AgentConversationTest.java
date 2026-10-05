@@ -499,6 +499,20 @@ class AgentConversationTest {
   }
 
   @Test
+  void withPendingLocalToolCallResults_carriesTheResultsInTheAgentContext() {
+    var pending = TOOL_CALL_RESULTS.getFirst();
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
+            .withPendingLocalToolCallResults(List.of(pending));
+
+    assertThat(conv.pendingLocalToolCallResults()).containsExactly(pending);
+    assertThat(conv.toAgentContext().pendingLocalToolCallResults()).containsExactly(pending);
+    // a mixed batch ends the invocation: no further round is opened
+    assertThat(conv.currentTurn().assistantMessage()).isNotNull();
+  }
+
+  @Test
   void nextLocalToolRound_throwsBeforeTheCurrentTurnIsIngested() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 

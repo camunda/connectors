@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
@@ -36,6 +37,9 @@ public record AgentContext(
     @Nullable ConversationContext conversation,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<DocumentRegistryEntry> documents,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> returnDocumentIds,
+    // results the agent answered itself for tool calls of the last assistant message whose other
+    // calls were handed to the process; merged into the next turn input, then cleared
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingLocalToolCallResults,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
@@ -60,6 +64,8 @@ public record AgentContext(
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     Objects.requireNonNull(documents, "Documents must not be null");
     Objects.requireNonNull(returnDocumentIds, "Return document ids must not be null");
+    Objects.requireNonNull(
+        pendingLocalToolCallResults, "Pending local tool call results must not be null");
   }
 
   public AgentContext withProperty(String key, Object value) {

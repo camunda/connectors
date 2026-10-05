@@ -20,8 +20,9 @@ public sealed interface CompositionResult {
   /**
    * No messages ready yet — wait for more tool results before proceeding.
    *
-   * @param arrivedResults the tool call results that have arrived so far for the pending turn,
-   *     already correlated to a tool call this turn is waiting on and gateway (MCP/A2A) transformed
+   * @param arrivedResults the tool call results that have arrived from the process so far for the
+   *     pending turn, already correlated to a tool call this turn is waiting on and gateway
+   *     (MCP/A2A) transformed; results the agent answered itself are not included
    */
   record Deferred(List<ToolCallResult> arrivedResults) implements CompositionResult {
     public Deferred {

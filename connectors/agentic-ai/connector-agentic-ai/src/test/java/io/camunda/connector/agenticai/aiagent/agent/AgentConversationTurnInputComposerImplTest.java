@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -593,5 +595,176 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
+  }
+
+  private static final ToolCallResult LOCAL_RESULT =
+      ToolCallResult.builder()
+          .id("abcdef")
+          .name("getWeather")
+          .content("answered by the agent")
+          .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
+          .build();
+
+  private static AgentContext contextWithPending(ToolCallResult... pending) {
+    return CTX_WITH_CONVERSATION.withPendingLocalToolCallResults(List.of(pending));
+  }
+
+  private static List<ToolCallResultContent> resultsOf(CompositionResult result) {
+    return ((ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst())
+        .results();
+  }
+
+  @Test
+  void pendingLocalResults_mergeWithTheArrivedProcessResultsInToolCallOrder() {
+    // the second call is the real one: its result arrives, the first was answered by the agent
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+
+    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
+    assertThat(resultsOf(result))
+        .extracting(ToolCallResultContent::id, ToolCallResultContent::name)
+        .containsExactly(tuple("abcdef", "getWeather"), tuple("fedcba", "getDateTime"));
+    assertThat(resultsOf(result).getFirst().content())
+        .containsExactly(textContent("answered by the agent"));
+    // a message with results of both kinds keeps the local completion time
+    assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(LOCAL_RESULT.completedAt());
+  }
+
+  @Test
+  void pendingLocalResults_keepToolCallOrderWhenTheLocalCallComesLast() {
+    var localSecond = LOCAL_RESULT.withId("fedcba").withName("getDateTime");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, contextWithPending(localSecond), history, input);
+
+    assertThat(resultsOf(result))
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("abcdef", "fedcba");
+  }
+
+  @Test
+  void pendingLocalResults_doNotGoThroughTheGatewayTransformation() {
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+
+    org.mockito.Mockito.verify(gatewayToolHandlers)
+        .transformToolCallResults(
+            any(), org.mockito.ArgumentMatchers.eq(List.of(TOOL_CALL_RESULTS.get(1))));
+  }
+
+  @Test
+  void pendingLocalResults_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
+    var threeCalls =
+        List.of(
+            TOOL_CALLS.get(0),
+            TOOL_CALLS.get(1),
+            ToolCall.builder().id("third").name("getTime").build());
+    var thirdResult = ToolCallResult.builder().id("third").name("getTime").content("noon").build();
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of(thirdResult));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", threeCalls)));
+
+    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+
+    // "fedcba" is still running: wait for it, the local result is not reported with the arrivals
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults()).containsExactly(thirdResult);
+  }
+
+  @Test
+  void pendingLocalResults_withoutAnyProcessResultDeferWithNothingArrived() {
+    var input = AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of());
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults()).isEmpty();
+  }
+
+  @Test
+  void pendingLocalResults_interruptCancelsOnlyTheMissingProcessCalls() {
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+            null);
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(ToolCallResult.builder().content("An event occurred").build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(config, contextWithPending(LOCAL_RESULT), history, input);
+
+    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
+    var results = resultsOf(result);
+    assertThat(results).extracting(ToolCallResultContent::id).containsExactly("abcdef", "fedcba");
+    assertThat(results.get(0).content()).containsExactly(textContent("answered by the agent"));
+    assertThat(results.get(0).properties()).doesNotContainKey(ToolCallResult.PROPERTY_INTERRUPTED);
+    assertThat(results.get(1).content())
+        .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
+    assertThat(results.get(1).properties())
+        .containsEntry(ToolCallResult.PROPERTY_INTERRUPTED, true);
+  }
+
+  @Test
+  void pendingLocalResults_ofOtherToolCallsAreIgnored() {
+    var stale = LOCAL_RESULT.withId("from-an-earlier-turn");
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, contextWithPending(stale), history, input);
+
+    assertThat(resultsOf(result))
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("abcdef", "fedcba");
+    assertThat(resultsOf(result).getFirst().content()).containsExactly(textContent("Sunny, 22°C"));
+  }
+
+  @Test
+  void pendingLocalResults_areNotUsedForAPromptTurn() {
+    var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
+    var history =
+        TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));
+
+    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+
+    assertThat(((CompositionResult.NextTurn) result).messages())
+        .singleElement()
+        .isInstanceOf(UserMessage.class);
   }
 }

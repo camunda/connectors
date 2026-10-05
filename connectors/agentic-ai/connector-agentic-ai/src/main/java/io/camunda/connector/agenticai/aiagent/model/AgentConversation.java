@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -248,6 +249,30 @@ public final class AgentConversation {
         currentTurn,
         invocationStartIterationKey,
         precedingConfigurationFingerprint);
+  }
+
+  /**
+   * Returns a new instance whose agent context carries the given results of tool calls the agent
+   * answered itself while the other calls of the same assistant message go to the process. The
+   * results are merged with the process results when the next turn input is composed.
+   */
+  public AgentConversation withPendingLocalToolCallResults(List<ToolCallResult> results) {
+    return new AgentConversation(
+        configuration,
+        currentContext.withPendingLocalToolCallResults(results),
+        systemMessage,
+        previousTurns,
+        currentTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
+  }
+
+  /**
+   * Returns the results of tool calls the agent answered itself that still wait for the process
+   * results of the same assistant message.
+   */
+  public List<ToolCallResult> pendingLocalToolCallResults() {
+    return currentContext.pendingLocalToolCallResults();
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */

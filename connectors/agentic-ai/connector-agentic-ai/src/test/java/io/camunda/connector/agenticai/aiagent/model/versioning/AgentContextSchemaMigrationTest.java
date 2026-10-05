@@ -16,9 +16,11 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -575,6 +577,60 @@ class AgentContextSchemaMigrationTest {
                 assertThat(entry.reference()).containsEntry("storeId", "in-memory");
                 assertThat(entry.toolCallId()).isEqualTo("call-1");
               });
+    }
+
+    @Test
+    void legacyContextWithoutPendingLocalToolCallResultsBindsToEmptyList() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "properties": {}
+              }
+              """);
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      assertThat(agentContext.pendingLocalToolCallResults()).isEmpty();
+      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    }
+
+    @Test
+    void pendingLocalToolCallResultsSurviveTheRoundTripOfTheVersionedDeserialization()
+        throws Exception {
+      final var pending =
+          ToolCallResult.builder()
+              .id("call-1")
+              .name("return_documents")
+              .content("Selected 1 document(s) to return: doc-1")
+              .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
+              .build();
+      final var context =
+          AgentContext.builder()
+              .conversation(
+                  InProcessConversationContext.builder("conv")
+                      .messages(
+                          List.of(
+                              ToolCallResultMessage.builder()
+                                  .results(List.of(ToolCallResultContent.from(pending)))
+                                  .build()))
+                      .build())
+              .pendingLocalToolCallResults(List.of(pending))
+              .build();
+
+      // the process variable is written as JSON and bound again by the next job
+      final var serialized = objectMapper.writeValueAsString(context);
+      final var bound = objectMapper.readValue(serialized, AgentContext.class);
+
+      assertThat(serialized).contains("\"pendingLocalToolCallResults\"");
+      assertThat(bound.pendingLocalToolCallResults())
+          .usingRecursiveComparison()
+          .isEqualTo(List.of(pending));
     }
 
     @Test

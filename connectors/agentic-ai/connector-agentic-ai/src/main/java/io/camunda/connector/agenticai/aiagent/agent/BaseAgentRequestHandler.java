@@ -52,7 +52,6 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -152,7 +151,9 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                registerDocuments(agentContext, loadedMessages, newDocuments),
+                // the pending local results are part of newMessages now
+                registerDocuments(agentContext, loadedMessages, newDocuments)
+                    .withPendingLocalToolCallResults(List.of()),
                 configuration,
                 previousConversation,
                 newMessages,
@@ -252,8 +253,9 @@ public abstract class BaseAgentRequestHandler<
   /**
    * Drives the given chat model until it returns a {@code Completed} result whose tool calls (if
    * any) are left to the process, ingesting each round as its own turn. Further rounds are
-   * intermediate {@code Continuation} rounds and rounds that follow tool calls the agent answered
-   * itself (see {@link LocalToolCallHandler}).
+   * intermediate {@code Continuation} rounds and rounds that follow a batch of tool calls the agent
+   * answered completely itself (see {@link LocalToolCallHandler}). A batch that mixes local and
+   * process calls ends the loop; its local results are kept as pending results of the conversation.
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -276,16 +278,18 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
       final boolean continued = chatResult instanceof ChatResult.Continuation;
-      final var localResults =
+      final var split =
           continued
-              ? Optional.<LocalToolCallHandler.LocalToolCallAnswers>empty()
+              ? LocalToolCallHandler.LocalToolCallSplit.allRemaining(List.of())
               : localToolCallHandler.handle(
                   workingConversation, workingConversation.currentTurn().toolCalls());
-      anotherRound = continued || localResults.isPresent();
+      final boolean localRound = split.answersAllCalls();
+      anotherRound = continued || localRound;
 
       // Exactly one status per round (engine constraint): a round that is followed by another one
       // within this job re-asserts THINKING alongside its assistant item, the final round sends its
-      // terminal status instead.
+      // terminal status instead. Every tool call the model requested counts as a tool call of the
+      // turn, local or not.
       final var status =
           anotherRound
               ? AgentInstanceUpdateStatus.THINKING
@@ -304,21 +308,20 @@ public abstract class BaseAgentRequestHandler<
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
         workingConversation = workingConversation.nextContinuationRound();
-      } else if (localResults.isPresent()) {
+      } else if (localRound) {
         LOGGER.debug(
             "Answered the tool calls of turn (iterationKey={}) locally; calling the model again",
             workingConversation.currentTurn().iterationKey());
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
-        final var answers = localResults.get();
         workingConversation =
             workingConversation
                 .nextLocalToolRound(
                     ToolCallResultMessage.builder()
                         .results(
-                            answers.results().stream().map(ToolCallResultContent::from).toList())
+                            split.localResults().stream().map(ToolCallResultContent::from).toList())
                         .build())
-                .withReturnDocumentIds(answers.returnDocumentIds());
+                .withReturnDocumentIds(split.returnDocumentIds());
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(
             executionContext,
@@ -327,6 +330,18 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn(),
             workingConversation.lastTurn(),
             OffsetDateTime.now());
+      } else if (split.hasLocalResults()) {
+        LOGGER.debug(
+            "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
+            split.localResults().size(),
+            workingConversation.currentTurn().iterationKey(),
+            split.remainingCalls().size());
+
+        // the results join the process results of the remaining calls in the next job
+        workingConversation =
+            workingConversation
+                .withReturnDocumentIds(split.returnDocumentIds())
+                .withPendingLocalToolCallResults(split.localResults());
       }
     } while (anotherRound);
     return workingConversation;

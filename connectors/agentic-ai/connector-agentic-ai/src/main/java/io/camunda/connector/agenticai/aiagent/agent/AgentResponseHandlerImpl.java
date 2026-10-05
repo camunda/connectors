@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
@@ -62,7 +63,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                             "Cannot create an agent response: the conversation has no completed turn"))
                 .assistantMessage(),
             "Cannot create an agent response: the last turn has no assistant message");
-    final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    // calls the agent answered itself (pending local results) never reach the process
+    final var locallyAnsweredIds =
+        conversation.pendingLocalToolCallResults().stream()
+            .map(ToolCallResult::id)
+            .collect(Collectors.toSet());
+    final var rawToolCalls =
+        Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of()).stream()
+            .filter(toolCall -> !locallyAnsweredIds.contains(toolCall.id()))
+            .toList();
     // the stored assistant message keeps the document ids the model sent; only the tool call
     // handed to the process carries the document references
     final var resolvedToolCalls =

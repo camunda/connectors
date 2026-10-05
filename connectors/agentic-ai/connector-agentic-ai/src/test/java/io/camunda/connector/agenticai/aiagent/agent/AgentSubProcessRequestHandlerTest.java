@@ -93,6 +93,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -921,7 +922,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void answersTheWholeBatchLocallyWhenOneToolCallHasAnUnknownDocumentId() {
+  void runsTheValidCallsOfABatchWithAnUnknownDocumentIdAndKeepsTheErrorResultPending() {
     final var document = createDocument("report data", "report.txt");
     mockSystemPrompt();
     mockProceedWithDocument(document);
@@ -930,38 +931,64 @@ class AgentSubProcessRequestHandlerTest {
 
     final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
-    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
-    doReturn(chatModel).when(chatModelRegistry).resolve(any());
-    doReturn(
-            new ChatResult.Completed(
-                AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build(), metrics))
-        .doReturn(new ChatResult.Completed(assistantMessage("sorry"), metrics))
-        .when(chatModel)
-        .execute(chatModelRequestCaptor.capture());
+    final var message = AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build();
+    mockChatModelExecution(message);
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    verify(chatModel, times(2)).execute(any());
-    final var results =
-        ((ToolCallResultMessage)
-                chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
-            .results();
-    assertThat(results).extracting(r -> r.id()).containsExactly("call-1", "call-2");
-    assertThat(results.get(1).content())
+    // no extra model call: the valid call is handed to the process
+    verify(chatModel, times(1)).execute(any());
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.elementActivations())
         .singleElement()
-        .isInstanceOfSatisfying(
-            TextContent.class,
-            text -> assertThat(text.text()).isEqualTo(LocalToolCallHandlerImpl.NOT_EXECUTED));
+        .satisfies(activation -> assertThat(activation.elementId()).isEqualTo("getWeather"));
 
-    // nothing is handed to the process
-    assertThat(response.responseValue().toolCalls()).isEmpty();
-    assertThat(response.completionConditionFulfilled()).isTrue();
-    assertThat(response.elementActivations()).isEmpty();
+    // the error result waits in the agent context for the results of the process
+    assertThat(agentResponse.context().pendingLocalToolCallResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("call-1");
+              assertThat(result.name()).isEqualTo("upload");
+              assertThat(result.completedAt()).isNotNull();
+              assertThat(result.content())
+                  .asString()
+                  .startsWith("Unknown document id 'bogus' for parameter 'doc'. Known documents:");
+            });
+
+    // the stored assistant message keeps both calls, no results are stored yet
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(3);
+              assertThat(c.messages().get(2)).isEqualTo(message);
+            });
+
+    // history: one turn start, one completion with the status of a tool calling turn; the local
+    // result is reported with the next job's turn start together with the process result
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+    inOrder.verifyNoMoreInteractions();
+    assertThat(turnCaptor.getValue().toolCalls()).containsExactly(badCall, otherCall);
   }
 
   @Test
-  void answersAReturnDocumentsCallLocallyAndRecordsTheSelectionInTheAgentContext() {
+  void runsTheRealCallOfABatchWithAReturnDocumentsCallAndRecordsTheSelectionImmediately() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
@@ -979,16 +1006,66 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    // a real tool call batched with the selection is answered locally as well
     final var returnCall =
         new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(documentId)));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
-    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(1)).execute(any());
+    // the built-in tool is offered, but is neither persisted nor activated
+    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .contains(ReturnDocumentsTool.NAME);
+    final var context = response.responseValue().context();
+    assertThat(context.toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(ReturnDocumentsTool.NAME);
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(otherCall));
+    assertThat(response.elementActivations()).hasSize(1);
+
+    // the selection is persisted with this job, the answer waits for the process result
+    assertThat(context.returnDocumentIds()).containsExactly(documentId);
+    assertThat(context.pendingLocalToolCallResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("call-1");
+              assertThat(result.content())
+                  .isEqualTo("Selected 1 document(s) to return: " + documentId);
+            });
+  }
+
+  @Test
+  void keepsAllResultsOutOfTheContextOfAFullyLocalBatchBecauseTheModelIsCalledAgain() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                new AgentTaskResponseConfiguration(null, null, true)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(documentId)));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
             new ChatResult.Completed(
-                AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build(),
-                metrics))
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
         .doReturn(new ChatResult.Completed(assistantMessage("here you go"), metrics))
         .when(chatModel)
         .execute(chatModelRequestCaptor.capture());
@@ -997,16 +1074,6 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-
-    // the built-in tool is offered in every request
-    assertThat(chatModelRequestCaptor.getAllValues())
-        .allSatisfy(
-            request ->
-                assertThat(request.snapshot().toolDefinitions())
-                    .extracting(ToolDefinition::name)
-                    .contains(ReturnDocumentsTool.NAME));
-
-    // the document is not visible in the window (only its id is), so a note follows the results
     final var results =
         chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().stream()
             .filter(ToolCallResultMessage.class::isInstance)
@@ -1014,28 +1081,73 @@ class AgentSubProcessRequestHandlerTest {
             .findFirst()
             .orElseThrow()
             .results();
-    assertThat(results).extracting(r -> r.id()).containsExactly("call-1", "call-2");
-    assertThat(results.get(0).content())
+    assertThat(results)
         .singleElement()
-        .isInstanceOfSatisfying(
-            TextContent.class,
-            text ->
-                assertThat(text.text())
-                    .isEqualTo("Selected 1 document(s) to return: " + documentId));
-    assertThat(results.get(1).content())
-        .singleElement()
-        .isInstanceOfSatisfying(
-            TextContent.class,
-            text -> assertThat(text.text()).isEqualTo(LocalToolCallHandlerImpl.NOT_EXECUTED));
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("call-1");
+              assertThat(result.content())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      text ->
+                          assertThat(text.text())
+                              .isEqualTo("Selected 1 document(s) to return: " + documentId));
+            });
 
-    // the selection is persisted with the agent context; the built-in tool is not
     final var context = response.responseValue().context();
     assertThat(context.returnDocumentIds()).containsExactly(documentId);
-    assertThat(context.toolDefinitions())
-        .extracting(ToolDefinition::name)
-        .doesNotContain(ReturnDocumentsTool.NAME);
+    assertThat(context.pendingLocalToolCallResults()).isEmpty();
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
+  }
+
+  @Test
+  void clearsThePendingLocalResultsOnceTheComposerConsumedThem() {
+    final var pending =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("upload")
+            .content("rejected")
+            .completedAt(OffsetDateTime.now())
+            .build();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                INITIAL_AGENT_CONTEXT.withPendingLocalToolCallResults(List.of(pending)),
+                List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().pendingLocalToolCallResults()).isEmpty();
+  }
+
+  @Test
+  void keepsThePendingLocalResultsWhileTheProcessResultsAreStillMissing() {
+    final var pending =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("upload")
+            .content("rejected")
+            .completedAt(OffsetDateTime.now())
+            .build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                INITIAL_AGENT_CONTEXT.withPendingLocalToolCallResults(List.of(pending)),
+                List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of()));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // a no-op completion writes no agent context, so the pending results stay where they are
+    assertThat(response.responseValue()).isNull();
+    verifyNoInteractions(chatModelRegistry, chatModel, responseHandler);
   }
 
   @Test
@@ -1297,10 +1409,15 @@ class AgentSubProcessRequestHandlerTest {
             i -> {
               final var conversation = i.getArgument(0, AgentConversation.class);
               final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
+              final var locallyAnsweredIds =
+                  conversation.pendingLocalToolCallResults().stream()
+                      .map(ToolCallResult::id)
+                      .collect(Collectors.toSet());
               final var toolCalls =
                   assistantMessage.toolCalls() == null
                       ? List.<ToolCallProcessVariable>of()
                       : assistantMessage.toolCalls().stream()
+                          .filter(toolCall -> !locallyAnsweredIds.contains(toolCall.id()))
                           .map(ToolCallProcessVariable::from)
                           .toList();
               return AgentResponse.builder()
