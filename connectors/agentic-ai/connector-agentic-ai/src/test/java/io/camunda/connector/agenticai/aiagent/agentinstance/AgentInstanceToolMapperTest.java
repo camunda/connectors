@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
@@ -19,9 +22,12 @@ import org.junit.jupiter.api.Test;
 
 class AgentInstanceToolMapperTest {
 
+  private final LocalToolRegistry localToolRegistry =
+      new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool()));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
-  private final AgentInstanceToolMapper mapper = new AgentInstanceToolMapper(gatewayToolHandlers);
+  private final AgentInstanceToolMapper mapper =
+      new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
 
   @Test
   void adHocToolFallsBackToItsNameAsElementId() {
@@ -42,6 +48,20 @@ class AgentInstanceToolMapperTest {
               assertThat(agentTool.getName()).isEqualTo("getWeather");
               assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
               assertThat(agentTool.getElementId()).isEqualTo("getWeather");
+            });
+  }
+
+  @Test
+  void localToolHasNoElementId() {
+    final var mapped = mapper.mapTools(List.of(new ReturnDocumentsTool().definition()));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> {
+              assertThat(agentTool.getName()).isEqualTo("return_documents");
+              assertThat(agentTool.getDescription()).contains("Attaches documents");
+              assertThat(agentTool.getElementId()).isNull();
             });
   }
 

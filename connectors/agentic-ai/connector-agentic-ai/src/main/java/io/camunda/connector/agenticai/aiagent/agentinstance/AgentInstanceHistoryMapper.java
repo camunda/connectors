@@ -16,6 +16,7 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -53,9 +54,12 @@ import org.jspecify.annotations.Nullable;
 public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final LocalToolRegistry localToolRegistry;
 
-  public AgentInstanceHistoryMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentInstanceHistoryMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.localToolRegistry = localToolRegistry;
   }
 
   /**
@@ -173,15 +177,19 @@ public class AgentInstanceHistoryMapper {
   /**
    * Resolves the BPMN element id for a tool call history entry. Prefers an already-resolved {@code
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
-   * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools.
+   * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools. A call of
+   * a local tool has no BPMN element: its element id is {@code null}.
    */
-  private String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
+  private @Nullable String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
     if (elementId != null) {
       return elementId;
     }
     if (toolName == null) {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
+    }
+    if (localToolRegistry.toolNames().contains(toolName)) {
+      return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }

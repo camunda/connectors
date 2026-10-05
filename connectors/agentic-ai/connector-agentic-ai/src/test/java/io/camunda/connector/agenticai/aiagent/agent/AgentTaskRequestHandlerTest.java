@@ -36,6 +36,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -59,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
@@ -102,7 +105,9 @@ class AgentTaskRequestHandlerTest {
 
   @Spy
   private LocalToolCallHandler localToolCallHandler =
-      new LocalToolCallHandlerImpl(List.of(new DocumentParameterToolCallInspector()));
+      new LocalToolCallHandlerImpl(
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())),
+          TestObjectMapperSupplier.INSTANCE);
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 

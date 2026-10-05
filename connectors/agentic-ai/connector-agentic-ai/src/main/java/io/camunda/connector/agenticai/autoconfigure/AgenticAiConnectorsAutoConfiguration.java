@@ -37,11 +37,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
-import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallHandlerImpl;
-import io.camunda.connector.agenticai.aiagent.agent.ReturnDocumentsToolCallInspector;
-import io.camunda.connector.agenticai.aiagent.agent.ToolCallInspector;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -53,6 +50,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -188,25 +189,38 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(name = "aiAgentReturnDocumentsLocalTool")
+  public LocalTool aiAgentReturnDocumentsLocalTool() {
+    return new ReturnDocumentsTool();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public LocalToolRegistry aiAgentLocalToolRegistry(List<LocalTool> localTools) {
+    return new LocalToolRegistryImpl(localTools);
+  }
+
+  @Bean
   @ConditionalOnMissingBean
   public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      LocalToolRegistry localToolRegistry) {
+    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers, localToolRegistry);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
+    return new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceToolMapper aiAgentInstanceToolMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceToolMapper(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
+    return new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
   }
 
   @Bean
@@ -305,20 +319,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentParameterToolCallInspector aiAgentDocumentParameterToolCallInspector() {
-    return new DocumentParameterToolCallInspector();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ReturnDocumentsToolCallInspector aiAgentReturnDocumentsToolCallInspector() {
-    return new ReturnDocumentsToolCallInspector();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public LocalToolCallHandler aiAgentLocalToolCallHandler(List<ToolCallInspector> inspectors) {
-    return new LocalToolCallHandlerImpl(inspectors);
+  public LocalToolCallHandler aiAgentLocalToolCallHandler(
+      LocalToolRegistry localToolRegistry, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new LocalToolCallHandlerImpl(localToolRegistry, objectMapper);
   }
 
   @Bean

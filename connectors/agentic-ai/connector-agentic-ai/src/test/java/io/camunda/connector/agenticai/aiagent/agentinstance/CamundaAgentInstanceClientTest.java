@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
@@ -41,6 +43,9 @@ import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -134,14 +139,17 @@ class CamundaAgentInstanceClientTest {
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
+  private final LocalToolRegistry localToolRegistry =
+      new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool()));
+
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
 
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
-    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
+    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry);
+    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
     client =
         new CamundaAgentInstanceClient(
             singleTenant(camundaClient),
@@ -171,8 +179,8 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers),
-                new AgentInstanceToolMapper(gatewayToolHandlers))
+                new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry),
+                new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry))
             .create(executionContext);
 
     assertThat(key.value()).isEqualTo(AGENT_INSTANCE_KEY);
@@ -789,6 +797,29 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void reportsTheAvailableLocalToolsWithoutAnElementIdNextToTheToolsOfTheProcess() {
+      givenUpdateCommand();
+      final var tools =
+          List.of(
+              ToolDefinition.builder().name("getWeather").description("d").build(),
+              new ReturnDocumentsTool().definition());
+      final var configuration = configuration("Be nice.", tools);
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue().get(0).getTools())
+          .extracting(AgentTool::getName, AgentTool::getElementId)
+          .containsExactly(tuple("getWeather", "getWeather"), tuple("return_documents", null));
+    }
+
+    @Test
     void shouldPrependConfigurationItemWhenSystemPromptChanged() {
       givenUpdateCommand();
       final var previousConfiguration = configuration("Be nice.", List.of());
@@ -1044,6 +1075,8 @@ class CamundaAgentInstanceClientTest {
                         tc -> {
                           assertThat(tc.getToolCallId()).isEqualTo("local");
                           assertThat(tc.getToolName()).isEqualTo("return_documents");
+                          // a local tool call has no BPMN element
+                          assertThat(tc.getElementId()).isNull();
                           assertThat(tc.getArguments())
                               .containsExactlyEntriesOf(Map.of("ids", List.of("doc-1")));
                         });
@@ -1054,7 +1087,11 @@ class CamundaAgentInstanceClientTest {
                 assertThat(real.getProducedAt()).isEqualTo(processCompletedAt);
                 assertThat(real.getToolCalls())
                     .singleElement()
-                    .satisfies(tc -> assertThat(tc.getToolCallId()).isEqualTo("real"));
+                    .satisfies(
+                        tc -> {
+                          assertThat(tc.getToolCallId()).isEqualTo("real");
+                          assertThat(tc.getElementId()).isEqualTo("getWeather");
+                        });
               });
     }
 

@@ -52,6 +52,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -124,9 +125,15 @@ public abstract class BaseAgentRequestHandler<
 
     try (var session = store.createSession(executionContext, agentContext)) {
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
-      // rest of this invocation once populated here from the durable AgentContext.
+      // rest of this invocation once populated here: the durable tool definitions of the
+      // AgentContext plus the local tools available for this agent, which are never persisted.
+      final var requestConfiguration = executionContext.configuration();
       final var configuration =
-          executionContext.configuration().withToolDefinitions(agentContext.toolDefinitions());
+          requestConfiguration.withToolDefinitions(
+              Stream.concat(
+                      agentContext.toolDefinitions().stream(),
+                      localToolCallHandler.availableToolDefinitions(requestConfiguration).stream())
+                  .toList());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
@@ -280,9 +287,10 @@ public abstract class BaseAgentRequestHandler<
       final boolean continued = chatResult instanceof ChatResult.Continuation;
       final var split =
           continued
-              ? LocalToolCallHandler.LocalToolCallSplit.allRemaining(List.of())
+              ? LocalToolCallHandler.LocalToolCallSplit.allRemaining(workingConversation, List.of())
               : localToolCallHandler.handle(
                   workingConversation, workingConversation.currentTurn().toolCalls());
+      workingConversation = split.conversation();
       final boolean localRound = split.answersAllCalls();
       anotherRound = continued || localRound;
 
@@ -315,13 +323,11 @@ public abstract class BaseAgentRequestHandler<
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
         workingConversation =
-            workingConversation
-                .nextLocalToolRound(
-                    ToolCallResultMessage.builder()
-                        .results(
-                            split.localResults().stream().map(ToolCallResultContent::from).toList())
-                        .build())
-                .withReturnDocumentIds(split.returnDocumentIds());
+            workingConversation.nextLocalToolRound(
+                ToolCallResultMessage.builder()
+                    .results(
+                        split.localResults().stream().map(ToolCallResultContent::from).toList())
+                    .build());
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(
             executionContext,
@@ -339,9 +345,7 @@ public abstract class BaseAgentRequestHandler<
 
         // the results join the process results of the remaining calls in the next job
         workingConversation =
-            workingConversation
-                .withReturnDocumentIds(split.returnDocumentIds())
-                .withPendingLocalToolCallResults(split.localResults());
+            workingConversation.withPendingLocalToolCallResults(split.localResults());
       }
     } while (anotherRound);
     return workingConversation;

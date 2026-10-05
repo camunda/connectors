@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.document;
 
 import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -20,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Immutable, insertion-ordered registry of the documents known to the agent, keyed by {@link
@@ -27,6 +29,8 @@ import java.util.Optional;
  * again is a no-op.
  */
 public final class DocumentRegistry {
+
+  private static final int MAX_LISTED_DOCUMENTS = 50;
 
   private static final DocumentRegistry EMPTY = new DocumentRegistry(Map.of());
 
@@ -122,5 +126,24 @@ public final class DocumentRegistry {
 
   public int size() {
     return entriesById.size();
+  }
+
+  /**
+   * Describes the known documents for a message to the model: their tags, at most 50 of them with
+   * the rest counted, or a sentence when no document is known.
+   */
+  public String knownDocumentsText() {
+    if (isEmpty()) {
+      return "No documents are known.";
+    }
+    final var listed =
+        entriesById.values().stream()
+            .limit(MAX_LISTED_DOCUMENTS)
+            .map(entry -> DocumentReferenceXmlTag.from(entry).toXml())
+            .collect(Collectors.joining("\n"));
+    final var omitted = entriesById.size() - MAX_LISTED_DOCUMENTS;
+    return "Known documents:\n"
+        + listed
+        + (omitted > 0 ? "\n(and %d more)".formatted(omitted) : "");
   }
 }

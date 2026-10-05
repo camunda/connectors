@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCo
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
-import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -20,10 +19,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
@@ -232,18 +231,18 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns a new instance whose agent context selects the given documents for the final response,
-   * in addition to the ones already selected (ordered union, no duplicates).
+   * Returns a new instance whose agent context is {@code update} applied to the current one. The
+   * update sees the persisted context of this conversation, not the metrics-merged view of {@link
+   * #toAgentContext()}.
    */
-  public AgentConversation withReturnDocumentIds(List<String> documentIds) {
-    var merged = new LinkedHashSet<>(currentContext.returnDocumentIds());
-    merged.addAll(documentIds);
-    if (merged.size() == currentContext.returnDocumentIds().size()) {
+  public AgentConversation withContextUpdate(UnaryOperator<AgentContext> update) {
+    final var updatedContext = update.apply(currentContext);
+    if (updatedContext == currentContext) {
       return this;
     }
     return new AgentConversation(
         configuration,
-        currentContext.withReturnDocumentIds(List.copyOf(merged)),
+        updatedContext,
         systemMessage,
         previousTurns,
         currentTurn,
@@ -356,24 +355,17 @@ public final class AgentConversation {
    * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
-   * AgentConfiguration#withToolDefinitions}.
+   * AgentConfiguration#withToolDefinitions} with the tools of the process and the available local
+   * tools.
    *
    * <p>When registry documents of the {@link AgentContext#documents() context} are not visible in
    * the windowed messages, the snapshot ends with a transient user message listing them (see {@link
    * EvictedDocumentsNote}); {@link #allMessages()} and the stored conversation are not affected.
-   *
-   * <p>When the response configuration opts in to returning documents, the snapshot's tool
-   * definitions end with the built-in {@link ReturnDocumentsTool}; it is never part of the
-   * configuration or the persisted tool definitions.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
     var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(windowed, documentRegistry());
-    var toolDefinitions = new ArrayList<>(configuration.toolDefinitions());
-    if (configuration.returnsDocuments()) {
-      toolDefinitions.add(ReturnDocumentsTool.definition());
-    }
-    return new ConversationSnapshot(withEvictedDocumentsNote, toolDefinitions);
+    return new ConversationSnapshot(withEvictedDocumentsNote, configuration.toolDefinitions());
   }
 
   /**

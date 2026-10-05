@@ -7,21 +7,27 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentTool;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Maps agentic-ai {@link ToolDefinition} instances into Camunda client {@link AgentTool} objects.
  * Resolves BPMN element IDs for gateway-backed tools via {@link GatewayToolHandlerRegistry} and
- * falls back to the tool name for ad-hoc tools.
+ * falls back to the tool name for ad-hoc tools. A local tool has no BPMN element: its element ID is
+ * left empty.
  */
 public class AgentInstanceToolMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final LocalToolRegistry localToolRegistry;
 
-  public AgentInstanceToolMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentInstanceToolMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.localToolRegistry = localToolRegistry;
   }
 
   public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions) {
@@ -29,8 +35,12 @@ public class AgentInstanceToolMapper {
   }
 
   private AgentTool mapTool(ToolDefinition toolDefinition) {
-    final String elementId =
-        gatewayToolHandlers.resolveElementId(toolDefinition.name()).orElse(toolDefinition.name());
+    final @Nullable String elementId =
+        localToolRegistry.toolNames().contains(toolDefinition.name())
+            ? null
+            : gatewayToolHandlers
+                .resolveElementId(toolDefinition.name())
+                .orElse(toolDefinition.name());
     return AgentTool.of(toolDefinition.name(), toolDefinition.description(), elementId);
   }
 }

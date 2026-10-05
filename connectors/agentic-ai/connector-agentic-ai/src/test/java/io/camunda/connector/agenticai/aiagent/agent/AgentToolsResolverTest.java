@@ -13,6 +13,8 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -41,7 +43,11 @@ class AgentToolsResolverTest {
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+    agentToolsResolver =
+        new AgentToolsResolverImpl(
+            toolsSchemaResolver,
+            gatewayToolHandlers,
+            new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())));
   }
 
   @Nested

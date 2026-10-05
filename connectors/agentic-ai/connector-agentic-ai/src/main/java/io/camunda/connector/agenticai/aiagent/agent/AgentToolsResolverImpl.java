@@ -8,9 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +34,15 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
   private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final LocalToolRegistry localToolRegistry;
 
   public AgentToolsResolverImpl(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      LocalToolRegistry localToolRegistry) {
     this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.localToolRegistry = localToolRegistry;
   }
 
   @Override
@@ -49,18 +54,25 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
     return adHocToolsSchema;
   }
 
+  /**
+   * Rejects an ad-hoc or gateway tool element named like a registered local tool, whether that tool
+   * is available for this agent or not: availability can change with the configuration of a running
+   * agent, a name must not turn into a collision then.
+   */
   private void rejectReservedToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
-    final var reserved =
-        adHocToolsSchema.toolDefinitions().stream()
-                .anyMatch(toolDefinition -> ReturnDocumentsTool.NAME.equals(toolDefinition.name()))
-            || adHocToolsSchema.gatewayToolDefinitions().stream()
-                .anyMatch(gatewayTool -> ReturnDocumentsTool.NAME.equals(gatewayTool.name()));
-    if (reserved) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME,
-          "The tool name '%s' is reserved for a built-in tool of the AI Agent. Rename the ad-hoc sub-process element with this ID."
-              .formatted(ReturnDocumentsTool.NAME));
-    }
+    final var reservedNames = localToolRegistry.toolNames();
+    Stream.concat(
+            adHocToolsSchema.toolDefinitions().stream().map(ToolDefinition::name),
+            adHocToolsSchema.gatewayToolDefinitions().stream().map(GatewayToolDefinition::name))
+        .filter(reservedNames::contains)
+        .findFirst()
+        .ifPresent(
+            name -> {
+              throw new ConnectorException(
+                  AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME,
+                  "The tool name '%s' is reserved for a built-in tool of the AI Agent. Rename the ad-hoc sub-process element with this ID."
+                      .formatted(name));
+            });
   }
 
   @Override

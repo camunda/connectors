@@ -11,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -38,7 +40,9 @@ class AgentInstanceHistoryMapperTest {
       OffsetDateTime.parse("2026-07-02T09:59:55Z");
 
   private final AgentInstanceHistoryMapper mapper =
-      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
+      new AgentInstanceHistoryMapper(
+          Mockito.mock(GatewayToolHandlerRegistry.class),
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())));
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
@@ -72,6 +76,61 @@ class AgentInstanceHistoryMapperTest {
             item -> {
               assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
               assertThat(item.producedAt()).isEqualTo(TOOL_RESULT_COMPLETED_AT);
+            });
+  }
+
+  @Test
+  void aCallAndAResultOfALocalToolHaveNoElementId() {
+    final var toolCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("return_documents")
+            .arguments(Map.of("ids", List.of("a")))
+            .build();
+    final var result =
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("return_documents")
+            .content(List.of(TextContent.textContent("Selected 1 document(s) to return: a")))
+            .completedAt(TOOL_RESULT_COMPLETED_AT)
+            .build();
+
+    final var assistantCalls =
+        mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(toolCall)).build());
+    final var items =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder().results(List.of(result)).build(),
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP);
+
+    assertThat(assistantCalls)
+        .singleElement()
+        .satisfies(
+            call -> {
+              assertThat(call.getToolName()).isEqualTo("return_documents");
+              assertThat(call.getElementId()).isNull();
+            });
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+              assertThat(item.content())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      AgentInstanceHistoryContent.TextContent.class,
+                      text ->
+                          assertThat(text.getText())
+                              .isEqualTo("Selected 1 document(s) to return: a"));
+              assertThat(item.toolCalls())
+                  .singleElement()
+                  .satisfies(
+                      call -> {
+                        assertThat(call.getToolName()).isEqualTo("return_documents");
+                        assertThat(call.getToolCallId()).isEqualTo("call-1");
+                        assertThat(call.getElementId()).isNull();
+                        assertThat(call.getArguments()).containsEntry("ids", List.of("a"));
+                      });
             });
   }
 
