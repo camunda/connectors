@@ -49,7 +49,9 @@ def load_registry(path):
 def parse_groups(expression):
     if not expression:
         return set()
-    return {token.strip() for token in expression.replace("|", "&").split("&")}
+    if "&" in expression:
+        fail("groups supports only OR expressions separated by |")
+    return {token.strip() for token in expression.split("|")}
 
 
 def validate_groups(expression, row_id):
@@ -64,9 +66,14 @@ def validate_ci_contract(registry, rows):
         fail("registry must contain at least one ci=true row")
 
     required_ci_capabilities = registry["requiredCiCapabilities"]
+    required_provider_groups = KNOWN_PROVIDER_GROUPS - {""}
+    configured_provider_groups = set(required_ci_capabilities)
+    if configured_provider_groups != required_provider_groups:
+        fail(
+            "requiredCiCapabilities must define exactly these provider groups: "
+            f"{sorted(required_provider_groups)}"
+        )
     for provider_group, required_tags in required_ci_capabilities.items():
-        if provider_group not in KNOWN_PROVIDER_GROUPS - {""}:
-            fail(f"requiredCiCapabilities contains unknown provider group: {provider_group}")
         if (
             not isinstance(required_tags, list)
             or not required_tags

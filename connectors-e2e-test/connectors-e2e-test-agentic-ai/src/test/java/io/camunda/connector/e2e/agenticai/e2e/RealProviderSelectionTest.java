@@ -37,6 +37,7 @@ class RealProviderSelectionTest {
     environment
         .set("OPENAI_API_KEY", "key")
         .set("AWS_BEDROCK_API_KEY", "key")
+        .remove("ANTHROPIC_BEDROCK_API_KEY")
         .remove("GOOGLE_GEMINI_API_KEY")
         .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
         .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")

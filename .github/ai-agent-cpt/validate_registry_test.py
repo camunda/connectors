@@ -42,6 +42,19 @@ class ValidateRegistryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "prompt-caching"):
             self.validate()
 
+    def test_rejects_and_group_expression(self):
+        row = next(row for row in self.registry["rows"] if row["id"] == "openai-native")
+        row["groups"] = "core-smoke & reasoning"
+
+        with self.assertRaisesRegex(ValueError, "only OR expressions"):
+            self.validate()
+
+    def test_rejects_missing_required_provider_group(self):
+        del self.registry["requiredCiCapabilities"]["bedrock"]
+
+        with self.assertRaisesRegex(ValueError, "define exactly these provider groups"):
+            self.validate()
+
 
 if __name__ == "__main__":
     unittest.main()
