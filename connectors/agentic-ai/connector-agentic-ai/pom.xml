@@ -24,8 +24,8 @@
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.14.2</version.nullaway>
-    <version.anthropic-java>2.66.0</version.anthropic-java>
-    <version.openai-java>4.72.0</version.openai-java>
+    <version.anthropic-java>2.68.0</version.anthropic-java>
+    <version.openai-java>4.76.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
