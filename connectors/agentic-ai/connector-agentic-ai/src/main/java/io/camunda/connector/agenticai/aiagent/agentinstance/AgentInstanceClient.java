@@ -53,6 +53,8 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
+   * @param documents shows the document parameters of the arguments of the tool calls the results
+   *     correlate to with the document references instead of the ids (see {@link HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -64,7 +66,8 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp);
+      OffsetDateTime turnIngestionTimestamp,
+      HistoryDocuments documents);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
@@ -73,6 +76,8 @@ public interface AgentInstanceClient {
    * is {@code null}.
    *
    * @param producedAt when the assistant response was produced
+   * @param documents shows the document parameters of the arguments of the tool calls with the
+   *     document references instead of the ids (see {@link HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -83,13 +88,16 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       OffsetDateTime producedAt,
-      AgentInstanceUpdateStatus status);
+      AgentInstanceUpdateStatus status,
+      HistoryDocuments documents);
 
   /**
    * Appends one tool call result per entry in {@code toolCallResults} to the conversation history,
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
+   * @param documents shows the document parameters of the arguments of the tool calls the results
+   *     correlate to with the document references instead of the ids (see {@link HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -99,5 +107,6 @@ public interface AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResult> toolCallResults,
-      AgentConversationTurn previousTurn);
+      AgentConversationTurn previousTurn,
+      HistoryDocuments documents);
 }

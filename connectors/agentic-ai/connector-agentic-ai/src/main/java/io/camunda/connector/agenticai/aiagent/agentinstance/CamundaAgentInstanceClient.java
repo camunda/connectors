@@ -214,7 +214,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp) {
+      OffsetDateTime turnIngestionTimestamp,
+      HistoryDocuments documents) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;
@@ -226,7 +227,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), documents));
 
     applyBatchedUpdate(
         executionContext,
@@ -263,13 +265,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      HistoryDocuments documents) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, documents)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -293,7 +297,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       OffsetDateTime producedAt,
-      AgentInstanceUpdateStatus status) {
+      AgentInstanceUpdateStatus status,
+      HistoryDocuments documents) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn completion: no agent instance key");
       return;
@@ -305,7 +310,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           "Cannot create assistant history item for a turn without an assistant message");
     }
     final var content = historyMapper.assistantContent(assistantMessage);
-    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage);
+    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage, documents);
     if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
       throw new IllegalArgumentException(
           "Cannot create assistant history item with neither content nor tool calls");
@@ -329,7 +334,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResult> toolCallResults,
-      AgentConversationTurn previousTurn) {
+      AgentConversationTurn previousTurn,
+      HistoryDocuments documents) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
@@ -346,7 +352,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
     // completedAt
     for (final var item :
-        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
+        historyMapper.inputHistoryItems(
+            syntheticMessage, toolCallsById, OffsetDateTime.now(), documents)) {
       items.add(toHistoryItem(item, iteration));
     }
 

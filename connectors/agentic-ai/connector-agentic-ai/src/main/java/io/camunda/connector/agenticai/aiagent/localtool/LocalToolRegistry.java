@@ -24,6 +24,9 @@ public interface LocalToolRegistry {
   /** The tool of the given name, if it is registered and available for {@code configuration}. */
   Optional<LocalTool> findAvailable(String name, AgentConfiguration configuration);
 
+  /** The definition of the tool of the given name, whether it is available or not. */
+  Optional<ToolDefinition> findDefinition(String name);
+
   /** The definitions of the {@link #availableTools available tools}. */
   default List<ToolDefinition> availableToolDefinitions(AgentConfiguration configuration) {
     return availableTools(configuration).stream().map(LocalTool::definition).toList();

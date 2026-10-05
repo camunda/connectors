@@ -25,6 +25,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PI
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertCamundaDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReportedDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
@@ -53,6 +54,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.assertions.JobSelectors;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -318,6 +320,45 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .hasToolResultsFor("return_documents", "Ping")
         .hasToolCallsWithElementId("return_documents", null)
         .hasToolCallsWithElementId("Ping", "Ping")
+        .verify();
+  }
+
+  /**
+   * The history of the agent instance shows the reference of a document where the model passed its
+   * id: in the call of the assistant item and in the arguments of the result item, for a tool of
+   * the process and for the local tool.
+   */
+  @Test
+  void agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            startProcess(e -> e.property("data.response.includeDocuments", "=true")));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    final var documentId =
+        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
+    // the model and the persisted conversation keep the id
+    assertThat(recorded.requests().get(2).messages().toString()).contains(documentId);
+
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey()));
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasToolCallArguments(
+            "Upload_A_File",
+            arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
+        .hasToolCallArguments(
+            "return_documents",
+            arguments ->
+                assertThat((List<?>) arguments.get("ids"))
+                    .singleElement()
+                    .satisfies(reference -> assertReportedDocumentReference(reference, documentId)))
         .verify();
   }
 

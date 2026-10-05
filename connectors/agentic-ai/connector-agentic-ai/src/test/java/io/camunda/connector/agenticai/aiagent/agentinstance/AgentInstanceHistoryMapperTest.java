@@ -14,6 +14,9 @@ import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -24,15 +27,25 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class AgentInstanceHistoryMapperTest {
+
+  private static final HistoryDocuments NO_DOCUMENTS =
+      new HistoryDocuments(List.of(), DocumentRegistry.empty());
 
   private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
       OffsetDateTime.parse("2026-07-02T10:00:00Z");
@@ -49,7 +62,8 @@ class AgentInstanceHistoryMapperTest {
     final var userMessage =
         UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build();
 
-    final var items = mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP);
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
@@ -68,7 +82,8 @@ class AgentInstanceHistoryMapperTest {
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     final var items =
-        mapper.inputHistoryItems(message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP);
+        mapper.inputHistoryItems(
+            message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
 
     assertThat(items)
         .singleElement()
@@ -96,12 +111,14 @@ class AgentInstanceHistoryMapperTest {
             .build();
 
     final var assistantCalls =
-        mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(toolCall)).build());
+        mapper.assistantToolCalls(
+            AssistantMessage.builder().toolCalls(List.of(toolCall)).build(), NO_DOCUMENTS);
     final var items =
         mapper.inputHistoryItems(
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
-            TURN_INGESTION_TIMESTAMP);
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
 
     assertThat(assistantCalls)
         .singleElement()
@@ -134,6 +151,136 @@ class AgentInstanceHistoryMapperTest {
             });
   }
 
+  @Nested
+  class DocumentArguments {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    private final String documentId = DocumentHandle.idFor(document);
+    private final DocumentRegistry registry =
+        DocumentRegistry.empty().withDocuments(List.of(new IngestedDocument(document, null, null)));
+    private final Map<String, Object> reference =
+        registry.findById(documentId).orElseThrow().reference();
+
+    private final ToolDefinition upload =
+        ToolDefinition.builder()
+            .name("upload")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "file",
+                        Map.of("type", "document"),
+                        "attachments",
+                        Map.of("type", "array", "items", Map.of("type", "document")))))
+            .build();
+    private final HistoryDocuments documents = new HistoryDocuments(List.of(upload), registry);
+
+    private final ToolCall uploadCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("upload")
+            .arguments(
+                Map.of(
+                    "file", documentId, "attachments", List.of(documentId, "unknown"), "note", "n"))
+            .build();
+    private final Map<String, Object> reportedArguments =
+        Map.of("file", reference, "attachments", List.of(reference, "unknown"), "note", "n");
+
+    @Test
+    void assistantToolCallShowsTheDocumentReferenceInsteadOfTheId() {
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(), documents);
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(reportedArguments));
+      assertThat(reference)
+          .containsKey("camunda.document.type")
+          .containsEntry("documentId", documentId);
+    }
+
+    @Test
+    void toolResultShowsTheSameArgumentsAsTheAssistantToolCall() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              documents);
+
+      assertThat(items)
+          .singleElement()
+          .satisfies(
+              item ->
+                  assertThat(item.toolCalls())
+                      .singleElement()
+                      .satisfies(
+                          call -> assertThat(call.getArguments()).isEqualTo(reportedArguments)));
+    }
+
+    @Test
+    void showsTheReferencesOfTheDocumentParametersOfALocalToolEvenWhenItIsNotOffered() {
+      final var call =
+          ToolCall.builder()
+              .id("call-2")
+              .name("return_documents")
+              .arguments(Map.of("ids", List.of(documentId)))
+              .build();
+
+      // return_documents is not among the offered tool definitions
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(call)).build(), documents);
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(
+              reported ->
+                  assertThat(reported.getArguments()).isEqualTo(Map.of("ids", List.of(reference))));
+    }
+
+    @Test
+    void leavesArgumentsAsGivenWithoutKnownDocumentsOrDocumentParameters() {
+      final var withoutRegistry = new HistoryDocuments(List.of(upload), DocumentRegistry.empty());
+      final var plainTool =
+          ToolCall.builder()
+              .id("call-3")
+              .name("getWeather")
+              .arguments(Map.of("file", documentId))
+              .build();
+
+      assertThat(
+              mapper.assistantToolCalls(
+                  AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(),
+                  withoutRegistry))
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments()));
+      assertThat(
+              mapper.assistantToolCalls(
+                  AssistantMessage.builder().toolCalls(List.of(plainTool)).build(), documents))
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(plainTool.arguments()));
+    }
+  }
+
   @Test
   void distinguishesProducedAtAcrossTwoToolResultsInTheSameTurn() {
     final var fastCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
@@ -161,7 +308,10 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            message, Map.of("fast", fastToolCall, "slow", slowToolCall), TURN_INGESTION_TIMESTAMP);
+            message,
+            Map.of("fast", fastToolCall, "slow", slowToolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
 
     assertThat(items).hasSize(2);
     assertThat(items.get(0).producedAt()).isEqualTo(fastCompletedAt);
@@ -186,7 +336,7 @@ class AgentInstanceHistoryMapperTest {
     assertThatThrownBy(
             () ->
                 mapper.inputHistoryItems(
-                    message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP))
+                    message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
@@ -309,7 +459,7 @@ class AgentInstanceHistoryMapperTest {
 
     final var content =
         mapper.assistantContent(
-            AssistantMessage.builder().content(List.of(providerContent)).build());
+            AssistantMessage.builder().content(List.of(providerContent)).build(), NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -326,7 +476,7 @@ class AgentInstanceHistoryMapperTest {
     for (final var providerContent : List.of(noText, blankText)) {
       final var content =
           mapper.assistantContent(
-              AssistantMessage.builder().content(List.of(providerContent)).build());
+              AssistantMessage.builder().content(List.of(providerContent)).build(), NO_DOCUMENTS);
 
       assertThat(content)
           .singleElement()

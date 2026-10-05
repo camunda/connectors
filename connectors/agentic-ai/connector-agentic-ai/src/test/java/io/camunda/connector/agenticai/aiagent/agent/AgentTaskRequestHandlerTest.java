@@ -180,12 +180,13 @@ class AgentTaskRequestHandlerTest {
             any(),
             any(),
             any(),
-            eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING),
+            any());
     // the local result is reported right away, without a status of its own
     final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
         .applyToolCallResults(
-            eq(agentExecutionContext), any(), reportedResultsCaptor.capture(), any());
+            eq(agentExecutionContext), any(), reportedResultsCaptor.capture(), any(), any());
     assertThat(reportedResultsCaptor.getValue())
         .isEqualTo(agentResponse.context().pendingLocalToolCallResults());
   }
@@ -487,11 +488,16 @@ class AgentTaskRequestHandlerTest {
   private void verifyTurnLifecycleRecorded(
       AgentInstanceUpdateStatus expectedFinalStatus, AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
     final var turnCaptor = ArgumentCaptor.forClass(AgentConversationTurn.class);
     verify(agentInstanceClient)
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), eq(expectedFinalStatus));
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(expectedFinalStatus),
+            any());
     assertThat(turnCaptor.getValue().metrics().withExecutionTime(null)).isEqualTo(expectedMetrics);
   }
 

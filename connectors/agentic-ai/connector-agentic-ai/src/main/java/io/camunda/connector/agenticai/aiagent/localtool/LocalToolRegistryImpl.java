@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,11 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
   @Override
   public List<LocalTool> availableTools(AgentConfiguration configuration) {
     return toolsByName.values().stream().filter(tool -> tool.isAvailable(configuration)).toList();
+  }
+
+  @Override
+  public Optional<ToolDefinition> findDefinition(String name) {
+    return Optional.ofNullable(toolsByName.get(name)).map(LocalTool::definition);
   }
 
   @Override

@@ -69,6 +69,14 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
+  void findsTheDefinitionOfARegisteredToolWhetherAvailableOrNot() {
+    assertThat(registry.findDefinition(SaveNoteTool.NAME))
+        .hasValueSatisfying(
+            definition -> assertThat(definition.name()).isEqualTo(SaveNoteTool.NAME));
+    assertThat(registry.findDefinition("unknown")).isEmpty();
+  }
+
+  @Test
   void rejectsDuplicateToolNames() {
     assertThatThrownBy(
             () -> new LocalToolRegistryImpl(List.of(SaveNoteTool.create(), SaveNoteTool.create())))

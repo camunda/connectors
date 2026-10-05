@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -148,7 +149,12 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
-              executionContext, agentContext, arrivedResults, previousConversation);
+              executionContext,
+              agentContext,
+              arrivedResults,
+              previousConversation,
+              new HistoryDocuments(
+                  configuration.toolDefinitions(), knownDocuments(agentContext, loadedMessages)));
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -179,11 +185,19 @@ public abstract class BaseAgentRequestHandler<
       AgentContext agentContext,
       List<Message> loadedMessages,
       List<IngestedDocument> newDocuments) {
-    var registry = documentRegistryStorage.load(agentContext);
-    if (registry.isEmpty() && !loadedMessages.isEmpty()) {
-      registry = DocumentRegistry.fromMessages(loadedMessages);
-    }
-    return documentRegistryStorage.store(agentContext, registry.withDocuments(newDocuments));
+    return documentRegistryStorage.store(
+        agentContext, knownDocuments(agentContext, loadedMessages).withDocuments(newDocuments));
+  }
+
+  /**
+   * The registry of the agent context; a context without a persisted registry that already has a
+   * conversation gets the registry seeded from the stored messages.
+   */
+  private DocumentRegistry knownDocuments(AgentContext agentContext, List<Message> loadedMessages) {
+    final var registry = documentRegistryStorage.load(agentContext);
+    return registry.isEmpty() && !loadedMessages.isEmpty()
+        ? DocumentRegistry.fromMessages(loadedMessages)
+        : registry;
   }
 
   /**
@@ -194,7 +208,8 @@ public abstract class BaseAgentRequestHandler<
       C executionContext,
       AgentContext agentContext,
       List<ToolCallResult> arrivedResults,
-      PreviousConversation previousConversation) {
+      PreviousConversation previousConversation,
+      HistoryDocuments documents) {
     if (arrivedResults.isEmpty() || previousConversation.turns().isEmpty()) {
       return;
     }
@@ -202,7 +217,8 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         AgentInstanceKey.from(agentContext.metadata()),
         arrivedResults,
-        previousConversation.turns().getLast());
+        previousConversation.turns().getLast(),
+        documents);
   }
 
   private R proceed(
@@ -231,7 +247,8 @@ public abstract class BaseAgentRequestHandler<
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now());
+        OffsetDateTime.now(),
+        historyDocuments(agentConfiguration, conversation));
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -307,7 +324,8 @@ public abstract class BaseAgentRequestHandler<
           agentInstanceKey,
           workingConversation.currentTurn(),
           OffsetDateTime.now(),
-          status);
+          status,
+          historyDocuments(agentConfiguration, workingConversation));
 
       if (continued) {
         LOGGER.debug(
@@ -335,7 +353,8 @@ public abstract class BaseAgentRequestHandler<
             agentInstanceKey,
             workingConversation.currentTurn(),
             workingConversation.lastTurn(),
-            OffsetDateTime.now());
+            OffsetDateTime.now(),
+            historyDocuments(agentConfiguration, workingConversation));
       } else if (split.hasLocalResults()) {
         LOGGER.debug(
             "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
@@ -351,7 +370,8 @@ public abstract class BaseAgentRequestHandler<
             executionContext,
             agentInstanceKey,
             split.localResults(),
-            workingConversation.currentTurn());
+            workingConversation.currentTurn(),
+            historyDocuments(agentConfiguration, workingConversation));
 
         // the results join the process results of the remaining calls in the next job
         workingConversation =
@@ -359,6 +379,11 @@ public abstract class BaseAgentRequestHandler<
       }
     } while (anotherRound);
     return workingConversation;
+  }
+
+  private static HistoryDocuments historyDocuments(
+      AgentConfiguration configuration, AgentConversation conversation) {
+    return new HistoryDocuments(configuration.toolDefinitions(), conversation.documentRegistry());
   }
 
   /**

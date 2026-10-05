@@ -179,6 +179,17 @@ public final class DocumentFlowFixtures {
         .hasEntrySatisfying("contentHash", v -> assertThat(v).asString().isNotBlank());
   }
 
+  /**
+   * Asserts that a tool call argument of the agent instance history, as read back from the engine,
+   * is the Camunda document reference of the document with the given id and not the bare id.
+   */
+  public static void assertReportedDocumentReference(Object argument, String expectedDocumentId) {
+    assertThat(argument).isNotEqualTo(expectedDocumentId).isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    final var reference = (Map<String, Object>) argument;
+    assertCamundaDocumentReference(reference, expectedDocumentId);
+  }
+
   public static List<Turn> roundTripTurns(String wireMockBaseUrl) {
     return List.of(downloadTurn(wireMockBaseUrl), uploadTurn(), returnDocumentsTurn(), finalTurn());
   }

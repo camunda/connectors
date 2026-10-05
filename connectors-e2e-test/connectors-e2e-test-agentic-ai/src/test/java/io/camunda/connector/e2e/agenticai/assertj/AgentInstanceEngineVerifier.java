@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /** Reads an agent instance back through the query API and asserts its persisted state. */
@@ -248,6 +249,29 @@ public class AgentInstanceEngineVerifier {
           assertThat(calls)
               .as("element id of the history tool calls of '%s'", toolName)
               .allSatisfy(call -> assertThat(call.getElementId()).isEqualTo(elementId));
+        });
+    return this;
+  }
+
+  /**
+   * Asserts on the arguments of every tool call of the history (ASSISTANT items) and of every
+   * TOOL_RESULT item of the given tool; there must be at least one of each.
+   */
+  public AgentInstanceEngineVerifier hasToolCallArguments(
+      String toolName, Consumer<Map<String, Object>> assertion) {
+    historyChecks.add(
+        history -> {
+          for (final var role :
+              List.of(AgentInstanceHistoryRole.ASSISTANT, AgentInstanceHistoryRole.TOOL_RESULT)) {
+            final var calls =
+                history.stream()
+                    .filter(item -> item.getRole() == role)
+                    .flatMap(item -> item.getToolCalls().stream())
+                    .filter(call -> toolName.equals(call.getToolName()))
+                    .toList();
+            assertThat(calls).as("%s history tool calls of '%s'", role, toolName).isNotEmpty();
+            calls.forEach(call -> assertion.accept(call.getArguments()));
+          }
         });
     return this;
   }

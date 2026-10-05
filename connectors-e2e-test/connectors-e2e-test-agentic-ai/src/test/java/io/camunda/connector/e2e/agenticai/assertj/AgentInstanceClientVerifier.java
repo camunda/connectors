@@ -97,10 +97,10 @@ public class AgentInstanceClientVerifier {
       Consumer<ChatTurnAssert> turnAssertions) {
     inOrder
         .verify(client)
-        .applyTurnStart(any(), any(), any(), beforeChatTurns.capture(), any(), any());
+        .applyTurnStart(any(), any(), any(), beforeChatTurns.capture(), any(), any(), any());
     inOrder
         .verify(client)
-        .applyTurnCompletion(any(), any(), afterChatTurns.capture(), any(), eq(endStatus));
+        .applyTurnCompletion(any(), any(), afterChatTurns.capture(), any(), eq(endStatus), any());
 
     final var expectedIterationKey = ++turnCount;
     final var before = lastValue(beforeChatTurns);

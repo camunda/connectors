@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -428,11 +429,15 @@ class AgentSubProcessRequestHandlerTest {
 
     // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); the composer reports
     // "abcdef" as already arrived, correlated and gateway-transformed
+    final var knownDocument = createDocument("known", "known.txt");
+    final var knownEntry =
+        DocumentRegistryEntry.from(new IngestedDocument(knownDocument, "call-0", "search"));
     final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     final var agentContextWithHistory =
         AgentContext.builder()
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
+            .documents(List.of(knownEntry))
             .conversation(
                 InProcessConversationContext.builder("conv-1")
                     .messages(List.of(USER_MESSAGE, priorAssistantMessage))
@@ -457,9 +462,18 @@ class AgentSubProcessRequestHandlerTest {
     // and: the arrived result is reported as-is
     @SuppressWarnings("unchecked")
     final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    final var documentsCaptor = ArgumentCaptor.forClass(HistoryDocuments.class);
     verify(agentInstanceClient)
-        .applyToolCallResults(eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+        .applyToolCallResults(
+            eq(agentExecutionContext),
+            any(),
+            resultsCaptor.capture(),
+            any(),
+            documentsCaptor.capture());
     assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
+    // the history shows the documents the agent knows in the arguments of the call
+    assertThat(documentsCaptor.getValue().documents().entries()).containsExactly(knownEntry);
+    assertThat(documentsCaptor.getValue().toolDefinitions()).containsAll(TOOL_DEFINITIONS);
   }
 
   @Test
@@ -613,7 +627,8 @@ class AgentSubProcessRequestHandlerTest {
     // the provider throws before ingest / history write: the turn-start batch (THINKING status +
     // input messages) is sent before the model call, but the turn-completion write and response
     // handling never happen
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -637,7 +652,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -719,7 +735,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -760,14 +777,19 @@ class AgentSubProcessRequestHandlerTest {
     // applyTurnStart is only called once, at the top of proceed() — continuation rounds carry no
     // new input and don't restart the turn
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
 
     // one applyTurnCompletion call per round: the continuation round re-asserts THINKING with its
     // own metrics, the final round sends the terminal status with its own metrics -- no summing
     final var statusCaptor = ArgumentCaptor.forClass(AgentInstanceUpdateStatus.class);
     verify(agentInstanceClient, times(2))
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), statusCaptor.capture());
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            statusCaptor.capture(),
+            any());
     assertThat(turnCaptor.getAllValues())
         .extracting(AgentConversationTurn::assistantMessage)
         .containsExactly(partialMessage, doneMessage);
@@ -888,7 +910,7 @@ class AgentSubProcessRequestHandlerTest {
     inOrder
         .verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -896,7 +918,8 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             turnCaptor.capture(),
             any(),
-            eq(AgentInstanceUpdateStatus.THINKING));
+            eq(AgentInstanceUpdateStatus.THINKING),
+            any());
     final var previousTurnCaptor = ArgumentCaptor.forClass(Optional.class);
     inOrder
         .verify(agentInstanceClient)
@@ -906,6 +929,7 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             turnCaptor.capture(),
             previousTurnCaptor.capture(),
+            any(),
             any());
     inOrder
         .verify(agentInstanceClient)
@@ -914,7 +938,8 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             turnCaptor.capture(),
             any(),
-            eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING),
+            any());
     inOrder.verifyNoMoreInteractions();
     final var turns = turnCaptor.getAllValues();
     assertThat(turns.get(2).iterationKey()).isEqualTo(2);
@@ -981,7 +1006,7 @@ class AgentSubProcessRequestHandlerTest {
     final var inOrder = inOrder(agentInstanceClient);
     inOrder
         .verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -989,7 +1014,8 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             turnCaptor.capture(),
             any(),
-            eq(AgentInstanceUpdateStatus.TOOL_CALLING));
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING),
+            any());
     final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
     inOrder
         .verify(agentInstanceClient)
@@ -997,7 +1023,8 @@ class AgentSubProcessRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             reportedResultsCaptor.capture(),
-            same(turnCaptor.getValue()));
+            same(turnCaptor.getValue()),
+            any());
     inOrder.verifyNoMoreInteractions();
     assertThat(turnCaptor.getValue().toolCalls()).containsExactly(badCall, otherCall);
     // the reported result is the one kept pending, with the same completion timestamp
@@ -1303,7 +1330,8 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(1)).execute(any());
     // no synthetic round was started
-    verify(agentInstanceClient, times(1)).applyTurnStart(any(), any(), any(), any(), any(), any());
+    verify(agentInstanceClient, times(1))
+        .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -1333,6 +1361,36 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
             });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
+  }
+
+  @Test
+  void reportsTheToolsAndTheDocumentsOfTheTurnToTheAgentInstanceHistory() {
+    final var document = createDocument("tool data", "tool.txt");
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(document, "call-1", "search"))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    final var startDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
+    verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), startDocuments.capture());
+    final var completionDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
+    verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext), any(), any(), any(), any(), completionDocuments.capture());
+    for (final var documents : List.of(startDocuments.getValue(), completionDocuments.getValue())) {
+      assertThat(documents.documents().findById(DocumentHandle.idFor(document))).isPresent();
+      assertThat(documents.toolDefinitions()).containsAll(TOOL_DEFINITIONS);
+    }
   }
 
   @Test
@@ -1465,12 +1523,17 @@ class AgentSubProcessRequestHandlerTest {
       AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), eq(expectedFinalStatus));
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(expectedFinalStatus),
+            any());
     assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(expectedAssistantMessage);
     assertThat(turnCaptor.getValue().metrics().withExecutionTime(null)).isEqualTo(expectedMetrics);
   }
