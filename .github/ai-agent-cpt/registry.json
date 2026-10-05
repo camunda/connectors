@@ -12,7 +12,6 @@
       "core-smoke",
       "structured-output",
       "reasoning",
-      "prompt-caching",
       "multimodal-documents",
       "document-tool-results"
     ],
@@ -56,7 +55,7 @@
       "id": "vertex-native",
       "name": "Vertex native capability CPT",
       "providerGroup": "vertex",
-      "groups": "core-smoke | structured-output | reasoning | prompt-caching | multimodal-documents | document-tool-results",
+      "groups": "core-smoke | structured-output | reasoning | multimodal-documents | document-tool-results",
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",

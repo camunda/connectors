@@ -679,11 +679,12 @@ abstract class RealProviderApiSmokeSupport {
     return requireProviderSelection(
         providers()
             .filter(p -> p.supports(Capability.PROMPT_CACHING))
-            // OpenAI cache placement is opportunistic, so keep it manual rather than requiring a
-            // positive cache hit in the provider-sharded PR workflow.
+            // OpenAI and Gemini cache placement is opportunistic, so keep them manual rather than
+            // requiring a positive cache hit in the provider-sharded PR workflow.
             .filter(
                 p ->
-                    p.providerGroup() != RealLlmProviderGroup.OPENAI
+                    (p.providerGroup() != RealLlmProviderGroup.OPENAI
+                            && p.providerGroup() != RealLlmProviderGroup.VERTEX)
                         || !RealLlmProviderGroup.isShardedRun()),
         "prompt-caching");
   }

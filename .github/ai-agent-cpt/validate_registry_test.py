@@ -37,9 +37,9 @@ class ValidateRegistryTest(unittest.TestCase):
 
     def test_rejects_missing_required_ci_capability(self):
         row = next(row for row in self.registry["rows"] if row["id"] == "vertex-native")
-        row["groups"] = row["groups"].replace(" | prompt-caching", "")
+        row["groups"] = row["groups"].replace(" | reasoning", "")
 
-        with self.assertRaisesRegex(ValueError, "prompt-caching"):
+        with self.assertRaisesRegex(ValueError, "reasoning"):
             self.validate()
 
     def test_rejects_and_group_expression(self):

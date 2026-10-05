@@ -33,7 +33,7 @@ class RealProviderSelectionTest {
   @SystemStub private final EnvironmentVariables environment = new EnvironmentVariables();
 
   @Test
-  void shouldSelectPromptCachingForManualAndSupportedShardedRuns() {
+  void shouldSelectPromptCachingForManualAndDeterministicShardedRuns() {
     environment
         .set("OPENAI_API_KEY", "key")
         .set("AWS_BEDROCK_API_KEY", "key")
@@ -58,9 +58,7 @@ class RealProviderSelectionTest {
 
     environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
 
-    assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching())
-        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
-        .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+    assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching()).isEmpty();
 
     environment.set("REAL_LLM_PROVIDER_GROUP", "bedrock");
 

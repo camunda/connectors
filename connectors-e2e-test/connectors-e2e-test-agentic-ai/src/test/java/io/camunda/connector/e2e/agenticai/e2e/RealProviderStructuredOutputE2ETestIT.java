@@ -41,6 +41,11 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
           + "appears in the conversation, immediately call the dependent tool in the next model "
           + "invocation before answering. Do not wait for another user message, and never call both "
           + "tools in the same model invocation.";
+  private static final String STRUCTURED_OUTPUT_SYSTEM_PROMPT =
+      DEFAULT_SYSTEM_PROMPT
+          + " Call the Lookup Classified Fact tool at most once. After its result appears in the "
+          + "conversation, return the final JSON response immediately and do not call any tool "
+          + "again.";
   private static final String NONCE_ACCESS_CODE = "Vantablack-3";
   private static final String ACCESS_AUTHORIZATION_SECRET =
       "ACCESS AUTHORIZATION: The access authorization code is " + NONCE_ACCESS_CODE + ".";
@@ -137,7 +142,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         startAgent(
             model,
             PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
+            STRUCTURED_OUTPUT_SYSTEM_PROMPT,
             Map.of(
                 "userPrompt",
                 "Look up the internal project code name and clearance level and return them."));

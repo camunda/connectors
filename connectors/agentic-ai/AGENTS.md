@@ -233,11 +233,12 @@ export OPENAI_API_KEY=...
 ```
 
 Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
-run another capability suite. Vertex and Bedrock prompt caching run in their provider shards.
-OpenAI prompt caching remains manual because its cache placement is opportunistic: unset
-`REAL_LLM_PROVIDER_GROUP`, provide only OpenAI credentials, and use `-Dgroups=prompt-caching`. CI
-selects the bundle-backed `AiAgentE2ETestIT` by class with `-Dit.test`; native capability legs,
-including `DocumentToolCallResultsIT`, are selected by their JUnit groups.
+run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
+prompt caching remain manual because their cache placement is opportunistic: unset
+`REAL_LLM_PROVIDER_GROUP`, provide only the credentials for the provider under test, and use
+`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with
+`-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
+JUnit groups.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
