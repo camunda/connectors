@@ -22,8 +22,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -169,6 +173,195 @@ class AgentConfigurationTest {
 
       assertThat(first.chatModel().provider()).isEqualTo(second.chatModel().provider());
       assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
+    }
+
+    private static String fingerprintOfSchema(Map<String, Object> schema) {
+      return configuration(
+              "gpt-4o",
+              "Be nice.",
+              null,
+              List.of(
+                  ToolDefinition.builder().name("t").description("d").inputSchema(schema).build()))
+          .fingerprint();
+    }
+
+    private static Map<String, Object> ordered(Object... keysAndValues) {
+      final var map = new LinkedHashMap<String, Object>();
+      for (int i = 0; i < keysAndValues.length; i += 2) {
+        map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+      }
+      return map;
+    }
+
+    @Test
+    void topLevelSchemaKeyOrderIsIrrelevant() {
+      final var props = ordered("a", ordered("type", "string"));
+      final var first = ordered("type", "object", "properties", props, "required", List.of("a"));
+      final var second = ordered("required", List.of("a"), "properties", props, "type", "object");
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void nestedMapOrderIsIrrelevant() {
+      final var first =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "a", ordered("type", "string", "description", "x"),
+                  "b", ordered("type", "number", "description", "y")));
+      final var second =
+          ordered(
+              "properties",
+              ordered(
+                  "b", ordered("description", "y", "type", "number"),
+                  "a", ordered("description", "x", "type", "string")),
+              "type",
+              "object");
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void mapsInsideListsAreCanonicalized() {
+      final var first =
+          ordered(
+              "anyOf", List.of(ordered("type", "string", "format", "x"), ordered("type", "null")));
+      final var second =
+          ordered(
+              "anyOf", List.of(ordered("format", "x", "type", "string"), ordered("type", "null")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void listOrderIsSignificant() {
+      final var first = ordered("required", List.of("a", "b"));
+      final var second = ordered("required", List.of("b", "a"));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void toolOrderIsSignificant() {
+      final var a = ToolDefinition.builder().name("a").description("d").build();
+      final var b = ToolDefinition.builder().name("b").description("d").build();
+
+      assertThat(configuration("gpt-4o", "p", null, List.of(a, b)).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "p", null, List.of(b, a)).fingerprint());
+    }
+
+    @Test
+    void changedSchemaDetailYieldsDifferentFingerprint() {
+      final var base =
+          ordered("properties", ordered("a", ordered("type", "string", "description", "x")));
+      final var otherType =
+          ordered("properties", ordered("a", ordered("type", "number", "description", "x")));
+      final var otherDescription =
+          ordered("properties", ordered("a", ordered("type", "string", "description", "y")));
+
+      assertThat(fingerprintOfSchema(base)).isNotEqualTo(fingerprintOfSchema(otherType));
+      assertThat(fingerprintOfSchema(base)).isNotEqualTo(fingerprintOfSchema(otherDescription));
+    }
+
+    @Test
+    void changedToolNameOrDescriptionYieldsDifferentFingerprint() {
+      final Function<ToolDefinition, String> fingerprint =
+          tool -> configuration("gpt-4o", "p", null, List.of(tool)).fingerprint();
+
+      final var base = ToolDefinition.builder().name("a").description("d").build();
+      assertThat(fingerprint.apply(base))
+          .isNotEqualTo(fingerprint.apply(base.withName("b")))
+          .isNotEqualTo(fingerprint.apply(base.withDescription("e")))
+          .isNotEqualTo(fingerprint.apply(base.withDescription(null)));
+    }
+
+    @Test
+    void changedProviderYieldsDifferentFingerprint() {
+      final var openAi = configuration("gpt-4o", "p", null, List.of());
+      final var other =
+          configurationWithOpenAiBackend(
+              new OpenAiApiBackend(
+                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)));
+
+      assertThat(openAi.fingerprint()).isNotEqualTo(other.fingerprint());
+    }
+
+    @Test
+    void numbersAreNormalizedByValue() {
+      final var asLong = fingerprintOfSchema(ordered("maxItems", 5L));
+
+      assertThat(fingerprintOfSchema(ordered("maxItems", 5))).isEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("maxItems", (short) 5))).isEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("maxItems", 5.0))).isEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("maxItems", 5.0f))).isEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("maxItems", new BigDecimal("5.00"))))
+          .isEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("maxItems", 6))).isNotEqualTo(asLong);
+      assertThat(fingerprintOfSchema(ordered("minimum", 0.5)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", new BigDecimal("0.50"))))
+          .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.6)));
+    }
+
+    @Test
+    void nullAndAbsentAreDistinct() {
+      // the constructor keeps the map as given, unlike the builder's immutable copy
+      final Function<Map<String, Object>, String> fingerprint =
+          schema ->
+              configuration("gpt-4o", "p", null, List.of(new ToolDefinition("t", "d", schema)))
+                  .fingerprint();
+
+      assertThat(fingerprint.apply(ordered("default", null)))
+          .isNotEqualTo(fingerprint.apply(ordered()));
+    }
+
+    @Test
+    void definitionsRebuiltThroughRoundTripsKeepTheirFingerprint() throws Exception {
+      final var schema =
+          ordered(
+              "$schema",
+              "https://json-schema.org/draft/2020-12/schema",
+              "description",
+              "d",
+              "additionalProperties",
+              false,
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "city", ordered("type", "string", "description", "c"),
+                  "days", ordered("type", "integer", "minimum", 1)),
+              "required",
+              List.of("city", "days"));
+      final var tool =
+          ToolDefinition.builder().name("getWeather").description("w").inputSchema(schema).build();
+      final var original = configuration("gpt-4o", "Be nice.", null, List.of(tool)).fingerprint();
+
+      var context = AgentContext.builder().toolDefinitions(List.of(tool)).build();
+      for (int i = 0; i < 3; i++) {
+        context =
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class);
+        assertThat(
+                configuration("gpt-4o", "Be nice.", null, context.toolDefinitions()).fingerprint())
+            .isEqualTo(original);
+      }
+    }
+
+    @Test
+    void localToolDefinitionsAreUnaffected() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("local")
+              .description("d")
+              .inputSchema(ordered("type", "object"))
+              .build();
+
+      assertThat(configuration("gpt-4o", "p", null, List.of(tool)).fingerprint())
+          .isEqualTo(configuration("gpt-4o", "p", null, List.of(tool)).fingerprint())
+          .matches("[0-9a-f]{64}");
     }
 
     @Test

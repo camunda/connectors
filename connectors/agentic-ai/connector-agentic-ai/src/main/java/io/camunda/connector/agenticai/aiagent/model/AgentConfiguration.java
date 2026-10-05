@@ -14,12 +14,17 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -81,23 +86,103 @@ public record AgentConfiguration(
    * CONFIGURATION} agent-instance history item (model, provider, system prompt, model-call limit,
    * tools): equal attributes always yield an equal fingerprint. Used both to detect whether the
    * agent instance's recorded configuration is stale, and as that history item's id, so a repeat
-   * send with unchanged content dedups for free.
+   * send with unchanged content dedups for free. The result is the SHA-256 digest as lower-case
+   * hex.
+   *
+   * <p>The tool definitions enter the hash in a canonical form that does not depend on the
+   * iteration order of the maps they hold (a definition rebuilt through {@link
+   * ToolDefinition#builder()} or a JSON round trip holds its schema in an immutable map of
+   * unspecified order). Per tool, in list order: {@code name}, {@code description} and {@code
+   * inputSchema}. The rules for the schema:
+   *
+   * <ul>
+   *   <li>maps are written with their keys sorted, recursively, including maps nested in lists;
+   *   <li>lists keep their order, so the order of the tools and of values such as {@code required}
+   *       is significant;
+   *   <li>numbers are compared by value: every number is read as a decimal, an integral value (any
+   *       {@link Integer}, {@link Long}, {@link Short}, {@link Byte}, or an integral {@link
+   *       Double}, {@link Float}, {@link java.math.BigDecimal}) is written as that integer, so
+   *       {@code 5L}, {@code 5} and {@code 5.0} agree, and any other value as its plain decimal
+   *       string without trailing zeros;
+   *   <li>{@code null} is written explicitly; strings are written length-prefixed so that no value
+   *       can run into its neighbour.
+   * </ul>
+   *
+   * Nothing is sorted or changed on the definitions themselves, so the order of what is sent to the
+   * model and what is persisted stays as authored.
    */
   public String fingerprint() {
-    var input =
-        String.join(
-            " ",
-            chatModel.model(),
-            chatModel.descriptiveProvider(),
-            systemPrompt.prompt(),
-            String.valueOf(maxModelCalls()),
-            String.valueOf(toolDefinitions));
+    var canonical = new StringBuilder();
+    appendCanonical(canonical, chatModel.model());
+    appendCanonical(canonical, chatModel.descriptiveProvider());
+    appendCanonical(canonical, systemPrompt.prompt());
+    appendCanonical(canonical, maxModelCalls());
+    canonical.append('[');
+    for (var tool : toolDefinitions) {
+      canonical.append('{');
+      appendCanonical(canonical, tool.name());
+      appendCanonical(canonical, tool.description());
+      appendCanonical(canonical, tool.inputSchema());
+      canonical.append('}');
+    }
+    canonical.append(']');
     try {
       var digest =
-          MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+          MessageDigest.getInstance("SHA-256")
+              .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(digest);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 is not available", e);
     }
+  }
+
+  private static void appendCanonical(StringBuilder out, @Nullable Object value) {
+    if (value == null) {
+      out.append("null,");
+    } else if (value instanceof Map<?, ?> map) {
+      var sorted = new TreeMap<String, Object>();
+      map.forEach((key, entry) -> sorted.put(String.valueOf(key), entry));
+      out.append('{');
+      sorted.forEach(
+          (key, entry) -> {
+            appendCanonical(out, key);
+            appendCanonical(out, entry);
+          });
+      out.append("},");
+    } else if (value instanceof Collection<?> collection) {
+      out.append('[');
+      collection.forEach(entry -> appendCanonical(out, entry));
+      out.append("],");
+    } else if (value instanceof Number number) {
+      out.append('n').append(canonicalNumber(number)).append(',');
+    } else if (value instanceof Boolean bool) {
+      out.append(bool ? "true," : "false,");
+    } else {
+      var text = value.toString();
+      out.append('s').append(text.length()).append(':').append(text).append(',');
+    }
+  }
+
+  private static String canonicalNumber(Number number) {
+    BigDecimal decimal;
+    if (number instanceof BigDecimal bigDecimal) {
+      decimal = bigDecimal;
+    } else if (number instanceof BigInteger bigInteger) {
+      decimal = new BigDecimal(bigInteger);
+    } else if (number instanceof Integer
+        || number instanceof Long
+        || number instanceof Short
+        || number instanceof Byte) {
+      decimal = BigDecimal.valueOf(number.longValue());
+    } else {
+      try {
+        decimal = new BigDecimal(number.toString());
+      } catch (NumberFormatException e) {
+        // NaN and infinities have no decimal form
+        return number.toString();
+      }
+    }
+    decimal = decimal.stripTrailingZeros();
+    return decimal.scale() <= 0 ? decimal.toBigInteger().toString() : decimal.toPlainString();
   }
 }

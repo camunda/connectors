@@ -77,6 +77,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -751,6 +752,48 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP,
+          NO_DOCUMENTS);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(item -> assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER));
+    }
+
+    @Test
+    void shouldNotPrependConfigurationItemWhenToolDefinitionsWereRoundTripped() throws Exception {
+      givenUpdateCommand();
+      final var schema = new java.util.LinkedHashMap<String, Object>();
+      schema.put("$schema", "https://json-schema.org/draft/2020-12/schema");
+      schema.put("description", "d");
+      schema.put("additionalProperties", false);
+      schema.put("type", "object");
+      schema.put("properties", Map.of("city", Map.of("type", "string")));
+      schema.put("required", List.of("city"));
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("getWeather")
+                  .description("Get the weather forecast")
+                  .inputSchema(schema)
+                  .build());
+      final var previousConfiguration = configuration("Be nice.", tools);
+
+      var context = AgentContext.builder().toolDefinitions(tools).build();
+      for (int i = 0; i < 3; i++) {
+        context =
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class);
+      }
+      final var configuration = configuration("Be nice.", context.toolDefinitions());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP,
           NO_DOCUMENTS);
 
