@@ -56,6 +56,7 @@ jobs:
         id: registry
         run: |
           set -euo pipefail
+          python3 .github/ai-agent-cpt/validate_registry_test.py
           MATRIX="$(python3 .github/ai-agent-cpt/validate_registry.py .github/ai-agent-cpt/registry.json --matrix)"
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 

@@ -1,5 +1,29 @@
 {
   "credentialProfiles": ["openai", "vertex", "bedrock-provider", "bedrock-documents", "bundle"],
+  "requiredCiCapabilities": {
+    "openai": [
+      "core-smoke",
+      "structured-output",
+      "reasoning",
+      "multimodal-documents",
+      "document-tool-results"
+    ],
+    "vertex": [
+      "core-smoke",
+      "structured-output",
+      "reasoning",
+      "prompt-caching",
+      "multimodal-documents",
+      "document-tool-results"
+    ],
+    "bedrock": [
+      "core-smoke",
+      "reasoning",
+      "prompt-caching",
+      "multimodal-documents",
+      "document-tool-results"
+    ]
+  },
   "rows": [
     {
       "id": "bundle-e2e",
@@ -32,7 +56,7 @@
       "id": "vertex-native",
       "name": "Vertex native capability CPT",
       "providerGroup": "vertex",
-      "groups": "core-smoke | reasoning",
+      "groups": "core-smoke | structured-output | reasoning | prompt-caching | multimodal-documents | document-tool-results",
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
@@ -43,7 +67,7 @@
       "id": "bedrock-native",
       "name": "Bedrock native capability CPT",
       "providerGroup": "bedrock",
-      "groups": "core-smoke | reasoning",
+      "groups": "core-smoke | reasoning | prompt-caching",
       "testClasses": "",
       "buildBundle": false,
       "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",

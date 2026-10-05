@@ -108,7 +108,8 @@ class DocumentToolCallResultsIT {
   private static final String SYSTEM_PROMPT =
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
           + "When reporting findings, always quote specific facts, numbers, dates, and names "
-          + "found in the documents. Be concise.";
+          + "exactly as written in the documents. Never correct or respell proper names. Be "
+          + "concise.";
 
   private static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
   private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
@@ -248,7 +249,7 @@ class DocumentToolCallResultsIT {
         openAiV1("gpt-5.5"),
         // OpenAI (v2)
         openAiResponsesV2("gpt-4.1"),
-        openAiResponsesV2("gpt-5.5"),
+        openAiResponsesV2("gpt-6.1-sol"),
         openAiCompletionsV2("gpt-4.1"),
         openAiCompletionsV2("gpt-5.5"),
         // Anthropic (v1)
@@ -268,6 +269,8 @@ class DocumentToolCallResultsIT {
         bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
         // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
         bedrockV2("eu.amazon.nova-2-lite-v1:0"),
+        // Google Gemini, v2, via Vertex AI
+        googleGeminiVertexAiV2("gemini-3.8-flash", "global"),
         // Docker Model Runner (OpenAI-compatible)
         dockerModelRunnerV1("ai/gemma4:latest").disabled(),
         dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
@@ -436,6 +439,30 @@ class DocumentToolCallResultsIT {
             model,
             "provider.bedrock.model.parameters.promptCaching.enabled",
             "false"));
+  }
+
+  /** Google Gemini, v2, via Vertex AI. */
+  static ProviderConfig googleGeminiVertexAiV2(String model, String region) {
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + model,
+        RealLlmProviderGroup.VERTEX,
+        List.of("GOOGLE_VERTEX_AI_PROJECT_ID", "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_PROJECT_ID"),
+            "provider.googleGemini.backend.googleVertexAi.region",
+            region,
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+            "provider.googleGemini.model.model",
+            model));
   }
 
   /** Docker Model Runner, v1 (LangChain4j-backed; OpenAI-compatible). */

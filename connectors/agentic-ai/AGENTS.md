@@ -191,7 +191,10 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    `.github/ai-agent-cpt/registry.json` defines the bundle test leg and the native-provider
    capability-group legs. The workflow validates that registry and uses its generated matrix.
    Credential profile names are selected by the registry, while their Vault and environment wiring
-   remains explicit in the workflow.
+   remains explicit in the workflow. When adding or changing a provider capability, update the
+   matching `ci: true` row or document why it is omitted from `requiredCiCapabilities` and remains
+   manual-only. Add the workflow credential wiring as well when the row needs a new credential
+   profile.
 
    Applying the label authorizes one run for the PR's current head SHA. After every push or other
    head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
@@ -230,10 +233,11 @@ export OPENAI_API_KEY=...
 ```
 
 Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
-run another capability suite. Prompt-caching rows are intentionally unsharded: unset
-`REAL_LLM_PROVIDER_GROUP`, provide credentials only for the provider you want to exercise, and use
-`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with `-Dit.test`;
-native capability legs, including `DocumentToolCallResultsIT`, are selected by their JUnit groups.
+run another capability suite. Vertex and Bedrock prompt caching run in their provider shards.
+OpenAI prompt caching remains manual because its cache placement is opportunistic: unset
+`REAL_LLM_PROVIDER_GROUP`, provide only OpenAI credentials, and use `-Dgroups=prompt-caching`. CI
+selects the bundle-backed `AiAgentE2ETestIT` by class with `-Dit.test`; native capability legs,
+including `DocumentToolCallResultsIT`, are selected by their JUnit groups.
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
@@ -253,10 +257,12 @@ coverage.
 `DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
 match the `*E2ETestIT` class pattern. Its active scenario deterministically checks the provider's
 final response for the facts contained in every nested document; it does not require a separate judge
-model. Run it locally with `-Dgroups=document-tool-results` and set whichever provider credentials you
-want its rows to exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended provider group;
-otherwise, every row whose credentials are available can run. For example, select only the OpenAI
-rows:
+model. Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result
+document scenarios to `DocumentToolCallResultsIT`, which owns compatibility coverage across legacy
+v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
+whichever provider credentials you want its rows to exercise. Always set
+`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
+available can run. For example, select only the OpenAI rows:
 
 ```bash
 export RUN_NATIVE_LLM_E2E=true
@@ -321,7 +327,8 @@ Before claiming a change is complete:
 - [ ] Unit tests added/updated and passing.
 - [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
 - [ ] Real-provider changes update the `RealProviderApiSmokeSupport` provider/capability matrix and
-  `RealProviderSelectionTest` where applicable.
+  `RealProviderSelectionTest` where applicable, plus the corresponding `ci: true` registry row or an
+  explicit manual-only decision in `requiredCiCapabilities`.
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).

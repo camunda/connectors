@@ -33,9 +33,14 @@ class RealProviderSelectionTest {
   @SystemStub private final EnvironmentVariables environment = new EnvironmentVariables();
 
   @Test
-  void shouldPreservePromptCachingOutsideShardedRuns() {
-    environment.set("OPENAI_API_KEY", "key");
-    environment.set("REAL_LLM_PROVIDER_GROUP", "");
+  void shouldSelectPromptCachingForManualAndSupportedShardedRuns() {
+    environment
+        .set("OPENAI_API_KEY", "key")
+        .set("AWS_BEDROCK_API_KEY", "key")
+        .remove("GOOGLE_GEMINI_API_KEY")
+        .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
+        .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")
+        .set("REAL_LLM_PROVIDER_GROUP", "");
 
     assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching())
         .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
@@ -52,7 +57,15 @@ class RealProviderSelectionTest {
 
     environment.set("REAL_LLM_PROVIDER_GROUP", "vertex");
 
-    assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching()).isEmpty();
+    assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching())
+        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
+        .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+
+    environment.set("REAL_LLM_PROVIDER_GROUP", "bedrock");
+
+    assertThat(RealProviderApiSmokeSupport.providersWithPromptCaching())
+        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
+        .containsExactly("bedrock-converse-v2/global.anthropic.claude-sonnet-5-5");
   }
 
   @Test
@@ -69,7 +82,6 @@ class RealProviderSelectionTest {
   @Test
   void shouldFailStrictModeWhenSelectedMistralGroupHasNoCredentials() {
     environment
-        .set("MISTRAL_API_KEY", "ambient")
         .remove("MISTRAL_API_KEY")
         .set("REAL_LLM_PROVIDER_GROUP", "mistral")
         .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
@@ -83,13 +95,29 @@ class RealProviderSelectionTest {
 
   @Test
   void shouldFailStrictModeWhenSelectedGroupHasNoDocumentProviders() {
-    environment.set("REAL_LLM_PROVIDER_GROUP", "vertex").set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+    environment
+        .remove("ANTHROPIC_API_KEY")
+        .set("REAL_LLM_PROVIDER_GROUP", "anthropic")
+        .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
 
     assertThatThrownBy(() -> DocumentToolCallResultsIT.providers().toList())
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(
             "No enabled real document providers were selected; check provider credentials and "
                 + "REAL_LLM_PROVIDER_GROUP");
+  }
+
+  @Test
+  void shouldSelectVertexDocumentProviderWhenGroupIsVertex() {
+    environment
+        .remove("GOOGLE_GEMINI_API_KEY")
+        .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
+        .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")
+        .set("REAL_LLM_PROVIDER_GROUP", "vertex");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
   }
 
   @Test
@@ -114,7 +142,6 @@ class RealProviderSelectionTest {
   @Test
   void shouldUseGlobalEndpointForVertexGemini38InShardedRuns() {
     environment
-        .set("GOOGLE_GEMINI_API_KEY", "ambient")
         .remove("GOOGLE_GEMINI_API_KEY")
         .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
         .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")

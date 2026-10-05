@@ -31,8 +31,10 @@ import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
+import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
@@ -50,9 +52,22 @@ import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ResourceLoader;
 
 /** Shared native real-provider catalog and execution support for capability suites. */
+@SpringBootTest(
+    classes = {TestConnectorRuntimeApplication.class},
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=false",
+      "camunda.connector.polling.enabled=false",
+      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
+    },
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@CamundaSpringProcessTest
 abstract class RealProviderApiSmokeSupport {
 
   static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
@@ -664,10 +679,12 @@ abstract class RealProviderApiSmokeSupport {
     return requireProviderSelection(
         providers()
             .filter(p -> p.supports(Capability.PROMPT_CACHING))
-            // Cache placement is opportunistic across providers, so preserve manual coverage
-            // without making a positive cache-hit assertion block the provider-sharded PR
-            // workflow.
-            .filter(p -> !RealLlmProviderGroup.isShardedRun()),
+            // OpenAI cache placement is opportunistic, so keep it manual rather than requiring a
+            // positive cache hit in the provider-sharded PR workflow.
+            .filter(
+                p ->
+                    p.providerGroup() != RealLlmProviderGroup.OPENAI
+                        || !RealLlmProviderGroup.isShardedRun()),
         "prompt-caching");
   }
 

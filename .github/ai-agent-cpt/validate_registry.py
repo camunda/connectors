@@ -40,15 +40,52 @@ def load_registry(path):
     rows = registry.get("rows")
     if not isinstance(rows, list) or not rows:
         fail("rows must be a non-empty array")
+    required_ci_capabilities = registry.get("requiredCiCapabilities")
+    if not isinstance(required_ci_capabilities, dict) or not required_ci_capabilities:
+        fail("requiredCiCapabilities must be a non-empty object")
     return registry, rows
 
 
-def validate_groups(expression, row_id):
+def parse_groups(expression):
     if not expression:
-        return
-    tokens = [token.strip() for token in expression.replace("|", "&").split("&")]
+        return set()
+    return {token.strip() for token in expression.replace("|", "&").split("&")}
+
+
+def validate_groups(expression, row_id):
+    tokens = parse_groups(expression)
     if not all(token in KNOWN_TAGS for token in tokens):
         fail(f"{row_id}: groups contains an unknown capability tag")
+
+
+def validate_ci_contract(registry, rows):
+    ci_rows = [row for row in rows if row["ci"]]
+    if not ci_rows:
+        fail("registry must contain at least one ci=true row")
+
+    required_ci_capabilities = registry["requiredCiCapabilities"]
+    for provider_group, required_tags in required_ci_capabilities.items():
+        if provider_group not in KNOWN_PROVIDER_GROUPS - {""}:
+            fail(f"requiredCiCapabilities contains unknown provider group: {provider_group}")
+        if (
+            not isinstance(required_tags, list)
+            or not required_tags
+            or len(required_tags) != len(set(required_tags))
+            or not all(tag in KNOWN_TAGS for tag in required_tags)
+        ):
+            fail(
+                f"requiredCiCapabilities.{provider_group} must contain unique known capability tags"
+            )
+        selected_tags = set()
+        for row in ci_rows:
+            if row["providerGroup"] == provider_group:
+                selected_tags.update(parse_groups(row["groups"]))
+        missing_tags = set(required_tags) - selected_tags
+        if missing_tags:
+            fail(
+                f"{provider_group}: ci rows do not select required capability tag(s): "
+                f"{sorted(missing_tags)}"
+            )
 
 
 def validate(registry, rows):
@@ -93,6 +130,9 @@ def validate(registry, rows):
             fail(f"{row_id}: native rows require a capability group expression")
         elif row.get("testClasses"):
             fail(f"{row_id}: native rows must not select Java classes")
+        elif row.get("ci") and not row.get("providerGroup"):
+            fail(f"{row_id}: native ci rows require a providerGroup")
+    validate_ci_contract(registry, rows)
 
 
 def render_ci_matrix(rows):

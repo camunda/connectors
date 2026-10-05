@@ -19,8 +19,6 @@ package io.camunda.connector.e2e.agenticai.e2e;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
-import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -29,20 +27,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest(
-    classes = {TestConnectorRuntimeApplication.class},
-    properties = {
-      "spring.main.allow-bean-definition-overriding=true",
-      "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
-      "logging.level.io.camunda.connector.agenticai=TRACE"
-    },
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@CamundaSpringProcessTest
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 @Tag(RealProviderCapabilityTags.REASONING)
 class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {

@@ -19,14 +19,74 @@ package io.camunda.connector.e2e.agenticai.e2e;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
 
 class RealProviderFixtureTest {
+
+  private static final Map<String, Class<?>> CAPABILITY_SUITES =
+      Map.of(
+          RealProviderCapabilityTags.CORE, RealProviderCoreE2ETestIT.class,
+          RealProviderCapabilityTags.STRUCTURED_OUTPUT, RealProviderStructuredOutputE2ETestIT.class,
+          RealProviderCapabilityTags.REASONING, RealProviderReasoningE2ETestIT.class,
+          RealProviderCapabilityTags.PROMPT_CACHING, RealProviderPromptCachingE2ETestIT.class,
+          RealProviderCapabilityTags.MULTIMODAL, RealProviderMultimodalE2ETestIT.class,
+          RealProviderCapabilityTags.DOCUMENT_TOOL_CALL_RESULTS, DocumentToolCallResultsIT.class);
+
+  @Test
+  void shouldBindRequiredCiCapabilitiesToExecutableSuites() throws IOException {
+    var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    var registry =
+        objectMapper.readTree(repositoryFile(".github/ai-agent-cpt/registry.json").toFile());
+    Set<String> requiredCapabilities = new HashSet<>();
+    registry
+        .required("requiredCiCapabilities")
+        .elements()
+        .forEachRemaining(
+            capabilities ->
+                capabilities
+                    .elements()
+                    .forEachRemaining(tag -> requiredCapabilities.add(tag.asText())));
+
+    assertThat(CAPABILITY_SUITES.keySet())
+        .containsExactlyInAnyOrderElementsOf(requiredCapabilities);
+
+    var failsafeConfiguration =
+        Files.readString(
+            repositoryFile("connectors-e2e-test/connectors-e2e-test-agentic-ai/pom.xml"));
+    CAPABILITY_SUITES.forEach(
+        (tag, suite) -> {
+          assertThat(suite.getAnnotation(Tag.class))
+              .as("%s capability tag", suite.getSimpleName())
+              .isNotNull()
+              .extracting(Tag::value)
+              .isEqualTo(tag);
+          assertThat(suite.getDeclaredMethods())
+              .as("%s executable parameterized scenarios", suite.getSimpleName())
+              .anyMatch(
+                  method ->
+                      method.isAnnotationPresent(ParameterizedTest.class)
+                          && !method.isAnnotationPresent(Disabled.class));
+          assertThat(
+                  suite.getSimpleName().endsWith("E2ETestIT")
+                      || failsafeConfiguration.contains(
+                          "<include>**/" + suite.getSimpleName() + ".java</include>"))
+              .as("%s Failsafe inclusion", suite.getSimpleName())
+              .isTrue();
+        });
+  }
 
   @Test
   void shouldExposeOnlyScenarioRelevantTools() throws IOException {
@@ -187,5 +247,17 @@ class RealProviderFixtureTest {
           .map(ServiceTask::getId)
           .toList();
     }
+  }
+
+  private Path repositoryFile(String relativePath) {
+    for (var directory = Path.of("").toAbsolutePath();
+        directory != null;
+        directory = directory.getParent()) {
+      var candidate = directory.resolve(relativePath);
+      if (Files.exists(candidate)) {
+        return candidate;
+      }
+    }
+    throw new IllegalStateException("Cannot locate repository file " + relativePath);
   }
 }

@@ -25,9 +25,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AG
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
-import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -36,21 +34,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
-@SpringBootTest(
-    classes = {TestConnectorRuntimeApplication.class},
-    properties = {
-      "spring.main.allow-bean-definition-overriding=true",
-      "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
-      "logging.level.io.camunda.connector.agenticai=TRACE"
-    },
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@CamundaSpringProcessTest
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 @Import(CamundaDocumentTestConfiguration.class)
 @WireMockTest
@@ -69,18 +54,13 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
 
   private static final String DOC_DIR = "document-tool-call-results/";
   private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
-  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
-  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
   private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
   private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
-  private static final String DOCUMENT_SYSTEM_PROMPT =
-      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
-          + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
   void documentInUserMessageIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    stubPdfDownloads();
+    stubPdfDownload();
 
     final var systemPrompt =
         "You are a document analyst. A document is attached directly to the user's message. "
@@ -112,44 +92,14 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
     assertResponseTextContains(instance, "Zypherion");
   }
 
-  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithMultimodalUserMessage")
-  void documentInToolResultIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    stubPdfDownloads();
-
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            DOCUMENT_BPMN_RESOURCE,
-            template -> {});
-
-    var instance =
-        startAgent(
-            model,
-            DOCUMENT_PROCESS_ID,
-            DOCUMENT_SYSTEM_PROMPT,
-            Map.of(
-                "userPrompt",
-                "Use the Fetch_Report tool to get the full report and describe the content of "
-                    + "every document in it, including attachments and the cover page.",
-                "downloadUrls",
-                List.of(
-                    wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
-                    wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
-
-    assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
-  }
-
   // ---------------------------------------------------------------------------
 
-  private void stubPdfDownloads() {
-    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
-      stubFor(
-          get(urlPathEqualTo("/" + doc))
-              .willReturn(
-                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
-    }
+  private void stubPdfDownload() {
+    stubFor(
+        get(urlPathEqualTo("/" + DOC_PROJECT_LAUNCH))
+            .willReturn(
+                aResponse()
+                    .withBodyFile(DOC_PROJECT_LAUNCH)
+                    .withHeader("Content-Type", "application/pdf")));
   }
 }
