@@ -22,7 +22,6 @@ import java.util.function.Function;
       "authentication",
       "operationDiscriminator",
       "operation",
-      "additionalProperties",
       "documentReturnFormat"
     },
     type = "io.camunda:google-gcs:1")
@@ -35,8 +34,7 @@ import java.util.function.Function;
     version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication")
     },
     keywords = {
       "download file from google cloud storage",
