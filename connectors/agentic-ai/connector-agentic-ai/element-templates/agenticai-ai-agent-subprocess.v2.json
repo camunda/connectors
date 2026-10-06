@@ -3,7 +3,7 @@
   "name" : "AI Agent Sub-process",
   "id" : "io.camunda.connectors.agenticai.ai-agent-subprocess.v2",
   "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
-  "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
+  "keywords" : [ "AI", "Agent", "agentic orchestration", "LLM", "GPT", "OpenAI", "Anthropic", "Claude", "Gemini", "Vertex", "Bedrock", "Azure", "Foundry", "Mistral", "Ollama", "LM Studio" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
   "version" : 1,
   "category" : {
