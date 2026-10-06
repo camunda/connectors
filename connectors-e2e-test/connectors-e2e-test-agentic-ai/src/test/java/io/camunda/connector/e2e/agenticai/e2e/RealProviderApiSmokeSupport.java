@@ -688,15 +688,13 @@ abstract class RealProviderApiSmokeSupport {
   }
 
   static Stream<ProviderConfig> providersWithStructuredOutputAndTools() {
-    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
+    return providersWithStructuredOutput()
+        .filter(p -> p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
   }
 
   static Stream<ProviderConfig> providersWithStructuredOutputWithoutTools() {
-    return providers()
-        .filter(
-            p ->
-                p.supports(Capability.STRUCTURED_OUTPUT)
-                    && !p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
+    return providersWithStructuredOutput()
+        .filter(p -> !p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
   }
 
   static Stream<ProviderConfig> providersWithReasoning() {

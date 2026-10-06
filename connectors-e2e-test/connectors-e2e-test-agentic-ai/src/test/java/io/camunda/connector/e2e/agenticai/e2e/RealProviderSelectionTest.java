@@ -79,6 +79,23 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldFailStrictModeWhenSelectedGroupHasNoStructuredOutputProvider() {
+    environment
+        .set("AWS_BEDROCK_API_KEY", "key")
+        .set("REAL_LLM_PROVIDER_GROUP", "bedrock")
+        .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+
+    assertThatThrownBy(
+            () -> RealProviderApiSmokeSupport.providersWithStructuredOutputAndTools().toList())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No enabled real provider supports the structured-output capability");
+    assertThatThrownBy(
+            () -> RealProviderApiSmokeSupport.providersWithStructuredOutputWithoutTools().toList())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No enabled real provider supports the structured-output capability");
+  }
+
+  @Test
   void shouldFailStrictModeWhenSelectedMistralGroupHasNoCredentials() {
     environment
         .remove("MISTRAL_API_KEY")
@@ -160,12 +177,30 @@ class RealProviderSelectionTest {
         .remove("GOOGLE_GEMINI_API_KEY")
         .set("GOOGLE_VERTEX_AI_PROJECT_ID", "project")
         .set("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON", "{}")
-        .set("REAL_LLM_PROVIDER_GROUP", "vertex");
+        .set("REAL_LLM_PROVIDER_GROUP", "vertex")
+        .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
 
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputAndTools()).isEmpty();
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputWithoutTools())
         .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
         .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+  }
+
+  @Test
+  void shouldSelectOpenAiStructuredOutputWithToolOrchestration() {
+    environment
+        .set("OPENAI_API_KEY", "key")
+        .set("REAL_LLM_PROVIDER_GROUP", "openai")
+        .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
+
+    assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputAndTools())
+        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
+        .containsExactly(
+            "openai-responses-v2/gpt-6.1-sol",
+            "openai-completions-v2/gpt-5.5",
+            "openai-responses-v2/gpt-4.1",
+            "openai-completions-v2/gpt-4.1");
+    assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputWithoutTools()).isEmpty();
   }
 
   @Test
