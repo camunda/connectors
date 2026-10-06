@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
@@ -60,8 +59,7 @@ public class ActivationConditionEvaluator {
 
   /**
    * Same as {@link #checkActivation}, but also returns the elements the input must be correlated
-   * to. This is a single element, except when the matching elements belong to different versions of
-   * the process (see {@link #resolveCrossVersionTargets}).
+   * to: one element per distinct message, latest version first.
    */
   ActivationResolution resolveActivation(List<InboundConnectorElement> elements, Object context) {
     var matchingElements = getMatchingElements(elements, context);
@@ -76,22 +74,56 @@ public class ActivationConditionEvaluator {
     }
 
     if (matchingElements.size() > 1) {
-      var crossVersionTargets = resolveCrossVersionTargets(matchingElements, context);
-      if (crossVersionTargets != null) {
-        return ActivationResolution.success(crossVersionTargets);
+      // Elements publishing the same message (same name and correlation key expression) must be
+      // compatible and are correlated once; elements publishing different messages are all
+      // correlated, Zeebe routes each message to its own subscriptions.
+      var elementsByMessage =
+          matchingElements.stream()
+              .collect(
+                  Collectors.groupingBy(
+                      ActivationConditionEvaluator::messageOf,
+                      LinkedHashMap::new,
+                      Collectors.toList()));
+      var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
+      for (var sameMessage : elementsByMessage.values()) {
+        if (sameMessage.size() > 1) {
+          var compatibilityResult = checkMessageElementCompatibility(sameMessage);
+          if (!compatibilityResult.compatible()) {
+            return ActivationResolution.failure(
+                new ActivationCheckResult.Failure.TooManyMatchingElements(
+                    Objects.requireNonNull(compatibilityResult.reason())));
+          }
+        }
+        elementsToCorrelate.add(
+            sameMessage.stream().max(Comparator.comparingInt(e -> e.element().version())).get());
       }
-      // Multiple elements match - check if they are compatible message elements
-      var compatibilityResult = checkMessageElementCompatibility(matchingElements);
-      if (compatibilityResult.compatible()) {
-        return ActivationResolution.success(
-            List.of(Objects.requireNonNull(compatibilityResult.element())));
+
+      if (elementsToCorrelate.size() > 1
+          && elementsToCorrelate.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
+        return ActivationResolution.failure(
+            new ActivationCheckResult.Failure.TooManyMatchingElements(
+                "A synchronous response cannot come from several messages"));
       }
-      return ActivationResolution.failure(
-          new ActivationCheckResult.Failure.TooManyMatchingElements(
-              Objects.requireNonNull(compatibilityResult.reason())));
+      elementsToCorrelate.sort(
+          Comparator.comparingInt((InboundConnectorElement e) -> e.element().version()).reversed());
+      return ActivationResolution.success(elementsToCorrelate);
     }
 
     return ActivationResolution.success(List.of(matchingElements.getFirst()));
+  }
+
+  /**
+   * The message an element publishes, as its name and correlation key expression. Elements
+   * publishing no message (plain start events) are their own key.
+   */
+  private static Object messageOf(InboundConnectorElement element) {
+    return switch (element.correlationPoint()) {
+      case MessageCorrelationPoint point ->
+          new Message(point.messageName(), point.correlationKeyExpression());
+      case MessageStartEventCorrelationPoint point ->
+          new Message(point.messageName(), point.correlationKeyExpression());
+      case null, default -> element;
+    };
   }
 
   /**
@@ -152,106 +184,6 @@ public class ActivationConditionEvaluator {
       InboundConnectorElement element, List<InboundConnectorElement> elements) {
     return elements.stream()
         .anyMatch(other -> other.element().version() > element.element().version());
-  }
-
-  /**
-   * Resolves an input matching elements of different process versions, one element per version.
-   * Zeebe routes a message by its name and correlation key only, so elements publishing different
-   * messages can all be correlated. Elements publishing the same message cannot be told apart: the
-   * latest version wins, as when only the latest version was active.
-   *
-   * <p>An element whose correlation key cannot be evaluated is kept on its own: its correlation
-   * reports the failure, which the correlation handler skips for older versions.
-   *
-   * @return the elements to correlate, latest version first, or {@code null} if the matching
-   *     elements are not spread over versions and the regular compatibility check applies
-   */
-  private @Nullable List<InboundConnectorElement> resolveCrossVersionTargets(
-      List<InboundConnectorElement> matchingElements, Object context) {
-    var elementsByVersion =
-        matchingElements.stream().collect(Collectors.groupingBy(e -> e.element().version()));
-    if (elementsByVersion.size() < 2
-        || elementsByVersion.values().stream().anyMatch(sameVersion -> sameVersion.size() > 1)) {
-      // several matches within one version is a modeling issue, not a versioning one
-      return null;
-    }
-
-    var latestFirst =
-        Comparator.comparingInt((InboundConnectorElement e) -> e.element().version()).reversed();
-
-    // Elements publishing the same message (same name and evaluated correlation key) are
-    // indistinguishable to Zeebe: they are grouped and correlated once.
-    Map<CorrelationTarget, List<InboundConnectorElement>> elementsByMessage = new LinkedHashMap<>();
-    // Plain start events and elements whose correlation key cannot be evaluated are correlated
-    // alone.
-    var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
-    for (var element : matchingElements.stream().sorted(latestFirst).toList()) {
-      var target = correlationTarget(element, context);
-      if (target != null) {
-        elementsByMessage.computeIfAbsent(target, t -> new ArrayList<>()).add(element);
-      } else {
-        elementsToCorrelate.add(element);
-      }
-    }
-    elementsByMessage.values().forEach(sameMessage -> elementsToCorrelate.add(latest(sameMessage)));
-    elementsToCorrelate.sort(latestFirst);
-
-    if (elementsToCorrelate.size() > 1
-        && elementsToCorrelate.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
-      // a synchronous response can only come from a single correlation
-      return null;
-    }
-    return elementsToCorrelate;
-  }
-
-  /** The latest version of elements publishing the same message, sorted latest first. */
-  private InboundConnectorElement latest(List<InboundConnectorElement> sameMessage) {
-    var latest = sameMessage.getFirst();
-    if (sameMessage.size() > 1) {
-      var compatibilityResult = checkMessageElementCompatibility(sameMessage);
-      if (!compatibilityResult.compatible()) {
-        LOG.warn(
-            "Input matches elements of different versions publishing the same message, using '{}'"
-                + " (version {}): {}",
-            latest.element().elementId(),
-            latest.element().version(),
-            compatibilityResult.reason());
-      }
-    }
-    return latest;
-  }
-
-  /**
-   * The message the element publishes, or {@code null} if it publishes none (plain start event) or
-   * its correlation key cannot be evaluated.
-   */
-  private @Nullable CorrelationTarget correlationTarget(
-      InboundConnectorElement element, Object context) {
-    String messageName;
-    String correlationKeyExpression;
-    if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
-      messageName = point.messageName();
-      correlationKeyExpression = point.correlationKeyExpression();
-    } else if (element.correlationPoint() instanceof MessageStartEventCorrelationPoint point) {
-      messageName = point.messageName();
-      correlationKeyExpression = point.correlationKeyExpression();
-    } else {
-      return null;
-    }
-    var correlationKey = evaluateCorrelationKey(correlationKeyExpression, context);
-    return correlationKey == null ? null : new CorrelationTarget(messageName, correlationKey);
-  }
-
-  private @Nullable String evaluateCorrelationKey(
-      @Nullable String correlationKeyExpression, Object context) {
-    if (correlationKeyExpression == null || correlationKeyExpression.isBlank()) {
-      return null;
-    }
-    try {
-      return feelExpressionEvaluator.evaluate(correlationKeyExpression, String.class, context);
-    } catch (Exception e) {
-      return null;
-    }
   }
 
   /**
@@ -400,8 +332,8 @@ public class ActivationConditionEvaluator {
     }
   }
 
-  /** The message an element publishes, as Zeebe routes it. */
-  private record CorrelationTarget(String messageName, String correlationKey) {}
+  /** A message as published by an element: its name and correlation key expression. */
+  private record Message(String name, String correlationKeyExpression) {}
 
   private record CompatibilityResult(
       boolean compatible, @Nullable InboundConnectorElement element, @Nullable String reason) {

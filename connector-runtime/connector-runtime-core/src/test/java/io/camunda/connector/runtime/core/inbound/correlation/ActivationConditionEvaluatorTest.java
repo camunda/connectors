@@ -274,14 +274,14 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Different correlationKeyExpression should be incompatible")
-    void differentCorrelationKeyExpression_shouldBeIncompatible() {
+    @DisplayName("Different correlationKeyExpression publishes distinct messages, each correlated")
+    void differentCorrelationKeyExpression_eachCorrelated() {
       var element1 = createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key1");
       var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key2");
 
-      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+      var resolution = evaluator.resolveActivation(List.of(element1, element2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolution.elementsToCorrelate()).containsExactly(element1, element2);
     }
 
     @Test
@@ -356,18 +356,18 @@ public class ActivationConditionEvaluatorTest {
   }
 
   @Nested
-  @DisplayName("Different message names (always incompatible when both match)")
+  @DisplayName("Different message names")
   class DifferentMessageNames {
 
     @Test
-    @DisplayName("Different message names with blank conditions should be incompatible")
-    void differentMessageNames_blankConditions_shouldBeIncompatible() {
+    @DisplayName("Different message names with blank conditions are each correlated")
+    void differentMessageNames_blankConditions_eachCorrelated() {
       var element1 = createMessageElement("elem1", "msg-A", "", "=result", "var", "=key");
       var element2 = createMessageElement("elem2", "msg-B", "", "=result", "var", "=key");
 
-      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+      var resolution = evaluator.resolveActivation(List.of(element1, element2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolution.elementsToCorrelate()).containsExactly(element1, element2);
     }
   }
 
@@ -376,25 +376,25 @@ public class ActivationConditionEvaluatorTest {
   class MixedCorrelationPointTypes {
 
     @Test
-    @DisplayName("Mix of message and start event elements should be incompatible")
-    void mixedTypes_shouldBeIncompatible() {
+    @DisplayName("Mix of message and start event elements are each correlated")
+    void mixedTypes_eachCorrelated() {
       var messageElement = createMessageElement("elem1", "msg1", "", "=result", "var", "=key");
       var startElement = createStartEventElement("elem2", "");
 
-      var result = evaluator.checkActivation(List.of(messageElement, startElement), Map.of());
+      var resolution = evaluator.resolveActivation(List.of(messageElement, startElement), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolution.elementsToCorrelate()).containsExactly(messageElement, startElement);
     }
 
     @Test
-    @DisplayName("Two start event elements with blank conditions should be incompatible")
-    void twoStartEvents_blankConditions_shouldBeIncompatible() {
+    @DisplayName("Two start event elements with blank conditions are each correlated")
+    void twoStartEvents_blankConditions_eachCorrelated() {
       var startElement1 = createStartEventElement("elem1", "");
       var startElement2 = createStartEventElement("elem2", "");
 
-      var result = evaluator.checkActivation(List.of(startElement1, startElement2), Map.of());
+      var resolution = evaluator.resolveActivation(List.of(startElement1, startElement2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolution.elementsToCorrelate()).containsExactly(startElement1, startElement2);
     }
   }
 
@@ -430,14 +430,24 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Same message, different resultExpression: the latest version wins")
-    void sameMessage_incompatible_latestVersionWins() {
+    @DisplayName("Same message, different resultExpression: too many matching elements")
+    void sameMessage_incompatible_tooManyMatchingElements() {
       var v9 = createVersionedMessageElement("step", 9, "msg", "=v9", "=id");
       var v10 = createVersionedMessageElement("step", 10, "msg", "=v10", "=id");
 
       var result = evaluator.checkActivation(List.of(v9, v10), Map.of("id", "1"));
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("Same message, compatible: correlated once with the latest version")
+    void sameMessage_compatible_latestVersionCorrelated() {
+      var v9 = createVersionedMessageElement("step", 9, "msg", "=result", "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg", "=result", "=id");
+
+      var result = evaluator.checkActivation(List.of(v9, v10), Map.of("id", "1"));
+
       assertThat(((ActivationCheckResult.Success.CanActivate) result).activatedElement().version())
           .isEqualTo(10);
       assertThat(resolve(List.of(v9, v10), Map.of("id", "1"))).containsExactly(v10);
@@ -463,12 +473,12 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Different key expressions evaluating to the same key: the latest version wins")
-    void differentKeyExpressions_sameKey_latestVersionWins() {
+    @DisplayName("Different key expressions are distinct messages, even if they resolve alike")
+    void differentKeyExpressions_eachCorrelated() {
       var v2 = createVersionedMessageElement("step", 2, "msg", null, "=string(id)");
       var v10 = createVersionedMessageElement("step", 10, "msg", null, "=id");
 
-      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10);
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10, v2);
     }
 
     @Test
@@ -538,8 +548,8 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Message start event of the latest version publishing the same message wins")
-    void latestMessageStartEvent_sameMessage_latestVersionWins() {
+    @DisplayName("Message start event and catch event publishing the same message are incompatible")
+    void messageStartEventAndCatchEvent_sameMessage_tooManyMatchingElements() {
       var v2 = createVersionedMessageElement("step", 2, "msg", null, "=id");
       var v10Start = mock(InboundConnectorElement.class);
       when(v10Start.correlationPoint())
@@ -549,7 +559,9 @@ public class ActivationConditionEvaluatorTest {
           .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 10, "start", "default"));
       when(v10Start.activationCondition()).thenReturn("");
 
-      assertThat(resolve(List.of(v2, v10Start), Map.of("id", "1"))).containsExactly(v10Start);
+      var result = evaluator.checkActivation(List.of(v2, v10Start), Map.of("id", "1"));
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
     }
 
     @Test
@@ -565,15 +577,14 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Several matches within one of the versions keep the regular compatibility check")
-    void severalMatchesWithinOneVersion_tooManyMatchingElements() {
+    @DisplayName("Several messages within one version are each correlated")
+    void severalMessagesWithinOneVersion_eachCorrelated() {
       var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
       var v10a = createVersionedMessageElement("stepA", 10, "msg-a", null, "=id");
       var v10b = createVersionedMessageElement("stepB", 10, "msg-b", null, "=id");
 
-      var result = evaluator.checkActivation(List.of(v2, v10a, v10b), Map.of("id", "1"));
-
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolve(List.of(v2, v10a, v10b), Map.of("id", "1")))
+          .containsExactly(v10a, v10b, v2);
     }
   }
 

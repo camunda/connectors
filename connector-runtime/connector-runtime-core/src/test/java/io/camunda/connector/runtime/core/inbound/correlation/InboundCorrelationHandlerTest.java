@@ -175,21 +175,23 @@ public class InboundCorrelationHandlerTest {
   @Test
   void multipleElements_multipleMatches_errorRaised() {
     // given
-    var startEventElement = mock(InboundConnectorElement.class);
-    when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
-    when(startEventElement.element())
-        .thenReturn(
-            new ProcessElementWithRuntimeData("process1", 0, 0, "startEventElementId", "default"));
-    var messageElement = mock(InboundConnectorElement.class);
-    when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
-    when(messageElement.element())
-        .thenReturn(
-            new ProcessElementWithRuntimeData("process1", 0, 0, "messageElementId", "default"));
+    // two elements publishing the same message, with different result expressions
+    var point = new StandaloneMessageCorrelationPoint("msg", "=testKey", null, null);
+    var element1 = mock(InboundConnectorElement.class);
+    when(element1.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(element1.correlationPoint()).thenReturn(point);
+    when(element1.resultExpression()).thenReturn("={a: testKey}");
+    when(element1.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element1", "default"));
+    var element2 = mock(InboundConnectorElement.class);
+    when(element2.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(element2.correlationPoint()).thenReturn(point);
+    when(element2.resultExpression()).thenReturn("={b: testKey}");
+    when(element2.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element2", "default"));
 
     // when
-    var result =
-        handler.correlate(
-            List.of(startEventElement, messageElement), Map.of("testKey", "testValue"));
+    var result = handler.correlate(List.of(element1, element2), Map.of("testKey", "testValue"));
 
     // then
     assertThat(result).isInstanceOf(Failure.InvalidInput.class);
@@ -230,25 +232,21 @@ public class InboundCorrelationHandlerTest {
     }
 
     @Test
-    void sameMessage_publishedOnceForLatestVersion() {
+    void sameMessage_incompatible_nothingPublished() {
       // given
       var v9 = versionedMessageElement(9, "msg");
       var v10 = versionedMessageElement(10, "msg");
       when(v9.resultExpression()).thenReturn("={v9: id}");
       when(v10.resultExpression()).thenReturn("={v10: id}");
 
-      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
       // when
       var result = handler.correlate(List.of(v9, v10), Map.of("id", "1"));
 
       // then
-      assertThat(result).isInstanceOf(Success.MessagePublished.class);
-      assertThat(((Success.MessagePublished) result).activatedElement().version()).isEqualTo(10);
-      verify(camundaClient, times(1)).newPublishMessageCommand();
-      verify(dummyCommand).messageName("msg");
-      verify(dummyCommand).variables((Object) Map.of("v10", "1"));
+      assertThat(result).isInstanceOf(Failure.InvalidInput.class);
+      assertThat(((Failure.InvalidInput) result).message())
+          .contains("Multiple connectors are activated");
+      verifyNoInteractions(camundaClient);
     }
 
     @Test
