@@ -286,7 +286,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                 group = "model",
                 label = "Thinking budget (tokens)",
                 tooltip =
-                    "Gemini 2.5 models: token budget for extended thinking. -1 = dynamic, 0 = disabled. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+                    "Gemini 2.5 models: token budget for extended thinking. Supported ranges and whether 0 disables thinking vary by model; -1 enables dynamic thinking. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true,
