@@ -317,7 +317,7 @@ jobs:
         if: steps.version_check.outputs.is_first_minor == 'true'
         run: |
           chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
-          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.previous_minor }} ${{ steps.version_check.outputs.current_minor }}
+          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.current_minor }}
         shell: bash
 
       - name: Create pull request to main branch
@@ -331,7 +331,7 @@ jobs:
           base: main
           title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
           body: |
-            This bumps docs version of latest's element templates of a connector to latest minor version.
+            This bumps the docs version of every older versioned link in the latest element templates and connector sources to the latest minor version.
 
   maven-release:
     needs: [setup, e2e-tests]

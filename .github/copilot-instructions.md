@@ -97,8 +97,9 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
 - **Documentation links must pin the current released minor**, e.g.
   `https://docs.camunda.io/docs/8.9/components/connectors/...` — never unversioned, never `/next/`.
   Versioned URLs are kept resolving by the docs team, and the release bumper
-  (`version-bump-docs-links` in `RELEASE.yaml`) only rewrites links that already carry a version, so
-  an unversioned one is stranded permanently. For a page that exists only in unreleased docs, use its
+  (`version-bump-docs-links` in `RELEASE.yaml`) rewrites every older versioned link to the new
+  minor but cannot touch an unversioned one, so it would be stranded permanently. CI rejects
+  unversioned and `/next/` links (`check_element_template_docs_links.sh`). For a page that exists only in unreleased docs, use its
   numbered form (e.g. `/docs/8.10/...`).
 - **A `version` bump is not needed for content that doesn't change how a template applies** (e.g.
   correcting a URL). `CurrentVersionBumpRule` requires the current template's `version` to equal the
@@ -112,11 +113,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   ./element-template-generator/validator/target/appassembler/bin/element-template-validator
   ./mvnw -pl <module> spotless:check
 
-  # docs-link check; the script writes connectors-element-template-links.txt, which is not
-  # gitignored — delete it afterwards so it isn't committed by accident
-  ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
-  if grep -q "/next/" connectors-element-template-links.txt; then echo "FAIL: forbidden /next/ link"; fi
-  rm -f connectors-element-template-links.txt
+  # docs-link check: rejects unversioned and /next/ links
+  ./.github/workflows/scripts/check_element_template_docs_links.sh
   ```
 
 ## Testing conventions
