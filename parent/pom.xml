@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
-    <version.netty>4.2.18.Final</version.netty>
+    <version.netty>4.2.19.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
 
@@ -229,7 +229,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.21.0</version.langchain4j>
     <version.mcp-sdk>2.0.1</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.22</version.elasticsearch-java>
+    <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.22</version.elasticsearch-rest-client>
 
     <version.scala>3.10.0</version.scala>
