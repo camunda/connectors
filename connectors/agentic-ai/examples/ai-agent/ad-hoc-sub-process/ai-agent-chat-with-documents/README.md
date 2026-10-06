@@ -13,7 +13,7 @@ It demonstrates:
 - **Document registry**: every document of the conversation (prompt, tool results) is remembered in the agent context and
   shown to the model as a `<doc id="..." fileName="..." contentType="..."/>` tag, independent of the memory store and the
   context window.
-- **`return_document`**: with `Include documents` on (`data.response.includeDocuments`), the agent gets a built-in tool
+- **`return_document`**: the agent gets a built-in tool
   to hand a document back, called once per document with a key, the document and an optional description. They arrive in
   `agent.responseDocuments`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
   process reads one document as `agent.responseDocuments.<key>.document` and all documents as
@@ -115,8 +115,6 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    agent has not continued. Complete the `Slow tool` task in Tasklist; the agent continues and answers.
 8. **User prompt document.** Start a new instance, pick a file in the start form and ask `Upload the attached file.`
    Check: no download step is needed, `Upload_File` receives the prompt document, `agent.context.documents` lists it.
-   Then set `Include documents` of `AI Agent` to `false` (`data.response.includeDocuments`), redeploy and ask the agent to
-   return the file: `return_document` is not offered and `agent.responseDocuments` stays empty.
 
 Repeat scenario 2 and 3 with `data.memory.storage.type` set to `camunda-document` (`data.memory.storage.timeToLive`
 `PT1H`) to check the registry with another memory store.

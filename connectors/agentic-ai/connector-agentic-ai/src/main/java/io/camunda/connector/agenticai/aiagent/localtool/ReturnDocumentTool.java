@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.localtool;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
@@ -24,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * The built-in {@code return_document} tool. The model calls it once per document to select a
  * document for the final response of the agent under a key the process can find it by. It is
- * available while the response configuration opts in to returning documents.
+ * offered to every agent.
  *
  * <p>Every valid call puts its document into the selection of the agent context under its key; a
  * call with a key that is already selected replaces that entry in place. A response without tool
@@ -97,11 +96,6 @@ public final class ReturnDocumentTool implements LocalTool {
   @Override
   public ToolDefinition definition() {
     return DEFINITION;
-  }
-
-  @Override
-  public boolean isAvailable(AgentConfiguration configuration) {
-    return configuration.returnsDocuments();
   }
 
   @Override

@@ -29,6 +29,8 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -46,6 +48,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -247,7 +250,12 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   protected void assertToolSpecifications(
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
-    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
+    // the model sees the tools of the process next to the built-in return_document tool
+    final var expected = new ArrayList<>(expectedTools());
+    expected.addAll(
+        DocumentParameterSchema.toProviderToolDefinitions(
+            List.of(new ReturnDocumentTool().definition())));
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 
   protected void assertConversationMessages(

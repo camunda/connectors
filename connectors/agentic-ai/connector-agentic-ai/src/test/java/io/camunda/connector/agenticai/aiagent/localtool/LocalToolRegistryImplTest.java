@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -31,15 +30,6 @@ class LocalToolRegistryImplTest {
           null,
           null,
           null);
-  private static final AgentConfiguration RETURNING_DOCUMENTS =
-      new AgentConfiguration(
-          TEST_CHAT_MODEL,
-          TEST_SYSTEM_PROMPT,
-          null,
-          null,
-          null,
-          null,
-          new AgentTaskResponseConfiguration(null, null, true));
 
   private final LocalToolRegistry registry =
       new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
@@ -52,13 +42,12 @@ class LocalToolRegistryImplTest {
 
   @Test
   void offersOnlyTheToolsAvailableForTheConfiguration() {
-    assertThat(registry.availableToolDefinitions(PLAIN)).isEmpty();
-    assertThat(registry.availableToolDefinitions(WITH_MEMORY))
-        .extracting(definition -> definition.name())
-        .containsExactly(SaveNoteTool.NAME);
-    assertThat(registry.availableToolDefinitions(RETURNING_DOCUMENTS))
+    assertThat(registry.availableToolDefinitions(PLAIN))
         .extracting(definition -> definition.name())
         .containsExactly(ReturnDocumentTool.NAME);
+    assertThat(registry.availableToolDefinitions(WITH_MEMORY))
+        .extracting(definition -> definition.name())
+        .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, SaveNoteTool.NAME);
   }
 
   @Test

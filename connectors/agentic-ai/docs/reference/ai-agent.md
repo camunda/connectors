@@ -1155,11 +1155,13 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 3. **Full message**: If `includeAssistantMessage` is true, the raw `AssistantMessage` is included in the response.
 
-4. **Documents**: If `includeDocuments` is true and the response carries no tool calls, `responseDocuments` is a map from
+4. **Documents**: If the response carries no tool calls and the agent selected documents, `responseDocuments` is a map from
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
    of a document the agent selected with the built-in `return_document` tool (called once per document, see
    [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection is cleared in the
-   returned `agentContext`.
+   returned `agentContext`. The field is omitted when the selection is empty. `return_document` is offered to
+   every agent and cannot be switched off; whether it should become configurable is an open question in the
+   design document.
 
 ### Job Worker Response Variables
 

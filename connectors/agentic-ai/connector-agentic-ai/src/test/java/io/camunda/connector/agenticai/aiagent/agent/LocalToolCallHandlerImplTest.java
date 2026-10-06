@@ -369,7 +369,7 @@ class LocalToolCallHandlerImplTest {
 
     assertThat(both.availableToolDefinitions(WITH_MEMORY))
         .extracting(ToolDefinition::name)
-        .containsExactly("save_note");
+        .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, "save_note");
   }
 
   private static Document createDocument(String content, String fileName) {

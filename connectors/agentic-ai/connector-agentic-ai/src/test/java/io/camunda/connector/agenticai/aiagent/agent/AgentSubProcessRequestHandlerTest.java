@@ -80,7 +80,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -1061,7 +1060,7 @@ class AgentSubProcessRequestHandlerTest {
                 null,
                 null,
                 null,
-                new AgentTaskResponseConfiguration(null, null, true)));
+                null));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -1116,7 +1115,7 @@ class AgentSubProcessRequestHandlerTest {
                 null,
                 null,
                 null,
-                new AgentTaskResponseConfiguration(null, null, true)));
+                null));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -1227,7 +1226,7 @@ class AgentSubProcessRequestHandlerTest {
                 null,
                 null,
                 null,
-                new AgentTaskResponseConfiguration(null, null, true)));
+                null));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -1263,28 +1262,6 @@ class AgentSubProcessRequestHandlerTest {
                                 .startsWith(
                                     "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.")));
     assertThat(response.responseValue().context().returnDocuments()).isEmpty();
-  }
-
-  @Test
-  void doesNotOfferOrAnswerReturnDocumentWithoutOptIn() {
-    mockSystemPrompt();
-    mockProceed(USER_MESSAGE);
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-
-    final var returnCall =
-        new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", "x"));
-    mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(returnCall)).build());
-    mockResponseHandler();
-
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-
-    verify(chatModel, times(1)).execute(any());
-    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
-        .extracting(ToolDefinition::name)
-        .doesNotContain(ReturnDocumentTool.NAME);
-    // not offered, so the call is an ordinary (unknown) tool call for the process
-    assertThat(response.responseValue().toolCalls()).hasSize(1);
   }
 
   @Test

@@ -26,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -61,24 +60,8 @@ class ReturnDocumentToolTest {
                   new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null)),
                   new IngestedDocument(summary, DocumentSource.userMessage(null))));
 
-  private static final AgentConfiguration ENABLED =
-      new AgentConfiguration(
-          TEST_CHAT_MODEL,
-          TEST_SYSTEM_PROMPT,
-          null,
-          null,
-          null,
-          null,
-          new AgentTaskResponseConfiguration(null, null, true));
-  private static final AgentConfiguration DISABLED =
-      new AgentConfiguration(
-          TEST_CHAT_MODEL,
-          TEST_SYSTEM_PROMPT,
-          null,
-          null,
-          null,
-          null,
-          new AgentTaskResponseConfiguration(null, null, false));
+  private static final AgentConfiguration CONFIGURATION =
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
   @Test
   void definitionDescribesOneDocumentPerCallUnderAKey() {
@@ -101,17 +84,16 @@ class ReturnDocumentToolTest {
   }
 
   @Test
-  void isOfferedOnlyWhileTheResponseConfigurationOptsIn() {
-    assertThat(handler.availableToolDefinitions(ENABLED))
+  void isOfferedToEveryAgent() {
+    assertThat(handler.availableToolDefinitions(CONFIGURATION))
         .containsExactly(new ReturnDocumentTool().definition());
-    assertThat(handler.availableToolDefinitions(DISABLED)).isEmpty();
   }
 
   @Test
   void answersAValidCallAndSelectsTheDocumentUnderItsKey() {
     final var split =
         run(
-            ENABLED,
+            CONFIGURATION,
             call("1", Map.of("key", "summary", "document", summaryId, "description", "Short")));
 
     assertThat(split.localResults())
@@ -123,7 +105,7 @@ class ReturnDocumentToolTest {
 
   @Test
   void theDescriptionIsOptional() {
-    final var split = run(ENABLED, call("1", Map.of("key", "report", "document", reportId)));
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "report", "document", reportId)));
 
     assertThat(split.conversation().returnDocuments())
         .containsExactly(Map.entry("report", new SelectedDocument(reportId, null)));
@@ -133,7 +115,7 @@ class ReturnDocumentToolTest {
   void keepsTheCallOrderOfTheKeysOverTheCallsOfABatch() {
     final var split =
         run(
-            ENABLED,
+            CONFIGURATION,
             call("1", Map.of("key", "b", "document", summaryId)),
             call("2", Map.of("key", "a", "document", reportId)));
 
@@ -144,7 +126,7 @@ class ReturnDocumentToolTest {
   void aKeyThatIsAlreadySelectedIsReplacedInPlace() {
     final var split =
         run(
-            ENABLED,
+            CONFIGURATION,
             call("1", Map.of("key", "first", "document", reportId)),
             call("2", Map.of("key", "second", "document", summaryId)),
             call("3", Map.of("key", "first", "document", summaryId, "description", "Replaced")));
@@ -157,7 +139,7 @@ class ReturnDocumentToolTest {
 
   @Test
   void answersAnUnknownIdWithAnErrorListingTheKnownDocumentsAndSelectsNothing() {
-    final var split = run(ENABLED, call("1", Map.of("key", "k", "document", "bogus")));
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", "bogus")));
 
     assertThat(split.localResults())
         .singleElement()
@@ -173,7 +155,7 @@ class ReturnDocumentToolTest {
   @Test
   void rejectsATagInsteadOfTheId() {
     final var tag = "<doc id=\"" + reportId + "\" />";
-    final var split = run(ENABLED, call("1", Map.of("key", "k", "document", tag)));
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
     assertThat(split.localResults())
         .singleElement()
@@ -188,7 +170,7 @@ class ReturnDocumentToolTest {
   @Test
   void answersAnInvalidKeyWithAnErrorAndSelectsNothing() {
     for (final var key : List.of("", "1abc", "a b", "a.b", "-a")) {
-      final var split = run(ENABLED, call("1", Map.of("key", key, "document", reportId)));
+      final var split = run(CONFIGURATION, call("1", Map.of("key", key, "document", reportId)));
 
       assertThat(split.localResults())
           .singleElement()
@@ -203,7 +185,7 @@ class ReturnDocumentToolTest {
   @Test
   void acceptsKeysWithUnderscoresDigitsAndHyphens() {
     final var split =
-        run(ENABLED, call("1", Map.of("key", "_report-2024_final", "document", reportId)));
+        run(CONFIGURATION, call("1", Map.of("key", "_report-2024_final", "document", reportId)));
 
     assertThat(split.conversation().returnDocuments()).containsOnlyKeys("_report-2024_final");
   }
@@ -216,7 +198,7 @@ class ReturnDocumentToolTest {
 
     for (final var arguments :
         List.<Map<String, Object>>of(Map.of("document", reportId), nullKey, Map.of("key", "k"))) {
-      final var split = run(ENABLED, call("1", arguments));
+      final var split = run(CONFIGURATION, call("1", arguments));
 
       assertThat(split.localResults()).singleElement();
       assertThat(split.localResults().get(0).content().toString()).contains("Parameter");
@@ -225,20 +207,10 @@ class ReturnDocumentToolTest {
   }
 
   @Test
-  void leavesTheCallToTheProcessWhenTheToolIsNotOffered() {
-    final var call = call("1", Map.of("key", "k", "document", reportId));
-
-    final var split = run(DISABLED, call);
-
-    assertThat(split.hasLocalResults()).isFalse();
-    assertThat(split.remainingCalls()).containsExactly(call);
-  }
-
-  @Test
   void answersTheLocalCallsOfAMixedBatchAndLeavesTheRealCallToTheProcess() {
     final var split =
         run(
-            ENABLED,
+            CONFIGURATION,
             call("r1", Map.of("key", "report", "document", reportId)),
             call("r2", Map.of("key", "other", "document", "bogus")),
             new ToolCall("t1", "getWeather", Map.of("location", "MUC")));

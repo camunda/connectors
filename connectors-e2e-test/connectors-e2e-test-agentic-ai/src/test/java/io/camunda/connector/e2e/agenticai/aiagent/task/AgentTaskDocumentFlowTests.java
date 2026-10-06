@@ -282,7 +282,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
   private ZeebeTest startProcess() throws Exception {
     return createProcessInstance(
-        elementTemplate -> elementTemplate.property("data.response.includeDocuments", "=true"),
+        elementTemplate -> elementTemplate,
         Map.of(
             "userPrompt",
             "Download the file, upload it and give it back to me.",

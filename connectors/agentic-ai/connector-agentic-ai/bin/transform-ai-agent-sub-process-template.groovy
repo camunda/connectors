@@ -82,22 +82,6 @@ def systemPromptOverrideFileById = [:]
 def systemPromptOverrideFile = systemPromptOverrideFileById[(String) templateId]
 def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
 
-// optional: "templateId=propertyId" tuples (one per line) of properties dropped from the template,
-// keyed by the derived template's own id. Duplicated in transform-ai-agent-task-template.groovy
-// since each script is invoked as a standalone gmavenplus execution.
-def omittedProperties = binding.hasVariable('omittedProperties') ? omittedProperties : null
-def omittedPropertyIdsByTemplateId = [:].withDefault { [] }
-((String) (omittedProperties ?: "")).eachLine { line ->
-    line = line.trim()
-    if (!line) return
-    def parts = line.split('=', 2)
-    if (parts.length == 2) {
-        omittedPropertyIdsByTemplateId[parts[0].trim()] << parts[1].trim()
-    }
-}
-
-def omittedPropertyIds = omittedPropertyIdsByTemplateId[(String) templateId]
-
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -195,7 +179,7 @@ def skipProperties = [
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
-    if (property.id in skipProperties || property.id in omittedPropertyIds) {
+    if (property.id in skipProperties) {
         return
     }
 

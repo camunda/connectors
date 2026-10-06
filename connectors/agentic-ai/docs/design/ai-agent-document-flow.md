@@ -55,7 +55,7 @@ referenced by their id in tool calls, and leave through the response.
    or message object content as its tag, for every provider path. `AgentConversation.window`
    also appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
    definitions of the snapshot are those of `AgentConfiguration.toolDefinitions()`: the tools of the
-   process plus the available local tools, among them `return_document` while `returnsDocuments()`
+   process plus the available local tools, among them `return_document`
    (section 9), with every document parameter rewritten for the provider (section 3.2).
 5. **Model loop.** `BaseAgentRequestHandler.driveContinuationLoop` windows the conversation, calls the
    model, ingests the assistant message, and then either ends the loop or opens another round:
@@ -94,6 +94,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 3 | Documents out are a built-in local tool `return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
 | 4 | A document parameter that is not exactly the id of a known document (an unknown id, a `<doc/>` tag, text around an id) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
+| 6 | `return_document` is offered to every agent and `responseDocuments` is added to the response when the selection is non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
 
 ### 3.2 Document parameter representation
 
@@ -313,7 +314,7 @@ the id of the document) and `description` (optional string). `document` is a doc
 parameter (string schema with the format `camunda-document-id`), so the framework resolves the id to the
 document of the registry and reports a value that is not a known id with the texts of 3.7 before the tool
 runs; the tool receives a `Document` and takes the registry id from `DocumentHandle.idFor`. The tool
-is available while the option is on. Its description tells the model to use it only for a document the
+is offered to every agent. Its description tells the model to use it only for a document the
 user should receive in the answer, not for documents it merely passes to other tools, to call it once per
 document, what the key is, that the description is optional and that the same key again replaces the
 document returned under it. A valid call answers "Returned the document under the key 'k'." and
@@ -337,8 +338,8 @@ missing `document` gives an error answer listing the known documents. An error a
   document is only ever returned if the model named it, and the answer text names the key of that call.
 - A selection recorded in a batch that also holds real calls (3.6) is persisted with that job, before the
   real calls ran, because the model receives the "Returned ..." result for it with the results of the batch.
-- Option off: no tool in the snapshot, no `responseDocuments`; a stale selection (option toggled mid-run) is
-  cleared with the final response without being returned.
+- `responseDocuments` is added to the response whenever the selection is non-empty and omitted otherwise
+  (`@JsonInclude(NON_EMPTY)`); there is no option that switches the tool or the field off (3.10).
 
 A valid `return_document` call together with real tool calls costs no extra model call: the real calls run
 and the model receives all results in the call order (3.6). Only a batch made of local calls alone starts a
@@ -353,27 +354,24 @@ is available for the agent (section 9.6). `loadAdHocToolsSchema` runs on tool di
 migration (`updateToolDefinitions`), so both paths are covered. Reason: a BPMN element with that name would
 collide with the local tool in the tool list and silently lose to it.
 
-### 3.10 Configuration option `includeDocuments`
+### 3.10 Availability of `return_document`
 
-`ResponseConfiguration.includeDocuments()` (`aiagent/model/request/ResponseConfiguration.java`:20),
-implemented by `AgentTaskResponseConfiguration` and `AgentSubProcessResponseConfiguration` (template
-property `data.response.includeDocuments`, label "Include documents", group `response`, optional
-boolean, off by default). `AgentConfiguration.returnsDocuments()` (:69) is the single switch; the
-tool's `isAvailable` reads it. `BaseAgentRequestHandler.converse` puts the definitions of the available local
-tools after the process tools in `AgentConfiguration.toolDefinitions()` for the invocation; they are not part
-of `AgentContext.toolDefinitions`, so toggling the option is invisible to the migration check
-(`updateChangedToolDefinitions`) and no persisted tool list changes. The configuration fingerprint covers the
-offered tools, so the toggle shows up as a new `CONFIGURATION` history item (section 5.1). Reason: existing
-agents see no new tool, no new response field and no persisted-state change unless the modeler opts in.
+`return_document` is injected for every agent; no template property or request field switches it off.
+`LocalTool.isAvailable` stays a generic hook of the local tool API with the default `true`, and
+`ReturnDocumentTool` does not override it. `BaseAgentRequestHandler.converse` puts the definitions of the
+available local tools after the process tools in `AgentConfiguration.toolDefinitions()` for the invocation;
+they are not part of `AgentContext.toolDefinitions`, so no persisted tool list changes and the migration
+check (`updateChangedToolDefinitions`) does not see the tool. The configuration fingerprint covers the
+offered tools (section 5.1). The name is reserved (3.9). The response carries `responseDocuments` whenever
+the final response has a selection. Reason: a small configuration surface; whether the tool should become
+configurable is an open question (section 7).
 
 ### 3.11 Templates and versions (v1 frozen)
 
-`data.response.includeDocuments` appears in the v2 AI Agent Task and Sub-process templates (main and
-hybrid). The v1 templates are deprecated and frozen, and the request data classes are shared, so the
-generated property is dropped from them by the `omittedProperties` tuples in the connector `pom.xml`
-(`templateId=propertyId`), applied by both transform scripts; the v1 JSON is byte-identical to before.
-There is no template version bump: v2 is still at its first version and a new optional property that
-defaults to off needs no migration; the `element-templates/README.md` rows are unchanged.
+The document flow adds no template property. The v1 templates are deprecated and frozen; the runtime is
+shared, so agents modeled with the v1 templates are offered `return_document` as well, and the v1 template
+JSON is unchanged. There is no template version bump and the `element-templates/README.md` rows are
+unchanged.
 
 ### 3.12 Inline documents
 
@@ -585,8 +583,8 @@ call. What is reported:
 local tools (`AgentConfiguration.toolDefinitions()`, section 3.10), mapped by `AgentInstanceToolMapper`. A
 local tool is an `AgentTool` with name and description and **no element id** (`null`): the engine field is
 the "BPMN element ID of the tool" and is nullable. Only available tools are listed. The fingerprint of
-the configuration covers the offered tools, so enabling `includeDocuments` on a running agent adds a
-`CONFIGURATION` item with the new tool list.
+the configuration covers the offered tools, so an agent that was already running before the connector
+was upgraded gets one new `CONFIGURATION` item with the tool list that includes `return_document`.
 
 **Calls and results.**
 
@@ -701,6 +699,20 @@ What cannot be represented:
   not part of the persisted form of section 4.1.
 - **Inline documents of Camunda 8.10 conversations** get neither registry entry nor tag (section 4.2);
   a conversation that relies on them can only pass them on by re-ingesting the document.
+- **`return_document` is always injected (open question).** The tool is offered to every agent without an
+  opt-out, to keep the configuration surface small. Open: whether it should become configurable, for
+  example through a response option or a per-agent allow/deny list of local tools. Effects of an injected
+  tool to weigh:
+  - Every model call carries the extra tool definition, which costs input tokens.
+  - It changes the behavior and the tool selection of agents that never meant to return documents: the
+    model may call it spuriously or prefer it over the tools of the process.
+  - It changes the configuration fingerprint, so every in-flight instance records one extra
+    `CONFIGURATION` history item after the connector upgrade (section 5.1).
+  - It occupies a reserved tool name. An ad-hoc or gateway tool element with the same name makes tool
+    discovery, and process migration, fail with a `ConnectorException` carrying
+    `AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME` (3.9); the element has to be renamed.
+  - Future local tools (for example `load_skill`, `save_memory`) multiply these effects, so a general
+    mechanism to enable and disable local tools is needed.
 - **Capability matrix (#7230).** Which providers can take which document types natively decides what
   the model receives next to the tag; the registry and tags are independent of that.
 
@@ -730,7 +742,7 @@ the in-memory AWS AgentCore client) and `aiagent/task/AgentTaskDocumentFlowTests
 flavor), under `src/test/java/io/camunda/connector/e2e/agenticai/`. Shared: `aiagent/DocumentFlowFixtures`
 (scripted turns, upload endpoint stub, upload assertions), `aiagent/DocumentFlowAssertions` (global
 request assertion, tool schema access), `aiagent/wiremock/DocumentIdPlaceholderTransformer`. The v2
-templates are used because `includeDocuments` only exists there. Processes
+templates are used. Processes
 `agentic-ai-ahsp-connectors-documents.bpmn` and `agentic-ai-connectors-documents.bpmn` (in
 `src/test/resources`) define the tools `Download_A_File` (HTTP connector, stores the response as a
 Camunda document), `Upload_A_File` (HTTP connector, multipart POST to `uploadUrl`, body `file` =
@@ -896,7 +908,7 @@ availability can change between jobs; a call of a tool that is no longer availab
 Names are reserved for every registered tool, available or not (3.9). Reasoning: availability depends on a
 configuration that can change while the agent runs, and a BPMN element that is valid today must not turn into
 a collision on the next iteration; the check also has no configuration at hand on process migration. The
-cost is that a modeler cannot name an element `return_document` even with the option off. Uniqueness among
+cost is that a modeler cannot name an element `return_document`, whichever tools an agent uses. Uniqueness among
 local tools is checked when the registry is created (startup).
 
 ### 9.7 Add a local tool

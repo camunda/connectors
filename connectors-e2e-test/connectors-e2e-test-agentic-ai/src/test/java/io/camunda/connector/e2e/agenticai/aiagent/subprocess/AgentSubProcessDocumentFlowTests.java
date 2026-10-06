@@ -127,9 +127,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .contains("description=The document to upload. " + DocumentParameterSchema.HINT);
         });
 
-    // the option for returning documents is off: no built-in tool
+    // the built-in tool is offered next to the tools of the process
     assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().toolNames())
-        .containsExactlyInAnyOrder("Download_A_File", "Upload_A_File", "Ping", "Slow_Tool");
+        .containsExactlyInAnyOrder(
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "return_document");
     assertNoDocumentInternalsInLlmRequests();
   }
 
@@ -166,10 +167,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     OpenAiCompletionsChatModelStubs.stubConversation(
         roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
 
-    final var zeebeTest =
-        awaitProcessCompletion(
-            startProcess(
-                memoryStore.andThen(e -> e.property("data.response.includeDocuments", "=true"))));
+    final var zeebeTest = awaitProcessCompletion(startProcess(memoryStore));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
@@ -264,9 +262,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
 
-    final var zeebeTest =
-        awaitProcessCompletion(
-            startProcess(e -> e.property("data.response.includeDocuments", "=true")));
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -304,9 +300,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
 
-    final var zeebeTest =
-        awaitProcessCompletion(
-            startProcess(e -> e.property("data.response.includeDocuments", "=true")));
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
@@ -333,9 +327,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     OpenAiCompletionsChatModelStubs.stubConversation(
         roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
 
-    final var zeebeTest =
-        awaitProcessCompletion(
-            startProcess(e -> e.property("data.response.includeDocuments", "=true")));
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     final var documentId =
@@ -370,7 +362,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithSlowToolTurn(), finalTurn());
 
-    final var zeebeTest = startProcess(e -> e.property("data.response.includeDocuments", "=true"));
+    final var zeebeTest = startProcess(e -> e);
     final var processInstance = zeebeTest.getProcessInstanceEvent();
     CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
     final var agentInstanceKey =

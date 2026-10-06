@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -72,7 +71,6 @@ class AgentResponseHandlerDocumentsTest {
     final var response =
         responseHandler.createResponse(
             conversation(
-                true,
                 selection(
                     "summary", new SelectedDocument(summaryId, "Short version"),
                     "report", new SelectedDocument(reportId, null)),
@@ -96,22 +94,9 @@ class AgentResponseHandlerDocumentsTest {
   @Test
   void returnsNoDocumentsWhenTheSelectionIsEmpty() {
     final var response =
-        responseHandler.createResponse(conversation(true, selection(), assistantMessage("done")));
+        responseHandler.createResponse(conversation(selection(), assistantMessage("done")));
 
     assertThat(response.responseDocuments()).isEmpty();
-  }
-
-  @Test
-  void returnsNoDocumentsWhenNotOptedInAndStillClearsTheSelection() {
-    final var response =
-        responseHandler.createResponse(
-            conversation(
-                false,
-                selection("report", new SelectedDocument(reportId, null)),
-                assistantMessage("done")));
-
-    assertThat(response.responseDocuments()).isEmpty();
-    assertThat(response.context().returnDocuments()).isEmpty();
   }
 
   @Test
@@ -121,7 +106,6 @@ class AgentResponseHandlerDocumentsTest {
     final var response =
         responseHandler.createResponse(
             conversation(
-                true,
                 selection("report", new SelectedDocument(reportId, null)),
                 assistantMessage("checking", List.of(toolCall))));
 
@@ -140,7 +124,6 @@ class AgentResponseHandlerDocumentsTest {
     final var response =
         responseHandler.createResponse(
             conversation(
-                    true,
                     selection("report", new SelectedDocument(reportId, null)),
                     assistantMessage("both", List.of(localCall, realCall)))
                 .withPendingLocalToolCallResults(List.of(local)));
@@ -159,7 +142,6 @@ class AgentResponseHandlerDocumentsTest {
     final var response =
         responseHandler.createResponse(
             conversation(
-                true,
                 selection(
                     "gone", new SelectedDocument("gone", null),
                     "report", new SelectedDocument(reportId, null)),
@@ -177,18 +159,9 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   private AgentConversation conversation(
-      boolean includeDocuments,
-      LinkedHashMap<String, SelectedDocument> selection,
-      AssistantMessage assistantMessage) {
+      LinkedHashMap<String, SelectedDocument> selection, AssistantMessage assistantMessage) {
     final var config =
-        new AgentConfiguration(
-            TEST_CHAT_MODEL,
-            TEST_SYSTEM_PROMPT,
-            null,
-            null,
-            null,
-            null,
-            new AgentTaskResponseConfiguration(null, null, includeDocuments));
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
