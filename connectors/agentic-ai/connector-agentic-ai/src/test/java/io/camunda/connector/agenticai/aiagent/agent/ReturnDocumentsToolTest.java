@@ -51,6 +51,10 @@ class ReturnDocumentsToolTest {
   private final String reportId = DocumentHandle.idFor(report);
   private final String summaryId = DocumentHandle.idFor(summary);
 
+  private static String tag(String id) {
+    return "<doc id=\"" + id + "\" />";
+  }
+
   private final DocumentRegistry registry =
       DocumentRegistry.empty()
           .withDocuments(
@@ -85,9 +89,9 @@ class ReturnDocumentsToolTest {
         .isEqualTo(
             "Attaches documents to your final response. Use this only for documents the user"
                 + " should receive in your answer; do not use it for documents you only pass to"
-                + " other tools. Pass the ids of the <doc/> tags; the ids accumulate over several"
-                + " calls.");
-    assertThat(definition.inputSchema().toString()).contains("type=document");
+                + " other tools. Pass the <doc id=\"...\" /> tags; the documents accumulate over"
+                + " several calls.");
+    assertThat(definition.inputSchema().toString()).contains("format=camunda-document");
   }
 
   @Test
@@ -99,7 +103,8 @@ class ReturnDocumentsToolTest {
 
   @Test
   void answersAValidCallWithTheSelectionAndSelectsTheDocuments() {
-    final var split = run(ENABLED, call("1", Map.of("ids", List.of(summaryId, reportId))));
+    final var split =
+        run(ENABLED, call("1", Map.of("ids", List.of(tag(summaryId), tag(reportId)))));
 
     assertThat(split.localResults())
         .extracting(ToolCallResult::content)
@@ -109,7 +114,7 @@ class ReturnDocumentsToolTest {
 
   @Test
   void dropsDuplicateIdsOfOneCall() {
-    final var split = run(ENABLED, call("1", Map.of("ids", List.of(reportId, reportId))));
+    final var split = run(ENABLED, call("1", Map.of("ids", List.of(tag(reportId), tag(reportId)))));
 
     assertThat(split.localResults())
         .extracting(ToolCallResult::content)
@@ -122,15 +127,15 @@ class ReturnDocumentsToolTest {
     final var split =
         run(
             ENABLED,
-            call("1", Map.of("ids", List.of(summaryId))),
-            call("2", Map.of("ids", List.of(reportId, summaryId))));
+            call("1", Map.of("ids", List.of(tag(summaryId)))),
+            call("2", Map.of("ids", List.of(tag(reportId), tag(summaryId)))));
 
     assertThat(split.conversation().returnDocumentIds()).containsExactly(summaryId, reportId);
   }
 
   @Test
   void answersAnUnknownIdWithAnErrorListingTheKnownDocumentsAndSelectsNothing() {
-    final var split = run(ENABLED, call("1", Map.of("ids", List.of(reportId, "bogus"))));
+    final var split = run(ENABLED, call("1", Map.of("ids", List.of(tag(reportId), tag("bogus")))));
 
     assertThat(split.localResults())
         .singleElement()
@@ -157,14 +162,15 @@ class ReturnDocumentsToolTest {
           .satisfies(
               result ->
                   assertThat(result.content().toString())
-                      .startsWith("Parameter 'ids' must be a non-empty array of document ids."));
+                      .startsWith(
+                          "Parameter 'ids' must be a non-empty array of <doc id=\"...\" /> tags."));
       assertThat(split.conversation().returnDocumentIds()).isEmpty();
     }
   }
 
   @Test
   void answersANonArrayIdsParameterWithAnError() {
-    final var split = run(ENABLED, call("1", Map.of("ids", reportId)));
+    final var split = run(ENABLED, call("1", Map.of("ids", tag(reportId))));
 
     assertThat(split.localResults())
         .singleElement()
@@ -176,7 +182,7 @@ class ReturnDocumentsToolTest {
 
   @Test
   void leavesTheCallToTheProcessWhenTheToolIsNotOffered() {
-    final var call = call("1", Map.of("ids", List.of(reportId)));
+    final var call = call("1", Map.of("ids", List.of(tag(reportId))));
 
     final var split = run(DISABLED, call);
 
@@ -189,8 +195,8 @@ class ReturnDocumentsToolTest {
     final var split =
         run(
             ENABLED,
-            call("r1", Map.of("ids", List.of(reportId))),
-            call("r2", Map.of("ids", List.of("bogus"))),
+            call("r1", Map.of("ids", List.of(tag(reportId)))),
+            call("r2", Map.of("ids", List.of(tag("bogus")))),
             new ToolCall("t1", "getWeather", Map.of("location", "MUC")));
 
     assertThat(split.conversation().returnDocumentIds()).containsExactly(reportId);

@@ -137,9 +137,19 @@ class ToolSpecificationConverterTest {
                     "properties",
                     Map.of(
                         "doc",
-                        Map.of("type", "document", "description", "A document."),
+                        Map.of(
+                            "type",
+                            "string",
+                            "format",
+                            "camunda-document",
+                            "description",
+                            "A document."),
                         "docs",
-                        Map.of("type", "array", "items", Map.of("type", "document"))),
+                        Map.of(
+                            "type",
+                            "array",
+                            "items",
+                            Map.of("type", "string", "format", "camunda-document"))),
                     "required",
                     List.of("doc", "docs")))
             .build();
@@ -161,20 +171,6 @@ class ToolSpecificationConverterTest {
                     .isInstanceOfSatisfying(
                         JsonStringSchema.class,
                         items -> assertThat(items.description()).isEqualTo(hint)));
-  }
-
-  @Test
-  void asToolSpecificationRejectsUnmappedDocumentType() {
-    final var toolDefinition =
-        ToolDefinition.builder()
-            .name("a_tool")
-            .inputSchema(
-                Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))))
-            .build();
-
-    assertThatThrownBy(() -> toolSpecificationConverter.asToolSpecification(toolDefinition))
-        .isInstanceOf(ToolSpecificationConverterImpl.ParseSchemaException.class)
-        .hasMessageContaining("Unknown JSON schema element type 'document'");
   }
 
   @Test

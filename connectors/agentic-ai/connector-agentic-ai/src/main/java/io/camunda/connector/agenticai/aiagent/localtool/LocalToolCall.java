@@ -16,7 +16,8 @@ import java.util.Map;
  *
  * @param id the tool call id assigned by the model provider
  * @param name the name of the tool
- * @param arguments the arguments as the model sent them; document parameters hold document ids
+ * @param arguments the arguments as the model sent them; document parameters hold the {@code
+ *     <doc/>} tags
  * @param resolvedArguments the arguments with every document parameter the tool declares replaced
  *     by the document reference of the registry; equal to {@code arguments} for a tool without
  *     document parameters

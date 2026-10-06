@@ -182,7 +182,15 @@ class AgentConversationTest {
                     "type",
                     "object",
                     "properties",
-                    Map.of("doc", Map.of("type", "document", "description", "The file"))))
+                    Map.of(
+                        "doc",
+                        Map.of(
+                            "type",
+                            "string",
+                            "format",
+                            "camunda-document",
+                            "description",
+                            "The file"))))
             .build();
     var configuration = CONFIG.withToolDefinitions(List.of(authored));
     var conv =

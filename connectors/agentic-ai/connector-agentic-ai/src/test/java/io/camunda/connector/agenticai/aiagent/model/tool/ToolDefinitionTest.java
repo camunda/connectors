@@ -17,7 +17,7 @@ class ToolDefinitionTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  void roundTripsDocumentParametersAsDocumentType() throws Exception {
+  void roundTripsDocumentParametersWithTheDocumentFormat() throws Exception {
     final var toolDefinition =
         ToolDefinition.builder()
             .name("tool")
@@ -28,15 +28,27 @@ class ToolDefinitionTest {
                     "properties",
                     Map.of(
                         "doc",
-                        Map.of("type", "document", "description", "A document"),
+                        Map.of(
+                            "type",
+                            "string",
+                            "format",
+                            "camunda-document",
+                            "description",
+                            "A document"),
                         "docs",
-                        Map.of("type", "array", "items", Map.of("type", "document")))))
+                        Map.of(
+                            "type",
+                            "array",
+                            "items",
+                            Map.of("type", "string", "format", "camunda-document")))))
             .build();
 
     final var json = objectMapper.writeValueAsString(toolDefinition);
     final var restored = objectMapper.readValue(json, ToolDefinition.class);
 
-    assertThat(json).contains("\"type\":\"document\"").doesNotContain("documentParameters");
+    assertThat(json)
+        .contains("\"format\":\"camunda-document\"")
+        .doesNotContain("documentParameters");
     assertThat(restored).isEqualTo(toolDefinition);
   }
 }

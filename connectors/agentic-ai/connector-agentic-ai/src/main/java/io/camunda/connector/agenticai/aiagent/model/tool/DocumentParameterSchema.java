@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_FORMAT;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_ITEMS;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_TYPE;
@@ -21,22 +22,31 @@ import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Document parameters of a tool input schema. A parameter that carries a document reference has the
- * schema type {@code document}; it is found at the top level of the parameters, as array {@code
- * items} and recursively through object {@code properties} and array {@code items}. {@code
- * document} inside {@code anyOf}, {@code oneOf} or {@code $ref} is not a document parameter.
+ * Document parameters of a tool input schema. A parameter that carries a document reference is a
+ * string schema with the format {@link #FORMAT_DOCUMENT}; it is found at the top level of the
+ * parameters, as array {@code items} and recursively through object {@code properties} and array
+ * {@code items}. The format inside {@code anyOf}, {@code oneOf} or {@code $ref} does not make a
+ * document parameter.
  *
- * <p>The authored schema keeps the type {@code document}. The model providers only know JSON schema
- * types, so {@link #toProviderToolDefinitions} derives the schema they get: every {@code document}
- * node becomes a string schema whose description ends with {@link #PROVIDER_HINT}.
+ * <p>The model passes the {@code <doc id="..." />} tag of a known document as the value. The
+ * authored schema keeps the format; some model providers reject unknown formats, so {@link
+ * #toProviderToolDefinitions} derives the schema they get: the format is dropped and the
+ * description ends with {@link #PROVIDER_HINT}.
  */
 public final class DocumentParameterSchema {
 
-  /** Schema type which marks a parameter as a reference to a known document. */
+  /** Schema format which marks a string parameter as a reference to a known document. */
+  public static final String FORMAT_DOCUMENT = "camunda-document";
+
+  /**
+   * Type that fromAi expressions and authored schemas use as a shorthand for a document parameter;
+   * {@link #normalizeAuthoredSchema} turns it into the string schema with {@link #FORMAT_DOCUMENT}.
+   */
   public static final String TYPE_DOCUMENT = "document";
 
   /** Appended to the description of a document parameter in the schema the model providers get. */
-  public static final String PROVIDER_HINT = "Pass the id of a <doc/> tag of a known document.";
+  public static final String PROVIDER_HINT =
+      "Pass the <doc id=\"...\" /> tag of a known document, copied from the conversation.";
 
   private DocumentParameterSchema() {}
 
@@ -68,8 +78,9 @@ public final class DocumentParameterSchema {
 
   /**
    * Returns the tool definitions with the schema the model providers get: every document parameter
-   * is a string schema carrying {@link #PROVIDER_HINT}. A definition without document parameters is
-   * returned as is; the others are deep copies, so no authored definition is modified.
+   * is a string schema without the format, carrying {@link #PROVIDER_HINT}. A definition without
+   * document parameters is returned as is; the others are deep copies, so no authored definition is
+   * modified.
    */
   public static List<ToolDefinition> toProviderToolDefinitions(
       List<ToolDefinition> toolDefinitions) {
@@ -87,11 +98,57 @@ public final class DocumentParameterSchema {
         toProviderSchema(toolDefinition.inputSchema()));
   }
 
+  /** The schema of a document parameter: a string with the format {@link #FORMAT_DOCUMENT}. */
+  public static Map<String, Object> documentSchema(@Nullable String description) {
+    final var schema = new LinkedHashMap<String, Object>();
+    schema.put(PROPERTY_TYPE, TYPE_STRING);
+    schema.put(PROPERTY_FORMAT, FORMAT_DOCUMENT);
+    if (StringUtils.isNotBlank(description)) {
+      schema.put(PROPERTY_DESCRIPTION, description);
+    }
+    return schema;
+  }
+
+  /**
+   * Returns the parameter schema with every node of the shorthand type {@link #TYPE_DOCUMENT}
+   * replaced by the string schema with the format {@link #FORMAT_DOCUMENT}, found at the top level,
+   * as array {@code items} and through object {@code properties}. The other entries of a node keep
+   * their order and values.
+   */
+  @SuppressWarnings("unchecked")
+  public static Map<String, Object> normalizeAuthoredSchema(Map<String, Object> schema) {
+    final var result = new LinkedHashMap<>(schema);
+    if (TYPE_DOCUMENT.equals(result.get(PROPERTY_TYPE))) {
+      result.put(PROPERTY_TYPE, TYPE_STRING);
+      result.put(PROPERTY_FORMAT, FORMAT_DOCUMENT);
+    }
+    if (result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties) {
+      final var normalized = new LinkedHashMap<String, Object>();
+      ((Map<String, Object>) properties)
+          .forEach(
+              (name, child) ->
+                  normalized.put(
+                      name,
+                      child instanceof Map<?, ?> childSchema
+                          ? normalizeAuthoredSchema((Map<String, Object>) childSchema)
+                          : child));
+      result.put(PROPERTY_PROPERTIES, normalized);
+    }
+    if (result.get(PROPERTY_ITEMS) instanceof Map<?, ?> items) {
+      result.put(PROPERTY_ITEMS, normalizeAuthoredSchema((Map<String, Object>) items));
+    }
+    return result;
+  }
+
+  private static boolean isDocument(Map<?, ?> schema) {
+    return FORMAT_DOCUMENT.equals(schema.get(PROPERTY_FORMAT));
+  }
+
   private static void collectPaths(Object node, List<Step> path, List<List<Step>> paths) {
     if (!(node instanceof Map<?, ?> schema)) {
       return;
     }
-    if (TYPE_DOCUMENT.equals(schema.get(PROPERTY_TYPE))) {
+    if (isDocument(schema)) {
       if (!path.isEmpty()) {
         paths.add(path);
       }
@@ -113,7 +170,7 @@ public final class DocumentParameterSchema {
     if (!(node instanceof Map<?, ?> schema)) {
       return false;
     }
-    if (TYPE_DOCUMENT.equals(schema.get(PROPERTY_TYPE))) {
+    if (isDocument(schema)) {
       return true;
     }
     if (schema.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties) {
@@ -128,14 +185,15 @@ public final class DocumentParameterSchema {
       return schema;
     }
     final var result = new LinkedHashMap<>(schema);
-    if (TYPE_DOCUMENT.equals(result.get(PROPERTY_TYPE))) {
+    if (isDocument(result)) {
+      result.remove(PROPERTY_FORMAT);
       result.put(PROPERTY_TYPE, TYPE_STRING);
       final var description = result.get(PROPERTY_DESCRIPTION);
-      result.put(
-          PROPERTY_DESCRIPTION,
-          description instanceof String text && StringUtils.isNotBlank(text)
-              ? text + " " + PROVIDER_HINT
-              : PROVIDER_HINT);
+      if (!(description instanceof String text) || StringUtils.isBlank(text)) {
+        result.put(PROPERTY_DESCRIPTION, PROVIDER_HINT);
+      } else if (!text.contains(PROVIDER_HINT)) {
+        result.put(PROPERTY_DESCRIPTION, text + " " + PROVIDER_HINT);
+      }
     } else if (result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties) {
       final var mapped = new LinkedHashMap<String, Object>();
       ((Map<String, Object>) properties)

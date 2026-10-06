@@ -136,7 +136,9 @@ class AgentTaskRequestHandlerTest {
                                     "type",
                                     "object",
                                     "properties",
-                                    Map.of("doc", Map.of("type", "document"))))
+                                    Map.of(
+                                        "doc",
+                                        Map.of("type", "string", "format", "camunda-document"))))
                             .build()))
                 .toList());
     mockConfiguration();
@@ -145,7 +147,7 @@ class AgentTaskRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(contextWithUploadTool, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build());
@@ -511,5 +513,9 @@ class AgentTaskRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  private static String tag(String id) {
+    return "<doc id=\"" + id + "\" />";
   }
 }

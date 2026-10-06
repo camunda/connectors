@@ -47,8 +47,8 @@ public final class DocumentFlowAssertions {
   }
 
   /**
-   * Asserts that no tool schema of the request uses the schema type {@code document}: the model
-   * provider only knows JSON schema types.
+   * Asserts that no tool schema of the request carries the document marker: the model provider only
+   * knows standard JSON schema types and formats.
    */
   private static void assertNoDocumentTypeInToolSchemas(String rawRequestBody, int requestNumber) {
     final JsonNode body;
@@ -67,6 +67,7 @@ public final class DocumentFlowAssertions {
                         "schema types of tool '%s' in LLM request %d",
                         tool.path("function").path("name").asText(), requestNumber)
                     .doesNotContain("document"));
+    assertThat(body.path("tools").toString()).doesNotContain("camunda-document");
   }
 
   /**

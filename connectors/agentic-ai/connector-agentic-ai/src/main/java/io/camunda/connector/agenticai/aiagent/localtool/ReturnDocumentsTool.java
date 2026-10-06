@@ -32,7 +32,7 @@ public final class ReturnDocumentsTool implements LocalTool {
   /** The reserved tool name; ad-hoc tool elements must not use it. */
   public static final String NAME = "return_documents";
 
-  /** The array parameter carrying the ids of the {@code <doc/>} tags to return. */
+  /** The array parameter carrying the {@code <doc/>} tags to return. */
   public static final String PARAMETER_IDS = "ids";
 
   private static final ToolDefinition DEFINITION =
@@ -40,8 +40,8 @@ public final class ReturnDocumentsTool implements LocalTool {
           NAME,
           "Attaches documents to your final response. Use this only for documents the user"
               + " should receive in your answer; do not use it for documents you only pass to"
-              + " other tools. Pass the ids of the <doc/> tags; the ids accumulate over several"
-              + " calls.",
+              + " other tools. Pass the <doc id=\"...\" /> tags; the documents accumulate over"
+              + " several calls.",
           ordered(
               "type",
               "object",
@@ -52,9 +52,9 @@ public final class ReturnDocumentsTool implements LocalTool {
                       "type",
                       "array",
                       "description",
-                      "The ids of the <doc/> tags of the documents to return.",
+                      "The <doc id=\"...\" /> tags of the documents to return.",
                       "items",
-                      Map.of("type", DocumentParameterSchema.TYPE_DOCUMENT))),
+                      DocumentParameterSchema.documentSchema(null))),
               "required",
               List.of(PARAMETER_IDS)));
 
@@ -87,7 +87,7 @@ public final class ReturnDocumentsTool implements LocalTool {
     final var arguments = call.argumentsAs(Arguments.class, context.objectMapper());
     if (arguments.ids() == null || arguments.ids().isEmpty()) {
       return LocalToolResult.error(
-          "Parameter '%s' must be a non-empty array of document ids. %s"
+          "Parameter '%s' must be a non-empty array of <doc id=\"...\" /> tags. %s"
               .formatted(PARAMETER_IDS, context.documents().knownDocumentsText()));
     }
 

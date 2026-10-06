@@ -130,7 +130,9 @@ class AgentSubProcessRequestHandlerTest {
                                       "type",
                                       "object",
                                       "properties",
-                                      Map.of("doc", Map.of("type", "document"))))
+                                      Map.of(
+                                          "doc",
+                                          Map.of("type", "string", "format", "camunda-document"))))
                               .build()))
                   .toList())
           .build();
@@ -847,8 +849,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
-    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", documentId));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
+    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", tag(documentId)));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
     final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -961,7 +963,7 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var message = AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build();
     mockChatModelExecution(message);
@@ -1052,7 +1054,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(documentId)));
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag(documentId))));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
@@ -1105,7 +1107,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(documentId)));
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag(documentId))));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1214,7 +1216,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of("bogus")));
+        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag("bogus"))));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1315,7 +1317,8 @@ class AgentSubProcessRequestHandlerTest {
     doReturn(
             new ChatResult.Completed(
                 AssistantMessage.builder()
-                    .toolCalls(List.of(new ToolCall("call-1", "upload", Map.of("doc", "bogus"))))
+                    .toolCalls(
+                        List.of(new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")))))
                     .build(),
                 new AgentMetrics(1, TokenUsage.empty(), 1)))
         .when(chatModel)
@@ -1548,5 +1551,9 @@ class AgentSubProcessRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  private static String tag(String id) {
+    return "<doc id=\"" + id + "\" />";
   }
 }

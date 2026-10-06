@@ -167,6 +167,10 @@ class AgentInstanceHistoryMapperTest {
     private final Map<String, Object> reference =
         registry.findById(documentId).orElseThrow().reference();
 
+    private static String tag(String id) {
+      return "<doc id=\"" + id + "\" />";
+    }
+
     private final ToolDefinition upload =
         ToolDefinition.builder()
             .name("upload")
@@ -177,9 +181,13 @@ class AgentInstanceHistoryMapperTest {
                     "properties",
                     Map.of(
                         "file",
-                        Map.of("type", "document"),
+                        Map.of("type", "string", "format", "camunda-document"),
                         "attachments",
-                        Map.of("type", "array", "items", Map.of("type", "document")))))
+                        Map.of(
+                            "type",
+                            "array",
+                            "items",
+                            Map.of("type", "string", "format", "camunda-document")))))
             .build();
     private final HistoryDocuments documents = new HistoryDocuments(List.of(upload), registry);
 
@@ -189,10 +197,15 @@ class AgentInstanceHistoryMapperTest {
             .name("upload")
             .arguments(
                 Map.of(
-                    "file", documentId, "attachments", List.of(documentId, "unknown"), "note", "n"))
+                    "file",
+                    tag(documentId),
+                    "attachments",
+                    List.of(tag(documentId), tag("unknown")),
+                    "note",
+                    "n"))
             .build();
     private final Map<String, Object> reportedArguments =
-        Map.of("file", reference, "attachments", List.of(reference, "unknown"), "note", "n");
+        Map.of("file", reference, "attachments", List.of(reference, tag("unknown")), "note", "n");
 
     @Test
     void assistantToolCallShowsTheDocumentReferenceInsteadOfTheId() {
@@ -242,7 +255,7 @@ class AgentInstanceHistoryMapperTest {
           ToolCall.builder()
               .id("call-2")
               .name("return_documents")
-              .arguments(Map.of("ids", List.of(documentId)))
+              .arguments(Map.of("ids", List.of(tag(documentId))))
               .build();
 
       // return_documents is not among the offered tool definitions

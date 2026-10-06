@@ -66,11 +66,14 @@ public final class LocalToolSchema {
   }
 
   /**
-   * A document parameter, schema type {@code document}: the model passes the id of a known {@code
-   * <doc/>} tag, the tool receives the document.
+   * A document parameter, a string schema with the format {@link
+   * DocumentParameterSchema#FORMAT_DOCUMENT}: the model passes the {@code <doc id="..." />} tag of
+   * a known document, the tool receives the document.
    */
   public LocalToolSchema document(String name, String description, boolean isRequired) {
-    return property(name, DocumentParameterSchema.TYPE_DOCUMENT, description, isRequired);
+    properties.put(
+        name, Collections.unmodifiableMap(DocumentParameterSchema.documentSchema(description)));
+    return markRequired(name, isRequired);
   }
 
   /** The schema as a map: {@code {"type": "object", "properties": ..., "required": [...]}}. */

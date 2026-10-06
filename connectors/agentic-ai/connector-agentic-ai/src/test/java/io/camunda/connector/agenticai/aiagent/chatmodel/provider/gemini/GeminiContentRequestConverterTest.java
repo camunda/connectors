@@ -649,9 +649,14 @@ class GeminiContentRequestConverterTest {
             "properties",
             Map.of(
                 "doc",
-                Map.of("type", "document", "description", "A document."),
+                Map.of(
+                    "type", "string", "format", "camunda-document", "description", "A document."),
                 "docs",
-                Map.of("type", "array", "items", Map.of("type", "document"))),
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of("type", "string", "format", "camunda-document"))),
             "required",
             List.of("doc", "docs"));
     final var snapshot =

@@ -192,7 +192,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     final var documentId =
         parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
-    // the model and the persisted conversation keep the id
+    // the model and the persisted conversation keep the tag the model passed
     assertThat(recorded.requests().get(2).messages().toString()).contains(documentId);
 
     final var agentInstanceKey = new AtomicLong();

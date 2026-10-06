@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.api.document.Document;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
@@ -32,6 +33,10 @@ public record DocumentReferenceXmlTag(
     @Nullable String contentType,
     @Nullable String toolName,
     @Nullable String toolCallId) {
+
+  private static final Pattern DOC_TAG = Pattern.compile("\\s*<doc(\\s[^<>]*?)?\\s*/?>\\s*");
+  private static final Pattern ATTRIBUTE =
+      Pattern.compile("([A-Za-z_][\\w.:-]*)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')");
 
   public DocumentReferenceXmlTag {
     if (fileName != null && fileName.equals(id)) {
@@ -64,6 +69,28 @@ public record DocumentReferenceXmlTag(
         DocumentHandle.contentTypeFor(entry.reference()),
         origin == null ? null : origin.toolName(),
         origin == null ? null : origin.toolCallId());
+  }
+
+  /**
+   * Reads the document id from a string that is a {@code <doc .../>} tag, as the model passes it
+   * back. Only the {@code id} attribute is read; other attributes are ignored and surrounding
+   * whitespace is tolerated. Returns {@code null} if the string is not a tag or has no non-blank
+   * {@code id}.
+   */
+  public static @Nullable String parseId(String value) {
+    final var tag = DOC_TAG.matcher(value);
+    if (!tag.matches() || tag.group(1) == null) {
+      return null;
+    }
+    final var attributes = ATTRIBUTE.matcher(tag.group(1));
+    while (attributes.find()) {
+      if ("id".equals(attributes.group(1))) {
+        final var raw = attributes.group(2) != null ? attributes.group(2) : attributes.group(3);
+        final var id = StringEscapeUtils.unescapeXml(raw).strip();
+        return id.isEmpty() ? null : id;
+      }
+    }
+    return null;
   }
 
   public String toXml() {

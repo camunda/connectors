@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
  *   <li>The call is looked up among the tools that are {@link #isAvailable available} for the
  *       agent; other calls go to the process.
  *   <li>The parameters the {@link DocumentParameterSchema document parameters} of the definition,
- *       the schema nodes of type {@code document}, are checked and resolved: an unknown document id
+ *       the schema nodes with the document format, are checked and resolved: an unknown document
  *       answers the call with an error result listing the known documents and the tool does not
  *       run.
  *   <li>{@link #call} runs. A {@link LocalToolException} or an {@link LocalToolResult#error error

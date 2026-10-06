@@ -16,9 +16,10 @@ import org.jspecify.annotations.Nullable;
  * A tool definition, being a single tool available within the ad-hoc sub-process.
  *
  * <p>The input schema is the authored one. A parameter that carries a document reference has the
- * schema type {@code document} (see {@link DocumentParameterSchema}); the model providers see a
- * string schema instead, which {@link DocumentParameterSchema#toProviderToolDefinitions} derives
- * where the conversation snapshot is built.
+ * string schema with the format {@code camunda-document} (see {@link DocumentParameterSchema}); the
+ * model providers see the schema without the format and with a hint, which {@link
+ * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
+ * built.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)

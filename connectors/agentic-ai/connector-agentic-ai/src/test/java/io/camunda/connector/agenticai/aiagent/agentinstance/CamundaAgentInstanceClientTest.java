@@ -1512,7 +1512,12 @@ class CamundaAgentInstanceClientTest {
                           ToolCall.builder()
                               .id("local")
                               .name("return_documents")
-                              .arguments(Map.of("ids", List.of(documentId, "unknown")))
+                              .arguments(
+                                  Map.of(
+                                      "ids",
+                                      List.of(
+                                          "<doc id=\"" + documentId + "\" />",
+                                          "<doc id=\"unknown\" />")))
                               .build()))
                   .build(),
               AgentMetrics.empty(),
@@ -1551,7 +1556,7 @@ class CamundaAgentInstanceClientTest {
       final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
       final var earlyResult = historyCaptor.getAllValues().get(1).getFirst();
       final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
-      final var expectedArguments = Map.of("ids", List.of(reference, "unknown"));
+      final var expectedArguments = Map.of("ids", List.of(reference, "<doc id=\"unknown\" />"));
       assertThat(assistantItem.getToolCalls().getFirst().getArguments())
           .isEqualTo(expectedArguments);
       assertThat(earlyResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);

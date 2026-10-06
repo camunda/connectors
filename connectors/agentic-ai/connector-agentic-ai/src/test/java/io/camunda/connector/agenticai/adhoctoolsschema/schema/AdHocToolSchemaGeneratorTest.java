@@ -396,7 +396,7 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void keepsDocumentTypeInTheSchema() throws Exception {
+  void mapsDocumentTypeToTheDocumentFormat() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -410,7 +410,8 @@ class AdHocToolSchemaGeneratorTest {
           "type": "object",
           "properties": {
             "doc": {
-              "type": "document",
+              "type": "string",
+              "format": "camunda-document",
               "description": "The invoice"
             },
             "note": {
@@ -424,17 +425,17 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void keepsDocumentTypeWithoutDescription() {
+  void mapsDocumentTypeToTheDocumentFormatWithoutDescription() {
     final var element =
         createToolElement(List.of(new AdHocToolElementParameter("toolCall.doc", null, "document")));
 
     assertThat(generator.generateToolSchema(element))
         .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("doc"))
-        .isEqualTo(Map.of("type", "document"));
+        .isEqualTo(Map.of("type", "string", "format", "camunda-document"));
   }
 
   @Test
-  void keepsDocumentTypeOfArrayItems() throws Exception {
+  void mapsDocumentTypeOfArrayItemsToTheDocumentFormat() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -454,7 +455,8 @@ class AdHocToolSchemaGeneratorTest {
               "type": "array",
               "description": "The attachments",
               "items": {
-                "type": "document"
+                "type": "string",
+                "format": "camunda-document"
               }
             }
           },
@@ -464,7 +466,7 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void keepsDocumentTypesInNestedObjects() throws Exception {
+  void mapsDocumentTypesInNestedObjectsToTheDocumentFormat() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -489,8 +491,8 @@ class AdHocToolSchemaGeneratorTest {
             "request": {
               "type": "object",
               "properties": {
-                "file": {"type": "document"},
-                "list": {"type": "array", "items": {"type": "document"}}
+                "file": {"type": "string", "format": "camunda-document"},
+                "list": {"type": "array", "items": {"type": "string", "format": "camunda-document"}}
               }
             }
           },

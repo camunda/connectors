@@ -42,6 +42,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
@@ -95,23 +96,25 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void toolDefinitionDeclaresTheDocumentParameterAsDocumentAndTheProviderGetsAString()
-      throws Exception {
+  void
+      toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint()
+          throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(finalTurn());
 
     final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
-    // the model provider sees a string schema with the hint
+    // the model provider sees a string schema without the format and with the hint
     final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
     final var parameters = toolParameters(rawRequest, "Upload_A_File");
     final var document = parameters.path("properties").path("document");
     assertThat(document.path("type").asText()).isEqualTo("string");
+    assertThat(document.has("format")).isFalse();
     assertThat(document.path("description").asText())
         .startsWith("The document to upload.")
-        .endsWith("Pass the id of a <doc/> tag of a known document.");
+        .endsWith(DocumentParameterSchema.PROVIDER_HINT);
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
-    // the persisted tool definition keeps the authored type
+    // the persisted tool definition keeps the authored schema
     assertAgentResponse(
         zeebeTest,
         agentResponse -> {
@@ -121,9 +124,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
                   .findFirst()
                   .orElseThrow();
           assertThat(upload.inputSchema().toString())
-              .contains("type=document")
+              .contains("format=camunda-document")
               .contains("description=The document to upload.")
-              .doesNotContain("Pass the id of a <doc/> tag");
+              .doesNotContain(DocumentParameterSchema.PROVIDER_HINT);
         });
 
     // the option for returning documents is off: no built-in tool
@@ -340,7 +343,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     final var documentId =
         parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
-    // the model and the persisted conversation keep the id
+    // the model and the persisted conversation keep the tag the model passed
     assertThat(recorded.requests().get(2).messages().toString()).contains(documentId);
 
     final var agentInstanceKey = new AtomicLong();
@@ -400,7 +403,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   /**
    * The call with the unknown document id gets its error result, the valid call of the same batch
-   * runs, and the model corrects the id with one more call.
+   * runs, and the model corrects the tag with one more call.
    */
   @Test
   void mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne() throws Exception {
@@ -479,7 +482,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .contains("toolName=\"Download_A_File\"")
         .doesNotContain("storeId", "contentHash");
 
-    // the model passed the id and the tool still got the real bytes
+    // the model passed the tag and the tool still got the real bytes
     assertUploaded(servedFile(DOWNLOADED_FILE));
     assertNoDocumentInternalsInLlmRequests();
   }

@@ -1810,10 +1810,10 @@ lease-fenced `update()` mechanism).
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
 - The `arguments` of a tool call, in the `ASSISTANT` item and in the `TOOL_RESULT` items, show the
-  reference of a document where the model passed its id: a document parameter (a schema node of type
-  `document`, see the document flow design notes) of a known document carries the registry entry's
+  reference of a document where the model passed its tag: a document parameter (a string schema node with
+  the format `camunda-document`, see the document flow design notes) holding the `<doc id="..." />` tag of a known document carries the registry entry's
   `reference` map, the complete JSON the document serializer emits (an inline document with its
-  content). An unknown id stays as given, and so do the persisted messages and the text the model reads.
+  content). An unknown id or a bare id stays as given, and so do the persisted messages and the text the model reads.
   `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take a
   `HistoryDocuments` (the offered tool definitions and the document registry) for this.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
@@ -2056,8 +2056,8 @@ implementation: `ReturnDocumentsTool` (`aiagent/localtool`), wired in
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 
 1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
-   `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or the schema type
-   `document`), optionally `available(configuration -> ...)`, and a `handler`. Use
+   `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or a string schema with the
+   format `camunda-document`), optionally `available(configuration -> ...)`, and a `handler`. Use
    `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. Or implement
    `LocalTool` directly.
 2. Return `LocalToolResult.success(content)`; report failures the model can act on with

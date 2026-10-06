@@ -51,7 +51,11 @@ class LocalToolCallHandlerImplTest {
       ToolDefinition.builder()
           .name("upload")
           .inputSchema(
-              Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document"))))
+              Map.of(
+                  "type",
+                  "object",
+                  "properties",
+                  Map.of("doc", Map.of("type", "string", "format", "camunda-document"))))
           .build();
   private static final ToolDefinition WEATHER =
       ToolDefinition.builder().name("getWeather").inputSchema(Map.of()).build();
@@ -70,6 +74,11 @@ class LocalToolCallHandlerImplTest {
 
   private final Document report = createDocument("report", "report.txt");
   private final String reportId = DocumentHandle.idFor(report);
+
+  private static String tag(String id) {
+    return "<doc id=\"" + id + "\" />";
+  }
+
   private final DocumentRegistry registry =
       DocumentRegistry.empty()
           .withDocuments(List.of(new IngestedDocument(report, "call-1", "search")));
@@ -247,7 +256,7 @@ class LocalToolCallHandlerImplTest {
                   received.add(args.file());
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", reportId));
+    final var call = new ToolCall("r1", "read_file", Map.of("file", tag(reportId)));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -268,7 +277,7 @@ class LocalToolCallHandlerImplTest {
                   runs.incrementAndGet();
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", "bogus"));
+    final var call = new ToolCall("r1", "read_file", Map.of("file", tag("bogus")));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -287,7 +296,7 @@ class LocalToolCallHandlerImplTest {
 
   @Test
   void passesACallWithKnownDocumentsToTheProcess() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", reportId));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", tag(reportId)));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -306,7 +315,7 @@ class LocalToolCallHandlerImplTest {
 
   @Test
   void answersAnUnknownDocumentIdOfAProcessToolWithTheKnownDocuments() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", "nope"));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", tag("nope")));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -324,7 +333,7 @@ class LocalToolCallHandlerImplTest {
 
   @Test
   void saysSoWhenNoDocumentIsKnown() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", "nope"));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", tag("nope")));
     final var conversation =
         AgentConversation.rehydrate(
                 WITH_MEMORY.withToolDefinitions(List.of(UPLOAD)),

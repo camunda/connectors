@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_STR
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,7 +83,9 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                 propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
               }
 
-              properties.put(parameterName, propertySchema);
+              // the shorthand type "document" becomes a string with the document format
+              properties.put(
+                  parameterName, DocumentParameterSchema.normalizeAuthoredSchema(propertySchema));
 
               if (isParameterRequired(element, parameter)) {
                 required.add(parameterName);

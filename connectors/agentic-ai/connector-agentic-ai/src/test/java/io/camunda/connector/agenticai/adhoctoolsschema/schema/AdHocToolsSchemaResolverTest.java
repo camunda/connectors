@@ -57,7 +57,7 @@ class AdHocToolsSchemaResolverTest {
   }
 
   @Test
-  void keepsTheDocumentTypeOfTheGeneratedSchema() {
+  void keepsTheDocumentFormatOfTheGeneratedSchema() {
     final var element =
         AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
     final var schema =
@@ -65,7 +65,10 @@ class AdHocToolsSchemaResolverTest {
             "type",
             "object",
             "properties",
-            Map.of("doc", Map.of("type", "document", "description", "The invoice")));
+            Map.of(
+                "doc",
+                Map.of(
+                    "type", "string", "format", "camunda-document", "description", "The invoice")));
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
 
