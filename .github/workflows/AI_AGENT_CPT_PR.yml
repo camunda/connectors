@@ -57,7 +57,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/ai-agent-cpt/validate_registry_test.py
-          MATRIX="$(python3 .github/ai-agent-cpt/validate_registry.py connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json --matrix)"
+          MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json)"
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 
   run-ai-agent-cpt:
@@ -268,8 +269,10 @@ jobs:
           provenance: false
 
       - name: Run ${{ matrix.name }}
+        id: run-tests
         if: needs.setup.outputs.ai == 'true'
         env:
+          CPT_REPORT_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/raw
           CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
           CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
           RUN_NATIVE_LLM_E2E: "true"
@@ -289,11 +292,21 @@ jobs:
           GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
           GOOGLE_VERTEX_AI_REGION: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_REGION }}
         run: |
+          # Auto-register the reporter for exactly the current tests selected by this registry row.
+          # Maven copies this transient service descriptor before Failsafe starts.
+          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/META-INF/services"
+          mkdir -p "$REPORTER_SERVICES"
+          printf '%s\n' \
+            'io.camunda.connector.e2e.agenticai.e2e.CptReportExtension' \
+            > "$REPORTER_SERVICES/org.junit.jupiter.api.extension.Extension"
+
           ARGS=(
             ./mvnw verify
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
             -Pit-real-llm
             --batch-mode
+            "-Dcpt.report.directory=$CPT_REPORT_DIRECTORY"
+            -Djunit.jupiter.extensions.autodetection.enabled=true
           )
           if [[ -n "$TEST_GROUPS" ]]; then
             ARGS+=("-Dgroups=$TEST_GROUPS")
@@ -301,3 +314,57 @@ jobs:
             ARGS+=("-Dit.test=$TEST_CLASSES")
           fi
           "${ARGS[@]}"
+
+      - name: Finalize CPT result
+        if: always() && !cancelled()
+        env:
+          CPT_CAPABILITIES: ${{ matrix.groups }}
+          CPT_MATRIX_ID: ${{ matrix.id }}
+          CPT_MATRIX_NAME: ${{ matrix.name }}
+          CPT_MAVEN_OUTCOME: ${{ steps.run-tests.outcome }}
+          CPT_PROVIDER_GROUP: ${{ matrix.provider-group }}
+          CPT_REPORT_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/raw
+          CPT_RESULT_FILE: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/result/result.json
+        run: |
+          python3 .github/ai-agent-cpt/summarize_results.py finalize \
+            --output "$CPT_RESULT_FILE"
+
+      - name: Upload CPT result
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-agent-cpt-result-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.id }}
+          path: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/result/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  summarize-ai-agent-cpt:
+    name: Summarize AI Agent CPT results
+    needs: [setup, run-ai-agent-cpt]
+    if: always() && !cancelled() && needs.setup.outputs.ai == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Download CPT results
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: ai-agent-cpt-result-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/ai-agent-cpt-results
+          merge-multiple: false
+
+      - name: Write CPT summary
+        env:
+          CPT_RESULTS_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-results
+          CPT_SUMMARY_FILE: ${{ runner.temp }}/ai-agent-cpt-summary.md
+        run: |
+          python3 .github/ai-agent-cpt/summarize_results.py aggregate \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json \
+            --results "$CPT_RESULTS_DIRECTORY" \
+            --output "$CPT_SUMMARY_FILE"
+          cat "$CPT_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
