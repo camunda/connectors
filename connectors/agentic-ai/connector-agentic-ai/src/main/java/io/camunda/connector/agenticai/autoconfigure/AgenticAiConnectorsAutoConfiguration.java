@@ -63,6 +63,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
@@ -212,8 +213,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      LocalToolRegistry localToolRegistry,
+      DocumentExpander documentExpander) {
+    return new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry, documentExpander);
   }
 
   @Bean
@@ -313,6 +316,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public DocumentExpander aiAgentDocumentExpander(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new DocumentExpander(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public DocumentRegistryStorage aiAgentDocumentRegistryStorage() {
     return new AgentContextDocumentRegistryStorage();
   }
@@ -359,7 +369,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler) {
+      LocalToolCallHandler localToolCallHandler,
+      DocumentExpander documentExpander) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -369,7 +380,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         documentRegistryStorage,
-        localToolCallHandler);
+        localToolCallHandler,
+        documentExpander);
   }
 
   @Bean
@@ -405,7 +417,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler) {
+      LocalToolCallHandler localToolCallHandler,
+      DocumentExpander documentExpander) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -415,7 +428,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         documentRegistryStorage,
-        localToolCallHandler);
+        localToolCallHandler,
+        documentExpander);
   }
 
   @Bean

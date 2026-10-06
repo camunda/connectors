@@ -555,7 +555,7 @@ class AgentContextSchemaMigrationTest {
                 "documents": [
                   {
                     "id": "doc-1",
-                    "origin": {"toolName": "search", "toolCallId": "call-1"},
+                    "source": {"type": "TOOL_CALL", "toolName": "search", "toolCallId": "call-1"},
                     "reference": {"camunda.document.type": "camunda", "storeId": "in-memory", "documentId": "doc-1"}
                   }
                 ]
@@ -573,7 +573,7 @@ class AgentContextSchemaMigrationTest {
               entry -> {
                 assertThat(entry.id()).isEqualTo("doc-1");
                 assertThat(entry.reference()).containsEntry("storeId", "in-memory");
-                assertThat(entry.origin().toolCallId()).isEqualTo("call-1");
+                assertThat(entry.source().toolCallId()).isEqualTo("call-1");
               });
     }
 

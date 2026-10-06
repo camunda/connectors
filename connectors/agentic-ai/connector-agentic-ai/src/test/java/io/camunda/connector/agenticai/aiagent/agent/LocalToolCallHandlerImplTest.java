@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -81,7 +82,9 @@ class LocalToolCallHandlerImplTest {
 
   private final DocumentRegistry registry =
       DocumentRegistry.empty()
-          .withDocuments(List.of(new IngestedDocument(report, "call-1", "search")));
+          .withDocuments(
+              List.of(
+                  new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null))));
 
   private final LocalToolCallHandler handler = handlerOf(SaveNoteTool.create());
 

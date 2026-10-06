@@ -66,9 +66,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -154,6 +156,10 @@ class AgentSubProcessRequestHandlerTest {
   @Spy
   private DocumentRegistryStorage documentRegistryStorage =
       new AgentContextDocumentRegistryStorage();
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Spy
   private LocalToolCallHandler localToolCallHandler =
@@ -433,7 +439,8 @@ class AgentSubProcessRequestHandlerTest {
     // "abcdef" as already arrived, correlated and gateway-transformed
     final var knownDocument = createDocument("known", "known.txt");
     final var knownEntry =
-        DocumentRegistryEntry.from(new IngestedDocument(knownDocument, "call-0", "search"));
+        DocumentRegistryEntry.from(
+            new IngestedDocument(knownDocument, DocumentSource.toolCall("search", "call-0", null)));
     final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     final var agentContextWithHistory =
         AgentContext.builder()
@@ -1345,7 +1352,9 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new CompositionResult.NextTurn(
                 List.of(USER_MESSAGE),
-                List.of(new IngestedDocument(document, "call-1", "search"))));
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("search", "call-1", null)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1359,8 +1368,9 @@ class AgentSubProcessRequestHandlerTest {
         .satisfies(
             entry -> {
               assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-              assertThat(entry.origin())
-                  .isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
+              assertThat(entry.source().type()).isEqualTo(DocumentSource.Type.TOOL_CALL);
+              assertThat(entry.source().toolName()).isEqualTo("search");
+              assertThat(entry.source().toolCallId()).isEqualTo("call-1");
               assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
             });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
@@ -1374,7 +1384,9 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new CompositionResult.NextTurn(
                 List.of(USER_MESSAGE),
-                List.of(new IngestedDocument(document, "call-1", "search"))));
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("search", "call-1", null)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1397,12 +1409,13 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void extendsTheRegistryPersistedInTheAgentContextWithoutReseedingFromHistory() {
+  void backfillsTheDocumentsOfTheStoredConversationThatThePersistedRegistryDoesNotKnow() {
     final var known = createDocument("known", "known.txt");
     final var historic = createDocument("historic", "historic.txt");
     final var fresh = createDocument("fresh", "fresh.txt");
     final var knownEntry =
-        DocumentRegistryEntry.from(new IngestedDocument(known, "call-0", "search"));
+        DocumentRegistryEntry.from(
+            new IngestedDocument(known, DocumentSource.toolCall("search", "call-0", null)));
     final var history =
         List.<Message>of(
             userMessage(List.of(DocumentContent.documentContent(historic))),
@@ -1416,7 +1429,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(
             new CompositionResult.NextTurn(
-                List.of(USER_MESSAGE), List.of(new IngestedDocument(fresh, null, null))));
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(fresh, DocumentSource.userMessage(null)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1426,11 +1440,16 @@ class AgentSubProcessRequestHandlerTest {
 
     assertThat(response.responseValue().context().documents())
         .extracting(DocumentRegistryEntry::id)
-        .containsExactly(DocumentHandle.idFor(known), DocumentHandle.idFor(fresh));
+        .containsExactly(
+            DocumentHandle.idFor(known),
+            DocumentHandle.idFor(historic),
+            DocumentHandle.idFor(fresh));
+    assertThat(response.responseValue().context().documents().get(1).source().type())
+        .isEqualTo(DocumentSource.Type.USER_MESSAGE);
   }
 
   @Test
-  void seedsAnEmptyRegistryFromTheStoredConversation() {
+  void backfillsAnEmptyRegistryFromTheStoredConversation() {
     final var historic = createDocument("historic", "historic.txt");
     final var fresh = createDocument("fresh", "fresh.txt");
     final var history =
@@ -1444,7 +1463,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(
             new CompositionResult.NextTurn(
-                List.of(USER_MESSAGE), List.of(new IngestedDocument(fresh, null, null))));
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(fresh, DocumentSource.userMessage(null)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1474,7 +1494,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(
             new CompositionResult.NextTurn(
-                List.of(USER_MESSAGE), List.of(new IngestedDocument(document, null, null))));
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null)))));
   }
 
   private void mockProceed(Message... inputMessages) {

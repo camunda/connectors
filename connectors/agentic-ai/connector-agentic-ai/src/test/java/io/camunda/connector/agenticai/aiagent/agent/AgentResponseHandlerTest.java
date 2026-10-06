@@ -124,7 +124,9 @@ class AgentResponseHandlerTest {
             .withDocuments(
                 List.of(
                     new io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument(
-                        document, null, null)));
+                        document,
+                        io.camunda.connector.agenticai.aiagent.model.document.DocumentSource
+                            .userMessage(null))));
     final var documentId =
         io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle.idFor(document);
     final var toolCall =

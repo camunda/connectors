@@ -73,11 +73,12 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(attributes).as("tag attributes").containsKey("id");
     assertThat(attributes.keySet())
         .as("tag attributes")
-        .isSubsetOf("id", "fileName", "contentType", "toolName", "toolCallId");
+        .isSubsetOf("id", "fileName", "contentType", "source", "toolName", "toolCallId");
     return new DocumentReferenceXmlTag(
         attributes.get("id"),
         attributes.get("fileName"),
         attributes.get("contentType"),
+        null,
         null,
         null);
   }
@@ -139,14 +140,16 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding a {@code <doc/>}
-   * tag that exposes the document id only: no store id, content hash or URL.
+   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding the {@code <doc/>}
+   * tag of a user prompt document that exposes the document id and its source only: no store id,
+   * content hash or URL.
    */
   public static void assertDocumentTagPart(JsonNode part) {
     assertThat(part.path("type").asText()).as("document tag part type").isEqualTo("text");
     assertThat(part.path("text").asText())
         .as("document tag text")
         .startsWith("<doc id=\"")
+        .contains(" source=\"user_message\"")
         .endsWith(" />")
         .doesNotContain("storeId", "contentHash", "documentId", "http");
   }
@@ -196,6 +199,7 @@ public final class ToolCallResultDocumentAssertions {
                   resultTag.id(),
                   resultTag.fileName(),
                   resultTag.contentType(),
+                  null,
                   toolName,
                   toolCallId)
               .toXml(),

@@ -39,8 +39,8 @@ class EvictedDocumentsNoteTest {
       DocumentRegistry.empty()
           .withDocuments(
               List.of(
-                  new IngestedDocument(report, "call_1", "search"),
-                  new IngestedDocument(notes, null, null)));
+                  new IngestedDocument(report, DocumentSource.toolCall("search", "call_1", null)),
+                  new IngestedDocument(notes, DocumentSource.userMessage(null))));
 
   private Document createDocument(String fileName, String contentType) {
     return documentFactory.create(

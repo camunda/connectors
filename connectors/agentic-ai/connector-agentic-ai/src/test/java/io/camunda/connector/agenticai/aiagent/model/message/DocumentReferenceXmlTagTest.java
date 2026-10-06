@@ -7,11 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -36,7 +39,9 @@ class DocumentReferenceXmlTagTest {
                 .fileName("report.pdf")
                 .build());
 
-    assertThat(DocumentReferenceXmlTag.from(doc, "call_abc", "search").toXml())
+    assertThat(
+            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("search", "call_abc", null))
+                .toXml())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -66,7 +71,9 @@ class DocumentReferenceXmlTagTest {
                 .fileName("a.txt")
                 .build());
 
-    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool").toXml())
+    assertThat(
+            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("tool", "call_1", null))
+                .toXml())
         .doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
   }
 
@@ -88,7 +95,9 @@ class DocumentReferenceXmlTagTest {
         new ExternalDocument(
             "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
 
-    final var xml = DocumentReferenceXmlTag.from(doc, "call_abc", "search").toXml();
+    final var xml =
+        DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("search", "call_abc", null))
+            .toXml();
 
     assertThat(xml)
         .isEqualTo(
@@ -124,7 +133,9 @@ class DocumentReferenceXmlTagTest {
   void inlineDocumentRendersNameAndContentType() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
 
-    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "gen").toXml())
+    assertThat(
+            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("gen", "call_1", null))
+                .toXml())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -139,12 +150,17 @@ class DocumentReferenceXmlTagTest {
                 .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
                 .contentType("text/plain")
                 .build());
-    final var entry = DocumentRegistryEntry.from(new IngestedDocument(doc, "call_1", "tool"));
+    final var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(doc, DocumentSource.toolCall("tool", "call_1", null)));
     final var expected =
         "<doc id=\"0f6b0a1e-aaaa-bbbb-cccc-0123456789ab\" contentType=\"text/plain\""
             + " toolName=\"tool\" toolCallId=\"call_1\" />";
 
-    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool").toXml()).isEqualTo(expected);
+    assertThat(
+            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("tool", "call_1", null))
+                .toXml())
+        .isEqualTo(expected);
     assertThat(DocumentReferenceXmlTag.from(entry).toXml()).isEqualTo(expected);
     assertThat(DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsText())
         .doesNotContain("fileName");
@@ -152,7 +168,7 @@ class DocumentReferenceXmlTagTest {
 
   @Test
   void keepsAFileNameThatDiffersFromTheId() {
-    assertThat(new DocumentReferenceXmlTag("doc-1", "doc-1.txt", null, null, null).toXml())
+    assertThat(new DocumentReferenceXmlTag("doc-1", "doc-1.txt", null, null, null, null).toXml())
         .isEqualTo("<doc id=\"doc-1\" fileName=\"doc-1.txt\" />");
   }
 
@@ -160,7 +176,10 @@ class DocumentReferenceXmlTagTest {
   void escapesSpecialCharactersInAttributes() {
     final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
 
-    assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    doc, DocumentSource.toolCall("tool<with\"quotes>", "call_1", null))
+                .toXml())
         .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
         .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
   }
@@ -187,14 +206,96 @@ class DocumentReferenceXmlTagTest {
         final var toolCallId = origin.isEmpty() ? null : origin.get(0);
         final var toolName = origin.isEmpty() ? null : origin.get(1);
         final var entry =
-            DocumentRegistryEntry.from(new IngestedDocument(doc, toolCallId, toolName));
+            DocumentRegistryEntry.from(
+                new IngestedDocument(doc, DocumentSource.toolCall(toolName, toolCallId, null)));
 
         assertThat(DocumentReferenceXmlTag.from(entry))
             .as("%s from %s", doc.reference(), origin)
-            .isEqualTo(DocumentReferenceXmlTag.from(doc, toolCallId, toolName));
+            .isEqualTo(
+                DocumentReferenceXmlTag.from(
+                    doc, DocumentSource.toolCall(toolName, toolCallId, null)));
         assertThat(DocumentReferenceXmlTag.from(entry).toXml())
-            .isEqualTo(DocumentReferenceXmlTag.from(doc, toolCallId, toolName).toXml());
+            .isEqualTo(
+                DocumentReferenceXmlTag.from(
+                        doc, DocumentSource.toolCall(toolName, toolCallId, null))
+                    .toXml());
       }
     }
+  }
+
+  @Test
+  void userMessageAndEventDocumentsCarryTheSourceInsteadOfToolAttributes() {
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("a.txt")
+                .build());
+
+    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.userMessage("message-1")).toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"user_message\" />"
+                .formatted(DocumentHandle.idFor(doc)));
+    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.event("message-1")).toXml())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
+                .formatted(DocumentHandle.idFor(doc)));
+  }
+
+  @Test
+  void neverRendersTheMessageId() {
+    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+    final var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(doc, DocumentSource.toolCall("tool", "call_1", "message-1")));
+
+    assertThat(DocumentReferenceXmlTag.from(entry).toXml()).doesNotContain("message-1");
+    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.userMessage("message-2")).toXml())
+        .doesNotContain("message-2");
+  }
+
+  @Test
+  void registryEntryOfAUserMessageDocumentRendersTheSource() {
+    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+    final var entry =
+        DocumentRegistryEntry.from(new IngestedDocument(doc, DocumentSource.event(null)));
+
+    assertThat(DocumentReferenceXmlTag.from(entry))
+        .isEqualTo(DocumentReferenceXmlTag.from(doc, DocumentSource.event(null)));
+    assertThat(DocumentReferenceXmlTag.from(entry).source()).isEqualTo("event");
+  }
+
+  @Test
+  void parseIdIgnoresTheSourceAndToolAttributes() {
+    assertThat(
+            DocumentReferenceXmlTag.parseId(
+                "<doc id=\"doc-1\" fileName=\"a.txt\" source=\"user_message\" toolName=\"t\" />"))
+        .isEqualTo("doc-1");
+  }
+
+  @Test
+  void toContentFlagsTheTagTextWithTheDocumentId() {
+    final var tag = new DocumentReferenceXmlTag("doc-1", "a.txt", null, "event", null, null);
+
+    final var content = tag.toContent();
+
+    assertThat(content.text()).isEqualTo(tag.toXml());
+    assertThat(content.metadata()).containsExactly(entry("documentRef", "doc-1"));
+    assertThat(DocumentReferenceXmlTag.documentRefOf(content)).isEqualTo("doc-1");
+    assertThat(DocumentReferenceXmlTag.documentRefOf(TextContent.textContent(tag.toXml())))
+        .isNull();
+  }
+
+  @Test
+  void parseAttributesReadsTheAttributesOfAnyTagFormat() {
+    assertThat(
+            DocumentReferenceXmlTag.parseAttributes(
+                " <doc toolName=\"t&amp;1\" documentId=\"d1\" storeId='s' /> "))
+        .containsExactly(
+            entry("toolName", "t&1"), entry("documentId", "d1"), entry("storeId", "s"));
+    assertThat(DocumentReferenceXmlTag.parseAttributes("<doc />")).isEmpty();
+    assertThat(DocumentReferenceXmlTag.parseAttributes("some <doc id=\"d\" /> text")).isNull();
+    assertThat(DocumentReferenceXmlTag.isTag("<doc documentId=\"d1\" />")).isTrue();
+    assertThat(DocumentReferenceXmlTag.isTag("hello")).isFalse();
   }
 }

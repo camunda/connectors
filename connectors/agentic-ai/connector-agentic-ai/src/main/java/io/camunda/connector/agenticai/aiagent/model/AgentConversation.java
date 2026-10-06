@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -359,13 +360,17 @@ public final class AgentConversation {
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the available local
    * tools.
    *
-   * <p>When registry documents of the {@link AgentContext#documents() context} are not visible in
-   * the windowed messages, the snapshot ends with a transient user message listing them (see {@link
-   * EvictedDocumentsNote}); {@link #allMessages()} and the stored conversation are not affected.
+   * <p>The documents of the windowed user messages are expanded from the registry of the {@link
+   * AgentContext#documents() context} (see {@link DocumentExpander}). When registry documents are
+   * not visible in the windowed messages, the snapshot ends with a transient user message listing
+   * them (see {@link EvictedDocumentsNote}). {@link #allMessages()} and the stored conversation are
+   * not affected.
    */
-  public ConversationSnapshot window(int size) {
+  public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
+    var registry = documentRegistry();
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(windowed, documentRegistry());
+    var expanded = documentExpander.expandMessages(windowed, registry);
+    var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(expanded, registry);
     return new ConversationSnapshot(
         withEvictedDocumentsNote,
         DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));

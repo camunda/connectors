@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
@@ -30,7 +31,8 @@ public class AgentTaskRequestHandler
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler) {
+      LocalToolCallHandler localToolCallHandler,
+      DocumentExpander documentExpander) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -40,7 +42,8 @@ public class AgentTaskRequestHandler
         responseHandler,
         agentInstanceClient,
         documentRegistryStorage,
-        localToolCallHandler);
+        localToolCallHandler,
+        documentExpander);
   }
 
   @Override

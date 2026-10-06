@@ -6,22 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -58,8 +49,9 @@ class DocumentRegistryTest {
         DocumentRegistry.empty()
             .withDocuments(
                 List.of(
-                    new IngestedDocument(first, null, null),
-                    new IngestedDocument(second, "call-1", "search")));
+                    new IngestedDocument(first, DocumentSource.userMessage(null)),
+                    new IngestedDocument(
+                        second, DocumentSource.toolCall("search", "call-1", null))));
 
     assertThat(registry.entries())
         .extracting(DocumentRegistryEntry::id)
@@ -69,8 +61,8 @@ class DocumentRegistryTest {
             entry -> {
               assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("two.txt");
               assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("text/plain");
-              assertThat(entry.origin())
-                  .isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
+              assertThat(entry.source())
+                  .isEqualTo(DocumentSource.toolCall("search", "call-1", null));
             });
   }
 
@@ -80,70 +72,43 @@ class DocumentRegistryTest {
 
     final var registry =
         DocumentRegistry.empty()
-            .withDocuments(List.of(new IngestedDocument(doc, "call-1", "search")))
             .withDocuments(
                 List.of(
-                    new IngestedDocument(doc, "call-2", "other"),
-                    new IngestedDocument(doc, null, null)));
+                    new IngestedDocument(doc, DocumentSource.toolCall("search", "call-1", null))))
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(doc, DocumentSource.toolCall("other", "call-2", null)),
+                    new IngestedDocument(doc, DocumentSource.userMessage(null))));
 
     assertThat(registry.size()).isEqualTo(1);
     assertThat(registry.findById(DocumentHandle.idFor(doc)))
-        .hasValueSatisfying(entry -> assertThat(entry.origin().toolCallId()).isEqualTo("call-1"));
+        .hasValueSatisfying(entry -> assertThat(entry.source().toolCallId()).isEqualTo("call-1"));
   }
 
   @Test
   void addingKnownDocumentsReturnsSameInstance() {
     final var doc = document("one", "one.txt");
     final var registry =
-        DocumentRegistry.empty().withDocuments(List.of(new IngestedDocument(doc, null, null)));
+        DocumentRegistry.empty()
+            .withDocuments(List.of(new IngestedDocument(doc, DocumentSource.userMessage(null))));
 
-    assertThat(registry.withDocuments(List.of(new IngestedDocument(doc, "c", "t"))))
+    assertThat(
+            registry.withDocuments(
+                List.of(new IngestedDocument(doc, DocumentSource.toolCall("t", "c", null)))))
         .isSameAs(registry);
     assertThat(registry.withDocuments(List.of())).isSameAs(registry);
   }
 
   @Test
   void ofDeduplicatesEntriesByIdKeepingTheFirst() {
-    final var entry1 = new DocumentRegistryEntry("a", null, Map.of("k", "1"));
-    final var entry2 = new DocumentRegistryEntry("a", null, Map.of("k", "2"));
-    final var entry3 = new DocumentRegistryEntry("b", null, Map.of("k", "3"));
+    final var entry1 =
+        new DocumentRegistryEntry("a", DocumentSource.userMessage(null), Map.of("k", "1"));
+    final var entry2 =
+        new DocumentRegistryEntry("a", DocumentSource.userMessage(null), Map.of("k", "2"));
+    final var entry3 =
+        new DocumentRegistryEntry("b", DocumentSource.userMessage(null), Map.of("k", "3"));
 
     assertThat(DocumentRegistry.of(List.of(entry1, entry2, entry3)).entries())
         .containsExactly(entry1, entry3);
-  }
-
-  @Test
-  void fromMessagesCollectsUserAndNestedToolResultDocuments() {
-    final var userDoc = document("user", "user.txt");
-    final var toolDoc = document("tool", "tool.txt");
-    final var nestedDoc = document("nested", "nested.txt");
-
-    final var messages =
-        List.<Message>of(
-            userMessage(
-                List.of(TextContent.textContent("hi"), DocumentContent.documentContent(userDoc))),
-            assistantMessage("calling"),
-            toolCallResultMessage(
-                List.of(
-                    ToolCallResult.builder()
-                        .id("call-1")
-                        .name("search")
-                        .content(
-                            new LinkedHashMap<>(
-                                Map.of("result", List.of(toolDoc, Map.of("d", nestedDoc)))))
-                        .build())),
-            // the synthetic document message repeats the tool result documents without origin
-            userMessage(List.of(DocumentContent.documentContent(toolDoc))));
-
-    final var registry = DocumentRegistry.fromMessages(messages);
-
-    assertThat(registry.entries())
-        .extracting(
-            DocumentRegistryEntry::id,
-            entry -> entry.origin() == null ? null : entry.origin().toolCallId())
-        .containsExactly(
-            tuple(DocumentHandle.idFor(userDoc), null),
-            tuple(DocumentHandle.idFor(toolDoc), "call-1"),
-            tuple(DocumentHandle.idFor(nestedDoc), "call-1"));
   }
 }

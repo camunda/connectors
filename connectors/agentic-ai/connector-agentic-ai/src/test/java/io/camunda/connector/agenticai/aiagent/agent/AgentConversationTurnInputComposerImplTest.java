@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -197,7 +198,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsDocumentContent() {
+  void firstTurn_withUserPromptDocuments_addsTheFlaggedTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
@@ -211,10 +212,14 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(userMessage.content())
         .containsExactly(
             textContent("Tell me a story"),
-            textContent(
-                "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" />"
-                    .formatted(DocumentHandle.idFor(document))),
-            DocumentContent.documentContent(document));
+            documentTag(
+                document,
+                "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"));
+  }
+
+  private static TextContent documentTag(Document document, String xmlFormat) {
+    final var id = DocumentHandle.idFor(document);
+    return new TextContent(xmlFormat.formatted(id), Map.of("documentRef", id));
   }
 
   @Test
@@ -412,20 +417,20 @@ class AgentConversationTurnInputComposerImplTest {
                           AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(documentMessage.content())
                   .contains(
-                      textContent(
-                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"
-                              .formatted(DocumentHandle.idFor(weatherDoc))),
-                      DocumentContent.documentContent(weatherDoc));
+                      documentTag(
+                          weatherDoc,
+                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"))
+                  .noneMatch(DocumentContent.class::isInstance);
             });
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversFallbackMessage() {
+  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversTheTag() {
     // a tool call result whose whole content is a Document (not nested in an object): the
     // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
-    // other content-lift path; the fallback <doc/> message is still composed alongside it
-    // regardless — provider tool-result converters are responsible for not embedding the same
-    // bytes a second time, not this provider-agnostic composition step
+    // other content-lift path; the <doc/> tag message is still composed alongside it regardless —
+    // provider tool-result converters are responsible for not embedding the same bytes a second
+    // time, not this provider-agnostic composition step
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -462,7 +467,10 @@ class AgentConversationTurnInputComposerImplTest {
             UserMessage.class,
             documentMessage ->
                 assertThat(documentMessage.content())
-                    .contains(DocumentContent.documentContent(weatherDoc)));
+                    .contains(
+                        documentTag(
+                            weatherDoc,
+                            "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />")));
   }
 
   @Test
@@ -513,7 +521,10 @@ class AgentConversationTurnInputComposerImplTest {
                       textContent(
                           AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(toolCallDocuments.content())
-                  .contains(DocumentContent.documentContent(toolDoc));
+                  .contains(
+                      documentTag(
+                          toolDoc,
+                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"));
             });
     assertThat(messages.get(2))
         .isInstanceOfSatisfying(
@@ -523,29 +534,33 @@ class AgentConversationTurnInputComposerImplTest {
                   .contains(
                       textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
                   .contains(
-                      textContent(
-                          "<doc id=\"%s\" fileName=\"event.pdf\" contentType=\"application/pdf\" />"
-                              .formatted(DocumentHandle.idFor(eventDoc))),
-                      DocumentContent.documentContent(eventDoc));
+                      documentTag(
+                          eventDoc,
+                          "<doc id=\"%s\" fileName=\"event.pdf\" contentType=\"application/pdf\" source=\"event\" />"))
+                  .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
             });
   }
 
   @Test
-  void firstTurn_userPromptDocuments_areIngestedWithoutOrigin() {
+  void firstTurn_userPromptDocuments_areIngestedWithTheUserMessageSource() {
     var promptDoc = createDocument("prompt data", "text/plain", "prompt.txt");
     var input =
         AgentInput.from(new UserPromptConfiguration("Hello?", List.of(promptDoc)), List.of());
 
     var result = composer.compose(CONFIG, CTX, TurnReconstructor.reconstruct(List.of()), input);
 
-    assertThat(((CompositionResult.NextTurn) result).documents())
-        .containsExactly(new IngestedDocument(promptDoc, null, null));
+    final var nextTurn = (CompositionResult.NextTurn) result;
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            new IngestedDocument(
+                promptDoc,
+                DocumentSource.userMessage(nextTurn.messages().getFirst().id().toString())));
   }
 
   @Test
-  void toolResultTurn_documentsAreIngestedWithToolOriginFollowedByEventDocuments() {
+  void toolResultTurn_documentsAreIngestedWithTheirSourceFollowedByEventDocuments() {
     var config =
         new AgentConfiguration(
             null,
@@ -575,13 +590,20 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
-    assertThat(((CompositionResult.NextTurn) result).documents())
+    final var nextTurn = (CompositionResult.NextTurn) result;
+    final var toolCallResultMessageId = nextTurn.messages().get(0).id().toString();
+    final var eventMessageId = nextTurn.messages().get(2).id().toString();
+    assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(nextTurn.documents())
         .containsExactlyInAnyOrder(
-            new IngestedDocument(toolDoc, "abcdef", "getWeather"),
-            new IngestedDocument(nestedToolDoc, "abcdef", "getWeather"),
-            new IngestedDocument(eventDoc, null, null))
+            new IngestedDocument(
+                toolDoc, DocumentSource.toolCall("getWeather", "abcdef", toolCallResultMessageId)),
+            new IngestedDocument(
+                nestedToolDoc,
+                DocumentSource.toolCall("getWeather", "abcdef", toolCallResultMessageId)),
+            new IngestedDocument(eventDoc, DocumentSource.event(eventMessageId)))
         .last()
-        .isEqualTo(new IngestedDocument(eventDoc, null, null));
+        .isEqualTo(new IngestedDocument(eventDoc, DocumentSource.event(eventMessageId)));
   }
 
   @Test

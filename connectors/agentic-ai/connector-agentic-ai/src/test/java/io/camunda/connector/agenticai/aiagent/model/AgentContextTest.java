@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.time.OffsetDateTime;
@@ -162,7 +163,7 @@ class AgentContextTest {
     final var entry =
         new DocumentRegistryEntry(
             "doc-1",
-            new DocumentRegistryEntry.Origin("search", "call-1"),
+            DocumentSource.toolCall("search", "call-1", null),
             Map.of(
                 "camunda.document.type", "camunda", "storeId", "in-memory", "documentId", "doc-1"));
     final var context = AgentContext.builder().documents(List.of(entry)).build();

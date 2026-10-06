@@ -162,15 +162,19 @@ public class AwsAgentCoreConversationMapper {
   }
 
   /**
-   * Maps content items to payloads preserving their original order. TextContent becomes
-   * conversational payloads, non-text Content becomes blob envelopes.
+   * Maps content items to payloads preserving their original order. TextContent without metadata
+   * becomes conversational payloads, all other Content (including text with metadata) becomes blob
+   * envelopes.
    */
   private void mapContentInOrder(List<PayloadType> payloads, List<Content> content, Role role) {
     if (content == null) {
       return;
     }
     for (Content item : content) {
-      if (item instanceof TextContent text) {
+      // text with metadata (e.g. a document tag) is stored as a blob, the conversational payload
+      // holds the text only
+      if (item instanceof TextContent text
+          && (text.metadata() == null || text.metadata().isEmpty())) {
         payloads.add(createConversationalPayload(role, text.text()));
       } else {
         payloads.add(createContentBlobPayload(item));

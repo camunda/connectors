@@ -7,12 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.model.document;
 
 import io.camunda.connector.api.document.Document;
-import org.jspecify.annotations.Nullable;
 
-/**
- * A document that entered the conversation during turn composition, together with the tool call
- * that produced it. {@code toolCallId} and {@code toolName} are {@code null} for user prompt and
- * event documents.
- */
-public record IngestedDocument(
-    Document document, @Nullable String toolCallId, @Nullable String toolName) {}
+/** A document that entered the conversation during turn composition, with where it came from. */
+public record IngestedDocument(Document document, DocumentSource source) {}

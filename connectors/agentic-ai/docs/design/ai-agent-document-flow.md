@@ -31,25 +31,28 @@ referenced by their tag in tool calls, and leave through the response.
    schema. `DocumentParameterSchema` (`aiagent/model/tool/DocumentParameterSchema.java`) finds the document
    parameters by walking a schema and derives the schema the model providers get (section 3.2).
 2. **Ingestion.** `AgentConversationTurnInputComposerImpl.compose` (returns `NextTurn(messages,
-   ingestedDocuments)` at :147) collects an `IngestedDocument` (document, `toolCallId`, `toolName`)
-   for every document that enters the turn: user prompt documents (`createUserPromptMessage`, :150),
-   tool result documents including gateway `extractDocuments` and nested documents
-   (`createDocumentMessageForToolResults`, :229, reuses `ToolCallResultDocumentExtractor`) and event
-   documents (`createEventMessage`, :247). The list is ordered prompt and tool results first, events
-   last, matching the message order.
-3. **Registry.** `BaseAgentRequestHandler.converse` (:119) passes the new documents to
-   `registerDocuments` (:178). It loads the registry through `DocumentRegistryStorage`, seeds it from
-   the loaded messages when it is empty and a conversation exists, adds the new documents and returns
-   the agent context carrying the result. `proceed` (:208) rehydrates the `AgentConversation` from
-   that context, so every copy-on-write step and `AgentConversation.toAgentContext()` (:378) carry the
+   ingestedDocuments)`) collects an `IngestedDocument` (document and `DocumentSource`) for every
+   document that enters the turn: user prompt documents (`createUserPromptMessage`), tool result
+   documents including gateway `extractDocuments` and nested documents
+   (`createDocumentMessageForToolResults`, reuses `ToolCallResultDocumentExtractor`) and event
+   documents (`createEventMessage`). The composer creates the ids of the messages first, so each
+   source carries the id of the message that introduced the document. The list is ordered prompt and
+   tool results first, events last, matching the message order.
+3. **Registry.** `BaseAgentRequestHandler.converse` passes the new documents to `registerDocuments`.
+   It loads the registry through `DocumentRegistryStorage`, adds the documents of the loaded messages
+   that the registry does not know yet (`DocumentRegistryBackfill`, section 4.2), adds the new
+   documents and returns the agent context carrying the result. `proceed` rehydrates the `AgentConversation` from
+   that context, so every copy-on-write step and `AgentConversation.toAgentContext()` carry the
    registry, and it is persisted by the same job completion as the rest of `agentContext`
-   (`AgentContext.documents`, `aiagent/model/AgentContext.java`:37). The `Deferred`, `NoInput` and
+   (`AgentContext.documents`, `aiagent/model/AgentContext.java`). The `Deferred`, `NoInput` and
    no-op paths do not register anything because nothing enters the conversation there.
-4. **Rendering.** The composer puts a `<doc .../>` tag (`aiagent/model/message/DocumentReferenceXmlTag.java`)
-   before each `DocumentContent` (`createDocumentPairs` :293, `createUserPromptMessage` :150).
+4. **Rendering.** The composer stores one `<doc .../>` tag (`aiagent/model/message/DocumentReferenceXmlTag.java`)
+   per document and no document content (section 4.1). `AgentConversation.window` expands the tags
+   of the windowed user messages from the registry (`DocumentExpander`), so the providers see each
+   tag followed by its `DocumentContent`.
    `aiagent/chatmodel/provider/ModelFacingJson.java` renders a `Document` at any depth of tool result
-   or message object content as its tag, for every provider path. `AgentConversation.window` (:365)
-   appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
+   or message object content as its tag, for every provider path. `AgentConversation.window`
+   also appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
    definitions of the snapshot are those of `AgentConfiguration.toolDefinitions()`: the tools of the
    process plus the available local tools, among them `return_documents` while `returnsDocuments()`
    (section 9), with every document parameter rewritten for the provider (section 3.2).
@@ -86,7 +89,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | # | Decision | Reason |
 |---|----------|--------|
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
-| 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id [fileName] [contentType] [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
+| 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id [fileName] [contentType] [source] [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
 | 3 | Documents out are a built-in local tool `return_documents`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
 | 4 | An unknown document id and a bare id (not a `<doc id="..." />` tag) yield an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
@@ -157,15 +160,16 @@ schema-walking complexity now).
 
 ### 3.4 Tag format
 
-`<doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />`, attributes in
+`<doc id="..." fileName="..." contentType="..." source="..." toolName="..." toolCallId="..." />`, attributes in
 that order, XML-escaped, blank or unknown attributes omitted (no placeholders). `fileName` is the
 Camunda metadata file name, the external reference `name` or the inline `name`; it is omitted when it
 equals the id (a document stored without a name of its own would only repeat the id) and, for an
 external document without a name, never taken from the URL. `contentType` comes from the Camunda
 metadata or the `contentType` of an inline reference and is omitted for external documents because their
 metadata is only available after a download. `toolName` and `toolCallId` are present for documents that
-came from a tool result. User prompt and event documents carry a tag without tool attributes, in the same
-pair shape as extracted tool result documents. The tag of a document and the tag of its registry entry
+came from a tool result. User prompt and event documents carry `source="user_message"` or `source="event"`
+instead. The id of the message that introduced a document (`DocumentSource.messageId`) is never part of
+the tag. The tag of a document and the tag of its registry entry
 are the same: `DocumentHandle.fileNameFor` and `contentTypeFor` exist for a `Document` and for the
 serialized reference map of a registry entry, with the same rules (Camunda `metadata.fileName` and
 `metadata.contentType`, external `name`, inline `name` and `contentType`), so rendering from the registry
@@ -203,7 +207,7 @@ windowed messages. A registry document is visible when its id appears as `Docume
 message, as a `Document` in a tool result content tree (`ContentTreeDocumentWalker`), or as the id of
 a `<doc/>` tag in user or tool result text. If at least one document is not visible, a user message
 is appended to the snapshot only: the preamble `EvictedDocumentsNote.PREAMBLE` plus the tag of each
-such document (`DocumentReferenceXmlTag.from(entry)`: id, file name, content type, tool origin). It is
+such document (`DocumentReferenceXmlTag.from(entry)`: id, file name, content type, source or tool call). It is
 never part of `allMessages()`, never persisted and leaves the frozen system prompt alone.
 
 Reason for a trailing note instead of a system prompt addition or a rewritten message: the system
@@ -380,9 +384,10 @@ is described in section 4 and listed as a blocker in section 5.
   bean (3.6, section 9).
 - **Registry shape.** `DocumentRegistry` is an immutable, insertion-ordered, id-keyed value
   (`findById`, `entries`, `withDocuments`, `of`, `fromMessages`); the first registration of an id wins
-  and re-adding a known id returns the same instance. `DocumentRegistryEntry` holds `id`, `origin`
-  (`toolName` and `toolCallId` of the tool call that returned the document, omitted for user prompt and
-  event documents) and `reference` (a `Map<String, Object>` with the JSON the standard
+  and re-adding a known id returns the same instance. `DocumentRegistryEntry` holds `id`, `source`
+  (a `DocumentSource`: the `type` `TOOL_CALL`, `USER_MESSAGE` or `EVENT`, the `toolName` and `toolCallId` of
+  the tool call that returned the document for `TOOL_CALL`, and the nullable `messageId` of the message that
+  introduced it) and `reference` (a `Map<String, Object>` with the JSON the standard
   `DocumentSerializer` emits, untouched). The file name and content type of a tag are read from the
   reference (3.4). The reference is a plain map so reading the registry needs
   no `DocumentFactory`; it binds back to a `Document` through the regular document deserializer
@@ -399,41 +404,44 @@ is described in section 4 and listed as a blocker in section 5.
 **Where.** `AgentContext.documents` (`List<DocumentRegistryEntry>`, `@JsonInclude(NON_EMPTY)`),
 accessed through `DocumentRegistryStorage` (`DocumentRegistry load(AgentContext)`, `AgentContext
 store(AgentContext, DocumentRegistry)`). The only implementation, `AgentContextDocumentRegistryStorage`
-(bean at `AgenticAiConnectorsAutoConfiguration`:316), reads and writes `AgentContext.documents()`.
+(bean at `AgenticAiConnectorsAutoConfiguration`), reads and writes `AgentContext.documents()`.
 
 **Store independence.** The registry rides in `agentContext`. The `ConversationSession`
 implementations (in-process, Camunda document, AWS AgentCore) only read the context and return the
 new `ConversationContext` pointer; `AgentConversation.withStoredConversation` copies the rest of the
 context. The store formats are unchanged.
 
-**Entry shape.** `{id, origin, reference}`: `origin` is `{toolName, toolCallId}` and left out for a document
-that did not come from a tool result; `reference` is the untouched JSON of the document serializer. The
-file name and content type shown in tags are read from the reference, not stored. Example of a Camunda
-document returned by the tool `Search_Tool`:
+**Entry shape.** `{id, source, reference}`: `source` is `{type, toolName, toolCallId, messageId}` with the
+`type` `TOOL_CALL`, `USER_MESSAGE` or `EVENT`; `toolName` and `toolCallId` are only present for `TOOL_CALL`,
+`messageId` is the id of the message that introduced the document (the tool call result message for a tool
+document, the user message for a user prompt or event document) and is left out when it is not known;
+`reference` is the untouched JSON of the document serializer. The file name and content type shown in tags
+are read from the reference, not stored. Example of a Camunda document returned by the tool `Search_Tool`:
 
 ```json
 {"id": "25ece9fa-aeea-423d-98ed-67c1f08b137b",
- "origin": {"toolName": "Search_Tool", "toolCallId": "call_0123456789abcdef"},
+ "source": {"type": "TOOL_CALL", "toolName": "Search_Tool", "toolCallId": "call_0123456789abcdef",
+            "messageId": "0197a000-0000-7000-8000-000000000004"},
  "reference": {"camunda.document.type": "camunda", "storeId": "in-memory",
                "documentId": "25ece9fa-aeea-423d-98ed-67c1f08b137b", "contentHash": "…",
                "metadata": {"contentType": "application/pdf", "fileName": "report.pdf"}}}
 ```
 
-**Serialized size per entry** (`DocumentRegistryEntryTest#serializedEntrySizes`, tool origin
-`Search_Tool` / `call_0123456789abcdef`):
+**Serialized size per entry** (`DocumentRegistryEntryTest#serializedEntrySizes`, source `TOOL_CALL` with
+`Search_Tool`, `call_0123456789abcdef` and a message id):
 
 | Entry | Bytes |
 |-------|-------|
-| Camunda document (metadata: contentType, fileName) | 327 |
-| External document (URL of about 50 characters) | 237 |
-| Inline document, 1 KB content | 1232 |
+| Camunda document (metadata: contentType, fileName) | 397 |
+| External document (URL of about 50 characters) | 307 |
+| Inline document, 1 KB content | 1302 |
 
 A Camunda reference with more metadata (size, expiresAt, process ids) adds roughly 100 to 150 bytes.
 
 **Limit.** Zeebe has no separate per-variable size cap; the bound is the maximum message size of the
 broker, `NetworkCfg.DEFAULT_MAX_MESSAGE_SIZE` = 4 MB (`zeebe/broker/.../NetworkCfg.java`), which
 applies to the whole job completion command carrying `agentContext` and the other variables. At about
-330 bytes per Camunda document the registry alone needs roughly 12,000 documents to reach it, so it
+400 bytes per Camunda document the registry alone needs roughly 10,000 documents to reach it, so it
 only matters together with the in-process store (messages in the same variable) or inline documents.
 
 **Large inline document risk.** The content of an inline document is held a second time in
@@ -443,20 +451,93 @@ a large inline image counts fully against the 4 MB limit.
 
 **Backward compatibility and downgrade.** No `CURRENT_SCHEMA_VERSION` bump. A missing `documents`
 field binds to an empty list (builder default for collections, same as `toolDefinitions`), also
-through the raw-tree path of `AgentContextSchemaMigration`. A context with a conversation and an empty
-registry is seeded from the stored messages: `DocumentContent` of user messages (this includes the
-synthetic tool call document messages, so gateway documents are covered) and the content trees of tool
-call results (origin retained). The seed is best effort; a conversation that legitimately has no
-documents is rescanned on every turn (the messages are loaded anyway). On downgrade, an older
-connector runtime ignores `documents`, `returnDocumentIds` and `pendingLocalToolCallResults`
-(`ignoreUnknown`) and drops them on its next write; the next upgraded run reseeds the registry from the messages, but the selection of
-`return_documents` and documents known only from evicted or unscanned content are lost. Mixed batches work from 8.11 on; all changes land on 8.11 only, so there is no compatibility with older engines or connector runtimes.
+through the raw-tree path of `AgentContextSchemaMigration`. Conversations stored by Camunda 8.10, which
+has no registry and stores documents as content, keep working without a rewrite of their messages
+(section 4.2). On downgrade, an older connector runtime ignores `documents`, `returnDocumentIds` and
+`pendingLocalToolCallResults` (`ignoreUnknown`) and drops them on its next write. It also reads a
+document that was stored as a tag only (section 4.1) as the tag text without the document content; the
+next upgraded run rebuilds the registry of the documents it can still find in the messages, but the
+selection of `return_documents` and documents known only from evicted or unscanned content are lost.
+Mixed batches work from 8.11 on; all changes land on 8.11 only, so there is no compatibility with older
+engines or connector runtimes beyond what section 4.2 describes.
 
 **Migration path to the stores.** Implement `DocumentRegistryStorage` against `ConversationSession`
 (store the registry next to the messages, keyed by the conversation pointer), then switch the bean.
 The handler and the composer do not change; `AgentContext.documents` stays readable (empty for new
-conversations) so persisted state from this layout still loads, and the seeding scan covers any
+conversations) so persisted state from this layout still loads, and the backfill scan covers any
 conversation without a stored registry.
+
+### 4.1 Persisted form and provider form
+
+A document is persisted in a conversation once per message that introduces it, as its tag only: the
+composer stores a `TextContent` with the `<doc .../>` text and the metadata `{"documentRef": "<id>"}`
+for every user prompt, tool call document and event document, and no `DocumentContent` next to it. The
+preamble texts (`Documents extracted from tool calls ...`, `Documents extracted from event data ...`) stay
+in front of the tags. The reference of the document lives in the registry (`AgentContext.documents`)
+only, in addition to the `ToolCallResultMessage` of a tool document, which is stored unchanged. The
+metadata is the only marker: `Content` is a sealed hierarchy, so a tag is a normal `TextContent`, and
+text a user typed that happens to hold a `<doc/>` tag is never touched.
+
+The providers see another form. `AgentConversation.window` passes the windowed messages through
+`DocumentExpander`, which adds after each flagged tag a `DocumentContent` with the document built from
+the registry reference map, with the same document deserialization the persisted messages use (the
+connectors object mapper with its document factory). The result is the pair every provider converter
+already handled: tag text followed by the native block. The expansion
+
+- is skipped for a tag that a `DocumentContent` of the same document already follows (idempotent);
+- leaves the tag text alone when the registry has no entry for the id or the reference cannot be read,
+  and never fails the request;
+- depends on the messages and the registry only, so the request bytes are stable between requests
+  (prompt caching);
+- leaves the stored conversation alone: `allMessages()` and the stored messages keep the tag only. The
+  eviction of the tool call document messages (`MessageWindowFilter`, metadata `toolCallDocuments`) works
+  on the stored messages, before the expansion.
+
+The agent instance history reports a user message with the same expansion (`AgentInstanceHistoryMapper`
+with the registry of `HistoryDocuments`): the tag text and the document as a `DOCUMENT` part, as it did
+when the content was stored. The AWS AgentCore conversion keeps a `TextContent` with metadata in its
+content blob (a text without metadata stays a conversational payload), so the marker survives that store.
+
+Reason: a document reference (for an inline document its complete content) would otherwise be held by
+the registry, the extracted document message and the tool result. The extracted document message is the
+copy that carries nothing the registry does not. The tool result is left as it is because the provider
+converters and the tool result history read it.
+
+### 4.2 Conversations in the form of earlier versions
+
+Conversations written by Camunda 8.10 hold the documents of user prompts as bare `DocumentContent`, the
+documents of tool calls and events as a tag in an older attribute format (`documentId` and `storeId`, or
+`url` and `name` for an external document, `toolName` and `toolCallId` for tool calls) followed by the
+`DocumentContent`, and have no registry. They are never rewritten: append-only conversation stores keep
+the messages they have, and only `agentContext.documents` changes. Nothing fails on them; the worst case is
+a document without a tag.
+
+- **Backfill.** On every job `BaseAgentRequestHandler` extends the registry by the documents of the loaded
+  messages that it does not know (`DocumentRegistryBackfill`): the `DocumentContent` of user messages and
+  the documents in the content trees of tool call results (`ContentTreeDocumentWalker`). The source is
+  derived from the place: a document in a tool call result is `TOOL_CALL` with the tool of that result and
+  the id of the tool call result message; a document of a user message with the `toolCallDocuments`
+  metadata is `TOOL_CALL` with the tool read from the tag in front of it and the id of the preceding tool
+  call result message; a document after the event documents preamble is `EVENT`; every other document of a
+  user message is `USER_MESSAGE`; the message id is that of the message the document was found in. A
+  message without a persisted id gets an id on load, which is not stable across loads, so the
+  `messageId` of such an entry is informational only. The backfill is idempotent (a known id is never
+  replaced or duplicated, a conversation without missing documents leaves the registry unchanged), looks
+  at message content only, and adds Camunda and external documents. Inline documents are not added.
+- **Window normalization.** `DocumentExpander` also normalizes what it finds in a user message when it
+  expands for the model, in the view only: a tag text that is not flagged, names the following
+  `DocumentContent` (by `id`, `documentId` or `url`) and is followed by it is replaced by the canonical
+  tag of the document (taken from the registry entry, so it carries the `source` or the tool call); a
+  `DocumentContent` without a tag in front of it gets the canonical tag inserted before it. These tag
+  texts are not flagged. Text that matches no known pattern, such as a tag for another document, passes
+  through unchanged.
+- **Inline documents** stay as they are in Camunda 8.10: no id, no tag and no registry entry for the
+  legacy form. A tag and the content of an inline document that were stored together are not touched.
+- `LegacyDocumentConversationTest` runs a golden conversation in this form
+  (`src/test/resources/backwardcompatibility/camunda-8.10/agentContext-documents-inprocess.json`: a prompt
+  document, a tool call document pair, an inline document pair, an event document pair and an event
+  message without an id) through load, backfill, normalization and a further turn, and asserts that the
+  stored messages are unchanged.
 
 ## 5. Blockers found
 
@@ -470,7 +551,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
 | 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the arguments of a call show the document reference, which holds the content of an inline document). |
-| 7 | Seeded registry completeness | Low | The seed scan is best effort and rescans conversations without documents every turn. |
+| 7 | Backfilled registry completeness | Low | The backfill (section 4.2) adds only Camunda and external documents it finds as content or in tool call result trees, and scans the loaded messages on every job. Inline documents of conversations from Camunda 8.10 are not added and stay without a tag. |
 | 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose input schema declares
@@ -558,7 +639,7 @@ What cannot be represented:
 
 - Documents mentioned only in the content of an evicted assistant message are not tracked; only
   registry documents are listed in the eviction note.
-- The eviction note lists tags only (id, file name, content type, tool origin) and does not describe
+- The eviction note lists tags only (id, file name, content type, source or tool call) and does not describe
   the content of a document.
 - `<doc/>` ids the model writes in the final text instead of calling `return_documents` are not
   interpreted.
@@ -596,6 +677,12 @@ What cannot be represented:
 - **Native tool-result representation (#7232).** Providers currently carry only the tag text in the
   tool result entry and the bytes in the following user message; a native representation would change
   where the tag and the content live.
+- **Tool result documents stay in the tool result.** The `ToolCallResultMessage` keeps the complete
+  reference of a tool result document next to the registry entry. Storing only the tag there as well needs
+  the provider converters and the history mapper to read tool result documents from the registry; it is
+  not part of the persisted form of section 4.1.
+- **Inline documents of Camunda 8.10 conversations** get neither registry entry nor tag (section 4.2);
+  a conversation that relies on them can only pass them on by re-ingesting the document.
 - **Capability matrix (#7230).** Which providers can take which document types natively decides what
   the model receives next to the tag; the registry and tags are independent of that.
 
@@ -607,7 +694,9 @@ What cannot be represented:
 |------|-------|
 | Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization), `AgentConversationTest` (the window rewrites, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
 | Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`), `DocumentHandleTest` (file name and content type of a document and of its reference) |
-| Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest`, `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` |
+| Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, flagged content, attribute parsing) |
+| Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, older tags, inline documents), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest`, `AwsAgentCoreConversationMapperTest` (text with metadata) |
+| Conversations of Camunda 8.10 | `aiagent/agent/DocumentRegistryBackfillTest`, `aiagent/agent/LegacyDocumentConversationTest` (golden conversation, `backwardcompatibility/camunda-8.10`) |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
 | Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (tag with other attributes, whitespace, bare id rejection, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |

@@ -12,10 +12,13 @@ import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -23,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -33,6 +37,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
+
+  private static final DocumentExpander DOCUMENT_EXPANDER =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   private static final AgentContext BASE_CONTEXT =
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
@@ -166,7 +173,7 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
   }
@@ -201,7 +208,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("hi")));
 
-    var snapshot = conv.window(20);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
 
     assertThat(snapshot.toolDefinitions()).hasSize(1);
     assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
@@ -258,7 +265,9 @@ class AgentConversationTest {
         UserMessage.builder()
             .content(List.of(textContent("see"), DocumentContent.documentContent(document)))
             .build();
-    var entry = DocumentRegistryEntry.from(new IngestedDocument(document, null, null));
+    var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.userMessage(null)));
     var context = BASE_CONTEXT.withDocuments(List.of(entry));
     var conv =
         AgentConversation.rehydrate(
@@ -273,7 +282,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed = conv.window(2).messages();
+    var windowed = conv.window(2, DOCUMENT_EXPANDER).messages();
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window, so the note names the document
@@ -286,20 +295,74 @@ class AgentConversationTest {
                     .containsExactly(
                         textContent(EvictedDocumentsNote.PREAMBLE),
                         textContent(
-                            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" />"
+                            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" source=\"user_message\" />"
                                 .formatted(DocumentHandle.idFor(document)))));
     // the note is never part of the conversation itself
     assertThat(conv.allMessages()).isEqualTo(allBefore).contains(documentMessage);
     assertThat(allBefore).noneMatch(m -> m == windowed.getLast());
 
     // a window that keeps the document message needs no note
-    assertThat(conv.window(20).messages()).isEqualTo(conv.allMessages());
+    assertThat(conv.window(20, DOCUMENT_EXPANDER).messages())
+        .hasSameSizeAs(conv.allMessages())
+        .noneMatch(
+            m ->
+                m instanceof UserMessage user
+                    && user.content().contains(textContent(EvictedDocumentsNote.PREAMBLE)));
+  }
+
+  @Test
+  void window_expandsDocumentTagsFromTheRegistryAndLeavesTheStoredMessagesAlone() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.userMessage(null)));
+    var tag = DocumentReferenceXmlTag.from(entry);
+    var storedMessage =
+        UserMessage.builder().content(List.of(textContent("see"), tag.toContent())).build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(storedMessage));
+
+    var windowed = conv.window(20, DOCUMENT_EXPANDER).messages();
+
+    assertThat(windowed).hasSize(2);
+    assertThat(windowed.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            expanded -> {
+              assertThat(expanded.id()).isEqualTo(storedMessage.id());
+              assertThat(expanded.content()).hasSize(3);
+              assertThat(expanded.content().subList(0, 2))
+                  .containsExactly(textContent("see"), tag.toContent());
+              assertThat(expanded.content().get(2))
+                  .isInstanceOfSatisfying(
+                      DocumentContent.class,
+                      documentContent ->
+                          assertThat(
+                                  TestObjectMapperSupplier.INSTANCE.convertValue(
+                                      documentContent.document(), Map.class))
+                              .isEqualTo(entry.reference()));
+            });
+    // the stored conversation keeps the tag only
+    assertThat(conv.allMessages().getLast()).isSameAs(storedMessage);
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), tag.toContent());
   }
 
   @Test
   void documentRegistryOfTheRehydratedContextSurvivesEveryCopyOnWrite() {
     var entry =
-        new DocumentRegistryEntry("doc-1", null, Map.of("camunda.document.type", "camunda"));
+        new DocumentRegistryEntry(
+            "doc-1", DocumentSource.userMessage(null), Map.of("camunda.document.type", "camunda"));
     var context = BASE_CONTEXT.withDocuments(List.of(entry));
     var conv =
         AgentConversation.rehydrate(
@@ -546,8 +609,9 @@ class AgentConversationTest {
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(conv.window(3).messages()).containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(conv.window(2).messages()).containsExactly(SYSTEM_MESSAGE);
+    assertThat(conv.window(3, DOCUMENT_EXPANDER).messages())
+        .containsExactly(SYSTEM_MESSAGE, calling, results);
+    assertThat(conv.window(2, DOCUMENT_EXPANDER).messages()).containsExactly(SYSTEM_MESSAGE);
   }
 
   @Test

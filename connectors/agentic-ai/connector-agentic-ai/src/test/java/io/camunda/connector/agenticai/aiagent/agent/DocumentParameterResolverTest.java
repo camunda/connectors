@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterResolver.Resolution;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -34,8 +35,8 @@ class DocumentParameterResolverTest {
       DocumentRegistry.empty()
           .withDocuments(
               List.of(
-                  new IngestedDocument(first, null, null),
-                  new IngestedDocument(second, null, null)));
+                  new IngestedDocument(first, DocumentSource.userMessage(null)),
+                  new IngestedDocument(second, DocumentSource.userMessage(null))));
 
   private final String firstId = DocumentHandle.idFor(first);
   private final String secondId = DocumentHandle.idFor(second);

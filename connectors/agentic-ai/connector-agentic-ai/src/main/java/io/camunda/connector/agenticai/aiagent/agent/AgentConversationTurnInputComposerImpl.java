@@ -14,13 +14,15 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -126,7 +128,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .build();
       messages.add(toolCallResultMessage);
       final var documentMessage =
-          createDocumentMessageForToolResults(toolCallResults, ingestedDocuments);
+          createDocumentMessageForToolResults(
+              toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
       if (documentMessage != null) {
         messages.add(documentMessage);
       }
@@ -150,6 +153,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private @Nullable UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt, List<IngestedDocument> ingestedDocuments) {
 
+    final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
 
     // add user prompt text
@@ -158,10 +162,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    // add documents, each labelled with its tag
+    // add documents as tags, the content of each is added from the registry when the model is
+    // called
+    final var source = DocumentSource.userMessage(messageId.toString());
     for (var doc : userPrompt.documents()) {
-      content.add(textContent(DocumentReferenceXmlTag.from(doc).toXml()));
-      content.add(DocumentContent.documentContent(doc));
+      content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
     }
 
     if (content.isEmpty()) {
@@ -169,11 +174,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return null;
     }
 
-    userPrompt
-        .documents()
-        .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, null, null)));
+    userPrompt.documents().forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
 
-    return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
+    return UserMessage.builder()
+        .id(messageId)
+        .content(content)
+        .metadata(defaultMessageMetadata())
+        .build();
   }
 
   /**
@@ -240,16 +247,25 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private @Nullable UserMessage createDocumentMessageForToolResults(
-      List<ToolCallResult> results, List<IngestedDocument> ingestedDocuments) {
+      List<ToolCallResult> results,
+      MessageId toolCallResultMessageId,
+      List<IngestedDocument> ingestedDocuments) {
     final var toolCallDocuments = documentExtractor.extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
       return null;
     }
-    collectIngestedDocuments(toolCallDocuments, ingestedDocuments);
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    content.addAll(createDocumentPairs(toolCallDocuments));
+    for (var group : toolCallDocuments) {
+      final var source =
+          DocumentSource.toolCall(
+              group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
+      for (var doc : group.documents()) {
+        ingestedDocuments.add(new IngestedDocument(doc, source));
+        content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+      }
+    }
 
     final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
@@ -263,6 +279,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       List<IngestedDocument> ingestedDocuments) {
     Object eventContent = eventResult.content();
 
+    final var messageId = MessageUtil.generateId();
     List<Content> userMessageContent = new ArrayList<>();
     if (eventContent == null || isEventContentEmpty(eventContent)) {
       userMessageContent.add(
@@ -278,44 +295,24 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           });
     }
 
-    // events arrive as ToolCallResult with null id/name — no tool-call attributes
-    // on the rendered tag, but the extraction shape is otherwise the same
+    // events arrive as ToolCallResult with null id/name, so their documents have no tool call
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
-      collectIngestedDocuments(eventDocuments, ingestedDocuments);
+      final var source = DocumentSource.event(messageId.toString());
       userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      userMessageContent.addAll(createDocumentPairs(eventDocuments));
+      for (var group : eventDocuments) {
+        for (var doc : group.documents()) {
+          ingestedDocuments.add(new IngestedDocument(doc, source));
+          userMessageContent.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+        }
+      }
     }
 
     return UserMessage.builder()
+        .id(messageId)
         .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
-  }
-
-  private static void collectIngestedDocuments(
-      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups,
-      List<IngestedDocument> ingestedDocuments) {
-    for (var group : documentGroups) {
-      for (var doc : group.documents()) {
-        ingestedDocuments.add(new IngestedDocument(doc, group.toolCallId(), group.toolCallName()));
-      }
-    }
-  }
-
-  private List<Content> createDocumentPairs(
-      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
-    final var content = new ArrayList<Content>();
-    for (var group : documentGroups) {
-      for (var doc : group.documents()) {
-        content.add(
-            textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
-                    .toXml()));
-        content.add(DocumentContent.documentContent(doc));
-      }
-    }
-    return content;
   }
 
   private boolean isEventContentEmpty(@Nullable Object eventContent) {

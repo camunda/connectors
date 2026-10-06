@@ -432,7 +432,10 @@ without a data migration, and is now also the cross-validation source for `itera
 detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
-to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
+to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
+also expands the document tags of its user messages from the document registry (`DocumentExpander`): the
+stored messages hold the tag of a document only and the snapshot holds the tag followed by the document
+content (see the document flow design notes, section 4.1).
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:
@@ -1648,8 +1651,11 @@ These are used during discovery checking and tool call result transformation.
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
-extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
-blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
+extracts those documents into a synthetic follow-up `UserMessage` that holds one `<doc .../>` tag per
+document (a `TextContent` flagged with the metadata `documentRef`, the id of the document). The model
+providers see the tag followed by a native `DocumentContent` block, added from the document registry when
+the conversation is windowed; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the
+document flow design notes, section 4.1.
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` after
 the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
@@ -1799,7 +1805,8 @@ lease-fenced `update()` mechanism).
 ### Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document-reference messages).
+  document-reference messages). The document tags of a user message are reported with the content of
+  their documents from the registry, as the model sees them (`DocumentExpander`).
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
   block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
   elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the

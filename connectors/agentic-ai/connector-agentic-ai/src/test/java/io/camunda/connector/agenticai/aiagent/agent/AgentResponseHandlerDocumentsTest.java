@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
@@ -50,8 +51,8 @@ class AgentResponseHandlerDocumentsTest {
       DocumentRegistry.empty()
           .withDocuments(
               List.of(
-                  new IngestedDocument(report, "call-1", "search"),
-                  new IngestedDocument(summary, null, null)));
+                  new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null)),
+                  new IngestedDocument(summary, DocumentSource.userMessage(null))));
 
   private AgentResponseHandler responseHandler;
 

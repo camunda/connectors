@@ -14,10 +14,13 @@ import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -29,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -55,7 +59,8 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class),
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())));
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())),
+          new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
@@ -66,6 +71,62 @@ class AgentInstanceHistoryMapperTest {
         mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
+  }
+
+  private static List<String> texts(List<AgentInstanceHistoryContent> content) {
+    return content.stream()
+        .filter(AgentInstanceHistoryContent.TextContent.class::isInstance)
+        .map(c -> ((AgentInstanceHistoryContent.TextContent) c).getText())
+        .toList();
+  }
+
+  @Test
+  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheRegistry() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
+    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent();
+    final var userMessage =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            new HistoryDocuments(List.of(), registry));
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.content()).hasSize(3);
+              assertThat(texts(item.content())).containsExactly("see", tag.text());
+              assertThat(item.content().get(2))
+                  .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+            });
+  }
+
+  @Test
+  void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
+    final var tag =
+        new DocumentReferenceXmlTag("unknown", null, null, null, null, null).toContent();
+    final var userMessage = UserMessage.builder().content(List.of(tag)).build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(item -> assertThat(texts(item.content())).containsExactly(tag.text()));
   }
 
   @Test
@@ -163,7 +224,9 @@ class AgentInstanceHistoryMapperTest {
                     .build());
     private final String documentId = DocumentHandle.idFor(document);
     private final DocumentRegistry registry =
-        DocumentRegistry.empty().withDocuments(List.of(new IngestedDocument(document, null, null)));
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
     private final Map<String, Object> reference =
         registry.findById(documentId).orElseThrow().reference();
 

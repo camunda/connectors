@@ -6,16 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
-import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.api.document.Document;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,49 +40,6 @@ public final class DocumentRegistry {
     final var byId = new LinkedHashMap<String, DocumentRegistryEntry>();
     entries.forEach(entry -> byId.putIfAbsent(entry.id(), entry));
     return byId.isEmpty() ? EMPTY : new DocumentRegistry(Collections.unmodifiableMap(byId));
-  }
-
-  /**
-   * Builds a registry from the documents found in a stored conversation: user message document
-   * content and the content trees of tool call results. Tool call results are scanned before the
-   * documents they produced are repeated as document content, so the tool call origin is retained.
-   */
-  public static DocumentRegistry fromMessages(List<Message> messages) {
-    final var ingested = new ArrayList<IngestedDocument>();
-    for (final var message : messages) {
-      switch (message) {
-        case ToolCallResultMessage toolCallResultMessage ->
-            toolCallResultMessage
-                .results()
-                .forEach(
-                    result ->
-                        result.content().stream()
-                            .flatMap(content -> documentsOf(content).stream())
-                            .forEach(
-                                document ->
-                                    ingested.add(
-                                        new IngestedDocument(
-                                            document, result.id(), result.name()))));
-        case UserMessage userMessage ->
-            userMessage.content().stream()
-                .filter(DocumentContent.class::isInstance)
-                .map(content -> ((DocumentContent) content).document())
-                .forEach(document -> ingested.add(new IngestedDocument(document, null, null)));
-        default -> {
-          // system and assistant messages carry no inbound documents
-        }
-      }
-    }
-    return empty().withDocuments(ingested);
-  }
-
-  private static List<Document> documentsOf(Content content) {
-    return switch (content) {
-      case DocumentContent documentContent -> List.of(documentContent.document());
-      case ObjectContent objectContent ->
-          ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content());
-      default -> List.of();
-    };
   }
 
   /** Returns a registry with the given documents added; already known ids are left untouched. */

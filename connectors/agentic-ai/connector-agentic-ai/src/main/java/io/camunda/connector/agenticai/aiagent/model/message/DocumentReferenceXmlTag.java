@@ -8,7 +8,11 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -22,17 +26,25 @@ import org.jspecify.annotations.Nullable;
  * }</pre>
  *
  * <p>{@code id} is the {@link DocumentHandle#idFor stable document id}. The tag never carries a
- * store id, content hash, other metadata or URL (an external URL may be a presigned one). Null or
- * blank attributes are omitted; {@code toolName} and {@code toolCallId} are only present for
- * documents that came from a tool result. A file name that equals the id (a document stored without
- * a name of its own) is omitted as well, it would only repeat the id.
+ * store id, content hash, other metadata, URL (an external URL may be a presigned one) or message
+ * id. Null or blank attributes are omitted; {@code toolName} and {@code toolCallId} are only
+ * present for documents that came from a tool result, {@code source} ({@code user_message} or
+ * {@code event}) only for the other documents. A file name that equals the id (a document stored
+ * without a name of its own) is omitted as well, it would only repeat the id.
+ *
+ * <p>The persisted form of a tag is a {@link TextContent} flagged with the id of its document in
+ * the metadata {@value #METADATA_DOCUMENT_REF} (see {@link #toContent()}).
  */
 public record DocumentReferenceXmlTag(
     String id,
     @Nullable String fileName,
     @Nullable String contentType,
+    @Nullable String source,
     @Nullable String toolName,
     @Nullable String toolCallId) {
+
+  /** Metadata key of a {@link TextContent} that holds the tag of the document with that id. */
+  public static final String METADATA_DOCUMENT_REF = "documentRef";
 
   private static final Pattern DOC_TAG = Pattern.compile("\\s*<doc(\\s[^<>]*?)?\\s*/?>\\s*");
   private static final Pattern ATTRIBUTE =
@@ -44,31 +56,79 @@ public record DocumentReferenceXmlTag(
     }
   }
 
-  /** Creates a tag from a document and its tool call context. */
-  public static DocumentReferenceXmlTag from(
-      Document document, @Nullable String toolCallId, @Nullable String toolName) {
+  /** Creates a tag from a document and where it entered the conversation. */
+  public static DocumentReferenceXmlTag from(Document document, DocumentSource documentSource) {
     return new DocumentReferenceXmlTag(
         DocumentHandle.idFor(document),
         DocumentHandle.fileNameFor(document),
         DocumentHandle.contentTypeFor(document),
-        toolName,
-        toolCallId);
+        documentSource.type().tagValue(),
+        documentSource.toolName(),
+        documentSource.toolCallId());
   }
 
-  /** Creates a tag from a document without tool call context (e.g. for user prompt documents). */
+  /** Creates a tag from a document without a source. */
   public static DocumentReferenceXmlTag from(Document document) {
-    return from(document, null, null);
+    return new DocumentReferenceXmlTag(
+        DocumentHandle.idFor(document),
+        DocumentHandle.fileNameFor(document),
+        DocumentHandle.contentTypeFor(document),
+        null,
+        null,
+        null);
   }
 
   /** Creates a tag from a registry entry. */
   public static DocumentReferenceXmlTag from(DocumentRegistryEntry entry) {
-    final var origin = entry.origin();
+    final var documentSource = entry.source();
     return new DocumentReferenceXmlTag(
         entry.id(),
         DocumentHandle.fileNameFor(entry.reference()),
         DocumentHandle.contentTypeFor(entry.reference()),
-        origin == null ? null : origin.toolName(),
-        origin == null ? null : origin.toolCallId());
+        documentSource.type().tagValue(),
+        documentSource.toolName(),
+        documentSource.toolCallId());
+  }
+
+  /**
+   * Returns the id of the document whose tag the content holds, or {@code null} when the content is
+   * not flagged as a document tag.
+   */
+  public static @Nullable String documentRefOf(TextContent content) {
+    final var metadata = content.metadata();
+    return metadata != null
+            && metadata.get(METADATA_DOCUMENT_REF) instanceof String id
+            && !id.isBlank()
+        ? id
+        : null;
+  }
+
+  /**
+   * Returns {@code true} if the text is a single {@code <doc .../>} tag, whatever its attributes
+   * (surrounding whitespace is tolerated).
+   */
+  public static boolean isTag(String value) {
+    return DOC_TAG.matcher(value).matches();
+  }
+
+  /**
+   * Reads the attributes of a string that is a single {@code <doc .../>} tag, in document order and
+   * XML-unescaped; {@code null} if the string is not a tag.
+   */
+  public static @Nullable Map<String, String> parseAttributes(String value) {
+    final var tag = DOC_TAG.matcher(value);
+    if (!tag.matches()) {
+      return null;
+    }
+    final var attributes = new LinkedHashMap<String, String>();
+    if (tag.group(1) != null) {
+      final var matcher = ATTRIBUTE.matcher(tag.group(1));
+      while (matcher.find()) {
+        final var raw = matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
+        attributes.putIfAbsent(matcher.group(1), StringEscapeUtils.unescapeXml(raw));
+      }
+    }
+    return attributes;
   }
 
   /**
@@ -78,19 +138,17 @@ public record DocumentReferenceXmlTag(
    * {@code id}.
    */
   public static @Nullable String parseId(String value) {
-    final var tag = DOC_TAG.matcher(value);
-    if (!tag.matches() || tag.group(1) == null) {
+    final var attributes = parseAttributes(value);
+    if (attributes == null) {
       return null;
     }
-    final var attributes = ATTRIBUTE.matcher(tag.group(1));
-    while (attributes.find()) {
-      if ("id".equals(attributes.group(1))) {
-        final var raw = attributes.group(2) != null ? attributes.group(2) : attributes.group(3);
-        final var id = StringEscapeUtils.unescapeXml(raw).strip();
-        return id.isEmpty() ? null : id;
-      }
-    }
-    return null;
+    final var id = attributes.getOrDefault("id", "").strip();
+    return id.isEmpty() ? null : id;
+  }
+
+  /** The persisted form of the tag: the tag text flagged with the id of its document. */
+  public TextContent toContent() {
+    return new TextContent(toXml(), Map.of(METADATA_DOCUMENT_REF, id));
   }
 
   public String toXml() {
@@ -98,6 +156,7 @@ public record DocumentReferenceXmlTag(
     appendAttribute(sb, "id", id);
     appendAttribute(sb, "fileName", fileName);
     appendAttribute(sb, "contentType", contentType);
+    appendAttribute(sb, "source", source);
     appendAttribute(sb, "toolName", toolName);
     appendAttribute(sb, "toolCallId", toolCallId);
     return sb.append(" />").toString();

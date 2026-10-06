@@ -53,10 +53,11 @@ class DocumentRegistryEntryTest {
     final var document = camundaDocument("hello");
 
     final var entry =
-        DocumentRegistryEntry.from(new IngestedDocument(document, "call-1", "search"));
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.toolCall("search", "call-1", null)));
 
     assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-    assertThat(entry.origin()).isEqualTo(new DocumentRegistryEntry.Origin("search", "call-1"));
+    assertThat(entry.source()).isEqualTo(DocumentSource.toolCall("search", "call-1", null));
     assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("report.pdf");
     assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("application/pdf");
     assertThat(entry.reference())
@@ -87,38 +88,44 @@ class DocumentRegistryEntryTest {
             new ExternalDocumentReferenceModel("https://example.com/a.pdf?token=secret", "a.pdf"),
             null);
 
-    final var entry = DocumentRegistryEntry.from(new IngestedDocument(document, null, null));
+    final var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.userMessage(null)));
 
     assertThat(entry.id()).startsWith("ext-");
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "external")
         .containsEntry("url", "https://example.com/a.pdf?token=secret")
         .containsEntry("name", "a.pdf");
-    assertThat(entry.origin()).isNull();
+    assertThat(entry.source()).isEqualTo(DocumentSource.userMessage(null));
   }
 
   @Test
-  void entryOfADocumentWithoutAToolCallHasNoOrigin() throws JsonProcessingException {
+  void sourceOfAnEntryWithoutAToolCallOrMessageIdHasOnlyTheType() throws JsonProcessingException {
     final var entry =
-        DocumentRegistryEntry.from(new IngestedDocument(camundaDocument("hello"), null, null));
+        DocumentRegistryEntry.from(
+            new IngestedDocument(camundaDocument("hello"), DocumentSource.event(null)));
 
-    assertThat(entry.origin()).isNull();
-    assertThat(objectMapper.readTree(objectMapper.writeValueAsString(entry)).has("origin"))
-        .isFalse();
+    assertThat(
+            objectMapper.readTree(objectMapper.writeValueAsString(entry)).get("source").toString())
+        .isEqualTo("{\"type\":\"EVENT\"}");
   }
 
   @Test
-  void serializesTheIdThenTheOriginThenTheUntouchedReference() throws JsonProcessingException {
+  void serializesTheIdThenTheSourceThenTheUntouchedReference() throws JsonProcessingException {
     final var document = camundaDocument("hello");
     final var entry =
-        DocumentRegistryEntry.from(new IngestedDocument(document, "call-1", "search"));
+        DocumentRegistryEntry.from(
+            new IngestedDocument(
+                document, DocumentSource.toolCall("search", "call-1", "message-1")));
 
     final var json = objectMapper.readTree(objectMapper.writeValueAsString(entry));
 
-    assertThat(json.fieldNames()).toIterable().containsExactly("id", "origin", "reference");
+    assertThat(json.fieldNames()).toIterable().containsExactly("id", "source", "reference");
     assertThat(json.get("id").asText()).isEqualTo(DocumentHandle.idFor(document));
-    assertThat(json.get("origin").toString())
-        .isEqualTo("{\"toolName\":\"search\",\"toolCallId\":\"call-1\"}");
+    assertThat(json.get("source").toString())
+        .isEqualTo(
+            "{\"type\":\"TOOL_CALL\",\"toolName\":\"search\",\"toolCallId\":\"call-1\",\"messageId\":\"message-1\"}");
     assertThat(objectMapper.convertValue(json.get("reference"), Map.class))
         .isEqualTo(entry.reference());
     // no file name or content type next to the reference
@@ -131,13 +138,13 @@ class DocumentRegistryEntryTest {
   void unknownPropertiesAreIgnoredWhenReadingAnEntry() throws JsonProcessingException {
     final var json =
         """
-        {"id":"d1","future":true,"origin":{"toolName":"t","toolCallId":"c","future":1},
+        {"id":"d1","future":true,"source":{"type":"TOOL_CALL","toolName":"t","toolCallId":"c","future":1},
          "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}""";
 
     final var entry = objectMapper.readValue(json, DocumentRegistryEntry.class);
 
     assertThat(entry.id()).isEqualTo("d1");
-    assertThat(entry.origin()).isEqualTo(new DocumentRegistryEntry.Origin("t", "c"));
+    assertThat(entry.source()).isEqualTo(DocumentSource.toolCall("t", "c", null));
     assertThat(entry.reference()).containsEntry("name", "y.txt");
   }
 
@@ -146,7 +153,9 @@ class DocumentRegistryEntryTest {
     final var document =
         documentWith(new InlineDocumentReferenceModel("aGVsbG8=", "a.txt", "text/plain"), null);
 
-    final var entry = DocumentRegistryEntry.from(new IngestedDocument(document, null, null));
+    final var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.userMessage(null)));
 
     assertThat(entry.id()).startsWith("inline-");
     assertThat(entry.reference())
@@ -158,7 +167,8 @@ class DocumentRegistryEntryTest {
   void entryRoundTripsThroughJson() throws JsonProcessingException {
     final var entry =
         DocumentRegistryEntry.from(
-            new IngestedDocument(camundaDocument("hello"), "call-1", "search"));
+            new IngestedDocument(
+                camundaDocument("hello"), DocumentSource.toolCall("search", "call-1", null)));
 
     final var json = objectMapper.writeValueAsString(entry);
 
@@ -169,7 +179,12 @@ class DocumentRegistryEntryTest {
   void serializedEntrySizes() throws JsonProcessingException {
     final var camundaEntry =
         DocumentRegistryEntry.from(
-            new IngestedDocument(camundaDocument("hello"), "call_0123456789abcdef", "Search_Tool"));
+            new IngestedDocument(
+                camundaDocument("hello"),
+                DocumentSource.toolCall(
+                    "Search_Tool",
+                    "call_0123456789abcdef",
+                    "0197a000-0000-7000-8000-000000000004")));
     final var externalEntry =
         DocumentRegistryEntry.from(
             new IngestedDocument(
@@ -178,16 +193,20 @@ class DocumentRegistryEntryTest {
                         "https://example.com/files/2026/quarterly-report.pdf",
                         "quarterly-report.pdf"),
                     null),
-                "call_0123456789abcdef",
-                "Search_Tool"));
+                DocumentSource.toolCall(
+                    "Search_Tool",
+                    "call_0123456789abcdef",
+                    "0197a000-0000-7000-8000-000000000004")));
     final var inlineEntry =
         DocumentRegistryEntry.from(
             new IngestedDocument(
                 documentWith(
                     new InlineDocumentReferenceModel("x".repeat(1024), "inline.txt", "text/plain"),
                     null),
-                "call_0123456789abcdef",
-                "Search_Tool"));
+                DocumentSource.toolCall(
+                    "Search_Tool",
+                    "call_0123456789abcdef",
+                    "0197a000-0000-7000-8000-000000000004")));
 
     final var sizes =
         Map.of(

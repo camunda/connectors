@@ -164,6 +164,28 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
+  void shouldRoundTripTextContentWithMetadataInOrder() {
+    // given - a flagged document tag between plain texts keeps its metadata and its position
+    var tag = new TextContent("<doc id=\"d1\" />", Map.of("documentRef", "d1"));
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(textContent("before"), tag, textContent("after")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(payloads.get(0).conversational()).isNotNull();
+    assertThat(payloads.get(1).blob()).isNotNull();
+    assertThat(payloads.get(2).conversational()).isNotNull();
+    assertThat(((UserMessage) message).content())
+        .containsExactly(textContent("before"), tag, textContent("after"));
+  }
+
+  @Test
   void shouldRoundTripUserMessageWithMixedContent() {
     // given
     Document testDocument =

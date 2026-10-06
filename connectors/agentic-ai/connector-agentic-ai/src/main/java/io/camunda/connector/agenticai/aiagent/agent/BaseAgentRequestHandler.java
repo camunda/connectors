@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
@@ -74,6 +75,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentInstanceClient agentInstanceClient;
   private final DocumentRegistryStorage documentRegistryStorage;
   private final LocalToolCallHandler localToolCallHandler;
+  private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -84,7 +86,8 @@ public abstract class BaseAgentRequestHandler<
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler) {
+      LocalToolCallHandler localToolCallHandler,
+      DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -94,6 +97,7 @@ public abstract class BaseAgentRequestHandler<
     this.agentInstanceClient = agentInstanceClient;
     this.documentRegistryStorage = documentRegistryStorage;
     this.localToolCallHandler = localToolCallHandler;
+    this.documentExpander = documentExpander;
   }
 
   @Override
@@ -178,8 +182,8 @@ public abstract class BaseAgentRequestHandler<
 
   /**
    * Returns the agent context carrying the document registry extended by the documents that enter
-   * the conversation with this turn. A context without a persisted registry that already has a
-   * conversation is seeded from the stored messages first.
+   * the conversation with this turn, after the documents of the stored messages that it does not
+   * know yet.
    */
   private AgentContext registerDocuments(
       AgentContext agentContext,
@@ -190,14 +194,12 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * The registry of the agent context; a context without a persisted registry that already has a
-   * conversation gets the registry seeded from the stored messages.
+   * The registry of the agent context, extended by the documents of the stored messages it does not
+   * know yet (see {@link DocumentRegistryBackfill}).
    */
   private DocumentRegistry knownDocuments(AgentContext agentContext, List<Message> loadedMessages) {
-    final var registry = documentRegistryStorage.load(agentContext);
-    return registry.isEmpty() && !loadedMessages.isEmpty()
-        ? DocumentRegistry.fromMessages(loadedMessages)
-        : registry;
+    return DocumentRegistryBackfill.backfill(
+        documentRegistryStorage.load(agentContext), loadedMessages);
   }
 
   /**
@@ -295,7 +297,7 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn().iterationKey());
 
       final var windowedSnapshot =
-          workingConversation.window(agentConfiguration.contextWindowSize());
+          workingConversation.window(agentConfiguration.contextWindowSize(), documentExpander);
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       workingConversation =

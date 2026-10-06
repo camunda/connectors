@@ -114,6 +114,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
                 documentTag.id(),
                 documentTag.fileName(),
                 documentTag.contentType(),
+                null,
                 "Download_A_File",
                 "aaa111")
             .toXml();
@@ -183,6 +184,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
                 externalTag.id(),
                 externalTag.fileName(),
                 externalTag.contentType(),
+                null,
                 "External_File_Reference",
                 "ext111")
             .toXml();

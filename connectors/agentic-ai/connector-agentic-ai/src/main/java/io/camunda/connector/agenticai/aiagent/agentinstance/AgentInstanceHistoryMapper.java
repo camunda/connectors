@@ -19,6 +19,7 @@ import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum
 import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -57,11 +58,15 @@ public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final LocalToolRegistry localToolRegistry;
+  private final DocumentExpander documentExpander;
 
   public AgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      LocalToolRegistry localToolRegistry,
+      DocumentExpander documentExpander) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.localToolRegistry = localToolRegistry;
+    this.documentExpander = documentExpander;
   }
 
   /**
@@ -91,7 +96,8 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  contentBlocks(userMessage.content()),
+                  contentBlocks(
+                      documentExpander.expandContent(userMessage.content(), documents.documents())),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));

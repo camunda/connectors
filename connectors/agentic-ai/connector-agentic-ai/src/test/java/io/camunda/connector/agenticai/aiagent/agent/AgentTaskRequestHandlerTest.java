@@ -51,6 +51,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -102,6 +103,10 @@ class AgentTaskRequestHandlerTest {
   @Spy
   private DocumentRegistryStorage documentRegistryStorage =
       new AgentContextDocumentRegistryStorage();
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Spy
   private LocalToolCallHandler localToolCallHandler =

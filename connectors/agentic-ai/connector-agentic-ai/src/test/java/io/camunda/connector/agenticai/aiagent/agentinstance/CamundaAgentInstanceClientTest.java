@@ -52,8 +52,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -159,7 +161,11 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry);
+    var historyMapper =
+        new AgentInstanceHistoryMapper(
+            gatewayToolHandlers,
+            localToolRegistry,
+            new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
     client =
         new CamundaAgentInstanceClient(
@@ -190,7 +196,10 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers, localToolRegistry),
+                new AgentInstanceHistoryMapper(
+                    gatewayToolHandlers,
+                    localToolRegistry,
+                    new DocumentExpander(TestObjectMapperSupplier.INSTANCE)),
                 new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry))
             .create(executionContext);
 
@@ -1478,7 +1487,10 @@ class CamundaAgentInstanceClientTest {
       final var documentId = DocumentHandle.idFor(document);
       final var earlyRegistry =
           DocumentRegistry.empty()
-              .withDocuments(List.of(new IngestedDocument(document, "download", "Download")));
+              .withDocuments(
+                  List.of(
+                      new IngestedDocument(
+                          document, DocumentSource.toolCall("Download", "download", null))));
       final var laterRegistry =
           earlyRegistry.withDocuments(
               List.of(
@@ -1488,8 +1500,7 @@ class CamundaAgentInstanceClientTest {
                               DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
                                   .fileName("other.txt")
                                   .build()),
-                      null,
-                      null)));
+                      DocumentSource.userMessage(null))));
       final var reference = earlyRegistry.findById(documentId).orElseThrow().reference();
       final var returnDocuments = new ReturnDocumentsTool().definition();
       final var early = new HistoryDocuments(List.of(returnDocuments), earlyRegistry);
