@@ -109,7 +109,7 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(
             item -> {
               assertThat(item.content()).hasSize(3);
-              assertThat(texts(item.content())).containsExactly("see", tag.text());
+              assertThat(texts(item.content())).containsExactly("see", "`" + tag.text() + "`");
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
             });
@@ -126,7 +126,110 @@ class AgentInstanceHistoryMapperTest {
 
     assertThat(items)
         .singleElement()
-        .satisfies(item -> assertThat(texts(item.content())).containsExactly(tag.text()));
+        .satisfies(
+            item -> assertThat(texts(item.content())).containsExactly("`" + tag.text() + "`"));
+  }
+
+  @Test
+  void everyDocTagOfATextIsWrappedInInlineCodeBackticks() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "Documents (<doc /> tag + content pair): <doc id=\"a\" /> and <doc id=\"b\""
+                            + " fileName=\"b.txt\" />.")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly(
+                        "Documents (`<doc />` tag + content pair): `<doc id=\"a\" />` and"
+                            + " `<doc id=\"b\" fileName=\"b.txt\" />`."));
+  }
+
+  @Test
+  void aDocTagThatIsAlreadyInsideBackticksIsLeftAsItIs() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "quoted `<doc id=\"a\" />` and plain <doc id=\"b\" />")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly("quoted `<doc id=\"a\" />` and plain `<doc id=\"b\" />`"));
+  }
+
+  @Test
+  void textWithoutADocTagIsReportedAsIs() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(List.of(TextContent.textContent("a <document> and <b>bold</b> text")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly("a <document> and <b>bold</b> text"));
+  }
+
+  @Test
+  void aToolResultTextQuotingADocTagIsWrappedInInlineCodeBackticks() {
+    final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
+    final var result =
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("getWeather")
+            .elementId("getWeather")
+            .content(
+                List.of(TextContent.textContent("Unknown id. Known documents:\n<doc id=\"a\" />")))
+            .completedAt(TURN_INGESTION_TIMESTAMP)
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder().results(List.of(result)).build(),
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly("Unknown id. Known documents:\n`<doc id=\"a\" />`"));
+  }
+
+  @Test
+  void anAssistantTextWithADocTagIsWrappedInInlineCodeBackticks() {
+    final var content =
+        mapper.assistantContent(
+            AssistantMessage.builder()
+                .content(List.of(TextContent.textContent("I use <doc id=\"a\" />")))
+                .build());
+
+    assertThat(texts(content)).containsExactly("I use `<doc id=\"a\" />`");
   }
 
   @Test

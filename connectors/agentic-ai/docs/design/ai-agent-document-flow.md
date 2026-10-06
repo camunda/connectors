@@ -606,7 +606,13 @@ element, for the call in the `ASSISTANT` item and for the result (`AgentInstance
 call by `LocalToolRegistry.toolNames()`, which is safe because those names are reserved, 3.9). The result
 text is the content of the `TOOL_RESULT` item, an error result included.
 
-**Document arguments.** A document parameter of a call (a schema node with the format `camunda-document` of the tool's
+**Document tags in the text.** The text parts of the history items (user, assistant and tool result
+text, the document tags and their preambles included) show every `<doc .../>` tag in inline code backticks
+(`` `<doc id="..." />` ``), so a markdown renderer shows the tag instead of treating it as markup; a tag that
+is already inside backticks is left as it is. `AgentInstanceHistoryMapper` does this when it maps a
+`TextContent`; the persisted messages and the text the model reads are not changed.
+
+**Document arguments.** A document parameter of a call (a schema node with the format `camunda-document-id` of the tool's
 definition, found as in 3.3; for a tool of the process and for a local tool such as `return_document`,
 whose definition is looked up in `LocalToolRegistry` even while the tool is unavailable) is shown with the
 registry entry's `reference` map instead of the id the model sent, in the `arguments` of the call in the
@@ -706,8 +712,8 @@ What cannot be represented:
 |------|-------|
 | Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization), `AgentConversationTest` (the window rewrites, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
 | Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`), `DocumentHandleTest` (file name and content type of a document and of its reference) |
-| Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, flagged content, attribute parsing) |
-| Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, older tags, inline documents), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest`, `AwsAgentCoreConversationMapperTest` (text with metadata) |
+| Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, document reference content, attribute parsing) |
+| Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, older tags, inline documents), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `AwsAgentCoreConversationMapperTest` (text with metadata) |
 | Conversations of Camunda 8.10 | `aiagent/agent/DocumentRegistryBackfillTest`, `aiagent/agent/LegacyDocumentConversationTest` (golden conversation, `backwardcompatibility/camunda-8.10`) |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |

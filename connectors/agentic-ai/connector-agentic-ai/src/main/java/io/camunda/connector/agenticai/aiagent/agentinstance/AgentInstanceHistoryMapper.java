@@ -45,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -55,6 +56,8 @@ import org.jspecify.annotations.Nullable;
  * {@link CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
+
+  private static final Pattern DOC_TAG = Pattern.compile("<doc(?:\\s[^<>]*)?>");
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final LocalToolRegistry localToolRegistry;
@@ -262,12 +265,32 @@ public class AgentInstanceHistoryMapper {
 
   private AgentInstanceHistoryContent toHistoryContent(Content content) {
     return switch (content) {
-      case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
+      case TextContent textContent ->
+          AgentInstanceHistoryContent.text(inlineCodeDocTags(textContent.text()));
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
+  }
+
+  /**
+   * Wraps every {@code <doc .../>} tag of the text in inline code backticks, so a markdown renderer
+   * shows the tag instead of treating it as markup. A tag that is already inside backticks is left
+   * as it is.
+   */
+  private static String inlineCodeDocTags(String text) {
+    final var matcher = DOC_TAG.matcher(text);
+    final var result = new StringBuilder();
+    int last = 0;
+    while (matcher.find()) {
+      final var inCode =
+          text.substring(0, matcher.start()).chars().filter(c -> c == '`').count() % 2;
+      result.append(text, last, matcher.start());
+      result.append(inCode == 1 ? matcher.group() : "`" + matcher.group() + "`");
+      last = matcher.end();
+    }
+    return last == 0 ? text : result.append(text, last, text.length()).toString();
   }
 
   private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {

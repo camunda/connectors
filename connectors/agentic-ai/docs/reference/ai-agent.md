@@ -1821,7 +1821,7 @@ lease-fenced `update()` mechanism).
   reference of a document where the model passed its id: a document parameter (a string schema node with
   the format `camunda-document-id`, see the document flow design notes) holding the id of a known document carries the registry entry's
   `reference` map, the complete JSON the document serializer emits (an inline document with its
-  content). An unknown id or a bare id stays as given, and so do the persisted messages and the text the model reads.
+  content). A value that is not exactly a known id stays as given, and so do the persisted messages and the text the model reads. The text parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and the text the model reads are not changed.
   `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take a
   `HistoryDocuments` (the offered tool definitions and the document registry) for this.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
