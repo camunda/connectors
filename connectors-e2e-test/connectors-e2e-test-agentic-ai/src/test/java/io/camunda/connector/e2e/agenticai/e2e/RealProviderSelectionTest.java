@@ -190,6 +190,8 @@ class RealProviderSelectionTest {
   void shouldSelectOpenAiStructuredOutputWithToolOrchestration() {
     environment
         .set("OPENAI_API_KEY", "key")
+        .remove("OPENAI_FOUNDRY_API_KEY")
+        .remove("OPENAI_FOUNDRY_ENDPOINT")
         .set("REAL_LLM_PROVIDER_GROUP", "openai")
         .set("REQUIRE_NATIVE_LLM_PROVIDER", "true");
 
