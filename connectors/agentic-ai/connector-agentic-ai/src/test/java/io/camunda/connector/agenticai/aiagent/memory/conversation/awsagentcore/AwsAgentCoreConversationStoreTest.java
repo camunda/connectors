@@ -947,7 +947,7 @@ class AwsAgentCoreConversationStoreTest {
                   .isInstanceOfSatisfying(
                       TextContent.class,
                       text ->
-                          assertThat(DocumentReferenceXmlTag.documentRefOf(text))
+                          assertThat(DocumentReferenceXmlTag.documentIdOf(text))
                               .isEqualTo(entry.id()));
             });
 

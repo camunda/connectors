@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
  * Turns the persisted form of the documents in user messages into the form the model providers and
  * the agent instance history see: every document tag next to the content of its document.
  *
- * <p>The persisted form of a document is its tag only, a {@link TextContent} flagged with {@link
- * DocumentReferenceXmlTag#METADATA_DOCUMENT_REF}; the document is read from the {@link
+ * <p>The persisted form of a document is its tag only, a {@link TextContent} marked with {@link
+ * DocumentReferenceXmlTag#KIND_DOCUMENT_REFERENCE}; the document is read from the {@link
  * DocumentRegistry}. Expanding adds a {@link DocumentContent} after each flagged tag, unless one
  * for the same document already follows it. A document the registry does not know, or whose
  * reference cannot be read, leaves the tag alone. Only flagged text is expanded, so a document tag
@@ -84,9 +84,9 @@ public final class DocumentExpander {
       final var current = content.get(i);
       final var next = i + 1 < content.size() ? content.get(i + 1) : null;
       switch (current) {
-        case TextContent text when DocumentReferenceXmlTag.documentRefOf(text) != null -> {
+        case TextContent text when DocumentReferenceXmlTag.documentIdOf(text) != null -> {
           expanded.add(text);
-          final var id = Objects.requireNonNull(DocumentReferenceXmlTag.documentRefOf(text));
+          final var id = Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text));
           if (!(next instanceof DocumentContent following
               && isDocumentWithId(following.document(), id))) {
             final var document = rehydrate(registry, id);
@@ -125,7 +125,7 @@ public final class DocumentExpander {
   private static boolean endsWithTag(List<Content> content) {
     return !content.isEmpty()
         && content.getLast() instanceof TextContent text
-        && (DocumentReferenceXmlTag.documentRefOf(text) != null
+        && (DocumentReferenceXmlTag.documentIdOf(text) != null
             || DocumentReferenceXmlTag.isTag(text.text()));
   }
 

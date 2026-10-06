@@ -223,7 +223,7 @@ class LegacyDocumentConversationTest {
             new TextContent(
                 "<doc id=\"%s\" fileName=\"new.txt\" contentType=\"text/plain\" source=\"user_message\" />"
                     .formatted(newId),
-                Map.of("documentRef", newId)));
+                Map.of("kind", "document-reference", "documentId", newId)));
     assertThat(expandedNew.get(2)).isInstanceOf(DocumentContent.class);
 
     // the stored conversation keeps the messages as they were persisted

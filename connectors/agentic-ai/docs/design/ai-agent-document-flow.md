@@ -483,12 +483,12 @@ conversation without a stored registry.
 ### 4.1 Persisted form and provider form
 
 A document is persisted in a conversation once per message that introduces it, as its tag only: the
-composer stores a `TextContent` with the `<doc .../>` text and the metadata `{"documentRef": "<id>"}`
+composer stores a `TextContent` with the `<doc .../>` text and the metadata `{"kind": "document-reference", "documentId": "<id>"}`
 for every user prompt, tool call document and event document, and no `DocumentContent` next to it. The
 preamble texts (`Documents extracted from tool calls ...`, `Documents extracted from event data ...`) stay
 in front of the tags. The reference of the document lives in the registry (`AgentContext.documents`)
 only, in addition to the `ToolCallResultMessage` of a tool document, which is stored unchanged. The
-metadata is the only marker: `Content` is a sealed hierarchy, so a tag is a normal `TextContent`, and
+metadata (`kind` equal to `document-reference`) is the only marker: `Content` is a sealed hierarchy, so a tag is a normal `TextContent`, and
 text a user typed that happens to hold a `<doc/>` tag is never touched.
 
 The providers see another form. `AgentConversation.window` passes the windowed messages through

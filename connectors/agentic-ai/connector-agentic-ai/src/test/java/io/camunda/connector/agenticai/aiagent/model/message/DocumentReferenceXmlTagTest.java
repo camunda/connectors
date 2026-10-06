@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class DocumentReferenceXmlTagTest {
@@ -272,9 +273,13 @@ class DocumentReferenceXmlTagTest {
     final var content = tag.toContent();
 
     assertThat(content.text()).isEqualTo(tag.toXml());
-    assertThat(content.metadata()).containsExactly(entry("documentRef", "doc-1"));
-    assertThat(DocumentReferenceXmlTag.documentRefOf(content)).isEqualTo("doc-1");
-    assertThat(DocumentReferenceXmlTag.documentRefOf(TextContent.textContent(tag.toXml())))
+    assertThat(content.metadata())
+        .containsExactly(entry("kind", "document-reference"), entry("documentId", "doc-1"));
+    assertThat(DocumentReferenceXmlTag.documentIdOf(content)).isEqualTo("doc-1");
+    assertThat(DocumentReferenceXmlTag.documentIdOf(TextContent.textContent(tag.toXml()))).isNull();
+    assertThat(
+            DocumentReferenceXmlTag.documentIdOf(
+                new TextContent(tag.toXml(), Map.of("documentId", "doc-1"))))
         .isNull();
   }
 

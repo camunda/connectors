@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEnt
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -32,8 +33,8 @@ import org.jspecify.annotations.Nullable;
  * {@code event}) only for the other documents. A file name that equals the id (a document stored
  * without a name of its own) is omitted as well, it would only repeat the id.
  *
- * <p>The persisted form of a tag is a {@link TextContent} flagged with the id of its document in
- * the metadata {@value #METADATA_DOCUMENT_REF} (see {@link #toContent()}).
+ * <p>The persisted form of a tag is a {@link TextContent} whose metadata marks it as a {@value
+ * #KIND_DOCUMENT_REFERENCE} and carries the id of its document (see {@link #toContent()}).
  */
 public record DocumentReferenceXmlTag(
     String id,
@@ -43,8 +44,14 @@ public record DocumentReferenceXmlTag(
     @Nullable String toolName,
     @Nullable String toolCallId) {
 
-  /** Metadata key of a {@link TextContent} that holds the tag of the document with that id. */
-  public static final String METADATA_DOCUMENT_REF = "documentRef";
+  /** Metadata key that tells what kind of text a {@link TextContent} is. */
+  public static final String METADATA_KIND = "kind";
+
+  /** Value of {@link #METADATA_KIND} for the text that is the tag of a document. */
+  public static final String KIND_DOCUMENT_REFERENCE = "document-reference";
+
+  /** Metadata key of the id of the document whose tag the {@link TextContent} holds. */
+  public static final String METADATA_DOCUMENT_ID = "documentId";
 
   private static final Pattern DOC_TAG = Pattern.compile("\\s*<doc(\\s[^<>]*?)?\\s*/?>\\s*");
   private static final Pattern ATTRIBUTE =
@@ -92,12 +99,13 @@ public record DocumentReferenceXmlTag(
 
   /**
    * Returns the id of the document whose tag the content holds, or {@code null} when the content is
-   * not flagged as a document tag.
+   * not marked as a {@value #KIND_DOCUMENT_REFERENCE}.
    */
-  public static @Nullable String documentRefOf(TextContent content) {
+  public static @Nullable String documentIdOf(TextContent content) {
     final var metadata = content.metadata();
     return metadata != null
-            && metadata.get(METADATA_DOCUMENT_REF) instanceof String id
+            && KIND_DOCUMENT_REFERENCE.equals(metadata.get(METADATA_KIND))
+            && metadata.get(METADATA_DOCUMENT_ID) instanceof String id
             && !id.isBlank()
         ? id
         : null;
@@ -133,7 +141,11 @@ public record DocumentReferenceXmlTag(
 
   /** The persisted form of the tag: the tag text marked as a document reference of its document. */
   public TextContent toContent() {
-    return new TextContent(toXml(), Map.of(METADATA_DOCUMENT_REF, id));
+    // the order of the entries is part of the serialized form
+    final var metadata = new LinkedHashMap<String, Object>();
+    metadata.put(METADATA_KIND, KIND_DOCUMENT_REFERENCE);
+    metadata.put(METADATA_DOCUMENT_ID, id);
+    return new TextContent(toXml(), Collections.unmodifiableMap(metadata));
   }
 
   public String toXml() {

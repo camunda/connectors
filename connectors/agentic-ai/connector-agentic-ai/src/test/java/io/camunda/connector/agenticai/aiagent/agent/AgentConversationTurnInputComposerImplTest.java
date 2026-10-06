@@ -219,7 +219,8 @@ class AgentConversationTurnInputComposerImplTest {
 
   private static TextContent documentTag(Document document, String xmlFormat) {
     final var id = DocumentHandle.idFor(document);
-    return new TextContent(xmlFormat.formatted(id), Map.of("documentRef", id));
+    return new TextContent(
+        xmlFormat.formatted(id), Map.of("kind", "document-reference", "documentId", id));
   }
 
   @Test

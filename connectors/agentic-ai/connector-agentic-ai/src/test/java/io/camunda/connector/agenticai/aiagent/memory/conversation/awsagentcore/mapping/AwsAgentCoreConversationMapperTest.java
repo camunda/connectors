@@ -165,8 +165,10 @@ class AwsAgentCoreConversationMapperTest {
 
   @Test
   void shouldRoundTripTextContentWithMetadataInOrder() {
-    // given - a flagged document tag between plain texts keeps its metadata and its position
-    var tag = new TextContent("<doc id=\"d1\" />", Map.of("documentRef", "d1"));
+    // given - a document reference tag between plain texts keeps its metadata and its position
+    var tag =
+        new TextContent(
+            "<doc id=\"d1\" />", Map.of("kind", "document-reference", "documentId", "d1"));
     UserMessage original =
         UserMessage.builder()
             .content(List.of(textContent("before"), tag, textContent("after")))

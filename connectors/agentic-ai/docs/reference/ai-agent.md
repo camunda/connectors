@@ -1653,7 +1653,7 @@ These are used during discovery checking and tool call result transformation.
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
 extracts those documents into a synthetic follow-up `UserMessage` that holds one `<doc .../>` tag per
-document (a `TextContent` flagged with the metadata `documentRef`, the id of the document). The model
+document (a `TextContent` whose metadata marks it as a `document-reference` and holds the `documentId`). The model
 providers see the tag followed by a native `DocumentContent` block, added from the document registry when
 the conversation is windowed; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the
 document flow design notes, section 4.1.
