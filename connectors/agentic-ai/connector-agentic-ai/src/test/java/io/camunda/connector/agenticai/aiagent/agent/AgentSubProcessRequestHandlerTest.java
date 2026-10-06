@@ -50,7 +50,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -65,6 +65,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentContextDocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
@@ -72,6 +73,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEnt
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -96,6 +98,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -164,7 +167,7 @@ class AgentSubProcessRequestHandlerTest {
   @Spy
   private LocalToolCallHandler localToolCallHandler =
       new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())),
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
           TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -1042,7 +1045,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void runsTheRealCallOfABatchWithAReturnDocumentsCallAndRecordsTheSelectionImmediately() {
+  void runsTheRealCallOfABatchWithAReturnDocumentCallAndRecordsTheSelectionImmediately() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
@@ -1061,7 +1064,10 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag(documentId))));
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", tag(documentId)));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
@@ -1073,24 +1079,25 @@ class AgentSubProcessRequestHandlerTest {
     // the built-in tool is offered, but is neither persisted nor activated
     assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
         .extracting(ToolDefinition::name)
-        .contains(ReturnDocumentsTool.NAME);
+        .contains(ReturnDocumentTool.NAME);
     final var context = response.responseValue().context();
     assertThat(context.toolDefinitions())
         .extracting(ToolDefinition::name)
-        .doesNotContain(ReturnDocumentsTool.NAME);
+        .doesNotContain(ReturnDocumentTool.NAME);
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(otherCall));
     assertThat(response.elementActivations()).hasSize(1);
 
     // the selection is persisted with this job, the answer waits for the process result
-    assertThat(context.returnDocumentIds()).containsExactly(documentId);
+    assertThat(context.returnDocuments())
+        .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
     assertThat(context.pendingLocalToolCallResults())
         .singleElement()
         .satisfies(
             result -> {
               assertThat(result.id()).isEqualTo("call-1");
               assertThat(result.content())
-                  .isEqualTo("Selected 1 document(s) to return: " + documentId);
+                  .isEqualTo("Returned the document under the key 'report'.");
             });
   }
 
@@ -1114,7 +1121,10 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag(documentId))));
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", tag(documentId)));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1146,11 +1156,12 @@ class AgentSubProcessRequestHandlerTest {
                       TextContent.class,
                       text ->
                           assertThat(text.text())
-                              .isEqualTo("Selected 1 document(s) to return: " + documentId));
+                              .isEqualTo("Returned the document under the key 'report'."));
             });
 
     final var context = response.responseValue().context();
-    assertThat(context.returnDocumentIds()).containsExactly(documentId);
+    assertThat(context.returnDocuments())
+        .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
     assertThat(context.pendingLocalToolCallResults()).isEmpty();
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
@@ -1205,7 +1216,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void answersAReturnDocumentsCallWithAnUnknownIdWithAnErrorAndRecordsNothing() {
+  void answersAReturnDocumentCallWithAnUnknownIdWithAnErrorAndRecordsNothing() {
     final var document = createDocument("report data", "report.txt");
     mockSystemPrompt();
     mockProceedWithDocument(document);
@@ -1223,7 +1234,8 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of(tag("bogus"))));
+        new ToolCall(
+            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", tag("bogus")));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1251,19 +1263,19 @@ class AgentSubProcessRequestHandlerTest {
                         text ->
                             assertThat(text.text())
                                 .startsWith(
-                                    "Unknown document id 'bogus' for parameter 'ids[0]'.")));
-    assertThat(response.responseValue().context().returnDocumentIds()).isEmpty();
+                                    "Unknown document id 'bogus' for parameter 'document'.")));
+    assertThat(response.responseValue().context().returnDocuments()).isEmpty();
   }
 
   @Test
-  void doesNotOfferOrAnswerReturnDocumentsWithoutOptIn() {
+  void doesNotOfferOrAnswerReturnDocumentWithoutOptIn() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var returnCall =
-        new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of("ids", List.of("x")));
+        new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", "x"));
     mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(returnCall)).build());
     mockResponseHandler();
 
@@ -1272,7 +1284,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(1)).execute(any());
     assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
         .extracting(ToolDefinition::name)
-        .doesNotContain(ReturnDocumentsTool.NAME);
+        .doesNotContain(ReturnDocumentTool.NAME);
     // not offered, so the call is an ordinary (unknown) tool call for the process
     assertThat(response.responseValue().toolCalls()).hasSize(1);
   }
@@ -1284,14 +1296,15 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     mockChatModelExecution(assistantMessage("here you go"));
-    final var reference = Map.<String, Object>of("camunda.document.type", "camunda");
+    final var returned =
+        new ReturnedDocument(Map.<String, Object>of("camunda.document.type", "camunda"), "Report");
     when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
                     .context(i.getArgument(0, AgentConversation.class).toAgentContext())
                     .responseText("here you go")
-                    .documents(List.of(reference))
+                    .documents(new LinkedHashMap<>(Map.of("report", returned)))
                     .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -1299,7 +1312,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.variables().get("agent"))
         .isInstanceOfSatisfying(
             AgentSubProcessResponse.class,
-            agent -> assertThat(agent.documents()).containsExactly(reference));
+            agent -> assertThat(agent.documents()).containsExactly(Map.entry("report", returned)));
   }
 
   @Test

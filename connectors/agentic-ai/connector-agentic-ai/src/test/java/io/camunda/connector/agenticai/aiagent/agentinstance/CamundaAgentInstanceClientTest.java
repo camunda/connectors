@@ -45,7 +45,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -153,7 +153,7 @@ class CamundaAgentInstanceClientTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   private final LocalToolRegistry localToolRegistry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool()));
+      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool()));
 
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
@@ -869,7 +869,7 @@ class CamundaAgentInstanceClientTest {
       final var tools =
           List.of(
               ToolDefinition.builder().name("getWeather").description("d").build(),
-              new ReturnDocumentsTool().definition());
+              new ReturnDocumentTool().definition());
       final var configuration = configuration("Be nice.", tools);
 
       client.applyTurnStart(
@@ -884,7 +884,7 @@ class CamundaAgentInstanceClientTest {
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue().get(0).getTools())
           .extracting(AgentTool::getName, AgentTool::getElementId)
-          .containsExactly(tuple("getWeather", "getWeather"), tuple("return_documents", null));
+          .containsExactly(tuple("getWeather", "getWeather"), tuple("return_document", null));
     }
 
     @Test
@@ -1083,8 +1083,8 @@ class CamundaAgentInstanceClientTest {
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_documents")
-              .content("Selected 1 document(s) to return: doc-1")
+              .name("return_document")
+              .content("Returned the document under the key 'report'.")
               .completedAt(localCompletedAt)
               .build();
       final var processResult =
@@ -1114,8 +1114,8 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_documents")
-                              .arguments(Map.of("ids", List.of("doc-1")))
+                              .name("return_document")
+                              .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
                           ToolCall.builder()
                               .id("real")
@@ -1149,11 +1149,12 @@ class CamundaAgentInstanceClientTest {
                     .satisfies(
                         tc -> {
                           assertThat(tc.getToolCallId()).isEqualTo("local");
-                          assertThat(tc.getToolName()).isEqualTo("return_documents");
+                          assertThat(tc.getToolName()).isEqualTo("return_document");
                           // a local tool call has no BPMN element
                           assertThat(tc.getElementId()).isNull();
                           assertThat(tc.getArguments())
-                              .containsExactlyEntriesOf(Map.of("ids", List.of("doc-1")));
+                              .containsExactlyEntriesOf(
+                                  Map.of("key", "report", "document", "doc-1"));
                         });
               },
               real -> {
@@ -1402,8 +1403,8 @@ class CamundaAgentInstanceClientTest {
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_documents")
-              .content("Selected 1 document(s) to return: doc-1")
+              .name("return_document")
+              .content("Returned the document under the key 'report'.")
               .completedAt(completedAt)
               .build();
       final var realResult =
@@ -1423,8 +1424,8 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_documents")
-                              .arguments(Map.of("ids", List.of("doc-1")))
+                              .name("return_document")
+                              .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
                           ToolCall.builder()
                               .id("real")
@@ -1502,15 +1503,15 @@ class CamundaAgentInstanceClientTest {
                                   .build()),
                       DocumentSource.userMessage(null))));
       final var reference = earlyRegistry.findById(documentId).orElseThrow().reference();
-      final var returnDocuments = new ReturnDocumentsTool().definition();
-      final var early = new HistoryDocuments(List.of(returnDocuments), earlyRegistry);
-      final var later = new HistoryDocuments(List.of(returnDocuments), laterRegistry);
+      final var returnDocument = new ReturnDocumentTool().definition();
+      final var early = new HistoryDocuments(List.of(returnDocument), earlyRegistry);
+      final var later = new HistoryDocuments(List.of(returnDocument), laterRegistry);
 
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_documents")
-              .content("Selected 1 document(s) to return: " + documentId)
+              .name("return_document")
+              .content("Returned the document under the key 'report'.")
               .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
               .build();
       final var assistantTurn =
@@ -1522,13 +1523,13 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_documents")
+                              .name("return_document")
                               .arguments(
                                   Map.of(
-                                      "ids",
-                                      List.of(
-                                          "<doc id=\"" + documentId + "\" />",
-                                          "<doc id=\"unknown\" />")))
+                                      "key",
+                                      "report",
+                                      "document",
+                                      "<doc id=\"" + documentId + "\" />"))
                               .build()))
                   .build(),
               AgentMetrics.empty(),
@@ -1567,7 +1568,7 @@ class CamundaAgentInstanceClientTest {
       final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
       final var earlyResult = historyCaptor.getAllValues().get(1).getFirst();
       final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
-      final var expectedArguments = Map.of("ids", List.of(reference, "<doc id=\"unknown\" />"));
+      final var expectedArguments = Map.of("key", "report", "document", reference);
       assertThat(assistantItem.getToolCalls().getFirst().getArguments())
           .isEqualTo(expectedArguments);
       assertThat(earlyResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);

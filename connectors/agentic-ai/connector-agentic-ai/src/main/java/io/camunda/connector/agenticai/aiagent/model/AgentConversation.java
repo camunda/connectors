@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -22,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -304,9 +306,9 @@ public final class AgentConversation {
     return DocumentRegistry.of(currentContext.documents());
   }
 
-  /** Returns the ids of the documents selected for the final response so far. */
-  public List<String> returnDocumentIds() {
-    return currentContext.returnDocumentIds();
+  /** Returns the documents selected for the final response so far, by key. */
+  public Map<String, SelectedDocument> returnDocuments() {
+    return currentContext.returnDocuments();
   }
 
   /**

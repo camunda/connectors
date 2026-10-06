@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
@@ -26,8 +26,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -93,9 +93,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     if (toolCalls.isEmpty()) {
       // a final response consumes the selection of returned documents
       if (Boolean.TRUE.equals(responseConfiguration.includeDocuments())) {
-        builder.documents(selectedDocumentReferences(conversation));
+        builder.documents(returnedDocuments(conversation));
       }
-      builder.context(agentContext.withReturnDocumentIds(List.of()));
+      builder.context(agentContext.withReturnDocuments(new LinkedHashMap<>()));
     }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
@@ -108,12 +108,22 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     return builder.build();
   }
 
-  private List<Map<String, Object>> selectedDocumentReferences(AgentConversation conversation) {
+  private LinkedHashMap<String, ReturnedDocument> returnedDocuments(
+      AgentConversation conversation) {
     final var registry = conversation.documentRegistry();
-    return conversation.returnDocumentIds().stream()
-        .flatMap(id -> registry.findById(id).stream())
-        .map(DocumentRegistryEntry::reference)
-        .toList();
+    final var returned = new LinkedHashMap<String, ReturnedDocument>();
+    conversation
+        .returnDocuments()
+        .forEach(
+            (key, selected) ->
+                registry
+                    .findById(selected.document())
+                    .ifPresent(
+                        entry ->
+                            returned.put(
+                                key,
+                                new ReturnedDocument(entry.reference(), selected.description()))));
+    return returned;
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {

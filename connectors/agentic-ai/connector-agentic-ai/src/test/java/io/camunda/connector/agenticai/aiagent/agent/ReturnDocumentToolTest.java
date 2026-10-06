@@ -14,7 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -37,14 +38,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
-/** The {@code return_documents} tool run by the framework, the way the agent loop runs it. */
-class ReturnDocumentsToolTest {
+/** The {@code return_document} tool run by the framework, the way the agent loop runs it. */
+class ReturnDocumentToolTest {
 
   private final LocalToolCallHandler handler =
       new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())),
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
           TestObjectMapperSupplier.INSTANCE);
 
   private final Document report = createDocument("report", "report.txt");
@@ -83,60 +85,86 @@ class ReturnDocumentsToolTest {
           new AgentTaskResponseConfiguration(null, null, false));
 
   @Test
-  void definitionRestrictsTheToolToDocumentsTheUserShouldReceive() {
-    final var definition = new ReturnDocumentsTool().definition();
+  void definitionDescribesOneDocumentPerCallUnderAKey() {
+    final var definition = new ReturnDocumentTool().definition();
 
     assertThat(definition.description())
         .isEqualTo(
-            "Attaches documents to your final response. Use this only for documents the user"
+            "Attaches one document to your final response. Use this only for a document the user"
                 + " should receive in your answer; do not use it for documents you only pass to"
-                + " other tools. Pass the <doc id=\"...\" /> tags; the documents accumulate over"
-                + " several calls.");
+                + " other tools. Call it once per document. The key is a stable identifier the"
+                + " process uses to find the document; it starts with a letter or an underscore and"
+                + " continues with letters, digits, underscores or hyphens. The description is"
+                + " optional. Calling it again with the same key replaces the document returned"
+                + " under that key.");
+    assertThat(definition.inputSchema().get("required")).isEqualTo(List.of("key", "document"));
+    assertThat(definition.inputSchema().get("properties"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsOnlyKeys("key", "document", "description");
     assertThat(definition.inputSchema().toString()).contains("format=camunda-document");
   }
 
   @Test
   void isOfferedOnlyWhileTheResponseConfigurationOptsIn() {
     assertThat(handler.availableToolDefinitions(ENABLED))
-        .containsExactly(new ReturnDocumentsTool().definition());
+        .containsExactly(new ReturnDocumentTool().definition());
     assertThat(handler.availableToolDefinitions(DISABLED)).isEmpty();
   }
 
   @Test
-  void answersAValidCallWithTheSelectionAndSelectsTheDocuments() {
-    final var split =
-        run(ENABLED, call("1", Map.of("ids", List.of(tag(summaryId), tag(reportId)))));
-
-    assertThat(split.localResults())
-        .extracting(ToolCallResult::content)
-        .containsExactly("Selected 2 document(s) to return: %s, %s".formatted(summaryId, reportId));
-    assertThat(split.conversation().returnDocumentIds()).containsExactly(summaryId, reportId);
-  }
-
-  @Test
-  void dropsDuplicateIdsOfOneCall() {
-    final var split = run(ENABLED, call("1", Map.of("ids", List.of(tag(reportId), tag(reportId)))));
-
-    assertThat(split.localResults())
-        .extracting(ToolCallResult::content)
-        .containsExactly("Selected 1 document(s) to return: " + reportId);
-    assertThat(split.conversation().returnDocumentIds()).containsExactly(reportId);
-  }
-
-  @Test
-  void accumulatesTheSelectionOverTheCallsOfABatchAsAnOrderedUnion() {
+  void answersAValidCallAndSelectsTheDocumentUnderItsKey() {
     final var split =
         run(
             ENABLED,
-            call("1", Map.of("ids", List.of(tag(summaryId)))),
-            call("2", Map.of("ids", List.of(tag(reportId), tag(summaryId)))));
+            call(
+                "1", Map.of("key", "summary", "document", tag(summaryId), "description", "Short")));
 
-    assertThat(split.conversation().returnDocumentIds()).containsExactly(summaryId, reportId);
+    assertThat(split.localResults())
+        .extracting(ToolCallResult::content)
+        .containsExactly("Returned the document under the key 'summary'.");
+    assertThat(split.conversation().returnDocuments())
+        .containsExactly(Map.entry("summary", new SelectedDocument(summaryId, "Short")));
+  }
+
+  @Test
+  void theDescriptionIsOptional() {
+    final var split = run(ENABLED, call("1", Map.of("key", "report", "document", tag(reportId))));
+
+    assertThat(split.conversation().returnDocuments())
+        .containsExactly(Map.entry("report", new SelectedDocument(reportId, null)));
+  }
+
+  @Test
+  void keepsTheCallOrderOfTheKeysOverTheCallsOfABatch() {
+    final var split =
+        run(
+            ENABLED,
+            call("1", Map.of("key", "b", "document", tag(summaryId))),
+            call("2", Map.of("key", "a", "document", tag(reportId))));
+
+    assertThat(split.conversation().returnDocuments().keySet()).containsExactly("b", "a");
+  }
+
+  @Test
+  void aKeyThatIsAlreadySelectedIsReplacedInPlace() {
+    final var split =
+        run(
+            ENABLED,
+            call("1", Map.of("key", "first", "document", tag(reportId))),
+            call("2", Map.of("key", "second", "document", tag(summaryId))),
+            call(
+                "3",
+                Map.of("key", "first", "document", tag(summaryId), "description", "Replaced")));
+
+    assertThat(split.conversation().returnDocuments())
+        .containsExactly(
+            Map.entry("first", new SelectedDocument(summaryId, "Replaced")),
+            Map.entry("second", new SelectedDocument(summaryId, null)));
   }
 
   @Test
   void answersAnUnknownIdWithAnErrorListingTheKnownDocumentsAndSelectsNothing() {
-    final var split = run(ENABLED, call("1", Map.of("ids", List.of(tag(reportId), tag("bogus")))));
+    final var split = run(ENABLED, call("1", Map.of("key", "k", "document", tag("bogus"))));
 
     assertThat(split.localResults())
         .singleElement()
@@ -144,46 +172,65 @@ class ReturnDocumentsToolTest {
             result ->
                 assertThat(result.content().toString())
                     .startsWith(
-                        "Unknown document id 'bogus' for parameter 'ids[1]'. Known documents:")
+                        "Unknown document id 'bogus' for parameter 'document'. Known documents:")
                     .contains(reportId, summaryId));
-    assertThat(split.conversation().returnDocumentIds()).isEmpty();
+    assertThat(split.conversation().returnDocuments()).isEmpty();
   }
 
   @Test
-  void answersAMissingOrEmptyIdsParameterWithAnError() {
-    final var withNull = new HashMap<String, Object>();
-    withNull.put("ids", null);
+  void rejectsABareIdThatIsNotATag() {
+    final var split = run(ENABLED, call("1", Map.of("key", "k", "document", reportId)));
 
-    for (final var arguments :
-        List.<Map<String, Object>>of(Map.of(), withNull, Map.of("ids", List.of()))) {
-      final var split = run(ENABLED, call("1", arguments));
+    assertThat(split.localResults())
+        .singleElement()
+        .satisfies(
+            result -> assertThat(result.content().toString()).contains("document", "<doc id="));
+    assertThat(split.conversation().returnDocuments()).isEmpty();
+  }
+
+  @Test
+  void answersAnInvalidKeyWithAnErrorAndSelectsNothing() {
+    for (final var key : List.of("", "1abc", "a b", "a.b", "-a")) {
+      final var split = run(ENABLED, call("1", Map.of("key", key, "document", tag(reportId))));
 
       assertThat(split.localResults())
           .singleElement()
           .satisfies(
               result ->
                   assertThat(result.content().toString())
-                      .startsWith(
-                          "Parameter 'ids' must be a non-empty array of <doc id=\"...\" /> tags."));
-      assertThat(split.conversation().returnDocumentIds()).isEmpty();
+                      .startsWith("Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*"));
+      assertThat(split.conversation().returnDocuments()).isEmpty();
     }
   }
 
   @Test
-  void answersANonArrayIdsParameterWithAnError() {
-    final var split = run(ENABLED, call("1", Map.of("ids", tag(reportId))));
+  void acceptsKeysWithUnderscoresDigitsAndHyphens() {
+    final var split =
+        run(ENABLED, call("1", Map.of("key", "_report-2024_final", "document", tag(reportId))));
 
-    assertThat(split.localResults())
-        .singleElement()
-        .satisfies(
-            result ->
-                assertThat(result.content().toString())
-                    .startsWith("Parameter 'ids' must be an array."));
+    assertThat(split.conversation().returnDocuments()).containsOnlyKeys("_report-2024_final");
+  }
+
+  @Test
+  void answersAMissingKeyOrDocumentWithAnError() {
+    final var nullKey = new HashMap<String, Object>();
+    nullKey.put("key", null);
+    nullKey.put("document", tag(reportId));
+
+    for (final var arguments :
+        List.<Map<String, Object>>of(
+            Map.of("document", tag(reportId)), nullKey, Map.of("key", "k"))) {
+      final var split = run(ENABLED, call("1", arguments));
+
+      assertThat(split.localResults()).singleElement();
+      assertThat(split.localResults().get(0).content().toString()).contains("Parameter");
+      assertThat(split.conversation().returnDocuments()).isEmpty();
+    }
   }
 
   @Test
   void leavesTheCallToTheProcessWhenTheToolIsNotOffered() {
-    final var call = call("1", Map.of("ids", List.of(tag(reportId))));
+    final var call = call("1", Map.of("key", "k", "document", tag(reportId)));
 
     final var split = run(DISABLED, call);
 
@@ -196,21 +243,22 @@ class ReturnDocumentsToolTest {
     final var split =
         run(
             ENABLED,
-            call("r1", Map.of("ids", List.of(tag(reportId)))),
-            call("r2", Map.of("ids", List.of(tag("bogus")))),
+            call("r1", Map.of("key", "report", "document", tag(reportId))),
+            call("r2", Map.of("key", "other", "document", tag("bogus"))),
             new ToolCall("t1", "getWeather", Map.of("location", "MUC")));
 
-    assertThat(split.conversation().returnDocumentIds()).containsExactly(reportId);
+    assertThat(split.conversation().returnDocuments())
+        .containsExactly(Map.entry("report", new SelectedDocument(reportId, null)));
     assertThat(split.localResults()).extracting(ToolCallResult::id).containsExactly("r1", "r2");
     assertThat(split.remainingCalls()).extracting(ToolCall::id).containsExactly("t1");
     assertThat(split.localResults().get(0).content())
-        .isEqualTo("Selected 1 document(s) to return: " + reportId);
+        .isEqualTo("Returned the document under the key 'report'.");
     assertThat(split.localResults().get(1).content().toString())
-        .startsWith("Unknown document id 'bogus' for parameter 'ids[0]'.");
+        .startsWith("Unknown document id 'bogus' for parameter 'document'.");
   }
 
   private static ToolCall call(String id, Map<String, Object> arguments) {
-    return new ToolCall(id, ReturnDocumentsTool.NAME, arguments);
+    return new ToolCall(id, ReturnDocumentTool.NAME, arguments);
   }
 
   private LocalToolCallHandler.LocalToolCallSplit run(

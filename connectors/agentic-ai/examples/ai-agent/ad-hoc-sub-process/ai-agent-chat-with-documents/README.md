@@ -13,12 +13,15 @@ It demonstrates:
 - **Document registry**: every document of the conversation (prompt, tool results) is remembered in the agent context and
   shown to the model as a `<doc id="..." fileName="..." contentType="..."/>` tag, independent of the memory store and the
   context window.
-- **`return_documents`**: with `Include documents` on (`data.response.includeDocuments`), the agent gets a built-in tool
-  to hand documents back. They arrive in `agent.documents` and are shown in the `User Feedback` form.
+- **`return_document`**: with `Include documents` on (`data.response.includeDocuments`), the agent gets a built-in tool
+  to hand a document back, called once per document with a key, the document and an optional description. They arrive in
+  `agent.documents`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
+  process reads one document as `agent.documents.<key>.document` and all documents as
+  `get entries(agent.documents).value.document`.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
   documents it still knows by tag.
-- **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `return_documents`
-  keeps the process tool open while the local result of `return_documents` is already visible in the agent instance history.
+- **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `return_document`
+  keeps the process tool open while the local result of `return_document` is already visible in the agent instance history.
 - **Memory stores**: `in-process` (default), `camunda-document` and `aws-agentcore` all carry the registry.
 
 ## Process
@@ -92,12 +95,12 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
 
 1. **Tool schema.** Start with `List your tools and their parameters.` Check the answer: `Upload_File` has a string
    parameter `document` whose description ends with `Pass the <doc id="..." /> tag of a known document, copied from the conversation.`; `Upload_Many`
-   has an array of strings; `return_documents` is listed.
+   has an array of strings; `return_document` is listed.
 2. **Download and upload.** Prompt: `Download <baseUrl>/image/png and upload it with the description "logo".` Check:
    `Download_File` returned a document (`toolCallResult.document`, a Camunda document reference), `Upload_File` has status
    200 and `receivedFiles` contains the field `file`, the log of the file server shows a request of about 8 KB.
-3. **Return documents.** Continue with `Give me the file back.` Check: the agent calls `return_documents`; after the
-   next feedback task `agent.documents` holds one document reference and the `User Feedback` form shows it
+3. **Return a document.** Continue with `Give me the file back.` Check: the agent calls `return_document`; after the
+   next feedback task `agent.documents` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
    (preview/download).
 4. **Unknown id.** Prompt: `Upload the document with the id "does-not-exist".` Check: the agent instance history shows an
    error tool result listing the known documents, no `Upload_File` element instance was started, and the agent retries
@@ -108,12 +111,12 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    scenario 2 and then ask several unrelated questions followed by `Upload the file you downloaded earlier.` Check:
    the agent still uploads it by its tag (the eviction note lists the document) and the call succeeds.
 7. **Mixed batch.** Prompt: `Call Slow_Tool and in the same step return the downloaded file.` (after scenario 2). Check:
-   `Slow_Tool` stays active; the agent instance history already shows the `return_documents` result while the job of the
+   `Slow_Tool` stays active; the agent instance history already shows the `return_document` result while the job of the
    agent has not continued. Complete the `Slow tool` task in Tasklist; the agent continues and answers.
 8. **User prompt document.** Start a new instance, pick a file in the start form and ask `Upload the attached file.`
    Check: no download step is needed, `Upload_File` receives the prompt document, `agent.context.documents` lists it.
    Then set `Include documents` of `AI Agent` to `false` (`data.response.includeDocuments`), redeploy and ask the agent to
-   return the file: `return_documents` is not offered and `agent.documents` stays empty.
+   return the file: `return_document` is not offered and `agent.documents` stays empty.
 
 Repeat scenario 2 and 3 with `data.memory.storage.type` set to `camunda-document` (`data.memory.storage.timeToLive`
 `PT1H`) to check the registry with another memory store.

@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -47,7 +47,7 @@ class AgentToolsResolverTest {
         new AgentToolsResolverImpl(
             toolsSchemaResolver,
             gatewayToolHandlers,
-            new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())));
+            new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())));
   }
 
   @Nested
@@ -55,7 +55,7 @@ class AgentToolsResolverTest {
 
     private static final ToolDefinition RESERVED_TOOL =
         ToolDefinition.builder()
-            .name("return_documents")
+            .name("return_document")
             .description("Clashes with the built-in tool")
             .inputSchema(Map.of("type", "object"))
             .build();
@@ -71,7 +71,7 @@ class AgentToolsResolverTest {
               ConnectorException.class,
               e -> {
                 assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME");
-                assertThat(e.getMessage()).contains("return_documents", "reserved");
+                assertThat(e.getMessage()).contains("return_document", "reserved");
               });
     }
 
@@ -84,7 +84,7 @@ class AgentToolsResolverTest {
                   List.of(
                       GatewayToolDefinition.builder()
                           .type("mcp")
-                          .name("return_documents")
+                          .name("return_document")
                           .build())));
 
       assertThatThrownBy(

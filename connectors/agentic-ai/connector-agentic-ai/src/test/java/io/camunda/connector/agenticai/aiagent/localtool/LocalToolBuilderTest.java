@@ -81,14 +81,17 @@ class LocalToolBuilderTest {
   }
 
   @Test
-  void theReturnDocumentsDefinitionKeepsADeterministicKeyOrder() {
-    final var schema = new ReturnDocumentsTool().definition().inputSchema();
+  void theReturnDocumentDefinitionKeepsADeterministicKeyOrder() {
+    final var schema = new ReturnDocumentTool().definition().inputSchema();
 
     assertThat(schema.keySet()).containsExactly("type", "properties", "required");
     @SuppressWarnings("unchecked")
-    final var ids =
-        (Map<String, Object>) ((Map<String, Object>) schema.get("properties")).get("ids");
-    assertThat(ids.keySet()).containsExactly("type", "description", "items");
+    final var properties = (Map<String, Object>) schema.get("properties");
+    assertThat(properties.keySet()).containsExactly("key", "document", "description");
+    assertThat(((Map<String, Object>) properties.get("key")).keySet())
+        .containsExactly("type", "description");
+    assertThat(((Map<String, Object>) properties.get("document")).keySet())
+        .containsExactly("type", "format", "description");
   }
 
   @Test
@@ -119,7 +122,7 @@ class LocalToolBuilderTest {
 
   @Test
   void usesAReadyMadeDefinitionAsIs() {
-    final var definition = new ReturnDocumentsTool().definition();
+    final var definition = new ReturnDocumentTool().definition();
 
     final var tool = LocalTool.builder(definition).handler((call, context) -> null);
 

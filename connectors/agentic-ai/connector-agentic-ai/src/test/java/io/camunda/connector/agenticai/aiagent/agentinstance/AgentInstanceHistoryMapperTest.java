@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
@@ -59,7 +59,7 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class),
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool())),
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
           new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
 
   @Test
@@ -160,14 +160,15 @@ class AgentInstanceHistoryMapperTest {
     final var toolCall =
         ToolCall.builder()
             .id("call-1")
-            .name("return_documents")
-            .arguments(Map.of("ids", List.of("a")))
+            .name("return_document")
+            .arguments(Map.of("key", "report", "document", "a"))
             .build();
     final var result =
         ToolCallResultContent.builder()
             .id("call-1")
-            .name("return_documents")
-            .content(List.of(TextContent.textContent("Selected 1 document(s) to return: a")))
+            .name("return_document")
+            .content(
+                List.of(TextContent.textContent("Returned the document under the key 'report'.")))
             .completedAt(TOOL_RESULT_COMPLETED_AT)
             .build();
 
@@ -185,7 +186,7 @@ class AgentInstanceHistoryMapperTest {
         .singleElement()
         .satisfies(
             call -> {
-              assertThat(call.getToolName()).isEqualTo("return_documents");
+              assertThat(call.getToolName()).isEqualTo("return_document");
               assertThat(call.getElementId()).isNull();
             });
     assertThat(items)
@@ -199,15 +200,15 @@ class AgentInstanceHistoryMapperTest {
                       AgentInstanceHistoryContent.TextContent.class,
                       text ->
                           assertThat(text.getText())
-                              .isEqualTo("Selected 1 document(s) to return: a"));
+                              .isEqualTo("Returned the document under the key 'report'."));
               assertThat(item.toolCalls())
                   .singleElement()
                   .satisfies(
                       call -> {
-                        assertThat(call.getToolName()).isEqualTo("return_documents");
+                        assertThat(call.getToolName()).isEqualTo("return_document");
                         assertThat(call.getToolCallId()).isEqualTo("call-1");
                         assertThat(call.getElementId()).isNull();
-                        assertThat(call.getArguments()).containsEntry("ids", List.of("a"));
+                        assertThat(call.getArguments()).containsEntry("key", "report");
                       });
             });
   }
@@ -317,11 +318,11 @@ class AgentInstanceHistoryMapperTest {
       final var call =
           ToolCall.builder()
               .id("call-2")
-              .name("return_documents")
-              .arguments(Map.of("ids", List.of(tag(documentId))))
+              .name("return_document")
+              .arguments(Map.of("key", "report", "document", tag(documentId)))
               .build();
 
-      // return_documents is not among the offered tool definitions
+      // return_document is not among the offered tool definitions
       final var calls =
           mapper.assistantToolCalls(
               AssistantMessage.builder().toolCalls(List.of(call)).build(), documents);
@@ -330,7 +331,8 @@ class AgentInstanceHistoryMapperTest {
           .singleElement()
           .satisfies(
               reported ->
-                  assertThat(reported.getArguments()).isEqualTo(Map.of("ids", List.of(reference))));
+                  assertThat(reported.getArguments())
+                      .isEqualTo(Map.of("key", "report", "document", reference)));
     }
 
     @Test

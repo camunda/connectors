@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEnt
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -31,6 +32,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -234,12 +236,15 @@ class AgentConversationTest {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
     var updated =
-        conv.withContextUpdate(context -> context.withReturnDocumentIds(List.of("b", "a")))
+        conv.withContextUpdate(
+                context ->
+                    context.withReturnDocuments(
+                        new LinkedHashMap<>(Map.of("b", new SelectedDocument("doc-b", null)))))
             .withContextUpdate(context -> context.withProperty("note", "x"));
 
-    assertThat(conv.returnDocumentIds()).isEmpty();
-    assertThat(updated.returnDocumentIds()).containsExactly("b", "a");
-    assertThat(updated.toAgentContext().returnDocumentIds()).containsExactly("b", "a");
+    assertThat(conv.returnDocuments()).isEmpty();
+    assertThat(updated.returnDocuments()).containsOnlyKeys("b");
+    assertThat(updated.toAgentContext().returnDocuments()).containsOnlyKeys("b");
     assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by an update
     assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());

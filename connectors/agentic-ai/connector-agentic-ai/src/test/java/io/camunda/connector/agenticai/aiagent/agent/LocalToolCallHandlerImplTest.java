@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolResult;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolSchema;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.localtool.SaveNoteTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -368,8 +368,8 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void aReturnDocumentsToolCanBeRegisteredNextToOtherTools() {
-    final var both = handlerOf(new ReturnDocumentsTool(), SaveNoteTool.create());
+  void aReturnDocumentToolCanBeRegisteredNextToOtherTools() {
+    final var both = handlerOf(new ReturnDocumentTool(), SaveNoteTool.create());
 
     assertThat(both.availableToolDefinitions(WITH_MEMORY))
         .extracting(ToolDefinition::name)

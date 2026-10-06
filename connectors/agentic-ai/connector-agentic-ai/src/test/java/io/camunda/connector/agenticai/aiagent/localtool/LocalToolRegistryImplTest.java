@@ -42,12 +42,12 @@ class LocalToolRegistryImplTest {
           new AgentTaskResponseConfiguration(null, null, true));
 
   private final LocalToolRegistry registry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool(), SaveNoteTool.create()));
+      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
 
   @Test
   void reservesTheNamesOfAllRegisteredToolsWhetherAvailableOrNot() {
     assertThat(registry.toolNames())
-        .containsExactlyInAnyOrder(ReturnDocumentsTool.NAME, SaveNoteTool.NAME);
+        .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, SaveNoteTool.NAME);
   }
 
   @Test
@@ -58,7 +58,7 @@ class LocalToolRegistryImplTest {
         .containsExactly(SaveNoteTool.NAME);
     assertThat(registry.availableToolDefinitions(RETURNING_DOCUMENTS))
         .extracting(definition -> definition.name())
-        .containsExactly(ReturnDocumentsTool.NAME);
+        .containsExactly(ReturnDocumentTool.NAME);
   }
 
   @Test

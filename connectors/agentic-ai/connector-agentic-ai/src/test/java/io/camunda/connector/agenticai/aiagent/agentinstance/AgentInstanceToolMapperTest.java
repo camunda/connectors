@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class AgentInstanceToolMapperTest {
 
   private final LocalToolRegistry localToolRegistry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentsTool()));
+      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool()));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
   private final AgentInstanceToolMapper mapper =
@@ -53,14 +53,14 @@ class AgentInstanceToolMapperTest {
 
   @Test
   void localToolHasNoElementId() {
-    final var mapped = mapper.mapTools(List.of(new ReturnDocumentsTool().definition()));
+    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()));
 
     assertThat(mapped)
         .singleElement()
         .satisfies(
             agentTool -> {
-              assertThat(agentTool.getName()).isEqualTo("return_documents");
-              assertThat(agentTool.getDescription()).contains("Attaches documents");
+              assertThat(agentTool.getName()).isEqualTo("return_document");
+              assertThat(agentTool.getDescription()).contains("Attaches one document");
               assertThat(agentTool.getElementId()).isNull();
             });
   }

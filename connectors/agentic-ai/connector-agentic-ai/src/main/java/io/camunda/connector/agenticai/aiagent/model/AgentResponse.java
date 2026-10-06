@@ -18,6 +18,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.generator.java.annotation.DataExample;
+import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -30,8 +32,16 @@ public record AgentResponse(
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
     @Nullable Object responseJson,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Map<String, Object>> documents)
+    // the returned documents by key, in call order; a LinkedHashMap because the record builder
+    // copies a Map into an immutable map of unspecified iteration order
+    @RecordBuilder.Initializer(source = AgentResponse.class, value = "noDocuments")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        LinkedHashMap<String, ReturnedDocument> documents)
     implements AgentResponseBuilder.With {
+
+  static LinkedHashMap<String, ReturnedDocument> noDocuments() {
+    return new LinkedHashMap<>();
+  }
 
   public static AgentResponseBuilder builder() {
     return AgentResponseBuilder.builder();
@@ -132,15 +142,20 @@ public record AgentResponse(
         .context(exampleResultWithTextResponse().context())
         .responseText("The report is attached.")
         .documents(
-            List.of(
-                Map.ofEntries(
-                    Map.entry("camunda.document.type", "camunda"),
-                    Map.entry("storeId", "in-memory"),
-                    Map.entry("documentId", "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10"),
-                    Map.entry("contentHash", "9f86d081884c7d659a2feaa0c55ad015"),
-                    Map.entry(
-                        "metadata",
-                        Map.of("contentType", "application/pdf", "fileName", "report.pdf")))))
+            new LinkedHashMap<>(
+                Map.of(
+                    "report",
+                    new ReturnedDocument(
+                        Map.ofEntries(
+                            Map.entry("camunda.document.type", "camunda"),
+                            Map.entry("storeId", "in-memory"),
+                            Map.entry("documentId", "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10"),
+                            Map.entry("contentHash", "9f86d081884c7d659a2feaa0c55ad015"),
+                            Map.entry(
+                                "metadata",
+                                Map.of(
+                                    "contentType", "application/pdf", "fileName", "report.pdf"))),
+                        "The quarterly report"))))
         .build();
   }
 }

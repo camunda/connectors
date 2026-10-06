@@ -16,9 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -177,16 +179,16 @@ class AgentContextTest {
   }
 
   @Test
-  void returnDocumentIdsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+  void returnDocumentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
       throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.returnDocumentIds()).isEmpty();
+    assertThat(context.returnDocuments()).isEmpty();
 
-    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("returnDocumentIds");
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("returnDocuments");
   }
 
   @Test
-  void agentContextWithoutReturnDocumentIdsFieldBindsToEmptyList() throws JsonProcessingException {
+  void agentContextWithoutReturnDocumentsFieldBindsToEmptyMap() throws JsonProcessingException {
     final var json =
         """
         {
@@ -199,19 +201,28 @@ class AgentContextTest {
 
     final var context = objectMapper.readValue(json, AgentContext.class);
 
-    assertThat(context.returnDocumentIds()).isEmpty();
+    assertThat(context.returnDocuments()).isEmpty();
     assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
   }
 
   @Test
-  void returnDocumentIdsAreSerializedAndDeserialized() throws JsonProcessingException {
-    final var context = AgentContext.builder().returnDocumentIds(List.of("doc-2", "doc-1")).build();
+  void returnDocumentsAreSerializedAndDeserializedInInsertionOrder()
+      throws JsonProcessingException {
+    final var selection = new LinkedHashMap<String, SelectedDocument>();
+    for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
+      selection.put(key, new SelectedDocument("doc-" + key, null));
+    }
+    selection.put("alpha", new SelectedDocument("doc-alpha-2", "Replaced"));
+    final var context = AgentContext.builder().returnDocuments(selection).build();
 
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
-    assertThat(serialized).contains("\"returnDocumentIds\":[\"doc-2\",\"doc-1\"]");
-    assertThat(deserialized.returnDocumentIds()).containsExactly("doc-2", "doc-1");
+    assertThat(serialized)
+        .contains("\"returnDocuments\":{\"zeta\":{\"document\":\"doc-zeta\"},\"alpha\":");
+    assertThat(serialized).contains("{\"document\":\"doc-alpha-2\",\"description\":\"Replaced\"}");
+    assertThat(deserialized.returnDocuments().keySet())
+        .containsExactly("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta");
     assertThat(deserialized).isEqualTo(context);
   }
 
@@ -249,8 +260,8 @@ class AgentContextTest {
     final var textResult =
         ToolCallResult.builder()
             .id("call-1")
-            .name("return_documents")
-            .content("Selected 1 document(s) to return: doc-1")
+            .name("return_document")
+            .content("Returned the document under the key 'report'.")
             .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
             .build();
     final var structuredResult =
@@ -291,7 +302,7 @@ class AgentContextTest {
                     toolDefinitions,
                     InProcessConversationContext.builder("test-conversation").build(),
                     List.of(),
-                    List.of(),
+                    new LinkedHashMap<>(),
                     List.of(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)

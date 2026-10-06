@@ -14,8 +14,8 @@ public interface ResponseConfiguration {
   @Nullable Boolean includeAssistantMessage();
 
   /**
-   * Whether the agent offers the built-in {@code return_documents} tool and returns the selected
-   * documents with its final response.
+   * Whether the agent offers the built-in {@code return_document} tool and returns the selected
+   * documents, by key, with its final response.
    */
   @Nullable Boolean includeDocuments();
 }

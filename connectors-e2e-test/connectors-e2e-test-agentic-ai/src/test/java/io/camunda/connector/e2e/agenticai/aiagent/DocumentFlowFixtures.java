@@ -25,6 +25,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import java.io.IOException;
@@ -99,43 +100,46 @@ public final class DocumentFlowFixtures {
             "{\"document\": \"%s\"}".formatted(docTag(documentId))));
   }
 
-  public static Turn returnDocumentsTurn() {
+  /** The key and the description of the document the model returns. */
+  public static final String RETURN_KEY = "report";
+
+  public static final String RETURN_DESCRIPTION = "The downloaded document";
+
+  private static final String RETURN_ARGUMENTS =
+      "{\"key\": \"%s\", \"document\": \"%%s\", \"description\": \"%s\"}"
+          .formatted(RETURN_KEY, RETURN_DESCRIPTION);
+
+  public static Turn returnDocumentTurn() {
     return Turn.toolCalls(
         "I will return the document.",
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID,
-            "return_documents",
-            "{\"ids\": [\"%s\"]}".formatted(docTag(documentId(0)))));
+            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))));
   }
 
-  /** One assistant message with a valid {@code return_documents} call and a real {@code Ping}. */
-  public static Turn returnDocumentsWithPingTurn() {
+  /** One assistant message with a valid {@code return_document} call and a real {@code Ping}. */
+  public static Turn returnDocumentWithPingTurn() {
     return Turn.toolCalls(
         "I will return the document and check that the tools work.",
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID,
-            "return_documents",
-            "{\"ids\": [\"%s\"]}".formatted(docTag(documentId(0)))),
+            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
   /**
-   * One assistant message with a valid {@code return_documents} call and a real {@code Slow_Tool}
+   * One assistant message with a valid {@code return_document} call and a real {@code Slow_Tool}
    * call, which keeps running until the test completes its job.
    */
-  public static Turn returnDocumentsWithSlowToolTurn() {
+  public static Turn returnDocumentWithSlowToolTurn() {
     return Turn.toolCalls(
         "I will return the document and run the slow tool.",
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID,
-            "return_documents",
-            "{\"ids\": [\"%s\"]}".formatted(docTag(documentId(0)))),
+            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))),
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
@@ -199,6 +203,18 @@ public final class DocumentFlowFixtures {
   }
 
   /**
+   * Asserts that the returned documents of an agent response hold only the document with the given
+   * id, under the key and with the description the model sent.
+   */
+  public static void assertReturnedDocument(
+      Map<String, ? extends ReturnedDocument> documents, String expectedDocumentId) {
+    assertThat(documents).containsOnlyKeys(RETURN_KEY);
+    final var returned = documents.get(RETURN_KEY);
+    assertCamundaDocumentReference(returned.document(), expectedDocumentId);
+    assertThat(returned.description()).isEqualTo(RETURN_DESCRIPTION);
+  }
+
+  /**
    * Asserts that a tool call argument of the agent instance history, as read back from the engine,
    * is the Camunda document reference of the document with the given id and not the bare id.
    */
@@ -210,6 +226,6 @@ public final class DocumentFlowFixtures {
   }
 
   public static List<Turn> roundTripTurns(String wireMockBaseUrl) {
-    return List.of(downloadTurn(wireMockBaseUrl), uploadTurn(), returnDocumentsTurn(), finalTurn());
+    return List.of(downloadTurn(wireMockBaseUrl), uploadTurn(), returnDocumentTurn(), finalTurn());
   }
 }

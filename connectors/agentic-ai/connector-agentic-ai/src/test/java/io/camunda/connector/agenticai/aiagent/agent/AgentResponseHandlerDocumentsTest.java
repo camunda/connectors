@@ -15,17 +15,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentsTool;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -36,6 +38,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,26 +68,35 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   @Test
-  void returnsTheReferencesOfTheSelectedDocumentsInSelectionOrderAndClearsTheSelection() {
+  void returnsTheReferencesOfTheSelectedDocumentsByKeyInSelectionOrderAndClearsTheSelection() {
     final var response =
         responseHandler.createResponse(
-            conversation(true, List.of(summaryId, reportId), assistantMessage("done")));
+            conversation(
+                true,
+                selection(
+                    "summary", new SelectedDocument(summaryId, "Short version"),
+                    "report", new SelectedDocument(reportId, null)),
+                assistantMessage("done")));
 
-    assertThat(response.documents())
-        .containsExactly(
-            registry.findById(summaryId).orElseThrow().reference(),
-            registry.findById(reportId).orElseThrow().reference());
-    assertThat(response.documents().getFirst())
+    assertThat(response.documents().keySet()).containsExactly("summary", "report");
+    assertThat(response.documents().get("summary"))
+        .isEqualTo(
+            new ReturnedDocument(
+                registry.findById(summaryId).orElseThrow().reference(), "Short version"));
+    assertThat(response.documents().get("report"))
+        .isEqualTo(
+            new ReturnedDocument(registry.findById(reportId).orElseThrow().reference(), null));
+    assertThat(response.documents().get("summary").document())
         .containsEntry("camunda.document.type", "camunda")
         .containsKeys("storeId", "documentId", "contentHash");
-    assertThat(response.context().returnDocumentIds()).isEmpty();
+    assertThat(response.context().returnDocuments()).isEmpty();
     assertThat(response.responseText()).isEqualTo("done");
   }
 
   @Test
   void returnsNoDocumentsWhenTheSelectionIsEmpty() {
     final var response =
-        responseHandler.createResponse(conversation(true, List.of(), assistantMessage("done")));
+        responseHandler.createResponse(conversation(true, selection(), assistantMessage("done")));
 
     assertThat(response.documents()).isEmpty();
   }
@@ -93,10 +105,13 @@ class AgentResponseHandlerDocumentsTest {
   void returnsNoDocumentsWhenNotOptedInAndStillClearsTheSelection() {
     final var response =
         responseHandler.createResponse(
-            conversation(false, List.of(reportId), assistantMessage("done")));
+            conversation(
+                false,
+                selection("report", new SelectedDocument(reportId, null)),
+                assistantMessage("done")));
 
     assertThat(response.documents()).isEmpty();
-    assertThat(response.context().returnDocumentIds()).isEmpty();
+    assertThat(response.context().returnDocuments()).isEmpty();
   }
 
   @Test
@@ -105,24 +120,29 @@ class AgentResponseHandlerDocumentsTest {
 
     final var response =
         responseHandler.createResponse(
-            conversation(true, List.of(reportId), assistantMessage("checking", List.of(toolCall))));
+            conversation(
+                true,
+                selection("report", new SelectedDocument(reportId, null)),
+                assistantMessage("checking", List.of(toolCall))));
 
     assertThat(response.toolCalls()).hasSize(1);
     assertThat(response.documents()).isEmpty();
-    assertThat(response.context().returnDocumentIds()).containsExactly(reportId);
+    assertThat(response.context().returnDocuments()).containsOnlyKeys("report");
   }
 
   @Test
   void handsOnlyTheCallsThePendingLocalResultsDoNotAnswerToTheProcess() {
-    final var localCall = new ToolCall("call-1", ReturnDocumentsTool.NAME, Map.of());
+    final var localCall = new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of());
     final var realCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var local =
-        ToolCallResult.builder().id("call-1").name(ReturnDocumentsTool.NAME).content("ok").build();
+        ToolCallResult.builder().id("call-1").name(ReturnDocumentTool.NAME).content("ok").build();
 
     final var response =
         responseHandler.createResponse(
             conversation(
-                    true, List.of(reportId), assistantMessage("both", List.of(localCall, realCall)))
+                    true,
+                    selection("report", new SelectedDocument(reportId, null)),
+                    assistantMessage("both", List.of(localCall, realCall)))
                 .withPendingLocalToolCallResults(List.of(local)));
 
     assertThat(response.toolCalls())
@@ -130,22 +150,36 @@ class AgentResponseHandlerDocumentsTest {
         .containsExactly("call-2");
     // the batch is not final, the selection stays and no documents are returned yet
     assertThat(response.documents()).isEmpty();
-    assertThat(response.context().returnDocumentIds()).containsExactly(reportId);
+    assertThat(response.context().returnDocuments()).containsOnlyKeys("report");
     assertThat(response.context().pendingLocalToolCallResults()).containsExactly(local);
   }
 
   @Test
-  void skipsSelectedIdsThatAreNotInTheRegistry() {
+  void skipsSelectedDocumentsThatAreNotInTheRegistry() {
     final var response =
         responseHandler.createResponse(
-            conversation(true, List.of("gone", reportId), assistantMessage("done")));
+            conversation(
+                true,
+                selection(
+                    "gone", new SelectedDocument("gone", null),
+                    "report", new SelectedDocument(reportId, null)),
+                assistantMessage("done")));
 
-    assertThat(response.documents())
-        .containsExactly(registry.findById(reportId).orElseThrow().reference());
+    assertThat(response.documents()).containsOnlyKeys("report");
+  }
+
+  private static LinkedHashMap<String, SelectedDocument> selection(Object... keysAndValues) {
+    final var selection = new LinkedHashMap<String, SelectedDocument>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      selection.put((String) keysAndValues[i], (SelectedDocument) keysAndValues[i + 1]);
+    }
+    return selection;
   }
 
   private AgentConversation conversation(
-      boolean includeDocuments, List<String> selection, AssistantMessage assistantMessage) {
+      boolean includeDocuments,
+      LinkedHashMap<String, SelectedDocument> selection,
+      AssistantMessage assistantMessage) {
     final var config =
         new AgentConfiguration(
             TEST_CHAT_MODEL,
@@ -159,7 +193,7 @@ class AgentResponseHandlerDocumentsTest {
         AgentContext.builder()
             .state(AgentState.READY)
             .documents(registry.entries())
-            .returnDocumentIds(selection)
+            .returnDocuments(selection)
             .build();
     return AgentConversation.rehydrate(
             config, context, TurnReconstructor.reconstruct(List.of()), null, List.of())

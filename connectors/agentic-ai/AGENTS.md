@@ -346,7 +346,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a local
-tool (a tool the agent runs itself, such as `return_documents`) by implementing the SPI and registering
+tool (a tool the agent runs itself, such as `return_document`) by implementing the SPI and registering
 a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
 tools: §19; local tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
 
