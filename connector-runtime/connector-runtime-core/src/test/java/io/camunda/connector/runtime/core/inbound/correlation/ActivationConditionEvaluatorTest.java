@@ -538,6 +538,21 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
+    @DisplayName("Message start event of the latest version publishing the same message wins")
+    void latestMessageStartEvent_sameMessage_latestVersionWins() {
+      var v2 = createVersionedMessageElement("step", 2, "msg", null, "=id");
+      var v10Start = mock(InboundConnectorElement.class);
+      when(v10Start.correlationPoint())
+          .thenReturn(
+              new MessageStartEventCorrelationPoint("msg", null, null, "=id", "process1", 10, 10));
+      when(v10Start.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 10, "start", "default"));
+      when(v10Start.activationCondition()).thenReturn("");
+
+      assertThat(resolve(List.of(v2, v10Start), Map.of("id", "1"))).containsExactly(v10Start);
+    }
+
+    @Test
     @DisplayName("Distinct messages with a synchronous response cannot be fanned out")
     void distinctMessages_synchronousResponse_tooManyMatchingElements() {
       var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");

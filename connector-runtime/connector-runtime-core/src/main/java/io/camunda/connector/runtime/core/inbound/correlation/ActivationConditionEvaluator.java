@@ -182,21 +182,16 @@ public class ActivationConditionEvaluator {
     // Elements publishing the same message (same name and evaluated correlation key) are
     // indistinguishable to Zeebe: they are grouped and correlated once.
     Map<CorrelationTarget, List<InboundConnectorElement>> elementsByMessage = new LinkedHashMap<>();
-    // Start events and elements whose correlation key cannot be evaluated are correlated alone.
+    // Plain start events and elements whose correlation key cannot be evaluated are correlated
+    // alone.
     var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
     for (var element : matchingElements.stream().sorted(latestFirst).toList()) {
-      if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
-        var correlationKey = evaluateCorrelationKey(point.correlationKeyExpression(), context);
-        if (correlationKey != null) {
-          elementsByMessage
-              .computeIfAbsent(
-                  new CorrelationTarget(point.messageName(), correlationKey),
-                  t -> new ArrayList<>())
-              .add(element);
-          continue;
-        }
+      var target = correlationTarget(element, context);
+      if (target != null) {
+        elementsByMessage.computeIfAbsent(target, t -> new ArrayList<>()).add(element);
+      } else {
+        elementsToCorrelate.add(element);
       }
-      elementsToCorrelate.add(element);
     }
     elementsByMessage.values().forEach(sameMessage -> elementsToCorrelate.add(latest(sameMessage)));
     elementsToCorrelate.sort(latestFirst);
@@ -224,6 +219,27 @@ public class ActivationConditionEvaluator {
       }
     }
     return latest;
+  }
+
+  /**
+   * The message the element publishes, or {@code null} if it publishes none (plain start event) or
+   * its correlation key cannot be evaluated.
+   */
+  private @Nullable CorrelationTarget correlationTarget(
+      InboundConnectorElement element, Object context) {
+    String messageName;
+    String correlationKeyExpression;
+    if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
+      messageName = point.messageName();
+      correlationKeyExpression = point.correlationKeyExpression();
+    } else if (element.correlationPoint() instanceof MessageStartEventCorrelationPoint point) {
+      messageName = point.messageName();
+      correlationKeyExpression = point.correlationKeyExpression();
+    } else {
+      return null;
+    }
+    var correlationKey = evaluateCorrelationKey(correlationKeyExpression, context);
+    return correlationKey == null ? null : new CorrelationTarget(messageName, correlationKey);
   }
 
   private @Nullable String evaluateCorrelationKey(
