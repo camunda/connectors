@@ -31,6 +31,7 @@ public record Authentication(
         AuthenticationType authType,
     @TemplateProperty(
             id = "bearerToken",
+            secret = true,
             label = "Bearer token",
             group = "authentication",
             feel = FeelMode.optional,
@@ -48,6 +49,7 @@ public record Authentication(
         String oauthClientId,
     @TemplateProperty(
             id = "oauthClientSecret",
+            secret = true,
             label = "Client secret",
             group = "authentication",
             feel = FeelMode.optional,
@@ -57,6 +59,7 @@ public record Authentication(
         String oauthClientSecret,
     @TemplateProperty(
             id = "oauthRefreshToken",
+            secret = true,
             label = "Refresh token",
             group = "authentication",
             feel = FeelMode.optional,

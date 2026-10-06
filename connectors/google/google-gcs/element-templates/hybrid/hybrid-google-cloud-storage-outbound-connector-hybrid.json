@@ -443,7 +443,8 @@
       "type" : "simple"
     },
     "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "version",
     "label" : "Version",
@@ -572,7 +573,8 @@
         "type" : "property"
       },
       "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {

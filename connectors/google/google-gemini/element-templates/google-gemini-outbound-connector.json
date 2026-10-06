@@ -105,7 +105,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthClientId",
     "label" : "Client ID",
@@ -155,7 +156,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthRefreshToken",
     "label" : "Refresh token",
@@ -180,7 +182,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "input.projectId",
     "label" : "Project ID",
@@ -702,7 +705,8 @@
         "equals" : "bearer",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.oauthClientId",
       "label" : "Client ID",
@@ -736,7 +740,8 @@
         "equals" : "refresh",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.oauthRefreshToken",
       "label" : "Refresh token",
@@ -753,7 +758,8 @@
         "equals" : "refresh",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {
