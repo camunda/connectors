@@ -626,7 +626,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void sendsDocumentParametersAsStringSchemaWithHint() {
-    final var HINT = DocumentParameterSchema.PROVIDER_HINT;
+    final var HINT = DocumentParameterSchema.HINT;
     final Map<String, Object> schema =
         Map.of(
             "type",
@@ -635,13 +635,18 @@ class OpenAiResponsesRequestConverterTest {
             Map.of(
                 "doc",
                 Map.of(
-                    "type", "string", "format", "camunda-document", "description", "A document."),
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "A document."),
                 "docs",
                 Map.of(
                     "type",
                     "array",
                     "items",
-                    Map.of("type", "string", "format", "camunda-document"))),
+                    Map.of("type", "string", "format", "camunda-document-id"))),
             "required",
             List.of("doc", "docs"));
     final var snapshot =

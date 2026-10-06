@@ -40,11 +40,17 @@ class DocumentParameterResolverTest {
 
   private final String firstId = DocumentHandle.idFor(first);
   private final String secondId = DocumentHandle.idFor(second);
-  private final String firstTag = tag(firstId);
-  private final String secondTag = tag(secondId);
 
-  private static String tag(String id) {
-    return "<doc id=\"" + id + "\" />";
+  private static String notAString(String path) {
+    return "Parameter '%s' must be the exact id of a known document (the id attribute of a"
+            .formatted(path)
+        + " <doc/> tag in the conversation), a string.";
+  }
+
+  private static String problem(String path, String value) {
+    return "Parameter '%s' must be the exact id of a known document (the id attribute of a"
+            .formatted(path)
+        + " <doc/> tag in the conversation), got '%s'.".formatted(value);
   }
 
   private Map<String, Object> reference(String id) {
@@ -53,7 +59,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void replacesATopLevelIdWithTheDocumentReference() {
-    final var result = resolve(Map.of("doc", firstTag, "other", "kept"), object("doc", DOC));
+    final var result = resolve(Map.of("doc", firstId, "other", "kept"), object("doc", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -68,7 +74,7 @@ class DocumentParameterResolverTest {
   @Test
   void replacesEveryElementOfAnArray() {
     final var result =
-        resolve(Map.of("docs", List.of(firstTag, secondTag)), object("docs", array(DOC)));
+        resolve(Map.of("docs", List.of(firstId, secondId)), object("docs", array(DOC)));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -83,9 +89,9 @@ class DocumentParameterResolverTest {
     final var arguments =
         Map.<String, Object>of(
             "req",
-            Map.of("file", firstTag, "note", "n"),
+            Map.of("file", firstId, "note", "n"),
             "rows",
-            List.of(Map.of("file", secondTag), Map.of("file", firstTag)));
+            List.of(Map.of("file", secondId), Map.of("file", firstId)));
 
     final var result =
         resolve(arguments, object("req", object("file", DOC), "rows", array(object("file", DOC))));
@@ -114,127 +120,102 @@ class DocumentParameterResolverTest {
 
   @Test
   void doesNotModifyTheOriginalArguments() {
-    final var arguments = Map.<String, Object>of("doc", firstTag);
+    final var arguments = Map.<String, Object>of("doc", firstId);
 
     resolve(arguments, object("doc", DOC));
 
-    assertThat(arguments).containsEntry("doc", firstTag);
+    assertThat(arguments).containsEntry("doc", firstId);
   }
 
   @Test
   void reportsAnUnknownId() {
-    assertThat(resolve(Map.of("doc", tag("nope")), object("doc", DOC)))
-        .isEqualTo(
-            new Resolution.Invalid(List.of("Unknown document id 'nope' for parameter 'doc'.")));
+    assertThat(resolve(Map.of("doc", "nope"), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
   }
 
   @Test
   void reportsTheArrayIndexAndNestedPathOfEveryInvalidValue() {
     final var result =
         resolve(
-            Map.of("docs", List.of(firstTag, tag("nope")), "req", Map.of("file", tag("gone"))),
+            Map.of("docs", List.of(firstId, "nope"), "req", Map.of("file", "gone")),
             object("docs", array(DOC), "req", object("file", DOC)));
 
     assertThat(result)
         .isEqualTo(
             new Resolution.Invalid(
-                List.of(
-                    "Unknown document id 'nope' for parameter 'docs[1]'.",
-                    "Unknown document id 'gone' for parameter 'req.file'.")));
+                List.of(problem("docs[1]", "nope"), problem("req.file", "gone"))));
   }
 
   @Test
-  void readsOnlyTheIdAttributeOfATagThatCarriesOtherAttributes() {
-    final var echoed =
-        "<doc id=\""
-            + firstId
-            + "\" fileName=\"first.txt\" contentType=\"text/plain\""
-            + " toolName=\"Download\" toolCallId=\"call_1\" />";
+  void rejectsATagInsteadOfTheId() {
+    final var tag = "<doc id=\"" + firstId + "\" fileName=\"first.txt\" />";
 
-    assertThat(resolve(Map.of("doc", echoed), object("doc", DOC)))
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).containsEntry("doc", reference(firstId)));
+    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", tag))));
   }
 
   @Test
-  void toleratesWhitespaceAroundTheTagAndInsideIt() {
-    assertThat(
-            resolve(Map.of("doc", "\n  <doc  id = \"" + firstId + "\"/>  \n"), object("doc", DOC)))
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).containsEntry("doc", reference(firstId)));
+  void rejectsAnEscapedTag() {
+    final var escaped = "&lt;doc id=\"" + firstId + "\" /&gt;";
+
+    assertThat(resolve(Map.of("doc", escaped), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", escaped))));
   }
 
   @Test
-  void rejectsABareIdWithAnActionableMessage() {
-    assertThat(resolve(Map.of("doc", firstId), object("doc", DOC)))
-        .isEqualTo(
-            new Resolution.Invalid(
-                List.of(
-                    "Parameter 'doc' must be the <doc id=\"...\" /> tag of a known document, copied"
-                        + " from the conversation, not a bare id or other text: '"
-                        + firstId
-                        + "'.")));
-  }
-
-  @Test
-  void rejectsBareIdsInArraysAndNestedObjects() {
-    final var result =
-        resolve(
-            Map.of("docs", List.of(firstTag, secondId), "req", Map.of("file", firstId)),
-            object("docs", array(DOC), "req", object("file", DOC)));
-
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Invalid.class,
-            invalid ->
-                assertThat(invalid.problems())
-                    .hasSize(2)
-                    .allSatisfy(problem -> assertThat(problem).contains("not a bare id"))
-                    .anyMatch(problem -> problem.contains("'docs[1]'"))
-                    .anyMatch(problem -> problem.contains("'req.file'")));
-  }
-
-  @Test
-  void rejectsATagWithoutAnId() {
-    assertThat(resolve(Map.of("doc", "<doc fileName=\"a.txt\" />"), object("doc", DOC)))
+  void rejectsAnIdWithSurroundingWhitespace() {
+    assertThat(resolve(Map.of("doc", " " + firstId + "\n"), object("doc", DOC)))
         .isInstanceOf(Resolution.Invalid.class);
   }
 
   @Test
-  void substituteKnownReferencesLeavesABareIdAsGiven() {
+  void rejectsAnIdThatIsPartOfTheText() {
+    assertThat(resolve(Map.of("doc", "the file " + firstId), object("doc", DOC)))
+        .isInstanceOf(Resolution.Invalid.class);
+  }
+
+  @Test
+  void rejectsTagsInArraysAndNestedObjects() {
+    final var tag = "<doc id=\"" + secondId + "\" />";
+    final var result =
+        resolve(
+            Map.of("docs", List.of(firstId, tag), "req", Map.of("file", tag)),
+            object("docs", array(DOC), "req", object("file", DOC)));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Invalid(List.of(problem("docs[1]", tag), problem("req.file", tag))));
+  }
+
+  @Test
+  void substituteKnownReferencesReplacesAKnownId() {
     final var definition =
         ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
 
     assertThat(
             DocumentParameterResolver.substituteKnownReferences(
                 Map.of("doc", firstId), definition, registry))
-        .containsEntry("doc", firstId);
-  }
-
-  @Test
-  void substituteKnownReferencesReadsTheIdOfATagWithOtherAttributes() {
-    final var definition =
-        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
-
-    assertThat(
-            DocumentParameterResolver.substituteKnownReferences(
-                Map.of("doc", "<doc id=\"" + firstId + "\" fileName=\"x\" />"),
-                definition,
-                registry))
         .containsEntry("doc", reference(firstId));
   }
 
   @Test
-  void reportsABlankId() {
+  void substituteKnownReferencesLeavesATagAsGiven() {
+    final var definition =
+        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
+    final var tag = "<doc id=\"" + firstId + "\" fileName=\"x\" />";
+
+    assertThat(
+            DocumentParameterResolver.substituteKnownReferences(
+                Map.of("doc", tag), definition, registry))
+        .containsEntry("doc", tag);
+  }
+
+  @Test
+  void reportsABlankValueAsAnUnknownId() {
     assertThat(resolve(Map.of("doc", "  "), object("doc", DOC)))
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
-            invalid ->
-                assertThat(invalid.problems())
-                    .containsExactly(
-                        "Parameter 'doc' must be the <doc id=\"...\" /> tag of a known document (a non-blank string)."));
+            invalid -> assertThat(invalid.problems()).containsExactly(problem("doc", "  ")));
   }
 
   @Test
@@ -242,28 +223,25 @@ class DocumentParameterResolverTest {
     final var arguments = new java.util.HashMap<String, Object>();
     arguments.put("a", 42);
     arguments.put("b", Map.of("documentId", firstId));
-    arguments.put("c", Arrays.asList(firstTag, null));
+    arguments.put("c", Arrays.asList(firstId, null));
 
     assertThat(resolve(arguments, object("a", DOC, "b", DOC, "c", array(DOC))))
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
             invalid ->
                 assertThat(invalid.problems())
-                    .containsExactly(
-                        "Parameter 'a' must be the <doc id=\"...\" /> tag of a known document (a non-blank string).",
-                        "Parameter 'b' must be the <doc id=\"...\" /> tag of a known document (a non-blank string).",
-                        "Parameter 'c[1]' must be the <doc id=\"...\" /> tag of a known document (a non-blank string)."));
+                    .containsExactly(notAString("a"), notAString("b"), notAString("c[1]")));
   }
 
   @Test
   void reportsAnArrayParameterThatIsNotAnArray() {
-    assertThat(resolve(Map.of("docs", firstTag), object("docs", array(DOC))))
+    assertThat(resolve(Map.of("docs", firstId), object("docs", array(DOC))))
         .isEqualTo(new Resolution.Invalid(List.of("Parameter 'docs' must be an array.")));
   }
 
   @Test
   void resolvesPropertyNamesWithSpecialCharacters() {
-    final var result = resolve(Map.of("a/b~c", firstTag), object("a/b~c", DOC));
+    final var result = resolve(Map.of("a/b~c", firstId), object("a/b~c", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -282,11 +260,11 @@ class DocumentParameterResolverTest {
     final var arguments =
         Map.<String, Object>of(
             "doc",
-            firstTag,
+            firstId,
             "docs",
-            List.of(secondTag, tag("nope")),
+            List.of(secondId, "nope"),
             "req",
-            Map.of("file", tag("gone"), "note", "n"),
+            Map.of("file", "gone", "note", "n"),
             "other",
             "kept");
 
@@ -295,10 +273,10 @@ class DocumentParameterResolverTest {
 
     assertThat(result)
         .containsEntry("doc", reference(firstId))
-        .containsEntry("docs", List.of(reference(secondId), tag("nope")))
-        .containsEntry("req", Map.of("file", tag("gone"), "note", "n"))
+        .containsEntry("docs", List.of(reference(secondId), "nope"))
+        .containsEntry("req", Map.of("file", "gone", "note", "n"))
         .containsEntry("other", "kept");
-    assertThat(arguments).containsEntry("doc", firstTag);
+    assertThat(arguments).containsEntry("doc", firstId);
   }
 
   @Test
@@ -310,7 +288,7 @@ class DocumentParameterResolverTest {
             .build();
     final var arguments = new java.util.HashMap<String, Object>();
     arguments.put("doc", 42);
-    arguments.put("docs", firstTag);
+    arguments.put("docs", firstId);
     arguments.put("req", "not an object");
 
     assertThat(DocumentParameterResolver.substituteKnownReferences(arguments, definition, registry))
@@ -335,9 +313,9 @@ class DocumentParameterResolverTest {
     final var withDocs =
         ToolDefinition.builder().name("upload").inputSchema(object("doc", DOC)).build();
     final var withoutDocs = ToolDefinition.builder().name("other").inputSchema(Map.of()).build();
-    final var uploadCall = new ToolCall("1", "upload", Map.of("doc", firstTag));
-    final var otherCall = new ToolCall("2", "other", Map.of("doc", firstTag));
-    final var unknownCall = new ToolCall("3", "gateway_tool", Map.of("doc", firstTag));
+    final var uploadCall = new ToolCall("1", "upload", Map.of("doc", firstId));
+    final var otherCall = new ToolCall("2", "other", Map.of("doc", firstId));
+    final var unknownCall = new ToolCall("3", "gateway_tool", Map.of("doc", firstId));
 
     final var result =
         DocumentParameterResolver.resolveAll(
@@ -364,7 +342,7 @@ class DocumentParameterResolverTest {
   }
 
   private static final Map<String, Object> DOC =
-      Map.of("type", "string", "format", "camunda-document");
+      Map.of("type", "string", "format", "camunda-document-id");
 
   private static Map<String, Object> array(Map<String, Object> items) {
     return Map.of("type", "array", "items", items);

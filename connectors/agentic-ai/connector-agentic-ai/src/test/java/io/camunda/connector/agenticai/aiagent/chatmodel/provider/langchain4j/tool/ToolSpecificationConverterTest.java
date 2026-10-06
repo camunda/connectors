@@ -125,7 +125,7 @@ class ToolSpecificationConverterTest {
 
   @Test
   void convertsDocumentParameterSchemaToStringSchemaWithHint() {
-    final var hint = DocumentParameterSchema.PROVIDER_HINT;
+    final var hint = DocumentParameterSchema.HINT;
     final var authored =
         ToolDefinition.builder()
             .name("a_tool")
@@ -141,7 +141,7 @@ class ToolSpecificationConverterTest {
                             "type",
                             "string",
                             "format",
-                            "camunda-document",
+                            "camunda-document-id",
                             "description",
                             "A document."),
                         "docs",
@@ -149,7 +149,7 @@ class ToolSpecificationConverterTest {
                             "type",
                             "array",
                             "items",
-                            Map.of("type", "string", "format", "camunda-document"))),
+                            Map.of("type", "string", "format", "camunda-document-id"))),
                     "required",
                     List.of("doc", "docs")))
             .build();

@@ -32,7 +32,7 @@ class ToolDefinitionTest {
                             "type",
                             "string",
                             "format",
-                            "camunda-document",
+                            "camunda-document-id",
                             "description",
                             "A document"),
                         "docs",
@@ -40,14 +40,14 @@ class ToolDefinitionTest {
                             "type",
                             "array",
                             "items",
-                            Map.of("type", "string", "format", "camunda-document")))))
+                            Map.of("type", "string", "format", "camunda-document-id")))))
             .build();
 
     final var json = objectMapper.writeValueAsString(toolDefinition);
     final var restored = objectMapper.readValue(json, ToolDefinition.class);
 
     assertThat(json)
-        .contains("\"format\":\"camunda-document\"")
+        .contains("\"format\":\"camunda-document-id\"")
         .doesNotContain("documentParameters");
     assertThat(restored).isEqualTo(toolDefinition);
   }

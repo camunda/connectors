@@ -128,7 +128,8 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     final var errorResult = recorded.requests().get(2).messages().getLast();
     assertThat(errorResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
     assertThat(errorResult.content())
-        .startsWith("Unknown document id 'no-such-document' for parameter 'document'.")
+        .startsWith(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
         .contains("Known documents:");
 
     assertThat(uploadCount()).isEqualTo(1);
@@ -263,7 +264,8 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         .extracting(m -> m.toolCallId())
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
-        .startsWith("Unknown document id 'no-such-document' for parameter 'document'.");
+        .startsWith(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.");
     assertThat(results.get(1).content()).contains("pong");
 
     assertThat(uploadCount()).isEqualTo(1);

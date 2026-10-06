@@ -231,10 +231,6 @@ class AgentInstanceHistoryMapperTest {
     private final Map<String, Object> reference =
         registry.findById(documentId).orElseThrow().reference();
 
-    private static String tag(String id) {
-      return "<doc id=\"" + id + "\" />";
-    }
-
     private final ToolDefinition upload =
         ToolDefinition.builder()
             .name("upload")
@@ -245,13 +241,13 @@ class AgentInstanceHistoryMapperTest {
                     "properties",
                     Map.of(
                         "file",
-                        Map.of("type", "string", "format", "camunda-document"),
+                        Map.of("type", "string", "format", "camunda-document-id"),
                         "attachments",
                         Map.of(
                             "type",
                             "array",
                             "items",
-                            Map.of("type", "string", "format", "camunda-document")))))
+                            Map.of("type", "string", "format", "camunda-document-id")))))
             .build();
     private final HistoryDocuments documents = new HistoryDocuments(List.of(upload), registry);
 
@@ -261,15 +257,10 @@ class AgentInstanceHistoryMapperTest {
             .name("upload")
             .arguments(
                 Map.of(
-                    "file",
-                    tag(documentId),
-                    "attachments",
-                    List.of(tag(documentId), tag("unknown")),
-                    "note",
-                    "n"))
+                    "file", documentId, "attachments", List.of(documentId, "unknown"), "note", "n"))
             .build();
     private final Map<String, Object> reportedArguments =
-        Map.of("file", reference, "attachments", List.of(reference, tag("unknown")), "note", "n");
+        Map.of("file", reference, "attachments", List.of(reference, "unknown"), "note", "n");
 
     @Test
     void assistantToolCallShowsTheDocumentReferenceInsteadOfTheId() {
@@ -319,7 +310,7 @@ class AgentInstanceHistoryMapperTest {
           ToolCall.builder()
               .id("call-2")
               .name("return_document")
-              .arguments(Map.of("key", "report", "document", tag(documentId)))
+              .arguments(Map.of("key", "report", "document", documentId))
               .build();
 
       // return_document is not among the offered tool definitions

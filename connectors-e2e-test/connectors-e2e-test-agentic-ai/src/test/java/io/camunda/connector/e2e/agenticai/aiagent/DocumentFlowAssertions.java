@@ -67,7 +67,7 @@ public final class DocumentFlowAssertions {
                         "schema types of tool '%s' in LLM request %d",
                         tool.path("function").path("name").asText(), requestNumber)
                     .doesNotContain("document"));
-    assertThat(body.path("tools").toString()).doesNotContain("camunda-document");
+    assertThat(body.path("tools").toString()).doesNotContain("camunda-document-id");
   }
 
   /**

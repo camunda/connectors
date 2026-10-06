@@ -15,9 +15,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * A tool definition, being a single tool available within the ad-hoc sub-process.
  *
- * <p>The input schema is the authored one. A parameter that carries a document reference has the
- * string schema with the format {@code camunda-document} (see {@link DocumentParameterSchema}); the
- * model providers see the schema without the format and with a hint, which {@link
+ * <p>A parameter that carries a document has the string schema with the format {@code
+ * camunda-document-id} (see {@link DocumentParameterSchema}) and a description that ends with the
+ * hint to pass the id of a known document, so the stored input schema holds the text the model
+ * sees. The model providers see the schema without the format, which {@link
  * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
  * built.
  */
@@ -26,6 +27,10 @@ import org.jspecify.annotations.Nullable;
 public record ToolDefinition(
     String name, @Nullable String description, Map<String, Object> inputSchema)
     implements ToolDefinitionBuilder.With {
+
+  public ToolDefinition {
+    inputSchema = DocumentParameterSchema.withHint(inputSchema);
+  }
 
   public static ToolDefinitionBuilder builder() {
     return ToolDefinitionBuilder.builder();

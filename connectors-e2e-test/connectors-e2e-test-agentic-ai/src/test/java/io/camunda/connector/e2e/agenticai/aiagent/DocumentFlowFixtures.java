@@ -76,14 +76,6 @@ public final class DocumentFlowFixtures {
             "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, DOWNLOADED_FILE)));
   }
 
-  /**
-   * The {@code <doc id="..." />} tag the model passes for a document, as JSON string content (the
-   * quotes of the attribute are escaped).
-   */
-  public static String docTag(String documentId) {
-    return "<doc id=\\\"" + documentId + "\\\" />";
-  }
-
   /** Uploads the first known document of the request. */
   public static Turn uploadTurn() {
     return uploadTurn(documentId(0));
@@ -95,9 +87,7 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            UPLOAD_CALL_ID,
-            "Upload_A_File",
-            "{\"document\": \"%s\"}".formatted(docTag(documentId))));
+            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": \"%s\"}".formatted(documentId)));
   }
 
   /** The key and the description of the document the model returns. */
@@ -114,8 +104,7 @@ public final class DocumentFlowFixtures {
         "I will return the document.",
         10,
         20,
-        ToolCall.of(
-            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))));
+        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))));
   }
 
   /** One assistant message with a valid {@code return_document} call and a real {@code Ping}. */
@@ -124,8 +113,7 @@ public final class DocumentFlowFixtures {
         "I will return the document and check that the tools work.",
         10,
         20,
-        ToolCall.of(
-            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))),
+        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
@@ -138,8 +126,7 @@ public final class DocumentFlowFixtures {
         "I will return the document and run the slow tool.",
         10,
         20,
-        ToolCall.of(
-            RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(docTag(documentId(0)))),
+        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
@@ -152,7 +139,7 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             UPLOAD_CALL_ID,
             "Upload_A_File",
-            "{\"document\": \"%s\"}".formatted(docTag("no-such-document"))),
+            "{\"document\": \"%s\"}".formatted("no-such-document")),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 

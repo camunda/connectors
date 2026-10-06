@@ -192,9 +192,9 @@ public class AgentInstanceHistoryMapper {
 
   /**
    * The arguments of {@code toolCall} as the history shows them: a document parameter, a schema
-   * node of type {@code document} of the tool's definition, carries the reference of the document
-   * (see {@link DocumentParameterResolver#substituteKnownReferences}) instead of its id. The
-   * persisted messages and what the model reads keep the ids. An id the registry does not know
+   * node with the document id format of the tool's definition, carries the reference of the
+   * document (see {@link DocumentParameterResolver#substituteKnownReferences}) instead of its id.
+   * The persisted messages and what the model reads keep the ids. An id the registry does not know
    * stays as given. The result only depends on the tool call, its tool definition and the registry
    * entries, which never change once registered, so every write of the same call shows the same
    * arguments.

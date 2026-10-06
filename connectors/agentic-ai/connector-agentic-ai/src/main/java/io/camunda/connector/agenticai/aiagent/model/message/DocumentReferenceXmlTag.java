@@ -131,22 +131,7 @@ public record DocumentReferenceXmlTag(
     return attributes;
   }
 
-  /**
-   * Reads the document id from a string that is a {@code <doc .../>} tag, as the model passes it
-   * back. Only the {@code id} attribute is read; other attributes are ignored and surrounding
-   * whitespace is tolerated. Returns {@code null} if the string is not a tag or has no non-blank
-   * {@code id}.
-   */
-  public static @Nullable String parseId(String value) {
-    final var attributes = parseAttributes(value);
-    if (attributes == null) {
-      return null;
-    }
-    final var id = attributes.getOrDefault("id", "").strip();
-    return id.isEmpty() ? null : id;
-  }
-
-  /** The persisted form of the tag: the tag text flagged with the id of its document. */
+  /** The persisted form of the tag: the tag text marked as a document reference of its document. */
   public TextContent toContent() {
     return new TextContent(toXml(), Map.of(METADATA_DOCUMENT_REF, id));
   }

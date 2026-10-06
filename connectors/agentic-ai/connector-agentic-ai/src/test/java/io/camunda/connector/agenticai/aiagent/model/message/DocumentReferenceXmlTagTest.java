@@ -266,15 +266,7 @@ class DocumentReferenceXmlTagTest {
   }
 
   @Test
-  void parseIdIgnoresTheSourceAndToolAttributes() {
-    assertThat(
-            DocumentReferenceXmlTag.parseId(
-                "<doc id=\"doc-1\" fileName=\"a.txt\" source=\"user_message\" toolName=\"t\" />"))
-        .isEqualTo("doc-1");
-  }
-
-  @Test
-  void toContentFlagsTheTagTextWithTheDocumentId() {
+  void toContentMarksTheTagTextAsADocumentReferenceOfTheDocument() {
     final var tag = new DocumentReferenceXmlTag("doc-1", "a.txt", null, "event", null, null);
 
     final var content = tag.toContent();

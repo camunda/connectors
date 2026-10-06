@@ -110,10 +110,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(document.has("format")).isFalse();
     assertThat(document.path("description").asText())
         .startsWith("The document to upload.")
-        .endsWith(DocumentParameterSchema.PROVIDER_HINT);
+        .endsWith(DocumentParameterSchema.HINT);
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
-    // the persisted tool definition keeps the authored schema
+    // the persisted tool definition keeps the format and holds the hint the model sees
     assertAgentResponse(
         zeebeTest,
         agentResponse -> {
@@ -123,9 +123,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
                   .findFirst()
                   .orElseThrow();
           assertThat(upload.inputSchema().toString())
-              .contains("format=camunda-document")
-              .contains("description=The document to upload.")
-              .doesNotContain(DocumentParameterSchema.PROVIDER_HINT);
+              .contains("format=camunda-document-id")
+              .contains("description=The document to upload. " + DocumentParameterSchema.HINT);
         });
 
     // the option for returning documents is off: no built-in tool
@@ -233,7 +232,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(errorResult.role()).isEqualTo("tool");
     assertThat(errorResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
     assertThat(errorResult.content())
-        .startsWith("Unknown document id 'no-such-document' for parameter 'document'.")
+        .startsWith(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
         .contains("Known documents:")
         .contains("<doc id=\"" + documentId + "\"");
 
@@ -420,7 +420,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .extracting(m -> m.toolCallId())
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
-        .startsWith("Unknown document id 'no-such-document' for parameter 'document'.")
+        .startsWith(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
         .contains("<doc id=\"" + documentId + "\"");
     assertThat(results.get(1).content()).contains("pong");
 

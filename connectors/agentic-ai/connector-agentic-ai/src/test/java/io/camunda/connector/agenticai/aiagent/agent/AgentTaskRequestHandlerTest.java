@@ -143,7 +143,7 @@ class AgentTaskRequestHandlerTest {
                                     "properties",
                                     Map.of(
                                         "doc",
-                                        Map.of("type", "string", "format", "camunda-document"))))
+                                        Map.of("type", "string", "format", "camunda-document-id"))))
                             .build()))
                 .toList());
     mockConfiguration();
@@ -152,7 +152,7 @@ class AgentTaskRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(contextWithUploadTool, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build());
@@ -179,7 +179,8 @@ class AgentTaskRequestHandlerTest {
               assertThat(result.id()).isEqualTo("call-1");
               assertThat(result.content())
                   .asString()
-                  .startsWith("Unknown document id 'bogus' for parameter 'doc'.");
+                  .startsWith(
+                      "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.");
             });
     verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -518,9 +519,5 @@ class AgentTaskRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
-  }
-
-  private static String tag(String id) {
-    return "<doc id=\"" + id + "\" />";
   }
 }

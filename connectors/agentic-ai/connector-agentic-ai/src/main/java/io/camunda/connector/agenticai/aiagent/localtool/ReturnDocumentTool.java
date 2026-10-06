@@ -38,7 +38,7 @@ public final class ReturnDocumentTool implements LocalTool {
   /** The parameter carrying the stable identifier the process finds the document by. */
   public static final String PARAMETER_KEY = "key";
 
-  /** The parameter carrying the {@code <doc/>} tag of the document to return. */
+  /** The parameter carrying the id of the document to return. */
   public static final String PARAMETER_DOCUMENT = "document";
 
   /** The parameter carrying an optional description of the document. */
@@ -69,8 +69,7 @@ public final class ReturnDocumentTool implements LocalTool {
                       "A stable identifier the process uses to find the document, matching"
                           + " [A-Za-z_][A-Za-z0-9_-]*."),
                   PARAMETER_DOCUMENT,
-                  DocumentParameterSchema.documentSchema(
-                      "The <doc id=\"...\" /> tag of the document to return."),
+                  DocumentParameterSchema.documentSchema("The document to return."),
                   PARAMETER_DESCRIPTION,
                   ordered(
                       "type",
@@ -116,7 +115,7 @@ public final class ReturnDocumentTool implements LocalTool {
     }
     if (arguments.document() == null) {
       return LocalToolResult.error(
-          "Parameter '%s' must be the <doc id=\"...\" /> tag of a known document. %s"
+          "Parameter '%s' must be the id of a known document. %s"
               .formatted(PARAMETER_DOCUMENT, context.documents().knownDocumentsText()));
     }
 

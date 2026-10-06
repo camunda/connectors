@@ -411,7 +411,7 @@ class AdHocToolSchemaGeneratorTest {
           "properties": {
             "doc": {
               "type": "string",
-              "format": "camunda-document",
+              "format": "camunda-document-id",
               "description": "The invoice"
             },
             "note": {
@@ -431,7 +431,7 @@ class AdHocToolSchemaGeneratorTest {
 
     assertThat(generator.generateToolSchema(element))
         .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("doc"))
-        .isEqualTo(Map.of("type", "string", "format", "camunda-document"));
+        .isEqualTo(Map.of("type", "string", "format", "camunda-document-id"));
   }
 
   @Test
@@ -456,7 +456,7 @@ class AdHocToolSchemaGeneratorTest {
               "description": "The attachments",
               "items": {
                 "type": "string",
-                "format": "camunda-document"
+                "format": "camunda-document-id"
               }
             }
           },
@@ -491,8 +491,8 @@ class AdHocToolSchemaGeneratorTest {
             "request": {
               "type": "object",
               "properties": {
-                "file": {"type": "string", "format": "camunda-document"},
-                "list": {"type": "array", "items": {"type": "string", "format": "camunda-document"}}
+                "file": {"type": "string", "format": "camunda-document-id"},
+                "list": {"type": "array", "items": {"type": "string", "format": "camunda-document-id"}}
               }
             }
           },

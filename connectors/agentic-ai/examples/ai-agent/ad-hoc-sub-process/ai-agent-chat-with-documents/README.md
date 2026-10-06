@@ -1,14 +1,14 @@
 # AI Agent Chat With Documents Example
 
 This example shows the document flow of the AI Agent Sub-process (v2 template). The agent receives documents in the
-prompt, downloads documents with a tool, hands a document to other tools by its tag, and returns documents to the process.
+prompt, downloads documents with a tool, hands a document to other tools by its id, and returns documents to the process.
 A local file server (go-httpbin) acts as download source and upload target.
 
 It demonstrates:
 
 - **`fromAi` document parameters**: `Upload_File` takes `fromAi(toolCall.document, ..., "document")`, `Upload_Many` takes
   `fromAi(toolCall.documents, ..., "array", {"items": {"type": "document"}})`. Both become string schemas with the format
-  `camunda-document`. The model sees a string and passes the `<doc id="..." />` tag of a known document; the connector
+  `camunda-document-id`. The model sees a string and passes the id of a known document (the `id` attribute of its `<doc />` tag); the connector
   receives the real Camunda document reference.
 - **Document registry**: every document of the conversation (prompt, tool results) is remembered in the agent context and
   shown to the model as a `<doc id="..." fileName="..." contentType="..."/>` tag, independent of the memory store and the
@@ -19,7 +19,7 @@ It demonstrates:
   process reads one document as `agent.documents.<key>.document` and all documents as
   `get entries(agent.documents).value.document`.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
-  documents it still knows by tag.
+  documents it still knows by id.
 - **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `return_document`
   keeps the process tool open while the local result of `return_document` is already visible in the agent instance history.
 - **Memory stores**: `in-process` (default), `camunda-document` and `aws-agentcore` all carry the registry.
@@ -94,7 +94,7 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
 Use the Operate instance view (variables `agent`, `toolCallResults`) and the agent instance history.
 
 1. **Tool schema.** Start with `List your tools and their parameters.` Check the answer: `Upload_File` has a string
-   parameter `document` whose description ends with `Pass the <doc id="..." /> tag of a known document, copied from the conversation.`; `Upload_Many`
+   parameter `document` whose description ends with `Pass the id of a known document (the id attribute of its <doc /> tag).`; `Upload_Many`
    has an array of strings; `return_document` is listed.
 2. **Download and upload.** Prompt: `Download <baseUrl>/image/png and upload it with the description "logo".` Check:
    `Download_File` returned a document (`toolCallResult.document`, a Camunda document reference), `Upload_File` has status
@@ -109,7 +109,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    Check: `Upload_Many` ran once and `receivedFiles` contains the field `files` with `parts: 2`.
 6. **Eviction.** Set `data.memory.contextWindowSize` of `AI Agent` to a small value such as `3`, redeploy, repeat
    scenario 2 and then ask several unrelated questions followed by `Upload the file you downloaded earlier.` Check:
-   the agent still uploads it by its tag (the eviction note lists the document) and the call succeeds.
+   the agent still uploads it by its id (the eviction note lists the document) and the call succeeds.
 7. **Mixed batch.** Prompt: `Call Slow_Tool and in the same step return the downloaded file.` (after scenario 2). Check:
    `Slow_Tool` stays active; the agent instance history already shows the `return_document` result while the job of the
    agent has not continued. Complete the `Slow tool` task in Tasklist; the agent continues and answers.

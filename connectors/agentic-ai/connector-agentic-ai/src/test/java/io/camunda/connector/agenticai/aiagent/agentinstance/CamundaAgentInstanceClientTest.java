@@ -1524,12 +1524,7 @@ class CamundaAgentInstanceClientTest {
                           ToolCall.builder()
                               .id("local")
                               .name("return_document")
-                              .arguments(
-                                  Map.of(
-                                      "key",
-                                      "report",
-                                      "document",
-                                      "<doc id=\"" + documentId + "\" />"))
+                              .arguments(Map.of("key", "report", "document", documentId))
                               .build()))
                   .build(),
               AgentMetrics.empty(),

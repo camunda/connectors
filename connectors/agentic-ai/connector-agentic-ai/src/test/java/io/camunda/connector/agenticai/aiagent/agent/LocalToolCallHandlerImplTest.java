@@ -56,7 +56,7 @@ class LocalToolCallHandlerImplTest {
                   "type",
                   "object",
                   "properties",
-                  Map.of("doc", Map.of("type", "string", "format", "camunda-document"))))
+                  Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
           .build();
   private static final ToolDefinition WEATHER =
       ToolDefinition.builder().name("getWeather").inputSchema(Map.of()).build();
@@ -75,10 +75,6 @@ class LocalToolCallHandlerImplTest {
 
   private final Document report = createDocument("report", "report.txt");
   private final String reportId = DocumentHandle.idFor(report);
-
-  private static String tag(String id) {
-    return "<doc id=\"" + id + "\" />";
-  }
 
   private final DocumentRegistry registry =
       DocumentRegistry.empty()
@@ -259,7 +255,7 @@ class LocalToolCallHandlerImplTest {
                   received.add(args.file());
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", tag(reportId)));
+    final var call = new ToolCall("r1", "read_file", Map.of("file", reportId));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -280,7 +276,7 @@ class LocalToolCallHandlerImplTest {
                   runs.incrementAndGet();
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", tag("bogus")));
+    final var call = new ToolCall("r1", "read_file", Map.of("file", "bogus"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -291,7 +287,7 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content().toString())
                     .startsWith(
-                        "Unknown document id 'bogus' for parameter 'file'. Known documents:")
+                        "Parameter 'file' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
                     .contains(reportId));
   }
 
@@ -299,7 +295,7 @@ class LocalToolCallHandlerImplTest {
 
   @Test
   void passesACallWithKnownDocumentsToTheProcess() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", tag(reportId)));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", reportId));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -318,7 +314,7 @@ class LocalToolCallHandlerImplTest {
 
   @Test
   void answersAnUnknownDocumentIdOfAProcessToolWithTheKnownDocuments() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", tag("nope")));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", "nope"));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -329,14 +325,14 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content())
                     .isEqualTo(
-                        "Unknown document id 'nope' for parameter 'doc'. Known documents:\n"
+                        "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'nope'. Known documents:\n"
                             + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
                                 .formatted(reportId)));
   }
 
   @Test
   void saysSoWhenNoDocumentIsKnown() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", tag("nope")));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", "nope"));
     final var conversation =
         AgentConversation.rehydrate(
                 WITH_MEMORY.withToolDefinitions(List.of(UPLOAD)),
@@ -354,7 +350,7 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content())
                     .isEqualTo(
-                        "Unknown document id 'nope' for parameter 'doc'. No documents are known."));
+                        "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'nope'. No documents are known."));
   }
 
   @Test

@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -24,9 +23,9 @@ import org.jspecify.annotations.Nullable;
  * Resolves the document parameters of a tool call. The document parameters are the schema nodes
  * with the document format of the tool's input schema (see {@link DocumentParameterSchema}), found
  * at the top level, as array items and nested in objects; the arguments of a tool call mirror the
- * schema, so each such node addresses the argument values that carry a document. The model passes a
- * {@code <doc id="..." />} tag; only its {@code id} attribute is read. Every tag is replaced by the
- * Camunda document reference JSON of the registered document.
+ * schema, so each such node addresses the argument values that carry a document. The model passes
+ * the id of a known document, exactly as the {@code id} attribute of its {@code <doc />} tag. Every
+ * id is replaced by the Camunda document reference JSON of the registered document.
  */
 public final class DocumentParameterResolver {
 
@@ -48,8 +47,8 @@ public final class DocumentParameterResolver {
 
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null} is left as is; a value that is not the tag of a registered document (not a string, blank,
-   * not a {@code <doc/>} tag or an unknown id) is reported as a problem naming the parameter.
+   * null} is left as is; a value that is not exactly the id of a registered document (not a string
+   * or not a known id) is reported as a problem naming the parameter.
    */
   public static Resolution resolve(
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -64,10 +63,10 @@ public final class DocumentParameterResolver {
   }
 
   /**
-   * Replaces the tags of the document parameters of {@code arguments} that are known to the
-   * registry by the document references, for reporting. Anything else is left as given: unknown
-   * ids, bare ids, values of an unexpected shape, missing parameters, and the arguments of a tool
-   * without document parameters. Nothing is validated, so this never fails.
+   * Replaces the ids of the document parameters of {@code arguments} that are known to the registry
+   * by the document references, for reporting. Anything else is left as given: unknown ids, values
+   * of an unexpected shape, missing parameters, and the arguments of a tool without document
+   * parameters. Nothing is validated, so this never fails.
    */
   public static Map<String, Object> substituteKnownReferences(
       Map<String, Object> arguments, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -189,35 +188,28 @@ public final class DocumentParameterResolver {
 
   private static Object resolveId(
       @Nullable Object value, String path, DocumentRegistry registry, List<String> problems) {
-    if (!(value instanceof String text) || text.isBlank()) {
+    if (!(value instanceof String id)) {
       problems.add(
-          "Parameter '%s' must be the <doc id=\"...\" /> tag of a known document (a non-blank string)."
+          ("Parameter '%s' must be the exact id of a known document (the id attribute of a <doc/>"
+                  + " tag in the conversation), a string.")
               .formatted(path));
       return value == null ? "" : value;
     }
-    final var id = DocumentReferenceXmlTag.parseId(text);
-    if (id == null) {
-      problems.add(
-          ("Parameter '%s' must be the <doc id=\"...\" /> tag of a known document, copied from the"
-                  + " conversation, not a bare id or other text: '%s'.")
-              .formatted(path, text));
-      return text;
-    }
     final var entry = registry.findById(id);
     if (entry.isEmpty()) {
-      problems.add("Unknown document id '%s' for parameter '%s'.".formatted(id, path));
-      return text;
+      problems.add(
+          ("Parameter '%s' must be the exact id of a known document (the id attribute of a <doc/>"
+                  + " tag in the conversation), got '%s'.")
+              .formatted(path, id));
+      return id;
     }
     return entry.get().reference();
   }
 
   private static @Nullable Object substituteKnown(
       @Nullable Object value, DocumentRegistry registry) {
-    if (value instanceof String text) {
-      final var id = DocumentReferenceXmlTag.parseId(text);
-      if (id != null) {
-        return registry.findById(id).<Object>map(DocumentRegistryEntry::reference).orElse(value);
-      }
+    if (value instanceof String id) {
+      return registry.findById(id).<Object>map(DocumentRegistryEntry::reference).orElse(value);
     }
     return value;
   }

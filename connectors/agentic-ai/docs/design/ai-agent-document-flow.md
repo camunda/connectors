@@ -22,14 +22,15 @@ sections 6 and 7).
 
 A request (one job of the AI Agent connector) passes through these stages. Documents enter the
 conversation at ingestion, are remembered in the registry, are shown to the model as tags, can be
-referenced by their tag in tool calls, and leave through the response.
+referenced by their id in tool calls, and leave through the response.
 
 1. **Tool definition.** `AdHocToolSchemaGeneratorImpl.generateToolSchema` builds the input schema of the
-   `fromAi` parameters and writes a `document` parameter as a string schema with the format `camunda-document`;
+   `fromAi` parameters and writes a `document` parameter as a string schema with the format `camunda-document-id`;
    `AdHocToolsSchemaResolverImpl.createToolDefinition` stores it in `ToolDefinition.inputSchema`
-   (`aiagent/model/tool/ToolDefinition.java`), so the persisted tool definition carries the authored
-   schema. `DocumentParameterSchema` (`aiagent/model/tool/DocumentParameterSchema.java`) finds the document
-   parameters by walking a schema and derives the schema the model providers get (section 3.2).
+   (`aiagent/model/tool/ToolDefinition.java`), whose constructor ends the description of every document
+   parameter with the hint to pass the document id, so the persisted tool definition carries the text the
+   model sees. `DocumentParameterSchema` (`aiagent/model/tool/DocumentParameterSchema.java`) finds the document
+   parameters by walking a schema, applies the hint and derives the schema the model providers get (section 3.2).
 2. **Ingestion.** `AgentConversationTurnInputComposerImpl.compose` (returns `NextTurn(messages,
    ingestedDocuments)`) collects an `IngestedDocument` (document and `DocumentSource`) for every
    document that enters the turn: user prompt documents (`createUserPromptMessage`), tool result
@@ -63,14 +64,14 @@ referenced by their tag in tool calls, and leave through the response.
 6. **Local tool handling.** `localToolCallHandler.handle` runs the call of every available `LocalTool`
    (`return_document` is one, section 9; the tools are beans collected by `LocalToolRegistry`,
    `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`), answers the calls of process tools whose
-   document parameter is not the tag of a known document, and splits the batch into local results and the calls that
+   document parameter is not the id of a known document, and splits the batch into local results and the calls that
    remain for the process (section 3.6). The context updates of the local results (the selection of
    `return_document`) are applied to the conversation the handler returns, in both outcomes. Without
    remaining calls the loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the local
    results are kept as `AgentContext.pendingLocalToolCallResults` (`withPendingLocalToolCallResults`) and
    the loop ends with the normal tool calling status.
 7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending local results
-   answer, then `DocumentParameterResolver.resolveAll` replaces document tags by registry references in the
+   answer, then `DocumentParameterResolver.resolveAll` replaces document ids by registry references in the
    process variable only. For a response without tool calls the selection is turned into `documents` and
    cleared. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `documents` into the `agent`
    variable; the task flavor returns the `AgentResponse` itself. `AgentSubProcessRequestHandler` uses
@@ -91,41 +92,48 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
 | 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id [fileName] [contentType] [source] [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
 | 3 | Documents out are a built-in local tool `return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
-| 4 | An unknown document id and a bare id (not a `<doc id="..." />` tag) yield an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
+| 4 | A document parameter that is not exactly the id of a known document (an unknown id, a `<doc/>` tag, text around an id) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
 
 ### 3.2 Document parameter representation
 
-A document parameter is a string schema node with the format `camunda-document`:
-`{"type": "string", "format": "camunda-document", "description": "..."}`. It is valid JSON schema, so the
+A document parameter is a string schema node with the format `camunda-document-id`:
+`{"type": "string", "format": "camunda-document-id", "description": "..."}`. It is valid JSON schema, so the
 persisted definition, the Ad-Hoc Tools Schema Resolver output and any other consumer need no knowledge of a
-custom type. `ToolDefinition.inputSchema`, the schema persisted in `agentContext.toolDefinitions`, keeps the
-authored schema with that marker, for the tools of the process (`fromAi(toolCall.doc, "desc", "document")`;
-the shorthand type `document`, also inside the `items` and `properties` of an authored parameter schema, is
-written as the string schema with the format by `DocumentParameterSchema.normalizeAuthoredSchema`) and for
-local tools (`LocalToolSchema.document`). The format is the only marker: `DocumentParameterSchema` finds the
-document parameters by it, not by the type. `ToolDefinition` has no further field for it:
+custom type. `ToolDefinition.inputSchema`, the schema persisted in `agentContext.toolDefinitions`, carries that
+marker, for the tools of the process (`fromAi(toolCall.doc, "desc", "document")`; the shorthand type
+`document`, also inside the `items` and `properties` of an authored parameter schema, is written as the
+string schema with the format by `DocumentParameterSchema.normalizeAuthoredSchema`) and for local tools
+(`LocalToolSchema.document`). The format is the only marker: `DocumentParameterSchema` finds the document
+parameters by it, not by the type. `ToolDefinition` has no further field for it:
 `AgentToolsResolverImpl.updateChangedToolDefinitions` and `AgentInitializerImpl` compare and store whole
-`ToolDefinition` records, so an unchanged tool stays unchanged. The configuration fingerprint covers the tool
-definitions offered in an invocation (the process tools and the available local tools, section 9) in their
-authored form.
+`ToolDefinition` records, so an unchanged tool stays unchanged.
 
-The model passes the `<doc id="..." />` tag of a known document as the value. Some model providers reject
-unknown formats, so the provider gets a derived schema: `DocumentParameterSchema.toProviderToolDefinitions`
-copies each definition that has document parameters into a definition whose document nodes lose the `format`
-and whose description always ends with the hint `DocumentParameterSchema.PROVIDER_HINT` (the hint alone when
-the parameter has no description; a description that already ends with the hint is left as it is, so the
-rewrite is idempotent). `AgentConversation.window` applies it to `AgentConfiguration.toolDefinitions()` when
-it builds the `ConversationSnapshot`; this is the one place, so no provider converter (langchain4j,
-Anthropic, Bedrock, Gemini, OpenAI completions/responses) sees the format. The copy is deep, built in the
-order of the authored schema (the order is part of the request bytes), and a definition without document
-parameters is passed on as the same instance; nothing persisted or configured is rewritten. Example for
-`fromAi(toolCall.docs, "The attachments", "array", {"items": {"type": "document"}})`:
+The model passes the id of a known document as the value, exactly the `id` attribute of the `<doc />` tag it
+sees. The description of every document parameter ends with the hint `DocumentParameterSchema.HINT` (the hint
+alone when the parameter has no description). The hint is applied by the constructor of `ToolDefinition`
+(`DocumentParameterSchema.withHint`), the one point every tool definition passes through (the generated
+schema of an ad-hoc tool, the definitions of gateway tools, the output of the Ad-Hoc Tools Schema Resolver,
+local tools and definitions read back from `agentContext`), at the top level, in `items` and in nested
+objects. A description that already contains the hint is left as it is, so the application is idempotent. The
+stored `ToolDefinition.inputSchema` therefore holds the text the model sees, and the configuration fingerprint,
+which covers the tool definitions offered in an invocation (the process tools and the available local tools,
+section 9), covers the hint.
+
+Some model providers reject unknown formats, so the provider gets a derived schema:
+`DocumentParameterSchema.toProviderToolDefinitions` copies each definition that has document parameters into a
+definition whose document nodes lose the `format`. `AgentConversation.window` applies it to
+`AgentConfiguration.toolDefinitions()` when it builds the `ConversationSnapshot`; this is the one place, so no
+provider converter (langchain4j, Anthropic, Bedrock, Gemini, OpenAI completions/responses) sees the format.
+The copy is deep, built in the order of the stored schema (the order is part of the request bytes), and a
+definition without document parameters is passed on as the same instance; nothing persisted or configured is
+rewritten. Example for `fromAi(toolCall.docs, "The attachments", "array", {"items": {"type": "document"}})`:
 
 ```json
 {"type": "object",
  "properties": {"docs": {"type": "array", "description": "The attachments",
-   "items": {"type": "string", "format": "camunda-document"}}},
+   "items": {"type": "string", "format": "camunda-document-id",
+             "description": "Pass the id of a known document (the id attribute of its <doc /> tag)."}}},
  "required": ["docs"]}
 ```
 
@@ -135,13 +143,14 @@ which the provider gets as
 {"type": "object",
  "properties": {"docs": {"type": "array", "description": "The attachments",
    "items": {"type": "string",
-             "description": "Pass the <doc id=\"...\" /> tag of a known document, copied from the conversation."}}},
+             "description": "Pass the id of a known document (the id attribute of its <doc /> tag)."}}},
  "required": ["docs"]}
 ```
 
-Reason: the persisted definition stays the authored one and no provider-specific text is written into
-`agentContext`; the rewrite is a pure function at the provider boundary; the resolver finds the document
-parameters from the same schema it was authored in, without a second structure that has to stay in sync.
+Reason: the persisted definition holds exactly what the model sees, so a change of the wording changes the
+configuration fingerprint; the rewrite for the provider is a pure function at the provider boundary; the resolver
+finds the document parameters from the same schema it was authored in, without a second structure that has to
+stay in sync.
 
 The Ad-Hoc Tools Schema Resolver (`adhoctoolsschema/*`) returns the authored schema, so a document parameter
 carries the format in its output too. Used as is with another LLM connector, a provider that rejects the
@@ -274,27 +283,23 @@ until the process results are in, which `agentContext` already carries.
 
 ### 3.7 Reading the value, error text
 
-A document parameter value is a string holding one `<doc .../>` tag (`DocumentReferenceXmlTag.parseId`). Only
-the `id` attribute is read; the model may echo the complete tag with `fileName`, `contentType`, `toolName` and
-`toolCallId`, those attributes are ignored, and whitespace around the tag is tolerated. A bare id is not
-accepted, so a model that copies only the id is told to pass the tag (the first error below). A value that
-reaches the process is the Camunda document reference of the registry entry; the persisted assistant message
-keeps the tag exactly as the model sent it.
+A document parameter value is a string that is exactly the id of a document of the registry: the whole field is
+compared, nothing is parsed, trimmed, unescaped or extracted. A `<doc/>` tag, an id with surrounding
+whitespace or an id inside other text is not a known id and is rejected. A value that reaches the process
+is the Camunda document reference of the registry entry; the persisted assistant message keeps the id exactly
+as the model sent it.
 
 One sentence per invalid value, then the known documents (at most 50 are listed, the rest is
 counted):
 
 ```
-Unknown document id 'x' for parameter 'docs[1]'. Known documents:
+Parameter 'docs[1]' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'x'. Known documents:
 <doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />
 ```
 
-A value that is not a tag reads "Parameter 'p' must be the <doc id="..." /> tag of a known document, copied
-from the conversation, not a bare id or other text: 'x'." and is followed by the same list.
-
 The parameter path is `name`, `parent.name` for nested objects and `name[i]` for array elements. A
-blank or non-string value reads "Parameter 'p' must be the <doc id="..." /> tag of a known document (a
-non-blank string).", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
+non-string value reads "Parameter 'p' must be the exact id of a known document (the id attribute of a
+<doc/> tag in the conversation), a string.", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
 registry the list is replaced by "No documents are known.". Results are plain text because no provider
 has a tool error flag in the domain model, so the model reads the text. Reason: the list of known tags
 lets the model correct itself in one retry without any further tool call. The error result reaches the model with its next request: in the synthetic round when the whole batch was local, in the next job together with the results of the real calls of the batch otherwise (section 3.6).
@@ -304,9 +309,9 @@ lets the model correct itself in one retry without any further tool call. The er
 `ReturnDocumentTool` (`aiagent/localtool/ReturnDocumentTool.java`) is a `LocalTool` with `NAME =
 "return_document"`. The model calls it once per document with the arguments `key` (required string, the
 stable identifier the process finds the document by, matching `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required,
-the `<doc id="..." />` tag of the document) and `description` (optional string). `document` is a document
-parameter (string schema with the format `camunda-document`), so the framework resolves the tag to the
-document of the registry and reports a bare id or an unknown id with the texts of 3.7 before the tool
+the id of the document) and `description` (optional string). `document` is a document
+parameter (string schema with the format `camunda-document-id`), so the framework resolves the id to the
+document of the registry and reports a value that is not a known id with the texts of 3.7 before the tool
 runs; the tool receives a `Document` and takes the registry id from `DocumentHandle.idFor`. The tool
 is available while the option is on. Its description tells the model to use it only for a document the
 user should receive in the answer, not for documents it merely passes to other tools, to call it once per
@@ -383,7 +388,7 @@ is described in section 4 and listed as a blocker in section 5.
 
 - **Where the references are resolved.** Only the `ToolCallProcessVariable` (the element activation
   variable `toolCall` of the sub-process flavor and the task flavor's `toolCalls`) carries the
-  references; the persisted assistant message keeps the tags the model sent, and the original arguments
+  references; the persisted assistant message keeps the ids the model sent, and the original arguments
   are never modified. A missing or `null` argument is left alone (optional parameters). Resolution
   runs on the raw tool calls before the gateway transformation, so gateway tool calls stay untouched.
 - **Local handler abstraction.** `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
@@ -604,11 +609,11 @@ text is the content of the `TOOL_RESULT` item, an error result included.
 **Document arguments.** A document parameter of a call (a schema node with the format `camunda-document` of the tool's
 definition, found as in 3.3; for a tool of the process and for a local tool such as `return_document`,
 whose definition is looked up in `LocalToolRegistry` even while the tool is unavailable) is shown with the
-registry entry's `reference` map instead of the tag the model sent, in the `arguments` of the call in the
+registry entry's `reference` map instead of the id the model sent, in the `arguments` of the call in the
 `ASSISTANT` item and of the `TOOL_RESULT` item. This is the complete reference JSON, so the history of an
 inline document holds its content (section 3.12). The substitution is for reporting only: persisted
-messages, the process variable and the text the model reads keep the tags. An id the registry does not
-know, a bare id, a value of an unexpected shape and a parameter that is missing stay as given
+messages, the process variable and the text the model reads keep the ids. A value that is not exactly the
+id of a registry document (unknown id, a tag, text around an id), a value of an unexpected shape and a parameter that is missing stay as given
 (`DocumentParameterResolver.substituteKnownReferences`, which never validates). The mapper needs the tool
 definitions and the registry, so `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and
 `applyToolCallResults` take a `HistoryDocuments(toolDefinitions, documents)`; the request handler builds
@@ -670,9 +675,9 @@ What cannot be represented:
   their calls untouched. Passing documents into gateway tools needs its own design because the gateway
   wraps the call arguments in an envelope the handler builds.
 - **Resolver output for standalone use.** The Ad-Hoc Tools Schema Resolver returns the authored schema
-  with the format `camunda-document` (3.2). The AI Agent derives the provider schema (no format, hint in the
-  description) at the snapshot, but another LLM connector that uses the resolver output directly would send
-  the format and no hint; it needs the same rewrite (`DocumentParameterSchema.toProviderToolDefinitions`) or
+  with the format `camunda-document-id` and the hint in the description (3.2). The AI Agent derives the
+  provider schema (no format) at the snapshot, but another LLM connector that uses the resolver output
+  directly would send the format; it needs the same rewrite (`DocumentParameterSchema.toProviderToolDefinitions`) or
   a documented contract.
 - **Inline documents in the history.** The agent instance history shows the complete reference of a
   document, so inline content is part of a history item (3.12, 5.1). Decide whether the history should
@@ -706,7 +711,7 @@ What cannot be represented:
 | Conversations of Camunda 8.10 | `aiagent/agent/DocumentRegistryBackfillTest`, `aiagent/agent/LegacyDocumentConversationTest` (golden conversation, `backwardcompatibility/camunda-8.10`) |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (tag with other attributes, whitespace, bare id rejection, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
+| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, rejection of tags, escaped tags and ids inside text, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
 | Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (reserved name), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
 | Local tool API | `aiagent/localtool/LocalToolBuilderTest`, `LocalToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/LocalToolCallHandlerImplTest` (including a mixed batch with a real call) |
 | Agent instance history of local tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (document references in the arguments), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
@@ -730,21 +735,21 @@ How ids are derived: Camunda document ids are generated by the store, so the scr
 know them. `OpenAiCompletionsChatModelStubs` registers the `document-id-placeholders` transformer on
 every response; a placeholder `@@DOC_ID_n@@` in a scripted tool call (`documentId(n)` in the fixtures)
 resolves to the n-th distinct `<doc id="..."/>` id (order of first appearance) of the request body the
-response answers, whatever the JSON escaping depth; the fixtures wrap it into the tag the model passes
-(`docTag(documentId(n))`, the tool call arguments carry `<doc id="..." />`). The test reads the same id from the recorded tool
+response answers, whatever the JSON escaping depth; the tool call arguments carry the placeholder as the
+plain id the model passes. The test reads the same id from the recorded tool
 result tag, so the model-visible id and the id in `agent.documents` are compared, not assumed.
 
 | Scenario | Test | Proves |
 |----------|------|--------|
-| (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document` without the hint; no `return_document` while the option is off. |
-| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the tag (job 2, real connector, multipart `file` part equals the served bytes), `return_document` (local round), final text; `agent.documents` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
+| (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; no `return_document` while the option is off. |
+| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `return_document` (local round), final text; `agent.documents` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
 | (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
-| (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its document message, but ends with the eviction note (preamble + tag with tool origin); the model still passes the tag and the tool gets the real bytes. |
+| (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its document message, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
 | (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.documents` on the `AgentResponse`). |
 | (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.documents` holds the document under its key, nothing pending afterwards. |
 | (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `return_document` and `Slow_Tool` once each, in that order. |
-| (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the tag in the arguments of `Upload_A_File` (document parameter) and of `return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
+| (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
@@ -797,7 +802,7 @@ row is from its public documentation and not verified against sources here.
 - **Dynamic enablement** (OpenAI `is_enabled`, LangChain4j dynamic providers, MCP add/remove).
   `LocalTool.isAvailable(AgentConfiguration)` is evaluated per invocation.
 - **Declarative document parameters.** None of the frameworks has them; a string schema node with the format
-  `camunda-document` (3.2) is honored for local tools, so a tool that takes a document never validates ids itself.
+  `camunda-document-id` (3.2) is honored for local tools, so a tool that takes a document never validates ids itself.
 - **State through context updates.** The frameworks keep state in the caller (memory id, context map, mutable
   context object). The agent runs one job after the other, possibly on different workers, so state must live
   in the persisted `AgentContext`: a result can carry `UnaryOperator<AgentContext>` updates that the
@@ -826,7 +831,7 @@ public interface LocalTool {
 }
 
 public record LocalToolCall(String id, String name,
-    Map<String, Object> arguments,          // as the model sent them (document tags)
+    Map<String, Object> arguments,          // as the model sent them (document ids)
     Map<String, Object> resolvedArguments)  // declared document parameters replaced by the references
 { <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
 
@@ -846,7 +851,7 @@ public interface LocalToolRegistry { Set<String> toolNames(); List<LocalTool> av
 ```
 
 `LocalToolSchema.object().string(..).integer(..).number(..).bool(..).stringArray(..).document(..).build()`
-creates a flat object schema; `document(..)` is a parameter with the format `camunda-document`.
+creates a flat object schema; `document(..)` is a parameter with the format `camunda-document-id`.
 
 ### 9.4 What the framework does
 
@@ -858,7 +863,7 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
    remains for the process (3.6). A call of a registered but unavailable local tool remains for the process.
 3. **Document parameters.** If the definition declares document parameters, `DocumentParameterResolver`
    resolves them against the registry first. An invalid value answers the call with the error text of 3.7 and
-   the tool does not run. The tool sees `arguments` (tags) and `resolvedArguments` (references).
+   the tool does not run. The tool sees `arguments` (ids) and `resolvedArguments` (references).
 4. **Run.** The tool runs with a `LocalToolContext` of the working conversation. The typed handler binds
    `resolvedArguments` to its type; a parameter of type `Document` receives the registry document, and an
    argument that does not fit the type answers the call with "Invalid arguments for tool '<name>': ...".

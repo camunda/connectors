@@ -195,7 +195,7 @@ class AgentToolsResolverTest {
                       "type",
                       "object",
                       "properties",
-                      Map.of("doc", Map.of("type", "string", "format", "camunda-document"))))
+                      Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
               .build();
       final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
 
@@ -220,7 +220,7 @@ class AgentToolsResolverTest {
                   "type",
                   "object",
                   "properties",
-                  Map.of("doc", Map.of("type", "string", "format", "camunda-document"))));
+                  Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))));
 
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));

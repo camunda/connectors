@@ -10,6 +10,7 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,13 @@ class LocalToolBuilderTest {
     assertThat(properties).containsOnlyKeys("query", "file");
     assertThat(properties.get("file"))
         .isEqualTo(
-            Map.of("type", "string", "format", "camunda-document", "description", "The file"));
+            Map.of(
+                "type",
+                "string",
+                "format",
+                "camunda-document-id",
+                "description",
+                "The file " + DocumentParameterSchema.HINT));
   }
 
   @Test

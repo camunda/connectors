@@ -67,8 +67,8 @@ public final class LocalToolSchema {
 
   /**
    * A document parameter, a string schema with the format {@link
-   * DocumentParameterSchema#FORMAT_DOCUMENT}: the model passes the {@code <doc id="..." />} tag of
-   * a known document, the tool receives the document.
+   * DocumentParameterSchema#FORMAT_DOCUMENT_ID}: the model passes the id of a known document, the
+   * tool receives the document.
    */
   public LocalToolSchema document(String name, String description, boolean isRequired) {
     properties.put(

@@ -137,7 +137,8 @@ class AgentSubProcessRequestHandlerTest {
                                       "properties",
                                       Map.of(
                                           "doc",
-                                          Map.of("type", "string", "format", "camunda-document"))))
+                                          Map.of(
+                                              "type", "string", "format", "camunda-document-id"))))
                               .build()))
                   .toList())
           .build();
@@ -859,8 +860,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
-    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", tag(documentId)));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", documentId));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
     final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -896,7 +897,7 @@ class AgentSubProcessRequestHandlerTest {
                                   text ->
                                       assertThat(text.text())
                                           .startsWith(
-                                              "Unknown document id 'bogus' for parameter 'doc'. Known documents:")
+                                              "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
                                           .contains(documentId));
                         }));
 
@@ -973,7 +974,7 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
-    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")));
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var message = AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build();
     mockChatModelExecution(message);
@@ -1001,7 +1002,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(result.completedAt()).isNotNull();
               assertThat(result.content())
                   .asString()
-                  .startsWith("Unknown document id 'bogus' for parameter 'doc'. Known documents:");
+                  .startsWith(
+                      "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:");
             });
 
     // the stored assistant message keeps both calls, no results are stored yet
@@ -1065,9 +1067,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var returnCall =
         new ToolCall(
-            "call-1",
-            ReturnDocumentTool.NAME,
-            Map.of("key", "report", "document", tag(documentId)));
+            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", documentId));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
@@ -1122,9 +1122,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var returnCall =
         new ToolCall(
-            "call-1",
-            ReturnDocumentTool.NAME,
-            Map.of("key", "report", "document", tag(documentId)));
+            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", documentId));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1235,7 +1233,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var returnCall =
         new ToolCall(
-            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", tag("bogus")));
+            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", "bogus"));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1263,7 +1261,7 @@ class AgentSubProcessRequestHandlerTest {
                         text ->
                             assertThat(text.text())
                                 .startsWith(
-                                    "Unknown document id 'bogus' for parameter 'document'.")));
+                                    "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.")));
     assertThat(response.responseValue().context().returnDocuments()).isEmpty();
   }
 
@@ -1337,8 +1335,7 @@ class AgentSubProcessRequestHandlerTest {
     doReturn(
             new ChatResult.Completed(
                 AssistantMessage.builder()
-                    .toolCalls(
-                        List.of(new ToolCall("call-1", "upload", Map.of("doc", tag("bogus")))))
+                    .toolCalls(List.of(new ToolCall("call-1", "upload", Map.of("doc", "bogus"))))
                     .build(),
                 new AgentMetrics(1, TokenUsage.empty(), 1)))
         .when(chatModel)
@@ -1585,9 +1582,5 @@ class AgentSubProcessRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
-  }
-
-  private static String tag(String id) {
-    return "<doc id=\"" + id + "\" />";
   }
 }

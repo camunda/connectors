@@ -16,24 +16,25 @@ import org.junit.jupiter.api.Test;
 
 class DocumentParameterSchemaTest {
 
-  private static final String HINT = DocumentParameterSchema.PROVIDER_HINT;
+  private static final String HINT = DocumentParameterSchema.HINT;
 
   @Test
   void findsTopLevelArrayAndNestedDocumentParameters() {
     final var schema =
         object(
             "doc",
-                Map.of("type", "string", "format", "camunda-document", "description", "A document"),
+                Map.of(
+                    "type", "string", "format", "camunda-document-id", "description", "A document"),
             "docs",
                 Map.of(
                     "type",
                     "array",
                     "items",
-                    Map.of("type", "string", "format", "camunda-document")),
+                    Map.of("type", "string", "format", "camunda-document-id")),
             "req",
                 object(
                     "file",
-                    Map.of("type", "string", "format", "camunda-document"),
+                    Map.of("type", "string", "format", "camunda-document-id"),
                     "note",
                     Map.of("type", "string")),
             "rows",
@@ -41,7 +42,7 @@ class DocumentParameterSchemaTest {
                     "type",
                     "array",
                     "items",
-                    object("file", Map.of("type", "string", "format", "camunda-document"))));
+                    object("file", Map.of("type", "string", "format", "camunda-document-id"))));
 
     assertThat(DocumentParameterSchema.hasDocumentParameters(schema)).isTrue();
     assertThat(DocumentParameterSchema.documentParameterPaths(schema))
@@ -71,14 +72,14 @@ class DocumentParameterSchemaTest {
             Map.of(
                 "anyOf",
                 List.of(
-                    Map.of("type", "string", "format", "camunda-document"),
+                    Map.of("type", "string", "format", "camunda-document-id"),
                     Map.of("type", "null"))));
 
     assertThat(DocumentParameterSchema.hasDocumentParameters(schema)).isFalse();
   }
 
   @Test
-  void rewritesDocumentNodesToStringSchemasWithTheHint() {
+  void rewritesDocumentNodesToStringSchemasWithoutTheFormat() {
     final var definition =
         new ToolDefinition(
             "upload",
@@ -89,10 +90,10 @@ class DocumentParameterSchemaTest {
                         "type",
                         "string",
                         "format",
-                        "camunda-document",
+                        "camunda-document-id",
                         "description",
                         "A document"),
-                "bare", Map.of("type", "string", "format", "camunda-document"),
+                "bare", Map.of("type", "string", "format", "camunda-document-id"),
                 "docs", Map.of("type", "array", "description", "Many", "items", doc()),
                 "req", object("file", doc(), "note", Map.of("type", "string"))));
 
@@ -121,17 +122,19 @@ class DocumentParameterSchemaTest {
   }
 
   @Test
-  void doesNotModifyTheAuthoredDefinitionAndKeepsTheOrderOfTheSchema() {
+  void doesNotModifyTheStoredDefinitionAndKeepsTheOrderOfTheSchema() {
     final var authored =
         new ToolDefinition(
             "upload",
             null,
             object("b", doc(), "a", Map.of("type", "string"), "c", Map.of("type", "string")));
+    final var authoredSchema = authored.inputSchema();
 
     final var rewritten =
         DocumentParameterSchema.toProviderToolDefinitions(List.of(authored)).getFirst();
 
-    assertThat(authored.inputSchema()).isEqualTo(object("b", doc(), "a", string(), "c", string()));
+    assertThat(authored.inputSchema()).isSameAs(authoredSchema);
+    assertThat(authored.inputSchema().toString()).contains("camunda-document-id");
     assertThat(propertyNames(rewritten.inputSchema())).containsExactly("b", "a", "c");
   }
 
@@ -153,25 +156,57 @@ class DocumentParameterSchemaTest {
   }
 
   @Test
-  void appendsTheHintOnlyOnce() {
-    final var withHint =
-        Map.<String, Object>of(
-            "type", "string", "format", "camunda-document", "description", "A file. " + HINT);
-    final var definition = new ToolDefinition("upload", null, object("doc", withHint));
+  void withHintEndsTheDescriptionOfEveryDocumentParameterWithTheHint() {
+    final var schema =
+        object(
+            "doc",
+                Map.of(
+                    "type", "string", "format", "camunda-document-id", "description", "A document"),
+            "bare", doc(),
+            "docs", Map.of("type", "array", "description", "Many", "items", doc()),
+            "req", object("file", doc(), "note", string()),
+            "rows", Map.of("type", "array", "items", object("file", doc())));
 
-    final var rewritten =
-        DocumentParameterSchema.toProviderToolDefinitions(List.of(definition)).getFirst();
-    final var again =
-        DocumentParameterSchema.toProviderToolDefinitions(List.of(rewritten)).getFirst();
-
-    assertThat(rewritten.inputSchema())
-        .isEqualTo(object("doc", Map.of("type", "string", "description", "A file. " + HINT)));
-    assertThat(again).isSameAs(rewritten);
+    assertThat(DocumentParameterSchema.withHint(schema))
+        .isEqualTo(
+            object(
+                "doc", described("A document " + HINT),
+                "bare", described(HINT),
+                "docs", Map.of("type", "array", "description", "Many", "items", described(HINT)),
+                "req", object("file", described(HINT), "note", string()),
+                "rows", Map.of("type", "array", "items", object("file", described(HINT)))));
   }
 
   @Test
-  void hintNamesTheDocTagForm() {
-    assertThat(HINT).contains("<doc id=\"...\" />");
+  void withHintAppliesTheHintOnlyOnce() {
+    final var schema = object("doc", doc());
+
+    final var once = DocumentParameterSchema.withHint(schema);
+    final var twice = DocumentParameterSchema.withHint(once);
+
+    assertThat(twice).isEqualTo(once);
+    assertThat(once.toString()).containsOnlyOnce(HINT);
+  }
+
+  @Test
+  void withHintReturnsASchemaWithoutDocumentParametersAsIs() {
+    final var schema = object("text", string());
+
+    assertThat(DocumentParameterSchema.withHint(schema)).isSameAs(schema);
+  }
+
+  @Test
+  void aToolDefinitionStoresTheHintInTheDescriptionOfItsDocumentParameters() {
+    final var definition = new ToolDefinition("upload", null, object("doc", doc()));
+
+    assertThat(definition.inputSchema()).isEqualTo(object("doc", described(HINT)));
+    assertThat(new ToolDefinition("upload", null, definition.inputSchema())).isEqualTo(definition);
+  }
+
+  @Test
+  void hintAsksForTheIdOfAKnownDocument() {
+    assertThat(HINT)
+        .isEqualTo("Pass the id of a known document (the id attribute of its <doc /> tag).");
   }
 
   @Test
@@ -190,7 +225,7 @@ class DocumentParameterSchemaTest {
                         "type",
                         "string",
                         "format",
-                        "camunda-document",
+                        "camunda-document-id",
                         "description",
                         "A document"),
                 "docs", Map.of("type", "array", "items", doc()),
@@ -209,11 +244,15 @@ class DocumentParameterSchemaTest {
         DocumentParameterSchema.toProviderToolDefinitions(List.of(definition)).getFirst();
 
     assertThat(DocumentParameterSchema.hasDocumentParameters(rewritten.inputSchema())).isFalse();
-    assertThat(rewritten.inputSchema().toString()).doesNotContain("camunda-document");
+    assertThat(rewritten.inputSchema().toString()).doesNotContain("camunda-document-id");
   }
 
   private static Map<String, Object> doc() {
-    return Map.of("type", "string", "format", "camunda-document");
+    return Map.of("type", "string", "format", "camunda-document-id");
+  }
+
+  private static Map<String, Object> described(String description) {
+    return Map.of("type", "string", "format", "camunda-document-id", "description", description);
   }
 
   private static Map<String, Object> string() {

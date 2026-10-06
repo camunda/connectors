@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +58,7 @@ class AdHocToolsSchemaResolverTest {
   }
 
   @Test
-  void keepsTheDocumentFormatOfTheGeneratedSchema() {
+  void addsTheHintToTheDocumentParametersOfTheGeneratedSchema() {
     final var element =
         AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
     final var schema =
@@ -68,14 +69,35 @@ class AdHocToolsSchemaResolverTest {
             Map.of(
                 "doc",
                 Map.of(
-                    "type", "string", "format", "camunda-document", "description", "The invoice")));
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "The invoice")));
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
 
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
-        .satisfies(toolDefinition -> assertThat(toolDefinition.inputSchema()).isEqualTo(schema));
+        .satisfies(
+            toolDefinition ->
+                assertThat(toolDefinition.inputSchema())
+                    .isEqualTo(
+                        Map.of(
+                            "type",
+                            "object",
+                            "properties",
+                            Map.of(
+                                "doc",
+                                Map.of(
+                                    "type",
+                                    "string",
+                                    "format",
+                                    "camunda-document-id",
+                                    "description",
+                                    "The invoice " + DocumentParameterSchema.HINT)))));
   }
 
   @ParameterizedTest
