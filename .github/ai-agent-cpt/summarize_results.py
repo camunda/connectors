@@ -60,6 +60,15 @@ def read_json_lines(report_directory):
                     "reason": sanitize_failure(raw.get("failureClass")),
                 }
             )
+    tests.sort(
+        key=lambda test: (
+            test["class"],
+            test["scenario"],
+            test["capability"],
+            test["provider"],
+            test["model"],
+        )
+    )
     return tests, diagnostics
 
 

@@ -89,6 +89,52 @@ class SummarizeResultsTest(unittest.TestCase):
             self.assertEqual(test["status"], "failed")
             self.assertEqual(test["reason"], "AssertionError")
 
+    def test_finalize_sorts_results_by_stable_test_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report_directory = pathlib.Path(directory, "raw")
+            report_directory.mkdir()
+            records = [
+                {
+                    "class": "ZTest",
+                    "method": "scenario",
+                    "displayName": "provider/model-b",
+                    "tags": "core-smoke",
+                    "status": "passed",
+                    "durationSeconds": 1,
+                    "failureClass": "",
+                },
+                {
+                    "class": "ATest",
+                    "method": "scenario",
+                    "displayName": "provider/model-a",
+                    "tags": "core-smoke",
+                    "status": "passed",
+                    "durationSeconds": 1,
+                    "failureClass": "",
+                },
+            ]
+            report_directory.joinpath("cpt-results-1.jsonl").write_text(
+                json.dumps(records[0]) + "\n", encoding="utf-8"
+            )
+            report_directory.joinpath("cpt-results-2.jsonl").write_text(
+                json.dumps(records[1]) + "\n", encoding="utf-8"
+            )
+            output = pathlib.Path(directory, "result.json")
+            environment = {
+                "CPT_REPORT_DIRECTORY": str(report_directory),
+                "CPT_MATRIX_ID": "provider",
+                "CPT_MATRIX_NAME": "Provider CPT",
+                "CPT_MAVEN_OUTCOME": "success",
+            }
+            with mock.patch.dict(os.environ, environment, clear=False):
+                summarize_results.finalize(output)
+
+            result = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(
+                [(test["class"], test["model"]) for test in result["tests"]],
+                [("ATest", "model-a"), ("ZTest", "model-b")],
+            )
+
     def test_finalize_redacts_failure_without_an_exception_class(self):
         with tempfile.TemporaryDirectory() as directory:
             report_directory = pathlib.Path(directory, "raw")
