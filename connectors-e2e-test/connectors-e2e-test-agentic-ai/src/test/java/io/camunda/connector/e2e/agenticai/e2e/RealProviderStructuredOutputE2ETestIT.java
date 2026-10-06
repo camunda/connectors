@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
@@ -176,7 +177,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
     var model =
         buildModel(
             provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH,
             NO_TOOL_BPMN_RESOURCE,
             template ->
                 template
