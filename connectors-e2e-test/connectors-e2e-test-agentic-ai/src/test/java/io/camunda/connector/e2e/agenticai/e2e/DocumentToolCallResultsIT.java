@@ -40,13 +40,10 @@ import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
@@ -138,69 +135,6 @@ class DocumentToolCallResultsIT {
                   aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Scenario 1: Single document from tool call result
-  // ---------------------------------------------------------------------------
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  @Disabled
-  void singleDocumentFromToolCallResult(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    var processInstance =
-        startProcess(
-            provider,
-            "Use the Analyze_Single_Document tool to retrieve a document, then tell me "
-                + "what project it mentions and when it launched.",
-            List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH));
-
-    awaitCompletionOrIncident(processInstance);
-    assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            "agent",
-            Object.class,
-            agent -> {
-              logAgentResponse(provider, "singleDocument", agent);
-              assertProjectLaunchFacts(normalizedResponse(agent));
-            });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Scenario 2: Multiple documents from tool call result
-  // ---------------------------------------------------------------------------
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  @Disabled
-  void multipleDocumentsFromToolCallResult(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    var processInstance =
-        startProcess(
-            provider,
-            "Use the Search_Documents tool to find documents and summarize what each one says.",
-            List.of(
-                wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
-                wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT));
-
-    awaitCompletionOrIncident(processInstance);
-    assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            "agent",
-            Object.class,
-            agent -> {
-              logAgentResponse(provider, "multipleDocuments", agent);
-              var normalizedResponse = normalizedResponse(agent);
-              assertProjectLaunchFacts(normalizedResponse);
-              assertHeadcountFacts(normalizedResponse);
-            });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Scenario 3: Documents in nested structure from tool call result
-  // ---------------------------------------------------------------------------
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
@@ -604,35 +538,6 @@ class DocumentToolCallResultsIT {
         provider.label(),
         scenario,
         responseText);
-  }
-
-  private static void assertProjectLaunchFacts(String normalizedResponse) {
-    assertProjectLaunchFacts(normalizedResponse, "zypherion");
-  }
-
-  private static void assertProjectLaunchFacts(
-      String normalizedResponse, String... acceptedProjectNameSpellings) {
-    Assertions.assertThat(normalizedResponse)
-        .as("normalized response containing project launch facts")
-        .containsAnyOf(acceptedProjectNameSpellings)
-        .matches(".*(?:march15(?:th)?2026|15(?:th)?march2026|03152026|20260315).*");
-  }
-
-  private static void assertHeadcountFacts(String normalizedResponse) {
-    Assertions.assertThat(normalizedResponse)
-        .as("normalized response containing headcount facts")
-        .contains("847", "12");
-  }
-
-  private static String normalizedResponse(Object agent) {
-    if (!(agent instanceof Map<?, ?> agentMap)) {
-      throw new AssertionError("Expected agent result to be a map");
-    }
-
-    var responseText = agentMap.get("responseText");
-    Assertions.assertThat(responseText).as("agent responseText").isInstanceOf(String.class);
-
-    return ((String) responseText).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
   }
 
   private static String envOrPlaceholder(String envVar) {
