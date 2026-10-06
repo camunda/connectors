@@ -68,10 +68,10 @@
   "type": "default",
   "id": "ai-agent-chat-mcp-resources-user-feedback",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.9.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.44.0"
+    "version": "5.51.1"
   },
   "schemaVersion": 19
 }
