@@ -1,0 +1,138 @@
+{
+  "credentialProfiles": ["openai", "vertex", "bedrock-provider", "bedrock-documents", "bundle"],
+  "requiredCiCapabilities": {
+    "openai": [
+      "core-smoke",
+      "structured-output",
+      "reasoning",
+      "multimodal-documents",
+      "document-tool-results"
+    ],
+    "vertex": [
+      "core-smoke",
+      "structured-output",
+      "reasoning",
+      "multimodal-documents",
+      "document-tool-results"
+    ],
+    "bedrock": [
+      "core-smoke",
+      "reasoning",
+      "prompt-caching",
+      "multimodal-documents",
+      "document-tool-results"
+    ]
+  },
+  "rows": [
+    {
+      "id": "bundle-e2e",
+      "name": "AI Agent bundle E2E",
+      "providerGroup": "",
+      "groups": [],
+      "testClasses": "AiAgentE2ETestIT",
+      "buildBundle": true,
+      "mavenProjects": "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": [
+        "bundle",
+        "openai",
+        "vertex",
+        "bedrock-provider"
+      ],
+      "ci": true
+    },
+    {
+      "id": "openai-native",
+      "name": "OpenAI native capability CPT",
+      "providerGroup": "openai",
+      "groups": ["core-smoke", "structured-output", "reasoning"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai"],
+      "ci": true
+    },
+    {
+      "id": "vertex-native",
+      "name": "Vertex native capability CPT",
+      "providerGroup": "vertex",
+      "groups": [
+        "core-smoke",
+        "structured-output",
+        "reasoning",
+        "multimodal-documents",
+        "document-tool-results"
+      ],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["vertex"],
+      "ci": true
+    },
+    {
+      "id": "bedrock-native",
+      "name": "Bedrock native capability CPT",
+      "providerGroup": "bedrock",
+      "groups": ["core-smoke", "reasoning", "prompt-caching"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider"],
+      "ci": true
+    },
+    {
+      "id": "openai-documents",
+      "name": "OpenAI document capability CPT",
+      "providerGroup": "openai",
+      "groups": ["multimodal-documents", "document-tool-results"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai"],
+      "ci": true
+    },
+    {
+      "id": "bedrock-documents",
+      "name": "Bedrock document capability CPT",
+      "providerGroup": "bedrock",
+      "groups": ["multimodal-documents", "document-tool-results"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider", "bedrock-documents"],
+      "ci": true
+    },
+    {
+      "id": "openai-prompt-caching",
+      "name": "OpenAI prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": ["prompt-caching"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["openai"],
+      "ci": false
+    },
+    {
+      "id": "vertex-prompt-caching",
+      "name": "Vertex prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": ["prompt-caching"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["vertex"],
+      "ci": false
+    },
+    {
+      "id": "bedrock-prompt-caching",
+      "name": "Bedrock prompt-caching capability CPT",
+      "providerGroup": "",
+      "groups": ["prompt-caching"],
+      "testClasses": "",
+      "buildBundle": false,
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai",
+      "credentialProfiles": ["bedrock-provider"],
+      "ci": false
+    }
+  ]
+}
