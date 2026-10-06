@@ -78,15 +78,15 @@ class AgentResponseHandlerDocumentsTest {
                     "report", new SelectedDocument(reportId, null)),
                 assistantMessage("done")));
 
-    assertThat(response.documents().keySet()).containsExactly("summary", "report");
-    assertThat(response.documents().get("summary"))
+    assertThat(response.responseDocuments().keySet()).containsExactly("summary", "report");
+    assertThat(response.responseDocuments().get("summary"))
         .isEqualTo(
             new ReturnedDocument(
                 registry.findById(summaryId).orElseThrow().reference(), "Short version"));
-    assertThat(response.documents().get("report"))
+    assertThat(response.responseDocuments().get("report"))
         .isEqualTo(
             new ReturnedDocument(registry.findById(reportId).orElseThrow().reference(), null));
-    assertThat(response.documents().get("summary").document())
+    assertThat(response.responseDocuments().get("summary").document())
         .containsEntry("camunda.document.type", "camunda")
         .containsKeys("storeId", "documentId", "contentHash");
     assertThat(response.context().returnDocuments()).isEmpty();
@@ -98,7 +98,7 @@ class AgentResponseHandlerDocumentsTest {
     final var response =
         responseHandler.createResponse(conversation(true, selection(), assistantMessage("done")));
 
-    assertThat(response.documents()).isEmpty();
+    assertThat(response.responseDocuments()).isEmpty();
   }
 
   @Test
@@ -110,7 +110,7 @@ class AgentResponseHandlerDocumentsTest {
                 selection("report", new SelectedDocument(reportId, null)),
                 assistantMessage("done")));
 
-    assertThat(response.documents()).isEmpty();
+    assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().returnDocuments()).isEmpty();
   }
 
@@ -126,7 +126,7 @@ class AgentResponseHandlerDocumentsTest {
                 assistantMessage("checking", List.of(toolCall))));
 
     assertThat(response.toolCalls()).hasSize(1);
-    assertThat(response.documents()).isEmpty();
+    assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().returnDocuments()).containsOnlyKeys("report");
   }
 
@@ -149,7 +149,7 @@ class AgentResponseHandlerDocumentsTest {
         .extracting(call -> call.metadata().id())
         .containsExactly("call-2");
     // the batch is not final, the selection stays and no documents are returned yet
-    assertThat(response.documents()).isEmpty();
+    assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().returnDocuments()).containsOnlyKeys("report");
     assertThat(response.context().pendingLocalToolCallResults()).containsExactly(local);
   }
@@ -165,7 +165,7 @@ class AgentResponseHandlerDocumentsTest {
                     "report", new SelectedDocument(reportId, null)),
                 assistantMessage("done")));
 
-    assertThat(response.documents()).containsOnlyKeys("report");
+    assertThat(response.responseDocuments()).containsOnlyKeys("report");
   }
 
   private static LinkedHashMap<String, SelectedDocument> selection(Object... keysAndValues) {

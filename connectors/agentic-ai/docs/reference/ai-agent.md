@@ -1155,7 +1155,7 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 3. **Full message**: If `includeAssistantMessage` is true, the raw `AssistantMessage` is included in the response.
 
-4. **Documents**: If `includeDocuments` is true and the response carries no tool calls, `documents` is a map from
+4. **Documents**: If `includeDocuments` is true and the response carries no tool calls, `responseDocuments` is a map from
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
    of a document the agent selected with the built-in `return_document` tool (called once per document, see
    [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection is cleared in the
@@ -1165,7 +1165,7 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 On final completion (no tool calls):
 - `agent` variable = `AgentSubProcessResponse` containing:
-  - `responseText`, `responseJson`, `responseMessage`, `documents`
+  - `responseText`, `responseJson`, `responseMessage`, `responseDocuments`
   - Optionally `context` (if `includeAgentContext` is true)
 - `agentContext` variable = updated agent context
 

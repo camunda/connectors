@@ -199,7 +199,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.documents(), documentId);
+          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
           // the registry is part of the agent context; the selection is consumed
           assertThat(agentResponse.context().documents())
               .extracting(entry -> entry.id())
@@ -288,7 +288,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.documents(), documentId);
+          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().returnDocuments()).isEmpty();
           assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
         });

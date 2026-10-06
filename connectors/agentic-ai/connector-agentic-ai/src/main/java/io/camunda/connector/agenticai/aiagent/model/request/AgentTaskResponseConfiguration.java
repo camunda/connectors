@@ -30,7 +30,7 @@ public record AgentTaskResponseConfiguration(
             description = "Let the agent return documents as part of the result object.",
             tooltip =
                 "When enabled, the agent can attach documents it knows (from the user prompt, tool results or events) "
-                    + "to its final response by calling a built-in tool once per document. The documents will be available as <code>response.documents</code>, "
+                    + "to its final response by calling a built-in tool once per document. The documents will be available as <code>response.responseDocuments</code>, "
                     + "a map from the key the agent chose to an object with the document reference (<code>document</code>) and an optional <code>description</code>. "
                     + "The document references can be passed to other connectors.",
             type = TemplateProperty.PropertyType.Boolean,

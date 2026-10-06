@@ -13,8 +13,8 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document the agent returns with its final response, found in {@link AgentResponse#documents()}
- * under the key the model chose.
+ * A document the agent returns with its final response, found in {@link
+ * AgentResponse#responseDocuments()} under the key the model chose.
  *
  * @param document the Camunda document reference of the document, resolved from the registry
  * @param description what the model said about the document, if anything

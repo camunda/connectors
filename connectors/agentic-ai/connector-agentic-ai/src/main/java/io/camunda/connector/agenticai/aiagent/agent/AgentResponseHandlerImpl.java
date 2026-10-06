@@ -93,7 +93,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     if (toolCalls.isEmpty()) {
       // a final response consumes the selection of returned documents
       if (Boolean.TRUE.equals(responseConfiguration.includeDocuments())) {
-        builder.documents(returnedDocuments(conversation));
+        builder.responseDocuments(returnedDocuments(conversation));
       }
       builder.context(agentContext.withReturnDocuments(new LinkedHashMap<>()));
     }

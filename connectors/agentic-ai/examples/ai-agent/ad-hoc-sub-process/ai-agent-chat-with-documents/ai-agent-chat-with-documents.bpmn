@@ -148,7 +148,7 @@
         <zeebe:formDefinition formId="ai-agent-chat-with-documents-user-feedback" />
         <zeebe:ioMapping>
           <zeebe:input source="=agent.responseText" target="responseText" />
-          <zeebe:input source="=if agent.documents != null then get entries(agent.documents).value.document else []" target="returnedDocuments" />
+          <zeebe:input source="=if agent.responseDocuments != null then get entries(agent.responseDocuments).value.document else []" target="returnedDocuments" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_toFeedback</bpmn:incoming>

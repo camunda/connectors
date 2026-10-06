@@ -105,7 +105,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         zeebeTest,
         agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse).isReady().hasNoToolCalls();
-          assertReturnedDocument(agentResponse.documents(), documentId);
+          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().returnDocuments()).isEmpty();
         });
 
@@ -169,7 +169,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
               .isReady()
               .hasNoToolCalls()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.documents(), documentId);
+          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();

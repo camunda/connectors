@@ -1302,7 +1302,7 @@ class AgentSubProcessRequestHandlerTest {
                 AgentResponse.builder()
                     .context(i.getArgument(0, AgentConversation.class).toAgentContext())
                     .responseText("here you go")
-                    .documents(new LinkedHashMap<>(Map.of("report", returned)))
+                    .responseDocuments(new LinkedHashMap<>(Map.of("report", returned)))
                     .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -1310,7 +1310,9 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.variables().get("agent"))
         .isInstanceOfSatisfying(
             AgentSubProcessResponse.class,
-            agent -> assertThat(agent.documents()).containsExactly(Map.entry("report", returned)));
+            agent ->
+                assertThat(agent.responseDocuments())
+                    .containsExactly(Map.entry("report", returned)));
   }
 
   @Test

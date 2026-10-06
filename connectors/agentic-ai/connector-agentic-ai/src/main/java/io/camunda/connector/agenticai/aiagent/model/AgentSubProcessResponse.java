@@ -25,11 +25,13 @@ public record AgentSubProcessResponse(
     @Nullable Object responseJson,
     // the returned documents by key, in call order; a LinkedHashMap because the record builder
     // copies a Map into an immutable map of unspecified iteration order
-    @RecordBuilder.Initializer(source = AgentSubProcessResponse.class, value = "noDocuments")
-        LinkedHashMap<String, ReturnedDocument> documents)
+    @RecordBuilder.Initializer(
+            source = AgentSubProcessResponse.class,
+            value = "noResponseDocuments")
+        LinkedHashMap<String, ReturnedDocument> responseDocuments)
     implements AgentSubProcessResponseBuilder.With {
 
-  static LinkedHashMap<String, ReturnedDocument> noDocuments() {
+  static LinkedHashMap<String, ReturnedDocument> noResponseDocuments() {
     return new LinkedHashMap<>();
   }
 

@@ -72,8 +72,8 @@ referenced by their id in tool calls, and leave through the response.
    the loop ends with the normal tool calling status.
 7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending local results
    answer, then `DocumentParameterResolver.resolveAll` replaces document ids by registry references in the
-   process variable only. For a response without tool calls the selection is turned into `documents` and
-   cleared. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `documents` into the `agent`
+   process variable only. For a response without tool calls the selection is turned into `responseDocuments` and
+   cleared. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `responseDocuments` into the `agent`
    variable; the task flavor returns the `AgentResponse` itself. `AgentSubProcessRequestHandler` uses
    `AgentConversation.hasInterruptedToolCallResultsInInvocation` so that interrupted results of the first
    round still cancel the remaining tool instances after a local round replaced the current turn.
@@ -327,17 +327,17 @@ missing `document` gives an error answer listing the known documents. An error a
   insertion ordered, `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty map, no schema version
   bump) because the tool can be called in an earlier job than the final response. The component is a
   `LinkedHashMap` because the record builder copies a `Map` into an immutable map of unspecified order.
-- **Consume on the final response.** A response without tool calls returns the selection as `documents`, a map
+- **Consume on the final response.** A response without tool calls returns the selection as `responseDocuments`, a map
   `key -> ReturnedDocument{document, description?}` in selection order, where `document` is the registry entry
   `reference` map (selections whose id is not in the registry are skipped), and clears the selection in
   the returned context. A response with tool calls leaves it alone. The sub-process flavor copies the map
-  into the `agent` variable, so the process reads `agent.documents.report.document`; all documents are
-  `get entries(agent.documents).value.document`.
+  into the `agent` variable, so the process reads `agent.responseDocuments.report.document`; all documents are
+  `get entries(agent.responseDocuments).value.document`.
 - **No retract.** There is no tool to remove a key. A model can only replace the document of a key. A
   document is only ever returned if the model named it, and the answer text names the key of that call.
 - A selection recorded in a batch that also holds real calls (3.6) is persisted with that job, before the
   real calls ran, because the model receives the "Returned ..." result for it with the results of the batch.
-- Option off: no tool in the snapshot, no `documents`; a stale selection (option toggled mid-run) is
+- Option off: no tool in the snapshot, no `responseDocuments`; a stale selection (option toggled mid-run) is
   cleared with the final response without being returned.
 
 A valid `return_document` call together with real tool calls costs no extra model call: the real calls run
@@ -459,7 +459,7 @@ only matters together with the in-process store (messages in the same variable) 
 
 **Large inline document risk.** The content of an inline document is held a second time in
 `agentContext`, in addition to the tool result in the conversation, and a returned inline document
-repeats it again in `agent.documents`. Inline documents are rare (Camunda documents are the norm), but
+repeats it again in `agent.responseDocuments`. Inline documents are rare (Camunda documents are the norm), but
 a large inline image counts fully against the 4 MB limit.
 
 **Backward compatibility and downgrade.** No `CURRENT_SCHEMA_VERSION` bump. A missing `documents`
@@ -557,7 +557,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 
 | # | Finding | Severity | Detail |
 |---|---------|----------|--------|
-| 1 | Large inline documents | High (rare trigger) | Content is stored in the registry and in the tool result, and again in `agent.documents` when returned. A large inline image can push the job completion past the 4 MB broker message limit; there is no size guard or fallback to a reference-only entry. |
+| 1 | Large inline documents | High (rare trigger) | Content is stored in the registry and in the tool result, and again in `agent.responseDocuments` when returned. A large inline image can push the job completion past the 4 MB broker message limit; there is no size guard or fallback to a reference-only entry. |
 | 2 | Local answers of a mixed batch reach the model late | Low | The agent instance history shows the local results of a batch that also holds real calls as soon as the job that answered them completes (5.1). The model only receives them with the next request, in the next job, when the real calls have completed; a real call that never completes holds that request back. A batch made of local calls alone is answered in the same job. |
 | 3 | Gateway tools unsupported | Medium | MCP and A2A tool definitions never declare document parameters; a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
@@ -743,17 +743,17 @@ every response; a placeholder `@@DOC_ID_n@@` in a scripted tool call (`documentI
 resolves to the n-th distinct `<doc id="..."/>` id (order of first appearance) of the request body the
 response answers, whatever the JSON escaping depth; the tool call arguments carry the placeholder as the
 plain id the model passes. The test reads the same id from the recorded tool
-result tag, so the model-visible id and the id in `agent.documents` are compared, not assumed.
+result tag, so the model-visible id and the id in `agent.responseDocuments` are compared, not assumed.
 
 | Scenario | Test | Proves |
 |----------|------|--------|
 | (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; no `return_document` while the option is off. |
-| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `return_document` (local round), final text; `agent.documents` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
+| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `return_document` (local round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
 | (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its document message, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
-| (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.documents` on the `AgentResponse`). |
-| (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.documents` holds the document under its key, nothing pending afterwards. |
+| (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.responseDocuments` on the `AgentResponse`). |
+| (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.responseDocuments` holds the document under its key, nothing pending afterwards. |
 | (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `return_document` and `Slow_Tool` once each, in that order. |
 | (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |

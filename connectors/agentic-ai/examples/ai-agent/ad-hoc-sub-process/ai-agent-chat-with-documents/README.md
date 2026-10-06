@@ -15,9 +15,9 @@ It demonstrates:
   context window.
 - **`return_document`**: with `Include documents` on (`data.response.includeDocuments`), the agent gets a built-in tool
   to hand a document back, called once per document with a key, the document and an optional description. They arrive in
-  `agent.documents`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
-  process reads one document as `agent.documents.<key>.document` and all documents as
-  `get entries(agent.documents).value.document`.
+  `agent.responseDocuments`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
+  process reads one document as `agent.responseDocuments.<key>.document` and all documents as
+  `get entries(agent.responseDocuments).value.document`.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
   documents it still knows by id.
 - **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `return_document`
@@ -100,7 +100,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    `Download_File` returned a document (`toolCallResult.document`, a Camunda document reference), `Upload_File` has status
    200 and `receivedFiles` contains the field `file`, the log of the file server shows a request of about 8 KB.
 3. **Return a document.** Continue with `Give me the file back.` Check: the agent calls `return_document`; after the
-   next feedback task `agent.documents` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
+   next feedback task `agent.responseDocuments` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
    (preview/download).
 4. **Unknown id.** Prompt: `Upload the document with the id "does-not-exist".` Check: the agent instance history shows an
    error tool result listing the known documents, no `Upload_File` element instance was started, and the agent retries
@@ -116,7 +116,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
 8. **User prompt document.** Start a new instance, pick a file in the start form and ask `Upload the attached file.`
    Check: no download step is needed, `Upload_File` receives the prompt document, `agent.context.documents` lists it.
    Then set `Include documents` of `AI Agent` to `false` (`data.response.includeDocuments`), redeploy and ask the agent to
-   return the file: `return_document` is not offered and `agent.documents` stays empty.
+   return the file: `return_document` is not offered and `agent.responseDocuments` stays empty.
 
 Repeat scenario 2 and 3 with `data.memory.storage.type` set to `camunda-document` (`data.memory.storage.timeToLive`
 `PT1H`) to check the registry with another memory store.

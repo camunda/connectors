@@ -34,12 +34,12 @@ public record AgentResponse(
     @Nullable Object responseJson,
     // the returned documents by key, in call order; a LinkedHashMap because the record builder
     // copies a Map into an immutable map of unspecified iteration order
-    @RecordBuilder.Initializer(source = AgentResponse.class, value = "noDocuments")
+    @RecordBuilder.Initializer(source = AgentResponse.class, value = "noResponseDocuments")
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        LinkedHashMap<String, ReturnedDocument> documents)
+        LinkedHashMap<String, ReturnedDocument> responseDocuments)
     implements AgentResponseBuilder.With {
 
-  static LinkedHashMap<String, ReturnedDocument> noDocuments() {
+  static LinkedHashMap<String, ReturnedDocument> noResponseDocuments() {
     return new LinkedHashMap<>();
   }
 
@@ -136,12 +136,12 @@ public record AgentResponse(
         .build();
   }
 
-  @DataExample(id = "withDocuments", feel = "=documents")
-  public static AgentResponse exampleResultWithDocuments() {
+  @DataExample(id = "withResponseDocuments", feel = "=responseDocuments")
+  public static AgentResponse exampleResultWithResponseDocuments() {
     return AgentResponse.builder()
         .context(exampleResultWithTextResponse().context())
         .responseText("The report is attached.")
-        .documents(
+        .responseDocuments(
             new LinkedHashMap<>(
                 Map.of(
                     "report",
