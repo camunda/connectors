@@ -98,6 +98,7 @@ class RealProviderFixtureTest {
         .containsExactly("Lookup_Classified_Fact");
     assertThat(serviceTaskIds("real-provider-multi-tool.bpmn"))
         .containsExactlyInAnyOrder("Lookup_Classified_Fact", "Lookup_Access_Authorization");
+    assertThat(serviceTaskIds("real-provider-no-tools.bpmn")).isEmpty();
   }
 
   private Iterable<String> serviceTaskIds(String resource) throws IOException {

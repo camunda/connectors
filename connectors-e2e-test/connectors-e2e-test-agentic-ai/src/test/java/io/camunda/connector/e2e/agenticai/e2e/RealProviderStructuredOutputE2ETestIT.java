@@ -34,6 +34,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
 
   private static final String ACCESS_JOB_TYPE = "lookup-access-authorization";
   private static final String MULTI_TOOL_BPMN_RESOURCE = "classpath:real-provider-multi-tool.bpmn";
+  private static final String NO_TOOL_BPMN_RESOURCE = "classpath:real-provider-no-tools.bpmn";
   private static final String MULTI_TOOL_SYSTEM_PROMPT =
       DEFAULT_SYSTEM_PROMPT
           + " When the user's request requires a tool whose input depends on another tool's result, "
@@ -46,7 +47,11 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
           + " Call the Lookup Classified Fact tool at most once. After its result appears in the "
           + "conversation, return the final JSON response immediately and do not call any tool "
           + "again.";
+  private static final String NO_TOOL_STRUCTURED_OUTPUT_SYSTEM_PROMPT =
+      "Return the values supplied by the user as the final JSON response.";
   private static final String NONCE_ACCESS_CODE = "Vantablack-3";
+  private static final String DIRECT_CODE_NAME = "ZypherionDirect4";
+  private static final String DIRECT_CLEARANCE = "CobaltDirect2";
   private static final String ACCESS_AUTHORIZATION_SECRET =
       "ACCESS AUTHORIZATION: The access authorization code is " + NONCE_ACCESS_CODE + ".";
   private static final String MULTI_TOOL_RESPONSE_SCHEMA =
@@ -78,7 +83,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithStructuredOutput")
+  @MethodSource("providersWithStructuredOutputAndTools")
   void structuredOutputWithMultipleToolCallsReturnsSchemaConformingJson(ProviderConfig provider) {
     var model =
         buildModel(
@@ -125,7 +130,7 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithStructuredOutput")
+  @MethodSource("providersWithStructuredOutputAndTools")
   void structuredOutputReturnsSchemaConformingJson(ProviderConfig provider) {
     var model =
         buildModel(
@@ -162,6 +167,51 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
                           .contains(NONCE_CODE_NAME);
                       assertThat(normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
                           .contains(NONCE_CLEARANCE);
+                    }));
+  }
+
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("providersWithStructuredOutputWithoutTools")
+  void structuredOutputWithoutToolsReturnsSchemaConformingJson(ProviderConfig provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            NO_TOOL_BPMN_RESOURCE,
+            template ->
+                template
+                    .property("data.response.format.type", "json")
+                    .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
+                    .property("data.response.format.schemaName", "DirectFact"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            NO_TOOL_STRUCTURED_OUTPUT_SYSTEM_PROMPT,
+            Map.of(
+                "userPrompt",
+                "Return codeName '"
+                    + DIRECT_CODE_NAME
+                    + "' and clearanceLevel '"
+                    + DIRECT_CLEARANCE
+                    + "' exactly."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .metricsSatisfy(metrics -> assertThat(metrics.toolCalls()).isZero())
+                .hasResponseJsonSatisfying(
+                    json -> {
+                      @SuppressWarnings("unchecked")
+                      var map = (Map<String, Object>) json;
+                      assertThat(String.valueOf(map.get("codeName")))
+                          .isEqualToIgnoringCase(DIRECT_CODE_NAME);
+                      assertThat(String.valueOf(map.get("clearanceLevel")))
+                          .isEqualToIgnoringCase(DIRECT_CLEARANCE);
                     }));
   }
 }

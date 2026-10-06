@@ -120,6 +120,7 @@ abstract class RealProviderApiSmokeSupport {
 
   enum Capability {
     STRUCTURED_OUTPUT,
+    STRUCTURED_OUTPUT_WITH_TOOLS,
     REASONING,
     PROMPT_CACHING,
     MULTIMODAL_USER_MESSAGE
@@ -468,6 +469,7 @@ abstract class RealProviderApiSmokeSupport {
             "claude-sonnet-4-6",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
                     Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
@@ -482,6 +484,7 @@ abstract class RealProviderApiSmokeSupport {
             "claude-sonnet-5-5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
                     Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
@@ -506,6 +509,7 @@ abstract class RealProviderApiSmokeSupport {
             "claude-sonnet-5-5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING,
                     Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
@@ -564,6 +568,7 @@ abstract class RealProviderApiSmokeSupport {
             "gpt-6.1-sol",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
@@ -573,6 +578,7 @@ abstract class RealProviderApiSmokeSupport {
             "gpt-5.5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         // An older model, on both API families, for completeness.
@@ -580,12 +586,14 @@ abstract class RealProviderApiSmokeSupport {
             "gpt-4.1",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         openAiCompletionsV2(
             "gpt-4.1",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         // Same models/capabilities as the openai-api rows above, via the foundry backend.
@@ -593,6 +601,7 @@ abstract class RealProviderApiSmokeSupport {
             "gpt-6.1-sol",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
@@ -600,18 +609,21 @@ abstract class RealProviderApiSmokeSupport {
             "gpt-5.5",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         openAiFoundryResponsesV2(
             "gpt-4.1",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         openAiFoundryCompletionsV2(
             "gpt-4.1",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of())),
         // Mistral does not reliably report a cache hit within the scenario's two calls, and
@@ -621,6 +633,7 @@ abstract class RealProviderApiSmokeSupport {
             "mistral-large-2512",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
         mistralV2(
             "mistral-medium-3-5",
@@ -631,7 +644,10 @@ abstract class RealProviderApiSmokeSupport {
             "ministral-14b-2512",
             Map.of(
                 Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
+        // Gemini 3.8 produces schema-conforming JSON without tools, but can repeatedly reissue an
+        // already-completed tool call when tools and a response schema are combined.
         googleGeminiV2(
             "gemini-3.8-flash",
             Map.of(
@@ -668,6 +684,18 @@ abstract class RealProviderApiSmokeSupport {
   static Stream<ProviderConfig> providersWithStructuredOutput() {
     return requireProviderSelection(
         providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT)), "structured-output");
+  }
+
+  static Stream<ProviderConfig> providersWithStructuredOutputAndTools() {
+    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
+  }
+
+  static Stream<ProviderConfig> providersWithStructuredOutputWithoutTools() {
+    return providers()
+        .filter(
+            p ->
+                p.supports(Capability.STRUCTURED_OUTPUT)
+                    && !p.supports(Capability.STRUCTURED_OUTPUT_WITH_TOOLS));
   }
 
   static Stream<ProviderConfig> providersWithReasoning() {
