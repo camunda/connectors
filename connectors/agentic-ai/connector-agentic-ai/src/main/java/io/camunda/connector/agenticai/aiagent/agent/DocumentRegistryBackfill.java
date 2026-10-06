@@ -22,7 +22,6 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Adds the documents of a stored conversation that the {@link DocumentRegistry} does not know yet.
@@ -30,14 +29,15 @@ import org.jspecify.annotations.Nullable;
  * <p>Conversations stored in the form of earlier versions carry documents the registry never saw:
  * the content of documents in user messages and the documents in the content of tool call results.
  * Their stored messages stay as they are; the registry is the only thing that is extended. The
- * source of a document is derived from where it is found:
+ * source of a document is derived from where it is found. Messages of these conversations may lack
+ * a stable id (the id is generated again on every load), so a backfilled source never carries a
+ * message id:
  *
  * <ul>
  *   <li>a document in a tool call result: {@link DocumentSource.Type#TOOL_CALL} with the tool of
- *       that result and the id of the tool call result message
+ *       that result
  *   <li>a document in a user message that holds the documents extracted from tool calls: {@link
  *       DocumentSource.Type#TOOL_CALL}, with the tool read from the tag in front of the document
- *       and the id of the preceding tool call result message
  *   <li>a document in a user message after the event documents preamble: {@link
  *       DocumentSource.Type#EVENT}
  *   <li>any other document in a user message: {@link DocumentSource.Type#USER_MESSAGE}
@@ -56,8 +56,7 @@ public final class DocumentRegistryBackfill {
     for (int i = 0; i < messages.size(); i++) {
       switch (messages.get(i)) {
         case ToolCallResultMessage toolCallResultMessage -> collect(toolCallResultMessage, found);
-        case UserMessage userMessage ->
-            collect(userMessage, i > 0 ? messages.get(i - 1) : null, found);
+        case UserMessage userMessage -> collect(userMessage, found);
         default -> {
           // system and assistant messages carry no inbound documents
         }
@@ -68,8 +67,7 @@ public final class DocumentRegistryBackfill {
 
   private static void collect(ToolCallResultMessage message, List<IngestedDocument> found) {
     for (final var result : message.results()) {
-      final var source =
-          DocumentSource.toolCall(result.name(), result.id(), message.id().toString());
+      final var source = DocumentSource.toolCall(result.name(), result.id(), null);
       for (final var content : result.content()) {
         documentsOf(content).stream()
             .filter(DocumentRegistryBackfill::isBackfilled)
@@ -78,11 +76,9 @@ public final class DocumentRegistryBackfill {
     }
   }
 
-  private static void collect(
-      UserMessage message, @Nullable Message previous, List<IngestedDocument> found) {
+  private static void collect(UserMessage message, List<IngestedDocument> found) {
     final boolean toolCallDocuments =
         Boolean.TRUE.equals(message.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
-    final var messageId = message.id().toString();
     final var content = message.content();
     boolean afterEventPreamble = false;
     for (int i = 0; i < content.size(); i++) {
@@ -103,13 +99,11 @@ public final class DocumentRegistryBackfill {
               DocumentSource.toolCall(
                   attributes == null ? null : attributes.get("toolName"),
                   attributes == null ? null : attributes.get("toolCallId"),
-                  previous instanceof ToolCallResultMessage toolCallResult
-                      ? toolCallResult.id().toString()
-                      : null);
+                  null);
         } else if (afterEventPreamble) {
-          source = DocumentSource.event(messageId);
+          source = DocumentSource.event(null);
         } else {
-          source = DocumentSource.userMessage(messageId);
+          source = DocumentSource.userMessage(null);
         }
         found.add(new IngestedDocument(documentContent.document(), source));
       }

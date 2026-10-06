@@ -515,13 +515,12 @@ a document without a tag.
 - **Backfill.** On every job `BaseAgentRequestHandler` extends the registry by the documents of the loaded
   messages that it does not know (`DocumentRegistryBackfill`): the `DocumentContent` of user messages and
   the documents in the content trees of tool call results (`ContentTreeDocumentWalker`). The source is
-  derived from the place: a document in a tool call result is `TOOL_CALL` with the tool of that result and
-  the id of the tool call result message; a document of a user message with the `toolCallDocuments`
-  metadata is `TOOL_CALL` with the tool read from the tag in front of it and the id of the preceding tool
-  call result message; a document after the event documents preamble is `EVENT`; every other document of a
-  user message is `USER_MESSAGE`; the message id is that of the message the document was found in. A
-  message without a persisted id gets an id on load, which is not stable across loads, so the
-  `messageId` of such an entry is informational only. The backfill is idempotent (a known id is never
+  derived from the place: a document in a tool call result is `TOOL_CALL` with the tool of that result; a
+  document of a user message with the `toolCallDocuments` metadata is `TOOL_CALL` with the tool read from
+  the tag in front of it; a document after the event documents preamble is `EVENT`; every other document of
+  a user message is `USER_MESSAGE`. A backfilled source never carries a `messageId`: messages of these
+  conversations may lack a persisted id, and the id of such a message is generated again on every load, so
+  only the ingestion of new documents fills `messageId`. The backfill is idempotent (a known id is never
   replaced or duplicated, a conversation without missing documents leaves the registry unchanged), looks
   at message content only, and adds Camunda and external documents. Inline documents are not added.
 - **Window normalization.** `DocumentExpander` also normalizes what it finds in a user message when it

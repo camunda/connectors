@@ -88,26 +88,21 @@ class LegacyDocumentConversationTest {
 
     final var registry = DocumentRegistryBackfill.backfill(DocumentRegistry.empty(), messages);
 
-    final var eventMessage = messages.get(6);
     assertThat(registry.entries())
         .extracting(DocumentRegistryEntry::id, DocumentRegistryEntry::source)
         .satisfiesExactly(
             prompt -> {
               assertThat(prompt.toList().get(0)).isEqualTo(PROMPT_DOC_ID);
-              assertThat(prompt.toList().get(1))
-                  .isEqualTo(DocumentSource.userMessage(messages.get(1).id().toString()));
+              assertThat(prompt.toList().get(1)).isEqualTo(DocumentSource.userMessage(null));
             },
             tool -> {
               assertThat(tool.toList().get(0)).isEqualTo(TOOL_DOC_ID);
               assertThat(tool.toList().get(1))
-                  .isEqualTo(
-                      DocumentSource.toolCall(
-                          "Download_A_File", "call-1", messages.get(3).id().toString()));
+                  .isEqualTo(DocumentSource.toolCall("Download_A_File", "call-1", null));
             },
             event -> {
               assertThat((String) event.toList().get(0)).startsWith("ext-");
-              assertThat(event.toList().get(1))
-                  .isEqualTo(DocumentSource.event(eventMessage.id().toString()));
+              assertThat(event.toList().get(1)).isEqualTo(DocumentSource.event(null));
             });
     // the inline document stays without id and tag
     assertThat(registry.entries()).noneMatch(entry -> entry.id().startsWith("inline-"));

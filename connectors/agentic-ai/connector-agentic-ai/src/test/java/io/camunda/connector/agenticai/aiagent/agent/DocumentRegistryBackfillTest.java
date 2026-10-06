@@ -52,7 +52,7 @@ class DocumentRegistryBackfillTest {
   }
 
   @Test
-  void addsToolResultDocumentsWithTheToolAndTheToolCallResultMessage() {
+  void addsToolResultDocumentsWithTheToolAndNoMessageId() {
     final var toolDoc = document("tool", "tool.txt");
     final var nestedDoc = document("nested", "nested.txt");
     final var results =
@@ -70,7 +70,7 @@ class DocumentRegistryBackfillTest {
         DocumentRegistryBackfill.backfill(
             DocumentRegistry.empty(), List.<Message>of(assistantMessage("calling"), results));
 
-    final var expected = DocumentSource.toolCall("search", "call-1", results.id().toString());
+    final var expected = DocumentSource.toolCall("search", "call-1", null);
     assertThat(registry.entries())
         .extracting(DocumentRegistryEntry::id, DocumentRegistryEntry::source)
         .containsExactly(
@@ -79,7 +79,7 @@ class DocumentRegistryBackfillTest {
   }
 
   @Test
-  void addsDocumentsOfTheToolCallDocumentMessageThatNoToolResultHoldsFromItsTag() {
+  void addsDocumentsOfTheToolCallDocumentMessageThatNoToolResultHoldsFromItsTagWithoutMessageId() {
     final var extracted = document("extracted", "extracted.txt");
     final var results =
         toolCallResultMessage(
@@ -102,7 +102,7 @@ class DocumentRegistryBackfillTest {
             DocumentRegistry.empty(), List.of(results, documentMessage));
 
     assertThat(sourceOf(registry, extracted))
-        .isEqualTo(DocumentSource.toolCall("mcp", "call-1", results.id().toString()));
+        .isEqualTo(DocumentSource.toolCall("mcp", "call-1", null));
   }
 
   @Test
@@ -133,7 +133,7 @@ class DocumentRegistryBackfillTest {
 
     assertThat(registry.size()).isEqualTo(1);
     assertThat(sourceOf(registry, toolDoc))
-        .isEqualTo(DocumentSource.toolCall("search", "call-1", results.id().toString()));
+        .isEqualTo(DocumentSource.toolCall("search", "call-1", null));
   }
 
   @Test
@@ -153,9 +153,8 @@ class DocumentRegistryBackfillTest {
     final var registry =
         DocumentRegistryBackfill.backfill(DocumentRegistry.empty(), List.of(prompt, event));
 
-    assertThat(sourceOf(registry, promptDoc))
-        .isEqualTo(DocumentSource.userMessage(prompt.id().toString()));
-    assertThat(sourceOf(registry, eventDoc)).isEqualTo(DocumentSource.event(event.id().toString()));
+    assertThat(sourceOf(registry, promptDoc)).isEqualTo(DocumentSource.userMessage(null));
+    assertThat(sourceOf(registry, eventDoc)).isEqualTo(DocumentSource.event(null));
   }
 
   @Test
