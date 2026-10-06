@@ -50,7 +50,7 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
       "dequeue"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),

@@ -33,7 +33,7 @@ public record UpdateItem(
             group = "input",
             feel = FeelMode.required,
             tooltip =
-                "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Map<String, Object> keyAttributes,
     @TemplateProperty(

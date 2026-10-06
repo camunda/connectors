@@ -38,7 +38,7 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     version = 5,
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
-    documentationRef = "https://docs.camunda.io/docs/guides/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/guides/",
     configurations = {AwsCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),

@@ -48,7 +48,7 @@ import java.util.Map;
       @ElementTemplate.PropertyGroup(id = "timeout", label = "Timeout")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/automation-anywhere/",
     icon = "icon.svg")
 public class AutomationAnywhereConnector implements OutboundConnectorFunction {
   protected static final String AUTHORIZATION_KEY = "X-Authorization";

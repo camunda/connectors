@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
     icon = "icon.svg")
 public class SnsConnectorFunction implements OutboundConnectorFunction {
 

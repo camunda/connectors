@@ -24,7 +24,7 @@ public record ScanTable(
             group = "input",
             optional = true,
             tooltip =
-                "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         String filterExpression,
     @TemplateProperty(
             label = "Projection expression",
@@ -40,7 +40,7 @@ public record ScanTable(
             feel = FeelMode.required,
             optional = true,
             tooltip =
-                "A placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "A placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         Map<String, String> expressionAttributeNames,
     @TemplateProperty(
             label = "Expression attribute values",
@@ -48,6 +48,6 @@ public record ScanTable(
             feel = FeelMode.required,
             optional = true,
             tooltip =
-                "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         Map<String, Object> expressionAttributeValues)
     implements TableInput {}

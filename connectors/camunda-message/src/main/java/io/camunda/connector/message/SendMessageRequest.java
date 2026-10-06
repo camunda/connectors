@@ -34,7 +34,7 @@ public record SendMessageRequest(
       name = "type",
       defaultValue = "publish",
       description =
-          "Send message with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>")
+          "Send message with <a href='https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>")
   public sealed interface CorrelationType
       permits CorrelationType.CorrelateWithResult, CorrelationType.Publish {
 

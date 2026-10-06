@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.Slack.v1-hybrid",
   "description" : "Create a channel or send a message to a channel or user",
   "keywords" : [ "post message", "create channel", "invite to channel", "add reaction", "pin message", "unpin message", "send message", "channel", "messaging", "chat", "notification" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
   "version" : 13,
   "category" : {
     "id" : "connectors",
@@ -221,7 +221,7 @@
       "equals" : "chat.postMessage",
       "type" : "simple"
     },
-    "tooltip" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/8.10/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -818,7 +818,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -828,7 +828,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "value" : "{\n  myResponse: response\n  // Use FEEL to extract values depending on message\n  // type, e.g.,: myMessage: response.message.text\n}",
     "feel" : "required",
     "group" : "output",
@@ -840,7 +840,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {

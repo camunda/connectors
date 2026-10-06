@@ -24,6 +24,6 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     defaultValue = "clientCredentials",
     description =
-        "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>")
+        "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>")
 public sealed interface MicrosoftAuthentication
     permits BearerAuthentication, ClientCredentialsAuthentication, RefreshTokenAuthentication {}

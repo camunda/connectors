@@ -54,7 +54,7 @@ import io.camunda.connector.operation.OperationFactory;
       @ElementTemplate.PropertyGroup(id = "data", label = "Data")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/",
     icon = "icon.svg")
 public class MSTeamsFunction implements OutboundConnectorFunction {
 

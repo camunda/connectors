@@ -31,7 +31,7 @@ public record AddWorkItemOperationData(
             feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
             tooltip =
-                "JSON data for the work item, mapping queue column names to values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
+                "JSON data for the work item, mapping queue column names to values. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
         @NotNull
         Object data)
     implements OperationData {}

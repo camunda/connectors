@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/googledrive/",
     icon = "icon.svg")
 @OutboundConnector(
     name = "Google Docs",

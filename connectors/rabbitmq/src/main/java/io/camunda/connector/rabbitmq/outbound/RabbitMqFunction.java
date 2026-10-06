@@ -40,7 +40,7 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
     icon = "icon.svg")
 public class RabbitMqFunction implements OutboundConnectorFunction {
 

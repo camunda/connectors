@@ -26,7 +26,7 @@ import java.util.Objects;
  * expression is not configured in the connector's element template.
  *
  * @see <a
- *     href="https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview">Message
+ *     href="https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-correlation-overview">Message
  *     correlation</a>
  *     <p>Instances of this class are immutable and should be created using the {@link Builder}
  *     inner class.

@@ -54,6 +54,6 @@ public record CreateChat(
             label = "Members",
             feel = FeelMode.required,
             tooltip =
-                "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property\">Members property</a> reference.")
+                "See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property\">Members property</a> reference.")
         List<Member> members)
     implements ChatData {}

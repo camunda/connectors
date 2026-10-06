@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
       "event driven"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
     propertyGroups = {@PropertyGroup(id = "subscription", label = "Subscription Configuration")},
     elementTypes = {
       @ConnectorElementType(

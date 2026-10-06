@@ -46,7 +46,7 @@ public record AddValues(
     @TemplateProperty(
             label = "Cell ID",
             tooltip =
-                "Target cell in ColumnRow format. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">add values to spreadsheet</a> operation.",
+                "Target cell in ColumnRow format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">add values to spreadsheet</a> operation.",
             placeholder = "A1",
             group = "operationDetails",
             feel = FeelMode.optional,

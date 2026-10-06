@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
     description =
         "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
+        "https://docs.camunda.io/docs/8.10/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),

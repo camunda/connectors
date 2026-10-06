@@ -1288,7 +1288,7 @@
         "type" : "zeebe:taskHeader"
       },
       "placeholder" : "databricksResponse",
-      "tooltip" : "Name of the process variable that receives the whole response. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\">result variable</a>.",
+      "tooltip" : "Name of the process variable that receives the whole response. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\">result variable</a>.",
       "type" : "String"
     },
     {
@@ -1300,7 +1300,7 @@
         "key" : "resultExpression",
         "type" : "zeebe:taskHeader"
       },
-      "tooltip" : "Maps the response into process variables, and the shape differs per operation. Execute statement returns status.state plus result.data_array, Run job now returns run_id, Get run returns state.life_cycle_state and state.result_state, and chat returns choices, where FEEL lists are 1-indexed. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\">result expression</a>.",
+      "tooltip" : "Maps the response into process variables, and the shape differs per operation. Execute statement returns status.state plus result.data_array, Run job now returns run_id, Get run returns state.life_cycle_state and state.result_state, and chat returns choices, where FEEL lists are 1-indexed. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\">result expression</a>.",
       "type" : "Text"
     },
     {

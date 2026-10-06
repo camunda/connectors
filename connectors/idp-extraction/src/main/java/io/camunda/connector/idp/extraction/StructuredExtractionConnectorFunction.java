@@ -27,7 +27,7 @@ import io.camunda.connector.idp.extraction.service.StructuredService;
     version = 2,
     description = "Execute IDP Structured Extraction requests",
     icon = "structured-icon.svg",
-    documentationRef = "https://docs.camunda.io/docs/guides/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
       @ElementTemplate.PropertyGroup(id = "extractor", label = "Extractor selection")

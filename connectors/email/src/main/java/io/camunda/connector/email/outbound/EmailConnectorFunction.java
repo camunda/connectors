@@ -60,7 +60,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
       @ElementTemplate.PropertyGroup(id = "moveEmailImap", label = "Move Emails")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/email/",
     icon = "icon.svg")
 public class EmailConnectorFunction implements OutboundConnectorFunction {
 

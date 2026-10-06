@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailIntermediate.v1-hybrid",
   "description" : "Poll M365 Outlook emails",
   "keywords" : [ "email", "Office365", "Outlook", "email received", "receive email", "new email", "incoming email", "email notification", "inbox", "poll email" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
   "version" : 3,
   "category" : {
     "id" : "connectors",
@@ -36,7 +36,7 @@
   }, {
     "id" : "correlation",
     "label" : "Correlation",
-    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-correlation-overview\">documentation</a>."
   }, {
     "id" : "deduplication",
     "label" : "Deduplication",
@@ -69,7 +69,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Type",
-    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
+    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
     "value" : "clientCredentials",
     "group" : "authentication",
     "binding" : {
@@ -307,7 +307,7 @@
       "name" : "pollingConfig.userId",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#mailbox-configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>",
+    "tooltip" : "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#mailbox-configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>",
     "placeholder" : "user@example.com",
     "type" : "String"
   }, {
@@ -380,7 +380,7 @@
       "name" : "pollingConfig.pollingInterval",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/8.10/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
     "id" : "pollingConfig.filterCriteria.filterSpecification",
@@ -678,7 +678,7 @@
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
     "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
@@ -743,7 +743,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "name" : "resultVariable",
@@ -753,7 +753,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {

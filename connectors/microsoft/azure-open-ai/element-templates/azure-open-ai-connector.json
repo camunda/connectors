@@ -15,7 +15,7 @@
     "prompt",
     "text generation"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-open-ai/",
   "version": 5,
   "engines": {
     "camunda": "^8.10"
@@ -1291,7 +1291,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">connector error handling documentation</a>.",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">connector error handling documentation</a>.",
       "feel": "required",
       "group": "error",
       "binding": {

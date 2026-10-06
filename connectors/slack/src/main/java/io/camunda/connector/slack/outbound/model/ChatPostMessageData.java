@@ -112,7 +112,7 @@ public record ChatPostMessageData(
             binding = @PropertyBinding(name = "data.documents"),
             optional = true,
             tooltip =
-                "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments")
+                "<a href=\"https://docs.camunda.io/docs/8.10/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments")
         List<Document> documents)
     implements SlackRequestData {
   @Override

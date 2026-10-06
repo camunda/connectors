@@ -13,5 +13,5 @@ public record UploadData(
     @TemplateDocumentProperty(
             group = "operationDetails",
             tooltip =
-                "Upload a Camunda document. See the <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda document upload API</a>.")
+                "Upload a Camunda document. See the <a href=\"https://docs.camunda.io/docs/8.10/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda document upload API</a>.")
         Document document) {}

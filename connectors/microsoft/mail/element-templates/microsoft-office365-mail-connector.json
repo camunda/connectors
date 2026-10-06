@@ -15,7 +15,7 @@
     "compose email",
     "email notification"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
   "version": 7,
   "engines": {
     "camunda": "^8.10"
@@ -1044,7 +1044,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">BPMN error handling documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">BPMN error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {

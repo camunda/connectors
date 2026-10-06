@@ -8,7 +8,7 @@
   },
   "deprecated": {
     "message": "Deprecation of the Operate API and Tasklist API. Please use the REST Connector for now.",
-    "documentationRef": "https://docs.camunda.io/docs/apis-tools/working-with-apis-tools/"  },
+    "documentationRef": "https://docs.camunda.io/docs/8.10/apis-tools/working-with-apis-tools/"  },
   "description": "Fetch data from Camunda Operate API",
   "keywords": [
     "search process instances",
@@ -24,7 +24,7 @@
     "process monitoring",
     "workflow status"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/8.9/components/connectors/protocol/rest/",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/protocol/rest/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -163,7 +163,7 @@
     },
     {
       "label": "Cluster ID",
-      "tooltip": "SaaS cluster region and ID. <a href=\"https://docs.camunda.io/docs/guides/setup-client-connection-credentials\" target=\"_blank\">API client credentials documentation</a>",
+      "tooltip": "SaaS cluster region and ID. <a href=\"https://docs.camunda.io/docs/8.10/guides/setup-client-connection-credentials\" target=\"_blank\">API client credentials documentation</a>",
       "group": "cluster",
       "type": "String",
       "feel": "optional",
@@ -415,7 +415,7 @@
     },
     {
       "label": "Filter",
-      "tooltip": "Search filter in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search/\" target=\"_blank\">Operate format</a>",
+      "tooltip": "Search filter in <a href=\"https://docs.camunda.io/docs/8.10/apis-tools/operate-api/specifications/search/\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -431,7 +431,7 @@
     },
     {
       "label": "Sort",
-      "tooltip": "List of sort objects in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a>",
+      "tooltip": "List of sort objects in <a href=\"https://docs.camunda.io/docs/8.10/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -498,7 +498,7 @@
     },
     {
       "label": "Result variable",
-      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -508,7 +508,7 @@
     },
     {
       "label": "Result expression",
-      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "value": "={operateResponse: response.body}",
       "type": "Text",
@@ -540,7 +540,7 @@
     },
     {
       "label": "Error expression",
-      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

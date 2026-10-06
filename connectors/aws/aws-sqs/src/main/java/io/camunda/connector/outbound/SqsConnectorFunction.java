@@ -52,7 +52,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
     icon = "icon.svg")
 public class SqsConnectorFunction implements OutboundConnectorFunction {
 

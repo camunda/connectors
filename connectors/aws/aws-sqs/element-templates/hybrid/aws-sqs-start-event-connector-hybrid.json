@@ -11,7 +11,7 @@
     "queue",
     "dequeue"
   ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "version" : 9,
   "category" : {
     "id" : "connectors",
@@ -58,7 +58,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "authentication",
     "binding" : {
@@ -153,7 +153,7 @@
   }, {
     "id" : "queue.queue.pollingWaitTime",
     "label" : "Polling wait time",
-    "description" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+    "description" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
     "optional" : false,
     "value" : "20",
     "constraints" : {
@@ -171,7 +171,7 @@
   }, {
     "id" : "queue.queue.attributeNames",
     "label" : "Attribute names",
-    "description" : "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+    "description" : "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -183,7 +183,7 @@
   }, {
     "id" : "queue.queue.messageAttributeNames",
     "label" : "Message attribute names",
-    "description" : "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+    "description" : "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",

@@ -10,7 +10,7 @@
     "subscribe to topic",
     "event driven"
   ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 5,
   "category" : {
     "id" : "connectors",

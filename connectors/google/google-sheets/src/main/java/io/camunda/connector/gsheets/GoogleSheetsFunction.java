@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-sheets/",
     icon = "icon.svg")
 public class GoogleSheetsFunction implements OutboundConnectorFunction {
 

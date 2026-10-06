@@ -83,7 +83,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       @PropertyGroup(id = "timeout", label = "Connection timeout"),
       @PropertyGroup(id = "payload", label = "Payload")
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/components/connectors/protocol/rest/",
     icon = "icon.svg")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 

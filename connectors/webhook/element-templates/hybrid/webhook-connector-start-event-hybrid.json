@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.webhook.WebhookConnector.v1-hybrid",
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/",
   "version" : 16,
   "category" : {
     "id" : "connectors",
@@ -104,7 +104,7 @@
   }, {
     "id" : "inbound.shouldValidateHmac",
     "label" : "HMAC authentication",
-    "description" : "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+    "description" : "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
     "optional" : false,
     "value" : "disabled",
     "group" : "authentication",
@@ -184,7 +184,7 @@
   }, {
     "id" : "inbound.hmacScopes",
     "label" : "HMAC scopes",
-    "description" : "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/8.9/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
+    "description" : "Set HMAC scopes for calculating signature data. 'timestamp' is additive, not signable on its own: selecting only 'timestamp' implicitly signs the body as well, same as the default scope. See <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "authentication",
@@ -317,7 +317,7 @@
   }, {
     "id" : "inbound.auth.apiKeyLocator",
     "label" : "API key locator",
-    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
+    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
     "optional" : false,
     "value" : "=split(request.headers.authorization, \" \")[2]",
     "constraints" : {
@@ -395,7 +395,7 @@
   }, {
     "id" : "inbound.auth.jwt.permissionsExpression",
     "label" : "JWT role property expression",
-    "description" : "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
+    "description" : "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
     "optional" : false,
     "feel" : "required",
     "group" : "authorization",
@@ -429,7 +429,7 @@
   }, {
     "id" : "inbound.verificationExpression",
     "label" : "One time verification response expression",
-    "description" : "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
+    "description" : "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "webhookResponse",
@@ -476,14 +476,14 @@
   }, {
     "id" : "synchronousResponse",
     "label" : "Response mode",
-    "description" : "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>",
+    "description" : "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>",
     "value" : "false",
     "group" : "synchronousResponse",
     "binding" : {
       "name" : "synchronousResponse",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result. This affects the data available in the <a href=\"https://docs.camunda.io/docs/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.",
+    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result. This affects the data available in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",
@@ -555,7 +555,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "name" : "resultVariable",
@@ -565,7 +565,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myMessage: request.body.message\n}",
     "feel" : "required",
     "group" : "output",

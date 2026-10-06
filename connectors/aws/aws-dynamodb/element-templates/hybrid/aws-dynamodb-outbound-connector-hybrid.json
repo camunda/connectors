@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.AWSDynamoDB.v1-hybrid",
   "description" : "Manage tables and items with AWS DynamoDB.",
   "keywords" : [ "create table", "delete table", "update table", "describe table", "scan table", "add item", "delete item", "get item", "update item", "NoSQL", "database" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
   "version" : 12,
   "category" : {
     "id" : "connectors",
@@ -139,7 +139,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "authentication",
     "binding" : {
@@ -314,7 +314,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Attribute name of the table's partition key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Attribute name of the table's partition key. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.partitionKeyRole",
@@ -339,7 +339,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "HASH",
@@ -404,7 +404,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Attribute name of the table's sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Attribute name of the table's sort key. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.sortKeyRole",
@@ -426,7 +426,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "HASH",
@@ -491,7 +491,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Number"
   }, {
     "id" : "input.writeCapacityUnits",
@@ -517,7 +517,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Number"
   }, {
     "id" : "input.billingModeStr",
@@ -542,7 +542,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PROVISIONED",
@@ -680,7 +680,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.projectionExpression",
@@ -727,7 +727,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "A placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "A placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.expressionAttributeValues",
@@ -750,7 +750,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.addItem.tableName",
@@ -980,7 +980,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.attributeAction",
@@ -1039,7 +1039,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -1049,7 +1049,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
@@ -1060,7 +1060,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {
@@ -1209,7 +1209,7 @@
     "properties" : [ {
       "id" : "authentication.type",
       "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "value" : "credentials",
       "group" : "authentication",
       "binding" : {

@@ -35,7 +35,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "email notification"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/email",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "protocol", label = "Imap Details"),
