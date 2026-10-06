@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -762,17 +763,7 @@ abstract class RealProviderApiSmokeSupport {
       String templatePath,
       String bpmnResource,
       Consumer<ElementTemplate> customize) {
-    var template = ElementTemplate.from(templatePath);
-
-    template
-        .property("agentContext", "=agent.context")
-        .property("data.systemPrompt.prompt", "=systemPrompt")
-        .property("data.userPrompt.prompt", "=userPrompt")
-        .property("data.memory.storage.type", "in-process")
-        .property("data.memory.contextWindowSize", "=50")
-        .property("data.response.includeAssistantMessage", "=true")
-        .property("data.response.includeAgentContext", "=true");
-
+    var template = configureBaseTemplate(templatePath);
     provider.properties().forEach(template::property);
     customize.accept(template);
 
@@ -784,6 +775,22 @@ abstract class RealProviderApiSmokeSupport {
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
+  }
+
+  static ElementTemplate configureBaseTemplate(String templatePath) {
+    var template =
+        ElementTemplate.from(templatePath)
+            .property("data.systemPrompt.prompt", "=systemPrompt")
+            .property("data.userPrompt.prompt", "=userPrompt")
+            .property("data.memory.storage.type", "in-process")
+            .property("data.memory.contextWindowSize", "=50")
+            .property("data.response.includeAssistantMessage", "=true");
+    if (!AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH.equals(templatePath)) {
+      template
+          .property("agentContext", "=agent.context")
+          .property("data.response.includeAgentContext", "=true");
+    }
+    return template;
   }
 
   protected ProcessInstanceEvent startAgent(

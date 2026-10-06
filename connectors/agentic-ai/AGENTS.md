@@ -214,8 +214,8 @@ Real-provider / real-LLM acceptance coverage for this module lives in
    Keep structured JSON generation separate from structured output combined with tool
    orchestration. Gemini 3.8 supports the former, but can repeatedly call an already-completed tool
    when both tools and a response schema are present. Its structured-output row therefore runs the
-   no-tool fixture while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the single- and
-   multi-tool scenarios.
+   AI Agent Task v2 no-tool fixture while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the
+   single- and multi-tool subprocess scenarios.
 
    The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
    `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a

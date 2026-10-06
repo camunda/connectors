@@ -16,12 +16,16 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +36,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 
 class RealProviderFixtureTest {
@@ -99,6 +104,37 @@ class RealProviderFixtureTest {
     assertThat(serviceTaskIds("real-provider-multi-tool.bpmn"))
         .containsExactlyInAnyOrder("Lookup_Classified_Fact", "Lookup_Access_Authorization");
     assertThat(serviceTaskIds("real-provider-no-tools.bpmn")).containsExactly("AI_Agent");
+  }
+
+  @Test
+  void shouldApplyVertexConfigurationToNoToolTaskFixture(@TempDir File tempDir) throws Exception {
+    var vertexProvider =
+        RealProviderApiSmokeSupport.providerCatalog()
+            .filter(
+                provider -> provider.label().equals("google-gemini-vertex-ai-v2/gemini-3.8-flash"))
+            .findFirst()
+            .orElseThrow();
+    var template =
+        RealProviderApiSmokeSupport.configureBaseTemplate(AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH);
+    vertexProvider.properties().forEach(template::property);
+    template
+        .property("data.response.format.type", "json")
+        .property("data.response.format.schema", "={type:\"object\"}")
+        .property("data.response.format.schemaName", "DirectFact");
+
+    var templateFile = template.writeTo(new File(tempDir, "template.json"));
+    var bpmnFile =
+        new File(
+            Objects.requireNonNull(
+                    getClass().getClassLoader().getResource("real-provider-no-tools.bpmn"))
+                .toURI());
+
+    var model =
+        new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
+    var agentTask = (ServiceTask) model.getModelElementById("AI_Agent");
+
+    assertThat(agentTask.getSingleExtensionElement(ZeebeTaskDefinition.class).getType())
+        .isEqualTo("io.camunda.agenticai:aiagent:task:2");
   }
 
   private Iterable<String> serviceTaskIds(String resource) throws IOException {
