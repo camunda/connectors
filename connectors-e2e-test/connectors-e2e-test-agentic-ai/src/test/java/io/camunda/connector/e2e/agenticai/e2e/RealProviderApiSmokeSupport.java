@@ -871,11 +871,6 @@ abstract class RealProviderApiSmokeSupport {
     return text.replaceAll("[\u2010\u2011\u2012\u2013\u2014\u2212]", "-");
   }
 
-  /** Removes harmless surrounding whitespace, punctuation, quotes, and Markdown emphasis. */
-  protected static String normalizeShortAnswer(String text) {
-    return text.strip().replaceAll("^[\\s`*_\"']+|[\\s`*_\"'.!]+$", "");
-  }
-
   /**
    * Waits for the process instance to complete, but fails fast on an active incident instead of
    * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job

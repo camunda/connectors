@@ -46,16 +46,17 @@ def load_registry(path):
     return registry, rows
 
 
-def parse_groups(expression):
-    if not expression:
-        return set()
-    if "&" in expression:
-        fail("groups supports only OR expressions separated by |")
-    return {token.strip() for token in expression.split("|")}
+def parse_groups(groups):
+    return set(groups)
 
 
-def validate_groups(expression, row_id):
-    tokens = parse_groups(expression)
+def validate_groups(groups, row_id):
+    if (
+        not all(isinstance(group, str) and group for group in groups)
+        or len(groups) != len(set(groups))
+    ):
+        fail(f"{row_id}: groups must contain unique non-empty strings")
+    tokens = parse_groups(groups)
     if not all(token in KNOWN_TAGS for token in tokens):
         fail(f"{row_id}: groups contains an unknown capability tag")
 
@@ -105,7 +106,7 @@ def validate(registry, rows):
             "id": str,
             "name": str,
             "providerGroup": str,
-            "groups": str,
+            "groups": list,
             "testClasses": str,
             "buildBundle": bool,
             "mavenProjects": str,
@@ -147,7 +148,7 @@ def render_ci_matrix(rows):
         {
             "name": row["name"],
             "provider-group": row["providerGroup"],
-            "groups": row["groups"],
+            "groups": " | ".join(row["groups"]),
             "test-classes": row["testClasses"],
             "build-bundle": row["buildBundle"],
             "maven-projects": row["mavenProjects"],

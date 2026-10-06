@@ -57,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/ai-agent-cpt/validate_registry_test.py
-          MATRIX="$(python3 .github/ai-agent-cpt/validate_registry.py .github/ai-agent-cpt/registry.json --matrix)"
+          MATRIX="$(python3 .github/ai-agent-cpt/validate_registry.py connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json --matrix)"
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 
   run-ai-agent-cpt:

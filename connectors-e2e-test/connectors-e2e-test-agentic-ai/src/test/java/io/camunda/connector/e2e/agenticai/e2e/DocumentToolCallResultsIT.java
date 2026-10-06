@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -224,7 +225,7 @@ class DocumentToolCallResultsIT {
             Object.class,
             agent -> {
               logAgentResponse(provider, "nestedStructure", agent);
-              assertNestedStructureResponse(agent);
+              RealProviderResponseAssertions.assertNestedDocumentResponse(agent);
             });
   }
 
@@ -605,33 +606,20 @@ class DocumentToolCallResultsIT {
         responseText);
   }
 
-  static void assertNestedStructureResponse(Object agent) {
-    var normalizedResponse = normalizedResponse(agent);
-    // This scenario proves that documents nested at every level were extracted and consumed, not
-    // character-perfect transcription of a static fabricated name. Real responses changed the
-    // spelling while preserving every independently asserted fact, so accept only those observed
-    // variants here rather than weakening the single- and multiple-document scenarios.
-    assertProjectLaunchFacts(normalizedResponse, "zypherion", "zyperion", "zephirion");
-    assertHeadcountFacts(normalizedResponse);
-    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
-        .as("normalized response containing author facts")
-        .contains("kaelthrennix", "chiefanalyticsofficer");
-  }
-
   private static void assertProjectLaunchFacts(String normalizedResponse) {
     assertProjectLaunchFacts(normalizedResponse, "zypherion");
   }
 
   private static void assertProjectLaunchFacts(
       String normalizedResponse, String... acceptedProjectNameSpellings) {
-    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
+    Assertions.assertThat(normalizedResponse)
         .as("normalized response containing project launch facts")
         .containsAnyOf(acceptedProjectNameSpellings)
         .matches(".*(?:march15(?:th)?2026|15(?:th)?march2026|03152026|20260315).*");
   }
 
   private static void assertHeadcountFacts(String normalizedResponse) {
-    org.assertj.core.api.Assertions.assertThat(normalizedResponse)
+    Assertions.assertThat(normalizedResponse)
         .as("normalized response containing headcount facts")
         .contains("847", "12");
   }
@@ -642,9 +630,7 @@ class DocumentToolCallResultsIT {
     }
 
     var responseText = agentMap.get("responseText");
-    org.assertj.core.api.Assertions.assertThat(responseText)
-        .as("agent responseText")
-        .isInstanceOf(String.class);
+    Assertions.assertThat(responseText).as("agent responseText").isInstanceOf(String.class);
 
     return ((String) responseText).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
   }

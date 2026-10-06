@@ -188,7 +188,8 @@ Real-provider / real-LLM acceptance coverage for this module lives in
 
 1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
    maintainer applies the `ai-agent-model-e2e-test` label. The registry in
-   `.github/ai-agent-cpt/registry.json` defines the bundle test leg and the native-provider
+   `connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json`
+   defines the bundle test leg and the native-provider
    capability-group legs. The workflow validates that registry and uses its generated matrix.
    Credential profile names are selected by the registry, while their Vault and environment wiring
    remains explicit in the workflow. When adding or changing a provider capability, update the

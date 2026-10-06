@@ -17,10 +17,10 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,18 +63,18 @@ class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
           if (provider.reportsCacheCreationTokens()) {
             agentAssert.metricsSatisfy(
                 metrics ->
-                    Assertions.assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                    assertThat(metrics.tokenUsage().cacheCreationTokenCount())
                         .as("cache creation token count")
                         .isPositive());
           }
           agentAssert
               .metricsSatisfy(
                   metrics ->
-                      Assertions.assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
                           .as("cache read token count")
                           .isPositive())
               .hasResponseTextSatisfying(
-                  text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
+                  text -> assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });
   }
 }

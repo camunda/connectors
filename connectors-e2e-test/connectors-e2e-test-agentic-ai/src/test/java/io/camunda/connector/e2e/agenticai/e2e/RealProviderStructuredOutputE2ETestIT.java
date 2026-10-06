@@ -17,11 +17,11 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -107,19 +107,19 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .metricsSatisfy(metrics -> Assertions.assertThat(metrics.toolCalls()).isEqualTo(2))
+                .metricsSatisfy(metrics -> assertThat(metrics.toolCalls()).isEqualTo(2))
                 .hasResponseJsonSatisfying(
                     json -> {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
-                      Assertions.assertThat(map).containsKeys("codeName", "accessCode");
-                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                      assertThat(map).containsKeys("codeName", "accessCode");
+                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
+                      assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
                           .contains(NONCE_ACCESS_CODE);
                     }));
 
-    Assertions.assertThat(normalizeDashes(capturedAccessAuthorizationCodeName.get()))
+    assertThat(normalizeDashes(capturedAccessAuthorizationCodeName.get()))
         .as("codeName argument passed to Lookup Access Authorization")
         .contains(NONCE_CODE_NAME);
   }
@@ -157,11 +157,10 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
                     json -> {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
-                      Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                      assertThat(map).containsKeys("codeName", "clearanceLevel");
+                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(
-                              normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
+                      assertThat(normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
                           .contains(NONCE_CLEARANCE);
                     }));
   }

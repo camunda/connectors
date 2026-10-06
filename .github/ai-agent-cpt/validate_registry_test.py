@@ -7,7 +7,16 @@ import unittest
 import validate_registry
 
 
-REGISTRY_PATH = pathlib.Path(__file__).with_name("registry.json")
+REGISTRY_PATH = (
+    pathlib.Path(__file__).parents[2]
+    / "connectors-e2e-test"
+    / "connectors-e2e-test-agentic-ai"
+    / "src"
+    / "test"
+    / "resources"
+    / "ai-agent-cpt"
+    / "registry.json"
+)
 
 
 class ValidateRegistryTest(unittest.TestCase):
@@ -20,6 +29,15 @@ class ValidateRegistryTest(unittest.TestCase):
 
     def test_current_registry_is_valid(self):
         self.validate()
+
+    def test_renders_group_array_as_maven_tag_expression(self):
+        matrix = validate_registry.render_ci_matrix(self.registry["rows"])
+        row = next(row for row in matrix if row["name"] == "OpenAI native capability CPT")
+
+        self.assertEqual(
+            "core-smoke | structured-output | reasoning",
+            row["groups"],
+        )
 
     def test_rejects_empty_ci_matrix(self):
         for row in self.registry["rows"]:
@@ -37,16 +55,16 @@ class ValidateRegistryTest(unittest.TestCase):
 
     def test_rejects_missing_required_ci_capability(self):
         row = next(row for row in self.registry["rows"] if row["id"] == "vertex-native")
-        row["groups"] = row["groups"].replace(" | reasoning", "")
+        row["groups"].remove("reasoning")
 
         with self.assertRaisesRegex(ValueError, "reasoning"):
             self.validate()
 
-    def test_rejects_and_group_expression(self):
+    def test_rejects_duplicate_group(self):
         row = next(row for row in self.registry["rows"] if row["id"] == "openai-native")
-        row["groups"] = "core-smoke & reasoning"
+        row["groups"].append("reasoning")
 
-        with self.assertRaisesRegex(ValueError, "only OR expressions"):
+        with self.assertRaisesRegex(ValueError, "unique non-empty strings"):
             self.validate()
 
     def test_rejects_missing_required_provider_group(self):
