@@ -201,9 +201,28 @@ public class InboundCorrelationHandlerTest {
   class CrossVersionCorrelation {
 
     private InboundConnectorElement versionedMessageElement(int version, String messageName) {
-      var element = mock(InboundConnectorElement.class);
+      return versionedMessageElement(version, messageName, "=id");
+    }
+
+    private InboundConnectorElement versionedMessageElement(
+        int version, String messageName, String correlationKeyExpression) {
+      var element = versionedElement(version);
       when(element.correlationPoint())
-          .thenReturn(new StandaloneMessageCorrelationPoint(messageName, "=id", null, null));
+          .thenReturn(
+              new StandaloneMessageCorrelationPoint(
+                  messageName, correlationKeyExpression, null, null));
+      return element;
+    }
+
+    /** An element whose activation condition doesn't match the input. */
+    private InboundConnectorElement nonMatchingElement(int version) {
+      var element = versionedElement(version);
+      when(element.activationCondition()).thenReturn("=false");
+      return element;
+    }
+
+    private InboundConnectorElement versionedElement(int version) {
+      var element = mock(InboundConnectorElement.class);
       when(element.element())
           .thenReturn(
               new ProcessElementWithRuntimeData("process1", version, version, "step", "default"));
@@ -274,6 +293,40 @@ public class InboundCorrelationHandlerTest {
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       verify(camundaClient, times(1)).newPublishMessageCommand();
       verify(dummyCommand).messageName("msg-v10");
+    }
+
+    @Test
+    void invalidInputForOlderVersion_isSkippedEvenWhenTheLatestVersionDoesNotMatch() {
+      // given: v10 doesn't match, v9 is the newest matching element but is still an older version
+      var v10 = nonMatchingElement(10);
+      var v9 = versionedMessageElement(9, "msg-v9", "=missing.key");
+      var v2 = versionedMessageElement(2, "msg-v2");
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(v2, v9, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      assertThat(((Success.MessagePublished) result).activatedElement().version()).isEqualTo(2);
+      verify(camundaClient, times(1)).newPublishMessageCommand();
+      verify(dummyCommand).messageName("msg-v2");
+    }
+
+    @Test
+    void invalidInputForEveryOlderVersion_activationConditionNotMet() {
+      // given
+      var v10 = nonMatchingElement(10);
+      var v2 = versionedMessageElement(2, "msg-v2", "=missing.key");
+
+      // when
+      var result = handler.correlate(List.of(v2, v10), Map.of("id", "1"));
+
+      // then
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
+      verifyNoInteractions(camundaClient);
     }
 
     @Test

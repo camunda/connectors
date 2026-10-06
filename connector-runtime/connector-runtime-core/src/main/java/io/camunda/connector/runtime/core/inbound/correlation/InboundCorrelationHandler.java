@@ -115,6 +115,7 @@ public class InboundCorrelationHandler {
       case ActivationCheckResult.Success.CanActivate ignored ->
           correlateAll(
               resolution.elementsToCorrelate(),
+              elements,
               correlationRequest.getVariables(),
               correlationRequest.getMessageId());
     };
@@ -124,29 +125,40 @@ public class InboundCorrelationHandler {
    * Correlates the input to each element, latest version first. There is more than one element only
    * when the input matches several process versions publishing distinct messages.
    *
-   * <p>An older version the input is invalid for is skipped, as retrying would never succeed and
-   * would block the latest version. Any other failure is returned so the input is retried as a
-   * whole: elements already correlated are then correlated again, as for any retried input.
+   * <p>An element of an older version than the executable's latest one is skipped when the input is
+   * invalid for it, as retrying would never succeed and would block the latest version. Any other
+   * failure is returned so the input is retried as a whole: elements already correlated are then
+   * correlated again, as for any retried input.
    */
   private CorrelationResult correlateAll(
-      List<InboundConnectorElement> elementsToCorrelate, Object variables, String messageId) {
-    var latestResult = correlateInternal(elementsToCorrelate.getFirst(), variables, messageId);
-    if (latestResult instanceof Failure) {
-      return latestResult;
-    }
-    for (var element : elementsToCorrelate.subList(1, elementsToCorrelate.size())) {
+      List<InboundConnectorElement> elementsToCorrelate,
+      List<InboundConnectorElement> elements,
+      Object variables,
+      String messageId) {
+    CorrelationResult latestSuccess = null;
+    for (var element : elementsToCorrelate) {
       var result = correlateInternal(element, variables, messageId);
-      if (result instanceof Failure.InvalidInput invalidInput) {
+      if (result instanceof Failure.InvalidInput
+          && ActivationConditionEvaluator.isOlderVersion(element, elements)) {
+        // the failure message is not logged, it can contain input values
         LOG.warn(
-            "Skipping element '{}' (version {}): {}",
+            "Skipping element '{}' (version {}): the input is invalid for it",
             element.element().elementId(),
-            element.element().version(),
-            invalidInput.message());
+            element.element().version());
       } else if (result instanceof Failure) {
         return result;
+      } else if (latestSuccess == null) {
+        latestSuccess = result;
       }
     }
-    return latestResult;
+    if (latestSuccess == null) {
+      // every element was skipped: as if only the latest version was active, nothing matched
+      return new ActivationConditionNotMet(
+          elements.stream()
+              .map(InboundConnectorElement::consumeUnmatchedEvents)
+              .anyMatch(Boolean.TRUE::equals));
+    }
+    return latestSuccess;
   }
 
   protected CorrelationResult correlateInternal(

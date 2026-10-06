@@ -472,12 +472,24 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("An older version whose correlation key cannot be evaluated is skipped")
-    void olderVersionWithoutCorrelationKey_isSkipped() {
-      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=missing.key");
+    @DisplayName("An older version whose correlation key cannot be evaluated is correlated alone")
+    void olderVersionWithoutCorrelationKey_isCorrelatedAlone() {
+      // its correlation fails, which the correlation handler skips for older versions
+      var v2 = createVersionedMessageElement("step", 2, "msg-v10", null, "=missing.key");
       var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
 
-      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10);
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v10, v2);
+    }
+
+    @Test
+    @DisplayName("A shadowed synchronous element does not prevent correlating distinct messages")
+    void shadowedSynchronousElement_doesNotPreventFanOut() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v9 = createVersionedMessageElement("step", 9, "msg", null, "=id");
+      when(v9.synchronousResponse()).thenReturn(true);
+      var v10 = createVersionedMessageElement("step", 10, "msg", null, "=id");
+
+      assertThat(resolve(List.of(v2, v9, v10), Map.of("id", "1"))).containsExactly(v10, v2);
     }
 
     @Test

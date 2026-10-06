@@ -33,10 +33,13 @@ import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessInstanceContext.class);
 
   private final InboundIntermediateConnectorContextImpl context;
   private final ElementInstance elementInstance;
@@ -112,22 +115,23 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   @Override
   public void correlate(final Object variables) {
     String messageId = elementInstance.getElementId() + elementInstance.getElementInstanceKey();
-    correlationHandler.correlate(
-        ownVersionElements(),
-        CorrelationRequest.builder().variables(variables).messageId(messageId).build());
-  }
-
-  /**
-   * The connector elements of the process version this instance runs on. The executable can hold
-   * elements of several versions, but the polled data belongs to this instance only.
-   */
-  private List<InboundConnectorElement> ownVersionElements() {
+    // The executable can hold elements of several process versions, but the polled data belongs to
+    // this instance only.
     var processDefinitionKey = elementInstance.getProcessDefinitionKey();
     var ownVersionElements =
         context.connectorElements().stream()
             .filter(e -> Objects.equals(processDefinitionKey, e.element().processDefinitionKey()))
             .toList();
-    return ownVersionElements.isEmpty() ? context.connectorElements() : ownVersionElements;
+    if (ownVersionElements.isEmpty()) {
+      // the instance's version was deactivated since this context was created
+      LOG.debug(
+          "Not correlating element instance {}: its process version is no longer active",
+          elementInstance.getElementInstanceKey());
+      return;
+    }
+    correlationHandler.correlate(
+        ownVersionElements,
+        CorrelationRequest.builder().variables(variables).messageId(messageId).build());
   }
 
   @Override

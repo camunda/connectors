@@ -134,17 +134,21 @@ public class ActivationConditionEvaluator {
         if (!isOlderVersion(element, elements)) {
           throw e;
         }
+        // the cause is not logged, it can contain input values
         LOG.warn(
-            "Skipping element '{}' (version {}): {}",
+            "Skipping element '{}' (version {}): its activation condition cannot be evaluated",
             element.element().elementId(),
-            element.element().version(),
-            e.getMessage());
+            element.element().version());
       }
     }
     return matchingElements;
   }
 
-  private static boolean isOlderVersion(
+  /**
+   * Whether the executable holds a newer process version than the element's. Determined from all
+   * elements of the executable, not only the matching ones.
+   */
+  static boolean isOlderVersion(
       InboundConnectorElement element, List<InboundConnectorElement> elements) {
     return elements.stream()
         .anyMatch(other -> other.element().version() > element.element().version());
@@ -156,8 +160,8 @@ public class ActivationConditionEvaluator {
    * messages can all be correlated. Elements publishing the same message cannot be told apart: the
    * latest version wins, as when only the latest version was active.
    *
-   * <p>An older version whose correlation key cannot be evaluated against the input is skipped, so
-   * it cannot block the latest version.
+   * <p>An element whose correlation key cannot be evaluated is kept on its own: its correlation
+   * reports the failure, which the correlation handler skips for older versions.
    *
    * @return the elements to correlate, latest version first, or {@code null} if the matching
    *     elements are not spread over versions and the regular compatibility check applies
@@ -173,58 +177,53 @@ public class ActivationConditionEvaluator {
     }
 
     var latestFirst =
-        matchingElements.stream()
-            .sorted(
-                Comparator.comparingInt((InboundConnectorElement e) -> e.element().version())
-                    .reversed())
-            .toList();
-    var latestVersion = latestFirst.getFirst().element().version();
+        Comparator.comparingInt((InboundConnectorElement e) -> e.element().version()).reversed();
 
-    Map<Object, List<InboundConnectorElement>> elementsByTarget = new LinkedHashMap<>();
-    for (var element : latestFirst) {
-      Object target = element;
+    // Elements publishing the same message (same name and evaluated correlation key) are
+    // indistinguishable to Zeebe: they are grouped and correlated once.
+    Map<CorrelationTarget, List<InboundConnectorElement>> elementsByMessage = new LinkedHashMap<>();
+    // Start events and elements whose correlation key cannot be evaluated are correlated alone.
+    var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
+    for (var element : matchingElements.stream().sorted(latestFirst).toList()) {
       if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
         var correlationKey = evaluateCorrelationKey(point.correlationKeyExpression(), context);
         if (correlationKey != null) {
-          target = new CorrelationTarget(point.messageName(), correlationKey);
-        } else if (element.element().version() != latestVersion) {
-          LOG.warn(
-              "Skipping element '{}' (version {}): its correlation key '{}' cannot be evaluated"
-                  + " against the input",
-              element.element().elementId(),
-              element.element().version(),
-              point.correlationKeyExpression());
+          elementsByMessage
+              .computeIfAbsent(
+                  new CorrelationTarget(point.messageName(), correlationKey),
+                  t -> new ArrayList<>())
+              .add(element);
           continue;
         }
-        // the latest version keeps its own target, its correlation then reports the failure
       }
-      elementsByTarget.computeIfAbsent(target, t -> new ArrayList<>()).add(element);
+      elementsToCorrelate.add(element);
     }
+    elementsByMessage.values().forEach(sameMessage -> elementsToCorrelate.add(latest(sameMessage)));
+    elementsToCorrelate.sort(latestFirst);
 
-    if (elementsByTarget.size() > 1
-        && latestFirst.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
+    if (elementsToCorrelate.size() > 1
+        && elementsToCorrelate.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
       // a synchronous response can only come from a single correlation
       return null;
     }
+    return elementsToCorrelate;
+  }
 
-    return elementsByTarget.values().stream()
-        .map(
-            sameMessage -> {
-              var latest = sameMessage.getFirst();
-              if (sameMessage.size() > 1) {
-                var compatibilityResult = checkMessageElementCompatibility(sameMessage);
-                if (!compatibilityResult.compatible()) {
-                  LOG.warn(
-                      "Input matches elements of different versions publishing the same message,"
-                          + " using '{}' (version {}): {}",
-                      latest.element().elementId(),
-                      latest.element().version(),
-                      compatibilityResult.reason());
-                }
-              }
-              return latest;
-            })
-        .toList();
+  /** The latest version of elements publishing the same message, sorted latest first. */
+  private InboundConnectorElement latest(List<InboundConnectorElement> sameMessage) {
+    var latest = sameMessage.getFirst();
+    if (sameMessage.size() > 1) {
+      var compatibilityResult = checkMessageElementCompatibility(sameMessage);
+      if (!compatibilityResult.compatible()) {
+        LOG.warn(
+            "Input matches elements of different versions publishing the same message, using '{}'"
+                + " (version {}): {}",
+            latest.element().elementId(),
+            latest.element().version(),
+            compatibilityResult.reason());
+      }
+    }
+    return latest;
   }
 
   private @Nullable String evaluateCorrelationKey(

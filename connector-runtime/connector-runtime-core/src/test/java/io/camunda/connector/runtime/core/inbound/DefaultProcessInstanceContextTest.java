@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -203,6 +204,40 @@ class DefaultProcessInstanceContextTest {
 
     // then
     verify(correlationHandler).correlate(eq(List.of(v2)), any(CorrelationRequest.class));
+  }
+
+  @Test
+  void correlate_doesNothingWhenTheInstancesVersionIsNoLongerActive() {
+    // given: the instance runs on a version whose elements are gone from the executable
+    var v10 = mock(InboundConnectorElement.class);
+    when(v10.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 2010L, "step", "default"));
+
+    var intermediateContext = mock(InboundIntermediateConnectorContextImpl.class);
+    when(intermediateContext.connectorElements()).thenReturn(List.of(v10));
+    when(intermediateContext.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type", "tenant-A", "dedup", List.of(), null));
+
+    var elementInstance = mock(ElementInstance.class);
+    when(elementInstance.getProcessDefinitionKey()).thenReturn(2002L);
+    when(elementInstance.getElementId()).thenReturn("step");
+    when(elementInstance.getElementInstanceKey()).thenReturn(1L);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    var context =
+        new DefaultProcessInstanceContext(
+            intermediateContext,
+            elementInstance,
+            obj -> {},
+            correlationHandler,
+            mapper,
+            mock(CamundaClient.class));
+
+    // when
+    context.correlate(Map.of("id", "1"));
+
+    // then
+    verifyNoInteractions(correlationHandler);
   }
 
   public static class DocumentProps {
