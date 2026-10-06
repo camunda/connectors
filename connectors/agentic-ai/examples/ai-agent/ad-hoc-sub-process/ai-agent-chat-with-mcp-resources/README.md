@@ -9,7 +9,7 @@ The process implements a conversational AI agent that:
 
 1. **Fetches resources** from a local MCP (Model Context Protocol) server at startup
 2. **Processes resources** by grouping them into text and document content types
-3. **Runs an AI Agent** (using Amazon Bedrock with Claude) that can:
+3. **Runs an AI Agent** (using Amazon Bedrock Mantle with Claude) that can:
     - Use the fetched resources as context for answering questions
     - Execute tools like listing users, loading user details, or requesting human assistance
 4. **Collects user feedback** and allows follow-up conversations
@@ -41,7 +41,7 @@ The server will be available at `http://localhost:12001/mcp`.
 
 ### AWS Bedrock Credentials
 
-The AI Agent uses Amazon Bedrock with the `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` model. You need to configure the
+The AI Agent uses Amazon Bedrock Mantle with the `anthropic.claude-sonnet-5` model. You need to configure the
 following secret:
 
 - `AWS_BEDROCK_API_KEY`: Your AWS Bedrock long-term API key. Follow the [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/getting-started-api-keys.html) to get instructions on creating a long-term API key.
@@ -102,8 +102,8 @@ The AI Agent has access to the following tools within the ad-hoc sub-process:
 The process is pre-configured with:
 
 - **MCP Server URL**: `http://localhost:12001/mcp`
-- **LLM Provider**: Amazon Bedrock (us-east-1 region)
-- **Model**: `eu.anthropic.claude-sonnet-4-5-20250929-v1:0`
+- **LLM Provider**: Amazon Bedrock Mantle (eu-central-1 region)
+- **Model**: `anthropic.claude-sonnet-5`
 
 To modify these settings, edit the corresponding input mappings in the BPMN file using Camunda Modeler.
 
