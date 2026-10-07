@@ -1,0 +1,70 @@
+{
+  "groups": [
+    {
+      "name": "camunda.connector.managed-code",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Optional managed-script worker with lazy provisioning."
+    },
+    {
+      "name": "camunda.connector.managed-code.fake",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Fake",
+      "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Settings of the trusted-development-only fake provider."
+    }
+  ],
+  "properties": [
+    {
+      "name": "camunda.connector.managed-code.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to start the managed-script worker for the 'io.camunda:managed-script:1' job type.",
+      "defaultValue": false
+    },
+    {
+      "name": "camunda.connector.managed-code.provider",
+      "type": "java.lang.String",
+      "description": "Managed-code provider. The only built-in provider is 'fake': simulated provisioning and local Node.js or Python execution, for trusted development only."
+    },
+    {
+      "name": "camunda.connector.managed-code.worker-name",
+      "type": "java.lang.String",
+      "description": "Name of the managed-script job worker.",
+      "defaultValue": "managed-script-worker"
+    },
+    {
+      "name": "camunda.connector.managed-code.execution-timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum duration of one script invocation.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.provisioning-timeout",
+      "type": "java.time.Duration",
+      "description": "How long a job waits for the first provisioning of its artifact. When exceeded, the job fails without consuming a retry and provisioning continues in the background.",
+      "defaultValue": "2m"
+    },
+    {
+      "name": "camunda.connector.managed-code.provisioning-retry-backoff",
+      "type": "java.time.Duration",
+      "description": "Retry backoff of jobs that failed while waiting for provisioning or with a retryable error.",
+      "defaultValue": "10s"
+    },
+    {
+      "name": "camunda.connector.managed-code.invocation-concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of managed-script jobs activated concurrently per Camunda client.",
+      "defaultValue": 4
+    },
+    {
+      "name": "camunda.connector.managed-code.provisioning-concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of artifacts provisioned concurrently by this runtime instance.",
+      "defaultValue": 2
+    },
+    {
+      "name": "camunda.connector.managed-code.fake.provisioning-delay",
+      "type": "java.time.Duration",
+      "description": "Simulated time until a new fake-provider deployment is ready.",
+      "defaultValue": "2s"
+    }
+  ]
+}
