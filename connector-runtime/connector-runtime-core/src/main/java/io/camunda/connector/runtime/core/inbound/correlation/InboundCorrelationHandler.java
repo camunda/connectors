@@ -41,6 +41,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.ActivationConditionEvaluator.ActivationResolution;
 import io.grpc.Status;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -137,20 +138,15 @@ public class InboundCorrelationHandler {
       Object variables,
       String messageId) {
     CorrelationResult latestSuccess = null;
-    Failure.InvalidInput latestVersionInvalidInput = null;
+    InvalidElement latestVersionInvalid = null;
+    var invalidElements = new ArrayList<InboundConnectorElement>();
     for (var element : elementsToCorrelate) {
       var result = correlateInternal(element, variables, messageId);
       if (result instanceof Failure.InvalidInput invalidInput) {
-        if (elementsToCorrelate.size() > 1) {
-          // the failure message is not logged, it can contain input values
-          LOG.warn(
-              "Skipping element '{}' (version {}): the input is invalid for it",
-              element.element().elementId(),
-              element.element().version());
-        }
-        if (latestVersionInvalidInput == null
+        invalidElements.add(element);
+        if (latestVersionInvalid == null
             && !ActivationConditionEvaluator.isOlderVersion(element, elements)) {
-          latestVersionInvalidInput = invalidInput;
+          latestVersionInvalid = new InvalidElement(element, invalidInput);
         }
       } else if (result instanceof Failure) {
         return result;
@@ -158,17 +154,33 @@ public class InboundCorrelationHandler {
         latestSuccess = result;
       }
     }
+    if (latestSuccess == null && latestVersionInvalid != null) {
+      // nothing was correlated: the latest version's failure is reported, the others skipped
+      invalidElements.remove(latestVersionInvalid.element());
+      logSkipped(invalidElements);
+      return latestVersionInvalid.failure();
+    }
+    logSkipped(invalidElements);
     if (latestSuccess != null) {
       return latestSuccess;
-    }
-    if (latestVersionInvalidInput != null) {
-      return latestVersionInvalidInput;
     }
     // only older versions were invalid: as if only the latest version was active, nothing matched
     return new ActivationConditionNotMet(
         elements.stream()
             .map(InboundConnectorElement::consumeUnmatchedEvents)
             .anyMatch(Boolean.TRUE::equals));
+  }
+
+  private record InvalidElement(InboundConnectorElement element, Failure.InvalidInput failure) {}
+
+  private void logSkipped(List<InboundConnectorElement> skippedElements) {
+    // the failure message is not logged, it can contain input values
+    skippedElements.forEach(
+        element ->
+            LOG.warn(
+                "Skipping element '{}' (version {}): the input is invalid for it",
+                element.element().elementId(),
+                element.element().version()));
   }
 
   protected CorrelationResult correlateInternal(
