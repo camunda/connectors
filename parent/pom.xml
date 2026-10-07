@@ -70,14 +70,14 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.10.0</version.camunda>
+    <version.camunda>8.10.2</version.camunda>
     <version.feel-engine>1.22.1</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.84.0</version.grpc>
+    <version.grpc>1.84.1</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
     <version.protobuf>4.36.2</version.protobuf>
@@ -118,12 +118,12 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
-    <version.netty>4.2.18.Final</version.netty>
+    <version.netty>4.2.19.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.2.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.11</version.aws-sdk2>
+    <version.aws-sdk2>2.55.12</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -181,7 +181,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.12.0</version.lz4-java>
 
-    <version.microsoft-graph>6.70.0</version.microsoft-graph>
+    <version.microsoft-graph>6.71.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
@@ -198,7 +198,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-21</version.zstd-jni>
+    <version.zstd-jni>1.5.7-22</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -226,8 +226,8 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.21.0</version.langchain4j>
     <version.mcp-sdk>2.0.1</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.22</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.22</version.elasticsearch-rest-client>
+    <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
 
     <version.scala>3.10.0</version.scala>
 
