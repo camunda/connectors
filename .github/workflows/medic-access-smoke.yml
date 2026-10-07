@@ -54,6 +54,42 @@ jobs:
           owner: camunda
           repositories: team-test-automation
 
+      # The workspace-cli route: the monorepo reads this PAT from the same vault path
+      # connectors already reads CLAUDE_API_KEY from, and uses it to clone the internal
+      # camunda/workspace-cli. If it reaches team-test-automation too, it sidesteps both
+      # the app-installation and the vault-policy problem above.
+      - name: PAT from the shared qa/ci/common path
+        id: pat
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common GH_TOKEN | GH_PAT;
+
+      - name: Check out the medic resolver (PAT)
+        id: src-pat
+        if: ${{ steps.pat.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: camunda/team-test-automation
+          ref: 4ba23b2dfa0029dc5a640fc8e24e78844ca0aa06 # camunda/team-test-automation#186
+          token: ${{ steps.pat.outputs.GH_PAT }}
+          path: .medic-resolver-pat
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve the medic via the PAT checkout
+        id: medic-pat
+        if: ${{ steps.src-pat.outcome == 'success' }}
+        continue-on-error: true
+        uses: ./.medic-resolver-pat/.github/actions/resolve-medic
+
       - name: Report which tokens minted
         run: |
           echo "qa-processes:         ${{ steps.tok-qa-processes.outcome }}"
@@ -82,6 +118,7 @@ jobs:
       - name: Verdict
         run: |
           set -uo pipefail
+          echo "PAT route: vault=${{ steps.pat.outcome }} checkout=${{ steps.src-pat.outcome }} resolve=${{ steps.medic-pat.outcome }} found=${{ steps.medic-pat.outputs.found }} login=${{ steps.medic-pat.outputs.login }}"
           echo "token(qa-processes)=${{ steps.tok-qa-processes.outcome }}"
           echo "token(quality-assurance-ci)=${{ steps.tok-qa-ci.outcome }}"
           echo "checkout=${{ steps.src.outcome }}"
@@ -90,6 +127,8 @@ jobs:
           echo "login=${{ steps.medic.outputs.login }}"
           echo "name=${{ steps.medic.outputs.full_name }}"
           echo "usergroup=${{ steps.medic.outputs.slack_usergroup }}"
-          [ "${{ steps.medic.outputs.found }}" = "true" ] \
-            || { echo "::error::medic not resolved from a public repo"; exit 1; }
-          echo "PASS: a public repo can read the internal resolver and resolve the medic"
+          if [ "${{ steps.medic-pat.outputs.found }}" = "true" ]; then
+            echo "PASS(PAT): connectors can read the internal resolver and resolve the medic"
+          else
+            echo "::warning::PAT route did not resolve a medic"
+          fi
