@@ -22,7 +22,6 @@ import java.util.function.Function;
       "authentication",
       "operationDiscriminator",
       "operation",
-      "additionalProperties",
       "documentReturnFormat"
     },
     type = "io.camunda:google-gcs:1")
@@ -35,8 +34,7 @@ import java.util.function.Function;
     version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication")
     },
     keywords = {
       "download file from google cloud storage",
@@ -53,7 +51,7 @@ import java.util.function.Function;
       "file storage"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage",
     icon = "icon.svg")
 public class ObjectStorageConnectorFunction implements OutboundConnectorFunction {
 

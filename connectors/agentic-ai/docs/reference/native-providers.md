@@ -340,6 +340,71 @@ Retry needs no equivalent fix: the SDK unconditionally wraps every call in a `Re
 408/429/500/502/503/504) whether or not `HttpOptions.retryOptions()` is configured, matching
 Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything explicitly either).
 
+## Mistral AI
+
+`MistralChatModel` reuses the OpenAI Completions family's converters
+(`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`) wholesale, since
+Mistral's Chat Completions API is OpenAI-compatible, but supplies its own content chunk strategy
+and stream assembler: `MistralDocumentUrlContentChunkStrategy` (in the `provider.mistral` package,
+extending the shared `OpenAiFileContentChunkStrategy`) maps a PDF to Mistral's `document_url` chunk
+instead of OpenAI's `file`/`file_data` shape, and `MistralCompletionsStreamAssembler` (implementing
+the shared `OpenAiCompletionsStreamAssembler`) drives the chunked reasoning content covered below --
+OpenAI's own wiring uses the shared `OpenAiCompletionsContentChunkStrategy.openAi(...)` and
+`OpenAiCompletionsStreamAssembler.accumulating()` instead. It also
+does not go through `OpenAiCompletionsStrategy` -- that class is typed to
+`OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
+that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
+`MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
+pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of
+`mistral` through to the shared converters. The sealed backend axis has two members:
+`MistralApiBackend` (`mistral-api`), pointed at Mistral's own API, and `MistralCustomBackend`
+(`custom`), for a Mistral-compatible endpoint reached via a configurable base URL, reusing
+`OpenAiCustomEndpointAuthentication` (none / API key / OAuth 2.0 client credentials) and
+`OpenAiChatModelFactory`'s client-construction pattern wholesale — Mistral's custom-endpoint
+authentication model is identical to OpenAI's. Further backends remain purely additive, without
+moving any existing template property.
+
+### Reasoning
+
+Mistral's reasoning-capable models (`mistral-medium`, `mistral-small`) return assistant `content` as a chunk array
+(`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string. Per Mistral's own OpenAPI
+schema (`ThinkChunk`, `additionalProperties: false`), a `thinking` chunk's items aren't limited to
+plain text: `thinking` is an array of `text` | `tool_reference` | `reference` items, and the chunk
+itself carries an optional `signature` field the schema documents as existing specifically "to
+replay some reasoning blocks across turns." The contract this connector holds itself to is bounded
+accordingly: a streamed assembly of that array must equal what the non-streaming response would
+have contained for the same generation — every item and the `signature`/`closed` fields carried
+through unchanged — not an open-ended byte-for-byte promise beyond what the schema itself declares.
+There is no dialect flag and no model-name heuristic anywhere in this path: the response parser
+detects the chunked shape structurally, and request-side replay requires both a provider-tag match
+and that same structural shape.
+
+- **Response**: `OpenAiCompletionsResponseConverter` reads the raw `ChatCompletionMessage._content()`
+  field. If it's a JSON array, each chunk is walked and mapped by its own `type` key (`thinking` →
+  `ReasoningContent`, carrying the chunk's other fields as `payload` and the joined thinking text as
+  `text`; `text` → `TextContent`). If it's a plain string, the existing OpenAI string-content path
+  runs unchanged — a non-reasoning Mistral model is indistinguishable from OpenAI at this layer.
+- **Request**: `assistantMessage()` rebuilds the chunk array only when a `ReasoningContent` was
+  produced by this same provider instance (its `provider` tag matches this converter's own
+  `providerId`) *and* its `payload` is itself shaped like a thinking chunk (`instanceof Map` with
+  `type=thinking`). Both checks are required: payload shape alone isn't a unique signal —
+  Anthropic's raw thinking-block payload also keeps a `type: "thinking"` field after its own text
+  extraction — so a provider-tag-only or shape-only check would misclassify reasoning content
+  replayed after a mid-conversation provider switch.
+- **Streaming**: `ChatCompletionAccumulator` (the openai-java SDK helper this converter chain
+  otherwise reuses) can't accumulate array-shaped content deltas, so streamed Mistral responses use a
+  separate `ChunkedContentChatCompletionAccumulator` (in the `provider.mistral` package) — a manual
+  reimplementation of the same accumulation algorithm that additionally self-detects string-vs-array
+  shape per delta, wired in via `MistralCompletionsStreamAssembler`.
+
+`MistralParameters.effort` maps onto the same `reasoning_effort` field OpenAI Completions uses.
+`MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: Mistral's API-wide `ReasoningEffort`
+type declares six values (`none`/`minimal`/`low`/`medium`/`high`/`xhigh`), but `mistral-medium-3-5` —
+the only model in the real-provider acceptance matrix claiming `REASONING` — rejects every value
+except `none` and `high` with an HTTP 400 (confirmed against the live API, and matching the two-way
+toggle Mistral's own playground exposes for reasoning effort), so `MistralEffort` only offers
+`MODEL_DEFAULT`, `NONE`, and `HIGH`.
+
 ## Microsoft Foundry authentication
 
 Shared by the [Anthropic](#anthropic) and [OpenAI](#openai) `foundry` backends: both target the same

@@ -42,8 +42,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,7 +72,6 @@ import org.springframework.core.io.ResourceLoader;
  *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
  *       AWS Bedrock Mantle backend credentials (region defaults to us-east-1)
  *   <li>{@code AWS_BEDROCK_ACCESS_KEY} / {@code AWS_BEDROCK_SECRET_KEY} - AWS Bedrock credentials
- *       (also used for the judge LLM)
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
  *       http://localhost:12434/engines/llama.cpp/v1)
  *   <li>{@code OLLAMA_URL} - Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1)
@@ -84,13 +84,6 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      // Judge LLM configuration (uses Bedrock Haiku for cost efficiency)
-      "camunda.process-test.judge.chat-model.provider=amazon-bedrock",
-      "camunda.process-test.judge.chat-model.model=eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-      "camunda.process-test.judge.chat-model.region=eu-central-1",
-      "camunda.process-test.judge.chat-model.credentials.access-key=${AWS_BEDROCK_ACCESS_KEY:NOT_SET}",
-      "camunda.process-test.judge.chat-model.credentials.secret-key=${AWS_BEDROCK_SECRET_KEY:NOT_SET}",
-      "camunda.process-test.judge.threshold=0.6",
       "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -98,6 +91,7 @@ import org.springframework.core.io.ResourceLoader;
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
+@Tag(RealProviderCapabilityTags.DOCUMENT_TOOL_CALL_RESULTS)
 class DocumentToolCallResultsIT {
 
   private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsIT.class);
@@ -112,7 +106,8 @@ class DocumentToolCallResultsIT {
   private static final String SYSTEM_PROMPT =
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
           + "When reporting findings, always quote specific facts, numbers, dates, and names "
-          + "found in the documents. Be concise.";
+          + "exactly as written in the documents. Never correct or respell proper names. Be "
+          + "concise.";
 
   private static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
   private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
@@ -126,6 +121,11 @@ class DocumentToolCallResultsIT {
     InMemoryDocumentStore.INSTANCE.clear();
   }
 
+  @AfterEach
+  void clearDocumentStoreAfterTest() {
+    InMemoryDocumentStore.INSTANCE.clear();
+  }
+
   @BeforeEach
   void setupPdfStubs() {
     for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
@@ -136,69 +136,7 @@ class DocumentToolCallResultsIT {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Scenario 1: Single document from tool call result
-  // ---------------------------------------------------------------------------
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  @Disabled
-  void singleDocumentFromToolCallResult(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    var processInstance =
-        startProcess(
-            provider,
-            "Use the Analyze_Single_Document tool to retrieve a document, then tell me "
-                + "what project it mentions and when it launched.",
-            List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH));
-
-    awaitCompletionOrIncident(processInstance);
-    assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "singleDocument", agent))
-        .hasVariableSatisfiesJudge(
-            "agent",
-            """
-					The agent called Analyze_Single_Document, received a PDF document, and produced
-					a response that mentions Project Zypherion and the launch date March 15, 2026.""");
-  }
-
-  // ---------------------------------------------------------------------------
-  // Scenario 2: Multiple documents from tool call result
-  // ---------------------------------------------------------------------------
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  @Disabled
-  void multipleDocumentsFromToolCallResult(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
-    var processInstance =
-        startProcess(
-            provider,
-            "Use the Search_Documents tool to find documents and summarize what each one says.",
-            List.of(
-                wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
-                wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT));
-
-    awaitCompletionOrIncident(processInstance);
-    assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "multipleDocuments", agent))
-        .hasVariableSatisfiesJudge(
-            "agent",
-            """
-					The agent called Search_Documents, received two PDF documents, and produced
-					a response that mentions both: Project Zypherion launching on March 15, 2026,
-					and a headcount of 847 employees across 12 offices.""");
-  }
-
-  // ---------------------------------------------------------------------------
-  // Scenario 3: Documents in nested structure from tool call result
-  // ---------------------------------------------------------------------------
-
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
   void nestedStructureDocumentsFromToolCallResult(
       ProviderConfig provider, WireMockRuntimeInfo wireMock) {
@@ -217,15 +155,12 @@ class DocumentToolCallResultsIT {
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
-            "agent", Object.class, agent -> logAgentResponse(provider, "nestedStructure", agent))
-        .hasVariableSatisfiesJudge(
             "agent",
-            """
-					The agent called Fetch_Report, received documents embedded in a nested structure,
-					and produced a response that references all three documents:
-					1. Project Zypherion launching on March 15, 2026
-					2. A headcount of 847 employees across 12 offices
-					3. The report was prepared by Dr. Kael Thrennix, Chief Analytics Officer""");
+            Object.class,
+            agent -> {
+              logAgentResponse(provider, "nestedStructure", agent);
+              RealProviderResponseAssertions.assertNestedDocumentResponse(agent);
+            });
   }
 
   // ---------------------------------------------------------------------------
@@ -233,39 +168,50 @@ class DocumentToolCallResultsIT {
   // ---------------------------------------------------------------------------
 
   static Stream<ProviderConfig> providers() {
+    final var selectedProviders = providerCatalog().filter(ProviderConfig::isEnabled).toList();
+    if (RealLlmTestEnvironment.isProviderRequired() && selectedProviders.isEmpty()) {
+      throw new IllegalStateException(
+          "No enabled real document providers were selected; check provider credentials and "
+              + "REAL_LLM_PROVIDER_GROUP");
+    }
+    return selectedProviders.stream();
+  }
+
+  private static Stream<ProviderConfig> providerCatalog() {
     return Stream.of(
-            // OpenAI (v1)
-            openAiV1("gpt-4.1"),
-            openAiV1("gpt-5.4"),
-            // OpenAI (v2)
-            openAiResponsesV2("gpt-4.1"),
-            openAiResponsesV2("gpt-5.4"),
-            openAiCompletionsV2("gpt-4.1"),
-            openAiCompletionsV2("gpt-5.4"),
-            // Anthropic (v1)
-            anthropicV1("claude-sonnet-4-6"),
-            anthropicV1("claude-haiku-4-5-20251001"),
-            // Anthropic (v2)
-            anthropicV2("claude-sonnet-4-6"),
-            anthropicV2("claude-haiku-4-5-20251001"),
-            // Anthropic (v2), AWS Bedrock Mantle backend
-            anthropicBedrockMantleV2("claude-sonnet-5"),
-            anthropicBedrockMantleV2("claude-haiku-4-5"),
-            // AWS Bedrock, v1 (Anthropic models via cross-region inference)
-            bedrockV1("global.anthropic.claude-sonnet-5"),
-            bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
-            bedrockV2("global.anthropic.claude-sonnet-5"),
-            bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
-            bedrockV2("eu.amazon.nova-2-lite-v1:0"),
-            // Docker Model Runner (OpenAI-compatible)
-            dockerModelRunnerV1("ai/gemma4:latest").disabled(),
-            dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
-            // Ollama (OpenAI-compatible)
-            ollamaV1("qwen3.6:latest").disabled(),
-            ollamaV1("llama3.1:8b").disabled())
-        .filter(ProviderConfig::isEnabled);
+        // OpenAI (v1)
+        openAiV1("gpt-4.1"),
+        openAiV1("gpt-5.5"),
+        // OpenAI (v2)
+        openAiResponsesV2("gpt-4.1"),
+        openAiResponsesV2("gpt-6.1-sol"),
+        openAiCompletionsV2("gpt-4.1"),
+        openAiCompletionsV2("gpt-5.5"),
+        // Anthropic (v1)
+        anthropicV1("claude-sonnet-5-5"),
+        anthropicV1("claude-haiku-4-5-20251001"),
+        // Anthropic (v2)
+        anthropicV2("claude-sonnet-5-5"),
+        anthropicV2("claude-haiku-4-5-20251001"),
+        // Anthropic (v2), AWS Bedrock Mantle backend
+        anthropicBedrockMantleV2("claude-sonnet-5"),
+        anthropicBedrockMantleV2("claude-haiku-4-5"),
+        // AWS Bedrock, v1 (Anthropic models via cross-region inference)
+        bedrockV1("global.anthropic.claude-sonnet-5-5"),
+        bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
+        bedrockV2("global.anthropic.claude-sonnet-5-5"),
+        bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
+        bedrockV2("eu.amazon.nova-2-lite-v1:0"),
+        // Google Gemini, v2, via Vertex AI
+        googleGeminiVertexAiV2("gemini-3.8-flash", "global"),
+        // Docker Model Runner (OpenAI-compatible)
+        dockerModelRunnerV1("ai/gemma4:latest").disabled(),
+        dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
+        // Ollama (OpenAI-compatible)
+        ollamaV1("qwen3.6:latest").disabled(),
+        ollamaV1("llama3.1:8b").disabled());
   }
 
   /** OpenAI, v1 (LangChain4j-backed). */
@@ -425,6 +371,32 @@ class DocumentToolCallResultsIT {
             "provider.bedrock.region",
             "eu-central-1",
             "provider.bedrock.model.model",
+            model,
+            "provider.bedrock.model.parameters.promptCaching.enabled",
+            "false"));
+  }
+
+  /** Google Gemini, v2, via Vertex AI. */
+  static ProviderConfig googleGeminiVertexAiV2(String model, String region) {
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + model,
+        RealLlmProviderGroup.VERTEX,
+        List.of("GOOGLE_VERTEX_AI_PROJECT_ID", "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_PROJECT_ID"),
+            "provider.googleGemini.backend.googleVertexAi.region",
+            region,
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+            "provider.googleGemini.model.model",
             model));
   }
 

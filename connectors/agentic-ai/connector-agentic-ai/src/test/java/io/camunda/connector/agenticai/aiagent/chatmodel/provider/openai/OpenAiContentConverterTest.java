@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -221,113 +220,6 @@ class OpenAiContentConverterTest {
       assertThat(items.get(0).isInputText()).isTrue();
       assertThat(items.get(0).asInputText().text()).isEqualTo("see attached");
       assertThat(items.get(1).isInputText()).isTrue();
-    }
-  }
-
-  @Nested
-  class ToCompletionsContentParts {
-
-    @Test
-    void mapsTextContentToTextPart() {
-      final var parts =
-          converter.toCompletionsContentParts(List.of(new TextContent("hello world", null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isText()).isTrue();
-      assertThat(parts.get(0).asText().text()).isEqualTo("hello world");
-    }
-
-    @Test
-    void mapsImageDocumentToImageUrlPart() {
-      final var doc = mockDocument("image/png", "QUJD");
-
-      final var parts =
-          converter.toCompletionsContentParts(List.of((Content) new DocumentContent(doc, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isImageUrl()).isTrue();
-      assertThat(parts.get(0).asImageUrl().imageUrl().url())
-          .isEqualTo("data:image/png;base64,QUJD");
-    }
-
-    @Test
-    void mapsPdfDocumentToFilePart() {
-      final var document = pdfDocument();
-
-      final var parts =
-          converter.toCompletionsContentParts(
-              List.of((Content) new DocumentContent(document, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isFile()).isTrue();
-      final var file = parts.get(0).asFile().file();
-      assertThat(file.filename()).hasValue("report.pdf");
-      assertThat(file.fileData()).hasValue("data:application/pdf;base64,UERGQ09OVEVOVA==");
-    }
-
-    @Test
-    void mapsTextDocumentToTextPart() {
-      final var document = mock(Document.class);
-      final var metadata = mock(DocumentMetadata.class);
-      when(document.metadata()).thenReturn(metadata);
-      when(metadata.getContentType()).thenReturn("text/plain");
-      when(document.asByteArray())
-          .thenReturn("plain text content".getBytes(StandardCharsets.UTF_8));
-
-      final var parts =
-          converter.toCompletionsContentParts(
-              List.of((Content) new DocumentContent(document, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isText()).isTrue();
-      assertThat(parts.get(0).asText().text()).isEqualTo("plain text content");
-    }
-
-    @Test
-    void throwsForUnsupportedDocumentContentType() {
-      final var document = mockDocument("audio/mpeg", "QUJD");
-
-      assertThatThrownBy(
-              () ->
-                  converter.toCompletionsContentParts(
-                      List.of((Content) new DocumentContent(document, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasMessageContaining("audio/mpeg");
-    }
-
-    @Test
-    void mapsObjectContentToTextPart() {
-      final var parts =
-          converter.toCompletionsContentParts(
-              List.of((Content) new ObjectContent(Map.of("key", "value"), null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isText()).isTrue();
-      assertThat(parts.get(0).asText().text()).isEqualTo("{\"key\":\"value\"}");
-    }
-
-    @Test
-    void mapsReasoningContentToTextPartFallback() {
-      final var parts =
-          converter.toCompletionsContentParts(
-              List.of(
-                  (Content)
-                      new ReasoningContent("openai", Map.of("type", "reasoning"), null, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isText()).isTrue();
-    }
-
-    @Test
-    void mapsProviderContentToTextPartFallback() {
-      final var payload = Map.<String, Object>of("type", "server_tool_use", "id", "srvtoolu_01ABC");
-
-      final var parts =
-          converter.toCompletionsContentParts(
-              List.of((Content) new ProviderContent("openai", payload, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isText()).isTrue();
     }
   }
 

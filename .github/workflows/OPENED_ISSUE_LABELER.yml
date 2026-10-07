@@ -1,0 +1,37 @@
+name: OPENED_ISSUE_LABELER
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  label:
+    name: Label issue from form dropdown markers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+      - uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
+        with:
+          configuration-path: .github/opened_issue_labeler.yml
+          enable-versioned-regex: 0
+          repo-token: ${{ steps.app-token.outputs.token }}

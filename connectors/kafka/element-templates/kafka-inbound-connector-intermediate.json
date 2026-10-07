@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.KafkaIntermediate.v1",
   "description" : "Consume Kafka messages",
   "keywords" : [ "receive message", "consume message", "event streaming", "subscribe to topic", "message queue", "stream data" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 8,
   "category" : {
     "id" : "connectors",

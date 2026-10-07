@@ -12,6 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.gsheets.model.request.GoogleSheetsRequest;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
+import io.camunda.google.GoogleApiErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +64,10 @@ public class GoogleSheetsFunction implements OutboundConnectorFunction {
     var request = context.bindVariables(GoogleSheetsRequest.class);
     LOGGER.debug("Request verified successfully and all required secrets replaced");
     GoogleSheetOperation operation = operationFactory.createOperation(request.getOperation());
-    return operation.execute(request.getAuthentication());
+    try {
+      return operation.execute(request.getAuthentication());
+    } catch (RuntimeException e) {
+      throw GoogleApiErrors.translate(e);
+    }
   }
 }

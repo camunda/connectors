@@ -314,13 +314,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    # Must stay above `wait-downstream`'s own 50min deadline. When this fires
+    # Must stay above `wait-downstream`'s own 75min deadline. When this fires
     # first the runner kills the step mid-poll, the job lands as `cancelled`,
     # and the loop's timeout path never runs -- so the failure surfaces with
     # no reason attached. Keep the loop as the timeout mechanism and this as
     # the backstop for what a deadline cannot bound: a single `gh api` call
     # that hangs indefinitely rather than returning an error to retry.
-    timeout-minutes: 60
+    timeout-minutes: 85
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
     outputs:
@@ -425,17 +425,6 @@ jobs:
                   }
                 }'
 
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
-
       - name: Wait for downstream workflow to finish
         id: wait-downstream
         if: steps.check-downstream.outputs.enabled == 'true'
@@ -467,8 +456,10 @@ jobs:
           # is ~6min and which can never reach any budget -- sizing off it
           # under-states what a passing run costs. Over the 129 green
           # downstream runs between 2026-09-03 and 2026-09-21 the median is
-          # ~20min, p90 ~33min and p95 ~44min, so 50min leaves 98.4% of them
-          # room to finish. Raise it if that suite grows, and keep the
+          # ~20min, p90 ~33min and p95 ~44min, so 50min left 98.4% of them
+          # room to finish. The suite has since grown (run 36708779676 passed
+          # after ~57min and was reported as a timeout), so the budget is 75min.
+          # Raise it if that suite grows, and keep the
           # job-level `timeout-minutes` above it.
           #
           # Anchored to the job's start, not this step's, so the 10min of
@@ -476,7 +467,7 @@ jobs:
           # or a hanging Vault call. The preamble normally costs seconds; if
           # it ever costs more, the wait shortens instead of the runner
           # killing the loop before it can report a timeout.
-          WAIT_DEADLINE=$(( ${JOB_STARTED_AT:-$(date +%s)} + 50 * 60 ))
+          WAIT_DEADLINE=$(( ${JOB_STARTED_AT:-$(date +%s)} + 75 * 60 ))
 
           # Never sleep past the deadline: both the loop condition and the
           # retry backoff are only re-checked between sleeps, so an unguarded
@@ -877,17 +868,6 @@ jobs:
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
             -Pit-real-llm \
             --batch-mode
-
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: run-ai-agent-cpt
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x

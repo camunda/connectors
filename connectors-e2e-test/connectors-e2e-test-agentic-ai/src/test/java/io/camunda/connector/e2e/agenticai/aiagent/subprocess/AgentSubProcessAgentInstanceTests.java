@@ -16,13 +16,10 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
@@ -33,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -40,17 +38,52 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.assertions.JobSelectors;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
 
+  private static final String SLOW_TOOL_ID = "A_Complex_Tool";
+
   @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
+
+  @Autowired private CamundaProcessTestContext processTestContext;
+
+  /**
+   * The slow tool has no job worker, so its job stays pending and the tool stays in flight until
+   * the test completes it via {@link #completeSlowTool}. This makes "slow tool still in flight"
+   * deterministic instead of a wall-clock race.
+   */
+  private void completeSlowTool(ZeebeTest zeebeTest) {
+    processTestContext.completeJob(
+        JobSelectors.byElementId(SLOW_TOOL_ID)
+            .and(
+                JobSelectors.byProcessInstanceKey(
+                    zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())),
+        Map.of("toolCallResult", "slow tool done"));
+  }
+
+  private void verifyOnlyFastToolResultReportedWhileSlowToolInFlight(
+      ZeebeTest zeebeTest, String fastToolCallId) {
+    // generous timeout: the report is guaranteed to happen, we wait for it instead of racing it
+    verify(agentInstanceClient, timeout(30_000))
+        .applyToolCallResults(
+            any(AgentExecutionContext.class),
+            any(AgentInstanceKey.class),
+            argThat(
+                (List<ToolCallResult> results) ->
+                    results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
+            any(AgentConversationTurn.class));
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
+  }
 
   /**
    * Happy path: one tool call (SuperfluxProduct) followed by a final answer.
@@ -197,37 +230,34 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * Two tools completing at genuinely different real times (a fast script task and an HTTP download
-   * delayed via WireMock) in the same tool-calling round: each TOOL_RESULT's {@code completedAt}
-   * must reflect its own completion, not a shared turn-end timestamp. Regression guard for #7597.
+   * Two tools completing at genuinely different real times (a fast script task and a service task
+   * held back until the test completes its job) in the same tool-calling round: each TOOL_RESULT's
+   * {@code completedAt} must reflect its own completion, not a shared turn-end timestamp.
+   * Regression guard for #7597.
    */
   @Test
   void shouldRecordDistinctCompletedAtPerToolBasedOnActualCompletionTime() throws Exception {
-    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test.pdf";
-    stubFor(
-        get(urlPathEqualTo("/slow-test.pdf"))
-            .atPriority(1)
-            .willReturn(
-                aResponse()
-                    .withBodyFile("test.pdf")
-                    .withHeader("Content-Type", "application/pdf")
-                    .withFixedDelay(3000)));
-
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             null,
             10,
             20,
             ToolCall.of("fast-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
-            ToolCall.of("slow-001", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+            ToolCall.of("slow-001", SLOW_TOOL_ID, "{}")),
         Turn.text("Done.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                Map.of("userPrompt", "Calculate the superflux product and download a file")));
+        createProcessInstance(
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
+
+    // staggered completion triggers the early-report path; account for it before
+    // noMoreInteractions()
+    verifyOnlyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-001");
+
+    completeSlowTool(zeebeTest);
+    awaitProcessCompletion(zeebeTest);
 
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
@@ -246,34 +276,25 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                 new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
                 turn ->
                     turn.fromUserPrompt("Calculate the superflux product and download a file")
-                        .callingTools("SuperfluxProduct", "Download_A_File"))
+                        .callingTools("SuperfluxProduct", SLOW_TOOL_ID))
             .finalAnswerTurn(
                 new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
                 turn -> {
                   turn.fromToolResults().answering("Done.");
+                  // the slow tool is only released after the fast result was reported, so a
+                  // per-tool completedAt must be strictly earlier (a shared turn-end timestamp
+                  // would make both equal)
                   assertThat(turn.toolResultCompletedAt("fast-001"))
                       .as("fast tool completed before slow tool")
-                      .isBefore(
-                          turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
+                      .isBefore(turn.toolResultCompletedAt("slow-001"));
                 });
-
-    // staggered completion also triggers the early-report path; account for it before
-    // noMoreInteractions()
-    verify(agentInstanceClient)
-        .applyToolCallResults(
-            any(AgentExecutionContext.class),
-            any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.stream().anyMatch(r -> "fast-001".equals(r.id()))),
-            any(AgentConversationTurn.class));
 
     verifier.noMoreInteractions();
 
     // Loose role check: the staggered early-report path can write a TOOL_RESULT row twice.
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
-        .hasToolResultsFor("SuperfluxProduct", "Download_A_File")
+        .hasToolResultsFor("SuperfluxProduct", SLOW_TOOL_ID)
         .verify();
   }
 
@@ -285,39 +306,25 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
    */
   @Test
   void shouldReportFastToolResultToHistoryWhileSlowToolStillInFlight() throws Exception {
-    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test-streaming.pdf";
-    stubFor(
-        get(urlPathEqualTo("/slow-test-streaming.pdf"))
-            .atPriority(1)
-            .willReturn(
-                aResponse()
-                    .withBodyFile("test.pdf")
-                    .withHeader("Content-Type", "application/pdf")
-                    .withFixedDelay(3000)));
-
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             null,
             10,
             20,
             ToolCall.of("fast-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
-            ToolCall.of("slow-002", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+            ToolCall.of("slow-002", SLOW_TOOL_ID, "{}")),
         Turn.text("Done.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
-    awaitProcessCompletion(
+    final var zeebeTest =
         createProcessInstance(
-            Map.of("userPrompt", "Calculate the superflux product and download a file")));
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
 
-    verify(agentInstanceClient)
-        .applyToolCallResults(
-            any(AgentExecutionContext.class),
-            any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.stream().anyMatch(r -> "fast-002".equals(r.id()))),
-            any(AgentConversationTurn.class));
+    verifyOnlyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-002");
+
+    completeSlowTool(zeebeTest);
+    awaitProcessCompletion(zeebeTest);
   }
 
   /**

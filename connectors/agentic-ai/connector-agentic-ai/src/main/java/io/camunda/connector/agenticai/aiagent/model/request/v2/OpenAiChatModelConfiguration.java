@@ -454,7 +454,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "provider",
                   label = "API endpoint",
                   description =
-                      "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+                      "Base URL of the OpenAI-compatible API. <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.openai.com/v1",

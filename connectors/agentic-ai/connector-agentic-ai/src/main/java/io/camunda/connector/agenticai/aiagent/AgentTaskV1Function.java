@@ -41,7 +41,23 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent Task",
     description = "Execute a single AI-powered action with tool calling capabilities",
-    keywords = {"AI", "AI Agent", "agentic orchestration"},
+    keywords = {
+      "AI",
+      "Agent",
+      "agentic orchestration",
+      "LLM",
+      "GPT",
+      "OpenAI",
+      "Anthropic",
+      "Claude",
+      "Gemini",
+      "Vertex",
+      "Bedrock",
+      "Azure",
+      "Foundry",
+      "Ollama",
+      "LM Studio"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.10",
@@ -86,7 +102,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "response",
           label = "Response",
           tooltip =
-              "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
+              "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
           openByDefault = false)
     },
     icon = "aiagent.svg")

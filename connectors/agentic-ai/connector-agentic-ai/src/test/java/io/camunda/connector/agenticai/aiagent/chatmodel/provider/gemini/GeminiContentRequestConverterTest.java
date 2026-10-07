@@ -9,6 +9,12 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.genai.types.Candidate;
+import com.google.genai.types.Content;
+import com.google.genai.types.FinishReason;
+import com.google.genai.types.FunctionCall;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -37,6 +43,7 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -229,6 +236,93 @@ class GeminiContentRequestConverterTest {
 
   // --- Message-history mapping
   // --------------------------------------------------------------------
+
+  @Test
+  void replaysCompleteMultiTurnTranscriptInOrderWithOriginalThoughtSignatures() {
+    final var reasoningSignature = "reasoning-sig".getBytes(StandardCharsets.UTF_8);
+    final var answerSignature = "answer-sig".getBytes(StandardCharsets.UTF_8);
+    final var functionCallSignature = "function-call-sig".getBytes(StandardCharsets.UTF_8);
+    final var completedAnswerSignature = "completed-answer-sig".getBytes(StandardCharsets.UTF_8);
+    final var assistantOnlySentinel = "aurora-kestrel";
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                SystemMessage.builder()
+                    .content(List.of(TextContent.textContent("Use tools when needed.")))
+                    .build(),
+                UserMessage.builder()
+                    .content(List.of(TextContent.textContent("What is the weather in Berlin?")))
+                    .build(),
+                returnedAssistant(
+                    Part.builder()
+                        .thought(true)
+                        .text("I should check the weather.")
+                        .thoughtSignature(reasoningSignature)
+                        .build(),
+                    Part.builder()
+                        .text("I will look that up.")
+                        .thoughtSignature(answerSignature)
+                        .build(),
+                    Part.builder()
+                        .functionCall(
+                            FunctionCall.builder()
+                                .id("call-1")
+                                .name("getWeather")
+                                .args(Map.of("city", "Berlin")))
+                        .thoughtSignature(functionCallSignature)
+                        .build()),
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call-1")
+                                .name("getWeather")
+                                .content(List.of(TextContent.textContent("sunny")))
+                                .build()))
+                    .build(),
+                returnedAssistant(
+                    Part.builder()
+                        .text("Observation label: " + assistantOnlySentinel + ".")
+                        .thoughtSignature(completedAnswerSignature)
+                        .build()),
+                UserMessage.builder()
+                    .content(List.of(TextContent.textContent("What did you just report?")))
+                    .build()),
+            List.of());
+
+    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var contents = converter.toContents(snapshot);
+
+    assertThat(config.systemInstruction().orElseThrow().text()).isEqualTo("Use tools when needed.");
+    assertThat(contents)
+        .extracting(content -> content.role().orElseThrow())
+        .containsExactly("user", "model", "user", "model", "user");
+    assertThat(contents.get(0).text()).isEqualTo("What is the weather in Berlin?");
+
+    final var firstModelParts = contents.get(1).parts().orElseThrow();
+    assertThat(firstModelParts).hasSize(3);
+    assertThat(firstModelParts.get(0).thought()).contains(true);
+    assertThat(firstModelParts.get(0).text()).contains("I should check the weather.");
+    assertThat(firstModelParts.get(0).thoughtSignature()).contains(reasoningSignature);
+    assertThat(firstModelParts.get(1).text()).contains("I will look that up.");
+    assertThat(firstModelParts.get(1).thoughtSignature()).contains(answerSignature);
+    assertThat(firstModelParts.get(2).functionCall().orElseThrow().name()).contains("getWeather");
+    assertThat(firstModelParts.get(2).thoughtSignature()).contains(functionCallSignature);
+
+    final var functionResponse =
+        contents.get(2).parts().orElseThrow().getFirst().functionResponse().orElseThrow();
+    assertThat(functionResponse.id()).contains("call-1");
+    assertThat(functionResponse.name()).contains("getWeather");
+    assertThat(functionResponse.response()).contains(Map.of("output", "sunny"));
+
+    final var completedAssistantPart = contents.get(3).parts().orElseThrow().getFirst();
+    assertThat(completedAssistantPart.text())
+        .contains("Observation label: " + assistantOnlySentinel + ".");
+    assertThat(completedAssistantPart.thoughtSignature()).contains(completedAnswerSignature);
+    assertThat(contents.get(4).text()).isEqualTo("What did you just report?");
+    assertThat(List.of(contents.get(0), contents.get(1), contents.get(2), contents.get(4)))
+        .allSatisfy(content -> assertThat(content.text()).doesNotContain(assistantOnlySentinel));
+  }
 
   @Test
   void mapsUserMessageToUserRoleContent() {
@@ -591,6 +685,19 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void treatsEmptyJsonSchemaAsNoSchema() {
+    final var response =
+        new AgentTaskResponseConfiguration(
+            new JsonResponseFormatConfiguration(Map.of(), null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
+
+    assertThat(config.responseMimeType()).contains("application/json");
+    assertThat(config.responseJsonSchema()).isEmpty();
+  }
+
+  @Test
   void textResponseFormatHasNoRequestSideEffect() {
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
@@ -610,5 +717,20 @@ class GeminiContentRequestConverterTest {
 
     assertThat(config.responseMimeType()).isEmpty();
     assertThat(config.responseJsonSchema()).isEmpty();
+  }
+
+  private static AssistantMessage returnedAssistant(Part... parts) {
+    final var response =
+        GenerateContentResponse.builder()
+            .candidates(
+                List.of(
+                    Candidate.builder()
+                        .finishReason(FinishReason.Known.STOP)
+                        .content(Content.builder().role("model").parts(List.of(parts)).build())
+                        .build()))
+            .build();
+    return new GeminiContentResponseConverter()
+        .toResult(response, Duration.ZERO)
+        .assistantMessage();
   }
 }

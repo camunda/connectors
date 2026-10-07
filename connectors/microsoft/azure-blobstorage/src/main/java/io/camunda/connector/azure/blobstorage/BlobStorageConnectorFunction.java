@@ -29,7 +29,7 @@ import java.util.function.Function;
     },
     type = "io.camunda:azure-blobstorage:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.azure.blobstorage.v1",
     name = "Azure Blob Storage Outbound Connector",
     description = "Upload and download files from Azure Blob Storage.",
@@ -53,7 +53,7 @@ import java.util.function.Function;
       "cloud storage"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
     icon = "icon.svg")
 public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
 
