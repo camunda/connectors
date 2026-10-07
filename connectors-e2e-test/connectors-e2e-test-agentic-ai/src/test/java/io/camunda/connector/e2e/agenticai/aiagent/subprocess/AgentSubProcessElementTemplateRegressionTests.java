@@ -34,11 +34,6 @@ import org.junit.jupiter.params.provider.ValueSource;
  * Verifies that AI Agent sub-processes modeled against <em>older</em> element template versions
  * keep working against the current connector code.
  *
- * <p>There is one fixture per template generation: {@code ai-agent-process-8.8.0.bpmn} (legacy
- * template v5), {@code ai-agent-process-8.9.0.bpmn} (legacy template v7, the last version
- * supporting 8.9) and {@code ai-agent-process-8.10.0.bpmn} (AI Agent Sub-process v2 template v1).
- * {@code ai-agent-process.bpmn} tracks the template on main.
- *
  * <p>The BPMN fixtures under {@code src/test/resources/regression/} are recordings of real,
  * previously deployed processes. They must be deployed <strong>exactly as recorded</strong> — do
  * not regenerate them, do not reapply the current element template to them, and do not hand-edit
@@ -60,8 +55,6 @@ public class AgentSubProcessElementTemplateRegressionTests extends BaseAgentSubP
   @ParameterizedTest
   @ValueSource(
       strings = {
-        // TODO enable "ai-agent-process.bpmn" once the sub-process template changes after 8.10
-        // "ai-agent-process.bpmn",
         "ai-agent-process-8.10.0.bpmn",
         "ai-agent-process-8.9.0.bpmn",
         "ai-agent-process-8.8.0.bpmn"
