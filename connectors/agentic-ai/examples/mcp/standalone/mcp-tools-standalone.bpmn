@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0qo2n6k" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.44.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0qo2n6k" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="MCP_Tools_Standalone" name="MCP Tools Standalone" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:outgoing>Flow_0kddb0x</bpmn:outgoing>
@@ -55,7 +55,7 @@
         <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
-          <zeebe:input source="https://remote.mcpservers.org/fetch/mcp" target="data.transport.http.url" />
+          <zeebe:input source="https://mcpplaygroundonline.com/mcp-complex-server" target="data.transport.http.url" />
           <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
@@ -77,13 +77,13 @@
         <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
-          <zeebe:input source="https://remote.mcpservers.org/fetch/mcp" target="data.transport.http.url" />
+          <zeebe:input source="https://mcpplaygroundonline.com/mcp-complex-server" target="data.transport.http.url" />
           <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="fetch" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  url: &#34;https://en.wikipedia.org/wiki/Main_Page&#34;,&#10;  max_length: 100&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="analyze_data" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={&#10;  &#34;dataSource&#34;: &#34;test&#34;,&#10;  &#34;filters&#34;: {&#10;    &#34;dateRange&#34;: {&#10;      &#34;start&#34;: &#34;2026-01-01T00:00:00Z&#34;,&#10;      &#34;end&#34;: &#34;2026-01-10T00:00:00Z&#34;&#10;    }&#10;  }&#10;}" target="data.connectorMode.operation.toolArguments" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />

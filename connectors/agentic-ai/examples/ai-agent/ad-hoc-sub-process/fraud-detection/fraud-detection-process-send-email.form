@@ -38,12 +38,12 @@
     }
   ],
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.8.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.34.0"
+    "version": "5.51.1"
   },
-  "schemaVersion": 18,
+  "schemaVersion": 19,
   "id": "fraud-detection-process-send-email",
   "type": "default"
 }
