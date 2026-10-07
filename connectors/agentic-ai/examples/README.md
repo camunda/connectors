@@ -10,7 +10,7 @@ This directory contains example projects showcasing the Agentic AI capabilities.
   complex and requires more manual modeling work to implement the tool calling feedback loop, but can be useful in
   certain scenarios.
 - [ad-hoc-tools-schema](ad-hoc-tools-schema): example project directly using
-  the [Ad-Hoc Tools Schema Resolver](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/)
+  the [Ad-Hoc Tools Schema Resolver](https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/)
   to derive tool descriptions from elements within the ad-hoc sub-process. This can be used in combination with custom
   LLM connectors.
 - [mcp/standalone](mcp/standalone): example project demonstrating how to use MCP clients in standalone mode
