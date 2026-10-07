@@ -498,10 +498,11 @@ jobs:
           # job is not a pipeline failure, and treating it as one would have triage
           # re-triaging its own noise.
           #
-          # "AI Agent bundle E2E" is excluded here too, mirroring classify.py's
-          # IGNORED_JOB_PREFIXES. This gate reads raw job conclusions and knows nothing
-          # about that list, so without this a run whose only failure is that job still
-          # sets any_failed=true, still gets handed to triage, and triage's "Post Slack
+          # The current "AI Agent bundle E2E" name and legacy "AI Agent E2E Tests" name
+          # are excluded here too, mirroring classify.py's IGNORED_JOB_PREFIXES. This
+          # gate reads raw job conclusions and knows nothing about that list, so without
+          # these exclusions a run whose only failure is that job still sets
+          # any_failed=true, still gets handed to triage, and triage's "Post Slack
           # summary" step is unconditional -- it would post an empty-plan "nothing to
           # dispatch" message for a job nobody wants triage to look at in the first
           # place.
@@ -510,6 +511,7 @@ jobs:
             | select(.conclusion as $c | $countable | index($c))
             | .name
             | select(startswith("AlwaysGreen ") | not)
+            | select(startswith("AI Agent E2E Tests") | not)
             | select(startswith("AI Agent bundle E2E") | not)
           ' <<<"$jobs_json")
 

@@ -551,7 +551,11 @@ def test_connectors_image_build_is_classified_as_build():
     )
 
 
-def test_ai_agent_cpt_is_ignored():
+def test_legacy_ai_agent_cpt_is_ignored():
+    assert classify.surface_for_job("AI Agent E2E Tests (CPT)") is None
+
+
+def test_ai_agent_bundle_cpt_is_ignored():
     assert classify.surface_for_job("AI Agent bundle E2E (CPT)") is None
 
 

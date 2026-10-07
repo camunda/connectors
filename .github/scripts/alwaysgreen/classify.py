@@ -136,13 +136,15 @@ SURFACE_CI_INFRA = "ci-infra"
 DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
-#: carries no independent signal. "AI Agent bundle E2E" is a connectors-only Maven
-#: integration test driving a real LLM — its own flakiness, not a signal AlwaysGreen
-#: can act on (it is `continue-on-error` on merge_group already, and no fix agent
-#: would ever be dispatched for it), so it is dropped before classification instead
-#: of being reported as a suppressed non-dispatchable surface.
+#: carries no independent signal. The current "AI Agent bundle E2E" name and legacy
+#: "AI Agent E2E Tests" name identify the same connectors-only Maven integration test
+#: driving a real LLM — its own flakiness, not a signal AlwaysGreen can act on (it is
+#: `continue-on-error` on merge_group already, and no fix agent would ever be
+#: dispatched for it), so both are dropped before classification instead of being
+#: reported as suppressed non-dispatchable surfaces.
 IGNORED_JOB_PREFIXES = (
     "Observe Helm chart Integration Tests status",
+    "AI Agent E2E Tests",
     "AI Agent bundle E2E",
 )
 
