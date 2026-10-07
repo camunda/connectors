@@ -35,12 +35,8 @@ import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.io.IOException;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
-
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessInstanceContext.class);
 
   private final InboundIntermediateConnectorContextImpl context;
   private final ElementInstance elementInstance;
@@ -120,11 +116,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
     // belongs to this element instance only.
     var ownElements = context.connectorElements().stream().filter(this::isOwnElement).toList();
     if (ownElements.isEmpty()) {
-      // the instance's version was deactivated since this context was created
-      LOG.debug(
-          "Not correlating element instance {}: its process version is no longer active",
-          elementInstance.getElementInstanceKey());
-      return;
+      return; // the instance's version was deactivated since this context was created
     }
     correlationHandler.correlate(
         ownElements,

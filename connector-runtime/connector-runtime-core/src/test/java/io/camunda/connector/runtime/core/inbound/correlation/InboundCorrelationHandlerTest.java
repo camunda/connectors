@@ -225,7 +225,9 @@ public class InboundCorrelationHandlerTest {
 
     private InboundConnectorElement versionedElement(int version) {
       var element = mock(InboundConnectorElement.class);
-      when(element.element())
+      // the version is only read when needed to tell older versions apart
+      lenient()
+          .when(element.element())
           .thenReturn(
               new ProcessElementWithRuntimeData("process1", version, version, "step", "default"));
       return element;

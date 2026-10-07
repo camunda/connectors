@@ -62,69 +62,55 @@ public class ActivationConditionEvaluator {
    * to: one element per distinct message, latest version first.
    */
   ActivationResolution resolveActivation(List<InboundConnectorElement> elements, Object context) {
-    var matchingElements = getMatchingElements(elements, context);
-
-    if (matchingElements.isEmpty()) {
-      var discardUnmatchedEvents =
-          elements.stream()
-              .map(InboundConnectorElement::consumeUnmatchedEvents)
-              .anyMatch(e -> e.equals(Boolean.TRUE));
-      return ActivationResolution.failure(
-          new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents));
-    }
-
-    if (matchingElements.size() > 1) {
-      // Elements publishing the same message (same name and correlation key expression) must be
-      // compatible and are correlated once; elements publishing different messages are all
-      // correlated, Zeebe routes each message to its own subscriptions.
-      var elementsByMessage =
-          matchingElements.stream()
-              .collect(
-                  Collectors.groupingBy(
-                      ActivationConditionEvaluator::messageOf,
-                      LinkedHashMap::new,
-                      Collectors.toList()));
-      var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
-      for (var sameMessage : elementsByMessage.values()) {
-        if (sameMessage.size() > 1) {
-          var compatibilityResult = checkMessageElementCompatibility(sameMessage);
-          if (!compatibilityResult.compatible()) {
-            var reason = Objects.requireNonNull(compatibilityResult.reason());
-            if (sameMessage.stream().allMatch(e -> isOlderVersion(e, elements))) {
-              // only older versions conflict: they must not block the latest version
-              LOG.warn("Skipping incompatible elements of older versions: {}", reason);
-              continue;
-            }
-            return ActivationResolution.failure(
-                new ActivationCheckResult.Failure.TooManyMatchingElements(
-                    withRemediation(reason, sameMessage)));
+    // Elements publishing the same message (same name and correlation key expression) must be
+    // compatible and are correlated once; elements publishing different messages are all
+    // correlated, Zeebe routes each message to its own subscriptions.
+    var elementsByMessage =
+        getMatchingElements(elements, context).stream()
+            .collect(
+                Collectors.groupingBy(
+                    ActivationConditionEvaluator::messageOf,
+                    LinkedHashMap::new,
+                    Collectors.toList()));
+    var elementsToCorrelate = new ArrayList<InboundConnectorElement>();
+    for (var sameMessage : elementsByMessage.values()) {
+      if (sameMessage.size() > 1) {
+        var compatibilityResult = checkMessageElementCompatibility(sameMessage);
+        if (!compatibilityResult.compatible()) {
+          var reason = Objects.requireNonNull(compatibilityResult.reason());
+          if (sameMessage.stream().allMatch(e -> isOlderVersion(e, elements))) {
+            // only older versions conflict: they must not block the latest version
+            LOG.warn("Skipping incompatible elements of older versions: {}", reason);
+            continue;
           }
+          return ActivationResolution.failure(
+              new ActivationCheckResult.Failure.TooManyMatchingElements(
+                  withRemediation(reason, sameMessage)));
         }
-        elementsToCorrelate.add(
-            sameMessage.stream().max(Comparator.comparingInt(e -> e.element().version())).get());
       }
-
-      if (elementsToCorrelate.isEmpty()) {
-        // every group was skipped: as if only the latest version was active, nothing matched
-        return ActivationResolution.failure(
-            new ActivationCheckResult.Failure.NoMatchingElement(
-                elements.stream()
-                    .map(InboundConnectorElement::consumeUnmatchedEvents)
-                    .anyMatch(Boolean.TRUE::equals)));
-      }
-
-      if (elementsToCorrelate.size() > 1
-          && elementsToCorrelate.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
-        return ActivationResolution.failure(
-            new ActivationCheckResult.Failure.TooManyMatchingElements(
-                "A synchronous response cannot come from several messages"));
-      }
-      elementsToCorrelate.sort(
-          Comparator.comparingInt((InboundConnectorElement e) -> e.element().version()).reversed());
-      return ActivationResolution.success(elementsToCorrelate);
+      elementsToCorrelate.add(
+          sameMessage.stream().max(Comparator.comparingInt(e -> e.element().version())).get());
     }
 
-    return ActivationResolution.success(List.of(matchingElements.getFirst()));
+    if (elementsToCorrelate.isEmpty()) {
+      return ActivationResolution.failure(
+          new ActivationCheckResult.Failure.NoMatchingElement(consumesUnmatchedEvents(elements)));
+    }
+    if (elementsToCorrelate.size() > 1
+        && elementsToCorrelate.stream().anyMatch(InboundConnectorElement::synchronousResponse)) {
+      return ActivationResolution.failure(
+          new ActivationCheckResult.Failure.TooManyMatchingElements(
+              "A synchronous response cannot come from several messages"));
+    }
+    elementsToCorrelate.sort(
+        Comparator.comparingInt((InboundConnectorElement e) -> e.element().version()).reversed());
+    return ActivationResolution.success(elementsToCorrelate);
+  }
+
+  static boolean consumesUnmatchedEvents(List<InboundConnectorElement> elements) {
+    return elements.stream()
+        .map(InboundConnectorElement::consumeUnmatchedEvents)
+        .anyMatch(Boolean.TRUE::equals);
   }
 
   /**
