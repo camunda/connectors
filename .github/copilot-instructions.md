@@ -175,7 +175,7 @@ Connector-development-pattern, runtime-configuration, or testing-strategy change
 ## Agent skills
 
 All skills live in `.agents/skills/`; `.claude/skills/<name>` are symlinks to them so Claude Code
-picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `handoff`) are managed
+picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `domain-modeling`, `handoff`) are managed
 with [`npx skills`](https://github.com/vercel-labs/skills) and pinned in `skills-lock.json`; the
 others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`,
 `update-salesforce-api-version`) are authored in this repo.
