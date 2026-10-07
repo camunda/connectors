@@ -101,7 +101,8 @@ final class ManagedScriptJobHandler {
   }
 
   private ArtifactSpec resolveArtifact(
-      CamundaClient camundaClient, String physicalTenantId, ActivatedJob job) {
+      CamundaClient camundaClient, String physicalTenantId, ActivatedJob job)
+      throws InterruptedException {
     final var headers = job.getCustomHeaders();
     final var links = LinkedResources.parse(headers, objectMapper);
     final var language = requiredHeader(headers, LANGUAGE_HEADER);
@@ -113,10 +114,13 @@ final class ManagedScriptJobHandler {
     } catch (IllegalArgumentException e) {
       throw new InvalidJobException(e.getMessage());
     }
-    final Optional<byte[]> dependencies =
-        links
-            .dependenciesResourceKey()
-            .map(key -> resources.get(camundaClient, physicalTenantId, key).content());
+    final Optional<byte[]> dependencies;
+    if (links.dependenciesResourceKey().isPresent()) {
+      final long key = links.dependenciesResourceKey().get();
+      dependencies = Optional.of(resources.get(camundaClient, physicalTenantId, key).content());
+    } else {
+      dependencies = Optional.empty();
+    }
     return ArtifactSpec.create(
         physicalTenantId,
         job.getTenantId(),

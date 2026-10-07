@@ -334,6 +334,33 @@ class ManagedScriptJobHandlerTest {
     verify(jobClient.failStep2).retryBackoff(BACKOFF);
   }
 
+  @Test
+  void waitsForResourceToBecomeVisibleWithoutConsumingARetry() {
+    provider.respond(ExecutionResponse.completed(Map.of("sum", 5)));
+    final var script = resources.remove(1L);
+    final var jobClient = new RecordingJobClient();
+    final var scriptResources =
+        new ScriptResources(
+            16,
+            (client, key) -> {
+              // Not visible on the first two reads, as when the exporter lags behind the deployment
+              if (fetches.incrementAndGet() <= 2) {
+                throw new ScriptResources.ResourceNotVisibleException(key, null);
+              }
+              return script;
+            },
+            Duration.ofSeconds(1),
+            Duration.ofMillis(10));
+
+    new ManagedScriptJobHandler(
+            provider, registry, scriptResources, objectMapper, Duration.ofSeconds(5), BACKOFF)
+        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+
+    assertThat(fetches).hasValue(3);
+    verify(jobClient.complete).variables(Map.<String, Object>of("sum", 5));
+    verify(jobClient.fail, never()).retries(anyInt());
+  }
+
   private ManagedScriptJobHandler handler(Duration provisioningTimeout) {
     return new ManagedScriptJobHandler(
         provider, registry, scriptResources(), objectMapper, provisioningTimeout, BACKOFF);
@@ -346,10 +373,12 @@ class ManagedScriptJobHandlerTest {
           fetches.incrementAndGet();
           final var resource = resources.get(key);
           if (resource == null) {
-            throw new IllegalStateException("resource " + key + " not found");
+            throw new ScriptResources.ResourceNotVisibleException(key, null);
           }
           return resource;
-        });
+        },
+        Duration.ofMillis(200),
+        Duration.ofMillis(10));
   }
 
   private static ScriptResources.ScriptResource resource(String name, String content) {
