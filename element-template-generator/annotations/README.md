@@ -89,7 +89,7 @@ using the default rules.
 | Java field type                         | Generated template property type |
 |-----------------------------------------|----------------------------------|
 | `String`                                | `String`                         |
-| Number primitives and boxed types       | `Number` (outbound connectors), `String` (inbound connectors) |
+| `short`, `int`, `long`, `float`, `double` and boxed `Number` types | `Number` (outbound connectors), `String` (inbound connectors) |
 | `Boolean`                               | `Boolean`                        |
 | Enums                                   | `Dropdown`                       |
 | Collections, Maps, `Object`, `JsonNode` | `String` with `feel: required`   |
@@ -150,7 +150,7 @@ All attributes are optional.
 Notes:
 - For `Number` and `Boolean` properties, `feel = FeelMode.disabled` is rejected, and `system_default` results in `staticFeel`.
 - For `Dropdown` and `Configuration` properties, `feel` is not applied.
-- With `defaultValueType = Number`, the default is parsed into the field's number type for outbound connectors; for inbound connectors it stays a string.
+- With `defaultValueType = Number`, for outbound connectors the default is parsed through the `String` constructor of the field's number type, so the field must be a boxed type such as `Integer` or `Long` (primitive fields fail generation); for inbound connectors it stays a string. Primitive `byte` fields are mapped to `String`.
 
 ```java
 @TemplateProperty(
@@ -174,7 +174,7 @@ private String method;
 
 | Attribute      | Description                                                                                                       |
 |----------------|-------------------------------------------------------------------------------------------------------------------|
-| `property`     | ID of the referenced property. An empty value means "no condition".                                               |
+| `property`     | ID of the referenced property. An empty value means "no condition", unless `allMatch` is used (which requires an empty `property`).                                               |
 | `equals`       | String equality.                                                                                                  |
 | `equalsBoolean` | Boolean equality (`TRUE`, `FALSE`, `NULL`; `NULL` means not set).                                                |
 | `oneOf`        | Matches if the value equals one of the given strings.                                                             |
@@ -598,8 +598,8 @@ the default `connectors`/`Connectors` category is used.
 |------------------------|----------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `elementType`          | Yes      | —            | Type the element is transformed into when the template is applied, e.g. `SERVICE_TASK`.                                                                           |
 | `appliesTo`            | No       | `{}`         | Types the template can be applied to. If empty, the generator implementation picks the default.                                                                   |
-| `templateNameOverride` | No       | `""`         | Overrides the template name for this element type. Default: the class-level name suffixed with the element type, e.g. `My Connector (Service Task)`.              |
-| `templateIdOverride`   | No       | `""`         | Overrides the template ID for this element type. Default: the class-level ID suffixed with the element type, e.g. `my-connector:ServiceTask`.                     |
+| `templateNameOverride` | No       | `""`         | Overrides the template name for this element type. Default: the class-level name, suffixed with the element type (e.g. `My Connector (Service Task)`) only if the template declares more than one element type.              |
+| `templateIdOverride`   | No       | `""`         | Overrides the template ID for this element type. Default: the class-level ID, suffixed with the element type (e.g. `my-connector:ServiceTask`) only if the template declares more than one element type.                     |
 
 ```java
 @ElementTemplate(
@@ -638,7 +638,7 @@ the `Message type` column shows the enum's own message classification; the gener
 
 ## DataExample
 
-`@DataExample` annotates a **static, public, parameterless** method of the Connector's output data class (`@ElementTemplate#outputDataClass`). The generator invokes it without arguments and without changing accessibility, so any other signature fails generation.
+`@DataExample` annotates a **static, public, parameterless** method of the Connector's output data class (`@ElementTemplate#outputDataClass`). The generator invokes it without arguments and without changing accessibility, so a discovered method that is non-public or takes parameters fails generation. Non-static methods are silently ignored and produce no tooltip.
 The method returns an example result object. The generator serializes it to JSON and shows it as a tooltip on the
 result expression property, optionally together with the evaluated FEEL expression.
 
