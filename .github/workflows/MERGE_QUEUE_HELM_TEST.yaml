@@ -21,6 +21,7 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
 
       - name: Import Secrets
@@ -154,6 +155,26 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
 
   trigger-sm-e2e:
     name: Trigger SM E2E tests
@@ -330,12 +351,11 @@ jobs:
       # fire for the one event that supplies a PR to comment on.
       status: ${{ steps.job-status.outputs.status }}
     steps:
-      # The waiter's deadline has to be measured on the same clock as this
-      # job's `timeout-minutes`, which starts here -- not when the waiter
-      # step happens to begin. Checkout, Vault/token generation and the
-      # dispatch are all unbounded, so deriving the deadline from the
-      # waiter's own start would make "deadline < job timeout" an assumption
-      # about how long they take rather than a guarantee.
+      # Measure the waiter's deadline near the start of the job, not when the
+      # waiter happens to begin. The mandatory build monitor runs first; the
+      # remaining checkout, Vault/token generation and dispatch time is still
+      # included in the waiter's 50-minute budget.
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Record job start
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
 
@@ -699,6 +719,26 @@ jobs:
         if: always()
         run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
 
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
   # which fires at three consecutive failures and says nothing about a single one.
@@ -769,6 +809,7 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
 
       - name: Check for agentic-ai changes
@@ -868,6 +909,26 @@ jobs:
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
             -Pit-real-llm \
             --batch-mode
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
 
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x

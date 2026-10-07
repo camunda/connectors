@@ -20,6 +20,7 @@ jobs:
     steps:
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
     - id: sanitize
       uses: camunda/infra-global-github-actions/sanitize-branch-name@main
       with:
@@ -65,6 +66,27 @@ jobs:
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
         app_name: connectors-${{ steps.sanitize.outputs.branch_name }}-${{ matrix.product_context }}
         github_token: ${{ steps.github-token.outputs.token }}
+
+    - name: Import build status secrets
+      id: build-status-secrets
+      if: always()
+      continue-on-error: true
+      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.VAULT_ROLE_ID }}
+        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        exportEnv: false
+        secrets: |
+          secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+    - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+      if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+      with:
+        build_status: "${{ job.status }}"
+        gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+        job_name_override: "teardown-preview/${{ matrix.product_context }}"
   clean:
     if: always() && needs.teardown-preview.result != 'skipped'
     uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main

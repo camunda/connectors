@@ -343,6 +343,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
@@ -449,6 +450,26 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
@@ -479,6 +500,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
@@ -564,6 +586,27 @@ jobs:
           readme_file: ${{ matrix.readme }}
           short_description: ${{ matrix.short_description }}
 
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+          job_name_override: "docker-release/${{ matrix.name }}"
+
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
@@ -575,6 +618,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Download repository
         uses: actions/download-artifact@v8
         with:
@@ -609,6 +653,26 @@ jobs:
             apps/bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ inputs.version }}.tar.gz
             connectors-bundle-templates-${{ inputs.version }}.zip
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
 
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
@@ -653,6 +717,7 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
 
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.version }}
@@ -689,6 +754,26 @@ jobs:
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
 
   notify-prs-released:
     name: Notify PRs that they have been released

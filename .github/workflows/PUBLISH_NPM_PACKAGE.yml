@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
@@ -91,4 +92,24 @@ jobs:
           title: "chore(npm-package): bump npm package version"
           body: |
             This PR bumps the npm package version after successful release to npm. Feel free to verifiy it is available: https://www.npmjs.com/package/@camunda/connectors-element-templates?activeTab=versions
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
             

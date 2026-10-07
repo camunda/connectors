@@ -39,6 +39,7 @@ jobs:
       # Modules absent from the map use ubuntu-latest; callers can provide their own map.
       E2E_RUNNER_OVERRIDES: ${{ inputs.runner-overrides }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch }}
@@ -248,6 +249,26 @@ jobs:
           compression-level: 0
           overwrite: true
 
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
   # Runner is baked into each entry by the build job from the runner-overrides input.
   test:
@@ -259,6 +280,7 @@ jobs:
       matrix:
         entry: ${{ fromJson(needs.build.outputs.modules) }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch }}
@@ -389,6 +411,27 @@ jobs:
           path: |
             **/target/surefire-reports/*.xml
             **/target/surefire-reports/*-output.txt
+
+      - name: Import build status secrets
+        id: build-status-secrets
+        if: always()
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
+        with:
+          build_status: "${{ job.status }}"
+          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+          job_name_override: "test/${{ matrix.entry.module }}"
 
   # Slack notification on build OR test failure (a build failure skips the test job, so
   # both results are checked). main/stable only, not PR runs.
