@@ -230,7 +230,8 @@
             <zeebe:input source="GET" target="method" />
             <zeebe:input source="https://v2.jokeapi.dev/joke/Any?format=txt&#38;safe-mode" target="url" />
             <zeebe:input source="=false" target="followRedirects" />
-            <zeebe:input source="JSON" target="documentReturnFormat.choice" />
+            <zeebe:input source="TEXT" target="documentReturnFormat.choice" />
+            <zeebe:input source="UTF-8" target="documentReturnFormat.encoding" />
             <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="=20" target="readTimeoutInSeconds" />
           </zeebe:ioMapping>
@@ -251,7 +252,7 @@
             <zeebe:input source="GET" target="method" />
             <zeebe:input source="=fromAi(toolCall.url, &#34;The URL to fetch&#34;)" target="url" />
             <zeebe:input source="=false" target="followRedirects" />
-            <zeebe:input source="JSON" target="documentReturnFormat.choice" />
+            <zeebe:input source="DOCUMENT" target="documentReturnFormat.choice" />
             <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="=20" target="readTimeoutInSeconds" />
           </zeebe:ioMapping>
