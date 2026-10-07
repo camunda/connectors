@@ -37,7 +37,7 @@ import jakarta.validation.constraints.NotBlank;
     label = "Authentication",
     group = "provider",
     name = "type",
-    defaultValue = "none",
+    defaultValue = "apiKey",
     description = "Authentication for the compatible API.")
 public sealed interface OpenAiCustomEndpointAuthentication
     permits OpenAiCustomEndpointAuthentication.NoAuthentication,

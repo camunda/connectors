@@ -122,7 +122,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "anthropic",
+    "value" : "openaiCompatible",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",

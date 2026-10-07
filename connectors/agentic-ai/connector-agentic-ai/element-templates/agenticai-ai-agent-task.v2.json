@@ -94,7 +94,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "anthropic",
+    "value" : "openai",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
@@ -108,7 +108,7 @@
       "name" : "AWS Bedrock Converse",
       "value" : "bedrock"
     }, {
-      "name" : "OpenAI",
+      "name" : "OpenAI Compatible",
       "value" : "openai"
     }, {
       "name" : "Google Gemini",
@@ -1105,7 +1105,7 @@
     "id" : "provider.openai.api.type",
     "label" : "API",
     "description" : "Specify which OpenAI API to use.",
-    "value" : "responses",
+    "value" : "completions",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.api.type",
@@ -1128,7 +1128,7 @@
     "id" : "provider.openai.backend.type",
     "label" : "Backend",
     "description" : "Specify how the OpenAI API is reached.",
-    "value" : "openai-api",
+    "value" : "custom",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.type",
@@ -1558,7 +1558,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "none",
+    "value" : "apiKey",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -2137,7 +2137,7 @@
     "id" : "provider.mistral.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "none",
+    "value" : "apiKey",
     "group" : "provider",
     "binding" : {
       "name" : "provider.mistral.backend.custom.authentication.type",

@@ -32,7 +32,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = OpenAiChatModelConfiguration.OPENAI_ID, label = "OpenAI")
+@TemplateSubType(id = OpenAiChatModelConfiguration.OPENAI_ID, label = "OpenAI Compatible")
 public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection openai)
     implements ProviderConfiguration {
 
@@ -70,7 +70,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       label = "API",
       group = "provider",
       name = "type",
-      defaultValue = RESPONSES_ID,
+      defaultValue = COMPLETIONS_ID,
       description = "Specify which OpenAI API to use.")
   public sealed interface OpenAiApi {
 
@@ -235,7 +235,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       label = "Backend",
       group = "provider",
       name = "type",
-      defaultValue = OPENAI_API_ID,
+      defaultValue = CUSTOM_ID,
       description = "Specify how the OpenAI API is reached.")
   public sealed interface OpenAiBackend {
 
