@@ -76,6 +76,9 @@ public class ActivationConditionEvaluator {
           groupedByMessage.stream()
               .map(
                   inboundConnectorElements -> {
+                    if (inboundConnectorElements.size() == 1) {
+                      return inboundConnectorElements.getFirst();
+                    }
                     var compatibilityResult =
                         checkMessageElementCompatibility(inboundConnectorElements);
                     if (!compatibilityResult.compatible()) {
