@@ -740,12 +740,12 @@ jobs:
 
       # team-test-automation is internal and this repo is public, so GitHub refuses to
       # resolve `uses: camunda/team-test-automation/...` -- an internal repo shares its
-      # actions only with private and internal repos. Check the action out with the app
-      # token instead and run it from a local path.
-      # The PAT, not an app token: quality-assurance-ci has no installation on
-      # team-test-automation, and this repo's vault role cannot read the qa-processes
-      # path -- both measured, see the PR body. This is the same credential the monorepo
-      # agent uses to clone the internal camunda/workspace-cli.
+      # actions only with private and internal repos. Check it out and run it locally.
+      #
+      # A PAT, and not an app token, because neither app works from here: measured,
+      # quality-assurance-ci has no installation on team-test-automation, and this
+      # repo's vault role gets a 403 on the qa-processes path. The PAT needs no
+      # refresh midway either, unlike the hour-long installation token it replaces.
       - name: Read the medic-resolver PAT
         id: medic-token
         if: ${{ steps.change.outputs.changed == 'true' }}
