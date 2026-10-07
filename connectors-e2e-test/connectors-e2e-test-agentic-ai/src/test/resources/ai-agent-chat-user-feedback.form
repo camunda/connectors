@@ -78,10 +78,10 @@
   "type": "default",
   "id": "ai-agent-chat-user-feedback",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.8.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.39.0"
+    "version": "5.51.1"
   },
   "schemaVersion": 19
 }
