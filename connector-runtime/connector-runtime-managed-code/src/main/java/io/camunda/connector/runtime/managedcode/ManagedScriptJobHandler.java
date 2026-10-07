@@ -68,9 +68,12 @@ final class ManagedScriptJobHandler {
 
   void handle(
       CamundaClient camundaClient, String physicalTenantId, JobClient jobClient, ActivatedJob job) {
+    // One budget per job for fetching the resources and provisioning, including re-provisioning,
+    // so that the job timeout (provisioning timeout + execution timeout) covers the whole attempt.
+    final long provisioningDeadline = System.nanoTime() + provisioningTimeout.toNanos();
     try {
       final var artifact = resolveArtifact(camundaClient, physicalTenantId, job);
-      execute(jobClient, job, artifact);
+      execute(jobClient, job, artifact, provisioningDeadline);
     } catch (InvalidJobException e) {
       fail(jobClient, job, 0, e.getMessage(), Duration.ZERO);
     } catch (ProvisioningTimeoutException e) {
@@ -132,13 +135,12 @@ final class ManagedScriptJobHandler {
         dependencies);
   }
 
-  private void execute(JobClient jobClient, ActivatedJob job, ArtifactSpec artifact)
+  private void execute(
+      JobClient jobClient, ActivatedJob job, ArtifactSpec artifact, long provisioningDeadline)
       throws InterruptedException {
     final var request =
         new ExecutionRequest(
             Long.toString(job.getKey()), job.getVariablesAsMap(), executionContext(job));
-    // One provisioning budget per job, so that re-provisioning stays within the job timeout.
-    final long provisioningDeadline = System.nanoTime() + provisioningTimeout.toNanos();
     var deployment = awaitDeployment(artifact, provisioningDeadline);
     var response = invoke(artifact, deployment, request);
     if (response.isDeploymentMissing()) {

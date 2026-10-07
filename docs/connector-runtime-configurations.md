@@ -28,9 +28,12 @@ camunda.connector.managed-code.provisioning-concurrency=2
 camunda.connector.managed-code.fake.provisioning-delay=2s
 ```
 
-The job timeout is `provisioning-timeout + execution-timeout + 10s`. A job still waiting for
-provisioning after `provisioning-timeout` fails without consuming a retry and is retried after
-`provisioning-retry-backoff`; provisioning continues in the background. Retryable provisioning and
+The job timeout is `provisioning-timeout + execution-timeout + 10s`. `provisioning-timeout` covers
+fetching the script resources and provisioning. A job still waiting for provisioning after
+`provisioning-timeout` fails without consuming a retry and is retried after
+`provisioning-retry-backoff`; provisioning continues in the background. A waiting job stays
+active and counts against `invocation-concurrency`, so jobs waiting for new scripts can delay jobs
+of scripts that are already provisioned. Retryable provisioning and
 execution failures consume one retry with the same backoff; permanent ones, such as a syntax error
 or a missing `linkedResources` header, fail without retries.
 
