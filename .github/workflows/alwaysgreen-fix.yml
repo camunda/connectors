@@ -829,8 +829,8 @@ jobs:
               echo "::warning::no medic resolved for today -- ${REPO}#${number} gets no medic reviewer; check the rotation schedule in team-test-automation"
               return 0
             fi
-            # Idempotent across nights: a PR reused for several dispatches would otherwise
-            # re-request a review the medic has already answered, which un-approves it.
+            # A reused PR is re-published nightly; without this the medic is re-notified
+            # every time and flipped back to pending on work they already looked at.
             if gh pr view "$number" --repo "$REPO" --json reviewRequests,reviews \
                  --jq '[(.reviewRequests[]? | .login // empty),
                         (.reviews[]? | .author.login // empty)] | .[]' 2>/dev/null \

@@ -2,6 +2,7 @@
 
 import json
 import os
+import shlex
 import re
 import subprocess
 import textwrap
@@ -67,7 +68,7 @@ def _run_validate_inputs(tmp_path: Path, **overrides: str):
     return subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
 
 
-def _run_publish(workdir: Path, meta: dict, **overrides: str):
+def _run_publish(workdir: Path, meta: dict, existing_pr: str = "[]", **overrides: str):
     """Execute the publish step against stubbed `gh`/`git`, returning body and gh calls.
 
     The step writes to fixed `/tmp` paths and shells out to `gh` and `git`; both are
@@ -80,13 +81,25 @@ def _run_publish(workdir: Path, meta: dict, **overrides: str):
     bin_dir = workdir / "bin"
     bin_dir.mkdir(parents=True)
     gh_calls = workdir / "gh-calls.txt"
+    reviewers = workdir / "reviewers.txt"
+    # `pr view` reads back what `pr edit` recorded rather than returning a fixed answer:
+    # the medic path asks whether a reviewer is already requested and then whether its
+    # own request landed, so a stateless stub would satisfy both arms vacuously.
     (bin_dir / "gh").write_text(
         "#!/usr/bin/env bash\n"
         f'printf "%s\\n" "$*" >> "{gh_calls}"\n'
         'case "$1 $2" in\n'
-        '  "pr list") echo "[]" ;;\n'
+        f'  "pr list") printf "%s" {shlex.quote(existing_pr)} ;;\n'
         '  "pr create") echo "https://github.com/camunda/connectors/pull/123" ;;\n'
+        f'  "pr view") cat "{reviewers}" 2>/dev/null ;;\n'
+        '  "pr edit")\n'
+        '    prev=""\n'
+        '    for a in "$@"; do\n'
+        f'      [ "$prev" = "--add-reviewer" ] && printf "%s\\n" "$a" >> "{reviewers}"\n'
+        '      prev="$a"\n'
+        '    done ;;\n'
         "esac\n"
+        "exit 0\n"
     )
     (bin_dir / "git").write_text("#!/usr/bin/env bash\nexit 0\n")
     for stub in ("gh", "git"):
@@ -111,6 +124,8 @@ def _run_publish(workdir: Path, meta: dict, **overrides: str):
         "BLAME_REVIEWER": "octocat",
         "FIX_LABEL": "alwaysgreen-fix",
         "KEY_LABEL": "ag-key:connectors:main:sm-smoke-e2e",
+        "MEDIC_LOGIN": "medicuser",
+        "MEDIC_NAME": "A Medic",
     }
     env.update(overrides)
     result = subprocess.run(
@@ -146,7 +161,49 @@ def test_publish_notifies_the_blamed_author_only_on_a_true_verdict(tmp_path):
     ):
         body, gh_calls = _run_publish(tmp_path / case, _change(**verdict))
         assert ("- Candidate breaking-change author: @octocat" in body) is notified, case
-        assert ("--add-reviewer" in gh_calls) is notified, case
+        # Scoped to the blamed login: the medic is requested unconditionally now, so a
+        # bare "--add-reviewer" would hold in every case and assert nothing.
+        assert ("--add-reviewer octocat" in gh_calls) is notified, case
+        assert "--add-reviewer medicuser" in gh_calls, case
+
+
+EXISTING_PR = (
+    '[{"number": 123, "url": "https://github.com/camunda/connectors/pull/123",'
+    ' "headRefName": "fix/alwaysgreen-sm-smoke-e2e-1", "baseRefName": "main"}]'
+)
+
+
+def test_publish_requests_the_medic_on_a_reused_pr_not_only_a_new_one(tmp_path):
+    # This workflow reuses one PR per dispatch key, and that branch records the PR and
+    # exits before the create path. The medic was requested only after `gh pr create`,
+    # so a key got the medic on its first PR and never again.
+    _, new_calls = _run_publish(tmp_path / "new", _change())
+    assert "--add-reviewer medicuser" in new_calls
+
+    _, reused_calls = _run_publish(
+        tmp_path / "reused", _change(), existing_pr=EXISTING_PR
+    )
+    assert "pr create" not in reused_calls, "expected the reused-PR path"
+    assert "--add-reviewer medicuser" in reused_calls
+
+
+def test_publish_does_not_re_request_a_medic_already_on_the_pr(tmp_path):
+    # A reused PR is re-published every night. Without the guard the medic is
+    # re-requested and re-notified each time, and their status bounces back to pending
+    # on work they have already looked at. (GitHub keeps the submitted review; it is
+    # noise, not data loss.)
+    workdir = tmp_path / "already"
+    workdir.mkdir(parents=True)
+    (workdir / "reviewers.txt").write_text("medicuser\n")
+    _, gh_calls = _run_publish(workdir, _change(), existing_pr=EXISTING_PR)
+    assert "--add-reviewer medicuser" not in gh_calls
+
+
+def test_publish_warns_when_no_medic_resolved(tmp_path):
+    # The resolver is best-effort and returns an empty login on every failure path, so
+    # an unplanned day must leave the run green and say so rather than request "".
+    _, gh_calls = _run_publish(tmp_path / "nomedic", _change(), MEDIC_LOGIN="")
+    assert "--add-reviewer" not in gh_calls
 
 
 def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
@@ -176,7 +233,9 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
     # start of line or any non-word character before an @ is its own boundary rule, and
     # unlike a backtick-wrapping scheme this holds without trusting the markup around it.
     assert re.search(r"(?m)(?:^|[^A-Za-z0-9_])@[A-Za-z0-9]", body) is None
-    assert "--add-reviewer" not in gh_calls
+    # Scoped to the blamed login: the medic is requested unconditionally, so a bare
+    # "--add-reviewer" is always present and would assert nothing here.
+    assert "--add-reviewer octocat" not in gh_calls
 
 
 def test_privileged_workflows_are_not_directly_dispatchable():
