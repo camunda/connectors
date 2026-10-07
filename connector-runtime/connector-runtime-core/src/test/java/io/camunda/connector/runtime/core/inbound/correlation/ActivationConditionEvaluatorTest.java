@@ -274,14 +274,15 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Different correlationKeyExpression should be incompatible")
-    void differentCorrelationKeyExpression_shouldBeIncompatible() {
+    @DisplayName("Different correlationKeyExpression publishes distinct messages, each correlated")
+    void differentCorrelationKeyExpression_eachCorrelated() {
       var element1 = createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key1");
       var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key2");
 
-      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+      var result = evaluator.resolveActivation(List.of(element1, element2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(result.result()).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(result.elementsToCorrelate()).containsExactly(element1, element2);
     }
 
     @Test
@@ -356,18 +357,19 @@ public class ActivationConditionEvaluatorTest {
   }
 
   @Nested
-  @DisplayName("Different message names (always incompatible when both match)")
+  @DisplayName("Different message names")
   class DifferentMessageNames {
 
     @Test
-    @DisplayName("Different message names with blank conditions should be incompatible")
-    void differentMessageNames_blankConditions_shouldBeIncompatible() {
+    @DisplayName("Different message names with blank conditions are each correlated")
+    void differentMessageNames_blankConditions_eachCorrelated() {
       var element1 = createMessageElement("elem1", "msg-A", "", "=result", "var", "=key");
       var element2 = createMessageElement("elem2", "msg-B", "", "=result", "var", "=key");
 
-      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+      var result = evaluator.resolveActivation(List.of(element1, element2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(result.result()).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(result.elementsToCorrelate()).containsExactly(element1, element2);
     }
   }
 
@@ -376,25 +378,27 @@ public class ActivationConditionEvaluatorTest {
   class MixedCorrelationPointTypes {
 
     @Test
-    @DisplayName("Mix of message and start event elements should be incompatible")
-    void mixedTypes_shouldBeIncompatible() {
+    @DisplayName("Mix of message and start event elements are each correlated")
+    void mixedTypes_eachCorrelated() {
       var messageElement = createMessageElement("elem1", "msg1", "", "=result", "var", "=key");
       var startElement = createStartEventElement("elem2", "");
 
-      var result = evaluator.checkActivation(List.of(messageElement, startElement), Map.of());
+      var result = evaluator.resolveActivation(List.of(messageElement, startElement), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(result.result()).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(result.elementsToCorrelate()).containsExactly(messageElement, startElement);
     }
 
     @Test
-    @DisplayName("Two start event elements with blank conditions should be incompatible")
-    void twoStartEvents_blankConditions_shouldBeIncompatible() {
+    @DisplayName("Two start event elements with blank conditions are each correlated")
+    void twoStartEvents_blankConditions_eachCorrelated() {
       var startElement1 = createStartEventElement("elem1", "");
       var startElement2 = createStartEventElement("elem2", "");
 
-      var result = evaluator.checkActivation(List.of(startElement1, startElement2), Map.of());
+      var result = evaluator.resolveActivation(List.of(startElement1, startElement2), Map.of());
 
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(result.result()).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+      assertThat(result.elementsToCorrelate()).containsExactly(startElement1, startElement2);
     }
   }
 

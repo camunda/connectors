@@ -174,16 +174,23 @@ public class InboundCorrelationHandlerTest {
 
   @Test
   void multipleElements_multipleMatches_errorRaised() {
-    // given
-    var startEventElement = mock(InboundConnectorElement.class);
-    when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
-    var messageElement = mock(InboundConnectorElement.class);
-    when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    // given: two elements publishing the same message, with different result expressions
+    var point = new StandaloneMessageCorrelationPoint("msg", "=testKey", null, null);
+    var element1 = mock(InboundConnectorElement.class);
+    when(element1.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(element1.correlationPoint()).thenReturn(point);
+    when(element1.resultExpression()).thenReturn("={a: testKey}");
+    when(element1.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element1", "default"));
+    var element2 = mock(InboundConnectorElement.class);
+    when(element2.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    when(element2.correlationPoint()).thenReturn(point);
+    when(element2.resultExpression()).thenReturn("={b: testKey}");
+    when(element2.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element2", "default"));
 
     // when
-    var result =
-        handler.correlate(
-            List.of(startEventElement, messageElement), Map.of("testKey", "testValue"));
+    var result = handler.correlate(List.of(element1, element2), Map.of("testKey", "testValue"));
 
     // then
     assertThat(result).isInstanceOf(Failure.InvalidInput.class);
