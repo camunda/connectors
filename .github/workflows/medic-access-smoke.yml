@@ -1,0 +1,95 @@
+# THROWAWAY. Delete this branch after the run.
+#
+# Answers one question that cannot be answered by reading config: from THIS repo, which
+# is public, can we mint a token that reads the internal camunda/team-test-automation and
+# run the medic resolver from a local checkout? #9325 broke the agent by assuming a
+# cross-repo `uses:` would resolve here; this proves the replacement before #9347 relies
+# on it.
+#
+# Both apps are tried, independently and best-effort, because the only evidence either
+# way is indirect: team-test-automation's own workflows scope qa-processes to itself,
+# while the one place quality-assurance-ci is scoped omits it.
+name: medic access smoke test
+
+on:
+  push:
+    branches: [chore/medic-access-smoke]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Token via qa-processes
+        id: tok-qa-processes
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/qa-processes
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/qa-processes
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: team-test-automation
+
+      - name: Token via quality-assurance-ci
+        id: tok-qa-ci
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: team-test-automation
+
+      - name: Report which tokens minted
+        run: |
+          echo "qa-processes:         ${{ steps.tok-qa-processes.outcome }}"
+          echo "quality-assurance-ci: ${{ steps.tok-qa-ci.outcome }}"
+
+      # The real test: does the checkout actually read the internal repo from a public one?
+      - name: Check out the medic resolver (qa-processes)
+        id: src
+        if: ${{ steps.tok-qa-processes.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: camunda/team-test-automation
+          ref: 4ba23b2dfa0029dc5a640fc8e24e78844ca0aa06 # camunda/team-test-automation#186
+          token: ${{ steps.tok-qa-processes.outputs.token }}
+          path: .medic-resolver
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve the medic from the local path
+        id: medic
+        if: ${{ steps.src.outcome == 'success' }}
+        continue-on-error: true
+        uses: ./.medic-resolver/.github/actions/resolve-medic
+
+      - name: Verdict
+        run: |
+          set -uo pipefail
+          echo "token(qa-processes)=${{ steps.tok-qa-processes.outcome }}"
+          echo "token(quality-assurance-ci)=${{ steps.tok-qa-ci.outcome }}"
+          echo "checkout=${{ steps.src.outcome }}"
+          echo "resolve=${{ steps.medic.outcome }}"
+          echo "found=${{ steps.medic.outputs.found }}"
+          echo "login=${{ steps.medic.outputs.login }}"
+          echo "name=${{ steps.medic.outputs.full_name }}"
+          echo "usergroup=${{ steps.medic.outputs.slack_usergroup }}"
+          [ "${{ steps.medic.outputs.found }}" = "true" ] \
+            || { echo "::error::medic not resolved from a public repo"; exit 1; }
+          echo "PASS: a public repo can read the internal resolver and resolve the medic"
