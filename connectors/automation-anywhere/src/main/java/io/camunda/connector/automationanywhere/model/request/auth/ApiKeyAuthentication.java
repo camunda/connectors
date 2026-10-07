@@ -14,7 +14,8 @@ import jakarta.validation.constraints.NotBlank;
 public record ApiKeyAuthentication(
     @NotBlank @TemplateProperty(label = "Username", id = "apiUsername", group = "authentication")
         String username,
-    @NotBlank @TemplateProperty(label = "API key", group = "authentication") String apiKey)
+    @NotBlank @TemplateProperty(label = "API key", group = "authentication", secret = true)
+        String apiKey)
     implements Authentication {
   @Override
   public String toString() {
