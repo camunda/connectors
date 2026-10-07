@@ -189,6 +189,19 @@ class CrossVersionCorrelationMatrixTest {
   }
 
   @Test
+  void latestVersionActivationConditionInvalid_olderVersionStillPublished() {
+    var latest = element(3, "O", "=value.field1", "={r: value.field2}");
+    when(latest.activationCondition()).thenReturn("=");
+
+    var result =
+        correlate(FULL_PAYLOAD, element(1, "M", "=value.field1", "={r: value.field2}"), latest);
+
+    assertThat(result).isInstanceOf(Success.MessagePublished.class);
+    verify(camundaClient, times(1)).newPublishMessageCommand();
+    verify(command).messageName("M");
+  }
+
+  @Test
   void latestVersionKeyMissing_olderVersionStillPublished() {
     var result =
         correlate(

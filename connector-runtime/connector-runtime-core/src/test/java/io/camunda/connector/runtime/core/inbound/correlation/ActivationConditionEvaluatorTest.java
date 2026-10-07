@@ -513,9 +513,21 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("The latest version's invalid activation condition still fails the input")
-    void latestVersionWithInvalidActivationCondition_throws() {
+    @DisplayName("The latest version's invalid activation condition doesn't block an older version")
+    void latestVersionWithInvalidActivationCondition_olderVersionCorrelated() {
       var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
+      when(v10.activationCondition()).thenReturn("=");
+
+      assertThat(resolve(List.of(v2, v10), Map.of("id", "1"))).containsExactly(v2);
+    }
+
+    @Test
+    @DisplayName(
+        "The latest version's invalid activation condition fails when nothing else matches")
+    void latestVersionWithInvalidActivationCondition_nothingElseMatches_throws() {
+      var v2 = createVersionedMessageElement("step", 2, "msg-v2", null, "=id");
+      when(v2.activationCondition()).thenReturn("=false");
       var v10 = createVersionedMessageElement("step", 10, "msg-v10", null, "=id");
       when(v10.activationCondition()).thenReturn("=");
 
