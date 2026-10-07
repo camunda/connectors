@@ -171,3 +171,21 @@ established SDK/runtime/connector pattern. Sequence number and index entry come 
 Connector-development-pattern, runtime-configuration, or testing-strategy changes should also update
 [docs.camunda.io](https://docs.camunda.io/docs/components/connectors/overview/) — open a PR against
 `camunda/camunda-docs`.
+
+## Agent skills
+
+All skills live in `.agents/skills/`; `.claude/skills/<name>` are symlinks to them so Claude Code
+picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `handoff`) are managed
+with [`npx skills`](https://github.com/vercel-labs/skills) and pinned in `skills-lock.json`; the
+others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`,
+`update-salesforce-api-version`) are authored in this repo.
+
+```bash
+npx skills experimental_install                                  # restore skills from skills-lock.json
+npx skills add mattpocock/skills --skill <name> --agent claude-code  # add a skill (updates lock file)
+npx skills update                                                # update to latest versions
+npx skills list                                                  # list installed skills
+```
+
+Commit `skills-lock.json` and `.agents/skills/` together. After adding a skill, make sure the
+`.claude/skills/<name>` symlink exists.
