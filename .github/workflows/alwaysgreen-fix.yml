@@ -452,6 +452,9 @@ jobs:
           cd agent-workspace
           # Glob and Grep remain available inside the working directory, but
           # are not pre-authorized to search paths outside it.
+          # File permissions are checked against Edit() rules only; an
+          # equivalent Write() rule is accepted but never consulted, so the
+          # Edit() rules below gate the Write tool as well.
           claude -p "$prompt" \
             --permission-mode dontAsk \
             --tools "Read,Edit,Write,Glob,Grep" \
@@ -460,9 +463,7 @@ jobs:
               "Read(./**)" \
               "Edit(./connectors/**)" \
               "Edit(./c8-cross-component-e2e-tests/**)" \
-              "Write(./connectors/**)" \
-              "Write(./c8-cross-component-e2e-tests/**)" \
-              "Write(./fix-meta.json)"
+              "Edit(./fix-meta.json)"
 
       - name: Validate agent result
         id: change

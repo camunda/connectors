@@ -278,7 +278,11 @@ def test_model_has_no_github_credential_or_shell_tool():
     assert '--tools "Read,Edit,Write,Glob,Grep"' in model
     assert '--disallowedTools "Bash"' in model
     assert '"Read(./**)"' in model
-    assert '"Write(./fix-meta.json)"' in model
+    assert '"Edit(./fix-meta.json)"' in model
+    # Claude Code consults Edit() and Read() rules only. A Write() path rule is
+    # accepted but never applied, so one here would sandbox nothing while
+    # reading as though it did.
+    assert '"Write(' not in model
     assert '\n              "Glob"' not in model
     assert '\n              "Grep"' not in model
 
