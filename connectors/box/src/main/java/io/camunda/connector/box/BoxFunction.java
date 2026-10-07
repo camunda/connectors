@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "document management"
     },
     inputDataClass = BoxRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

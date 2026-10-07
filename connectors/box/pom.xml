@@ -36,6 +36,12 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>box-java-sdk</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-annotations</artifactId>
     </dependency>

@@ -7,26 +7,38 @@
 package io.camunda.connector.box;
 
 import static io.camunda.connector.box.BoxUtil.download;
-import static io.camunda.connector.box.BoxUtil.getFile;
-import static io.camunda.connector.box.BoxUtil.getFolder;
-import static io.camunda.connector.box.BoxUtil.item;
+import static io.camunda.connector.box.BoxUtil.getItemId;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxCCGAPIConnection;
-import com.box.sdk.BoxConfig;
-import com.box.sdk.BoxDeveloperEditionAPIConnection;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxItem;
-import com.box.sdk.BoxSearch;
-import com.box.sdk.BoxSearchParameters;
+import com.box.sdkgen.box.ccgauth.BoxCCGAuth;
+import com.box.sdkgen.box.ccgauth.CCGConfig;
+import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
+import com.box.sdkgen.box.jwtauth.BoxJWTAuth;
+import com.box.sdkgen.box.jwtauth.JWTConfig;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.files.UpdateFileByIdRequestBody;
+import com.box.sdkgen.managers.files.UpdateFileByIdRequestBodyParentField;
+import com.box.sdkgen.managers.folders.CreateFolderRequestBody;
+import com.box.sdkgen.managers.folders.CreateFolderRequestBodyParentField;
+import com.box.sdkgen.managers.folders.DeleteFolderByIdQueryParams;
+import com.box.sdkgen.managers.search.SearchForContentQueryParams;
+import com.box.sdkgen.managers.search.SearchForContentQueryParamsDirectionField;
+import com.box.sdkgen.managers.search.SearchForContentQueryParamsSortField;
+import com.box.sdkgen.managers.uploads.UploadFileRequestBody;
+import com.box.sdkgen.managers.uploads.UploadFileRequestBodyAttributesField;
+import com.box.sdkgen.managers.uploads.UploadFileRequestBodyAttributesParentField;
+import com.box.sdkgen.networking.auth.Authentication;
+import com.box.sdkgen.networking.network.NetworkSession;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.folderfull.FolderFull;
+import com.box.sdkgen.serialization.json.EnumWrapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.box.model.BoxRequest;
-import io.camunda.connector.box.model.BoxRequest.Operation.Search.SortDirection;
 import io.camunda.connector.box.model.BoxResult;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,63 +46,107 @@ public class BoxOperations {
 
   public static Object execute(
       BoxRequest request, OutboundConnectorContext context, boolean useDocumentReturnFlow) {
-    var api = connectToApi(request.authentication());
+    try {
+      return run(request, context, useDocumentReturnFlow);
+    } catch (RuntimeException e) {
+      throw BoxErrors.translate(e);
+    }
+  }
+
+  private static Object run(
+      BoxRequest request, OutboundConnectorContext context, boolean useDocumentReturnFlow) {
+    var client = connectToApi(request.authentication());
     return switch (request.operation()) {
-      case BoxRequest.Operation.UploadFile uploadFile -> uploadFile(uploadFile, api);
+      case BoxRequest.Operation.UploadFile uploadFile -> uploadFile(uploadFile, client);
       case BoxRequest.Operation.DownloadFile downloadFile ->
-          downloadFile(downloadFile, api, context, useDocumentReturnFlow);
-      case BoxRequest.Operation.MoveFile moveFile -> moveFile(moveFile, api);
-      case BoxRequest.Operation.DeleteFile deleteFile -> deleteFile(deleteFile, api);
-      case BoxRequest.Operation.CreateFolder createFolder -> createFolder(createFolder, api);
-      case BoxRequest.Operation.DeleteFolder deleteFolder -> deleteFolder(deleteFolder, api);
-      case BoxRequest.Operation.Search search -> search(search, api);
+          downloadFile(downloadFile, client, context, useDocumentReturnFlow);
+      case BoxRequest.Operation.MoveFile moveFile -> moveFile(moveFile, client);
+      case BoxRequest.Operation.DeleteFile deleteFile -> deleteFile(deleteFile, client);
+      case BoxRequest.Operation.CreateFolder createFolder -> createFolder(createFolder, client);
+      case BoxRequest.Operation.DeleteFolder deleteFolder -> deleteFolder(deleteFolder, client);
+      case BoxRequest.Operation.Search search -> search(search, client);
     };
   }
 
-  private static BoxAPIConnection connectToApi(BoxRequest.Authentication authentication) {
+  private static BoxClient connectToApi(BoxRequest.Authentication authentication) {
+    return connectToApi(authentication, NETWORK_SESSION);
+  }
+
+  static BoxClient connectToApi(
+      BoxRequest.Authentication authentication, NetworkSession networkSession) {
     return switch (authentication) {
       case BoxRequest.Authentication.DeveloperToken developerToken ->
-          new BoxAPIConnection(developerToken.accessToken());
+          client(new BoxDeveloperTokenAuth(developerToken.accessToken()), networkSession);
 
       case BoxRequest.Authentication.ClientCredentialsUser user ->
-          BoxCCGAPIConnection.userConnection(user.clientId(), user.clientSecret(), user.userId());
+          client(
+              new BoxCCGAuth(new CCGConfig(user.clientId(), user.clientSecret()))
+                  .withUserSubject(user.userId()),
+              networkSession);
 
       case BoxRequest.Authentication.ClientCredentialsEnterprise enterprise ->
-          BoxCCGAPIConnection.applicationServiceAccountConnection(
-              enterprise.clientId(), enterprise.clientSecret(), enterprise.enterpriseId());
+          client(
+              new BoxCCGAuth(new CCGConfig(enterprise.clientId(), enterprise.clientSecret()))
+                  .withEnterpriseSubject(enterprise.enterpriseId()),
+              networkSession);
 
-      case BoxRequest.Authentication.JWTJsonConfig jwtJsonConfig -> {
-        BoxConfig boxConfig = BoxConfig.readFrom(jwtJsonConfig.jsonConfig());
-        yield BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
-      }
+      case BoxRequest.Authentication.JWTJsonConfig jwtJsonConfig ->
+          client(
+              new BoxJWTAuth(JWTConfig.fromConfigJsonString(jwtJsonConfig.jsonConfig())),
+              networkSession);
     };
   }
 
-  private static BoxResult.Upload uploadFile(
-      BoxRequest.Operation.UploadFile uploadFile, BoxAPIConnection api) {
-    var folder = getFolder(uploadFile.folderPath(), api);
-    var file = folder.uploadFile(uploadFile.document().asInputStream(), uploadFile.getFileName());
-    return new BoxResult.Upload(item(file));
+  private static final NetworkSession NETWORK_SESSION =
+      new NetworkSession().withRetryStrategy(new BodyAwareRetryStrategy());
+
+  private static BoxClient client(Authentication auth, NetworkSession networkSession) {
+    return new BoxClient.Builder(auth).networkSession(networkSession).build();
+  }
+
+  static BoxResult.Upload uploadFile(BoxRequest.Operation.UploadFile uploadFile, BoxClient client) {
+    var folderId = getItemId(uploadFile.folderPath(), client);
+    InputStream content = new SingleUseInputStream(uploadFile.document().asInputStream());
+    try {
+      var requestBody =
+          new UploadFileRequestBody(
+              new UploadFileRequestBodyAttributesField(
+                  uploadFile.getFileName(),
+                  new UploadFileRequestBodyAttributesParentField(folderId)),
+              content);
+      FileFull file = client.uploads.uploadFile(requestBody).getEntries().get(0);
+      return new BoxResult.Upload(new BoxResult.Item(file.getId(), "file"));
+    } finally {
+      closeQuietly(content);
+    }
+  }
+
+  private static void closeQuietly(InputStream stream) {
+    try {
+      stream.close();
+    } catch (IOException ignored) {
+      // the upload outcome is what matters; a failing close must not mask it
+    }
   }
 
   private static Object downloadFile(
       BoxRequest.Operation.DownloadFile downloadFile,
-      BoxAPIConnection api,
+      BoxClient client,
       OutboundConnectorContext context,
       boolean useDocumentReturnFlow) {
-    var file = getFile(downloadFile.filePath(), api);
+    var fileId = getItemId(downloadFile.filePath(), client);
     if (useDocumentReturnFlow) {
-      return newDownloadPath(file);
+      return newDownloadPath(fileId, client);
     } else {
-      var document = createDocument(file, context);
-      return new BoxResult.Download(item(file), document);
+      var document = createDocument(fileId, client, context);
+      return new BoxResult.Download(new BoxResult.Item(fileId, "file"), document);
     }
   }
 
-  private static DocumentReturn<BoxResult> newDownloadPath(BoxFile file) {
-    BoxResult.Item itemSnapshot = item(file);
-    String fileName = file.getInfo().getName();
-    byte[] bytes = download(file);
+  private static DocumentReturn<BoxResult> newDownloadPath(String fileId, BoxClient client) {
+    BoxResult.Item itemSnapshot = new BoxResult.Item(fileId, "file");
+    String fileName = client.files.getFileById(fileId).getName();
+    byte[] bytes = download(fileId, client);
     return DocumentReturn.of(
         bytes,
         null,
@@ -98,59 +154,70 @@ public class BoxOperations {
         (converted, choice) -> BoxResult.forDownload(itemSnapshot, choice, converted));
   }
 
-  private static Document createDocument(BoxFile file, OutboundConnectorContext context) {
-    var fileContent = download(file);
+  private static Document createDocument(
+      String fileId, BoxClient client, OutboundConnectorContext context) {
+    byte[] fileContent = download(fileId, client);
+    String fileName = client.files.getFileById(fileId).getName();
     var documentCreationRequest =
-        DocumentCreationRequest.from(fileContent).fileName(file.getInfo().getName()).build();
+        DocumentCreationRequest.from(fileContent).fileName(fileName).build();
     return context.create(documentCreationRequest);
   }
 
   private static BoxResult deleteFile(
-      BoxRequest.Operation.DeleteFile deleteFile, BoxAPIConnection api) {
-    BoxFile file = getFile(deleteFile.filePath(), api);
-    file.delete();
-    return new BoxResult.Generic(item(file));
+      BoxRequest.Operation.DeleteFile deleteFile, BoxClient client) {
+    var fileId = getItemId(deleteFile.filePath(), client);
+    client.files.deleteFileById(fileId);
+    return new BoxResult.Generic(new BoxResult.Item(fileId, "file"));
   }
 
-  private static BoxResult moveFile(BoxRequest.Operation.MoveFile moveFile, BoxAPIConnection api) {
-    BoxFile file = getFile(moveFile.filePath(), api);
-    BoxFolder folder = getFolder(moveFile.folderPath(), api);
-    BoxItem.Info info = file.move(folder);
-    return new BoxResult.Generic(item(info));
+  private static BoxResult moveFile(BoxRequest.Operation.MoveFile moveFile, BoxClient client) {
+    var fileId = getItemId(moveFile.filePath(), client);
+    var folderId = getItemId(moveFile.folderPath(), client);
+    var requestBody =
+        new UpdateFileByIdRequestBody.Builder()
+            .parent(new UpdateFileByIdRequestBodyParentField.Builder().id(folderId).build())
+            .build();
+    FileFull file = client.files.updateFileById(fileId, requestBody);
+    return new BoxResult.Generic(new BoxResult.Item(file.getId(), "file"));
   }
 
   private static BoxResult deleteFolder(
-      BoxRequest.Operation.DeleteFolder deleteFolder, BoxAPIConnection api) {
-    var folder = getFolder(deleteFolder.folderPath(), api);
-    folder.delete(deleteFolder.recursive());
-    return new BoxResult.Generic(item(folder));
+      BoxRequest.Operation.DeleteFolder deleteFolder, BoxClient client) {
+    var folderId = getItemId(deleteFolder.folderPath(), client);
+    var queryParams = new DeleteFolderByIdQueryParams();
+    queryParams.recursive = deleteFolder.recursive();
+    client.folders.deleteFolderById(folderId, queryParams);
+    return new BoxResult.Generic(new BoxResult.Item(folderId, "folder"));
   }
 
   private static BoxResult createFolder(
-      BoxRequest.Operation.CreateFolder createFolder, BoxAPIConnection api) {
-    var folder = getFolder(createFolder.folderPath(), api).createFolder(createFolder.name());
-    return new BoxResult.Generic(item(folder));
+      BoxRequest.Operation.CreateFolder createFolder, BoxClient client) {
+    var parentId = getItemId(createFolder.folderPath(), client);
+    var requestBody =
+        new CreateFolderRequestBody(
+            createFolder.name(), new CreateFolderRequestBodyParentField(parentId));
+    FolderFull folder = client.folders.createFolder(requestBody);
+    return new BoxResult.Generic(new BoxResult.Item(folder.getId(), "folder"));
   }
 
-  private static BoxResult.Search search(BoxRequest.Operation.Search search, BoxAPIConnection api) {
-    var searchParams = searchParameters(search);
-    var offset = Optional.ofNullable(search.offset()).orElse(0L);
-    var limit = Optional.ofNullable(search.limit()).orElse(50L);
-    BoxSearch boxSearch = new BoxSearch(api);
+  private static BoxResult.Search search(BoxRequest.Operation.Search search, BoxClient client) {
+    var queryParams = new SearchForContentQueryParams();
+    queryParams.query = search.query();
+    queryParams.offset = Optional.ofNullable(search.offset()).orElse(0L);
+    queryParams.limit = Optional.ofNullable(search.limit()).orElse(50L);
+    Optional.ofNullable(search.sortColumn())
+        .ifPresent(
+            sort -> queryParams.sort = new EnumWrapper<SearchForContentQueryParamsSortField>(sort));
+    Optional.ofNullable(search.sortDirection())
+        .map(BoxRequest.Operation.Search.SortDirection::getValue)
+        .ifPresent(
+            direction ->
+                queryParams.direction =
+                    new EnumWrapper<SearchForContentQueryParamsDirectionField>(direction));
     var items =
-        boxSearch.searchRange(offset, limit, searchParams).stream()
-            .map(BoxUtil::item)
+        client.search.searchForContent(queryParams).getSearchResults().getEntries().stream()
+            .map(entry -> new BoxResult.Item(entry.getId(), entry.getType()))
             .collect(Collectors.toList());
     return new BoxResult.Search(items);
-  }
-
-  private static BoxSearchParameters searchParameters(BoxRequest.Operation.Search search) {
-    BoxSearchParameters searchParams = new BoxSearchParameters();
-    searchParams.setQuery(search.query());
-    Optional.ofNullable(search.sortColumn()).ifPresent(searchParams::setSort);
-    Optional.ofNullable(search.sortDirection())
-        .map(SortDirection::getValue)
-        .ifPresent(searchParams::setDirection);
-    return searchParams;
   }
 }
