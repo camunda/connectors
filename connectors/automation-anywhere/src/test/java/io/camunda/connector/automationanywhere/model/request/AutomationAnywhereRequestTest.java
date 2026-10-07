@@ -62,6 +62,34 @@ class AutomationAnywhereRequestTest {
   }
 
   @Test
+  void credentialOnly_withoutConfigurationObject_usesCredentialUrlAndDefaultTimeout() {
+    // Modeler drops every configuration.* input once the URL is hidden and the optional timeout
+    // is cleared.
+    var request = bind("{" + CREDENTIAL + "," + OPERATION + "}");
+
+    assertThat(request.configuration().controlRoomUrl())
+        .isEqualTo("https://credential.example.com");
+    assertThat(request.configuration().connectionTimeoutInSeconds()).isNull();
+    assertThat(request.authentication()).isEqualTo(new ApiKeyAuthentication("bot", "key"));
+  }
+
+  @Test
+  void neitherCredentialNorConfigurationObject_failsNamingBothSources() {
+    assertThatThrownBy(
+            () ->
+                bind(
+                    """
+                    {
+                      "authentication": { "type": "tokenBasedAuthentication", "token": "t" },
+                    """
+                        + OPERATION
+                        + "}"))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining(
+            "No Control Room URL provided by the credential or the element template");
+  }
+
+  @Test
   void inlineOnly_usesInlineUrlAndAuthentication() {
     var request =
         bind(

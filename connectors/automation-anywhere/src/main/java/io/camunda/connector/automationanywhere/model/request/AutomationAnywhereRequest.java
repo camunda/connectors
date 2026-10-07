@@ -25,6 +25,9 @@ import jakarta.validation.constraints.NotNull;
  *     #configuration()}). Declared first so it renders before the fields it gates, as required by
  *     ConditionPropertyOrderRule.
  * @param authentication hidden and validated only while no credential is bound.
+ * @param configuration may be absent once a credential is bound: Modeler drops the hidden URL and,
+ *     when cleared, the optional timeout. Requiredness is asserted on the effective URL in {@link
+ *     #isControlRoomUrlPresent()}.
  */
 public record AutomationAnywhereRequest(
     @TemplateProperty(
@@ -47,7 +50,7 @@ public record AutomationAnywhereRequest(
                     property = "authenticationConfiguration",
                     isEmpty = NullableBoolean.TRUE))
         Authentication authentication,
-    @Valid @FEEL @NotNull @TemplateProperty(group = "configuration", id = "configuration")
+    @Valid @FEEL @TemplateProperty(group = "configuration", id = "configuration")
         Configuration configuration,
     @Valid @FEEL @NotNull @TemplateProperty(group = "operation", id = "operationType")
         OperationData operation) {
