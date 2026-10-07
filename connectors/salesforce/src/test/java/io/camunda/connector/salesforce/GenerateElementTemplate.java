@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.CommonProperties;
+import io.camunda.connector.generator.dsl.ConfigurationProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
@@ -54,11 +55,12 @@ import java.util.stream.Collectors;
  * Generates the Salesforce element template by extending HTTP JSON's own generated {@link
  * ElementTemplate} object model via {@link ElementTemplateBuilder#from(ElementTemplate)}: the
  * inherited authentication block is pruned down to the two mechanisms Salesforce supports (so it
- * stays in sync with HTTP JSON's auth model as it evolves), the inherited response-mapping
- * properties (resultVariable/resultExpression) are kept as-is since Salesforce has no
- * operation-specific behavior to layer onto response mapping, every other inherited group/property
- * (raw url/method, headers, tls, timeout, retries, errors, ...) is dropped, and every
- * Salesforce-specific property -- operation type (sObject CRUD, SOQL query, or Apex REST),
+ * stays in sync with HTTP JSON's auth model as it evolves), HTTP JSON's reusable-credential chooser
+ * and its embedded {@code rest-authentication} configuration template are kept, the inherited
+ * response-mapping properties (resultVariable/resultExpression) are kept as-is since Salesforce has
+ * no operation-specific behavior to layer onto response mapping, every other inherited
+ * group/property (raw url/method, headers, tls, timeout, retries, errors, ...) is dropped, and
+ * every Salesforce-specific property -- operation type (sObject CRUD, SOQL query, or Apex REST),
  * per-operation fields, URL construction -- is hand-built on top using the same DSL builders HTTP
  * JSON's own generator uses. Salesforce still executes as {@code io.camunda:http-json:1} at runtime
  * -- there is no Salesforce-specific runtime code, only this generated element template.
@@ -78,18 +80,26 @@ public class GenerateElementTemplate {
   // replaced below with Salesforce's own fixed-value Hidden properties (see buildSteps() call
   // site), so they're intentionally excluded from KEPT_AUTH_PROPERTY_IDS rather than carried over.
   private static final Set<String> REPLACED_AUTH_PROPERTY_IDS =
-      Set.of("authentication.oauthTokenEndpoint", "authentication.clientAuthentication");
+      Set.of(
+          "authentication.oauthTokenEndpoint",
+          "authentication.clientAuthentication",
+          "urlOverride");
   // authentication.audience/scopes have no counterpart in Salesforce's connector and are
   // intentionally not exposed at all.
   private static final Set<String> UNSUPPORTED_AUTH_PROPERTY_IDS =
       Set.of("authentication.audience", "authentication.scopes");
-  // HTTP JSON conditions the auth-type dropdown and its bearer/OAuth fields on this reusable
-  // credential-chooser property being empty (isEmpty/credential-chooser-ordering feature).
-  // Salesforce drops that property entirely via removeConfigurationTemplates() below, so any
-  // inherited condition referencing it would dangle -- stripped by
-  // withoutAuthenticationConfigurationCondition() before the properties are carried over.
+  // HTTP JSON's reusable-credential chooser. Its inherited isEmpty condition on the auth-type
+  // dropdown and the bearer/OAuth fields is kept as-is, hiding the inline fields once a credential
+  // is bound.
   private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
       "authenticationConfiguration";
+  private static final String AUTHENTICATION_CONFIGURATION_DESCRIPTION =
+      "Choose a reusable authentication credential, or configure one-time authentication"
+          + " parameters below. Note: Salesforce requires an OAuth access token, so API key and"
+          + " Basic credentials pass template validation but fail at runtime. For an OAuth"
+          + " credential, set the token endpoint to your Salesforce instance's"
+          + " <code>/services/oauth2/token</code> endpoint and leave audience and scopes empty."
+          + " The credential's own URL field is not used by this connector.";
   // resultVariable/resultExpression are inherited from HTTP JSON as-is (unconditional, same as
   // every other HTTP JSON-backed connector) rather than rebuilt -- Salesforce has no
   // operation-specific behavior to layer onto response mapping.
@@ -98,18 +108,20 @@ public class GenerateElementTemplate {
   // Single source of truth for the element template's version -- it must otherwise be set both
   // on the template itself (ElementTemplateBuilder#version) and on the "connector" group's
   // read-only version property (CommonProperties#version), which drifted out of sync before.
-  private static final long TEMPLATE_VERSION = 9L;
+  private static final long TEMPLATE_VERSION = 10L;
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
 
+    DefaultIndenter lfIndenter = new DefaultIndenter().withLinefeed("\n");
     ObjectWriter writer =
         new ObjectMapper()
             .registerModule(new ElementTemplateModule())
             .writer()
             .with(
                 new DefaultPrettyPrinter()
-                    .withArrayIndenter(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE));
+                    .withArrayIndenter(lfIndenter)
+                    .withObjectIndenter(lfIndenter));
 
     Path outputPath = templateOutputPath();
     Files.createDirectories(outputPath.getParent());
@@ -142,7 +154,7 @@ public class GenerateElementTemplate {
     ElementTemplate httpJsonTemplate =
         new ClassBasedTemplateGenerator().generate(HttpJsonFunction.class).get(0);
 
-    failOnUnclassifiedKeptAuthTypeProperties(httpJsonTemplate);
+    failOnUnclassifiedAuthProperties(httpJsonTemplate);
 
     DropdownProperty originalAuthTypeDropdown =
         (DropdownProperty)
@@ -165,24 +177,14 @@ public class GenerateElementTemplate {
             .removePropertyGroups(g -> true)
             .removeProperties(
                 p ->
-                    !(isAuthTypeDropdown(p)
+                    !(isAuthenticationConfiguration(p)
+                        || isAuthTypeDropdown(p)
                         || idIn(p, KEPT_AUTH_PROPERTY_IDS)
                         || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
-            // HTTP JSON's inherited configuration templates (e.g. its REST Authentication
-            // config, covering apiKey/basic/OAuth-refresh-token flows) don't apply here --
-            // Salesforce only supports the two auth mechanisms narrowed to below.
-            .removeConfigurationTemplates(ct -> true)
+            .replaceProperty(salesforceCredentialChooser(httpJsonTemplate))
             // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
             // Salesforce supports.
             .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown));
-
-    // The 3 kept bearer/OAuth fields carry an inherited condition referencing
-    // authenticationConfiguration (see AUTHENTICATION_CONFIGURATION_PROPERTY_ID) -- strip it now
-    // that the property itself is gone, or the validator flags a dangling condition reference.
-    httpJsonTemplate.properties().stream()
-        .filter(p -> idIn(p, KEPT_AUTH_PROPERTY_IDS))
-        .map(GenerateElementTemplate::withoutAuthenticationConfigurationCondition)
-        .forEach(builder::replaceProperty);
 
     ElementTemplate salesforceTemplate =
         builder
@@ -191,7 +193,7 @@ public class GenerateElementTemplate {
             .version(TEMPLATE_VERSION)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
-                "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
+                "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/salesforce/")
             .description("Call the Salesforce APIs from your process")
             .keywords(
                 new String[] {
@@ -211,7 +213,7 @@ public class GenerateElementTemplate {
                 })
             .appliesTo(BpmnType.TASK)
             .elementType(BpmnType.SERVICE_TASK)
-            .engines(new Engines("^8.3"))
+            .engines(new Engines("^8.11"))
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
             // The "operation" group must be first in groups[] -- a validator rule
@@ -229,10 +231,9 @@ public class GenerateElementTemplate {
                     errorsGroup()))
             // HTTP JSON's own oauthTokenEndpoint (user-editable) and clientAuthentication
             // (dropdown) were dropped above -- Salesforce fixes both to a single
-            // computed/constant value instead of exposing them, to keep this refactor a pure
-            // behavioral no-op against the previous hand-authored template. Same for
-            // audience/scopes, which have no counterpart in the previous template and so are
-            // simply not carried over.
+            // computed/constant value for inline authentication instead of exposing them. Same
+            // for audience/scopes, which are simply not carried over. Once a credential is bound,
+            // all of these come from the credential instead.
             .properties(
                 HiddenProperty.builder()
                     .id("authentication.oauthTokenEndpoint")
@@ -240,7 +241,7 @@ public class GenerateElementTemplate {
                     .group("authentication")
                     .value("=baseUrl + \"/services/oauth2/token\"")
                     .binding(new ZeebeInput("authentication.oauthTokenEndpoint"))
-                    .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
+                    .condition(inlineOAuthCondition())
                     .build(),
                 HiddenProperty.builder()
                     .id("authentication.clientAuthentication")
@@ -248,7 +249,7 @@ public class GenerateElementTemplate {
                     .group("authentication")
                     .value("credentialsBody")
                     .binding(new ZeebeInput("authentication.clientAuthentication"))
-                    .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
+                    .condition(inlineOAuthCondition())
                     .build())
             .steps(buildSteps())
             .presets(buildPresets())
@@ -282,12 +283,12 @@ public class GenerateElementTemplate {
 
   /**
    * {@link #KEPT_AUTH_PROPERTY_IDS} is a hand-picked allowlist, so a property HTTP JSON adds to
-   * "bearer" or "oauth-client-credentials-flow" in the future would otherwise be silently dropped
-   * by {@code removeProperties} above instead of failing loudly. Guard against that by requiring
-   * every property conditioned on one of {@link #KEPT_AUTH_TYPES} to be explicitly classified as
-   * either kept, replaced, or deliberately unsupported.
+   * "bearer" or "oauth-client-credentials-flow", or shows only once a credential is bound, would
+   * otherwise be silently dropped by {@code removeProperties} above instead of failing loudly.
+   * Guard against that by requiring every such property to be explicitly classified as either kept,
+   * replaced, or deliberately unsupported.
    */
-  private static void failOnUnclassifiedKeptAuthTypeProperties(ElementTemplate httpJsonTemplate) {
+  private static void failOnUnclassifiedAuthProperties(ElementTemplate httpJsonTemplate) {
     Set<String> classifiedAuthPropertyIds = new HashSet<>();
     classifiedAuthPropertyIds.addAll(KEPT_AUTH_PROPERTY_IDS);
     classifiedAuthPropertyIds.addAll(REPLACED_AUTH_PROPERTY_IDS);
@@ -295,7 +296,7 @@ public class GenerateElementTemplate {
 
     Set<String> unclassified =
         httpJsonTemplate.properties().stream()
-            .filter(GenerateElementTemplate::isConditionedOnKeptAuthType)
+            .filter(p -> isConditionedOnKeptAuthType(p) || isShownOnlyWithCredential(p))
             .map(Property::getId)
             .filter(id -> !classifiedAuthPropertyIds.contains(id))
             .collect(Collectors.toSet());
@@ -304,7 +305,7 @@ public class GenerateElementTemplate {
       throw new IllegalStateException(
           "HTTP JSON's generated template has properties conditioned on "
               + KEPT_AUTH_TYPES
-              + " that Salesforce's generator doesn't know about: "
+              + " or on a bound credential that Salesforce's generator doesn't know about: "
               + unclassified
               + " -- classify each as kept (add to KEPT_AUTH_PROPERTY_IDS and carry it over),"
               + " replaced (add to REPLACED_AUTH_PROPERTY_IDS if Salesforce substitutes its own"
@@ -314,14 +315,29 @@ public class GenerateElementTemplate {
   }
 
   /**
-   * HTTP JSON's isEmpty/credential-chooser-ordering feature wraps what used to be a bare {@code
-   * Equals("authentication.type", ...)} condition in an {@link AllMatch} alongside an {@code
-   * authenticationConfiguration} isEmpty clause (see {@link
-   * #withoutAuthenticationConfigurationCondition}). Unwrap it here too, or this safety net stops
-   * recognizing every currently-classified property and never fires again.
+   * HTTP JSON wraps each auth field's {@code Equals("authentication.type", ...)} condition in an
+   * {@link AllMatch} alongside an {@code authenticationConfiguration} isEmpty clause. Unwrap it
+   * here, or this safety net stops recognizing every currently-classified property and never fires
+   * again.
    */
   private static boolean isConditionedOnKeptAuthType(Property p) {
     return conditionMatchesKeptAuthType(p.getCondition());
+  }
+
+  private static boolean isShownOnlyWithCredential(Property p) {
+    return conditionRequiresCredential(p.getCondition());
+  }
+
+  private static boolean conditionRequiresCredential(PropertyCondition condition) {
+    if (condition instanceof IsEmpty isEmpty) {
+      return AUTHENTICATION_CONFIGURATION_PROPERTY_ID.equals(isEmpty.property())
+          && !isEmpty.isEmpty();
+    }
+    if (condition instanceof AllMatch allMatch) {
+      return allMatch.allMatch().stream()
+          .anyMatch(GenerateElementTemplate::conditionRequiresCredential);
+    }
+    return false;
   }
 
   private static boolean conditionMatchesKeptAuthType(PropertyCondition condition) {
@@ -360,51 +376,32 @@ public class GenerateElementTemplate {
     // previous hand-authored template, which had no description or default value here.
     builder.description(null);
     builder.value(null);
-    builder.condition(stripAuthenticationConfigurationCondition(original.getCondition()));
     return builder.build();
   }
 
-  /**
-   * Drops the {@code authenticationConfiguration isEmpty} clause HTTP JSON attaches to its
-   * auth-type dropdown and bearer/OAuth fields (see {@link
-   * #AUTHENTICATION_CONFIGURATION_PROPERTY_ID}), collapsing an {@link AllMatch} down to its
-   * remaining clause where needed. Without this, the carried-over condition points at a property
-   * Salesforce's generator never carries over, and the element-template validator rejects the
-   * dangling reference.
-   */
-  private static Property withoutAuthenticationConfigurationCondition(Property property) {
-    PropertyCondition stripped = stripAuthenticationConfigurationCondition(property.getCondition());
-    if (stripped == property.getCondition()) {
-      return property;
-    }
-    return property.toBuilder().condition(stripped).build();
+  private static boolean isAuthenticationConfiguration(Property p) {
+    return AUTHENTICATION_CONFIGURATION_PROPERTY_ID.equals(p.getId());
   }
 
-  private static PropertyCondition stripAuthenticationConfigurationCondition(
-      PropertyCondition condition) {
-    if (isAuthenticationConfigurationIsEmpty(condition)) {
-      return null;
-    }
-    if (condition instanceof AllMatch allMatch) {
-      List<PropertyCondition> remaining =
-          allMatch.allMatch().stream()
-              .filter(c -> !isAuthenticationConfigurationIsEmpty(c))
-              .toList();
-      if (remaining.size() == allMatch.allMatch().size()) {
-        return condition;
-      }
-      return switch (remaining.size()) {
-        case 0 -> null;
-        case 1 -> remaining.get(0);
-        default -> new AllMatch(remaining);
-      };
-    }
-    return condition;
+  private static Property salesforceCredentialChooser(ElementTemplate httpJsonTemplate) {
+    Property original =
+        httpJsonTemplate.properties().stream()
+            .filter(GenerateElementTemplate::isAuthenticationConfiguration)
+            .filter(ConfigurationProperty.class::isInstance)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "HTTP JSON's generated template no longer has an \""
+                            + AUTHENTICATION_CONFIGURATION_PROPERTY_ID
+                            + "\" credential chooser -- has it been renamed or removed?"));
+    return original.toBuilder().description(AUTHENTICATION_CONFIGURATION_DESCRIPTION).build();
   }
 
-  private static boolean isAuthenticationConfigurationIsEmpty(PropertyCondition condition) {
-    return condition instanceof IsEmpty isEmpty
-        && AUTHENTICATION_CONFIGURATION_PROPERTY_ID.equals(isEmpty.property());
+  private static PropertyCondition inlineOAuthCondition() {
+    return new AllMatch(
+        new Equals("authentication.type", "oauth-client-credentials-flow"),
+        new IsEmpty(AUTHENTICATION_CONFIGURATION_PROPERTY_ID, true));
   }
 
   private static PropertyGroup endpointGroup() {
@@ -751,7 +748,7 @@ public class GenerateElementTemplate {
                 .id("errorExpression")
                 .label("Error expression")
                 .tooltip(
-                    "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
+                    "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
                 .group("errors")
                 .feel(FeelMode.required)
                 .binding(new ZeebeTaskHeader("errorExpression"))

@@ -245,6 +245,18 @@ authentication model classes it embeds (e.g. `ApiKeyAuthentication`, `BasicAuthe
 embedded `configurationTemplates` block into both templates by hand, since nothing else keeps them
 in sync.
 
+Salesforce (`connectors/salesforce/`) sits in between: it also has no `src/main` and runs as
+`io.camunda:http-json:1`, but its template is derived from HTTP JSON's generated one by
+`GenerateElementTemplate` (a test-scope class, run manually). It carries over HTTP JSON's chooser
+with a Salesforce-specific description, and HTTP JSON's embedded `rest-authentication` block
+unchanged. A change to that credential makes Salesforce's `GenerateElementTemplateTest` fail as
+stale — rerun the generator and commit the result. If the committed Salesforce template version has
+already been released, that's a non-cosmetic change to it: bump `TEMPLATE_VERSION` and archive the
+previous version under `versioned/` first. The embedded schema can't be narrowed to Salesforce's
+supported auth types, because it's shared under the same configuration-template id, so the
+chooser's description, maintained in the generator, says which credential types work instead, as
+O365 Mail and Azure OpenAI do.
+
 ## Trying it out locally
 
 A reusable credential is just a cluster variable with a `metadata` bag, so you can create one
