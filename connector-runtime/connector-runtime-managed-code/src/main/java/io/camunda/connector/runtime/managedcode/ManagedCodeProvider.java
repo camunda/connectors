@@ -44,4 +44,10 @@ public interface ManagedCodeProvider {
    * reported with {@link ExecutionResponse#DEPLOYMENT_MISSING}.
    */
   ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request);
+
+  /**
+   * Deletes a provider deployment. Must be idempotent: a deployment that does not exist counts as
+   * deleted. Intended for the eviction of unused deployments, which the worker does not run yet.
+   */
+  void delete(ProviderDeployment deployment);
 }

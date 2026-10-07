@@ -37,9 +37,17 @@ The deployment registry is an in-memory operational cache per runtime instance, 
 truth. Runtime instances do not coordinate; they converge through deterministic names and
 create-if-absent at the provider.
 
-Only a `fake` provider ships: provisioning is simulated with a configurable delay and execution
-runs in local Node.js or Python subprocesses. It is for trusted development only and is not a
-sandbox. Cloud providers are separate implementations of the SPI.
+Only a `local` provider ships, for trusted development only; it is not a sandbox. Each artifact is
+deployed to its own directory, built in a staging directory and renamed atomically, and adopted
+after a restart. A dependency manifest is installed once while provisioning (`pip install
+--target`, `npm install --ignore-scripts`), never during an invocation. Execution runs in local
+Node.js or Python subprocesses with the Connector Runtime operating-system identity.
+
+Cloud providers are separate implementations of the provider SPI (`ManagedCodeProvider`:
+`ensureProvisioned`, `invoke`, `delete`). The worker uses the provider bean whose name matches
+`camunda.connector.managed-code.provider`, so a provider can also come from a jar added to the
+runtime classpath, such as `/opt/custom` in the Docker image; this has not been tested. The SPI
+has no compatibility guarantee yet.
 
 ## Consequences
 
@@ -58,4 +66,5 @@ sandbox. Cloud providers are separate implementations of the SPI.
 - Several runtime instances can provision the same artifact in parallel; correctness relies on
   provider idempotency (GAP-012), which each cloud provider implementation must prove.
 - Provisioning status is visible only through job failure messages and incidents.
-- Unused deployments are not evicted yet; `lastUsedAt` is recorded for a later cleanup.
+- Unused deployments are not evicted yet; `lastUsedAt` is recorded and the SPI has `delete` for a
+  later cleanup.

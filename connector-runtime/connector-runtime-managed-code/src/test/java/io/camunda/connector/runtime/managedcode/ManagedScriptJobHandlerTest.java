@@ -295,31 +295,19 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
-  void rejectsDependenciesWithTheFakeProvider() {
-    final var fakeProvider =
-        new FakeManagedCodeProvider(
-            mock(LocalProcessScriptExecutor.class), objectMapper, Duration.ZERO);
-    try (var fakeRegistry = new DeploymentRegistry(fakeProvider, 1)) {
-      final var handler =
-          new ManagedScriptJobHandler(
-              fakeProvider,
-              fakeRegistry,
-              scriptResources(),
-              objectMapper,
-              Duration.ofSeconds(5),
-              BACKOFF);
-      final var jobClient = new RecordingJobClient();
-      final var links =
-          "[{\"resourceKey\":\"1\",\"resourceType\":\"ManagedScript\",\"linkName\":\"script\"},"
-              + "{\"resourceKey\":\"2\",\"resourceType\":\"ManagedScript\",\"linkName\":\"dependencies\"}]";
+  void passesTheDependencyManifestToTheProvider() {
+    final var jobClient = new RecordingJobClient();
+    final var links =
+        "[{\"resourceKey\":\"1\",\"resourceType\":\"ManagedScript\",\"linkName\":\"script\"},"
+            + "{\"resourceKey\":\"2\",\"resourceType\":\"ManagedScript\",\"linkName\":\"dependencies\"}]";
 
-      handler.handle(camundaClient, "default", jobClient.mock, job(1L, 3, links));
+    handler(Duration.ofSeconds(5))
+        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, links));
 
-      verify(jobClient.fail).retries(0);
-      assertThat(jobClient.errorMessage())
-          .contains("DEPENDENCIES_UNSUPPORTED")
-          .contains("does not support dependency manifests");
-    }
+    assertThat(provider.provisioned.getFirst().dependencies())
+        .hasValueSatisfying(
+            manifest -> assertThat(new String(manifest, StandardCharsets.UTF_8)).isEqualTo("{}"));
+    verify(jobClient.complete).variables(Map.<String, Object>of());
   }
 
   @Test

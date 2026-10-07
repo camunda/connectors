@@ -56,7 +56,7 @@ public enum ScriptLanguage {
     return language;
   }
 
-  String extension() {
+  public String extension() {
     return extension;
   }
 
@@ -77,7 +77,7 @@ public enum ScriptLanguage {
   }
 
   /** The generated wrapper that invokes the user entrypoint; part of the artifact digest. */
-  byte[] wrapper() {
+  public byte[] wrapper() {
     var bytes = wrapper;
     if (bytes == null) {
       final var resourceName = "/managed-code-local/" + wrapperResource;

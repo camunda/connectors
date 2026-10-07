@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -77,6 +78,17 @@ final class LocalProcessScriptExecutor {
 
   ExecutionResult execute(ScriptLanguage language, byte[] source, ExecutionRequest request)
       throws IOException, InterruptedException {
+    return execute(language, source, request, Optional.empty());
+  }
+
+  /**
+   * @param dependencies directory with installed packages: added to {@code PYTHONPATH} for Python,
+   *     linked as {@code node_modules} next to the script for JavaScript, because ES modules ignore
+   *     {@code NODE_PATH}
+   */
+  ExecutionResult execute(
+      ScriptLanguage language, byte[] source, ExecutionRequest request, Optional<Path> dependencies)
+      throws IOException, InterruptedException {
     final var interpreter = interpreters.require(language);
     if (source.length > limits.maxScriptBytes()) {
       throw new IllegalArgumentException(
@@ -101,6 +113,14 @@ final class LocalProcessScriptExecutor {
                   wrapper.getFileName().toString())
               .directory(workingDirectory.toFile());
       LocalProcessEnvironment.configure(processBuilder.environment(), workingDirectory);
+      if (dependencies.isPresent()) {
+        final var packages = dependencies.get().toAbsolutePath().normalize();
+        if (language == ScriptLanguage.PYTHON) {
+          processBuilder.environment().put("PYTHONPATH", packages.toString());
+        } else {
+          Files.createSymbolicLink(workingDirectory.resolve("node_modules"), packages);
+        }
+      }
 
       final var startedAt = System.nanoTime();
       process = processBuilder.start();
@@ -243,7 +263,7 @@ final class LocalProcessScriptExecutor {
     return response;
   }
 
-  private static CapturedBytes readBounded(InputStream input, int limit) throws IOException {
+  static CapturedBytes readBounded(InputStream input, int limit) throws IOException {
     final var retained = new ByteArrayOutputStream(Math.min(limit, 8_192));
     final var buffer = new byte[8_192];
     long total = 0;
@@ -257,7 +277,7 @@ final class LocalProcessScriptExecutor {
     return new CapturedBytes(retained.toString(StandardCharsets.UTF_8), total > limit, total);
   }
 
-  private static void terminateProcessTree(Process process) throws InterruptedException {
+  static void terminateProcessTree(Process process) throws InterruptedException {
     final var root = process.toHandle();
     final List<ProcessHandle> descendants = new ArrayList<>(root.descendants().toList());
     descendants.sort(Comparator.comparingLong(ProcessHandle::pid).reversed());
@@ -271,7 +291,8 @@ final class LocalProcessScriptExecutor {
     }
   }
 
-  private static void deleteRecursively(Path directory) throws IOException {
+  /** Removes symbolic links themselves, never their targets. */
+  static void deleteRecursively(Path directory) throws IOException {
     if (!Files.exists(directory)) {
       return;
     }
@@ -306,5 +327,5 @@ final class LocalProcessScriptExecutor {
   private record CapturedProcess(
       boolean completed, int exitCode, CapturedBytes output, CapturedBytes logs) {}
 
-  private record CapturedBytes(String value, boolean truncated, long totalBytes) {}
+  record CapturedBytes(String value, boolean truncated, long totalBytes) {}
 }
