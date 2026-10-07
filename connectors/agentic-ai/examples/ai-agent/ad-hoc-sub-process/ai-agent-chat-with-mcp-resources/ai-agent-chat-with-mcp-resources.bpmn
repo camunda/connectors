@@ -8,7 +8,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="anthropic" target="provider.type" />
           <zeebe:input source="aws-bedrock-mantle" target="provider.anthropic.backend.type" />
-          <zeebe:input source="eu-central-1" target="provider.anthropic.backend.awsBedrockMantle.region" />
+          <zeebe:input source="eu-west-1" target="provider.anthropic.backend.awsBedrockMantle.region" />
           <zeebe:input source="apiKey" target="provider.anthropic.backend.awsBedrockMantle.authentication.type" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_API_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.apiKey" />
           <zeebe:input source="anthropic.claude-sonnet-5" target="provider.anthropic.model.model" />

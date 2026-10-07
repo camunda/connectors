@@ -14,7 +14,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="anthropic" target="provider.type" />
           <zeebe:input source="aws-bedrock-mantle" target="provider.anthropic.backend.type" />
-          <zeebe:input source="eu-central-1" target="provider.anthropic.backend.awsBedrockMantle.region" />
+          <zeebe:input source="eu-west-1" target="provider.anthropic.backend.awsBedrockMantle.region" />
           <zeebe:input source="credentials" target="provider.anthropic.backend.awsBedrockMantle.authentication.type" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.accessKey" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.secretKey" />

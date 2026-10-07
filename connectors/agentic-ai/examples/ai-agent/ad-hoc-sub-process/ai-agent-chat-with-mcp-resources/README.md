@@ -102,7 +102,7 @@ The AI Agent has access to the following tools within the ad-hoc sub-process:
 The process is pre-configured with:
 
 - **MCP Server URL**: `http://localhost:12001/mcp`
-- **LLM Provider**: Amazon Bedrock Mantle (eu-central-1 region)
+- **LLM Provider**: Amazon Bedrock Mantle (eu-west-1 region)
 - **Model**: `anthropic.claude-sonnet-5`
 
 To modify these settings, edit the corresponding input mappings in the BPMN file using Camunda Modeler.
