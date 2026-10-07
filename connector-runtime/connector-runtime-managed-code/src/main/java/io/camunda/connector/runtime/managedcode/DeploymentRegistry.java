@@ -225,11 +225,13 @@ final class DeploymentRegistry implements AutoCloseable {
         failure.code(),
         failure.retryable(),
         failure.getMessage());
-    entries.computeIfPresent(
-        key, (ignored, entry) -> entry.failed(failure.code(), failure.getMessage()));
     if (failure.retryable()) {
-      deployments.remove(key, result);
+      // Entry first: a new entry can only be created after the future is gone.
       entries.remove(key);
+      deployments.remove(key, result);
+    } else {
+      entries.computeIfPresent(
+          key, (ignored, entry) -> entry.failed(failure.code(), failure.getMessage()));
     }
     result.completeExceptionally(failure);
   }

@@ -21,6 +21,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,6 +32,8 @@ final class ControlledProvider implements ManagedCodeProvider {
   final List<ArtifactSpec> provisioned = new CopyOnWriteArrayList<>();
   final List<ExecutionRequest> requests = new CopyOnWriteArrayList<>();
   private final Deque<ExecutionResponse> responses = new ArrayDeque<>();
+  private final Deque<CompletableFuture<ProviderDeployment>> readySequence =
+      new ConcurrentLinkedDeque<>();
   volatile CompletableFuture<ProviderDeployment> ready;
   volatile RuntimeException provisioningFailure;
 
@@ -41,6 +44,13 @@ final class ControlledProvider implements ManagedCodeProvider {
 
   ControlledProvider readyWhen(CompletableFuture<ProviderDeployment> ready) {
     this.ready = ready;
+    return this;
+  }
+
+  /** Each provisioning takes the next future; later provisionings fall back to {@link #ready}. */
+  @SafeVarargs
+  final ControlledProvider readyInSequence(CompletableFuture<ProviderDeployment>... ready) {
+    readySequence.addAll(List.of(ready));
     return this;
   }
 
@@ -67,6 +77,8 @@ final class ControlledProvider implements ManagedCodeProvider {
       throw provisioningFailure;
     }
     final var deployment = new ProviderDeployment(name(), artifact.deploymentName());
+    final var next = readySequence.poll();
+    final var ready = next != null ? next : this.ready;
     final var stage =
         ready == null
             ? CompletableFuture.completedFuture(deployment)

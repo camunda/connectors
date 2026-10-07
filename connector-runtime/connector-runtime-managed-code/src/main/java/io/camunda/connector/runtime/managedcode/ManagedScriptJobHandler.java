@@ -133,7 +133,9 @@ final class ManagedScriptJobHandler {
     final var request =
         new ExecutionRequest(
             Long.toString(job.getKey()), job.getVariablesAsMap(), executionContext(job));
-    var deployment = awaitDeployment(artifact);
+    // One provisioning budget per job, so that re-provisioning stays within the job timeout.
+    final long provisioningDeadline = System.nanoTime() + provisioningTimeout.toNanos();
+    var deployment = awaitDeployment(artifact, provisioningDeadline);
     var response = invoke(artifact, deployment, request);
     if (response.isDeploymentMissing()) {
       // The provider lost a deployment this instance considered ready; provision it again once.
@@ -142,7 +144,7 @@ final class ManagedScriptJobHandler {
           deployment.deploymentId(),
           job.getKey());
       registry.evict(artifact.key(), deployment);
-      deployment = awaitDeployment(artifact);
+      deployment = awaitDeployment(artifact, provisioningDeadline);
       response = invoke(artifact, deployment, request);
       if (response.isDeploymentMissing()) {
         registry.evict(artifact.key(), deployment);
@@ -158,11 +160,12 @@ final class ManagedScriptJobHandler {
     complete(jobClient, job, response);
   }
 
-  private ProviderDeployment awaitDeployment(ArtifactSpec artifact) throws InterruptedException {
+  private ProviderDeployment awaitDeployment(ArtifactSpec artifact, long deadlineNanos)
+      throws InterruptedException {
     final var future = registry.ensureDeployment(artifact);
     try {
       // Bounded wait on the shared future: a timeout must not complete or cancel it.
-      return future.get(provisioningTimeout.toMillis(), TimeUnit.MILLISECONDS);
+      return future.get(Math.max(0, deadlineNanos - System.nanoTime()), TimeUnit.NANOSECONDS);
     } catch (TimeoutException e) {
       throw new ProvisioningTimeoutException(
           "Managed-script artifact is still being provisioned after %s; the job will be retried"

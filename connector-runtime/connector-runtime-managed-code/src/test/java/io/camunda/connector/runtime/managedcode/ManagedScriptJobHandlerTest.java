@@ -225,6 +225,22 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void reprovisioningThatOutlivesTheJobBudgetFailsWithoutConsumingRetries() {
+    provider.respond(ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false));
+    provider.readyInSequence(
+        CompletableFuture.completedFuture(null), new CompletableFuture<ProviderDeployment>());
+    final var jobClient = new RecordingJobClient();
+
+    handler(Duration.ofMillis(200))
+        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+
+    assertThat(provider.provisionings).hasValue(2);
+    verify(jobClient.fail).retries(3);
+    verify(jobClient.failStep2).retryBackoff(BACKOFF);
+    assertThat(jobClient.errorMessage()).contains("still being provisioned");
+  }
+
+  @Test
   void failsWithOneRetryLessWhenTheDeploymentIsMissingAgain() {
     final var missing =
         ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false);
