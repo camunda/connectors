@@ -7,6 +7,8 @@ Connector template generator is a set of tools for automated creation of connect
 - [element-template-generator-core](core) is a library that defines the DSL for programmatic creation of element templates,
 as well as the interfaces for different template generator implementations.
   - It also contains the annotation-based generator implementation that can be used to generate Connector templates.
+- [element-template-generator-annotations](annotations) contains the annotations used to configure the annotation-based generator.
+  Its [README](annotations/README.md) is the reference for all annotations, their attributes and usage.
 - [element-template-generator-maven-plugin](maven-plugin) contains a Maven plugin that invokes the annotation-based template generator.
 - [element-template-generator-http-dsl](http-dsl) is a utility library that extends the core DSL with functionality tailored specifically for the [REST protocol connector](../connectors/http/rest).
 - [congen-cli](congen-cli) is a universal command-line tool that can invoke different generator implementations.
