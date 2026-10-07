@@ -738,13 +738,48 @@ jobs:
           owner: camunda
           repositories: ${{ steps.change.outputs.repository_name }}
 
+      # team-test-automation is internal and this repo is public, so GitHub refuses to
+      # resolve `uses: camunda/team-test-automation/...` -- an internal repo shares its
+      # actions only with private and internal repos. Check it out and run it locally.
+      #
+      # A PAT, and not an app token, because neither app works from here: measured,
+      # quality-assurance-ci has no installation on team-test-automation, and this
+      # repo's vault role gets a 403 on the qa-processes path. The PAT needs no
+      # refresh midway either, unlike the hour-long installation token it replaces.
+      - name: Read the medic-resolver PAT
+        id: medic-token
+        if: ${{ steps.change.outputs.changed == 'true' }}
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common GH_TOKEN | GH_PAT;
+
+      - name: Check out the medic resolver
+        id: medic-src
+        if: ${{ steps.medic-token.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: camunda/team-test-automation
+          ref: 4ba23b2dfa0029dc5a640fc8e24e78844ca0aa06 # camunda/team-test-automation#186
+          token: ${{ steps.medic-token.outputs.GH_PAT }}
+          path: .medic-resolver
+          fetch-depth: 1
+          persist-credentials: false
+
       # Resolved from the same rotation schedule @test-automation-team-medic is rendered
       # from, so the reviewer tagged below is whoever that handle points at today.
       - name: Resolve the test-automation medic
         id: medic
-        if: ${{ steps.change.outputs.changed == 'true' }}
+        if: ${{ steps.change.outputs.changed == 'true' && steps.medic-src.outcome == 'success' }}
         continue-on-error: true
-        uses: camunda/team-test-automation/.github/actions/resolve-medic@4ba23b2dfa0029dc5a640fc8e24e78844ca0aa06 # camunda/team-test-automation#186
+        uses: ./.medic-resolver/.github/actions/resolve-medic
 
       - name: Publish validated patch
         if: ${{ steps.change.outputs.changed == 'true' }}
