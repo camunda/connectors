@@ -163,122 +163,32 @@ mvn clean install -DskipTests -f connectors/agentic-ai/pom.xml   # build the mod
 mvn test -f connectors/agentic-ai/pom.xml                        # unit / integration tests
 ```
 
-**Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
-to it (`BpmnFile.apply`) to apply templates, so it must be installed even though no pom declares it.
-Template generation itself uses the `element-template-generator-maven-plugin` and needs no CLI. When it
-is missing, e2e tests fail with errors that can look unrelated to your change. Install it once with
-`npm i -g element-templates-cli`.
-
 Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
 existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
 see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 
-E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
-LLM stubs). Extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task
-flavor).
+Agentic AI E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/`. Use the
+[module runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) for suite
+ownership, prerequisites, paid-API opt-in, and current host commands. For deterministic scenarios,
+extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task flavor).
 
-```bash
-mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
-```
+#### Real-provider CPT coverage
 
-#### Real-LLM CPT coverage
+When changing real-provider coverage:
 
-Real-provider / real-LLM acceptance coverage for this module lives in
-`connectors-e2e-test/connectors-e2e-test-agentic-ai/` and is intentionally split in two dimensions:
-
-1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
-   maintainer applies the `ai-agent-model-e2e-test` label. The registry in
-   `connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json`
-   defines the bundle test leg and the native-provider
-   capability-group legs. The workflow validates that registry and uses its generated matrix.
-   Credential profile names are selected by the registry, while their Vault and environment wiring
-   remains explicit in the workflow. When adding or changing a provider capability, update the
-   matching `ci: true` row or document why it is omitted from `requiredCiCapabilities` and remains
-   manual-only. Add the workflow credential wiring as well when the row needs a new credential
-   profile.
-
-   Applying the label authorizes one run for the PR's current head SHA. After every push or other
-   head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
-   receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
-   for images or real providers when Agentic AI code, Agentic AI e2e tests, the CPT registry, or its
-   workflow inputs changed. Matrix execution is capped at four concurrent legs.
-2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
-   together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
-   `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
-   provider labels. If a scenario needs provider-specific element-template properties, put them in the
-   row's `capabilityProperties` entry for that capability.
-
-   Capability-focused scenarios live in the `RealProvider*E2ETestIT` classes and use JUnit tags
-   matching the registry's `groups` values.
-
-   Keep structured JSON generation separate from structured output combined with tool
-   orchestration. Gemini 3.8 supports the former, but can repeatedly call an already-completed tool
-   when both tools and a response schema are present. Its structured-output row therefore runs the
-   AI Agent Task v2 no-tool fixture while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the
-   single- and multi-tool subprocess scenarios.
-
-   The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
-   `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
-   capability. When debugging one capability, run the matching method instead of the whole class.
-
-Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mistral`, or `local`) to
-run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
-shard-only behavior, disabled rows, or provider group membership.
-
-To run a capability suite locally, set `RUN_NATIVE_LLM_E2E=true`, `REAL_LLM_PROVIDER_GROUP`, and the
-credentials for the provider group you want to exercise. Provider rows whose required environment
-variables are missing are skipped locally; set `REQUIRE_NATIVE_LLM_PROVIDER=true` to fail instead
-when no provider row is selected.
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dgroups=core-smoke
-```
-
-Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
-run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
-prompt caching remain manual because their cache placement is opportunistic: unset
-`REAL_LLM_PROVIDER_GROUP`, provide only the credentials for the provider under test, and use
-`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with
-`-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
-JUnit groups.
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dit.test=RealProviderStructuredOutputE2ETestIT
-```
-
-For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
-Set the same environment variables in **Run configuration → Environment variables**, keep the working
-directory at the repository root, and use the `connectors-e2e-test-agentic-ai` module classpath. Check
-the test output for skipped parameterized invocations before treating a green IDE run as full provider
-coverage.
-
-`DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
-match the `*E2ETestIT` class pattern. Its active scenario deterministically checks the provider's
-final response for the facts contained in every nested document; it does not require a separate judge
-model. Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result
-document scenarios to `DocumentToolCallResultsIT`, which owns compatibility coverage across legacy
-v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
-whichever provider credentials you want its rows to exercise. Always set
-`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
-available can run. For example, select only the OpenAI rows:
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm -Dgroups=document-tool-results
-```
+- Add provider/model capabilities and their model-specific template properties to
+  `RealProviderApiSmokeSupport.ProviderConfig`; scenarios must select from that catalog instead of
+  hard-coding provider labels.
+- Keep capability-focused scenarios in the matching `RealProvider*E2ETestIT` class and use the JUnit
+  tag declared by `RealProviderCapabilityTags`. The two always-on core scenarios use `providers()`
+  directly rather than a capability selector.
+- Keep `RealProviderSelectionTest` current when changing provider groups, disabled rows, strict
+  selection, or shard-only behavior.
+- Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result document
+  scenarios to `DocumentToolCallResultsIT`, which owns legacy v1 and native v2 compatibility.
+- Update the execution registry's matching `ci: true` row, or explicitly keep the capability
+  manual-only in `requiredCiCapabilities`; add workflow credential wiring only when a new credential
+  profile requires it.
 
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
 those selectively. Ensure that all e2e tests pass after completing a major work item.
