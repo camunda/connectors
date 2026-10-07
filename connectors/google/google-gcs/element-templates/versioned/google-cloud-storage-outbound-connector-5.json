@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.google.gcp.v1",
   "description" : "Upload and download files from Google Cloud Storage.",
   "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs", "download file", "upload file", "download object", "upload object", "cloud storage", "object storage", "file storage" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage",
   "version" : 5,
   "category" : {
     "id" : "connectors",
@@ -23,9 +23,6 @@
   }, {
     "id" : "authentication",
     "label" : "Authentication"
-  }, {
-    "id" : "additionalProperties",
-    "label" : "Additional properties"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -388,6 +385,29 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "uploadOperationFileName",
+    "label" : "Document file name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
+    "type" : "String"
+  }, {
     "id" : "authentication.jsonKey",
     "label" : "JSON key of the service account",
     "optional" : false,
@@ -400,24 +420,7 @@
       "name" : "authentication.jsonKey",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "uploadOperationFileName",
-    "label" : "Document file name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "additionalProperties",
-    "binding" : {
-      "name" : "operation.fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operationDiscriminator",
-      "equals" : "uploadObject",
-      "type" : "simple"
-    },
-    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
+    "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
     "type" : "String"
   }, {
     "id" : "version",
