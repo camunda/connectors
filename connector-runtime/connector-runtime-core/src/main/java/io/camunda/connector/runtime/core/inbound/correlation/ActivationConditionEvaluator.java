@@ -199,7 +199,7 @@ public class ActivationConditionEvaluator {
       String property,
       List<InboundConnectorElement> elements,
       Function<InboundConnectorElement, @Nullable Object> value) {
-    var values = elements.stream().map(e -> String.valueOf(value.apply(e))).distinct().toList();
+    var values = elements.stream().map(value).distinct().toList();
     if (values.size() > 1) {
       mismatches.add(property + ": " + values);
     }
