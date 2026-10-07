@@ -821,6 +821,38 @@ jobs:
             mv /tmp/fix-meta.published.json /tmp/fix-meta.json
           }
 
+          # Both PR paths call this: a reused PR is the common case for a key after its
+          # first dispatch, and it needs the medic as much as a freshly opened one.
+          request_medic_review() {
+            local number="$1"
+            if [ -z "${MEDIC_LOGIN}" ]; then
+              echo "::warning::no medic resolved for today -- ${REPO}#${number} gets no medic reviewer; check the rotation schedule in team-test-automation"
+              return 0
+            fi
+            # Idempotent across nights: a PR reused for several dispatches would otherwise
+            # re-request a review the medic has already answered, which un-approves it.
+            if gh pr view "$number" --repo "$REPO" --json reviewRequests,reviews \
+                 --jq '[(.reviewRequests[]? | .login // empty),
+                        (.reviews[]? | .author.login // empty)] | .[]' 2>/dev/null \
+                 | grep -qxF "${MEDIC_LOGIN}"; then
+              echo "the medic ${MEDIC_LOGIN} is already requested on or has reviewed ${REPO}#${number}"
+              return 0
+            fi
+            if ! gh pr edit "$number" --repo "$REPO" --add-reviewer "${MEDIC_LOGIN}"; then
+              echo "::warning::could not request review from the medic ${MEDIC_LOGIN} on ${REPO}#${number}"
+              return 0
+            fi
+            # Exit 0 is not proof: GitHub drops a request naming the PR's own author
+            # without erroring, so the result is read back rather than assumed.
+            if gh pr view "$number" --repo "$REPO" --json reviewRequests \
+                 --jq '.reviewRequests[] | .login // empty' 2>/dev/null \
+                 | grep -qxF "${MEDIC_LOGIN}"; then
+              echo "review requested from the medic ${MEDIC_NAME} (${MEDIC_LOGIN}) on ${REPO}#${number}"
+            else
+              echo "::warning::the request for the medic ${MEDIC_LOGIN} on ${REPO}#${number} was accepted but is not recorded on the PR"
+            fi
+          }
+
           {
             echo "## Root cause"
             echo
@@ -878,6 +910,7 @@ jobs:
               exit 1
             fi
             record_pr "$number" "$url" "$existing_branch"
+            request_medic_review "$number"
             exit 0
           fi
 
@@ -907,25 +940,9 @@ jobs:
             echo "blame_relevant is not true in fix-meta.json -- skipping review request for ${BLAME_REVIEWER} on ${REPO}#${number} (zeroth check ruled them out, or no verdict was recorded)"
           fi
 
-          # Ungated and warn-only: the medic routes the fix whether or not the blamed PR
-          # caused it, and a reviewer request is not worth failing an otherwise good run.
-          if [ -n "${MEDIC_LOGIN}" ]; then
-            if gh pr edit "$number" --repo "$REPO" --add-reviewer "${MEDIC_LOGIN}"; then
-              # Exit 0 is not proof: GitHub drops a request naming the PR's own author
-              # without erroring, so the result is read back rather than assumed.
-              if gh pr view "$number" --repo "$REPO" --json reviewRequests \
-                   --jq '.reviewRequests[] | .login // empty' 2>/dev/null \
-                   | grep -qxF "${MEDIC_LOGIN}"; then
-                echo "review requested from the medic ${MEDIC_NAME} (${MEDIC_LOGIN}) on ${REPO}#${number}"
-              else
-                echo "::warning::the request for the medic ${MEDIC_LOGIN} on ${REPO}#${number} was accepted but is not recorded on the PR"
-              fi
-            else
-              echo "::warning::could not request review from the medic ${MEDIC_LOGIN} on ${REPO}#${number}"
-            fi
-          else
-            echo "::warning::no medic resolved for today -- ${REPO}#${number} gets no medic reviewer; check the rotation schedule in team-test-automation"
-          fi
+          # Ungated: the medic routes the fix whether or not the blamed PR caused it.
+          request_medic_review "$number"
+
           record_pr "$number" "$url" "$BRANCH"
 
       - name: Write job summary
