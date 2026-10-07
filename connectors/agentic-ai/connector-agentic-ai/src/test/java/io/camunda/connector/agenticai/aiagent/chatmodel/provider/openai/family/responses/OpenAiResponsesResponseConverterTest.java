@@ -215,6 +215,48 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void retainsCommentaryAlongsideFunctionCallWhenNoFinalAnswerExists() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "output_text", "text": "Checking the weather", "annotations": []}
+                ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("Checking the weather"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_commentary");
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
   void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
     // A blank output_text part alongside a function_call must not crash TextContent.
     final Response response =

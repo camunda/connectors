@@ -176,18 +176,15 @@ public class OpenAiResponsesResponseConverter {
   }
 
   private boolean hasFinalAnswerMessage(Response response) {
-    return responseMessages(response)
-        .anyMatch(
-            message ->
-                message
-                    .phase()
-                    .filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals)
-                    .isPresent());
+    return responseMessages(response).anyMatch(this::isFinalAnswer);
+  }
+
+  private boolean isFinalAnswer(ResponseOutputMessage message) {
+    return message.phase().filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals).isPresent();
   }
 
   private boolean isAnswerMessage(ResponseOutputMessage message, boolean hasFinalAnswerMessage) {
-    return !hasFinalAnswerMessage
-        || message.phase().filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals).isPresent();
+    return !hasFinalAnswerMessage || isFinalAnswer(message);
   }
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
