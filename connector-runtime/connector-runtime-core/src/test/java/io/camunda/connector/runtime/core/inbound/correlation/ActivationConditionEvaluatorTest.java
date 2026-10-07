@@ -548,8 +548,8 @@ public class ActivationConditionEvaluatorTest {
     }
 
     @Test
-    @DisplayName("Message start event and catch event publishing the same message are incompatible")
-    void messageStartEventAndCatchEvent_sameMessage_tooManyMatchingElements() {
+    @DisplayName("Message start event and catch event of the same message are each correlated")
+    void messageStartEventAndCatchEvent_sameMessage_eachCorrelated() {
       var v2 = createVersionedMessageElement("step", 2, "msg", null, "=id");
       var v10Start = mock(InboundConnectorElement.class);
       when(v10Start.correlationPoint())
@@ -559,9 +559,7 @@ public class ActivationConditionEvaluatorTest {
           .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 10, "start", "default"));
       when(v10Start.activationCondition()).thenReturn("");
 
-      var result = evaluator.checkActivation(List.of(v2, v10Start), Map.of("id", "1"));
-
-      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+      assertThat(resolve(List.of(v2, v10Start), Map.of("id", "1"))).containsExactly(v10Start, v2);
     }
 
     @Test

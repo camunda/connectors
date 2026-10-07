@@ -128,17 +128,13 @@ public class ActivationConditionEvaluator {
   }
 
   /**
-   * The message an element publishes, as its name and correlation key expression. Elements
-   * publishing no message (plain start events) are their own key.
+   * The message a catch or boundary event publishes, as its name and correlation key expression.
+   * Start events are their own key: they start an instance rather than wake a waiting one.
    */
   private static Object messageOf(InboundConnectorElement element) {
-    return switch (element.correlationPoint()) {
-      case MessageCorrelationPoint point ->
-          new Message(point.messageName(), point.correlationKeyExpression());
-      case MessageStartEventCorrelationPoint point ->
-          new Message(point.messageName(), point.correlationKeyExpression());
-      case null, default -> element;
-    };
+    return element.correlationPoint() instanceof MessageCorrelationPoint point
+        ? new Message(point.messageName(), point.correlationKeyExpression())
+        : element;
   }
 
   /**
