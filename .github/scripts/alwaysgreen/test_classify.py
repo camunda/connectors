@@ -552,7 +552,7 @@ def test_connectors_image_build_is_classified_as_build():
 
 
 def test_ai_agent_cpt_is_ignored():
-    assert classify.surface_for_job("AI Agent E2E Tests (CPT)") is None
+    assert classify.surface_for_job("AI Agent bundle E2E (CPT)") is None
 
 
 def test_connectors_saas_trigger_reuses_the_existing_prefix():
