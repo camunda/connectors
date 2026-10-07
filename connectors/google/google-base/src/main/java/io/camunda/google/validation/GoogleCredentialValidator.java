@@ -7,6 +7,7 @@
 package io.camunda.google.validation;
 
 import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -104,8 +105,10 @@ public class GoogleCredentialValidator
   private static void introspectBearerToken(String bearerToken) throws Exception {
     GenericUrl url = new GenericUrl(TOKENINFO_URL);
     url.put("access_token", bearerToken);
-    HttpResponse response =
-        new NetHttpTransport().createRequestFactory().buildGetRequest(url).execute();
+    HttpRequest request = new NetHttpTransport().createRequestFactory().buildGetRequest(url);
+    request.setLoggingEnabled(false);
+    request.setCurlLoggingEnabled(false);
+    HttpResponse response = request.execute();
     response.disconnect();
   }
 }
