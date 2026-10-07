@@ -41,6 +41,7 @@ import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.grpc.Status;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -95,27 +96,46 @@ public class InboundCorrelationHandler {
   public CorrelationResult correlate(
       List<InboundConnectorElement> elements, CorrelationRequest correlationRequest) {
 
-    final ActivationCheckResult activationCheckResult;
+    final ActivationResult activationResult;
     try {
-      activationCheckResult = canActivate(elements, correlationRequest.getVariables());
+      activationResult =
+          activationConditionEvaluator.resolveActivation(
+              elements, correlationRequest.getVariables());
     } catch (ConnectorInputException e) {
       LOG.info("Failed to evaluate activation condition", e);
       return new CorrelationResult.Failure.InvalidInput(
           "Failed to evaluate activation condition against the provided input", e);
     }
 
-    return switch (activationCheckResult) {
+    return switch (activationResult.result()) {
       case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement ->
           new ActivationConditionNotMet(noMatchingElement.discardUnmatchedEvents());
       case ActivationCheckResult.Failure.TooManyMatchingElements tooMany ->
           new Failure.InvalidInput(
               "Multiple connectors are activated for the same input: " + tooMany.reason(), null);
-      case ActivationCheckResult.Success.CanActivate canActivate ->
-          correlateInternal(
-              findMatchingElement(elements, canActivate.activatedElement()),
-              correlationRequest.getVariables(),
-              correlationRequest.getMessageId());
+      case ActivationCheckResult.Success.CanActivate ignored ->
+          correlateAll(activationResult.elementsToCorrelate(), correlationRequest.getVariables(), correlationRequest.getMessageId());
     };
+  }
+
+  protected CorrelationResult correlateAll(
+      List<InboundConnectorElement> elements, Object variables, String messageId) {
+    List<CorrelationResult> correlationResults = new ArrayList<>();
+    CorrelationResult failure = null;
+    for (var element : elements) {
+      var result = correlateInternal(element, variables, messageId);
+      if (result instanceof Failure.InvalidInput) {
+        LOG.debug(
+            "Skipping element '{}': the input is invalid for it", element.element().elementId());
+        failure = result;
+      } else if (result instanceof Failure) {
+        // shortcut
+        return result;
+      } else {
+          correlationResults.add(result);
+      }
+    }
+    return correlationResults.stream().findFirst().orElse(Objects.requireNonNull(failure));
   }
 
   protected CorrelationResult correlateInternal(

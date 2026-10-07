@@ -16,13 +16,16 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +53,11 @@ public class ActivationConditionEvaluator {
    */
   public ActivationCheckResult checkActivation(
       List<InboundConnectorElement> elements, Object context) {
+    return resolveActivation(elements, context).result();
+  }
+
+  public ActivationResult resolveActivation(
+      List<InboundConnectorElement> elements, Object context) {
     var matchingElements = getMatchingElements(elements, context);
 
     if (matchingElements.isEmpty()) {
@@ -57,21 +65,51 @@ public class ActivationConditionEvaluator {
           elements.stream()
               .map(InboundConnectorElement::consumeUnmatchedEvents)
               .anyMatch(e -> e.equals(Boolean.TRUE));
-      return new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents);
+      return ActivationResult.emptyFailure(
+          new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents));
     }
 
     if (matchingElements.size() > 1) {
       // Multiple elements match - check if they are compatible message elements
-      var compatibilityResult = checkMessageElementCompatibility(matchingElements);
-      if (compatibilityResult.compatible()) {
-        return new ActivationCheckResult.Success.CanActivate(
-            Objects.requireNonNull(compatibilityResult.element()).element());
+      Collection<List<InboundConnectorElement>> groupedByMessage = groupByMessage(matchingElements);
+      List<InboundConnectorElement> elementsToActivate =
+          groupedByMessage.stream()
+              .map(
+                  inboundConnectorElements -> {
+                    var compatibilityResult =
+                        checkMessageElementCompatibility(inboundConnectorElements);
+                    if (!compatibilityResult.compatible()) {
+                      return null;
+                    } else {
+                      return inboundConnectorElements.getFirst();
+                    }
+                  })
+              .collect(Collectors.toCollection(ArrayList::new));
+
+      if (elementsToActivate.isEmpty()) {
+        return ActivationResult.emptyFailure(
+            new ActivationCheckResult.Failure.TooManyMatchingElements(
+                "Multiple matching elements found, but none are compatible"));
+      } else {
+        return ActivationResult.success(elementsToActivate);
       }
-      return new ActivationCheckResult.Failure.TooManyMatchingElements(
-          Objects.requireNonNull(compatibilityResult.reason()));
     }
 
-    return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
+    return ActivationResult.success(matchingElements);
+  }
+
+  private static Collection<List<InboundConnectorElement>> groupByMessage(
+      List<InboundConnectorElement> elements) {
+    return elements.stream()
+        .collect(groupingBy(ActivationConditionEvaluator::messageKey, LinkedHashMap::new, toList()))
+        .values();
+  }
+
+  private static Object messageKey(InboundConnectorElement element) {
+    if (element.correlationPoint() instanceof MessageCorrelationPoint point) {
+      return new Message(point.messageName(), point.correlationKeyExpression());
+    }
+    return element;
   }
 
   /**
@@ -242,4 +280,6 @@ public class ActivationConditionEvaluator {
       return new CompatibilityResult(false, null, reason);
     }
   }
+
+  private record Message(String name, String correlationKeyExpression) {}
 }
