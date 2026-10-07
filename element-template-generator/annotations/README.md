@@ -1,7 +1,7 @@
 # Element Template Generator Annotations
 
 This module (`element-template-generator-annotations`) contains the annotations that drive the
-[element template](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-templates/)
+[element template](https://docs.camunda.io/docs/8.10/components/connectors/custom-built-connectors/connector-templates/)
 generation from Connector Java code. It is the single reference for the annotation DSL.
 For the generator itself (invocation, default properties, programmatic DSL), see the
 [core module](../core).
@@ -55,7 +55,7 @@ You can customize and extend the functionality by using more annotations (see be
     version = 1,
     inputDataClass = MyConnectorInput.class,
     description = "Does something useful",
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/my-connector/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/my-connector/",
     icon = "my-connector.svg")
 public class MyConnectorFunction implements OutboundConnectorFunction { }
 ```
@@ -68,7 +68,7 @@ public class MyConnectorFunction implements OutboundConnectorFunction { }
 | `outputDataClass`         | No       | `Void.class`                             | Connector output data class. Used to look up a [`@DataExample`](#dataexample) for the result expression tooltip.                                                              |
 | `extensionProperties`     | No       | `{}`                                     | `@ExtensionProperty(name, value, condition)` entries added to the template as hidden properties.                                                                             |
 | `configurations`          | No       | `{}`                                     | Classes annotated with `@Configuration` whose templates are embedded in the generated template. Their `@TemplateProperty` fields become the embedded template's properties.  |
-| `version`                 | No       | `0`                                      | Template version. Increment on every change to make use of the Modeler's version upgrade mechanism. Set it explicitly for production templates.                              |
+| `version`                 | No       | `0`                                      | Template version. Increment whenever a non-cosmetic change is shipped (e.g. new properties, a changed icon or changed default bindings) to make use of the Modeler's version upgrade mechanism. Set it explicitly for production templates.                              |
 | `category`                | No       | `@Category(id = "connectors", name = "Connectors")` | Template category, see [Category](#category).                                                                                                               |
 | `documentationRef`        | No       | `""`                                     | Link to the documentation page. If empty, the Modeler does not display the documentation button.                                                                             |
 | `engineVersion`           | No       | `""`                                     | Semantic version range of the supported engine.                                                                                                                              |
@@ -136,7 +136,7 @@ All attributes are optional.
 | `feel`             | `FeelMode.system_default`        | FEEL support, see [FeelMode](#feelmode).                                                                                                                                                                                     |
 | `defaultValue`     | `""`                             | Default value of the property.                                                                                                                                                                                               |
 | `defaultValueType` | `DefaultValueType.String`        | JSON type of the default value: `String`, `Boolean` or `Number`.                                                                                                                                                             |
-| `exampleValue`     | `""`                             | Example value of the property. *Not verified: the value is carried into the DSL property model, but its effect on the generated JSON was not checked.*                                                                       |
+| `exampleValue`     | `""`                             | Example value of the property. Used by the documentation generator (`ClassBasedDocsGenerator`) as the example for the property instead of generated sample data.                                                                       |
 | `group`            | `""` (default group)             | Group ID. Use `@ElementTemplate#propertyGroups` to define labels and order, see [Property groups](#property-groups).                                                                                                         |
 | `condition`        | `@PropertyCondition(property = "")` (none) | Condition under which the Modeler renders the property, see [Conditions](#conditions).                                                                                                                             |
 | `excludeSubTypes`  | `{}`                             | Sealed subtypes to leave out of the discriminator dropdown for this usage only. Unlike `@TemplateSubType(ignore = true)`, which applies to every template mapping the hierarchy. Properties of excluded subtypes are not emitted either, and a `@TemplateDiscriminatorProperty(defaultValue)` naming an excluded subtype is dropped. Does not recurse into nested sealed hierarchies. |
@@ -227,7 +227,7 @@ Constants without `@DropdownItem` get a derived label and order `0`.
 ## FeelMode
 
 `FeelMode` is set through `@TemplateProperty#feel` and defines the
-[FEEL](https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/) support of a property.
+[FEEL](https://docs.camunda.io/docs/8.10/components/modeler/feel/what-is-feel/) support of a property.
 
 | Value            | Description                                                                                                                         |
 |------------------|-------------------------------------------------------------------------------------------------------------------------------------|
@@ -393,16 +393,15 @@ public final class BasicAuthentication extends Authentication {
 | `label`       | `""` (derived from class name)   | Label of the choice in the discriminator dropdown.                                                                                           |
 | `ignore`      | `false`                          | Excludes the subtype from the dropdown in every template that maps its hierarchy. Use `@TemplateProperty#excludeSubTypes` for a single usage. |
 | `description` | `""`                             | Description of the subtype, shown in the Modeler search/discovery UI.                                                                        |
-| `keywords`    | `{}`                             | Search aliases for the subtype. Required on leaf subtypes (records implementing a sealed interface).                                         |
+| `keywords`    | `{}`                             | Search aliases for the subtype. Only required on leaf subtypes of hierarchies that participate in operation metadata (the step tree of operation-based connectors); ordinary sealed hierarchies, e.g. authentication variants, do not need it.                                         |
 
 If you are relying on Jackson to deserialize the polymorphic type, make sure to align the
 discriminator property name and subtype IDs with the Jackson configuration.
 
 Note that the [nested properties rules](#nested-properties) also apply to sealed hierarchies.
-The only difference is that the discriminator property is not considered part of the nested type,
-so it will never be prefixed with the nested path.
-Therefore, **the discriminator property ID must always be unique** within the Connector input data
-model.
+The discriminator property is considered part of the nested type, so its ID is prefixed with the
+nested path like any other nested property (disable it with `@NestedProperties(addNestedPath = false)`).
+Make sure the resulting discriminator property IDs are unique within the Connector input data model.
 
 ## Property groups
 
@@ -500,11 +499,11 @@ Narrow `sources` when the connector cannot work with a source, for example the A
 
 ### FieldVisibility
 
-`FieldVisibility` controls the sub-properties generated by `@TemplateDocumentProperty` and `@DocumentReturnFormat`.
+`FieldVisibility` controls the sub-properties generated by `@TemplateDocumentProperty` (`fileName`, `contentType`) and the encoding sub-property of `@DocumentReturnFormat`.
 
 | Value      | Behavior                                                         |
 |------------|------------------------------------------------------------------|
-| `REQUIRED` | Shown with a `notEmpty` constraint.                              |
+| `REQUIRED` | Shown with a `notEmpty` constraint. For `@DocumentReturnFormat#encoding` it behaves like `OPTIONAL`: no constraint is generated. |
 | `OPTIONAL` | Shown without a constraint (default).                            |
 | `HIDDEN`   | Not emitted to the template at all; runtime fallbacks apply.     |
 
@@ -536,7 +535,7 @@ public record TextractRequest(/* ... */) {}
 | `tooltip`          | `""`                                    | Tooltip text.                                                                                                                                                            |
 | `supportedFormats` | `{DOCUMENT, TEXT, JSON}`                | `DocumentReturnChoice` values offered in the dropdown, in the given order. Labels: *Document reference*, *as text*, *as JSON*.                                           |
 | `defaultFormat`    | `DocumentReturnChoice.DOCUMENT`         | Default selection. Must be one of `supportedFormats`.                                                                                                                    |
-| `encoding`         | `FieldVisibility.OPTIONAL`              | Visibility of the encoding sub-property (only shown for `TEXT`).                                                                                                         |
+| `encoding`         | `FieldVisibility.OPTIONAL`              | Visibility of the encoding sub-property (only shown for `TEXT`). Only `HIDDEN` has an effect; `REQUIRED` and `OPTIONAL` both emit it without a constraint.               |
 | `defaultEncoding`  | `"UTF-8"`                               | Default value of the encoding sub-property.                                                                                                                              |
 
 The annotation is `@Inherited`.
@@ -669,7 +668,7 @@ If building an example fails (exception in the method or the FEEL evaluation), g
 
 ## TemplateLinkedResource
 
-A [`zeebe:linkedResource`](https://docs.camunda.io/docs/apis-tools/modeler/element-templates/element-templates-json-schema/#linked-resources)
+A [`zeebe:linkedResource`](https://docs.camunda.io/docs/8.10/apis-tools/modeler/element-templates/element-templates-json-schema/#linked-resources)
 block declares that a service task depends on a Camunda resource — such as a form —
 that Zeebe resolves and attaches at deployment time. Use `@TemplateLinkedResource` on the request
 class to generate this block automatically instead of writing the JSON by hand.
