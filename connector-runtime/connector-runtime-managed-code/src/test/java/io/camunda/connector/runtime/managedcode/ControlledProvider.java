@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class ControlledProvider implements ManagedCodeProvider {
 
   final AtomicInteger provisionings = new AtomicInteger();
+  final List<ProviderDeployment> deleted = new CopyOnWriteArrayList<>();
   final List<ArtifactSpec> provisioned = new CopyOnWriteArrayList<>();
   final List<ExecutionRequest> requests = new CopyOnWriteArrayList<>();
   private final Deque<ExecutionResponse> responses = new ArrayDeque<>();
@@ -92,5 +93,10 @@ final class ControlledProvider implements ManagedCodeProvider {
     requests.add(request);
     final var response = responses.poll();
     return response == null ? ExecutionResponse.completed(Map.of()) : response;
+  }
+
+  @Override
+  public void delete(ProviderDeployment deployment) {
+    deleted.add(deployment);
   }
 }

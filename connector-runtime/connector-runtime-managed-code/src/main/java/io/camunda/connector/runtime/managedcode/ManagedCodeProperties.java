@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.managedcode;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -30,14 +31,14 @@ public record ManagedCodeProperties(
     Duration provisioningRetryBackoff,
     int invocationConcurrency,
     int provisioningConcurrency,
-    Fake fake) {
+    Local local) {
 
   private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
   private static final int DEFAULT_INVOCATION_CONCURRENCY = 4;
   private static final int DEFAULT_PROVISIONING_CONCURRENCY = 2;
-  private static final Duration DEFAULT_FAKE_PROVISIONING_DELAY = Duration.ofSeconds(2);
+  private static final Duration DEFAULT_LOCAL_INSTALL_TIMEOUT = Duration.ofMinutes(5);
 
   public ManagedCodeProperties {
     provider = provider == null ? "" : provider.strip();
@@ -50,20 +51,22 @@ public record ManagedCodeProperties(
         invocationConcurrency > 0 ? invocationConcurrency : DEFAULT_INVOCATION_CONCURRENCY;
     provisioningConcurrency =
         provisioningConcurrency > 0 ? provisioningConcurrency : DEFAULT_PROVISIONING_CONCURRENCY;
-    fake = fake == null ? new Fake(null) : fake;
+    local = local == null ? new Local(null, null) : local;
   }
 
   /**
-   * Settings of the fake provider.
+   * Settings of the local provider.
    *
-   * @param provisioningDelay simulated time until a new deployment is ready; zero is allowed
+   * @param directory where deployments are kept; survives restarts so that deployments are adopted
+   * @param installTimeout bound of one dependency installation
    */
-  public record Fake(Duration provisioningDelay) {
-    public Fake {
-      provisioningDelay =
-          provisioningDelay == null || provisioningDelay.isNegative()
-              ? DEFAULT_FAKE_PROVISIONING_DELAY
-              : provisioningDelay;
+  public record Local(Path directory, Duration installTimeout) {
+    public Local {
+      directory =
+          directory == null
+              ? Path.of(System.getProperty("java.io.tmpdir"), "camunda-managed-code")
+              : directory;
+      installTimeout = positive(installTimeout, DEFAULT_LOCAL_INSTALL_TIMEOUT);
     }
   }
 

@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -43,29 +42,30 @@ public class ManagedCodeAutoConfiguration {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Bean
-  @ConditionalOnMissingBean(ManagedCodeProvider.class)
   @ConditionalOnProperty(
       prefix = "camunda.connector.managed-code",
       name = "provider",
-      havingValue = FakeManagedCodeProvider.NAME)
-  public FakeManagedCodeProvider fakeManagedCodeProvider(ManagedCodeProperties properties) {
+      havingValue = LocalManagedCodeProvider.NAME)
+  public LocalManagedCodeProvider localManagedCodeProvider(ManagedCodeProperties properties) {
     LOG.warn(
-        "Managed-code provider 'fake' is enabled: provisioning is simulated and scripts run in"
-            + " local Node.js or Python subprocesses with the Connector Runtime operating-system"
-            + " identity. This is for trusted development only and is not a sandbox.");
-    return new FakeManagedCodeProvider(
-        new LocalProcessScriptExecutor(
-            objectMapper, LocalInterpreterDiscovery.discover(), properties.executionTimeout()),
+        "Managed-code provider 'local' is enabled: scripts are deployed to {} and run in local"
+            + " Node.js or Python subprocesses with the Connector Runtime operating-system"
+            + " identity. This is for trusted development only and is not a sandbox.",
+        properties.local().directory());
+    final var interpreters = LocalInterpreterDiscovery.discover();
+    return new LocalManagedCodeProvider(
+        new LocalProcessScriptExecutor(objectMapper, interpreters, properties.executionTimeout()),
+        interpreters,
         objectMapper,
-        properties.fake().provisioningDelay());
+        properties.local().directory(),
+        properties.local().installTimeout());
   }
 
   @Bean(destroyMethod = "close")
   public DeploymentRegistry managedCodeDeploymentRegistry(
       ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
     return new DeploymentRegistry(
-        requireProvider(providers.getIfAvailable(), properties),
-        properties.provisioningConcurrency());
+        requireProvider(providers, properties), properties.provisioningConcurrency());
   }
 
   @Bean(destroyMethod = "shutdown")
@@ -75,7 +75,7 @@ public class ManagedCodeAutoConfiguration {
       ManagedCodeProperties properties) {
     final var handler =
         new ManagedScriptJobHandler(
-            requireProvider(providers.getIfAvailable(), properties),
+            requireProvider(providers, properties),
             registry,
             new ScriptResources(RESOURCE_CACHE_SIZE),
             objectMapper,
@@ -84,23 +84,32 @@ public class ManagedCodeAutoConfiguration {
     return new ManagedScriptJobWorker(handler, properties);
   }
 
+  /**
+   * Selects the provider bean named by {@code camunda.connector.managed-code.provider}. Several
+   * provider beans may coexist, for example the built-in one and one contributed by a custom jar.
+   */
   private static ManagedCodeProvider requireProvider(
-      ManagedCodeProvider provider, ManagedCodeProperties properties) {
+      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
     if (properties.provider().isBlank()) {
       throw new IllegalStateException(
           "camunda.connector.managed-code.provider must be set when managed code is enabled;"
-              + " the only built-in provider is 'fake'");
+              + " the only built-in provider is 'local'");
     }
-    if (provider == null) {
+    final var matching =
+        providers
+            .orderedStream()
+            .filter(provider -> properties.provider().equals(provider.name()))
+            .toList();
+    if (matching.isEmpty()) {
       throw new IllegalStateException(
-          "No managed-code provider '%s' is available; the only built-in provider is 'fake'"
+          "No managed-code provider '%s' is available; the only built-in provider is 'local'"
               .formatted(properties.provider()));
     }
-    if (!properties.provider().equals(provider.name())) {
+    if (matching.size() > 1) {
       throw new IllegalStateException(
-          "Configured managed-code provider '%s' does not match provider bean '%s'"
-              .formatted(properties.provider(), provider.name()));
+          "%d managed-code provider beans are named '%s'"
+              .formatted(matching.size(), properties.provider()));
     }
-    return provider;
+    return matching.getFirst();
   }
 }

@@ -29,6 +29,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.worker.JobWorkerBuilderStep1;
 import io.camunda.client.api.worker.JobWorkerBuilderStep1.JobWorkerBuilderStep2;
 import io.camunda.client.api.worker.JobWorkerBuilderStep1.JobWorkerBuilderStep3;
+import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -43,7 +44,7 @@ class ManagedCodeAutoConfigurationTest {
   @Test
   void disabledByDefault() {
     contextRunner
-        .withPropertyValues("camunda.connector.managed-code.provider=fake")
+        .withPropertyValues("camunda.connector.managed-code.provider=local")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
@@ -54,22 +55,25 @@ class ManagedCodeAutoConfigurationTest {
   }
 
   @Test
-  void enabledWithFakeProvider() {
+  void enabledWithLocalProvider() {
     contextRunner
         .withPropertyValues(
             "camunda.connector.managed-code.enabled=true",
-            "camunda.connector.managed-code.provider=fake",
+            "camunda.connector.managed-code.provider=local",
             "camunda.connector.managed-code.provisioning-timeout=1m",
             "camunda.connector.managed-code.execution-timeout=20s",
-            "camunda.connector.managed-code.fake.provisioning-delay=0s")
+            "camunda.connector.managed-code.local.directory=/tmp/managed-code-test",
+            "camunda.connector.managed-code.local.install-timeout=3m")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
-              assertThat(context).hasSingleBean(FakeManagedCodeProvider.class);
+              assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
               assertThat(context).hasSingleBean(DeploymentRegistry.class);
               assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
               final var properties = context.getBean(ManagedCodeProperties.class);
-              assertThat(properties.fake().provisioningDelay()).isZero();
+              assertThat(properties.local().directory())
+                  .isEqualTo(Path.of("/tmp/managed-code-test"));
+              assertThat(properties.local().installTimeout()).isEqualTo(Duration.ofMinutes(3));
               assertThat(properties.provisioningConcurrency()).isEqualTo(2);
               assertThat(ManagedScriptJobWorker.jobTimeout(properties))
                   .isEqualTo(Duration.ofSeconds(90));
@@ -81,7 +85,7 @@ class ManagedCodeAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.managed-code.enabled=true",
-            "camunda.connector.managed-code.provider=fake",
+            "camunda.connector.managed-code.provider=local",
             "camunda.connector.managed-code.invocation-concurrency=3")
         .run(
             context -> {
@@ -141,8 +145,40 @@ class ManagedCodeAutoConfigurationTest {
         .run(
             context -> {
               assertThat(context).hasNotFailed();
-              assertThat(context).doesNotHaveBean(FakeManagedCodeProvider.class);
+              assertThat(context).doesNotHaveBean(LocalManagedCodeProvider.class);
               assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
             });
+  }
+
+  @Test
+  void contributedProviderCoexistsWithTheBuiltInOne() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=local")
+        .withBean(ControlledProvider.class, ControlledProvider::new)
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
+              assertThat(context).hasSingleBean(ControlledProvider.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
+            });
+  }
+
+  @Test
+  void failsForDuplicateProviderNames() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=controlled")
+        .withBean("first", ControlledProvider.class, ControlledProvider::new)
+        .withBean("second", ControlledProvider.class, ControlledProvider::new)
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("2 managed-code provider beans are named 'controlled'"));
   }
 }

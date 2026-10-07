@@ -75,7 +75,7 @@ class ArtifactSpecTest {
     return ArtifactSpec.create(
         "default",
         tenantId,
-        "fake",
+        "local",
         ScriptLanguage.JAVASCRIPT,
         runtime,
         resourceName,

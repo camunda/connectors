@@ -18,14 +18,15 @@ first job of a new script waits for it, later jobs reuse the deployment. See
 
 ```properties
 camunda.connector.managed-code.enabled=true
-camunda.connector.managed-code.provider=fake
+camunda.connector.managed-code.provider=local
 camunda.connector.managed-code.worker-name=managed-script-worker
 camunda.connector.managed-code.execution-timeout=30s
 camunda.connector.managed-code.provisioning-timeout=2m
 camunda.connector.managed-code.provisioning-retry-backoff=10s
 camunda.connector.managed-code.invocation-concurrency=4
 camunda.connector.managed-code.provisioning-concurrency=2
-camunda.connector.managed-code.fake.provisioning-delay=2s
+camunda.connector.managed-code.local.directory=/tmp/camunda-managed-code
+camunda.connector.managed-code.local.install-timeout=5m
 ```
 
 The job timeout is `provisioning-timeout + execution-timeout + 10s`. `provisioning-timeout` covers
@@ -37,10 +38,19 @@ of scripts that are already provisioned. Retryable provisioning and
 execution failures consume one retry with the same backoff; permanent ones, such as a syntax error
 or a missing `linkedResources` header, fail without retries.
 
-The only built-in provider is `fake`. It simulates provisioning with `fake.provisioning-delay` and
-executes scripts in local Node.js 20+ or Python 3.10+ subprocesses discovered from `PATH`. It does
-not support dependency manifests. Scripts run with the Connector Runtime operating-system identity:
-this mode limits time and I/O but is **not a sandbox** and is for trusted development only.
+The only built-in provider is `local`. It deploys each script to its own subdirectory of
+`local.directory` (by default `camunda-managed-code` in the Java temporary directory), adopts
+existing deployments after a restart, and executes scripts in local Node.js 20+ or Python 3.10+
+subprocesses discovered from `PATH`. A linked `requirements.txt` or `package.json` is installed
+once while provisioning, with `pip install --target` or `npm install --ignore-scripts`, bounded by
+`local.install-timeout`. Installation uses the host environment, so proxy and registry settings
+apply. Scripts run with the Connector Runtime operating-system identity: this mode limits time and
+I/O but is **not a sandbox** and is for trusted development only.
+
+Other providers implement `ManagedCodeProvider` and register it as a Spring bean, for example
+through an auto-configuration in a jar placed in `/opt/custom` of the Docker image. The worker
+uses the bean whose `name()` matches `provider`. Loading a provider from `/opt/custom` has not been
+tested yet.
 
 The script must define `execute(variables, context)` and return a JSON object; its properties
 become job completion variables. The task needs the `language` (`python` or `javascript`) and
