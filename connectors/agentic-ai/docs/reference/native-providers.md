@@ -229,6 +229,15 @@ that reasoning item on a later turn. A non-empty `summary` is joined onto
 `ReasoningContent.text`, stripped from the raw payload only when reconstructible byte-identical on
 replay.
 
+### Phased output
+
+Responses models can emit multiple assistant messages labeled as intermediate `commentary` or as the
+`final_answer`. When a response contains a final-answer message, only final-answer message content
+and its message ID are exposed through the provider-neutral assistant response. This prevents
+intermediate commentary from being included in `responseText` or concatenated with structured JSON
+before parsing. If no final-answer message exists, all message content is retained as before; this
+includes commentary returned alongside function calls on an intermediate tool-use turn.
+
 ### Caching
 
 Automatic and read-only — no config, no cache-write metric, so the acceptance row sets
