@@ -67,7 +67,7 @@ public class MyConnectorFunction implements OutboundConnectorFunction { }
 | `inputDataClass`          | No       | `{}`                                     | Connector input data class(es). The template is generated from their properties, merged in declaration order. A single class can be given without braces.                    |
 | `outputDataClass`         | No       | `Void.class`                             | Connector output data class. Used to look up a [`@DataExample`](#dataexample) for the result expression tooltip.                                                              |
 | `extensionProperties`     | No       | `{}`                                     | `@ExtensionProperty(name, value, condition)` entries added to the template as hidden properties.                                                                             |
-| `configurations`          | No       | `{}`                                     | Classes annotated with `@Configuration` whose templates are embedded in the generated template. Their `@TemplateProperty` fields become the embedded template's properties.  |
+| `configurations`          | No       | `{}`                                     | Classes annotated with `@Configuration` whose templates are embedded in the generated template. All model fields are included, `@TemplateProperty` only customizes them. A non-empty list requires an `engineVersion` with a lower bound of at least 8.10, otherwise generation fails. |
 | `version`                 | No       | `0`                                      | Template version. Increment whenever a non-cosmetic change is shipped (e.g. new properties, a changed icon or changed default bindings) to make use of the Modeler's version upgrade mechanism. Set it explicitly for production templates.                              |
 | `category`                | No       | `@Category(id = "connectors", name = "Connectors")` | Template category, see [Category](#category).                                                                                                               |
 | `documentationRef`        | No       | `""`                                     | Link to the documentation page. If empty, the Modeler does not display the documentation button.                                                                             |
@@ -89,7 +89,7 @@ using the default rules.
 | Java field type                         | Generated template property type |
 |-----------------------------------------|----------------------------------|
 | `String`                                | `String`                         |
-| Number primitives and boxed types       | `String`                         |
+| Number primitives and boxed types       | `Number` (outbound connectors), `String` (inbound connectors) |
 | `Boolean`                               | `Boolean`                        |
 | Enums                                   | `Dropdown`                       |
 | Collections, Maps, `Object`, `JsonNode` | `String` with `feel: required`   |
@@ -141,7 +141,7 @@ All attributes are optional.
 | `condition`        | `@PropertyCondition(property = "")` (none) | Condition under which the Modeler renders the property, see [Conditions](#conditions).                                                                                                                             |
 | `excludeSubTypes`  | `{}`                             | Sealed subtypes to leave out of the discriminator dropdown for this usage only. Unlike `@TemplateSubType(ignore = true)`, which applies to every template mapping the hierarchy. Properties of excluded subtypes are not emitted either, and a `@TemplateDiscriminatorProperty(defaultValue)` naming an excluded subtype is dropped. Does not recurse into nested sealed hierarchies. |
 | `ignore`           | `false`                          | Hides the field from the generator, e.g. for constants or implementation details.                                                                                                                                            |
-| `constraints`      | `@PropertyConstraints`           | Validation constraints (`notEmpty`, `minLength`, `maxLength`, `pattern = @Pattern(value, message)`). explicitly set values override Bean Validation, see [Property validation](#property-validation).                           |
+| `constraints`      | `@PropertyConstraints`           | Validation constraints (`notEmpty`, `minLength`, `maxLength`, `pattern = @Pattern(value, message)`). Explicitly set values override Bean Validation, see [Property validation](#property-validation).                           |
 | `tooltip`          | `""`                             | Tooltip text.                                                                                                                                                                                                                |
 | `placeholder`      | `""`                             | Placeholder shown while the input is empty. `String` and `Text` properties only.                                                                                                                                             |
 | `language`         | `""`                             | Editor language hint. Only `"json"` is supported (enables a JSON visual editor), and only on `String` and `Text` properties. Other values fail generation.                                                                   |
@@ -479,9 +479,9 @@ public record DownloadRequest(
 | `id`          | `""`                                      | ID of the hidden composer property (bound to the canonical document path). Set it to keep the ID of a previous equivalent `@TemplateProperty`, so existing templates keep the same root ID.   |
 | `binding`     | `@PropertyBinding(name = "")`             | Custom binding name. Defines the binding root of the generated sub-properties.                                                                                                                 |
 | `description` | `""`                                      | Property description.                                                                                                                                                                          |
-| `optional`    | `false`                                   | Marks the property as optional.                                                                                                                                                                |
+| `optional`    | `false`                                   | Makes the document input optional and changes the generated UI: a single `Document` gets an "Attach document?" Yes/No dropdown (default No), a `List<Document>` gets an additional "None" mode (default). With `false`, the input is mandatory and defaults to the single-document mode.                                                                                                                                                                |
 | `group`       | `""`                                      | Group ID. All generated sub-properties inherit it.                                                                                                                                             |
-| `condition`   | `@PropertyCondition(property = "")` (none) | Condition prepended to the condition of every generated sub-property.                                                                                                                         |
+| `condition`   | `@PropertyCondition(property = "")` (none) | Condition prepended to the condition of every generated sub-property. A condition with an empty `property` is ignored, so `allMatch` is not supported here.                                                                                                                         |
 | `tooltip`     | `""`                                      | Tooltip text.                                                                                                                                                                                  |
 | `sources`     | all [`DocumentSource`](#documentsource) values | Accepted document sources. The first entry is the dropdown default and defines the evaluation order of the FEEL composer. Duplicates are ignored. An empty list is a configuration error.   |
 | `fileName`    | `FieldVisibility.OPTIONAL`                | Visibility of the `fileName` sub-property (inline and external sources).                                                                                                                       |
@@ -532,7 +532,7 @@ public record TextractRequest(/* ... */) {}
 | `label`            | `"Response format"`                     | Dropdown label.                                                                                                                                                          |
 | `description`      | `""`                                    | Dropdown description.                                                                                                                                                    |
 | `group`            | `""`                                    | Group ID. All generated sub-properties inherit it.                                                                                                                       |
-| `condition`        | `@PropertyCondition(property = "")` (none) | Visibility condition. Needed for non-sealed nested records; for sealed subtypes the discriminator condition is added automatically.                                    |
+| `condition`        | `@PropertyCondition(property = "")` (none) | Visibility condition. Needed for non-sealed nested records; for sealed subtypes the discriminator condition is added automatically. A condition with an empty `property` is ignored, so `allMatch` is not supported here.                                    |
 | `tooltip`          | `""`                                    | Tooltip text.                                                                                                                                                            |
 | `supportedFormats` | `{DOCUMENT, TEXT, JSON}`                | `DocumentReturnChoice` values offered in the dropdown, in the given order. Labels: *Document reference*, *as text*, *as JSON*.                                           |
 | `defaultFormat`    | `DocumentReturnChoice.DOCUMENT`         | Default selection. Must be one of `supportedFormats`.                                                                                                                    |
@@ -619,7 +619,7 @@ public class MyConnectorFunction { }
 ```
 
 Values (`getName()` is the BPMN type written to the template, `getId()` is the unique ID used for suffixes;
-message types are the ones for which the generator adds the message-related properties):
+the `Message type` column shows the enum's own message classification; the generator adds message/correlation properties only for inbound templates targeting `MESSAGE_START_EVENT`, `INTERMEDIATE_CATCH_EVENT`, `BOUNDARY_EVENT` and `RECEIVE_TASK`):
 
 | Value                      | BPMN type                       | Message type |
 |----------------------------|---------------------------------|--------------|
@@ -638,7 +638,7 @@ message types are the ones for which the generator adds the message-related prop
 
 ## DataExample
 
-`@DataExample` annotates a **static** method of the Connector's output data class (`@ElementTemplate#outputDataClass`).
+`@DataExample` annotates a **static, public, parameterless** method of the Connector's output data class (`@ElementTemplate#outputDataClass`). The generator invokes it without arguments and without changing accessibility, so any other signature fails generation.
 The method returns an example result object. The generator serializes it to JSON and shows it as a tooltip on the
 result expression property, optionally together with the evaluated FEEL expression.
 
