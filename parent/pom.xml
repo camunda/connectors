@@ -123,7 +123,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.11</version.aws-sdk2>
+    <version.aws-sdk2>2.55.12</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -184,7 +184,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.12.0</version.lz4-java>
 
-    <version.microsoft-graph>6.70.0</version.microsoft-graph>
+    <version.microsoft-graph>6.71.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
@@ -230,7 +230,7 @@ limitations under the License.</license.inlineheader>
     <version.langchain4j>1.21.0</version.langchain4j>
     <version.mcp-sdk>2.0.1</version.mcp-sdk>
     <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.22</version.elasticsearch-rest-client>
+    <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
 
     <version.scala>3.10.0</version.scala>
 
