@@ -84,6 +84,7 @@ public class ActivationConditionEvaluator {
                       return inboundConnectorElements.getFirst();
                     }
                   })
+              .filter(Objects::nonNull)
               .collect(Collectors.toCollection(ArrayList::new));
 
       if (elementsToActivate.isEmpty()) {

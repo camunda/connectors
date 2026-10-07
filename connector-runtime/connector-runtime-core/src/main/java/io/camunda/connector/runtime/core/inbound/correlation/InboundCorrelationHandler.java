@@ -138,11 +138,9 @@ public class InboundCorrelationHandler {
         correlationResults.add(result);
       }
     }
-    if (failure == null) {
-      return correlationResults.stream().findFirst().orElseThrow();
-    } else {
-      return failure;
-    }
+    return correlationResults.isEmpty()
+        ? Objects.requireNonNull(failure)
+        : correlationResults.getFirst();
   }
 
   protected CorrelationResult correlateInternal(
