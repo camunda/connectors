@@ -125,10 +125,11 @@ public class InboundCorrelationHandler {
    * Correlates the input to each element, latest version first. There is more than one element only
    * when the input matches several process versions publishing distinct messages.
    *
-   * <p>An element of an older version than the executable's latest one is skipped when the input is
-   * invalid for it, as retrying would never succeed and would block the latest version. Any other
-   * failure is returned so the input is retried as a whole: elements already correlated are then
-   * correlated again, as for any retried input.
+   * <p>An element the input is invalid for (e.g. its correlation key cannot be resolved) is
+   * skipped: the input is meant for the other elements, and retrying would never succeed. The input
+   * only fails when nothing was correlated and the latest version was invalid. Any other failure is
+   * returned so the input is retried as a whole: elements already correlated are then correlated
+   * again, as for any retried input.
    */
   private CorrelationResult correlateAll(
       List<InboundConnectorElement> elementsToCorrelate,
@@ -136,29 +137,38 @@ public class InboundCorrelationHandler {
       Object variables,
       String messageId) {
     CorrelationResult latestSuccess = null;
+    Failure.InvalidInput latestVersionInvalidInput = null;
     for (var element : elementsToCorrelate) {
       var result = correlateInternal(element, variables, messageId);
-      if (result instanceof Failure.InvalidInput
-          && ActivationConditionEvaluator.isOlderVersion(element, elements)) {
-        // the failure message is not logged, it can contain input values
-        LOG.warn(
-            "Skipping element '{}' (version {}): the input is invalid for it",
-            element.element().elementId(),
-            element.element().version());
+      if (result instanceof Failure.InvalidInput invalidInput) {
+        if (elementsToCorrelate.size() > 1) {
+          // the failure message is not logged, it can contain input values
+          LOG.warn(
+              "Skipping element '{}' (version {}): the input is invalid for it",
+              element.element().elementId(),
+              element.element().version());
+        }
+        if (latestVersionInvalidInput == null
+            && !ActivationConditionEvaluator.isOlderVersion(element, elements)) {
+          latestVersionInvalidInput = invalidInput;
+        }
       } else if (result instanceof Failure) {
         return result;
       } else if (latestSuccess == null) {
         latestSuccess = result;
       }
     }
-    if (latestSuccess == null) {
-      // every element was skipped: as if only the latest version was active, nothing matched
-      return new ActivationConditionNotMet(
-          elements.stream()
-              .map(InboundConnectorElement::consumeUnmatchedEvents)
-              .anyMatch(Boolean.TRUE::equals));
+    if (latestSuccess != null) {
+      return latestSuccess;
     }
-    return latestSuccess;
+    if (latestVersionInvalidInput != null) {
+      return latestVersionInvalidInput;
+    }
+    // only older versions were invalid: as if only the latest version was active, nothing matched
+    return new ActivationConditionNotMet(
+        elements.stream()
+            .map(InboundConnectorElement::consumeUnmatchedEvents)
+            .anyMatch(Boolean.TRUE::equals));
   }
 
   protected CorrelationResult correlateInternal(

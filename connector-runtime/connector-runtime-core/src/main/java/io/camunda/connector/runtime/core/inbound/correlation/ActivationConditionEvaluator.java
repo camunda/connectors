@@ -89,13 +89,28 @@ public class ActivationConditionEvaluator {
         if (sameMessage.size() > 1) {
           var compatibilityResult = checkMessageElementCompatibility(sameMessage);
           if (!compatibilityResult.compatible()) {
+            var reason = Objects.requireNonNull(compatibilityResult.reason());
+            if (sameMessage.stream().allMatch(e -> isOlderVersion(e, elements))) {
+              // only older versions conflict: they must not block the latest version
+              LOG.warn("Skipping incompatible elements of older versions: {}", reason);
+              continue;
+            }
             return ActivationResolution.failure(
                 new ActivationCheckResult.Failure.TooManyMatchingElements(
-                    Objects.requireNonNull(compatibilityResult.reason())));
+                    withRemediation(reason, sameMessage)));
           }
         }
         elementsToCorrelate.add(
             sameMessage.stream().max(Comparator.comparingInt(e -> e.element().version())).get());
+      }
+
+      if (elementsToCorrelate.isEmpty()) {
+        // every group was skipped: as if only the latest version was active, nothing matched
+        return ActivationResolution.failure(
+            new ActivationCheckResult.Failure.NoMatchingElement(
+                elements.stream()
+                    .map(InboundConnectorElement::consumeUnmatchedEvents)
+                    .anyMatch(Boolean.TRUE::equals)));
       }
 
       if (elementsToCorrelate.size() > 1
@@ -110,6 +125,20 @@ public class ActivationConditionEvaluator {
     }
 
     return ActivationResolution.success(List.of(matchingElements.getFirst()));
+  }
+
+  /**
+   * Adds what to do when the conflict spans process versions: the older version stays active, and
+   * blocks the input, as long as its instances wait for the message.
+   */
+  private static String withRemediation(String reason, List<InboundConnectorElement> sameMessage) {
+    if (sameMessage.stream().map(e -> e.element().version()).distinct().count() < 2) {
+      return reason;
+    }
+    return reason
+        + ". Deploying a new version does not resolve this while instances of the older versions"
+        + " wait for the message: migrate or cancel them, or disable active-version polling"
+        + " (camunda.connector.polling.active-versions-enabled=false)";
   }
 
   /**
