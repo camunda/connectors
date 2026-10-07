@@ -114,7 +114,10 @@ public class InboundCorrelationHandler {
           new Failure.InvalidInput(
               "Multiple connectors are activated for the same input: " + tooMany.reason(), null);
       case ActivationCheckResult.Success.CanActivate ignored ->
-          correlateAll(activationResult.elementsToCorrelate(), correlationRequest.getVariables(), correlationRequest.getMessageId());
+          correlateAll(
+              activationResult.elementsToCorrelate(),
+              correlationRequest.getVariables(),
+              correlationRequest.getMessageId());
     };
   }
 
@@ -132,10 +135,14 @@ public class InboundCorrelationHandler {
         // shortcut
         return result;
       } else {
-          correlationResults.add(result);
+        correlationResults.add(result);
       }
     }
-    return correlationResults.stream().findFirst().orElse(Objects.requireNonNull(failure));
+    if (failure == null) {
+      return correlationResults.stream().findFirst().orElseThrow();
+    } else {
+      return failure;
+    }
   }
 
   protected CorrelationResult correlateInternal(
