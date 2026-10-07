@@ -23,10 +23,10 @@
   "type": "default",
   "id": "MCP_Tool_Call_Confirmation",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.8.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.35.0"
+    "version": "5.51.1"
   },
-  "schemaVersion": 18
+  "schemaVersion": 19
 }

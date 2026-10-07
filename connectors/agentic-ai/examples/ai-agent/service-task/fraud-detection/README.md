@@ -7,7 +7,7 @@ a tax submission.
 
 ## Prerequisites
 
-- **Camunda 8.8+** (SaaS or Self-Managed)
+- **Camunda 8.10+** (SaaS or Self-Managed)
 - Access to Camunda Connectors (Agentic AI, HTTP, etc.)
 - Outbound internet access for connectors (to reach APIs)
 
