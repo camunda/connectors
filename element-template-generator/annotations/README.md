@@ -141,7 +141,7 @@ All attributes are optional.
 | `condition`        | `@PropertyCondition(property = "")` (none) | Condition under which the Modeler renders the property, see [Conditions](#conditions).                                                                                                                             |
 | `excludeSubTypes`  | `{}`                             | Sealed subtypes to leave out of the discriminator dropdown for this usage only. Unlike `@TemplateSubType(ignore = true)`, which applies to every template mapping the hierarchy. Properties of excluded subtypes are not emitted either, and a `@TemplateDiscriminatorProperty(defaultValue)` naming an excluded subtype is dropped. Does not recurse into nested sealed hierarchies. |
 | `ignore`           | `false`                          | Hides the field from the generator, e.g. for constants or implementation details.                                                                                                                                            |
-| `constraints`      | `@PropertyConstraints`           | Validation constraints (`notEmpty`, `minLength`, `maxLength`, `pattern = @Pattern(value, message)`). Bean Validation annotations take precedence, see [Property validation](#property-validation).                           |
+| `constraints`      | `@PropertyConstraints`           | Validation constraints (`notEmpty`, `minLength`, `maxLength`, `pattern = @Pattern(value, message)`). explicitly set values override Bean Validation, see [Property validation](#property-validation).                           |
 | `tooltip`          | `""`                             | Tooltip text.                                                                                                                                                                                                                |
 | `placeholder`      | `""`                             | Placeholder shown while the input is empty. `String` and `Text` properties only.                                                                                                                                             |
 | `language`         | `""`                             | Editor language hint. Only `"json"` is supported (enables a JSON visual editor), and only on `String` and `Text` properties. Other values fail generation.                                                                   |
@@ -344,7 +344,7 @@ operations are different or only partially overlapping. Another example of this 
 [AWS DynamoDB Connector](https://github.com/camunda/connectors/tree/main/connectors/aws/aws-dynamodb).
 
 The Template Generator supports sealed hierarchies by default. For each sealed hierarchy, it generates
-an additional discriminator property of type `Dropdown` that gets mapped to a `type` variable in the resulting JSON.
+an additional discriminator property of type `Dropdown` that gets mapped to a variable in the resulting JSON. Its binding name is derived from the sealed hierarchy root class name, or set with `@TemplateDiscriminatorProperty#name`.
 
 Nested sealed hierarchies are supported as well. The discriminator property is implicitly considered
 part of the nested type.
@@ -392,7 +392,7 @@ public final class BasicAuthentication extends Authentication {
 | `id`          | `""` (derived from class name)   | Subtype ID passed in the input payload. Must match the Jackson subtype ID if Jackson handles the polymorphism.                               |
 | `label`       | `""` (derived from class name)   | Label of the choice in the discriminator dropdown.                                                                                           |
 | `ignore`      | `false`                          | Excludes the subtype from the dropdown in every template that maps its hierarchy. Use `@TemplateProperty#excludeSubTypes` for a single usage. |
-| `description` | `""`                             | Description of the subtype, shown in the Modeler search/discovery UI.                                                                        |
+| `description` | `""`                             | Description of the subtype, shown in the Modeler search/discovery UI. Only used for hierarchies that participate in operation metadata (step tree); ignored otherwise. |
 | `keywords`    | `{}`                             | Search aliases for the subtype. Only required on leaf subtypes of hierarchies that participate in operation metadata (the step tree of operation-based connectors); ordinary sealed hierarchies, e.g. authentication variants, do not need it.                                         |
 
 If you are relying on Jackson to deserialize the polymorphic type, make sure to align the
@@ -448,8 +448,9 @@ The following Bean Validation annotations are supported:
 - `@Size` for strings, results in a `minLength` and `maxLength` constraint
 - `@Pattern`
 
-Constraints can alternatively be set via `@TemplateProperty#constraints`. If both are present,
-the Bean Validation annotations take precedence.
+Constraints can alternatively be set via `@TemplateProperty#constraints`. The Bean Validation annotations are processed first and
+`@TemplateProperty#constraints` second, so explicitly set `minLength`, `maxLength` and `pattern` values of
+`@TemplateProperty#constraints` overwrite the ones derived from Bean Validation.
 
 ## Document inputs
 
