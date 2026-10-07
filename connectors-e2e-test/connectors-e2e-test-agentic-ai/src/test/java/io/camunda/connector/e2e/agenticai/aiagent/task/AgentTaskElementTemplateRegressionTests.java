@@ -36,7 +36,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  *
  * <p>There is one fixture per template generation: {@code ai-agent-task-8.8.0.bpmn} (legacy
  * template v5), {@code ai-agent-task-8.9.0.bpmn} (legacy template v7, the last version supporting
- * 8.9) and {@code ai-agent-task.bpmn} (the current AI Agent Task v2 template).
+ * 8.9) and {@code ai-agent-task-8.10.0.bpmn} (AI Agent Task v2 template v1). {@code
+ * ai-agent-task.bpmn} tracks the template on main.
  *
  * <p>The BPMN fixtures under {@code src/test/resources/regression/} are recordings of real,
  * previously deployed processes. They must be deployed <strong>exactly as recorded</strong> — do
@@ -58,7 +59,13 @@ public class AgentTaskElementTemplateRegressionTests extends BaseAgentTaskTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {"ai-agent-task.bpmn", "ai-agent-task-8.9.0.bpmn", "ai-agent-task-8.8.0.bpmn"})
+      strings = {
+        // TODO enable "ai-agent-task.bpmn" once the task template changes after 8.10
+        // "ai-agent-task.bpmn",
+        "ai-agent-task-8.10.0.bpmn",
+        "ai-agent-task-8.9.0.bpmn",
+        "ai-agent-task-8.8.0.bpmn"
+      })
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var firstAiMessage =
