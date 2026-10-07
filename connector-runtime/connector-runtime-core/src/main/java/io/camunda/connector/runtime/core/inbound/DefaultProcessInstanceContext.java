@@ -29,6 +29,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -115,14 +116,10 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   @Override
   public void correlate(final Object variables) {
     String messageId = elementInstance.getElementId() + elementInstance.getElementInstanceKey();
-    // The executable can hold elements of several process versions, but the polled data belongs to
-    // this instance only.
-    var processDefinitionKey = elementInstance.getProcessDefinitionKey();
-    var ownVersionElements =
-        context.connectorElements().stream()
-            .filter(e -> Objects.equals(processDefinitionKey, e.element().processDefinitionKey()))
-            .toList();
-    if (ownVersionElements.isEmpty()) {
+    // The executable can hold several elements, of several process versions, but the polled data
+    // belongs to this element instance only.
+    var ownElements = context.connectorElements().stream().filter(this::isOwnElement).toList();
+    if (ownElements.isEmpty()) {
       // the instance's version was deactivated since this context was created
       LOG.debug(
           "Not correlating element instance {}: its process version is no longer active",
@@ -130,8 +127,19 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
       return;
     }
     correlationHandler.correlate(
-        ownVersionElements,
+        ownElements,
         CorrelationRequest.builder().variables(variables).messageId(messageId).build());
+  }
+
+  /** For a boundary event, the element instance is the activity the event is attached to. */
+  private boolean isOwnElement(InboundConnectorElement element) {
+    var elementId =
+        element.correlationPoint() instanceof BoundaryEventCorrelationPoint point
+            ? point.attachedTo().elementId()
+            : element.element().elementId();
+    return Objects.equals(
+            elementInstance.getProcessDefinitionKey(), element.element().processDefinitionKey())
+        && Objects.equals(elementInstance.getElementId(), elementId);
   }
 
   @Override

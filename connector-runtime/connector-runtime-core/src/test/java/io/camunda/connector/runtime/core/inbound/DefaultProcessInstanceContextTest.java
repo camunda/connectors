@@ -44,6 +44,7 @@ import io.camunda.connector.runtime.core.document.DocumentDeserializationTest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -204,6 +205,58 @@ class DefaultProcessInstanceContextTest {
 
     // then
     verify(correlationHandler).correlate(eq(List.of(v2)), any(CorrelationRequest.class));
+  }
+
+  @Test
+  void correlate_onlyUsesTheInstancesOwnElement() {
+    // given: two polling elements of the same version share the executable
+    var stepA = mock(InboundConnectorElement.class);
+    when(stepA.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 2010L, "stepA", "default"));
+    var stepB = mock(InboundConnectorElement.class);
+    when(stepB.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 10, 2010L, "stepB", "default"));
+    var boundary = mock(InboundConnectorElement.class);
+    when(boundary.element())
+        .thenReturn(
+            new ProcessElementWithRuntimeData("process1", 10, 2010L, "boundary", "default"));
+    when(boundary.correlationPoint())
+        .thenReturn(
+            new BoundaryEventCorrelationPoint(
+                "msg", "=id", null, null, new BoundaryEventCorrelationPoint.Activity("task", "")));
+
+    var intermediateContext = mock(InboundIntermediateConnectorContextImpl.class);
+    when(intermediateContext.connectorElements()).thenReturn(List.of(stepA, stepB, boundary));
+    when(intermediateContext.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type", "tenant-A", "dedup", List.of(), null));
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+
+    // when: polling for an instance waiting at stepB, then for one waiting at the task
+    correlateFor("stepB", intermediateContext, correlationHandler);
+    correlateFor("task", intermediateContext, correlationHandler);
+
+    // then
+    verify(correlationHandler).correlate(eq(List.of(stepB)), any(CorrelationRequest.class));
+    verify(correlationHandler).correlate(eq(List.of(boundary)), any(CorrelationRequest.class));
+  }
+
+  private void correlateFor(
+      String elementId,
+      InboundIntermediateConnectorContextImpl intermediateContext,
+      InboundCorrelationHandler correlationHandler) {
+    var elementInstance = mock(ElementInstance.class);
+    when(elementInstance.getProcessDefinitionKey()).thenReturn(2010L);
+    when(elementInstance.getElementId()).thenReturn(elementId);
+    when(elementInstance.getElementInstanceKey()).thenReturn(1L);
+    new DefaultProcessInstanceContext(
+            intermediateContext,
+            elementInstance,
+            obj -> {},
+            correlationHandler,
+            mapper,
+            mock(CamundaClient.class))
+        .correlate(Map.of("id", "1"));
   }
 
   @Test
