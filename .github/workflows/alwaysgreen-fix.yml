@@ -742,22 +742,23 @@ jobs:
       # resolve `uses: camunda/team-test-automation/...` -- an internal repo shares its
       # actions only with private and internal repos. Check the action out with the app
       # token instead and run it from a local path.
-      - name: Generate medic-resolver read token
+      # The PAT, not an app token: quality-assurance-ci has no installation on
+      # team-test-automation, and this repo's vault role cannot read the qa-processes
+      # path -- both measured, see the PR body. This is the same credential the monorepo
+      # agent uses to clone the internal camunda/workspace-cli.
+      - name: Read the medic-resolver PAT
         id: medic-token
         if: ${{ steps.change.outputs.changed == 'true' }}
         continue-on-error: true
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: team-test-automation
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common GH_TOKEN | GH_PAT;
 
       - name: Check out the medic resolver
         id: medic-src
@@ -767,7 +768,7 @@ jobs:
         with:
           repository: camunda/team-test-automation
           ref: 4ba23b2dfa0029dc5a640fc8e24e78844ca0aa06 # camunda/team-test-automation#186
-          token: ${{ steps.medic-token.outputs.token }}
+          token: ${{ steps.medic-token.outputs.GH_PAT }}
           path: .medic-resolver
           fetch-depth: 1
           persist-credentials: false
