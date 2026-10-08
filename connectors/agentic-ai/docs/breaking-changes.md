@@ -21,7 +21,6 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Conversation storage SPI](#conversation-storage-spi-redesign)                    | Custom `ConversationStore` implementations         |
 | [Chat model SPI](#chat-model-spi)                                                 | Custom model integrations (`AiFrameworkAdapter`, LangChain4j `ChatModelFactory`) |
 | [Moved and removed classes](#moved-and-removed-classes)                           | Any code importing the module's model or utility classes |
-| [Agent initializer](#agent-initializer)                                           | Custom `AgentInitializer` beans or wrappers around `AgentInitializerImpl` |
 | [Persisted data and message model](#persisted-data-and-message-model)             | Code reading stored messages, message metadata, or agent context |
 | [Job types and element templates](#job-types-and-element-templates)               | Hybrid setups overriding job worker types          |
 
@@ -144,23 +143,6 @@ Removed with the job worker consolidation into the SDK
 `aiagent.model` and `aiagent.model.request`. The two AI Agent flavors are regular outbound connector
 functions that return SDK `ConnectorResponse` types.
 
-### Agent initializer
-
-**ADR**: [006-data-driven-agent-initialization](adr/006-data-driven-agent-initialization.md)
-
-- `AgentInitializationResult` variants are renamed:
-
-  | 8.9                                                               | 8.10                                                                                  |
-  | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-  | `AgentContextInitializationResult(agentContext, toolCallResults)` | `ReadyToConverse(agentContext, toolCallResults)`                                      |
-  | `AgentResponseInitializationResult(agentResponse)`                | `DiscoverTools(agentContext, toolDiscoveryToolCalls)` — the initializer no longer builds an `AgentResponse`; the caller dispatches the discovery tool calls |
-  | `AgentDiscoveryInProgressInitializationResult()`                  | `DeferConversation()`                                                                 |
-
-- The `AgentInitializerImpl` constructor takes `AgentToolsResolver`, `GatewayToolHandlerRegistry`,
-  `AgentInstanceClient`, and `ToolCallResultCompletedAtResolver`. Wrappers that construct it must
-  inject the additional `AgentInstanceClient` bean. ADR 006 proposes folding the logic into the
-  request handler.
-
 ### Persisted data and message model
 
 - `AgentContext` carries a `schemaVersion`. State written by 8.9 has no version and is upgraded on
@@ -194,7 +176,12 @@ functions that return SDK `ConnectorResponse` types.
 - The new `v2` element templates run on new job types: `io.camunda.agenticai:aiagent:task:2` and
   `io.camunda.agenticai:aiagent:subprocess:2`. The legacy types stay registered for deployed `v1`
   templates.
-- In hybrid setups, override the new types with `CONNECTOR_AI_AGENT_TASK_TYPE` and
-  `CONNECTOR_AI_AGENT_SUBPROCESS_TYPE`. The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
+- The environment variables `CONNECTOR_AI_AGENT_TASK_TYPE` (AI Agent Task) and
+  `CONNECTOR_AI_AGENT_SUBPROCESS_TYPE` (AI Agent Sub-process) override the job type that the
+  runtime registers its job worker for. This lets a custom runtime handle agent elements next to
+  the default runtime: give it a distinct type and set the same type on the element, using the
+  hybrid element template. The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
   `CONNECTOR_AI_AGENT_JOB_WORKER_TYPE`) only affect the legacy job workers.
-- Use only the `v2` hybrid element templates for new custom runtimes.
+- Use only the `v2` hybrid element templates for new custom runtimes:
+  [AI Agent Task](element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
+  [AI Agent Sub-process](element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json).
