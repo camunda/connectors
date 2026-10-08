@@ -62,8 +62,8 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
   ```
 
 - Docker, for the file server.
-- An Anthropic API key (the example uses the `anthropic` provider with the `anthropic-api` backend and model
-  `claude-sonnet-5`; any provider of the template works).
+- AWS Bedrock access (the example uses the `anthropic` provider with the `aws-bedrock-mantle` backend in `eu-west-1`
+  and model `anthropic.claude-sonnet-5`; any provider of the template works).
 
 ## Setup
 
@@ -78,7 +78,7 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
    If the connectors runtime itself runs in Docker, `localhost` is the runtime container: change `baseUrl` in the start
    event output mapping to `http://host.docker.internal:8081`.
 
-2. Create the connector secret `ANTHROPIC_API_KEY`:
+2. Create the connector secrets `AWS_BEDROCK_ACCESS_KEY` and `AWS_BEDROCK_SECRET_KEY`:
     - c8run: export it as environment variable and restart `c8run`
     - c8run with Docker: add it to `connector-secrets.txt` and restart
     - SaaS / Self-Managed: create it in the Console / runtime configuration
