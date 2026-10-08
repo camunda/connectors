@@ -35,7 +35,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -132,7 +131,8 @@ public abstract class BaseAgentRequestHandler<
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
       // rest of this invocation once populated here: the durable tool definitions of the
       // AgentContext plus the local tools available for this agent, which are never persisted.
-      final var requestConfiguration = executionContext.configuration();
+      final var requestConfiguration =
+          executionContext.configuration().withFeatures(agentContext.features());
       final var configuration =
           requestConfiguration.withToolDefinitions(
               Stream.concat(
@@ -157,8 +157,7 @@ public abstract class BaseAgentRequestHandler<
               agentContext,
               arrivedResults,
               previousConversation,
-              new HistoryDocuments(
-                  configuration.toolDefinitions(), knownDocuments(agentContext, loadedMessages)));
+              historyDocuments(agentContext, configuration));
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -168,9 +167,11 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                // the pending local results are part of newMessages now
-                registerDocuments(agentContext, loadedMessages, newDocuments)
-                    .withPendingLocalToolCallResults(List.of()),
+                agentContext.supportsDocuments()
+                    // the pending local results are part of newMessages now
+                    ? registerDocuments(agentContext, newDocuments)
+                        .withPendingLocalToolCallResults(List.of())
+                    : agentContext,
                 configuration,
                 previousConversation,
                 newMessages,
@@ -182,24 +183,21 @@ public abstract class BaseAgentRequestHandler<
 
   /**
    * Returns the agent context carrying the document registry extended by the documents that enter
-   * the conversation with this turn, after the documents of the stored messages that it does not
-   * know yet.
+   * the conversation with this turn.
    */
   private AgentContext registerDocuments(
-      AgentContext agentContext,
-      List<Message> loadedMessages,
-      List<IngestedDocument> newDocuments) {
+      AgentContext agentContext, List<IngestedDocument> newDocuments) {
     return documentRegistryStorage.store(
-        agentContext, knownDocuments(agentContext, loadedMessages).withDocuments(newDocuments));
+        agentContext, documentRegistryStorage.load(agentContext).withDocuments(newDocuments));
   }
 
-  /**
-   * The registry of the agent context, extended by the documents of the stored messages it does not
-   * know yet (see {@link DocumentRegistryBackfill}).
-   */
-  private DocumentRegistry knownDocuments(AgentContext agentContext, List<Message> loadedMessages) {
-    return DocumentRegistryBackfill.backfill(
-        documentRegistryStorage.load(agentContext), loadedMessages);
+  /** The documents the history shows for the agent context, before this turn registers any. */
+  private HistoryDocuments historyDocuments(
+      AgentContext agentContext, AgentConfiguration configuration) {
+    return agentContext.supportsDocuments()
+        ? new HistoryDocuments(
+            configuration.toolDefinitions(), documentRegistryStorage.load(agentContext))
+        : HistoryDocuments.withoutDocumentFlow(configuration.toolDefinitions());
   }
 
   /**
@@ -385,7 +383,9 @@ public abstract class BaseAgentRequestHandler<
 
   private static HistoryDocuments historyDocuments(
       AgentConfiguration configuration, AgentConversation conversation) {
-    return new HistoryDocuments(configuration.toolDefinitions(), conversation.documentRegistry());
+    return conversation.supportsDocuments()
+        ? new HistoryDocuments(configuration.toolDefinitions(), conversation.documentRegistry())
+        : HistoryDocuments.withoutDocumentFlow(configuration.toolDefinitions());
   }
 
   /**

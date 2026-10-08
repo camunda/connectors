@@ -282,17 +282,4 @@ class DocumentReferenceXmlTagTest {
                 new TextContent(tag.toXml(), Map.of("documentId", "doc-1"))))
         .isNull();
   }
-
-  @Test
-  void parseAttributesReadsTheAttributesOfAnyTagFormat() {
-    assertThat(
-            DocumentReferenceXmlTag.parseAttributes(
-                " <doc toolName=\"t&amp;1\" documentId=\"d1\" storeId='s' /> "))
-        .containsExactly(
-            entry("toolName", "t&1"), entry("documentId", "d1"), entry("storeId", "s"));
-    assertThat(DocumentReferenceXmlTag.parseAttributes("<doc />")).isEmpty();
-    assertThat(DocumentReferenceXmlTag.parseAttributes("some <doc id=\"d\" /> text")).isNull();
-    assertThat(DocumentReferenceXmlTag.isTag("<doc documentId=\"d1\" />")).isTrue();
-    assertThat(DocumentReferenceXmlTag.isTag("hello")).isFalse();
-  }
 }

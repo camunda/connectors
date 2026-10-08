@@ -901,6 +901,7 @@ class AwsAgentCoreConversationStoreTest {
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
                     .build())
+            .features(AgentContext.newInstanceFeatures())
             .build()
             .withDocuments(List.of(entry));
 

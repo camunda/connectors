@@ -17,15 +17,30 @@ import java.util.Objects;
  * registry of the documents the agent knows. The history shows the reference of a document where
  * the model passed its id.
  *
+ * <p>The history of an agent instance created without the documents feature has no document
+ * registry and no local tools: its messages are reported as they are stored.
+ *
  * @param toolDefinitions the tools offered in the invocation (process tools and available local
  *     tools)
  * @param documents the documents known to the agent at the time of the write
+ * @param documentFlow whether the agent instance has the documents feature
  */
-public record HistoryDocuments(List<ToolDefinition> toolDefinitions, DocumentRegistry documents) {
+public record HistoryDocuments(
+    List<ToolDefinition> toolDefinitions, DocumentRegistry documents, boolean documentFlow) {
 
   public HistoryDocuments {
     Objects.requireNonNull(toolDefinitions);
     Objects.requireNonNull(documents);
     toolDefinitions = List.copyOf(toolDefinitions);
+  }
+
+  /** The documents of an agent instance with the documents feature. */
+  public HistoryDocuments(List<ToolDefinition> toolDefinitions, DocumentRegistry documents) {
+    this(toolDefinitions, documents, true);
+  }
+
+  /** The documents of an agent instance created without the documents feature. */
+  public static HistoryDocuments withoutDocumentFlow(List<ToolDefinition> toolDefinitions) {
+    return new HistoryDocuments(toolDefinitions, DocumentRegistry.empty(), false);
   }
 }

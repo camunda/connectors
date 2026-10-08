@@ -82,7 +82,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AgentTaskRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .features(AgentContext.newInstanceFeatures())
+          .state(AgentState.READY)
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
 
   private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
   private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
@@ -206,7 +210,10 @@ class AgentTaskRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -226,7 +233,10 @@ class AgentTaskRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -376,6 +386,7 @@ class AgentTaskRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))

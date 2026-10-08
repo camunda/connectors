@@ -60,13 +60,26 @@ class AgentToolsResolverTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
+    private static final AgentContext NEW_INSTANCE_CONTEXT =
+        AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
+    @Test
+    void doesNotReserveNamesForAnAgentInstanceWithoutTheDocumentsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .satisfies(
+              response -> assertThat(response.toolDefinitions()).containsExactly(RESERVED_TOOL));
+    }
+
     @Test
     void rejectsAnAdHocToolWithTheReservedNameOnToolDiscovery() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
 
       assertThatThrownBy(
-              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -88,7 +101,7 @@ class AgentToolsResolverTest {
                           .build())));
 
       assertThatThrownBy(
-              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));
@@ -101,7 +114,7 @@ class AgentToolsResolverTest {
 
       assertThatThrownBy(
               () ->
-                  agentToolsResolver.updateToolDefinitions(executionContext, AgentContext.empty()))
+                  agentToolsResolver.updateToolDefinitions(executionContext, NEW_INSTANCE_CONTEXT))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));

@@ -75,10 +75,12 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     // the stored assistant message keeps the document ids the model sent; only the tool call
     // handed to the process carries the document references
     final var resolvedToolCalls =
-        DocumentParameterResolver.resolveAll(
-            rawToolCalls,
-            conversation.configuration().toolDefinitions(),
-            conversation.documentRegistry());
+        conversation.supportsDocuments()
+            ? DocumentParameterResolver.resolveAll(
+                rawToolCalls,
+                conversation.configuration().toolDefinitions(),
+                conversation.documentRegistry())
+            : rawToolCalls;
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, resolvedToolCalls).stream()
             .map(ToolCallProcessVariable::from)
@@ -90,7 +92,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
-    if (toolCalls.isEmpty()) {
+    if (toolCalls.isEmpty() && conversation.supportsDocuments()) {
       // a final response consumes the selection of returned documents
       builder.responseDocuments(returnedDocuments(conversation));
       builder.context(agentContext.withReturnDocuments(new LinkedHashMap<>()));

@@ -18,7 +18,6 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -34,12 +33,6 @@ import org.slf4j.LoggerFactory;
  * for the same document already follows it. A document the registry does not know, or whose
  * reference cannot be read, leaves the tag alone. Only flagged text is expanded, so a document tag
  * a user typed into a prompt stays text.
- *
- * <p>Messages that carry the content of a document without a flagged tag (a tag in an older
- * attribute format followed by the content, or the content alone) get the canonical tag of the
- * document: the text of an older tag is replaced and a missing tag is inserted. Such a tag text is
- * not flagged. Inline documents are left as they are. Text that matches no known tag pattern is not
- * touched.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -96,78 +89,20 @@ public final class DocumentExpander {
             }
           }
         }
-        case TextContent text
-            when next instanceof DocumentContent following
-                && isOlderTagOf(text.text(), following.document()) -> {
-          final var canonical = canonicalTag(following.document(), registry).toXml();
-          if (canonical.equals(text.text())) {
-            expanded.add(text);
-          } else {
-            expanded.add(new TextContent(canonical, text.metadata()));
-            changed = true;
-          }
-        }
-        case DocumentContent documentContent -> {
-          if (isTaggable(documentContent.document()) && !endsWithTag(expanded)) {
-            expanded.add(
-                TextContent.textContent(
-                    canonicalTag(documentContent.document(), registry).toXml()));
-            changed = true;
-          }
-          expanded.add(documentContent);
-        }
         default -> expanded.add(current);
       }
     }
     return changed ? List.copyOf(expanded) : content;
   }
 
-  private static boolean endsWithTag(List<Content> content) {
-    return !content.isEmpty()
-        && content.getLast() instanceof TextContent text
-        && (DocumentReferenceXmlTag.documentIdOf(text) != null
-            || DocumentReferenceXmlTag.isTag(text.text()));
+  private static boolean isDocumentWithId(Document document, String id) {
+    return isTaggable(document) && id.equals(DocumentHandle.idFor(document));
   }
 
   /** Only Camunda and external documents get a tag, inline documents are left as they are. */
   private static boolean isTaggable(Document document) {
     return document.reference() instanceof CamundaDocumentReference
         || document.reference() instanceof ExternalDocumentReference;
-  }
-
-  private static boolean isDocumentWithId(Document document, String id) {
-    return isTaggable(document) && id.equals(DocumentHandle.idFor(document));
-  }
-
-  /**
-   * Whether the text is a document tag, in any attribute format, that names the given document: by
-   * its {@code id}, its {@code documentId} (Camunda document) or its {@code url} (external
-   * document).
-   */
-  private static boolean isOlderTagOf(String text, Document document) {
-    if (!isTaggable(document)) {
-      return false;
-    }
-    final Map<String, String> attributes = DocumentReferenceXmlTag.parseAttributes(text);
-    if (attributes == null) {
-      return false;
-    }
-    final var id = DocumentHandle.idFor(document);
-    return switch (document.reference()) {
-      case CamundaDocumentReference reference ->
-          id.equals(attributes.get("id")) || id.equals(attributes.get("documentId"));
-      case ExternalDocumentReference reference ->
-          id.equals(attributes.get("id")) || reference.url().equals(attributes.get("url"));
-      default -> false;
-    };
-  }
-
-  private static DocumentReferenceXmlTag canonicalTag(
-      Document document, DocumentRegistry registry) {
-    return registry
-        .findById(DocumentHandle.idFor(document))
-        .map(DocumentReferenceXmlTag::from)
-        .orElseGet(() -> DocumentReferenceXmlTag.from(document));
   }
 
   private @Nullable Document rehydrate(DocumentRegistry registry, String id) {

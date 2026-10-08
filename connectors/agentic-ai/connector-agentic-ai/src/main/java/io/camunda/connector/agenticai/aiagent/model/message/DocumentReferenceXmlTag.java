@@ -13,8 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
@@ -52,10 +50,6 @@ public record DocumentReferenceXmlTag(
 
   /** Metadata key of the id of the document whose tag the {@link TextContent} holds. */
   public static final String METADATA_DOCUMENT_ID = "documentId";
-
-  private static final Pattern DOC_TAG = Pattern.compile("\\s*<doc(\\s[^<>]*?)?\\s*/?>\\s*");
-  private static final Pattern ATTRIBUTE =
-      Pattern.compile("([A-Za-z_][\\w.:-]*)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')");
 
   public DocumentReferenceXmlTag {
     if (fileName != null && fileName.equals(id)) {
@@ -109,34 +103,6 @@ public record DocumentReferenceXmlTag(
             && !id.isBlank()
         ? id
         : null;
-  }
-
-  /**
-   * Returns {@code true} if the text is a single {@code <doc .../>} tag, whatever its attributes
-   * (surrounding whitespace is tolerated).
-   */
-  public static boolean isTag(String value) {
-    return DOC_TAG.matcher(value).matches();
-  }
-
-  /**
-   * Reads the attributes of a string that is a single {@code <doc .../>} tag, in document order and
-   * XML-unescaped; {@code null} if the string is not a tag.
-   */
-  public static @Nullable Map<String, String> parseAttributes(String value) {
-    final var tag = DOC_TAG.matcher(value);
-    if (!tag.matches()) {
-      return null;
-    }
-    final var attributes = new LinkedHashMap<String, String>();
-    if (tag.group(1) != null) {
-      final var matcher = ATTRIBUTE.matcher(tag.group(1));
-      while (matcher.find()) {
-        final var raw = matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
-        attributes.putIfAbsent(matcher.group(1), StringEscapeUtils.unescapeXml(raw));
-      }
-    }
-    return attributes;
   }
 
   /** The persisted form of the tag: the tag text marked as a document reference of its document. */

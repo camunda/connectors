@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Collects the local tools registered as beans. Local tools belong to the documents feature: an
+ * agent instance created without it offers none.
+ */
 public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   private final Map<String, LocalTool> toolsByName = new LinkedHashMap<>();
@@ -42,6 +46,9 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   @Override
   public List<LocalTool> availableTools(AgentConfiguration configuration) {
+    if (!configuration.supportsDocuments()) {
+      return List.of();
+    }
     return toolsByName.values().stream().filter(tool -> tool.isAvailable(configuration)).toList();
   }
 
@@ -52,6 +59,9 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   @Override
   public Optional<LocalTool> findAvailable(String name, AgentConfiguration configuration) {
+    if (!configuration.supportsDocuments()) {
+      return Optional.empty();
+    }
     return Optional.ofNullable(toolsByName.get(name))
         .filter(tool -> tool.isAvailable(configuration));
   }

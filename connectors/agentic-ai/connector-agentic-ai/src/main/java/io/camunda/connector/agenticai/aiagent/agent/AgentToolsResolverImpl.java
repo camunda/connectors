@@ -50,14 +50,17 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       AgentExecutionContext executionContext, AgentContext agentContext) {
     final var adHocToolsSchema =
         toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
-    rejectReservedToolNames(adHocToolsSchema);
+    if (agentContext.supportsDocuments()) {
+      rejectReservedToolNames(adHocToolsSchema);
+    }
     return adHocToolsSchema;
   }
 
   /**
    * Rejects an ad-hoc or gateway tool element named like a registered local tool, whether that tool
    * is available for this agent or not: availability can change with the configuration of a running
-   * agent, a name must not turn into a collision then.
+   * agent, a name must not turn into a collision then. An agent instance created without the
+   * documents feature reserves no name: it offers no local tool and must keep running its process.
    */
   private void rejectReservedToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
     final var reservedNames = localToolRegistry.toolNames();

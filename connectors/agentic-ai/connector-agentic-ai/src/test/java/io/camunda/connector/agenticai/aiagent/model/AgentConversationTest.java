@@ -44,10 +44,15 @@ class AgentConversationTest {
       new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   private static final AgentContext BASE_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .state(AgentState.READY)
+          .features(AgentContext.newInstanceFeatures())
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+          .withFeatures(AgentContext.newInstanceFeatures())
           .withToolDefinitions(TOOL_DEFINITIONS);
 
   private static final SystemMessage SYSTEM_MESSAGE = systemMessage("sys");

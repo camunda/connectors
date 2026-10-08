@@ -227,9 +227,37 @@ class AgentInstanceHistoryMapperTest {
         mapper.assistantContent(
             AssistantMessage.builder()
                 .content(List.of(TextContent.textContent("I use <doc id=\"a\" />")))
-                .build());
+                .build(),
+            NO_DOCUMENTS);
 
     assertThat(texts(content)).containsExactly("I use `<doc id=\"a\" />`");
+  }
+
+  @Test
+  void withoutTheDocumentsFeatureTextsAndLocalToolNamesAreReportedAsStored() {
+    final var withoutDocumentFlow = HistoryDocuments.withoutDocumentFlow(List.of());
+    final var tag = "<doc toolName=\"t\" toolCallId=\"c\" documentId=\"d1\" />";
+    final var toolCall =
+        ToolCall.builder().id("call-1").name(ReturnDocumentTool.NAME).arguments(Map.of()).build();
+
+    final var assistant =
+        AssistantMessage.builder()
+            .content(List.of(TextContent.textContent("I use " + tag)))
+            .toolCalls(List.of(toolCall))
+            .build();
+    final var user =
+        UserMessage.builder()
+            .content(List.of(TextContent.textContent(tag), TextContent.textContent("see " + tag)))
+            .build();
+
+    assertThat(texts(mapper.assistantContent(assistant, withoutDocumentFlow)))
+        .containsExactly("I use " + tag);
+    assertThat(mapper.assistantToolCalls(assistant, withoutDocumentFlow))
+        .singleElement()
+        .satisfies(call -> assertThat(call.getElementId()).isEqualTo(ReturnDocumentTool.NAME));
+    final var userItems =
+        mapper.inputHistoryItems(user, Map.of(), TURN_INGESTION_TIMESTAMP, withoutDocumentFlow);
+    assertThat(texts(userItems.getFirst().content())).containsExactly(tag, "see " + tag);
   }
 
   @Test
@@ -523,7 +551,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -541,7 +569,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -559,7 +587,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -584,7 +612,7 @@ class AgentInstanceHistoryMapperTest {
                     TextContent.textContent("after")))
             .build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content).hasSize(4);
     assertThat(content.get(0))
@@ -614,7 +642,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(providerContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()

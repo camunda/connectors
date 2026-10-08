@@ -57,11 +57,17 @@ class AgentConversationTurnInputComposerImplTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
+  // the contexts of an agent instance with the documents feature
+  private static final AgentContext CTX =
+      AgentContext.builder()
+          .state(AgentState.READY)
+          .features(AgentContext.newInstanceFeatures())
+          .build();
   // a context with a previous conversation cursor — the realistic state when tool results arrive
   private static final AgentContext CTX_WITH_CONVERSATION =
       AgentContext.builder()
           .state(AgentState.READY)
+          .features(AgentContext.newInstanceFeatures())
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIG =

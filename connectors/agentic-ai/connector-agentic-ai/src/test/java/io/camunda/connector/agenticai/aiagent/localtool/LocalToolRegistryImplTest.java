@@ -13,23 +13,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class LocalToolRegistryImplTest {
 
   private static final AgentConfiguration PLAIN =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+          .withFeatures(AgentContext.newInstanceFeatures());
   private static final AgentConfiguration WITH_MEMORY =
       new AgentConfiguration(
-          TEST_CHAT_MODEL,
-          TEST_SYSTEM_PROMPT,
-          null,
-          new MemoryConfiguration(null, 10),
-          null,
-          null,
-          null);
+              TEST_CHAT_MODEL,
+              TEST_SYSTEM_PROMPT,
+              null,
+              new MemoryConfiguration(null, 10),
+              null,
+              null,
+              null)
+          .withFeatures(AgentContext.newInstanceFeatures());
+  private static final AgentConfiguration WITHOUT_DOCUMENTS_FEATURE = PLAIN.withFeatures(Set.of());
 
   private final LocalToolRegistry registry =
       new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
@@ -48,6 +53,14 @@ class LocalToolRegistryImplTest {
     assertThat(registry.availableToolDefinitions(WITH_MEMORY))
         .extracting(definition -> definition.name())
         .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, SaveNoteTool.NAME);
+  }
+
+  @Test
+  void offersNoToolToAnAgentWithoutTheDocumentsFeature() {
+    assertThat(registry.availableTools(WITHOUT_DOCUMENTS_FEATURE)).isEmpty();
+    assertThat(registry.availableToolDefinitions(WITHOUT_DOCUMENTS_FEATURE)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITHOUT_DOCUMENTS_FEATURE))
+        .isEmpty();
   }
 
   @Test

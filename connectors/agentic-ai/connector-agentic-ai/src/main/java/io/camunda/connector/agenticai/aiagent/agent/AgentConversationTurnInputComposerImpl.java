@@ -17,12 +17,14 @@ import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -85,6 +87,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
+    final boolean documentFlow = agentContext.supportsDocuments();
 
     // events are composed first but follow the prompt or tool call results in the turn
     final var eventDocuments = new ArrayList<IngestedDocument>();
@@ -95,7 +98,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .map(
                 eventResult ->
                     createEventMessage(
-                        eventResult, interruptToolCallsOnEventResults, eventDocuments))
+                        eventResult,
+                        interruptToolCallsOnEventResults,
+                        documentFlow,
+                        eventDocuments))
             .toList();
 
     List<Message> messages = new ArrayList<>();
@@ -129,13 +135,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       messages.add(toolCallResultMessage);
       final var documentMessage =
           createDocumentMessageForToolResults(
-              toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
+              toolCallResults, toolCallResultMessage.id(), documentFlow, ingestedDocuments);
       if (documentMessage != null) {
         messages.add(documentMessage);
       }
       messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(agentInput.userPrompt(), ingestedDocuments));
+      messages.add(
+          createUserPromptMessage(agentInput.userPrompt(), documentFlow, ingestedDocuments));
       messages.addAll(eventMessages);
     }
 
@@ -151,7 +158,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private @Nullable UserMessage createUserPromptMessage(
-      AgentInput.UserPrompt userPrompt, List<IngestedDocument> ingestedDocuments) {
+      AgentInput.UserPrompt userPrompt,
+      boolean documentFlow,
+      List<IngestedDocument> ingestedDocuments) {
 
     final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
@@ -162,11 +171,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    // add documents as tags, the content of each is added from the registry when the model is
-    // called
     final var source = DocumentSource.userMessage(messageId.toString());
-    for (var doc : userPrompt.documents()) {
-      content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+    if (documentFlow) {
+      // add documents as tags, the content of each is added from the registry when the model is
+      // called
+      for (var doc : userPrompt.documents()) {
+        content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+      }
+    } else {
+      // an agent instance without the documents feature keeps the documents as content
+      userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
     }
 
     if (content.isEmpty()) {
@@ -174,7 +188,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return null;
     }
 
-    userPrompt.documents().forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
+    if (documentFlow) {
+      userPrompt
+          .documents()
+          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
+    }
 
     return UserMessage.builder()
         .id(messageId)
@@ -249,6 +267,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private @Nullable UserMessage createDocumentMessageForToolResults(
       List<ToolCallResult> results,
       MessageId toolCallResultMessageId,
+      boolean documentFlow,
       List<IngestedDocument> ingestedDocuments) {
     final var toolCallDocuments = documentExtractor.extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
@@ -257,14 +276,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    for (var group : toolCallDocuments) {
-      final var source =
-          DocumentSource.toolCall(
-              group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
-      for (var doc : group.documents()) {
-        ingestedDocuments.add(new IngestedDocument(doc, source));
-        content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+    if (documentFlow) {
+      for (var group : toolCallDocuments) {
+        final var source =
+            DocumentSource.toolCall(
+                group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
+        for (var doc : group.documents()) {
+          ingestedDocuments.add(new IngestedDocument(doc, source));
+          content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+        }
       }
+    } else {
+      content.addAll(createLegacyDocumentPairs(toolCallDocuments));
     }
 
     final var metadata = new HashMap<>(defaultMessageMetadata());
@@ -276,6 +299,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private Message createEventMessage(
       ToolCallResult eventResult,
       boolean interruptToolCallsOnEventResults,
+      boolean documentFlow,
       List<IngestedDocument> ingestedDocuments) {
     Object eventContent = eventResult.content();
 
@@ -298,13 +322,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // events arrive as ToolCallResult with null id/name, so their documents have no tool call
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
-      final var source = DocumentSource.event(messageId.toString());
       userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      for (var group : eventDocuments) {
-        for (var doc : group.documents()) {
-          ingestedDocuments.add(new IngestedDocument(doc, source));
-          userMessageContent.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+      if (documentFlow) {
+        final var source = DocumentSource.event(messageId.toString());
+        for (var group : eventDocuments) {
+          for (var doc : group.documents()) {
+            ingestedDocuments.add(new IngestedDocument(doc, source));
+            userMessageContent.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+          }
         }
+      } else {
+        userMessageContent.addAll(createLegacyDocumentPairs(eventDocuments));
       }
     }
 
@@ -313,6 +341,26 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
+  }
+
+  /**
+   * The documents of an agent instance without the documents feature: per document the tag in the
+   * attribute format of that instance (see {@link LegacyDocumentReferenceXmlTag}) followed by the
+   * document content.
+   */
+  private List<Content> createLegacyDocumentPairs(
+      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
+    final var content = new ArrayList<Content>();
+    for (var group : documentGroups) {
+      for (var doc : group.documents()) {
+        content.add(
+            textContent(
+                LegacyDocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                    .toXml()));
+        content.add(DocumentContent.documentContent(doc));
+      }
+    }
+    return content;
   }
 
   private boolean isEventContentEmpty(@Nullable Object eventContent) {

@@ -24,6 +24,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
@@ -33,6 +34,10 @@ import org.jspecify.annotations.Nullable;
  * #toolDefinitions()}, which the handler fills in once tool resolution has run (see {@link
  * #withToolDefinitions}) with the tools of the process and the available local tools, and which
  * then becomes the authoritative source of the current tool list for the rest of the invocation.
+ *
+ * <p>{@link #features()} are the features of the agent instance (see {@link
+ * AgentContext#features()}); the handler sets them from the agent context. They are not part of the
+ * {@link #fingerprint()}.
  */
 public record AgentConfiguration(
     ChatModelConfiguration chatModel,
@@ -42,10 +47,36 @@ public record AgentConfiguration(
     @Nullable LimitsConfiguration limits,
     @Nullable EventHandlingConfiguration events,
     @Nullable ResponseConfiguration response,
-    List<ToolDefinition> toolDefinitions) {
+    List<ToolDefinition> toolDefinitions,
+    Set<String> features) {
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+
+  public AgentConfiguration {
+    features = Set.copyOf(features);
+  }
+
+  public AgentConfiguration(
+      ChatModelConfiguration chatModel,
+      SystemPromptConfiguration systemPrompt,
+      UserPromptConfiguration userPrompt,
+      @Nullable MemoryConfiguration memory,
+      @Nullable LimitsConfiguration limits,
+      @Nullable EventHandlingConfiguration events,
+      @Nullable ResponseConfiguration response,
+      List<ToolDefinition> toolDefinitions) {
+    this(
+        chatModel,
+        systemPrompt,
+        userPrompt,
+        memory,
+        limits,
+        events,
+        response,
+        toolDefinitions,
+        Set.of());
+  }
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
@@ -55,7 +86,18 @@ public record AgentConfiguration(
       @Nullable LimitsConfiguration limits,
       @Nullable EventHandlingConfiguration events,
       @Nullable ResponseConfiguration response) {
-    this(chatModel, systemPrompt, userPrompt, memory, limits, events, response, List.of());
+    this(
+        chatModel, systemPrompt, userPrompt, memory, limits, events, response, List.of(), Set.of());
+  }
+
+  /** Returns {@code true} if the agent instance was created with the given feature. */
+  public boolean supports(String feature) {
+    return features.contains(feature);
+  }
+
+  /** Returns {@code true} if the agent instance was created with the documents feature. */
+  public boolean supportsDocuments() {
+    return supports(AgentContext.FEATURE_DOCUMENTS);
   }
 
   public int contextWindowSize() {
@@ -73,7 +115,29 @@ public record AgentConfiguration(
   /** Returns a copy carrying the given tool definitions in place of the current ones. */
   public AgentConfiguration withToolDefinitions(List<ToolDefinition> toolDefinitions) {
     return new AgentConfiguration(
-        chatModel, systemPrompt, userPrompt, memory, limits, events, response, toolDefinitions);
+        chatModel,
+        systemPrompt,
+        userPrompt,
+        memory,
+        limits,
+        events,
+        response,
+        toolDefinitions,
+        features);
+  }
+
+  /** Returns a copy carrying the given features of the agent instance. */
+  public AgentConfiguration withFeatures(Set<String> features) {
+    return new AgentConfiguration(
+        chatModel,
+        systemPrompt,
+        userPrompt,
+        memory,
+        limits,
+        events,
+        response,
+        toolDefinitions,
+        features);
   }
 
   /**

@@ -51,7 +51,9 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
 
   @Override
   public LocalToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
-    if (toolCalls.isEmpty()) {
+    // an agent instance without the documents feature has no local tools and no document
+    // parameters: every call goes to the process as the model sent it
+    if (toolCalls.isEmpty() || !conversation.supportsDocuments()) {
       return LocalToolCallSplit.allRemaining(conversation, toolCalls);
     }
 

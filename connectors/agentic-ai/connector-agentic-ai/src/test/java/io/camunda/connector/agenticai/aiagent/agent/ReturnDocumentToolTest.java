@@ -61,7 +61,8 @@ class ReturnDocumentToolTest {
                   new IngestedDocument(summary, DocumentSource.userMessage(null))));
 
   private static final AgentConfiguration CONFIGURATION =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+          .withFeatures(AgentContext.newInstanceFeatures());
 
   @Test
   void definitionDescribesOneDocumentPerCallUnderAKey() {
@@ -84,9 +85,15 @@ class ReturnDocumentToolTest {
   }
 
   @Test
-  void isOfferedToEveryAgent() {
+  void isOfferedToEveryAgentWithTheDocumentsFeature() {
     assertThat(handler.availableToolDefinitions(CONFIGURATION))
         .containsExactly(new ReturnDocumentTool().definition());
+  }
+
+  @Test
+  void isNotOfferedToAnAgentWithoutTheDocumentsFeature() {
+    assertThat(handler.availableToolDefinitions(CONFIGURATION.withFeatures(java.util.Set.of())))
+        .isEmpty();
   }
 
   @Test
@@ -237,6 +244,7 @@ class ReturnDocumentToolTest {
                 configuration,
                 AgentContext.builder()
                     .state(AgentState.READY)
+                    .features(AgentContext.newInstanceFeatures())
                     .documents(registry.entries())
                     .build(),
                 TurnReconstructor.reconstruct(List.of()),

@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
+import io.camunda.connector.agenticai.aiagent.model.document.LegacyDocumentRendering;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -298,6 +299,11 @@ public final class AgentConversation {
     return agentInstanceKey;
   }
 
+  /** Returns {@code true} if the agent instance was created with the documents feature. */
+  public boolean supportsDocuments() {
+    return currentContext.supportsDocuments();
+  }
+
   /**
    * Returns the document registry of the current agent context, which includes the documents that
    * entered the conversation with this invocation's input.
@@ -362,19 +368,27 @@ public final class AgentConversation {
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the available local
    * tools.
    *
-   * <p>The documents of the windowed user messages are expanded from the registry of the {@link
+   * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
+   * documents of the windowed user messages are expanded from the registry of the {@link
    * AgentContext#documents() context} (see {@link DocumentExpander}). When registry documents are
    * not visible in the windowed messages, the snapshot ends with a transient user message listing
-   * them (see {@link EvictedDocumentsNote}). {@link #allMessages()} and the stored conversation are
-   * not affected.
+   * them (see {@link EvictedDocumentsNote}). For an agent instance without the feature, the
+   * documents of the tool results are marked to be rendered as their document reference (see {@link
+   * LegacyDocumentRendering}) and the messages are otherwise left as they are. {@link
+   * #allMessages()} and the stored conversation are not affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
-    var registry = documentRegistry();
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    var expanded = documentExpander.expandMessages(windowed, registry);
-    var withEvictedDocumentsNote = EvictedDocumentsNote.appendTo(expanded, registry);
+    final List<Message> messages;
+    if (supportsDocuments()) {
+      var registry = documentRegistry();
+      var expanded = documentExpander.expandMessages(windowed, registry);
+      messages = EvictedDocumentsNote.appendTo(expanded, registry);
+    } else {
+      messages = LegacyDocumentRendering.apply(windowed);
+    }
     return new ConversationSnapshot(
-        withEvictedDocumentsNote,
+        messages,
         DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));
   }
 

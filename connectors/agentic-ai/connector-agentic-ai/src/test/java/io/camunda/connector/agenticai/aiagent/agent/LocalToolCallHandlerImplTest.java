@@ -63,15 +63,17 @@ class LocalToolCallHandlerImplTest {
 
   private static final AgentConfiguration WITH_MEMORY =
       new AgentConfiguration(
-          TEST_CHAT_MODEL,
-          TEST_SYSTEM_PROMPT,
-          null,
-          new MemoryConfiguration(null, 10),
-          null,
-          null,
-          null);
+              TEST_CHAT_MODEL,
+              TEST_SYSTEM_PROMPT,
+              null,
+              new MemoryConfiguration(null, 10),
+              null,
+              null,
+              null)
+          .withFeatures(AgentContext.newInstanceFeatures());
   private static final AgentConfiguration WITHOUT_MEMORY =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+          .withFeatures(AgentContext.newInstanceFeatures());
 
   private final Document report = createDocument("report", "report.txt");
   private final String reportId = DocumentHandle.idFor(report);
@@ -91,8 +93,14 @@ class LocalToolCallHandlerImplTest {
 
   private AgentConversation conversation(AgentConfiguration configuration, ToolCall... calls) {
     return AgentConversation.rehydrate(
-            configuration.withToolDefinitions(List.of(UPLOAD, WEATHER)),
-            AgentContext.builder().state(AgentState.READY).documents(registry.entries()).build(),
+            configuration
+                .withToolDefinitions(List.of(UPLOAD, WEATHER))
+                .withFeatures(AgentContext.newInstanceFeatures()),
+            AgentContext.builder()
+                .state(AgentState.READY)
+                .features(AgentContext.newInstanceFeatures())
+                .documents(registry.entries())
+                .build(),
             TurnReconstructor.reconstruct(List.of()),
             null,
             List.of(userMessage("hi")))
@@ -336,7 +344,10 @@ class LocalToolCallHandlerImplTest {
     final var conversation =
         AgentConversation.rehydrate(
                 WITH_MEMORY.withToolDefinitions(List.of(UPLOAD)),
-                AgentContext.builder().state(AgentState.READY).build(),
+                AgentContext.builder()
+                    .state(AgentState.READY)
+                    .features(AgentContext.newInstanceFeatures())
+                    .build(),
                 TurnReconstructor.reconstruct(List.of()),
                 null,
                 List.of(userMessage("hi")))

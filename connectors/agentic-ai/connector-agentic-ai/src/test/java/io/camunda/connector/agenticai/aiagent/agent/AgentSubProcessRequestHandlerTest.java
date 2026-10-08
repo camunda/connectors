@@ -118,10 +118,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AgentSubProcessRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .features(AgentContext.newInstanceFeatures())
+          .state(AgentState.READY)
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
 
   private static final AgentContext CONTEXT_WITH_UPLOAD_TOOL =
       AgentContext.builder()
+          .features(AgentContext.newInstanceFeatures())
           .state(AgentState.READY)
           .toolDefinitions(
               Stream.concat(
@@ -209,7 +214,10 @@ class AgentSubProcessRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -233,7 +241,10 @@ class AgentSubProcessRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -447,6 +458,7 @@ class AgentSubProcessRequestHandlerTest {
     final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     final var agentContextWithHistory =
         AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .documents(List.of(knownEntry))
@@ -598,6 +610,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
@@ -1398,72 +1411,31 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void backfillsTheDocumentsOfTheStoredConversationThatThePersistedRegistryDoesNotKnow() {
-    final var known = createDocument("known", "known.txt");
+  void keepsAnAgentInstanceWithoutTheDocumentsFeatureWithoutRegistryAndFeatures() {
     final var historic = createDocument("historic", "historic.txt");
-    final var fresh = createDocument("fresh", "fresh.txt");
-    final var knownEntry =
-        DocumentRegistryEntry.from(
-            new IngestedDocument(known, DocumentSource.toolCall("search", "call-0", null)));
     final var history =
         List.<Message>of(
             userMessage(List.of(DocumentContent.documentContent(historic))),
             assistantMessage("hello"));
-    final var context =
-        INITIAL_AGENT_CONTEXT
-            .withConversation(
-                InProcessConversationContext.builder("conv").messages(history).build())
-            .withDocuments(List.of(knownEntry));
+    final var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .conversation(InProcessConversationContext.builder("conv").messages(history).build())
+            .build();
     mockSystemPrompt();
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(
-            new CompositionResult.NextTurn(
-                List.of(USER_MESSAGE),
-                List.of(new IngestedDocument(fresh, DocumentSource.userMessage(null)))));
+        .thenReturn(new CompositionResult.NextTurn(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(context, List.of()));
+        .thenReturn(new ReadyToConverse(legacyContext, List.of()));
     mockChatModelExecution(assistantMessage("done"));
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(response.responseValue().context().documents())
-        .extracting(DocumentRegistryEntry::id)
-        .containsExactly(
-            DocumentHandle.idFor(known),
-            DocumentHandle.idFor(historic),
-            DocumentHandle.idFor(fresh));
-    assertThat(response.responseValue().context().documents().get(1).source().type())
-        .isEqualTo(DocumentSource.Type.USER_MESSAGE);
-  }
-
-  @Test
-  void backfillsAnEmptyRegistryFromTheStoredConversation() {
-    final var historic = createDocument("historic", "historic.txt");
-    final var fresh = createDocument("fresh", "fresh.txt");
-    final var history =
-        List.<Message>of(
-            userMessage(List.of(DocumentContent.documentContent(historic))),
-            assistantMessage("hello"));
-    final var context =
-        INITIAL_AGENT_CONTEXT.withConversation(
-            InProcessConversationContext.builder("conv").messages(history).build());
-    mockSystemPrompt();
-    when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(
-            new CompositionResult.NextTurn(
-                List.of(USER_MESSAGE),
-                List.of(new IngestedDocument(fresh, DocumentSource.userMessage(null)))));
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(context, List.of()));
-    mockChatModelExecution(assistantMessage("done"));
-    mockResponseHandler();
-
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-
-    assertThat(response.responseValue().context().documents())
-        .extracting(DocumentRegistryEntry::id)
-        .containsExactly(DocumentHandle.idFor(historic), DocumentHandle.idFor(fresh));
+    assertThat(response.responseValue().context().documents()).isEmpty();
+    assertThat(response.responseValue().context().features()).isEmpty();
+    assertThat(response.responseValue().context().returnDocuments()).isEmpty();
   }
 
   private Document createDocument(String content, String fileName) {

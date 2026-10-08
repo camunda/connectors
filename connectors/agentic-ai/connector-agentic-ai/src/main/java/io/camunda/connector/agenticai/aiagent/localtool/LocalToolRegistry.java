@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/** The local tools registered as beans, and which of them an agent offers. */
+/**
+ * The local tools registered as beans, and which of them an agent offers. An agent instance created
+ * without the documents feature (see {@code AgentContext#FEATURE_DOCUMENTS}) offers no local tool.
+ */
 public interface LocalToolRegistry {
 
   /** The names of all registered tools, whether available or not; these names are reserved. */

@@ -161,10 +161,12 @@ class AgentResponseHandlerDocumentsTest {
   private AgentConversation conversation(
       LinkedHashMap<String, SelectedDocument> selection, AssistantMessage assistantMessage) {
     final var config =
-        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+            .withFeatures(AgentContext.newInstanceFeatures());
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
+            .features(AgentContext.newInstanceFeatures())
             .documents(registry.entries())
             .returnDocuments(selection)
             .build();
