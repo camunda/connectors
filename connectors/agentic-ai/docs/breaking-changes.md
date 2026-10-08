@@ -92,65 +92,24 @@ Application-level changes when upgrading the host project:
 [014-route-v1-requests-through-native-providers](adr/014-route-v1-requests-through-native-providers.md)
 
 The LangChain4j bound `AiFrameworkAdapter` is replaced by a module-owned SPI in
-`io.camunda.connector.agenticai.aiagent.chatmodel`. Native providers (Anthropic, OpenAI including
-Microsoft Foundry, Google Gemini including Vertex AI, AWS Bedrock Converse, Mistral) implement it and are the
-target for the new `v2` element templates.
+`io.camunda.connector.agenticai.aiagent.chatmodel` (`ChatModelFactory` and `ChatModel`). Native
+providers (Anthropic, OpenAI including Microsoft Foundry, Google Gemini including Vertex AI, AWS
+Bedrock Converse, Mistral) implement it and are the target for the new `v2` element templates.
 
-#### Removed
+The previous LangChain4j factories (`AiFrameworkAdapter`, `ChatModelFactory`, `ChatModelFactoryImpl`
+and the rest of the `aiagent.framework.langchain4j` package) are removed. If you overrode or
+extended them, adapt the logic to the new factories. Alternatively, register a `ChatModelFactory` bean for the **Custom Implementation** provider of the `v2` templates.
+It can extend `LangChain4JChatModelFactory` to reuse an existing LangChain4j chat model. The
+connector creates and closes one `ChatModel` per request, so register only the factory as a bean.
+`ChatModelRegistry` fails when zero or more than one factory matches, so `supports` must only match
+the configurations your factory owns.
 
-- `AiFrameworkAdapter`, `AiFrameworkChatResponse`, and the whole `aiagent.framework.langchain4j`
-  package, including the LangChain4j `ChatModelFactory` (`createChatModel(ProviderConfiguration)`)
-  and `ChatModelFactoryImpl`. Custom `AiFrameworkAdapter` beans are no longer called. To keep a
-  LangChain4j based custom provider, extend `LangChain4JChatModelFactory` instead (see
-  [Provider configuration](#provider-configuration)); otherwise implement the new SPI directly.
-- `RuntimeMemory`, `DefaultRuntimeMemory`, `MessageWindowRuntimeMemory`
-  (see the storage SPI section).
-
-#### New
-
-- `ChatModelFactory` — `boolean supports(ChatModelConfiguration)` and
-  `ChatModel create(ChatModelConfiguration)`. Register one bean per provider.
-- `ChatModel` (`AutoCloseable`) — `ChatResult execute(ChatRequest)`. One instance serves a single
-  agent request, and the connector closes it when the request is done. Each `execute` call performs
-  one round trip against the provider.
-- `ChatRequest(AgentExecutionContext, ConversationSnapshot)` and the sealed
-  `ChatResult` (`Completed` | `Continuation`), each carrying an `AssistantMessage` and
-  `AgentMetrics`. Return `Continuation` when the provider pauses mid-turn and must be called again.
-- `ChatModelRegistry` — resolves the factory whose `supports(...)` returns `true`. It **fails when
-  zero or more than one** factory matches, so `supports` must only match the configurations your
-  factory owns.
-- `ChatModelConfiguration` — neutral descriptor with `provider()` and `model()`.
-
-#### Provider configuration
-
-- `ProviderConfiguration` is split into `aiagent.model.request.v1` (legacy templates, previously
-  `aiagent.model.request.provider`) and `aiagent.model.request.v2` (new templates, sealed).
-- `CustomProviderConfiguration(providerType, model, parameters)` (`request.v2`) is the
-  configuration for the **Custom Implementation** provider of the new templates. A factory typically
-  matches on `providerType()` and reads `parameters()` (a FEEL context from the template).
-- By default, v1 provider configurations (legacy element templates) are rewritten to their v2
-  equivalent and run on the native providers
-  (`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2`, default `true`). The
-  switch is temporary and will be removed in a future release. v1 job types and provider
-  configurations stay supported through the translation to v2. The LangChain4j based factories
-  (`aiagent.chatmodel.provider.langchain4j`) are only used when the switch is `false`. They are
-  deprecated, and [ADR 014](adr/014-route-v1-requests-through-native-providers.md) describes their
-  removal. `LangChain4JChatModelFactory` adapts a LangChain4j chat model to `ChatModel` and can be
-  extended to port an existing LangChain4j based custom provider.
-
-#### Migration guide for custom model integrations
-
-1. Remove custom `AiFrameworkAdapter` beans and LangChain4j `ChatModelFactory` overrides.
-2. Implement `ChatModelFactory` as a Spring bean and `ChatModel` as a plain class that
-   `create(...)` instantiates. The connector creates a `ChatModel` per request and closes it
-   afterwards, so do not register it as a shared bean. To reuse a
-   built-in provider, inject its factory bean (for example `OpenAiChatModelFactory`), build its
-   configuration, and call `create(...)` directly. Do not go through `ChatModelRegistry` from inside
-   your factory: it would resolve your own factory again, and fails if several factories match.
-3. Select **Custom Implementation** in a `v2` element template and set the provider type, model and
-   parameters.
-4. To decorate a built-in provider, return a `ChatModel` that wraps the delegate and forwards
-   `close()`.
+By default, v1 provider configurations (legacy element templates) are rewritten to their v2
+equivalent and run on the native providers
+(`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2`, default `true`). The
+switch is temporary and will be removed in a future release. The LangChain4j based factories
+(`aiagent.chatmodel.provider.langchain4j`) are only used when the switch is `false` and are
+deprecated.
 
 ### Moved and removed classes
 
