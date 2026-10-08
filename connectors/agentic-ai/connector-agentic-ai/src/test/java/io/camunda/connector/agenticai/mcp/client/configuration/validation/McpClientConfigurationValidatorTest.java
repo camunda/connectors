@@ -97,7 +97,7 @@ class McpClientConfigurationValidatorTest {
     assertThat(validator.validate(createInMemoryConfiguration(inMemory)))
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank) for an IN_MEMORY MCP client");
+            "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank), the other must be unset, for an IN_MEMORY MCP client");
   }
 
   @Test
@@ -119,6 +119,8 @@ class McpClientConfigurationValidatorTest {
         new InMemoryMcpClientTransportConfiguration(null, null),
         new InMemoryMcpClientTransportConfiguration(" ", null),
         new InMemoryMcpClientTransportConfiguration("", " "),
+        new InMemoryMcpClientTransportConfiguration("", "com.example.MyServer"),
+        new InMemoryMcpClientTransportConfiguration("myServer", ""),
         new InMemoryMcpClientTransportConfiguration("myServer", "com.example.MyServer"));
   }
 
