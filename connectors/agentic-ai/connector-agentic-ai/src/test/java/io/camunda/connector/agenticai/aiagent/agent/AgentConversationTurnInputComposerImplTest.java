@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
@@ -386,7 +387,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_resultsContainDocuments_emitsToolCallDocumentMessage() {
+  void toolResultTurn_resultsContainDocuments_emitsNoDocumentMessage() {
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -408,36 +409,32 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(2);
-    assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            documentMessage -> {
-              assertThat(documentMessage.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(documentMessage.content())
-                  .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(documentMessage.content())
-                  .contains(
-                      documentTag(
-                          weatherDoc,
-                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"))
-                  .noneMatch(DocumentContent.class::isInstance);
-            });
+    // the document is shown as its tag inside the tool result; the message holds it untouched
+    var nextTurn = (CompositionResult.NextTurn) result;
+    assertThat(nextTurn.messages()).hasSize(1);
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(
+            r ->
+                assertThat(r.content())
+                    .containsExactly(
+                        ObjectContent.objectContent(
+                            Map.of("result", "Sunny", "attachment", weatherDoc))));
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            new IngestedDocument(
+                weatherDoc,
+                DocumentSource.toolCall(
+                    "getWeather", "abcdef", toolCallResultMessage.id().toString())));
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversTheTag() {
+  void toolResultTurn_bareDocumentResult_liftsToDocumentContentWithoutADocumentMessage() {
     // a tool call result whose whole content is a Document (not nested in an object): the
-    // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
-    // other content-lift path; the <doc/> tag message is still composed alongside it regardless —
-    // provider tool-result converters are responsible for not embedding the same bytes a second
-    // time, not this provider-agnostic composition step
+    // ToolCallResultContent lift turns this into a first-class DocumentContent, which the provider
+    // converters render as the tag
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -460,7 +457,7 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(2);
+    assertThat(messages).hasSize(1);
     var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
@@ -469,19 +466,10 @@ class AgentConversationTurnInputComposerImplTest {
             r ->
                 assertThat(r.content())
                     .containsExactly(DocumentContent.documentContent(weatherDoc)));
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            documentMessage ->
-                assertThat(documentMessage.content())
-                    .contains(
-                        documentTag(
-                            weatherDoc,
-                            "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />")));
   }
 
   @Test
-  void waitForToolResults_toolAndEventDocuments_emitsMessagesInOrder() {
+  void waitForToolResults_toolAndEventDocuments_emitsTheToolResultsThenTheEventWithTags() {
     var config =
         new AgentConfiguration(
             null,
@@ -512,34 +500,18 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
-    // order: tool call results -> tool-call documents -> event (with its documents)
+    // order: tool call results -> event (with its document tags)
     var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(3);
+    assertThat(messages).hasSize(2);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            toolCallDocuments -> {
-              assertThat(toolCallDocuments.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(toolCallDocuments.content())
-                  .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(toolCallDocuments.content())
-                  .contains(
-                      documentTag(
-                          toolDoc,
-                          "<doc id=\"%s\" fileName=\"weather.txt\" contentType=\"text/plain\" toolName=\"getWeather\" toolCallId=\"abcdef\" />"));
-            });
-    assertThat(messages.get(2))
         .isInstanceOfSatisfying(
             UserMessage.class,
             eventMessage -> {
               assertThat(eventMessage.content())
                   .contains(
-                      textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
+                      textContent(
+                          AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_TAGS_PREAMBLE))
                   .contains(
                       documentTag(
                           eventDoc,
@@ -599,7 +571,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     final var nextTurn = (CompositionResult.NextTurn) result;
     final var toolCallResultMessageId = nextTurn.messages().get(0).id().toString();
-    final var eventMessageId = nextTurn.messages().get(2).id().toString();
+    final var eventMessageId = nextTurn.messages().get(1).id().toString();
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(nextTurn.documents())
         .containsExactlyInAnyOrder(

@@ -369,13 +369,14 @@ public final class AgentConversation {
    * tools.
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
-   * documents of the windowed user messages are expanded from the registry of the {@link
-   * AgentContext#documents() context} (see {@link DocumentExpander}). When registry documents are
-   * not visible in the windowed messages, the snapshot ends with a transient user message listing
-   * them (see {@link EvictedDocumentsNote}). For an agent instance without the feature, the
-   * documents of the tool results are marked to be rendered as their document reference (see {@link
-   * LegacyDocumentRendering}) and the messages are otherwise left as they are. {@link
-   * #allMessages()} and the stored conversation are not affected.
+   * tags of the loaded documents in the windowed user messages are expanded from the registry of
+   * the {@link AgentContext#documents() context} (see {@link DocumentExpander}); every other
+   * document stays a tag. When registry documents are not visible in the windowed messages, the
+   * snapshot ends with a transient user message listing them (see {@link EvictedDocumentsNote}).
+   * For an agent instance without the feature, the documents of the tool results are marked to be
+   * rendered as their document reference (see {@link LegacyDocumentRendering}) and the messages are
+   * otherwise left as they are. {@link #allMessages()} and the stored conversation are not
+   * affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);

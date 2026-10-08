@@ -82,6 +82,52 @@ class DocumentExpanderTest {
   }
 
   @Test
+  void expandingForTheModelAddsTheDocumentOnlyAfterALoadedTag() {
+    final var loadedDocument = camundaDocument("loaded");
+    final var referencedDocument = camundaDocument("referenced");
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(loadedDocument, DocumentSource.userMessage("m-1")),
+                    new IngestedDocument(referencedDocument, DocumentSource.userMessage("m-1"))));
+    final var loadedTag = DocumentReferenceXmlTag.from(registry.entries().get(0)).toLoadedContent();
+    final var referencedTag = DocumentReferenceXmlTag.from(registry.entries().get(1)).toContent();
+    final var message = userMessage(loadedTag, referencedTag);
+
+    final var expanded = expander.expandMessages(List.of(message), registry);
+
+    final var content = ((UserMessage) expanded.getFirst()).content();
+    assertThat(content).hasSize(3);
+    assertThat(content.get(0)).isEqualTo(loadedTag);
+    assertRebuiltDocumentIs(content.get(1), loadedDocument);
+    assertThat(content.get(2)).isEqualTo(referencedTag);
+  }
+
+  @Test
+  void expandingForTheModelLeavesAMessageWithoutLoadedTagsAlone() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.userMessage(null));
+    final var message =
+        userMessage(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent());
+    final var messages = List.<Message>of(message);
+
+    assertThat(expander.expandMessages(messages, registry)).isSameAs(messages);
+  }
+
+  @Test
+  void expandingForTheHistoryAddsTheDocumentAfterEveryFlaggedTag() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.userMessage(null));
+    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent();
+
+    final var expanded = expander.expandContent(List.of(tag), registry);
+
+    assertThat(expanded).hasSize(2);
+    assertRebuiltDocumentIs(expanded.get(1), document);
+  }
+
+  @Test
   void rebuildsAnExternalAndAnInlineDocumentFromTheirReference() {
     final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
     final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
@@ -174,7 +220,7 @@ class DocumentExpanderTest {
     final var assistant = assistantMessage("hi");
     final var plainUser = userMessage(textContent("hello"));
     final var documentUser =
-        userMessage(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent());
+        userMessage(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toLoadedContent());
     final var messages = List.<Message>of(assistant, plainUser, documentUser);
 
     final var expanded = expander.expandMessages(messages, registry);

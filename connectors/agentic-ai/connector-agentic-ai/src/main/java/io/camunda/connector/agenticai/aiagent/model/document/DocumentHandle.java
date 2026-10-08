@@ -107,6 +107,23 @@ public final class DocumentHandle {
   }
 
   /**
+   * Returns the size in bytes the model is shown for the given document, or {@code null} when it is
+   * not known without reading the content: the size of the Camunda document metadata. Other
+   * references have none.
+   *
+   * <p>Same result as {@link #sizeFor(Map)} for the serialized reference of the document.
+   */
+  public static @Nullable Long sizeFor(Document document) {
+    return switch (document.reference()) {
+      case CamundaDocumentReference ignored -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? metadata.getSize() : null;
+      }
+      case null, default -> null;
+    };
+  }
+
+  /**
    * The file name of a serialized document reference (see {@link #fileNameFor(Document)}): {@code
    * metadata.fileName} of a Camunda reference, {@code name} of an external or inline one.
    */
@@ -129,6 +146,18 @@ public final class DocumentHandle {
       case "inline" -> text(reference.get("contentType"));
       default -> null;
     };
+  }
+
+  /**
+   * The size in bytes of a serialized document reference (see {@link #sizeFor(Document)}): {@code
+   * metadata.size} of a Camunda reference, none for any other.
+   */
+  public static @Nullable Long sizeFor(Map<String, Object> reference) {
+    if (!"camunda".equals(referenceType(reference))
+        || !(reference.get("metadata") instanceof Map<?, ?> metadata)) {
+      return null;
+    }
+    return metadata.get("size") instanceof Number size ? size.longValue() : null;
   }
 
   private static String referenceType(Map<String, Object> reference) {

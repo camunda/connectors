@@ -60,10 +60,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  // the preambles of the tag and content pairs of an agent instance without the documents feature
   static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
   static final String EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
+
+  static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
@@ -133,11 +136,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .metadata(defaultMessageMetadata())
               .build();
       messages.add(toolCallResultMessage);
-      final var documentMessage =
-          createDocumentMessageForToolResults(
-              toolCallResults, toolCallResultMessage.id(), documentFlow, ingestedDocuments);
-      if (documentMessage != null) {
-        messages.add(documentMessage);
+      if (documentFlow) {
+        // the documents of the results are shown as their tags inside the tool results
+        ingestToolCallResultDocuments(
+            toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
+      } else {
+        final var documentMessage = createLegacyDocumentMessageForToolResults(toolCallResults);
+        if (documentMessage != null) {
+          messages.add(documentMessage);
+        }
       }
       messages.addAll(eventMessages);
     } else {
@@ -264,11 +271,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, true);
   }
 
-  private @Nullable UserMessage createDocumentMessageForToolResults(
+  private void ingestToolCallResultDocuments(
       List<ToolCallResult> results,
       MessageId toolCallResultMessageId,
-      boolean documentFlow,
       List<IngestedDocument> ingestedDocuments) {
+    for (var group : documentExtractor.extractDocuments(results)) {
+      final var source =
+          DocumentSource.toolCall(
+              group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
+      group.documents().forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
+    }
+  }
+
+  private @Nullable UserMessage createLegacyDocumentMessageForToolResults(
+      List<ToolCallResult> results) {
     final var toolCallDocuments = documentExtractor.extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
       return null;
@@ -276,19 +292,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    if (documentFlow) {
-      for (var group : toolCallDocuments) {
-        final var source =
-            DocumentSource.toolCall(
-                group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
-        for (var doc : group.documents()) {
-          ingestedDocuments.add(new IngestedDocument(doc, source));
-          content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
-        }
-      }
-    } else {
-      content.addAll(createLegacyDocumentPairs(toolCallDocuments));
-    }
+    content.addAll(createLegacyDocumentPairs(toolCallDocuments));
 
     final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
@@ -322,7 +326,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // events arrive as ToolCallResult with null id/name, so their documents have no tool call
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
-      userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
+      userMessageContent.add(
+          textContent(documentFlow ? EVENT_DOCUMENT_TAGS_PREAMBLE : EVENT_DOCUMENTS_PREAMBLE));
       if (documentFlow) {
         final var source = DocumentSource.event(messageId.toString());
         for (var group : eventDocuments) {

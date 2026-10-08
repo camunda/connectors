@@ -334,7 +334,7 @@ class AgentConversationTest {
             new IngestedDocument(document, DocumentSource.userMessage(null)));
     var tag = DocumentReferenceXmlTag.from(entry);
     var storedMessage =
-        UserMessage.builder().content(List.of(textContent("see"), tag.toContent())).build();
+        UserMessage.builder().content(List.of(textContent("see"), tag.toLoadedContent())).build();
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
@@ -353,7 +353,7 @@ class AgentConversationTest {
               assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
-                  .containsExactly(textContent("see"), tag.toContent());
+                  .containsExactly(textContent("see"), tag.toLoadedContent());
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
@@ -365,7 +365,36 @@ class AgentConversationTest {
             });
     // the stored conversation keeps the tag only
     assertThat(conv.allMessages().getLast()).isSameAs(storedMessage);
-    assertThat(storedMessage.content()).containsExactly(textContent("see"), tag.toContent());
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), tag.toLoadedContent());
+  }
+
+  @Test
+  void window_leavesTheTagOfAnUnloadedDocumentWithoutContent() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.userMessage(null)));
+    var tag = DocumentReferenceXmlTag.from(entry);
+    var storedMessage =
+        UserMessage.builder().content(List.of(textContent("see"), tag.toContent())).build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(storedMessage));
+
+    var windowed = conv.window(20, DOCUMENT_EXPANDER).messages();
+
+    assertThat(windowed).hasSize(2);
+    assertThat(windowed.getLast()).isSameAs(storedMessage);
   }
 
   @Test

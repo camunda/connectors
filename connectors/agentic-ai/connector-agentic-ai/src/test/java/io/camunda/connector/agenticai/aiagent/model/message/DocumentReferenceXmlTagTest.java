@@ -8,6 +8,11 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
@@ -17,6 +22,8 @@ import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -24,6 +31,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class DocumentReferenceXmlTagTest {
@@ -281,5 +289,105 @@ class DocumentReferenceXmlTagTest {
             DocumentReferenceXmlTag.documentIdOf(
                 new TextContent(tag.toXml(), Map.of("documentId", "doc-1"))))
         .isNull();
+  }
+
+  private static Document camundaDocumentWithSize(@Nullable Long size) {
+    final var reference = mock(CamundaDocumentReference.class);
+    when(reference.getDocumentId()).thenReturn("doc-1");
+    final var metadata = mock(DocumentMetadata.class);
+    when(metadata.getFileName()).thenReturn("report.pdf");
+    when(metadata.getContentType()).thenReturn("application/pdf");
+    when(metadata.getSize()).thenReturn(size);
+    final var document = mock(Document.class);
+    when(document.reference()).thenReturn(reference);
+    when(document.metadata()).thenReturn(metadata);
+    return document;
+  }
+
+  @Test
+  void camundaDocumentWithASizeInItsMetadataRendersTheSizeAfterTheContentType() {
+    final var document = camundaDocumentWithSize(48213L);
+
+    assertThat(DocumentReferenceXmlTag.from(document).toXml())
+        .isEqualTo(
+            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" />");
+  }
+
+  @Test
+  void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
+    final var document = camundaDocumentWithSize(10L);
+
+    DocumentReferenceXmlTag.from(document, DocumentSource.toolCall("search", "call_1", null));
+
+    verify(document, atLeastOnce()).reference();
+    verify(document, atLeastOnce()).metadata();
+    verifyNoMoreInteractions(document);
+  }
+
+  @Test
+  void camundaDocumentWithoutASizeOmitsIt() {
+    assertThat(DocumentReferenceXmlTag.from(camundaDocumentWithSize(null)).toXml())
+        .doesNotContain("size=");
+  }
+
+  @Test
+  void externalAndInlineDocumentsNeverRenderASize() {
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null))
+                .toXml())
+        .doesNotContain("size=");
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new InlineDocument("{\"a\":1}", "d.json", "application/json"))
+                .toXml())
+        .doesNotContain("size=");
+  }
+
+  @Test
+  void registryEntryRendersTheSizeOfItsCamundaReference() {
+    final var entry =
+        new DocumentRegistryEntry(
+            "doc-1",
+            DocumentSource.userMessage(null),
+            Map.of(
+                "camunda.document.type",
+                "camunda",
+                "documentId",
+                "doc-1",
+                "metadata",
+                Map.of("fileName", "report.pdf", "contentType", "application/pdf", "size", 48213)));
+
+    assertThat(DocumentReferenceXmlTag.from(entry).toXml())
+        .isEqualTo(
+            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" />");
+    assertThat(
+            DocumentReferenceXmlTag.from(
+                    new DocumentRegistryEntry(
+                        "ext",
+                        DocumentSource.userMessage(null),
+                        Map.of("camunda.document.type", "external", "size", 5)))
+                .toXml())
+        .doesNotContain("size=");
+  }
+
+  @Test
+  void toLoadedContentAddsTheLoadedMarkerToTheDocumentReferenceMarker() {
+    final var tag = new DocumentReferenceXmlTag("doc-1", "a.txt", null, "event", null, null);
+
+    final var content = tag.toLoadedContent();
+
+    assertThat(content.text()).isEqualTo(tag.toXml());
+    assertThat(content.metadata())
+        .containsExactly(
+            entry("kind", "document-reference"),
+            entry("documentId", "doc-1"),
+            entry("loaded", true));
+    assertThat(DocumentReferenceXmlTag.isLoaded(content)).isTrue();
+    assertThat(DocumentReferenceXmlTag.isLoaded(tag.toContent())).isFalse();
+    assertThat(DocumentReferenceXmlTag.isLoaded(TextContent.textContent(tag.toXml()))).isFalse();
+    assertThat(
+            DocumentReferenceXmlTag.isLoaded(new TextContent(tag.toXml(), Map.of("loaded", true))))
+        .isFalse();
   }
 }

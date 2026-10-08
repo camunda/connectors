@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * The self-closing XML tag that is the only way the model sees a document, e.g.:
  *
  * <pre>{@code
- * <doc id="25ece9fa-aeea-..." fileName="report.pdf" contentType="application/pdf" toolName="search" toolCallId="call_abc" />
+ * <doc id="25ece9fa-aeea-..." fileName="report.pdf" contentType="application/pdf" size="48213" toolName="search" toolCallId="call_abc" />
  * }</pre>
  *
  * <p>{@code id} is the {@link DocumentHandle#idFor stable document id}. The tag never carries a
@@ -29,15 +29,20 @@ import org.jspecify.annotations.Nullable;
  * id. Null or blank attributes are omitted; {@code toolName} and {@code toolCallId} are only
  * present for documents that came from a tool result, {@code source} ({@code user_message} or
  * {@code event}) only for the other documents. A file name that equals the id (a document stored
- * without a name of its own) is omitted as well, it would only repeat the id.
+ * without a name of its own) is omitted as well, it would only repeat the id. {@code size} (bytes)
+ * is present for a Camunda document whose reference metadata carries one; it is never looked up by
+ * reading the document.
  *
  * <p>The persisted form of a tag is a {@link TextContent} whose metadata marks it as a {@value
- * #KIND_DOCUMENT_REFERENCE} and carries the id of its document (see {@link #toContent()}).
+ * #KIND_DOCUMENT_REFERENCE} and carries the id of its document (see {@link #toContent()}). The
+ * content of the document is shown to the model only next to a tag that is also marked as loaded
+ * (see {@link #toLoadedContent()}).
  */
 public record DocumentReferenceXmlTag(
     String id,
     @Nullable String fileName,
     @Nullable String contentType,
+    @Nullable Long size,
     @Nullable String source,
     @Nullable String toolName,
     @Nullable String toolCallId) {
@@ -51,6 +56,20 @@ public record DocumentReferenceXmlTag(
   /** Metadata key of the id of the document whose tag the {@link TextContent} holds. */
   public static final String METADATA_DOCUMENT_ID = "documentId";
 
+  /** Metadata key whose value {@code true} marks a tag whose document content is loaded. */
+  public static final String METADATA_LOADED = "loaded";
+
+  /** Creates a tag without a size. */
+  public DocumentReferenceXmlTag(
+      String id,
+      @Nullable String fileName,
+      @Nullable String contentType,
+      @Nullable String source,
+      @Nullable String toolName,
+      @Nullable String toolCallId) {
+    this(id, fileName, contentType, null, source, toolName, toolCallId);
+  }
+
   public DocumentReferenceXmlTag {
     if (fileName != null && fileName.equals(id)) {
       fileName = null;
@@ -63,6 +82,7 @@ public record DocumentReferenceXmlTag(
         DocumentHandle.idFor(document),
         DocumentHandle.fileNameFor(document),
         DocumentHandle.contentTypeFor(document),
+        DocumentHandle.sizeFor(document),
         documentSource.type().tagValue(),
         documentSource.toolName(),
         documentSource.toolCallId());
@@ -74,6 +94,7 @@ public record DocumentReferenceXmlTag(
         DocumentHandle.idFor(document),
         DocumentHandle.fileNameFor(document),
         DocumentHandle.contentTypeFor(document),
+        DocumentHandle.sizeFor(document),
         null,
         null,
         null);
@@ -86,6 +107,7 @@ public record DocumentReferenceXmlTag(
         entry.id(),
         DocumentHandle.fileNameFor(entry.reference()),
         DocumentHandle.contentTypeFor(entry.reference()),
+        DocumentHandle.sizeFor(entry.reference()),
         documentSource.type().tagValue(),
         documentSource.toolName(),
         documentSource.toolCallId());
@@ -105,12 +127,41 @@ public record DocumentReferenceXmlTag(
         : null;
   }
 
-  /** The persisted form of the tag: the tag text marked as a document reference of its document. */
+  /**
+   * Returns whether the content is a tag marked as loaded: the content of its document is shown to
+   * the model next to it.
+   */
+  public static boolean isLoaded(TextContent content) {
+    final var metadata = content.metadata();
+    return documentIdOf(content) != null
+        && metadata != null
+        && Boolean.TRUE.equals(metadata.get(METADATA_LOADED));
+  }
+
+  /**
+   * The persisted form of the tag: the tag text marked as a document reference of its document. The
+   * model sees the tag only.
+   */
   public TextContent toContent() {
+    return toContent(false);
+  }
+
+  /**
+   * The persisted form of the tag of a loaded document: marked like {@link #toContent()} and
+   * additionally as loaded, so the content of the document is added next to it.
+   */
+  public TextContent toLoadedContent() {
+    return toContent(true);
+  }
+
+  private TextContent toContent(boolean loaded) {
     // the order of the entries is part of the serialized form
     final var metadata = new LinkedHashMap<String, Object>();
     metadata.put(METADATA_KIND, KIND_DOCUMENT_REFERENCE);
     metadata.put(METADATA_DOCUMENT_ID, id);
+    if (loaded) {
+      metadata.put(METADATA_LOADED, true);
+    }
     return new TextContent(toXml(), Collections.unmodifiableMap(metadata));
   }
 
@@ -119,6 +170,7 @@ public record DocumentReferenceXmlTag(
     appendAttribute(sb, "id", id);
     appendAttribute(sb, "fileName", fileName);
     appendAttribute(sb, "contentType", contentType);
+    appendAttribute(sb, "size", size == null ? null : String.valueOf(size));
     appendAttribute(sb, "source", source);
     appendAttribute(sb, "toolName", toolName);
     appendAttribute(sb, "toolCallId", toolCallId);

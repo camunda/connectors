@@ -25,14 +25,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Turns the persisted form of the documents in user messages into the form the model providers and
- * the agent instance history see: every document tag next to the content of its document.
+ * the agent instance history see: a document tag next to the content of its document.
  *
  * <p>The persisted form of a document is its tag only, a {@link TextContent} marked with {@link
  * DocumentReferenceXmlTag#KIND_DOCUMENT_REFERENCE}; the document is read from the {@link
- * DocumentRegistry}. Expanding adds a {@link DocumentContent} after each flagged tag, unless one
- * for the same document already follows it. A document the registry does not know, or whose
- * reference cannot be read, leaves the tag alone. Only flagged text is expanded, so a document tag
- * a user typed into a prompt stays text.
+ * DocumentRegistry}. Expanding adds a {@link DocumentContent} after a flagged tag, unless one for
+ * the same document already follows it. The model gets the content only of the tags that are marked
+ * as loaded ({@link #expandMessages}); the history shows the document of every flagged tag ({@link
+ * #expandContent}). A document the registry does not know, or whose reference cannot be read,
+ * leaves the tag alone. Only flagged text is expanded, so a document tag a user typed into a prompt
+ * stays text.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -51,13 +53,16 @@ public final class DocumentExpander {
     this.objectMapper = objectMapper;
   }
 
-  /** Returns the messages with the content of their user messages expanded. */
+  /**
+   * Returns the messages with the content of their user messages expanded for the model: only the
+   * tags marked as {@link DocumentReferenceXmlTag#isLoaded loaded} get their document.
+   */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());
     boolean changed = false;
     for (final var message : messages) {
       if (message instanceof UserMessage userMessage) {
-        final var content = expandContent(userMessage.content(), registry);
+        final var content = expand(userMessage.content(), registry, true);
         if (content != userMessage.content()) {
           expanded.add(userMessage.withContent(content));
           changed = true;
@@ -69,15 +74,25 @@ public final class DocumentExpander {
     return changed ? List.copyOf(expanded) : messages;
   }
 
-  /** Returns the content expanded, or the same list when nothing needs to change. */
+  /**
+   * Returns the content expanded with the document of every flagged tag, or the same list when
+   * nothing needs to change.
+   */
   public List<Content> expandContent(List<Content> content, DocumentRegistry registry) {
+    return expand(content, registry, false);
+  }
+
+  private List<Content> expand(
+      List<Content> content, DocumentRegistry registry, boolean loadedOnly) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
       final var current = content.get(i);
       final var next = i + 1 < content.size() ? content.get(i + 1) : null;
       switch (current) {
-        case TextContent text when DocumentReferenceXmlTag.documentIdOf(text) != null -> {
+        case TextContent text
+            when DocumentReferenceXmlTag.documentIdOf(text) != null
+                && (!loadedOnly || DocumentReferenceXmlTag.isLoaded(text)) -> {
           expanded.add(text);
           final var id = Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text));
           if (!(next instanceof DocumentContent following
