@@ -376,6 +376,14 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
+fixtures for the new template generation in the same change. The fixtures live in
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/regression/` (one Task and one
+Sub-process BPMN per generation, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
+`AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the latest
+pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`), re-apply the new
+templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit an existing fixture.
+
 ### Agent definition marker
 
 All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
