@@ -7,6 +7,25 @@ and how to add a provider at all live in
 [`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
+## Token usage
+
+Every provider maps its usage report onto the same disjoint buckets of `AgentMetrics.TokenUsage`, so
+the sum `input + cacheRead + cacheWrite + output` is the total number of tokens processed for the
+call, whichever provider ran it:
+
+| Bucket        | Meaning                                                                          |
+|---------------|----------------------------------------------------------------------------------|
+| `input`       | input tokens that were neither read from nor written to a prompt cache          |
+| `cacheRead`   | input tokens served from a prompt cache                                          |
+| `cacheWrite`  | input tokens written to a prompt cache                                           |
+| `output`      | all generated tokens, including reasoning tokens                                 |
+| `reasoning`   | the part of `output` spent on reasoning; informational, never added to the total |
+
+Providers report usage differently: some count cached tokens inside their input total, some report
+them separately, and some leave thinking tokens out of the output count. Each provider section below
+has a **Token usage** table that shows which provider fields each bucket is computed from, and what
+those fields contain.
+
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
@@ -56,6 +75,18 @@ for the whole prefix (system prompt, tools, prior messages); there are no per-me
 A document inside a tool result always renders as a JSON reference
 (`AnthropicContentConverter.toToolResultBlocks`), never embedded natively, so the bytes the
 composer's `<doc/>` fallback message already delivers aren't sent twice.
+
+### Token usage
+
+The provider's input fields are already mutually exclusive, so each bucket is copied from one field.
+
+| Bucket       | Computed as                                   | What the provider field contains                                    |
+|--------------|-----------------------------------------------|---------------------------------------------------------------------|
+| `input`      | `usage.input_tokens`                          | input tokens not read from or written to the cache                  |
+| `cacheRead`  | `usage.cache_read_input_tokens`               | input tokens served from the prompt cache                           |
+| `cacheWrite` | `usage.cache_creation_input_tokens`           | input tokens written to the prompt cache (5-minute and 1-hour TTL combined) |
+| `output`     | `usage.output_tokens`                         | all generated tokens, including thinking tokens                     |
+| `reasoning`  | `usage.output_tokens_details.thinking_tokens` | the thinking tokens already counted in `output_tokens`              |
 
 ### Truncation
 
@@ -146,6 +177,18 @@ trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor`
 `DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
 through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
 recurse forever.
+
+### Token usage
+
+The provider's input fields are already mutually exclusive, so each bucket is copied from one field.
+
+| Bucket       | Computed as                     | What the provider field contains                                  |
+|--------------|---------------------------------|-------------------------------------------------------------------|
+| `input`      | `usage.inputTokens`             | input tokens not read from or written to the cache                |
+| `cacheRead`  | `usage.cacheReadInputTokens`    | input tokens served from the prompt cache                         |
+| `cacheWrite` | `usage.cacheWriteInputTokens`   | input tokens written to the prompt cache                          |
+| `output`     | `usage.outputTokens`            | all generated tokens                                              |
+| `reasoning`  | always 0                        | Converse reports no reasoning-token count                         |
 
 ### Truncation
 
@@ -240,8 +283,10 @@ includes commentary returned alongside function calls on an intermediate tool-us
 
 ### Caching
 
-Automatic and read-only — no config, no cache-write metric, so the acceptance row sets
-`reportsCacheCreationTokens = false`.
+Automatic — no config. `input_tokens` / `prompt_tokens` include the cached and cache-write tokens, so
+the converters subtract both (clamped at 0) from `inputTokenCount` and report them as
+`cacheReadTokenCount` / `cacheCreationTokenCount`. Models that don't bill cache writes report none, so
+the acceptance row sets `reportsCacheCreationTokens = false`.
 
 ### Tool-result documents
 
@@ -251,6 +296,31 @@ A document inside a tool result always renders as a JSON reference, on both Resp
 than sharing the former), regardless of content type — never embedded natively as `input_image`/
 `input_file`, so the bytes the composer's `<doc/>` fallback message already delivers aren't sent
 twice.
+
+### Token usage
+
+Both API families count the cached and cache-write tokens inside their input total, so those are
+subtracted from it to keep `input` free of cache tokens.
+
+**Chat Completions**
+
+| Bucket       | Computed as                                                                              | What the provider field contains                                                      |
+|--------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `input`      | `usage.prompt_tokens` minus `cacheRead` minus `cacheWrite`; never below 0                | all input tokens, including the cached and cache-write ones                           |
+| `cacheRead`  | `usage.prompt_tokens_details.cached_tokens`                                              | input tokens served from the prompt cache                                             |
+| `cacheWrite` | `usage.prompt_tokens_details.cache_write_tokens`; 0 if absent                            | input tokens written to the prompt cache; only models that bill cache writes send it  |
+| `output`     | `usage.completion_tokens`                                                                | all generated tokens, including reasoning tokens                                      |
+| `reasoning`  | `usage.completion_tokens_details.reasoning_tokens`                                       | the reasoning tokens already counted in `completion_tokens`                           |
+
+**Responses**
+
+| Bucket       | Computed as                                                                              | What the provider field contains                                                      |
+|--------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `input`      | `usage.input_tokens` minus `cacheRead` minus `cacheWrite`; never below 0                 | all input tokens, including the cached and cache-write ones                           |
+| `cacheRead`  | `usage.input_tokens_details.cached_tokens`                                               | input tokens served from the prompt cache                                             |
+| `cacheWrite` | `usage.input_tokens_details.cache_write_tokens`; 0 if absent                             | input tokens written to the prompt cache; only models that bill cache writes send it  |
+| `output`     | `usage.output_tokens`                                                                    | all generated tokens, including reasoning tokens                                      |
+| `reasoning`  | `usage.output_tokens_details.reasoning_tokens`                                           | the reasoning tokens already counted in `output_tokens`                               |
 
 ### Truncation
 
@@ -300,6 +370,9 @@ follow-up request whose history dropped it.
 
 Implicit and read-only, like OpenAI: `GeminiContentResponseConverter.toMetrics` reads
 `cachedContentTokenCount` for `cacheReadTokenCount` only, nothing to configure, no cache-write metric.
+Because `promptTokenCount` includes the cached content, it is subtracted from `inputTokenCount`;
+`toolUsePromptTokenCount` is added to input, and `thoughtsTokenCount` (excluded from
+`candidatesTokenCount`) is added to `outputTokenCount` and reported as `reasoningTokenCount`.
 Gemini's explicit caching (`CachedContent`, a session-scoped resource with its own
 create/reference/expire lifecycle) is out of scope for the same reason it's out of scope everywhere
 else in this file — a different feature from a per-request model call, not a per-provider gap.
@@ -312,6 +385,23 @@ than embedded natively: `GeminiContentConverter.toFunctionResponseParts` seriali
 #toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce — the
 document's actual bytes are already delivered to the model elsewhere for tool results, so embedding
 them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively.
+
+### Token usage
+
+Gemini's prompt count includes cached tokens, its candidates count excludes thinking tokens, and tool-use
+prompt tokens are reported separately. The buckets are rebuilt from those fields so they match what
+`totalTokenCount` sums.
+
+| Bucket       | Computed as                                                       | What the provider fields contain                                                          |
+|--------------|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `input`      | `promptTokenCount` minus `cachedContentTokenCount` (never below 0), plus `toolUsePromptTokenCount` | `promptTokenCount` includes the cached tokens; tool-use prompt tokens are the results of built-in tools such as Google Search that are fed back to the model |
+| `cacheRead`  | `cachedContentTokenCount`                                         | input tokens served from the cache                                                        |
+| `cacheWrite` | always 0                                                          | implicit caching has no write counter                                                     |
+| `output`     | `candidatesTokenCount` plus `thoughtsTokenCount`                  | `candidatesTokenCount` excludes thinking tokens, which are reported in `thoughtsTokenCount` and billed as output |
+| `reasoning`  | `thoughtsTokenCount`                                              | the thinking tokens                                                                       |
+
+`totalTokenCount` is prompt + candidates + thoughts + tool-use prompt tokens, which equals the sum of the
+four normalized buckets.
 
 ### Truncation
 
@@ -413,6 +503,11 @@ the only model in the real-provider acceptance matrix claiming `REASONING` — r
 except `none` and `high` with an HTTP 400 (confirmed against the live API, and matching the two-way
 toggle Mistral's own playground exposes for reasoning effort), so `MistralEffort` only offers
 `MODEL_DEFAULT`, `NONE`, and `HIGH`.
+
+### Token usage
+
+Mistral uses the OpenAI Chat Completions converter, so the mapping is the Chat Completions table of
+the [OpenAI section](#openai). `cacheWrite` is 0 unless the response carries `cache_write_tokens`.
 
 ## Microsoft Foundry authentication
 

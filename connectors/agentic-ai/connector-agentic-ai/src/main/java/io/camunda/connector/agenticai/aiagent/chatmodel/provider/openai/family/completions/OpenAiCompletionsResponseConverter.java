@@ -271,6 +271,11 @@ public class OpenAiCompletionsResponseConverter {
             .promptTokensDetails()
             .flatMap(CompletionUsage.PromptTokensDetails::cachedTokens)
             .orElse(0L);
+    final long cacheWriteTokens =
+        usage
+            .promptTokensDetails()
+            .flatMap(CompletionUsage.PromptTokensDetails::cacheWriteTokens)
+            .orElse(0L);
     final long reasoningTokens =
         usage
             .completionTokensDetails()
@@ -278,9 +283,10 @@ public class OpenAiCompletionsResponseConverter {
             .orElse(0L);
 
     return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount((int) (usage.promptTokens() - cachedTokens))
+        .inputTokenCount((int) Math.max(0, usage.promptTokens() - cachedTokens - cacheWriteTokens))
         .outputTokenCount((int) usage.completionTokens())
         .cacheReadTokenCount((int) cachedTokens)
+        .cacheCreationTokenCount((int) cacheWriteTokens)
         .reasoningTokenCount((int) reasoningTokens)
         .build();
   }
