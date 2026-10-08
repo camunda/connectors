@@ -336,11 +336,15 @@ public class OpenAiResponsesResponseConverter {
 
   private AgentMetrics.TokenUsage toTokenUsage(ResponseUsage usage) {
     final long cachedTokens = usage.inputTokensDetails().cachedTokens();
+    // The typed getter throws when cache_write_tokens is absent (only some models send it).
+    final long cacheWriteTokens =
+        usage.inputTokensDetails()._cacheWriteTokens().asKnown().orElse(0L);
 
     return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount((int) (usage.inputTokens() - cachedTokens))
+        .inputTokenCount((int) Math.max(0, usage.inputTokens() - cachedTokens - cacheWriteTokens))
         .outputTokenCount((int) usage.outputTokens())
         .cacheReadTokenCount((int) cachedTokens)
+        .cacheCreationTokenCount((int) cacheWriteTokens)
         .reasoningTokenCount((int) usage.outputTokensDetails().reasoningTokens())
         .build();
   }
