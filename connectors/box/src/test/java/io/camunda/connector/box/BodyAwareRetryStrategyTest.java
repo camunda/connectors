@@ -7,7 +7,9 @@
 package io.camunda.connector.box;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
 import com.box.sdkgen.networking.fetchoptions.FetchOptions;
 import com.box.sdkgen.networking.fetchresponse.FetchResponse;
 import java.io.ByteArrayInputStream;
@@ -72,5 +74,26 @@ public class BodyAwareRetryStrategyTest {
 
     assertThat(strategy.shouldRetry(download, response, 0)).isFalse();
     assertThat(closed).isFalse();
+  }
+
+  @Test
+  void closesTheBinaryResponseWhenTheDelegateThrows() {
+    var closed = new AtomicBoolean();
+    var content =
+        new ByteArrayInputStream(new byte[] {1}) {
+          @Override
+          public void close() {
+            closed.set(true);
+          }
+        };
+    var response = new FetchResponse.Builder(401, Map.of()).content(content).build();
+    var download =
+        new FetchOptions.Builder("https://api.box.com/2.0/files/1/content", "GET")
+            .auth(new BoxDeveloperTokenAuth("token"))
+            .build();
+
+    assertThatThrownBy(() -> strategy.shouldRetry(download, response, 0))
+        .isInstanceOf(RuntimeException.class);
+    assertThat(closed).isTrue();
   }
 }

@@ -9,6 +9,7 @@ package io.camunda.connector.box.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
@@ -206,7 +207,15 @@ public record BoxRequest(
         implements Operation {
 
       public String getFileName() {
-        return name != null && !name.isBlank() ? name : document.metadata().getFileName();
+        if (name != null && !name.isBlank()) {
+          return name;
+        }
+        var documentName = document.metadata().getFileName();
+        if (documentName == null || documentName.isBlank()) {
+          throw new ConnectorInputException(
+              "The document has no file name. Provide a file name for the upload.");
+        }
+        return documentName;
       }
     }
 

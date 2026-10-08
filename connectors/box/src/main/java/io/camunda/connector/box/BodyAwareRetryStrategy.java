@@ -22,7 +22,13 @@ public class BodyAwareRetryStrategy implements RetryStrategy {
     if (options.getFileStream() != null || options.getMultipartData() != null) {
       return false;
     }
-    boolean retry = delegate.shouldRetry(options, response, attemptNumber);
+    boolean retry;
+    try {
+      retry = delegate.shouldRetry(options, response, attemptNumber);
+    } catch (RuntimeException e) {
+      closeQuietly(response.getContent());
+      throw e;
+    }
     if (retry) {
       closeQuietly(response.getContent());
     }

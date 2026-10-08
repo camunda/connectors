@@ -99,6 +99,8 @@ public class BoxAuthenticationTest {
     assertThat(claims.get("iss").asText()).isEqualTo("jwt-client-id");
   }
 
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
   private static String jwtConfigJson(String enterpriseId) throws Exception {
     var generator = KeyPairGenerator.getInstance("RSA");
     generator.initialize(2048);
@@ -106,7 +108,7 @@ public class BoxAuthenticationTest {
 
     var algorithm = "PBEWithSHA1AndDESede";
     var salt = new byte[8];
-    new SecureRandom().nextBytes(salt);
+    SECURE_RANDOM.nextBytes(salt);
     var key =
         SecretKeyFactory.getInstance(algorithm)
             .generateSecret(new PBEKeySpec("passphrase".toCharArray()));

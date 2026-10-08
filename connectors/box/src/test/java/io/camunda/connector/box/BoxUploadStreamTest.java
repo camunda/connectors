@@ -13,6 +13,8 @@ import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
 import com.box.sdkgen.client.BoxClient;
 import com.box.sdkgen.networking.network.NetworkSession;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.box.model.BoxRequest;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -59,5 +61,24 @@ public class BoxUploadStreamTest {
                     new BoxRequest.Operation.UploadFile("/", document, "file.txt"), client))
         .isInstanceOf(IllegalStateException.class);
     assertThat(closed).isTrue();
+  }
+
+  @Test
+  void rejectsUploadWhenNeitherNameNorDocumentFileNameIsAvailable() {
+    DocumentMetadata metadata =
+        (DocumentMetadata)
+            Proxy.newProxyInstance(
+                DocumentMetadata.class.getClassLoader(),
+                new Class<?>[] {DocumentMetadata.class},
+                (proxy, method, args) -> method.getName().equals("getFileName") ? "" : null);
+    Document document =
+        (Document)
+            Proxy.newProxyInstance(
+                Document.class.getClassLoader(),
+                new Class<?>[] {Document.class},
+                (proxy, method, args) -> metadata);
+
+    assertThatThrownBy(() -> new BoxRequest.Operation.UploadFile("/", document, "").getFileName())
+        .isInstanceOf(ConnectorInputException.class);
   }
 }
