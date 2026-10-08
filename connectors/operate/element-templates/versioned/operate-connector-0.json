@@ -377,7 +377,7 @@
     },
     {
       "label": "Filter",
-      "description": "Search filter in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/overview/#filter\" target=\"_blank\">Operate format</a>",
+      "description": "Search filter in <a href=\"https://docs.camunda.io/docs/8.9/apis-tools/operate-api/overview/#filter\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -393,7 +393,7 @@
     },
     {
       "label": "Sort",
-      "description": "Sorting properties in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/overview/#sort\" target=\"_blank\">Operate format</a><br>Please provide a list of sort objects",
+      "description": "Sorting properties in <a href=\"https://docs.camunda.io/docs/8.9/apis-tools/operate-api/overview/#sort\" target=\"_blank\">Operate format</a><br>Please provide a list of sort objects",
       "group": "parameters",
       "type": "String",
       "feel": "required",
