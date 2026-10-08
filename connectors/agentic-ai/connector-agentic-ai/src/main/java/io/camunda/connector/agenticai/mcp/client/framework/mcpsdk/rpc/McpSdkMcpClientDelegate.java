@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListTools
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
@@ -27,11 +28,25 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   private final ObjectMapper objectMapper;
 
+  private final @Nullable AutoCloseable onClose;
+
   public McpSdkMcpClientDelegate(
       String clientId, McpSyncClient delegate, ObjectMapper objectMapper) {
+    this(clientId, delegate, objectMapper, null);
+  }
+
+  /**
+   * @param onClose additional resource closed after the client, e.g. an in-process server
+   */
+  public McpSdkMcpClientDelegate(
+      String clientId,
+      McpSyncClient delegate,
+      ObjectMapper objectMapper,
+      @Nullable AutoCloseable onClose) {
     this.clientId = clientId;
     this.delegate = delegate;
     this.objectMapper = objectMapper;
+    this.onClose = onClose;
   }
 
   @Override
@@ -81,6 +96,12 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   @Override
   public void close() throws Exception {
-    this.delegate.close();
+    try {
+      this.delegate.close();
+    } finally {
+      if (onClose != null) {
+        onClose.close();
+      }
+    }
   }
 }

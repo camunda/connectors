@@ -11,10 +11,12 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RuntimeMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.inmemory.InMemoryMcpServerResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,8 +38,12 @@ public class McpSdkMcpClientConfiguration {
   public McpSdkClientFactory mcpSdkMcpClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       AgenticAiHttpProxySupport httpProxySupport,
-      McpClientHeadersSupplierFactory headersSupplierFactory) {
+      McpClientHeadersSupplierFactory headersSupplierFactory,
+      ListableBeanFactory beanFactory) {
     return new McpSdkClientFactory(
-        objectMapper, httpProxySupport.getJdkHttpClientProxyConfigurator(), headersSupplierFactory);
+        objectMapper,
+        httpProxySupport.getJdkHttpClientProxyConfigurator(),
+        headersSupplierFactory,
+        new InMemoryMcpServerResolver(beanFactory));
   }
 }

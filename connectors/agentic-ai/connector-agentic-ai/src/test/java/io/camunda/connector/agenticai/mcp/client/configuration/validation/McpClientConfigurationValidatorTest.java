@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.InMemoryMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
@@ -21,6 +22,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -82,6 +84,50 @@ class McpClientConfigurationValidatorTest {
                 .formatted(configuration.type()));
   }
 
+  @ParameterizedTest
+  @MethodSource("validInMemoryTransports")
+  void validationSucceedsForInMemoryClient(InMemoryMcpClientTransportConfiguration inMemory) {
+    assertThat(validator.validate(createInMemoryConfiguration(inMemory))).isEmpty();
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidInMemoryTransports")
+  void validationFailsForInMemoryClientWithoutExactlyOneServerReference(
+      InMemoryMcpClientTransportConfiguration inMemory) {
+    assertThat(validator.validate(createInMemoryConfiguration(inMemory)))
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactly(
+            "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank) for an IN_MEMORY MCP client");
+  }
+
+  @Test
+  void validationFailsForInMemoryClientWithoutTransport() {
+    assertThat(validator.validate(createInMemoryConfiguration(null)))
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactly(
+            "MCP client transport configuration is missing for the configured type 'IN_MEMORY'");
+  }
+
+  static Stream<InMemoryMcpClientTransportConfiguration> validInMemoryTransports() {
+    return Stream.of(
+        new InMemoryMcpClientTransportConfiguration("myServer", null),
+        new InMemoryMcpClientTransportConfiguration(null, "com.example.MyServer"));
+  }
+
+  static Stream<InMemoryMcpClientTransportConfiguration> invalidInMemoryTransports() {
+    return Stream.of(
+        new InMemoryMcpClientTransportConfiguration(null, null),
+        new InMemoryMcpClientTransportConfiguration(" ", null),
+        new InMemoryMcpClientTransportConfiguration("", " "),
+        new InMemoryMcpClientTransportConfiguration("myServer", "com.example.MyServer"));
+  }
+
+  private static McpClientConfiguration createInMemoryConfiguration(
+      InMemoryMcpClientTransportConfiguration inMemory) {
+    return new McpClientConfiguration(
+        true, McpClientType.IN_MEMORY, null, null, null, inMemory, null, null, null);
+  }
+
   static Stream<McpClientConfiguration> validConfigurations() {
     return Stream.of(
         createConfiguration(McpClientType.STDIO, STDIO_CONFIGURATION, null, null),
@@ -131,6 +177,7 @@ class McpClientConfigurationValidatorTest {
         stdioConfig,
         httpConfig,
         sseConfig,
+        null,
         Duration.ofSeconds(1),
         Duration.ofSeconds(2),
         Duration.ofSeconds(3));
