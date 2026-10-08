@@ -204,26 +204,15 @@ jobs:
           ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
           ./element-template-generator/validator/target/appassembler/bin/element-template-validator
 
-      - name: Import build status secrets
-        id: build-status-secrets
+      - name: Observe build status
         if: always()
         continue-on-error: true
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        uses: ./.github/actions/observe-build-status
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
-
-      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
-        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
-        with:
-          build_status: "${{ job.status }}"
-          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
-
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-javadoc:
 
     runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
@@ -311,26 +300,15 @@ jobs:
       - name: Check Javadoc
         run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
-      - name: Import build status secrets
-        id: build-status-secrets
+      - name: Observe build status
         if: always()
         continue-on-error: true
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        uses: ./.github/actions/observe-build-status
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
-
-      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
-        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
-        with:
-          build_status: "${{ job.status }}"
-          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
-
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-format:
 
     runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
@@ -418,26 +396,15 @@ jobs:
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
 
-      - name: Import build status secrets
-        id: build-status-secrets
+      - name: Observe build status
         if: always()
         continue-on-error: true
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        uses: ./.github/actions/observe-build-status
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
-
-      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
-        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
-        with:
-          build_status: "${{ job.status }}"
-          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
-
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-versioned-element-templates:
 
     runs-on: ubuntu-latest
@@ -463,22 +430,12 @@ jobs:
           ./.github/workflows/scripts/check_versioned_element_templates.sh
         shell: bash
 
-      - name: Import build status secrets
-        id: build-status-secrets
+      - name: Observe build status
         if: always()
         continue-on-error: true
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        uses: ./.github/actions/observe-build-status
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
-
-      - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
-        if: ${{ always() && steps.build-status-secrets.outputs.gcloud_sa_key != '' }}
-        with:
-          build_status: "${{ job.status }}"
-          gcp_credentials_json: "${{ steps.build-status-secrets.outputs.gcloud_sa_key }}"
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}

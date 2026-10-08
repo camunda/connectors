@@ -1,0 +1,68 @@
+name: Observe Build Status
+
+description: Records the build status remotely for analytics
+
+inputs:
+  build_status:
+    description: The final job status
+    required: true
+  job_name:
+    description: Optional analytics job name override
+    required: false
+  secret_vault_address:
+    description: Vault server URL
+    required: true
+  secret_vault_role_id:
+    description: Vault AppRole role ID
+    required: true
+  secret_vault_secret_id:
+    description: Vault AppRole secret ID
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Import build status secrets
+      id: secrets
+      continue-on-error: true
+      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+      with:
+        url: ${{ inputs.secret_vault_address }}
+        method: approle
+        roleId: ${{ inputs.secret_vault_role_id }}
+        secretId: ${{ inputs.secret_vault_secret_id }}
+        exportEnv: false
+        secrets: |
+          secret/data/products/connectors/ci/ci-analytics gcloud_sa_key;
+
+    - name: Check secrets availability
+      if: ${{ steps.secrets.outputs.gcloud_sa_key == '' }}
+      shell: bash
+      run: echo "::warning::Not sending any CI health metrics since no access to GHA secrets!"
+
+    - name: Get build duration in milliseconds
+      id: get-build-duration-millis
+      if: ${{ steps.secrets.outputs.gcloud_sa_key != '' }}
+      shell: bash
+      run: |
+        if [ -f /tmp/_monitor-start.pid ]; then
+          start=$(date -r /tmp/_monitor-start.pid +"%s")
+        else
+          start=$(date -r "$GITHUB_ACTION_PATH" +"%s")
+        fi
+        now=$(date +'%s')
+        duration=$((now - start))
+
+        if ((duration >= 0 && duration <= 259200)); then
+          echo "result=$((duration * 1000))" >> "$GITHUB_OUTPUT"
+        else
+          echo "result=" >> "$GITHUB_OUTPUT"
+        fi
+
+    - uses: camunda/infra-global-github-actions/submit-build-status@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # submit-build-status-1.3.3
+      if: ${{ always() && steps.secrets.outputs.gcloud_sa_key != '' }}
+      with:
+        job_name_override: "${{ inputs.job_name || github.job }}"
+        build_status: "${{ inputs.build_status }}"
+        build_duration_millis: "${{ steps.get-build-duration-millis.outputs.result }}"
+        gcp_credentials_json: "${{ steps.secrets.outputs.gcloud_sa_key }}"
