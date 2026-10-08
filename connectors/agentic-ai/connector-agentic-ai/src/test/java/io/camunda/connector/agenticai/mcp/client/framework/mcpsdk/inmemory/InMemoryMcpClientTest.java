@@ -111,12 +111,11 @@ class InMemoryMcpClientTest {
     @Override
     public List<SyncToolSpecification> tools() {
       final var tool =
-          McpSchema.Tool.builder()
-              .name("echo")
-              .description("Echoes the text")
-              .inputSchema(
+          McpSchema.Tool.builder(
+                  "echo",
                   McpJsonDefaults.getMapper(),
                   "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}}")
+              .description("Echoes the text")
               .build();
       return List.of(
           SyncToolSpecification.builder()
