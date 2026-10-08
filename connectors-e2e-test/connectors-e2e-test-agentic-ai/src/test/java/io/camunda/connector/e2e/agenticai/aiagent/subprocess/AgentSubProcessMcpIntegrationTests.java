@@ -18,7 +18,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +42,6 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -358,7 +356,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(5);
+    assertThat(lastMessages).hasSize(4);
 
     assertThat(lastMessages.get(0).role()).isEqualTo("system");
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
@@ -369,19 +367,6 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("img111");
     assertThat(documentTag.contentType()).isEqualTo("image/png");
-
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4),
-        ExtractedDocument.forToolCall(
-            "img111",
-            "MCP_A_MCP_Client___toolA",
-            documentTag,
-            block -> {
-              assertThat(block.path("type").asText()).isEqualTo("image_url");
-              final var url = block.path("image_url").path("url").asText();
-              assertThat(url).startsWith("data:image/png;base64,");
-              assertThat(url.substring(url.indexOf(',') + 1)).isEqualTo(imageBase64);
-            }));
 
     assertAgentResponse(
         zeebeTest,

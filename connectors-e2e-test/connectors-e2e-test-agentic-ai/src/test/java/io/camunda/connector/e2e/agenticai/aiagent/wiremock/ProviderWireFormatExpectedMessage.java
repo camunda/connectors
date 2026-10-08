@@ -56,6 +56,12 @@ sealed interface ProviderWireFormatExpectedMessage {
     return new UserMessage(List.of(contentParts));
   }
 
+  /** A user message with the text and the tag of a document that is not loaded. */
+  static ProviderWireFormatExpectedMessage userWithDocumentTag(String text) {
+    return user(ExpectedContentPart.text(text), ExpectedContentPart.documentTag());
+  }
+
+  /** A user message with the text, the tag and the content of a loaded document. */
   static ProviderWireFormatExpectedMessage userWithDocument(String text) {
     return user(
         ExpectedContentPart.text(text),
@@ -74,6 +80,12 @@ sealed interface ProviderWireFormatExpectedMessage {
 
   static ProviderWireFormatExpectedMessage toolCallResult(String toolCallId, String text) {
     return new ToolCallResultMessage(toolCallId, text);
+  }
+
+  /** A tool result whose text matches the regular expression. */
+  static ProviderWireFormatExpectedMessage toolCallResultMatching(
+      String toolCallId, String textRegex) {
+    return new ToolCallResultMatching(toolCallId, textRegex);
   }
 
   static void assertConversationMessages(
@@ -156,6 +168,19 @@ sealed interface ProviderWireFormatExpectedMessage {
     @Override
     public void assertMatches(int index, RecordedMessage message) {
       assertRoleAndText(index, message, "tool", text);
+      assertThat(message.toolCallId())
+          .as("tool_call_id of message %d", index)
+          .isEqualTo(toolCallId);
+    }
+  }
+
+  record ToolCallResultMatching(String toolCallId, String textRegex)
+      implements ProviderWireFormatExpectedMessage {
+
+    @Override
+    public void assertMatches(int index, RecordedMessage message) {
+      assertThat(message.role()).as("role of message %d", index).isEqualTo("tool");
+      assertThat(message.textContent()).as("text content of message %d", index).matches(textRegex);
       assertThat(message.toolCallId())
           .as("tool_call_id of message %d", index)
           .isEqualTo(toolCallId);

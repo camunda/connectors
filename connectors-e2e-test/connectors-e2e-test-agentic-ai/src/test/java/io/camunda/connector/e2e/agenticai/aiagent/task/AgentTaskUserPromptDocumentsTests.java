@@ -18,11 +18,16 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertLoadedDocumentsUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.LoadedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -74,26 +79,20 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
-    // system message
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: content is an array with the prompt text + document block
-    // (text files produce two text-type blocks; assertConversationMessages would concatenate them)
+    // user message: the prompt text and the <doc/> tag of the document, not its content
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts())
-        .as("user message should have multipart content")
-        .isNotEmpty();
-    assertThat(userMessage.contentParts().size())
-        .as("expected text + <doc/> tag + document block")
-        .isEqualTo(3);
+    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag").hasSize(2);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
     assertDocumentTagPart(userMessage.contentParts().get(1));
-    assertDocumentContentBlockJson(
-        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
+    assertThat(
+            parseDocumentTag(userMessage.contentParts().get(1).path("text").asText()).contentType())
+        .isEqualTo(mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -104,6 +103,76 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .hasResponseMessageText(responseText)
                 .hasResponseText(responseText));
+
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
+  }
+
+  /**
+   * The model loads the document with {@code c8__get_document}: the next request carries the tag
+   * and the content of the document in the form its content type has on the wire.
+   */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "test.csv",
+        "test.gif",
+        "test.jpg",
+        "test.json",
+        "test.pdf",
+        "test.png",
+        "test.txt",
+        "test.webp",
+        "test.xml",
+        "test.yaml"
+      })
+  void loadsDocumentOfTypeOnRequest(String filename) throws Exception {
+    final var initialUserPrompt = "Summarize the following document";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        getDocumentTurn(), Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
+                Map.of(
+                    "userPrompt",
+                    initialUserPrompt,
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    // the first request shows the tag only
+    assertThat(recorded.requests().getFirst().messages()).hasSize(2);
+
+    final var messages = recorded.lastRequest().messages();
+    assertThat(messages).hasSize(5);
+    assertThat(messages)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    final var promptTag =
+        parseDocumentTag(messages.get(1).contentParts().get(1).path("text").asText());
+    assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
+    assertThat(messages.get(3).content()).isEqualTo("Loaded document " + promptTag.id() + ".");
+
+    assertLoadedDocumentsUserMessage(
+        messages.get(4),
+        LoadedDocument.forUserPrompt(
+            promptTag,
+            block ->
+                assertDocumentContentBlockJson(
+                    block, contentBlockType(filename), mimeType(filename))));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(responseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
@@ -136,20 +205,16 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: prompt text + two document blocks
+    // user message: prompt text + the tags of the two documents
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts()).isNotEmpty();
-    assertThat(userMessage.contentParts().size())
-        .as("expected text + 2 (<doc/> tag + document block) pairs")
-        .isEqualTo(5);
+    assertThat(userMessage.contentParts()).as("prompt text + 2 <doc/> tags").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
     assertDocumentTagPart(userMessage.contentParts().get(1));
-    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "text", "text/plain");
-    assertDocumentTagPart(userMessage.contentParts().get(3));
-    assertDocumentContentBlockJson(userMessage.contentParts().get(4), "base64", "image/jpeg");
+    assertDocumentTagPart(userMessage.contentParts().get(2));
 
     assertAgentResponse(
         zeebeTest,
@@ -164,8 +229,11 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
+  /** The prompt shows the tag only, so the unsupported type surfaces when the model loads it. */
   @Test
-  void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
+  void raisesIncidentWhenALoadedDocumentTypeIsNotSupported() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubRepeatingTurn(getDocumentTurn());
+
     final var zeebeTest =
         awaitActiveIncidents(
             createProcessInstance(

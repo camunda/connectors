@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -50,6 +51,10 @@ public final class DocumentFlowFixtures {
   public static final String DOWNLOAD_CALL_ID = "call_download";
   public static final String UPLOAD_CALL_ID = "call_upload";
   public static final String RETURN_CALL_ID = "call_return";
+  public static final String GET_CALL_ID = "call_get";
+  public static final String GET_AGAIN_CALL_ID = "call_get_again";
+  public static final String LARGE_FILE = "large.txt";
+  public static final String LARGE_FILE_MARKER = "LARGE-DOCUMENT-LINE";
   public static final String PING_CALL_ID = "call_ping";
   public static final String SLOW_TOOL_CALL_ID = "call_slow";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
@@ -66,6 +71,10 @@ public final class DocumentFlowFixtures {
   }
 
   public static Turn downloadTurn(String wireMockBaseUrl) {
+    return downloadTurn(wireMockBaseUrl, DOWNLOADED_FILE);
+  }
+
+  public static Turn downloadTurn(String wireMockBaseUrl, String file) {
     return Turn.toolCalls(
         "I will download the file.",
         10,
@@ -73,7 +82,36 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             DOWNLOAD_CALL_ID,
             "Download_A_File",
-            "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, DOWNLOADED_FILE)));
+            "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, file)));
+  }
+
+  /** Loads the first known document of the request. */
+  public static Turn getDocumentTurn() {
+    return getDocumentTurn(documentId(0));
+  }
+
+  public static Turn getDocumentTurn(String documentId) {
+    return getDocumentTurn(GET_CALL_ID, documentId);
+  }
+
+  public static Turn getDocumentTurn(String callId, String documentId) {
+    return Turn.toolCalls(
+        "I will read the document.",
+        10,
+        20,
+        ToolCall.of(callId, "c8__get_document", "{\"id\": \"%s\"}".formatted(documentId)));
+  }
+
+  /**
+   * Stubs a text file of about 300 KB, above the limit of {@code c8__get_document} for text, and
+   * returns its bytes.
+   */
+  public static byte[] stubLargeTextFile() {
+    final var bytes = (LARGE_FILE_MARKER + "\n").repeat(300 * 1024 / 20).getBytes();
+    stubFor(
+        get(urlPathEqualTo("/" + LARGE_FILE))
+            .willReturn(aResponse().withHeader("Content-Type", "text/plain").withBody(bytes)));
+    return bytes;
   }
 
   /** Uploads the first known document of the request. */

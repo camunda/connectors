@@ -16,10 +16,15 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertLoadedOnceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_AGAIN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE_MARKER;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
@@ -28,16 +33,20 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.as
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithSlowToolTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubLargeTextFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.ZeebeTest;
@@ -54,6 +63,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -91,7 +102,12 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     assertThat(recorded.modelCallCount()).isEqualTo(4);
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__return_document");
+            "Download_A_File",
+            "Upload_A_File",
+            "Ping",
+            "Slow_Tool",
+            "c8__return_document",
+            "c8__get_document");
 
     final var downloadResult = recorded.requests().get(1).messages().get(3);
     assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
@@ -278,6 +294,99 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
           assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * A tool returns a document, the model loads it twice and passes its id to a tool: the first load
+   * puts the content next to the tag, the second one is answered without loading again, and the
+   * tool receives the real bytes. The content is a text for a text document and a file for a PDF.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"test.txt", "test.pdf"})
+  void loadsAFetchedDocumentOnceAndPassesItsIdToATool(String file) throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file),
+        getDocumentTurn(GET_CALL_ID, documentId(0)),
+        getDocumentTurn(GET_AGAIN_CALL_ID, documentId(0)),
+        uploadTurn(),
+        finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    assertLoadedOnceAndPassedByIdFlow(
+        OpenAiCompletionsRecordedConversation.recorded(),
+        block ->
+            assertDocumentContentBlockJson(
+                block,
+                file.endsWith(".pdf") ? "base64" : "text",
+                file.endsWith(".pdf") ? "application/pdf" : "text/plain"));
+    assertUploaded(servedFile(file));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * A document above the limit is rejected with an answer that tells to pass the id to a tool: no
+   * content reaches the model, and the tool still receives the real bytes.
+   */
+  @Test
+  void rejectsALargeDocumentAndStillPassesItsIdToATool() throws Exception {
+    final var largeFile = stubLargeTextFile();
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), LARGE_FILE),
+        getDocumentTurn(),
+        uploadTurn(),
+        finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(4);
+    final var afterRejection = recorded.requests().get(2).messages();
+    assertThat(afterRejection)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "assistant", "tool");
+    assertThat(afterRejection.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
+    assertThat(afterRejection.get(5).content())
+        .endsWith(
+            "too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
+    assertThat(recorded.lastRequest().messages().getLast().content()).contains("200");
+    assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
+        .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
+
+    assertUploaded(largeFile);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT));
+  }
+
+  /** The id of a document that is not known is answered by the framework, not by the tool. */
+  @Test
+  void answersGetDocumentOfAnUnknownIdWithTheKnownDocuments() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()), getDocumentTurn("no-such-document"), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var documentId =
+        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
+    final var errorResult = recorded.lastRequest().messages().getLast();
+    assertThat(errorResult.role()).isEqualTo("tool");
+    assertThat(errorResult.content())
+        .startsWith(
+            "Parameter 'id' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
+        .contains("<doc id=\"" + documentId + "\"");
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT));
   }
 
   private ZeebeTest startProcess() throws Exception {

@@ -109,8 +109,8 @@ public class AgentTaskProcessMigrationTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
     assertThat(recorded.lastRequest().toolNames())
-        // the new process tool and the built-in c8__return_document tool
-        .hasSize(expectedTools().size() + 2)
+        // the new process tool and the built-in c8__ tools
+        .hasSize(expectedTools().size() + 3)
         .contains(NEW_TOOL_ID);
 
     final var getDateAndTimeTool =

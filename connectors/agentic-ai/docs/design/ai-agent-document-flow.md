@@ -40,7 +40,7 @@ referenced by their id in tool calls, and leave through the response.
    ingestedDocuments)`) collects an `IngestedDocument` (document and `DocumentSource`) for every
    document that enters the turn: user prompt documents (`createUserPromptMessage`), tool result
    documents including gateway `extractDocuments` and nested documents
-   (`createDocumentMessageForToolResults`, reuses `ToolCallResultDocumentExtractor`) and event
+   (`ingestToolCallResultDocuments`, reuses `ToolCallResultDocumentExtractor`) and event
    documents (`createEventMessage`). The composer creates the ids of the messages first, so each
    source carries the id of the message that introduced the document. The list is ordered prompt and
    tool results first, events last, matching the message order.
@@ -52,9 +52,12 @@ referenced by their id in tool calls, and leave through the response.
    (`AgentContext.documents`, `aiagent/model/AgentContext.java`). The `Deferred`, `NoInput` and
    no-op paths do not register anything because nothing enters the conversation there.
 4. **Rendering.** The composer stores one `<doc .../>` tag (`aiagent/model/message/DocumentReferenceXmlTag.java`)
-   per document and no document content (section 4.1). `AgentConversation.window` expands the tags
-   of the windowed user messages from the registry (`DocumentExpander`), so the providers see each
-   tag followed by its `DocumentContent`.
+   per document and no document content (section 4.1). The documents of a tool result are shown as
+   their tag inside the tool result, without a follow-up message. `AgentConversation.window` expands
+   only the tags marked as loaded from the registry (`DocumentExpander`), so the providers see a
+   loaded document's tag followed by its `DocumentContent`; the model loads a document with the
+   local tool `c8__get_document` (`GetDocumentTool`), whose result the composer follows with a
+   message that carries the loaded tag.
    `aiagent/chatmodel/provider/ModelFacingJson.java` renders a `Document` at any depth of tool result
    or message object content as its tag, for every provider path. `AgentConversation.window`
    also appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
@@ -208,8 +211,9 @@ is the tag string inside the JSON value.
 
 No provider embeds a document inside the tool result entry (Anthropic `tool_result`, OpenAI
 `function_call_output`, Bedrock `toolResult`, Gemini `functionResponse` all carry text or JSON only).
-The real bytes travel in the user message that follows the tool results, where the tag text precedes
-each native block, so the id in the tool result entry and next to the native block is the same. Two
+The real bytes reach the model only when it loads the document with `c8__get_document`: they travel
+in the user message that follows the tool results, where the tag text precedes each native block, so
+the id in the tool result entry and next to the native block is the same. Two
 native block names are not the id: the Bedrock `DocumentBlock.name` is a hash derived from the id
 (Bedrock charset rules) and the OpenAI `input_file.filename` is the file name; the preceding tag text
 carries the id.
@@ -497,17 +501,20 @@ The handler and the composer do not change; `AgentContext.documents` stays reada
 
 ### 4.1 Persisted form and provider form
 
-A document is persisted in a conversation once per message that introduces it, as its tag only: the
-composer stores a `TextContent` with the `<doc .../>` text and the metadata `{"kind": "document-reference", "documentId": "<id>"}`
-for every user prompt, tool call document and event document, and no `DocumentContent` next to it. The
-preamble texts (`Documents extracted from tool calls ...`, `Documents extracted from event data ...`) stay
-in front of the tags. The reference of the document lives in the registry (`AgentContext.documents`)
-only, in addition to the `ToolCallResultMessage` of a tool document, which is stored unchanged. The
-metadata (`kind` equal to `document-reference`) is the only marker: `Content` is a sealed hierarchy, so a tag is a normal `TextContent`, and
+A document is persisted in a conversation as its tag only: the composer stores a `TextContent` with
+the `<doc .../>` text and the metadata `{"kind": "document-reference", "documentId": "<id>"}` for
+every user prompt document and event document (the event tags follow the text `Documents attached to
+the event:`), and no `DocumentContent` next to it. A tool result document has no tag message: the
+persisted `ToolCallResultMessage` keeps it unchanged and the providers render it as its tag. A document
+the model loads with `c8__get_document` is persisted in a follow-up user message (preamble `Documents
+loaded by c8__get_document:`, metadata `toolCallDocuments`) whose tag also carries `"loaded": true`.
+The tag carries `size="<bytes>"` for a Camunda document whose reference metadata has a size. The
+reference of the document lives in the registry (`AgentContext.documents`) only. The metadata
+(`kind` equal to `document-reference`) is the only marker: `Content` is a sealed hierarchy, so a tag is a normal `TextContent`, and
 text a user typed that happens to hold a `<doc/>` tag is never touched.
 
 The providers see another form. `AgentConversation.window` passes the windowed messages through
-`DocumentExpander`, which adds after each flagged tag a `DocumentContent` with the document built from
+`DocumentExpander`, which adds after each tag marked as loaded a `DocumentContent` with the document built from
 the registry reference map, with the same document deserialization the persisted messages use (the
 connectors object mapper with its document factory). The result is the pair every provider converter
 already handled: tag text followed by the native block. The expansion
@@ -521,7 +528,7 @@ already handled: tag text followed by the native block. The expansion
   eviction of the tool call document messages (`MessageWindowFilter`, metadata `toolCallDocuments`) works
   on the stored messages, before the expansion.
 
-The agent instance history reports a user message with the same expansion (`AgentInstanceHistoryMapper`
+The agent instance history reports a user message with the expansion of every flagged tag (`AgentInstanceHistoryMapper`
 with the registry of `HistoryDocuments`): the tag text and the document as a `DOCUMENT` part, as it did
 when the content was stored. The AWS AgentCore conversion keeps a `TextContent` with metadata in its
 content blob (a text without metadata stays a conversational payload), so the marker survives that store.

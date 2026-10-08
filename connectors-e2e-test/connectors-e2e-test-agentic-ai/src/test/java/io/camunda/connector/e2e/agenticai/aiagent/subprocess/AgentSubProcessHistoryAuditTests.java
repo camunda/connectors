@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
@@ -140,7 +141,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   private void stubDocumentFlow() {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
-        // the documents of the request in order of appearance: the prompt document, the download
+        // the documents of the request in order of appearance: the prompt document, the download;
+        // the prompt document is loaded into the conversation, the download is only referenced
+        getDocumentTurn(documentId(0)),
         uploadTurn(documentId(1)),
         returnDocumentWithPingTurn(),
         finalTurn());
@@ -324,31 +327,47 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
    * The blocks of a history item cover the parts of a request message when they pair up one to one:
    * a text block equals its text part without the inline code backticks of the history, an object
    * block is the JSON of its part with the document references shown as tags, and a document block
-   * is a part that is not a tag (the document content, as text or as a file).
+   * is a part that is not a tag (the document content, as text or as a file). A document block that
+   * follows a tag text has no part when the document is only referenced: the model sees the tag and
+   * the history adds the document reference.
    */
   private static boolean blocksCover(
       List<AgentInstanceHistoryContent> blocks, List<ModelPart> parts) {
-    if (blocks.size() != parts.size()) {
+    return blocksCover(blocks, 0, parts, 0);
+  }
+
+  private static boolean blocksCover(
+      List<AgentInstanceHistoryContent> blocks,
+      int blockIndex,
+      List<ModelPart> parts,
+      int partIndex) {
+    if (blockIndex == blocks.size()) {
+      return partIndex == parts.size();
+    }
+    final var block = blocks.get(blockIndex);
+    final var part = partIndex < parts.size() ? parts.get(partIndex) : null;
+    if (block instanceof AgentInstanceHistoryContent.DocumentContent) {
+      final var followsTag =
+          blockIndex > 0
+              && blocks.get(blockIndex - 1) instanceof AgentInstanceHistoryContent.TextContent tag
+              && tag.getText().contains("<doc ");
+      final var loaded = part != null && (part.text() == null || !part.text().contains("<doc "));
+      return (loaded && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1))
+          || (followsTag && blocksCover(blocks, blockIndex + 1, parts, partIndex));
+    }
+    if (part == null) {
       return false;
     }
-    for (int i = 0; i < blocks.size(); i++) {
-      final var part = parts.get(i);
-      final var covered =
-          switch (blocks.get(i)) {
-            case AgentInstanceHistoryContent.TextContent text ->
-                part.text() != null && strip(text.getText()).equals(strip(part.text()));
-            case AgentInstanceHistoryContent.ObjectContent object ->
-                part.text() != null
-                    && jsonCovers(OBJECT_MAPPER.valueToTree(object.getObject()), part.text());
-            case AgentInstanceHistoryContent.DocumentContent ignored ->
-                part.text() == null || !part.text().contains("<doc ");
-            default -> false;
-          };
-      if (!covered) {
-        return false;
-      }
-    }
-    return true;
+    final var covered =
+        switch (block) {
+          case AgentInstanceHistoryContent.TextContent text ->
+              part.text() != null && strip(text.getText()).equals(strip(part.text()));
+          case AgentInstanceHistoryContent.ObjectContent object ->
+              part.text() != null
+                  && jsonCovers(OBJECT_MAPPER.valueToTree(object.getObject()), part.text());
+          default -> false;
+        };
+    return covered && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1);
   }
 
   private static boolean jsonCovers(JsonNode reported, String sentText) {

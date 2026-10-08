@@ -27,21 +27,25 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
- * Assertion helpers for the synthetic user message that carries documents extracted from tool call
- * results.
+ * Assertion helpers for the user message that carries the documents the model loaded with {@code
+ * c8__get_document}, and for the document tags of the other messages.
  *
  * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
- * carry documents from one or many tool call results. Use {@link
- * #assertExtractedDocumentsUserMessage(JsonNode, ExtractedDocument...)} to assert against any
- * number of documents in one go.
+ * carry one or many loaded documents. Use {@link #assertLoadedDocumentsUserMessage(RecordedMessage,
+ * LoadedDocument...)} to assert against any number of documents in one go.
  *
  * <p>All assertions operate on OpenAI-compatible wire-format {@link JsonNode} objects recorded by
  * WireMock — no framework-specific types required.
  */
 public final class ToolCallResultDocumentAssertions {
 
+  /**
+   * The preamble of the tag and content pairs of an agent instance without the documents feature.
+   */
   public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
+
+  public static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded by c8__get_document:";
 
   private static final Pattern DOC_TAG = Pattern.compile("<doc ([^>]*?)\\s*/>");
   private static final Pattern TAG_ATTRIBUTE = Pattern.compile("(\\w+)=\"([^\"]*)\"");
@@ -73,11 +77,12 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(attributes).as("tag attributes").containsKey("id");
     assertThat(attributes.keySet())
         .as("tag attributes")
-        .isSubsetOf("id", "fileName", "contentType", "source", "toolName", "toolCallId");
+        .isSubsetOf("id", "fileName", "contentType", "size", "source", "toolName", "toolCallId");
     return new DocumentReferenceXmlTag(
         attributes.get("id"),
         attributes.get("fileName"),
         attributes.get("contentType"),
+        attributes.containsKey("size") ? Long.valueOf(attributes.get("size")) : null,
         null,
         null,
         null);
@@ -94,15 +99,15 @@ public final class ToolCallResultDocumentAssertions {
 
   /**
    * Asserts that {@code message} is a wire-format user message (OpenAI-compatible JSON) with the
-   * standard "extracted documents" structure: a preamble text block followed by an {@code (xml-tag,
+   * "loaded documents" structure: a preamble text block followed by an {@code (xml-tag,
    * content-block)} pair per expected document.
    *
    * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
    * stays in sync with the production format. The content-block {@link JsonNode} is passed directly
-   * to each {@link ExtractedDocument#contentBlockAssertion()}.
+   * to each {@link LoadedDocument#contentBlockAssertion()}.
    */
-  public static void assertExtractedDocumentsUserMessage(
-      RecordedMessage message, ExtractedDocument... expectedDocuments) {
+  public static void assertLoadedDocumentsUserMessage(
+      RecordedMessage message, LoadedDocument... expectedDocuments) {
     assertThat(message.role()).as("message role").isEqualTo("user");
     final List<JsonNode> contentParts = message.contentParts();
     assertThat(contentParts).as("content should be an array").isNotEmpty();
@@ -113,7 +118,7 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(contentParts.get(0).path("type").asText()).as("preamble type").isEqualTo("text");
     assertThat(contentParts.get(0).path("text").asText())
         .as("preamble text")
-        .isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE);
+        .isEqualTo(LOADED_DOCUMENTS_PREAMBLE);
 
     for (int i = 0; i < expectedDocuments.length; i++) {
       final var expected = expectedDocuments[i];
@@ -179,29 +184,48 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Specification of one expected extracted document slot in the synthetic user message: an XML tag
-   * with optional tool call correlation attributes plus a content block check operating on the raw
-   * OpenAI wire-format {@link JsonNode}.
+   * Specification of one expected loaded document slot in the user message: an XML tag plus a
+   * content block check operating on the raw OpenAI wire-format {@link JsonNode}.
    */
-  public record ExtractedDocument(String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
+  public record LoadedDocument(String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
 
     /**
-     * Document extracted from a tool call result, identified by the tag the tool result itself
-     * showed (see {@link #parseDocumentTag}).
+     * Document returned by a tool call result, identified by the tag the tool result itself showed
+     * (see {@link #parseDocumentTag}).
      */
-    public static ExtractedDocument forToolCall(
+    public static LoadedDocument forToolCall(
         String toolCallId,
         String toolName,
         DocumentReferenceXmlTag resultTag,
         Consumer<JsonNode> contentBlockAssertion) {
-      return new ExtractedDocument(
+      return new LoadedDocument(
           new DocumentReferenceXmlTag(
                   resultTag.id(),
                   resultTag.fileName(),
                   resultTag.contentType(),
+                  resultTag.size(),
                   null,
                   toolName,
                   toolCallId)
+              .toXml(),
+          contentBlockAssertion);
+    }
+
+    /**
+     * Document of the user prompt, identified by the tag the prompt message showed (see {@link
+     * #parseDocumentTag}).
+     */
+    public static LoadedDocument forUserPrompt(
+        DocumentReferenceXmlTag promptTag, Consumer<JsonNode> contentBlockAssertion) {
+      return new LoadedDocument(
+          new DocumentReferenceXmlTag(
+                  promptTag.id(),
+                  promptTag.fileName(),
+                  promptTag.contentType(),
+                  promptTag.size(),
+                  "user_message",
+                  null,
+                  null)
               .toXml(),
           contentBlockAssertion);
     }

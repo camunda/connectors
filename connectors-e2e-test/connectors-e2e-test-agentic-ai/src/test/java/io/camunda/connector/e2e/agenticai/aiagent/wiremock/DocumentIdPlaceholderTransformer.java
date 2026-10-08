@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
  * first appearance, zero based) in the request body. A placeholder without a matching tag is left
  * untouched, which surfaces as an unknown id in the agent.
  *
- * <p>Stubs opt in with {@code withTransformers(NAME)}; {@code OpenAiCompletionsChatModelStubs} does
- * it for every response.
+ * <p>The transformer applies to every stub, so the scripted model of any provider can use the
+ * placeholders; a response without a placeholder is left untouched.
  */
 public final class DocumentIdPlaceholderTransformer implements ResponseDefinitionTransformerV2 {
 
@@ -57,7 +57,7 @@ public final class DocumentIdPlaceholderTransformer implements ResponseDefinitio
 
   @Override
   public boolean applyGlobally() {
-    return false;
+    return true;
   }
 
   @Override

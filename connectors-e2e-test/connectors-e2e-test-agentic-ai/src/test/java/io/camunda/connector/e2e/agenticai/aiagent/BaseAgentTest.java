@@ -29,6 +29,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -250,11 +251,11 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   protected void assertToolSpecifications(
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
-    // the model sees the tools of the process next to the built-in c8__return_document tool
+    // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
     expected.addAll(
         DocumentParameterSchema.toProviderToolDefinitions(
-            List.of(new ReturnDocumentTool().definition())));
+            List.of(new ReturnDocumentTool().definition(), new GetDocumentTool().definition())));
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 

@@ -18,13 +18,10 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -60,19 +57,18 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
 
   @ParameterizedTest
   @CsvSource({
-    "test.csv,text,text/csv",
-    "test.gif,base64,image/gif",
-    "test.jpg,base64,image/jpeg",
-    "test.json,text,application/json",
-    "test.pdf,base64,application/pdf",
-    "test.png,base64,image/png",
-    "test.txt,text,text/plain",
-    "test.webp,base64,image/webp",
-    "test.xml,text,application/xml",
-    "test.yaml,text,application/yaml"
+    "test.csv,text/csv",
+    "test.gif,image/gif",
+    "test.jpg,image/jpeg",
+    "test.json,application/json",
+    "test.pdf,application/pdf",
+    "test.png,image/png",
+    "test.txt,text/plain",
+    "test.webp,image/webp",
+    "test.xml,application/xml",
+    "test.yaml,application/yaml"
   })
-  void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
-      throws Exception {
+  void supportsDocumentResponsesFromToolCalls(String filename, String mimeType) throws Exception {
     final var initialUserPrompt = "Go and download a document!";
     final var aiToolCallText =
         "The user asked me to download a document. I will call the Download_A_File tool to do so.";
@@ -106,31 +102,22 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(7);
+    assertThat(lastMessages).hasSize(6);
 
     assertThat(lastMessages.get(0).role()).isEqualTo("system");
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: the document shown as a <doc/> tag
+    // tool result: the document shown as a <doc/> tag, its content is not part of the conversation
     final var toolResultText = lastMessages.get(3).content();
     final var documentTag = parseDocumentTag(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
     assertThat(documentTag.contentType()).isEqualTo(mimeType);
 
-    // document user message: extracted document content (decoded from wire format)
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4),
-        ExtractedDocument.forToolCall(
-            "aaa111",
-            "Download_A_File",
-            documentTag,
-            block -> assertDocumentContentBlockJson(block, type, mimeType)));
-
-    assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
-    assertThat(lastMessages.get(6).role()).isEqualTo("user");
-    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(4).role()).isEqualTo("assistant");
+    assertThat(lastMessages.get(5).role()).isEqualTo("user");
+    assertThat(lastMessages.get(5).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
@@ -176,7 +163,7 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(5);
+    assertThat(lastMessages).hasSize(4);
 
     assertThat(lastMessages.get(0).role()).isEqualTo("system");
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
@@ -185,17 +172,10 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     // tool result: external document shown as a <doc/> tag with its name, never its URL
     final var toolResultText = lastMessages.get(3).content();
     final var externalTag = parseDocumentTag(toolResultText);
+    assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(externalTag.fileName()).isEqualTo(docName);
+    assertThat(externalTag.size()).isNull();
     assertThat(toolResultText).doesNotContain(docUrl);
-
-    // document user message: external doc rendered with content block
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4),
-        ExtractedDocument.forToolCall(
-            "ext111",
-            "External_File_Reference",
-            externalTag,
-            block -> assertDocumentContentBlockJson(block, "base64", "application/pdf")));
 
     assertAgentResponse(
         zeebeTest,
