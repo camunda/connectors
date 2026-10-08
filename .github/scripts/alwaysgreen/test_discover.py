@@ -509,6 +509,86 @@ def test_failing_jobs_asks_for_the_pinned_attempt(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# References: which PR or issue accounts for a suppressed failure
+# ---------------------------------------------------------------------------
+#
+# The notifier tests hand-build these maps, so without producer-side assertions here a
+# regression could drop or misassign every PR link in Slack and leave the suite green.
+
+KEY = "connectors:main:sm-smoke-e2e"
+
+
+def test_a_claimed_fingerprint_reports_the_pr_that_claimed_it(monkeypatch):
+    _stub(monkeypatch, [_pr(3951, [KEY], claims=["aaaaaaaa"])])
+
+    _covered, _keys, _per_spec, refs, _ok = discover.dedupe_inputs()
+
+    assert refs["covered_by"] == {"aaaaaaaa": f"{discover.FIX_PR_REPOS[0]}#3951"}
+
+
+def test_the_first_claimant_is_the_one_reported(monkeypatch):
+    # The PR reported must be the one whose claim actually suppressed the dispatch.
+    _stub(
+        monkeypatch,
+        [_pr(1, [KEY], claims=["aaaaaaaa"]), _pr(2, [KEY], claims=["aaaaaaaa"])],
+    )
+
+    _covered, _keys, _per_spec, refs, _ok = discover.dedupe_inputs()
+
+    assert refs["covered_by"]["aaaaaaaa"].endswith("#1")
+
+
+def test_a_locked_key_reports_every_pr_holding_it(monkeypatch):
+    _stub(monkeypatch, [_pr(10, [KEY]), _pr(11, [KEY])])
+
+    _covered, _keys, _per_spec, refs, _ok = discover.dedupe_inputs()
+
+    repo = discover.FIX_PR_REPOS[0]
+    assert refs["keys"][KEY] == [f"{repo}#10", f"{repo}#11"]
+
+
+def test_an_expired_lock_is_not_reported_as_holding_the_key(monkeypatch):
+    # Reporting it would point the medic at a PR that no longer claims the surface.
+    _stub(monkeypatch, [_pr(8, [KEY], age_hours=discover.PR_LOCK_TTL_HOURS + 1)])
+
+    _covered, _keys, _per_spec, refs, _ok = discover.dedupe_inputs()
+
+    assert refs["keys"] == {}
+
+
+def test_a_product_bug_reports_its_issue_url(monkeypatch):
+    monkeypatch.setattr(
+        discover,
+        "gh_json",
+        lambda args, default: [
+            {
+                "body": "Fingerprint: nightly-product-bug fp=abcd1234\n",
+                "url": "https://github.com/camunda/camunda/issues/55864",
+            }
+        ],
+    )
+
+    fps, urls = discover.product_bug_fingerprints()
+
+    assert fps == {"abcd1234"}
+    assert urls == {"abcd1234": "https://github.com/camunda/camunda/issues/55864"}
+
+
+def test_a_product_bug_without_a_url_still_suppresses(monkeypatch):
+    # The fingerprint is what decides; the URL is only what the message prints.
+    monkeypatch.setattr(
+        discover,
+        "gh_json",
+        lambda args, default: [{"body": "nightly-product-bug fp=abcd1234"}],
+    )
+
+    fps, urls = discover.product_bug_fingerprints()
+
+    assert fps == {"abcd1234"}
+    assert urls == {}
+
+
+# ---------------------------------------------------------------------------
 # End-to-end smoke test over _run()
 # ---------------------------------------------------------------------------
 #
