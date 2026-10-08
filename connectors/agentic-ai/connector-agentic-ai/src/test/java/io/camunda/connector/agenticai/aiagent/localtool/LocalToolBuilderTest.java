@@ -14,13 +14,19 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class LocalToolBuilderTest {
 
   private static LocalToolContext context() {
     return new LocalToolContext(
-        null, Map.of(), DocumentRegistry.empty(), null, TestObjectMapperSupplier.INSTANCE);
+        null,
+        Map.of(),
+        DocumentRegistry.empty(),
+        Set.of(),
+        null,
+        TestObjectMapperSupplier.INSTANCE);
   }
 
   @Test

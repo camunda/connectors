@@ -82,6 +82,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
               .name(toolCall.name())
               .content(result.content())
               .completedAt(completedAt)
+              .properties(result.properties())
               .build());
       for (final var update : result.contextUpdates()) {
         workingConversation = workingConversation.withContextUpdate(update);
@@ -114,6 +115,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
             conversation.configuration(),
             conversation.toAgentContext().properties(),
             documents,
+            conversation.loadedDocumentIds(),
             conversation.agentInstanceKey(),
             objectMapper);
     try {

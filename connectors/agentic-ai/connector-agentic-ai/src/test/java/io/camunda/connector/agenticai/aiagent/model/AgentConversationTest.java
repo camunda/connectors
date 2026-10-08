@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -36,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -600,6 +602,61 @@ class AgentConversationTest {
     assertThat(conv.currentTurn().assistantMessage()).isNull();
     assertThat(conv.lastTurn()).get().extracting(AgentConversationTurn::iterationKey).isEqualTo(1);
     assertThat(conv.jobMetrics()).isEqualTo(firstRound);
+  }
+
+  @Test
+  void nextLocalToolRound_carriesTheFollowUpMessagesAfterTheToolResults() {
+    var results = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var followUp = userMessage("loaded");
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
+            .nextLocalToolRound(results, List.of(followUp));
+
+    assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
+  }
+
+  @Test
+  void loadedDocumentIds_collectsTheLoadedTagsOfTheWindowedUserMessagesOnly() {
+    var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
+    var referenced = new DocumentReferenceXmlTag("doc-2", null, null, "user_message", null, null);
+    var conv =
+        rehydrate(
+            List.of(),
+            List.of(
+                UserMessage.builder()
+                    .content(List.of(loaded.toLoadedContent(), referenced.toContent()))
+                    .build()));
+
+    assertThat(conv.loadedDocumentIds()).containsExactly("doc-1");
+  }
+
+  @Test
+  void loadedDocumentIds_leavesOutADocumentWhoseMessageWasEvicted() {
+    var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
+    var userMessage = UserMessage.builder().content(List.of(loaded.toLoadedContent())).build();
+
+    for (var windowSize : List.of(3, 2)) {
+      var conv =
+          AgentConversation.rehydrate(
+                  new AgentConfiguration(
+                          TEST_CHAT_MODEL,
+                          TEST_SYSTEM_PROMPT,
+                          null,
+                          new MemoryConfiguration(null, windowSize),
+                          null,
+                          null,
+                          null)
+                      .withFeatures(AgentContext.newInstanceFeatures()),
+                  BASE_CONTEXT,
+                  TurnReconstructor.reconstruct(List.of()),
+                  SYSTEM_MESSAGE,
+                  List.of(userMessage))
+              .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+      // the window holds the system message, the user message and the assistant message
+      assertThat(conv.loadedDocumentIds()).isEqualTo(windowSize == 3 ? Set.of("doc-1") : Set.of());
+    }
   }
 
   @Test

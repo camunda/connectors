@@ -10,10 +10,12 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
@@ -67,6 +69,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
+  static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded by c8__get_document:";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
@@ -140,6 +143,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // the documents of the results are shown as their tags inside the tool results
         ingestToolCallResultDocuments(
             toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
+        final var loadedDocumentsMessage =
+            composeLoadedDocumentsMessage(
+                DocumentRegistry.of(agentContext.documents()), toolCallResults);
+        if (loadedDocumentsMessage != null) {
+          messages.add(loadedDocumentsMessage);
+        }
       } else {
         final var documentMessage = createLegacyDocumentMessageForToolResults(toolCallResults);
         if (documentMessage != null) {
@@ -269,6 +278,33 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, true);
+  }
+
+  @Override
+  public @Nullable UserMessage composeLoadedDocumentsMessage(
+      DocumentRegistry registry, List<ToolCallResult> results) {
+    final var tags =
+        results.stream()
+            .filter(result -> GetDocumentTool.NAME.equals(result.name()))
+            .map(result -> result.properties().get(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID))
+            .filter(String.class::isInstance)
+            .map(String.class::cast)
+            .distinct()
+            .map(registry::findById)
+            .flatMap(Optional::stream)
+            .<Content>map(entry -> DocumentReferenceXmlTag.from(entry).toLoadedContent())
+            .toList();
+    if (tags.isEmpty()) {
+      return null;
+    }
+
+    final var content = new ArrayList<Content>();
+    content.add(textContent(LOADED_DOCUMENTS_PREAMBLE));
+    content.addAll(tags);
+
+    final var metadata = new HashMap<>(defaultMessageMetadata());
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    return UserMessage.builder().content(content).metadata(metadata).build();
   }
 
   private void ingestToolCallResultDocuments(

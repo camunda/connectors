@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import java.util.Map;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -22,6 +23,8 @@ import org.jspecify.annotations.Nullable;
  * @param properties the free-form properties of the agent context (see {@code
  *     AgentContext.properties()}), as of the call
  * @param documents the documents the agent knows, as of the call
+ * @param loadedDocumentIds the ids of the documents whose content is part of the conversation the
+ *     model reads, as of the call
  * @param agentInstanceKey the key of the agent instance, or {@code null} if there is none yet
  * @param objectMapper the mapper for converting values, for example to bind arguments
  */
@@ -29,5 +32,6 @@ public record LocalToolContext(
     AgentConfiguration configuration,
     Map<String, Object> properties,
     DocumentRegistry documents,
+    Set<String> loadedDocumentIds,
     @Nullable AgentInstanceKey agentInstanceKey,
     ObjectMapper objectMapper) {}

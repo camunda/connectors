@@ -50,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
@@ -193,6 +194,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(name = "aiAgentReturnDocumentLocalTool")
   public LocalTool aiAgentReturnDocumentLocalTool() {
     return new ReturnDocumentTool();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentGetDocumentLocalTool")
+  public LocalTool aiAgentGetDocumentLocalTool() {
+    return new GetDocumentTool();
   }
 
   @Bean

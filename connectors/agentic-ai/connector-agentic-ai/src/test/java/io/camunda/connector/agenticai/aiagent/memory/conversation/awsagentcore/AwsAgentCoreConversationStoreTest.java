@@ -879,7 +879,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void aTagOnlyDocumentMessageSurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
+  void aLoadedTagOnlyDocumentMessageSurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -890,7 +890,7 @@ class AwsAgentCoreConversationStoreTest {
     final var entry =
         DocumentRegistryEntry.from(
             new IngestedDocument(document, DocumentSource.userMessage(null)));
-    final var tag = DocumentReferenceXmlTag.from(entry).toContent();
+    final var tag = DocumentReferenceXmlTag.from(entry).toLoadedContent();
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 

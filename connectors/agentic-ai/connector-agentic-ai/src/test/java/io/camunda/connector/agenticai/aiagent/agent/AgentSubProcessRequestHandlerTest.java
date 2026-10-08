@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -49,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -75,9 +77,11 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -88,6 +92,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -172,7 +177,7 @@ class AgentSubProcessRequestHandlerTest {
   @Spy
   private LocalToolCallHandler localToolCallHandler =
       new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
+          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
           TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -976,6 +981,113 @@ class AgentSubProcessRequestHandlerTest {
         .get()
         .extracting(turn -> ((AgentConversationTurn) turn).assistantMessage())
         .isEqualTo(firstMessage);
+  }
+
+  @Test
+  void carriesTheContentOfADocumentLoadedByAGetDocumentCallIntoTheNextRoundOfTheSameJob() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    final var realComposer =
+        new AgentConversationTurnInputComposerImpl(mock(GatewayToolHandlerRegistry.class));
+    when(agentInputComposer.composeLoadedDocumentsMessage(any(), any()))
+        .thenAnswer(
+            i -> realComposer.composeLoadedDocumentsMessage(i.getArgument(0), i.getArgument(1)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var getCall = new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", documentId));
+    final var firstMessage = AssistantMessage.builder().toolCalls(List.of(getCall)).build();
+    final var secondMessage = assistantMessage("done");
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Completed(firstMessage, metrics))
+        .doReturn(new ChatResult.Completed(secondMessage, metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    // the first request shows the document as a tag only
+    final var firstRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(0).snapshot().messages();
+    assertThat(firstRequestMessages)
+        .noneMatch(
+            message ->
+                message instanceof UserMessage user
+                    && user.content().stream().anyMatch(DocumentContent.class::isInstance));
+
+    // the second request has the tool result followed by the message with the loaded content
+    final var secondRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+    assertThat(secondRequestMessages.get(secondRequestMessages.size() - 2))
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(
+                        result -> {
+                          assertThat(result.id()).isEqualTo("call-1");
+                          assertThat(result.content())
+                              .containsExactly(
+                                  TextContent.textContent("Loaded document " + documentId + "."));
+                        }));
+    assertThat(secondRequestMessages.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            message -> {
+              assertThat(message.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(message.content()).hasSize(3);
+              assertThat(message.content().get(0))
+                  .isEqualTo(
+                      TextContent.textContent(
+                          AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE));
+              assertThat(message.content().get(1))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tag -> {
+                        assertThat(DocumentReferenceXmlTag.documentIdOf(tag)).isEqualTo(documentId);
+                        assertThat(DocumentReferenceXmlTag.isLoaded(tag)).isTrue();
+                      });
+              assertThat(message.content().get(2))
+                  .isInstanceOfSatisfying(
+                      DocumentContent.class,
+                      content ->
+                          assertThat(DocumentHandle.idFor(content.document()))
+                              .isEqualTo(documentId));
+            });
+
+    // the stored conversation keeps the follow-up message as the tag only
+    assertThat(response.responseValue().context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(6);
+              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(4))
+                  .isInstanceOfSatisfying(
+                      UserMessage.class,
+                      message ->
+                          assertThat(message.content())
+                              .noneMatch(DocumentContent.class::isInstance)
+                              .hasSize(2));
+            });
+
+    // the synthetic round reports both messages as input of its turn
+    verify(agentInstanceClient, times(2))
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+    assertThat(turnCaptor.getAllValues().get(1).inputMessages())
+        .hasSize(2)
+        .satisfiesExactly(
+            first -> assertThat(first).isInstanceOf(ToolCallResultMessage.class),
+            second -> assertThat(second).isInstanceOf(UserMessage.class));
   }
 
   @Test

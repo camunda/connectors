@@ -16,17 +16,22 @@ import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNot
 import io.camunda.connector.agenticai.aiagent.model.document.LegacyDocumentRendering;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -183,6 +188,16 @@ public final class AgentConversation {
    * @throws IllegalArgumentException if the results do not match the assistant message's tool calls
    */
   public AgentConversation nextLocalToolRound(ToolCallResultMessage toolCallResults) {
+    return nextLocalToolRound(toolCallResults, List.of());
+  }
+
+  /**
+   * Same as {@link #nextLocalToolRound(ToolCallResultMessage)}; the new turn's input also holds the
+   * given messages that follow the tool call results, such as the message that carries the content
+   * of the documents a tool loaded.
+   */
+  public AgentConversation nextLocalToolRound(
+      ToolCallResultMessage toolCallResults, List<Message> followUpMessages) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
           "nextLocalToolRound() called before the current turn was ingested");
@@ -196,7 +211,7 @@ public final class AgentConversation {
           "Tool call results %s do not match the tool calls %s of the current turn"
               .formatted(resultIds, expectedIds));
     }
-    return nextRound(List.of(toolCallResults));
+    return nextRound(Stream.concat(Stream.of(toolCallResults), followUpMessages.stream()).toList());
   }
 
   private AgentConversation nextRound(List<Message> inputMessages) {
@@ -310,6 +325,25 @@ public final class AgentConversation {
    */
   public DocumentRegistry documentRegistry() {
     return DocumentRegistry.of(currentContext.documents());
+  }
+
+  /**
+   * Returns the ids of the documents whose content the model reads in the windowed conversation:
+   * the documents of the tags marked as loaded in the windowed user messages.
+   */
+  public Set<String> loadedDocumentIds() {
+    final var ids = new LinkedHashSet<String>();
+    for (final var message :
+        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize())) {
+      if (message instanceof UserMessage userMessage) {
+        for (final var content : userMessage.content()) {
+          if (content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text)) {
+            ids.add(Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text)));
+          }
+        }
+      }
+    }
+    return Set.copyOf(ids);
   }
 
   /** Returns the documents selected for the final response so far, by key. */

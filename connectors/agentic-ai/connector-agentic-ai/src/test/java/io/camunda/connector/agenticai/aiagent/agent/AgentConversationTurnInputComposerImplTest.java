@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -636,6 +638,139 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(textContent("answered by the agent"));
     // a message with results of both kinds keeps the local completion time
     assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(LOCAL_RESULT.completedAt());
+  }
+
+  private static ToolCallResult loadedResult(String id, String documentId) {
+    return ToolCallResult.builder()
+        .id(id)
+        .name(GetDocumentTool.NAME)
+        .content("Loaded document " + documentId + ".")
+        .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
+        .properties(Map.of(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, documentId))
+        .build();
+  }
+
+  private DocumentRegistry registryOf(Document... documents) {
+    return DocumentRegistry.empty()
+        .withDocuments(
+            java.util.Arrays.stream(documents)
+                .map(document -> new IngestedDocument(document, DocumentSource.userMessage(null)))
+                .toList());
+  }
+
+  @Test
+  void loadedDocumentsMessage_showsTheMarkedTagOfEveryLoadedDocumentAfterThePreamble() {
+    var first = createDocument("first", "text/plain", "first.txt");
+    var second = createDocument("second", "text/plain", "second.txt");
+    var registry = registryOf(first, second);
+
+    var message =
+        composer.composeLoadedDocumentsMessage(
+            registry,
+            List.of(
+                loadedResult("c1", DocumentHandle.idFor(second)),
+                LOCAL_RESULT,
+                loadedResult("c2", DocumentHandle.idFor(first))));
+
+    assertThat(message).isNotNull();
+    assertThat(message.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(message.content())
+        .containsExactly(
+            textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE),
+            loadedTag(second, "second.txt"),
+            loadedTag(first, "first.txt"));
+  }
+
+  @Test
+  void loadedDocumentsMessage_listsADocumentLoadedByTwoCallsOnce() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = DocumentHandle.idFor(document);
+
+    var message =
+        composer.composeLoadedDocumentsMessage(
+            registryOf(document), List.of(loadedResult("c1", id), loadedResult("c2", id)));
+
+    assertThat(message).isNotNull();
+    assertThat(message.content()).hasSize(2);
+  }
+
+  @Test
+  void loadedDocumentsMessage_isNullWithoutALoadingResult() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var registry = registryOf(document);
+    var id = DocumentHandle.idFor(document);
+
+    // an error or an already-loaded answer carries no id, a result of another tool is not trusted
+    var otherTool = loadedResult("c1", id).withName("getWeather");
+    var unknownDocument = loadedResult("c2", "not-registered");
+    var answered =
+        ToolCallResult.builder()
+            .id("c3")
+            .name(GetDocumentTool.NAME)
+            .content("Document " + id + " is already in the conversation.")
+            .build();
+
+    assertThat(
+            composer.composeLoadedDocumentsMessage(
+                registry, List.of(otherTool, unknownDocument, answered, LOCAL_RESULT)))
+        .isNull();
+    assertThat(composer.composeLoadedDocumentsMessage(registry, List.of())).isNull();
+  }
+
+  @Test
+  void pendingGetDocumentResult_isFollowedByTheLoadedDocumentsMessageNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var context =
+        CTX_WITH_CONVERSATION
+            .withDocuments(registryOf(document).entries())
+            .withPendingLocalToolCallResults(
+                List.of(loadedResult("abcdef", DocumentHandle.idFor(document))));
+    // the second call is the real one: its result arrives, the first was answered by the agent
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, context, history, input);
+
+    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(messages.get(1))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            loaded -> {
+              assertThat(loaded.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(loaded.content())
+                  .containsExactly(
+                      textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE),
+                      loadedTag(document, "first.txt"));
+            });
+  }
+
+  @Test
+  void toolResultsWithoutALoadingResult_addNoLoadedDocumentsMessage() {
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(1);
+  }
+
+  private static TextContent loadedTag(Document document, String fileName) {
+    final var id = DocumentHandle.idFor(document);
+    return new TextContent(
+        "<doc id=\"%s\" fileName=\"%s\" contentType=\"text/plain\" source=\"user_message\" />"
+            .formatted(id, fileName),
+        Map.of("kind", "document-reference", "documentId", id, "loaded", true));
   }
 
   @Test

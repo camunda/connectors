@@ -8,7 +8,9 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 /**
@@ -25,22 +27,28 @@ import java.util.function.UnaryOperator;
  *     the agent's tool result model.
  * @param contextUpdates changes of the persisted agent context, applied in order; an error result
  *     carries none
+ * @param properties properties of the tool call result the agent creates from this result (see
+ *     {@code ToolCallResult.properties()}); an error result carries none
  */
 public record LocalToolResult(
-    Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {
+    Object content,
+    boolean error,
+    List<UnaryOperator<AgentContext>> contextUpdates,
+    Map<String, Object> properties) {
 
   public LocalToolResult {
     contextUpdates = error ? List.of() : List.copyOf(contextUpdates);
+    properties = error ? Map.of() : Map.copyOf(properties);
   }
 
   /** A successful result with the given content and no change of the agent context. */
   public static LocalToolResult success(Object content) {
-    return new LocalToolResult(content, false, List.of());
+    return new LocalToolResult(content, false, List.of(), Map.of());
   }
 
   /** An error result; {@code message} is what the model reads, so it says what to change. */
   public static LocalToolResult error(String message) {
-    return new LocalToolResult(message, true, List.of());
+    return new LocalToolResult(message, true, List.of(), Map.of());
   }
 
   /**
@@ -52,6 +60,13 @@ public record LocalToolResult(
   public LocalToolResult withContextUpdate(UnaryOperator<AgentContext> update) {
     final var updates = new ArrayList<>(contextUpdates);
     updates.add(update);
-    return new LocalToolResult(content, error, updates);
+    return new LocalToolResult(content, error, updates, properties);
+  }
+
+  /** Returns a copy whose tool call result carries the property. Ignored for an error result. */
+  public LocalToolResult withProperty(String key, Object value) {
+    final var updated = new LinkedHashMap<>(properties);
+    updated.put(key, value);
+    return new LocalToolResult(content, error, contextUpdates, updated);
   }
 }
