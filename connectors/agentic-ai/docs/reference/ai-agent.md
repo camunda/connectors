@@ -280,6 +280,17 @@ detect process migration. Serialized as JSON, it is passed into every job activa
 on every completion. Authoritative definition:
 [`AgentContext.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
+**Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
+when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
+current features when its context is created at its first job (`AgentInitializerImpl`, both flavors): today
+`documents` (`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`). A context that exists
+without `features` belongs to an instance created before the feature and never gets features added later,
+so its behavior stays as it was created. Everything the feature gates is described in the document flow
+design notes (section 4); in short, an instance without `documents` keeps documents as stored content with
+the older tag format, has no document registry, no local tool, no document parameters and no reserved tool
+name prefix. The request handler copies the features to `AgentConfiguration.features()`, which is how the
+local tool registry and the conversation know them; they are not part of the configuration fingerprint.
+
 ### AgentExecutionContext (the transient request context)
 
 The transient per-invocation request context, assembled fresh for each job activation and never
@@ -292,7 +303,7 @@ response settings that shape the turn. Authoritative definition:
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
 a final response to emit (text, JSON, the full assistant message, or the documents the agent selected
-with its built-in `return_document` tool, by key, see the document flow design notes). Authoritative definition:
+with its built-in `c8__return_document` tool, by key, see the document flow design notes). Authoritative definition:
 [`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
@@ -435,7 +446,9 @@ detection described above.
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
 also expands the document tags of its user messages from the document registry (`DocumentExpander`): the
 stored messages hold the tag of a document only and the snapshot holds the tag followed by the document
-content (see the document flow design notes, section 4.1).
+content (see the document flow design notes, section 4.1). For an agent instance without the `documents`
+feature the window expands nothing and adds no note; it marks the documents of the tool results to be
+rendered as their document reference (`LegacyDocumentRendering`).
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:
@@ -1157,11 +1170,12 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 4. **Documents**: If the response carries no tool calls and the agent selected documents, `responseDocuments` is a map from
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
-   of a document the agent selected with the built-in `return_document` tool (called once per document, see
+   of a document the agent selected with the built-in `c8__return_document` tool (called once per document, see
    [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection is cleared in the
-   returned `agentContext`. The field is omitted when the selection is empty. `return_document` is offered to
-   every agent and cannot be switched off; whether it should become configurable is an open question in the
-   design document.
+   returned `agentContext`. The field is omitted when the selection is empty. `c8__return_document` is offered
+   to every agent instance with the `documents` feature (every instance created from this version on) and
+   cannot be switched off; an instance created before the feature is not offered it and has no
+   `responseDocuments`. Whether it should become configurable is an open question in the design document.
 
 ### Job Worker Response Variables
 
@@ -1202,7 +1216,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element uses the name of a registered local tool (today `return_document`) |
+| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element of an agent instance with the `documents` feature has a name that starts with the reserved prefix `c8__` of the built-in tools (today `c8__return_document`) |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
@@ -1658,7 +1672,9 @@ extracts those documents into a synthetic follow-up `UserMessage` that holds one
 document (a `TextContent` whose metadata marks it as a `document-reference` and holds the `documentId`). The model
 providers see the tag followed by a native `DocumentContent` block, added from the document registry when
 the conversation is windowed; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the
-document flow design notes, section 4.1.
+document flow design notes, section 4.1. An agent instance without the `documents` feature gets the message
+in the form of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
+`DocumentContent`, without a registry.
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` after
 the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
@@ -1809,7 +1825,8 @@ lease-fenced `update()` mechanism).
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
   document-reference messages). The document tags of a user message are reported with the content of
-  their documents from the registry, as the model sees them (`DocumentExpander`).
+  their documents from the registry, as the model sees them (`DocumentExpander`). A message of an agent
+  instance without the `documents` feature is reported as stored.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
   block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
   elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the
@@ -1823,7 +1840,7 @@ lease-fenced `update()` mechanism).
   reference of a document where the model passed its id: a document parameter (a string schema node with
   the format `camunda-document-id`, see the document flow design notes) holding the id of a known document carries the registry entry's
   `reference` map, the complete JSON the document serializer emits (an inline document with its
-  content). A value that is not exactly a known id stays as given, and so do the persisted messages and the text the model reads. The text parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and the text the model reads are not changed.
+  content). A value that is not exactly a known id stays as given, and so do the persisted messages and the text the model reads. The text parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and the text the model reads are not changed. An agent instance without the `documents` feature has no registry and reports texts and arguments as they are (`HistoryDocuments.documentFlow()` is `false`).
   `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take a
   `HistoryDocuments` (the offered tool definitions and the document registry) for this.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
@@ -1833,7 +1850,7 @@ lease-fenced `update()` mechanism).
   placeholder block.
 
 **Tool calls answered by the agent itself.** Calls answered locally (local tools such as the built-in
-`return_document`, calls rejected for an unknown document id; see the document flow design notes)
+`c8__return_document`, calls rejected for an unknown document id; see the document flow design notes)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
 `applyTurnStart` of the synthetic round of the same job when the agent answered every call. When real
@@ -1870,7 +1887,8 @@ tool calls the mapper resolves it from the namespaced name via `GatewayToolHandl
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
 gateway element id parsed from the namespaced name; for local tools (calls, results and the tool entry
 of the `CONFIGURATION` item) it is `null`, because the engine field is nullable and a local tool has no
-BPMN element. `LocalToolRegistry.toolNames()` identifies them (those names are reserved).
+BPMN element. `LocalToolRegistry.toolNames()` identifies them (those names start with the reserved prefix `c8__`);
+the mapper does so for agent instances with the `documents` feature only.
 The tool list of a `CONFIGURATION` item holds the process tools plus the available local tools
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
@@ -2061,11 +2079,12 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 ### 25.4 Add a local tool
 
 A local tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
-implementation: `ReturnDocumentTool` (`aiagent/localtool`), wired in
+implementation: `ReturnDocumentTool` (`aiagent/localtool`, tool name `c8__return_document`), wired in
 `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentLocalTool`). The full API, the research behind
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 
-1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
+1. Build the tool with `LocalTool.builder("c8__name")`, a name that starts with the reserved prefix
+   `InternalToolNames.PREFIX` (`c8__`); `LocalToolRegistryImpl` rejects any other name at startup: `description`, `inputSchema` (a `Map` or the
    `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or a string schema with the
    format `camunda-document-id`), optionally `available(configuration -> ...)`, and a `handler`. Use
    `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. Or implement
@@ -2078,9 +2097,12 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request to the model
    carries the schema in the order of the map, which should be the same in every JVM. The configuration
    fingerprint is independent of that order.
-4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans, rejects
-   duplicate names at startup and reserves every registered name against ad-hoc and gateway tool elements
-   (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for an agent or not.
+4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans and rejects
+   duplicate names and names outside the prefix at startup. For an agent instance with the `documents` feature,
+   tool discovery and process migration reject every ad-hoc or gateway tool element whose name starts with the
+   prefix (`ERROR_CODE_RESERVED_TOOL_NAME`), whether a tool of that name exists or is available for an agent or not.
+   Gateway tool names (`MCP_<elementId>___<tool>`, `A2A_<elementId>`) never start with the prefix. An agent
+   instance without the feature reserves no name and is offered no local tool.
 5. The framework offers the tool while `isAvailable(AgentConfiguration)` holds, resolves declared document
    parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
    and its calls to agent instance history without an element id, and handles mixed batches with real calls

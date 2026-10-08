@@ -18,6 +18,11 @@ line numbers refer to the current sources.
 Out of scope: documents for gateway tools (MCP, A2A), Modeler support, document retention (see
 sections 6 and 7).
 
+The flow described here belongs to the `documents` feature of an agent instance (section 4.2). An agent
+instance created without it keeps the document handling it was created with; section 4.2 describes that
+handling. Sections 2 to 9 describe the instances that have the feature, which are all instances created
+from this version on.
+
 ## 2. Architecture overview
 
 A request (one job of the AI Agent connector) passes through these stages. Documents enter the
@@ -40,8 +45,7 @@ referenced by their id in tool calls, and leave through the response.
    source carries the id of the message that introduced the document. The list is ordered prompt and
    tool results first, events last, matching the message order.
 3. **Registry.** `BaseAgentRequestHandler.converse` passes the new documents to `registerDocuments`.
-   It loads the registry through `DocumentRegistryStorage`, adds the documents of the loaded messages
-   that the registry does not know yet (`DocumentRegistryBackfill`, section 4.2), adds the new
+   It loads the registry through `DocumentRegistryStorage`, adds the new
    documents and returns the agent context carrying the result. `proceed` rehydrates the `AgentConversation` from
    that context, so every copy-on-write step and `AgentConversation.toAgentContext()` carry the
    registry, and it is persisted by the same job completion as the rest of `agentContext`
@@ -55,18 +59,18 @@ referenced by their id in tool calls, and leave through the response.
    or message object content as its tag, for every provider path. `AgentConversation.window`
    also appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
    definitions of the snapshot are those of `AgentConfiguration.toolDefinitions()`: the tools of the
-   process plus the available local tools, among them `return_document`
+   process plus the available local tools, among them `c8__return_document`
    (section 9), with every document parameter rewritten for the provider (section 3.2).
 5. **Model loop.** `BaseAgentRequestHandler.driveContinuationLoop` windows the conversation, calls the
    model, ingests the assistant message, and then either ends the loop or opens another round:
    `nextContinuationRound` (`AgentConversation`) for provider continuations, `nextLocalToolRound`
    (`AgentConversation`) when the agent answered every tool call of the message itself.
 6. **Local tool handling.** `localToolCallHandler.handle` runs the call of every available `LocalTool`
-   (`return_document` is one, section 9; the tools are beans collected by `LocalToolRegistry`,
+   (`c8__return_document` is one, section 9; the tools are beans collected by `LocalToolRegistry`,
    `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`), answers the calls of process tools whose
    document parameter is not the id of a known document, and splits the batch into local results and the calls that
    remain for the process (section 3.6). The context updates of the local results (the selection of
-   `return_document`) are applied to the conversation the handler returns, in both outcomes. Without
+   `c8__return_document`) are applied to the conversation the handler returns, in both outcomes. Without
    remaining calls the loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the local
    results are kept as `AgentContext.pendingLocalToolCallResults` (`withPendingLocalToolCallResults`) and
    the loop ends with the normal tool calling status.
@@ -91,10 +95,10 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 |---|----------|--------|
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
 | 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id [fileName] [contentType] [source] [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
-| 3 | Documents out are a built-in local tool `return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
+| 3 | Documents out are a built-in local tool `c8__return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
 | 4 | A document parameter that is not exactly the id of a known document (an unknown id, a `<doc/>` tag, text around an id) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
-| 6 | `return_document` is offered to every agent and `responseDocuments` is added to the response when the selection is non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
+| 6 | `c8__return_document` is offered to every agent instance with the `documents` feature and `responseDocuments` is added to the response when the selection is non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
 
 ### 3.2 Document parameter representation
 
@@ -235,7 +239,7 @@ A batch is split per call. `LocalToolCallHandler.handle(conversation, toolCalls)
 with the context updates of the local results applied:
 
 - **Local calls.** A call of an available local tool (section 9) is run by the agent and gets its result
-  immediately: the built-in `return_document` and every other registered tool. A call of a process tool
+  immediately: the built-in `c8__return_document` and every other registered tool. A call of a process tool
   whose document parameter is not a known id is answered with an error result listing the known
   documents.
 - **Remaining calls.** Every other call goes to the process like any tool call, also a call of a local
@@ -248,7 +252,7 @@ The request handler then proceeds by what is left:
 | none | The local results become the input of a synthetic round of the same job (`nextLocalToolRound`); the model is called again. The round counts against `maxModelCalls` (`throwIfLimitsReached`). | one more in the job |
 | some | The job completes with only the remaining calls activated (`ToolCallProcessVariable` list and element activations hold only them, status `TOOL_CALLING`). The local results are stored in `AgentContext.pendingLocalToolCallResults` and reported to the agent instance history right away (5.1). | none extra |
 
-The context updates of the local results, for `return_document` the selection in
+The context updates of the local results, for `c8__return_document` the selection in
 `AgentContext.returnDocuments`, are applied immediately in both cases.
 
 **Pending local results.** `AgentContext.pendingLocalToolCallResults` is a `List<ToolCallResult>`,
@@ -305,16 +309,16 @@ registry the list is replaced by "No documents are known.". Results are plain te
 has a tool error flag in the domain model, so the model reads the text. Reason: the list of known tags
 lets the model correct itself in one retry without any further tool call. The error result reaches the model with its next request: in the synthetic round when the whole batch was local, in the next job together with the results of the real calls of the batch otherwise (section 3.6).
 
-### 3.8 `return_document` semantics
+### 3.8 `c8__return_document` semantics
 
 `ReturnDocumentTool` (`aiagent/localtool/ReturnDocumentTool.java`) is a `LocalTool` with `NAME =
-"return_document"`. The model calls it once per document with the arguments `key` (required string, the
+"c8__return_document"`. The model calls it once per document with the arguments `key` (required string, the
 stable identifier the process finds the document by, matching `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required,
 the id of the document) and `description` (optional string). `document` is a document
 parameter (string schema with the format `camunda-document-id`), so the framework resolves the id to the
 document of the registry and reports a value that is not a known id with the texts of 3.7 before the tool
 runs; the tool receives a `Document` and takes the registry id from `DocumentHandle.idFor`. The tool
-is offered to every agent. Its description tells the model to use it only for a document the
+is offered to every agent instance with the `documents` feature. Its description tells the model to use it only for a document the
 user should receive in the answer, not for documents it merely passes to other tools, to call it once per
 document, what the key is, that the description is optional and that the same key again replaces the
 document returned under it. A valid call answers "Returned the document under the key 'k'." and
@@ -341,36 +345,49 @@ missing `document` gives an error answer listing the known documents. An error a
 - `responseDocuments` is added to the response whenever the selection is non-empty and omitted otherwise
   (`@JsonInclude(NON_EMPTY)`); there is no option that switches the tool or the field off (3.10).
 
-A valid `return_document` call together with real tool calls costs no extra model call: the real calls run
+A valid `c8__return_document` call together with real tool calls costs no extra model call: the real calls run
 and the model receives all results in the call order (3.6). Only a batch made of local calls alone starts a
 synthetic round, which counts against `maxModelCalls`.
 
 ### 3.9 Reserved name
 
-`AgentToolsResolverImpl.loadAdHocToolsSchema` rejects an ad-hoc or gateway tool element named like any
-registered local tool (`LocalToolRegistry.toolNames()`, today `return_document`) with a
-`ConnectorException` (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`). The check ignores whether the tool
-is available for the agent (section 9.6). `loadAdHocToolsSchema` runs on tool discovery and on process
-migration (`updateToolDefinitions`), so both paths are covered. Reason: a BPMN element with that name would
-collide with the local tool in the tool list and silently lose to it.
+The names of the tools the agent runs itself share the prefix `c8__` (`InternalToolNames.PREFIX`).
+`AgentToolsResolverImpl.loadAdHocToolsSchema` rejects every ad-hoc or gateway tool element whose name
+starts with it, for an agent instance with the `documents` feature, with a `ConnectorException`
+(`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`) whose message names the prefix. The check covers the whole
+namespace, not only the names of registered tools, whether the agent offers a tool of that name or not.
+`loadAdHocToolsSchema` runs on tool discovery and on process migration (`updateToolDefinitions`), so both
+paths are covered. `LocalToolRegistryImpl` rejects a local tool whose name does not start with the prefix when
+the registry is created. Reason: a BPMN element with such a name would collide with the local tool in the
+tool list and silently lose to it, and a tool added later must not collide with an element that is valid
+today.
 
-### 3.10 Availability of `return_document`
+An agent instance without the `documents` feature reserves no name (section 4.2): it is offered no local tool,
+and its process, which may already name an element `return_document` or anything else, must keep running.
 
-`return_document` is injected for every agent; no template property or request field switches it off.
-`LocalTool.isAvailable` stays a generic hook of the local tool API with the default `true`, and
-`ReturnDocumentTool` does not override it. `BaseAgentRequestHandler.converse` puts the definitions of the
-available local tools after the process tools in `AgentConfiguration.toolDefinitions()` for the invocation;
-they are not part of `AgentContext.toolDefinitions`, so no persisted tool list changes and the migration
-check (`updateChangedToolDefinitions`) does not see the tool. The configuration fingerprint covers the
-offered tools (section 5.1). The name is reserved (3.9). The response carries `responseDocuments` whenever
-the final response has a selection. Reason: a small configuration surface; whether the tool should become
-configurable is an open question (section 7).
+Gateway tool names cannot collide with the prefix: the MCP gateway names a tool
+`MCP_<elementId>___<mcpToolName>` and the A2A gateway `A2A_<elementId>` (`McpToolCallIdentifier`,
+`A2aToolCallIdentifier`), so a generated name always starts with `MCP_` or `A2A_`. The element id of a gateway
+element is checked like the id of any tool element.
+
+### 3.10 Availability of `c8__return_document`
+
+`c8__return_document` is injected for every agent instance with the `documents` feature; no template property
+or request field switches it off. `LocalToolRegistryImpl` offers no local tool to an instance without the
+feature (`AgentConfiguration.supportsDocuments()`), and `LocalTool.isAvailable` stays a generic hook of the
+local tool API with the default `true`; `ReturnDocumentTool` does not override it.
+`BaseAgentRequestHandler.converse` puts the definitions of the available local tools after the process tools in
+`AgentConfiguration.toolDefinitions()` for the invocation; they are not part of `AgentContext.toolDefinitions`, so
+no persisted tool list changes and the migration check (`updateChangedToolDefinitions`) does not see the tool.
+The configuration fingerprint covers the offered tools (section 5.1). The prefix is reserved (3.9). The response
+carries `responseDocuments` whenever the final response has a selection. Reason: a small configuration
+surface; whether the tool should become configurable is an open question (section 7).
 
 ### 3.11 Templates and versions (v1 frozen)
 
 The document flow adds no template property. The v1 templates are deprecated and frozen; the runtime is
-shared, so agents modeled with the v1 templates are offered `return_document` as well, and the v1 template
-JSON is unchanged. There is no template version bump and the `element-templates/README.md` rows are
+shared, so new agent instances modeled with the v1 templates are offered `c8__return_document` as well, and the v1
+template JSON is unchanged. There is no template version bump and the `element-templates/README.md` rows are
 unchanged.
 
 ### 3.12 Inline documents
@@ -462,21 +479,21 @@ a large inline image counts fully against the 4 MB limit.
 
 **Backward compatibility and downgrade.** No `CURRENT_SCHEMA_VERSION` bump. A missing `documents`
 field binds to an empty list (builder default for collections, same as `toolDefinitions`), also
-through the raw-tree path of `AgentContextSchemaMigration`. Conversations stored by Camunda 8.10, which
-has no registry and stores documents as content, keep working without a rewrite of their messages
-(section 4.2). On downgrade, an older connector runtime ignores `documents`, `returnDocuments` and
-`pendingLocalToolCallResults` (`ignoreUnknown`) and drops them on its next write. It also reads a
-document that was stored as a tag only (section 4.1) as the tag text without the document content; the
-next upgraded run rebuilds the registry of the documents it can still find in the messages, but the
-selection of `return_document` and documents known only from evicted or unscanned content are lost.
+through the raw-tree path of `AgentContextSchemaMigration`. Agent instances created by Camunda 8.10, which
+has no registry and stores documents as content, keep working without a rewrite of their messages: they
+have no `features` and keep their document handling (section 4.2). On downgrade, an older connector runtime
+ignores `features`, `documents`, `returnDocuments` and `pendingLocalToolCallResults` (`ignoreUnknown`) and
+drops them on its next write. It also reads a document that was stored as a tag only (section 4.1) as the
+tag text without the document content. An instance that an upgraded runtime reads again after that has
+neither features nor registry, so it is handled as an instance without the feature and its documents of the
+tag-only messages stay tag text.
 Mixed batches work from 8.11 on; all changes land on 8.11 only, so there is no compatibility with older
-engines or connector runtimes beyond what section 4.2 describes.
+engines or connector runtimes beyond what section 4.2 describes. The agent context field `features` is not
+read by an older runtime either.
 
 **Migration path to the stores.** Implement `DocumentRegistryStorage` against `ConversationSession`
 (store the registry next to the messages, keyed by the conversation pointer), then switch the bean.
-The handler and the composer do not change; `AgentContext.documents` stays readable (empty for new
-conversations) so persisted state from this layout still loads, and the backfill scan covers any
-conversation without a stored registry.
+The handler and the composer do not change; `AgentContext.documents` stays readable so persisted state from this layout still loads.
 
 ### 4.1 Persisted form and provider form
 
@@ -514,40 +531,65 @@ the registry, the extracted document message and the tool result. The extracted 
 copy that carries nothing the registry does not. The tool result is left as it is because the provider
 converters and the tool result history read it.
 
-### 4.2 Conversations in the form of earlier versions
+### 4.2 Agent instance features and instances created before the documents feature
 
-Conversations written by Camunda 8.10 hold the documents of user prompts as bare `DocumentContent`, the
-documents of tool calls and events as a tag in an older attribute format (`documentId` and `storeId`, or
-`url` and `name` for an external document, `toolName` and `toolCallId` for tool calls) followed by the
-`DocumentContent`, and have no registry. They are never rewritten: append-only conversation stores keep
-the messages they have, and only `agentContext.documents` changes. Nothing fails on them; the worst case is
-a document without a tag.
+`AgentContext.features` (a `LinkedHashSet<String>`, `@JsonInclude(NON_EMPTY)`, a missing field binds to an
+empty set, no schema version bump) lists the features an agent instance was created with. The set is
+assigned once: `AgentInitializerImpl.createAgentContext` creates the context of a new agent instance, in both
+flavors, with `AgentContext.newInstanceFeatures()`, today `documents` (`AgentContext.FEATURE_DOCUMENTS`).
+A context that exists without `features` belongs to an instance that was created before the feature and never
+gets features added later, whatever it does next: a half-migrated conversation (messages in the form of the
+feature after messages in the older form) cannot occur. `AgentContext.supports(feature)` and
+`supportsDocuments()` read the set; `BaseAgentRequestHandler` copies it to `AgentConfiguration.features()` so
+the registry of local tools sees it. The features are not part of the configuration fingerprint. The set
+is a `LinkedHashSet` because the record builder copies a `Set` into an immutable set of unspecified order.
 
-- **Backfill.** On every job `BaseAgentRequestHandler` extends the registry by the documents of the loaded
-  messages that it does not know (`DocumentRegistryBackfill`): the `DocumentContent` of user messages and
-  the documents in the content trees of tool call results (`ContentTreeDocumentWalker`). The source is
-  derived from the place: a document in a tool call result is `TOOL_CALL` with the tool of that result; a
-  document of a user message with the `toolCallDocuments` metadata is `TOOL_CALL` with the tool read from
-  the tag in front of it; a document after the event documents preamble is `EVENT`; every other document of
-  a user message is `USER_MESSAGE`. A backfilled source never carries a `messageId`: messages of these
-  conversations may lack a persisted id, and the id of such a message is generated again on every load, so
-  only the ingestion of new documents fills `messageId`. The backfill is idempotent (a known id is never
-  replaced or duplicated, a conversation without missing documents leaves the registry unchanged), looks
-  at message content only, and adds Camunda and external documents. Inline documents are not added.
-- **Window normalization.** `DocumentExpander` also normalizes what it finds in a user message when it
-  expands for the model, in the view only: a tag text that is not flagged, names the following
-  `DocumentContent` (by `id`, `documentId` or `url`) and is followed by it is replaced by the canonical
-  tag of the document (taken from the registry entry, so it carries the `source` or the tool call); a
-  `DocumentContent` without a tag in front of it gets the canonical tag inserted before it. These tag
-  texts are not flagged. Text that matches no known pattern, such as a tag for another document, passes
-  through unchanged.
-- **Inline documents** stay as they are in Camunda 8.10: no id, no tag and no registry entry for the
-  legacy form. A tag and the content of an inline document that were stored together are not touched.
-- `LegacyDocumentConversationTest` runs a golden conversation in this form
-  (`src/test/resources/backwardcompatibility/camunda-8.10/agentContext-documents-inprocess.json`: a prompt
-  document, a tool call document pair, an inline document pair, an event document pair and an event
-  message without an id) through load, backfill, normalization and a further turn, and asserts that the
-  stored messages are unchanged.
+An instance without the `documents` feature (every instance created by Camunda 8.10 that is still running)
+behaves as Camunda 8.10 does for documents. Nothing of section 2 to 9 applies to it except what is listed
+here as shared:
+
+- **Composition.** `AgentConversationTurnInputComposerImpl` branches on `agentContext.supportsDocuments()`.
+  A user prompt document is a bare `DocumentContent`, without a tag. The documents of tool results and events
+  are a synthetic user message with the preamble, then per document the tag in the older attribute format
+  (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`,
+  `fileName`, or `url` and `name` for an external document) and the `DocumentContent`. The messages carry no
+  `document-reference` metadata and nothing is ingested into a registry (`NextTurn.documents` is empty).
+- **No registry, no selection.** `AgentContext.documents`, `returnDocuments` and `pendingLocalToolCallResults`
+  stay empty and are never written; no registry is backfilled from the stored messages and no tag of a stored
+  message is normalized. The window (`AgentConversation.window`) expands nothing and adds no
+  `EvictedDocumentsNote`.
+- **Tool results.** The window marks the `Document`s of tool results (`LegacyDocumentRendering`,
+  `ReferenceRenderedDocument`) so that every provider path (`ModelFacingJson`) renders them as the Camunda
+  document reference JSON, as the object mapper serializes them, not as a `<doc id/>` tag. The stored messages
+  are not changed.
+- **No local tool.** `LocalToolRegistryImpl` offers none, `LocalToolCallHandlerImpl.handle` hands every call to
+  the process and the offered tool list (and the `CONFIGURATION` history item) holds the process tools only.
+  There is no mixed-batch handling, no synthetic round and no pending local results.
+- **No document parameters.** `AgentResponseHandlerImpl` does not resolve document ids and an unknown id is
+  never rejected: the arguments of a tool call reach the process untouched, so a `fromAi(..., "document")`
+  parameter of such an instance is a plain string for the process. The schema of a tool the process declares
+  with that type after a process migration is still the string schema with the document format and the hint
+  that asks the model for a document id; the model sees no ids in that instance, so the parameter is not
+  usable. This is a known limitation: the document parameters need the feature, and an instance that wants them
+  starts anew.
+- **No reserved prefix.** The `c8__` prefix is not reserved for such an instance (section 3.9): an element
+  named like a built-in tool must not stop an instance that is running.
+- **History.** `HistoryDocuments.withoutDocumentFlow` makes `AgentInstanceHistoryMapper` report the messages as
+  stored: no document expansion, no inline code backticks around tags, no document references in the
+  arguments, no element-id-less local tool entries. `AgentResponse` has no `responseDocuments`.
+- **Shared.** The AWS AgentCore conversion keeps a `TextContent` with metadata as a blob (new instances need
+  it), which does not change messages without metadata. `ToolDefinition` and the provider rewrite of the
+  document format are applied to every instance; a persisted tool definition without the format is not changed.
+
+The behavior is verified against Camunda 8.10 by a golden conversation:
+`LegacyDocumentConversationTest` loads `backwardcompatibility/camunda-8.10/agentContext-documents-inprocess.json`
+(a prompt document as bare content, a tool result with a nested Camunda and a nested inline document, tag-and-content
+pairs of a tool call, an inline and an event document, an event message without an id), composes a turn with a
+new prompt document, a new event document and a new tool result document, and asserts the composed messages, that the
+stored messages stay as they are, the rendered tool result JSON, that no registry, feature, selection or local tool
+appears and that every call goes to the process. `AgentTaskLegacyInstanceDocumentsTests` runs an instance without
+features against the WireMock model and asserts the wire format of Camunda 8.10 (bare document content, the
+document reference in the tool result, the older tag, no built-in tool).
 
 ## 5. Blockers found
 
@@ -561,8 +603,8 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
 | 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the arguments of a call show the document reference, which holds the content of an inline document). |
-| 7 | Backfilled registry completeness | Low | The backfill (section 4.2) adds only Camunda and external documents it finds as content or in tool call result trees, and scans the loaded messages on every job. Inline documents of conversations from Camunda 8.10 are not added and stay without a tag. |
-| 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
+| 7 | Document parameters of instances without the feature | Low | A running instance created before the `documents` feature passes document parameters as plain strings (section 4.2): ids are not resolved or rejected, and the hint in a tool schema that is rebuilt on a process migration asks for ids the model never sees. The instance has to be started anew to use documents. |
+| 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance, with or without the `documents` feature, reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose input schema declares
 document parameters (the tool name is the lookup key); a failing resolution in `createResponse`
@@ -582,9 +624,8 @@ call. What is reported:
 **Definitions.** The tool list of a `CONFIGURATION` history item holds the process tools and the available
 local tools (`AgentConfiguration.toolDefinitions()`, section 3.10), mapped by `AgentInstanceToolMapper`. A
 local tool is an `AgentTool` with name and description and **no element id** (`null`): the engine field is
-the "BPMN element ID of the tool" and is nullable. Only available tools are listed. The fingerprint of
-the configuration covers the offered tools, so an agent that was already running before the connector
-was upgraded gets one new `CONFIGURATION` item with the tool list that includes `return_document`.
+the "BPMN element ID of the tool" and is nullable. Only available tools are listed, so the list of an agent instance without the `documents` feature holds the
+process tools only. The fingerprint of the configuration covers the offered tools.
 
 **Calls and results.**
 
@@ -611,7 +652,7 @@ is already inside backticks is left as it is. `AgentInstanceHistoryMapper` does 
 `TextContent`; the persisted messages and the text the model reads are not changed.
 
 **Document arguments.** A document parameter of a call (a schema node with the format `camunda-document-id` of the tool's
-definition, found as in 3.3; for a tool of the process and for a local tool such as `return_document`,
+definition, found as in 3.3; for a tool of the process and for a local tool such as `c8__return_document`,
 whose definition is looked up in `LocalToolRegistry` even while the tool is unavailable) is shown with the
 registry entry's `reference` map instead of the id the model sent, in the `arguments` of the call in the
 `ASSISTANT` item and of the `TOOL_RESULT` item. This is the complete reference JSON, so the history of an
@@ -641,7 +682,7 @@ What cannot be represented:
   element id on its tool entry and on its call entries; a local result and a real one are otherwise alike. An
   error result of a local tool (invalid document id, `LocalToolException`, invalid arguments) is plain
   text content, the same way the model reads it.
-- The documents the agent returns are not reported; the selection of `return_document` appears only as the
+- The documents the agent returns are not reported; the selection of `c8__return_document` appears only as the
   text of its result and as the references in its call arguments.
 - The agent instance history is written repeatedly for the same result: a local result by the job that
   answers it and again by the next job, a process result that arrived early by every incomplete job and
@@ -665,6 +706,9 @@ may differ from the request, but no message the model receives may be missing fr
 | Assistant message with its tool calls | `ASSISTANT` item, one call entry per call |
 | Tool result | `TOOL_RESULT` item per call, correlated by `toolCallId` |
 
+An agent instance without the `documents` feature reports its messages as stored (section 4.2); the audit
+below concerns the instances with the feature.
+
 **Format differences that are fine.** The content is the same, the representation is not:
 
 - A document is a `DOCUMENT` block (a Camunda document) or an `OBJECT` block (an external document
@@ -676,7 +720,7 @@ may differ from the request, but no message the model receives may be missing fr
 - A `<doc/>` tag in a text block is wrapped in inline code backticks in the history.
 
 **Guard test.** `AgentSubProcessHistoryAuditTests` records every model request of a document flow (prompt
-document, tool result document, document arguments, `return_document` next to a real call) and requires
+document, tool result document, document arguments, `c8__return_document` next to a real call) and requires
 each message to be covered by an item of the history as the engine returns it: system prompt by the
 `CONFIGURATION` item, the other roles by the blocks of the item (text equal without backticks, object
 blocks equal as JSON with a reference matched by the `documentId` of the tag, document blocks matched by a
@@ -695,15 +739,12 @@ listed fails the test.
    one item; remove the entry from `KNOWN_UNREPORTED` then.
 2. **Tool input schemas are not in the history.** A tool entry of the history holds name, description and
    element id only. Consequence: the parameter schemas, the document id hint of the provider schema, the
-   `camunda-document-id` format marker and the argument shape of `return_document` are invisible in the
+   `camunda-document-id` format marker and the argument shape of `c8__return_document` are invisible in the
    history. Ask: an engine API request to carry the input schema of a tool.
-3. **Conversations upgraded from Camunda 8.10.** The model receives the window-time normalized form
-   (4.2: canonical tags, tags inserted for documents that had none), the history shows the original
-   content of the earlier jobs. Known limit.
-4. **External documents in arguments.** The history shows the complete reference for the id the model
+3. **External documents in arguments.** The history shows the complete reference for the id the model
    sent, so the `ext-...` id the model passed is not in the arguments of the call; it is only in the tag
    text of the synthetic message. Known limit.
-5. **Inline documents.** `AgentInstanceHistoryMapper` cannot map an inline reference to a history block and
+4. **Inline documents.** `AgentInstanceHistoryMapper` cannot map an inline reference to a history block and
    throws an `IllegalArgumentException`; the reference of an inline document also holds its content (3.12,
    section 7). To be solved with the inline document follow-up.
 
@@ -713,9 +754,9 @@ listed fails the test.
   registry documents are listed in the eviction note.
 - The eviction note lists tags only (id, file name, content type, source or tool call) and does not describe
   the content of a document.
-- `<doc/>` ids the model writes in the final text instead of calling `return_document` are not
+- `<doc/>` ids the model writes in the final text instead of calling `c8__return_document` are not
   interpreted.
-- No retract for `return_document`: a key can be replaced but not removed until the final response.
+- No retract for `c8__return_document`: a key can be replaced but not removed until the final response.
 - External documents have no `contentType` in any tag, because it would require a download.
 - No document TTL or expiry handling: the registry keeps references for the lifetime of the
   conversation, and a returned or passed reference can point to a document the store has already
@@ -753,21 +794,18 @@ listed fails the test.
   reference of a tool result document next to the registry entry. Storing only the tag there as well needs
   the provider converters and the history mapper to read tool result documents from the registry; it is
   not part of the persisted form of section 4.1.
-- **Inline documents of Camunda 8.10 conversations** get neither registry entry nor tag (section 4.2);
-  a conversation that relies on them can only pass them on by re-ingesting the document.
-- **`return_document` is always injected (open question).** The tool is offered to every agent without an
-  opt-out, to keep the configuration surface small. Open: whether it should become configurable, for
+- **`c8__return_document` is always injected for new instances (open question).** The tool is offered to every
+  agent instance with the `documents` feature without an opt-out, to keep the configuration surface small;
+  instances created before the feature are not offered it. Open: whether it should become configurable, for
   example through a response option or a per-agent allow/deny list of local tools. Effects of an injected
   tool to weigh:
   - Every model call carries the extra tool definition, which costs input tokens.
   - It changes the behavior and the tool selection of agents that never meant to return documents: the
     model may call it spuriously or prefer it over the tools of the process.
-  - It changes the configuration fingerprint, so every in-flight instance records one extra
-    `CONFIGURATION` history item after the connector upgrade (section 5.1).
-  - It occupies a reserved tool name. An ad-hoc or gateway tool element with the same name makes tool
-    discovery, and process migration, fail with a `ConnectorException` carrying
+  - It occupies the reserved prefix `c8__`. An ad-hoc or gateway tool element with a name that starts with it
+    makes tool discovery, and process migration, fail with a `ConnectorException` carrying
     `AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME` (3.9); the element has to be renamed.
-  - Future local tools (for example `load_skill`, `save_memory`) multiply these effects, so a general
+  - Future local tools (for example `c8__load_skill`, `c8__save_memory`) multiply these effects, so a general
     mechanism to enable and disable local tools is needed.
 - **Capability matrix (#7230).** Which providers can take which document types natively decides what
   the model receives next to the tag; the registry and tags are independent of that.
@@ -781,8 +819,9 @@ listed fails the test.
 | Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization), `AgentConversationTest` (the window rewrites, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
 | Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`), `DocumentHandleTest` (file name and content type of a document and of its reference) |
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, document reference content, attribute parsing) |
-| Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, older tags, inline documents), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `AwsAgentCoreConversationMapperTest` (text with metadata) |
-| Conversations of Camunda 8.10 | `aiagent/agent/DocumentRegistryBackfillTest`, `aiagent/agent/LegacyDocumentConversationTest` (golden conversation, `backwardcompatibility/camunda-8.10`) |
+| Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, only flagged tags), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `AwsAgentCoreConversationMapperTest` (text with metadata) |
+| Agent instance features | `aiagent/model/AgentContextTest` (default, omitted when empty, round trip in insertion order, copies), `aiagent/agent/AgentInitializerTest` (a new instance gets `documents`, an existing context never gets features) |
+| Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or local tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/model/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `LocalToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
 | Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, rejection of tags, escaped tags and ids inside text, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
@@ -815,17 +854,18 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 
 | Scenario | Test | Proves |
 |----------|------|--------|
-| (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; no `return_document` while the option is off. |
-| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `return_document` (local round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
+| (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; the model gets the process tools and `c8__return_document`. |
+| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (local round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
 | (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its document message, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
 | (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.responseDocuments` on the `AgentResponse`). |
-| (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.responseDocuments` holds the document under its key, nothing pending afterwards. |
-| (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `return_document` and `Slow_Tool` once each, in that order. |
-| (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
+| (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `c8__return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.responseDocuments` holds the document under its key, nothing pending afterwards. |
+| (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `c8__return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `c8__return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `c8__return_document` and `Slow_Tool` once each, in that order. |
+| (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `c8__return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
-| (j) history audit | `AgentSubProcessHistoryAuditTests` (`aiagent/subprocess`) | Every message of every model request of a document flow, with a prompt document, a tool result document, document arguments and `return_document` next to a real call, is covered by an item of the history read through the query API; with `contextWindowSize=3` the evicted-documents note is the only message without a history item and no history item holds it (5.2). |
+| (k) instance without the feature | `AgentTaskLegacyInstanceDocumentsTests` (`aiagent/task`) | A Task flavor agent whose initial `agent.context` has no features: user prompt documents as bare content, the tool result document as the reference JSON followed by the older tag and the content (Camunda and external documents), the model gets the process tools only, and the returned context has no features, registry or selection. |
+| (j) history audit | `AgentSubProcessHistoryAuditTests` (`aiagent/subprocess`) | Every message of every model request of a document flow, with a prompt document, a tool result document, document arguments and `c8__return_document` next to a real call, is covered by an item of the history read through the query API; with `contextWindowSize=3` the evicted-documents note is the only message without a history item and no history item holds it (5.2). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
 of every recorded model request for `storeId`, `contentHash` and `camunda.document.type`. It runs in
@@ -839,7 +879,7 @@ A2A), because the feature does not apply to them.
 ## 9. Local tool API
 
 A local tool is a tool the agent runs itself: the model sees its definition next to the tools of the
-process, the agent answers the call and no BPMN element is activated. `return_document` is the first one;
+process, the agent answers the call and no BPMN element is activated. `c8__return_document` is the first one;
 loading a skill or saving a memory are the next. Authors register a tool, a definition plus a handler,
 the way tools are registered with other agent frameworks. Code is in
 `aiagent/localtool/` (public API and registry) and `aiagent/agent/LocalToolCallHandlerImpl` (execution).
@@ -962,15 +1002,19 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
 and when calls are split, so they cannot diverge. The task flavor evaluates its input per iteration, so
 availability can change between jobs; a call of a tool that is no longer available goes to the process.
 
-Names are reserved for every registered tool, available or not (3.9). Reasoning: availability depends on a
-configuration that can change while the agent runs, and a BPMN element that is valid today must not turn into
-a collision on the next iteration; the check also has no configuration at hand on process migration. The
-cost is that a modeler cannot name an element `return_document`, whichever tools an agent uses. Uniqueness among
-local tools is checked when the registry is created (startup).
+The registry offers no tool to an agent instance without the `documents` feature (4.2), whatever `isAvailable`
+says.
+
+The whole prefix `c8__` is reserved against tool elements of the process, for every tool, registered or not,
+available or not (3.9). Reasoning: availability depends on a configuration that can change while the agent
+runs, and a BPMN element that is valid today must not turn into a collision on the next iteration or when a
+local tool is added; the check also has no configuration at hand on process migration. The cost is that a
+modeler cannot name an element with the prefix, whichever tools an agent uses. Uniqueness among local tools
+and the prefix of their names are checked when the registry is created (startup).
 
 ### 9.7 Add a local tool
 
-1. Pick a name (it becomes reserved) and write the definition: description, input schema, with a
+1. Pick a name that starts with the reserved prefix `c8__` and write the definition: description, input schema, with a
    document parameter (`LocalToolSchema.document`) if the tool takes documents.
 2. Write the handler. Typed arguments are the usual case:
 
@@ -978,7 +1022,7 @@ local tools is checked when the registry is created (startup).
    record Note(@Nullable String text) {}
 
    LocalTool saveNote =
-       LocalTool.builder("save_note")
+       LocalTool.builder("c8__save_note")
            .description("Saves a note for later.")
            .inputSchema(LocalToolSchema.object().string("text", "The text of the note", true))
            .available(configuration -> configuration.memory() != null)
