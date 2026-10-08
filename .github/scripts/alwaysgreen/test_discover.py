@@ -506,3 +506,85 @@ def test_failing_jobs_asks_for_the_pinned_attempt(monkeypatch):
     monkeypatch.setattr(discover, "gh_json_ex", fake)
     assert [j["name"] for j in discover.failing_jobs("7")] == ["x"]
     assert all("/attempts/3" in path for path in asked), asked
+
+
+# ---------------------------------------------------------------------------
+# End-to-end smoke test over _run()
+# ---------------------------------------------------------------------------
+#
+# Every other test here calls one function, so a changed return arity between a
+# producer and its only caller is invisible to them: `dedupe_inputs` grew a fifth
+# value and `_run` kept unpacking four, which raises `ValueError` on every real
+# triage while the whole suite stayed green. This test exists to fail on that.
+
+
+def _run_discovery(monkeypatch, tmp_path, **overrides):
+    import json as _json
+    import sys as _sys
+
+    cand = planning.Candidate(
+        base_ref="main",
+        surface=classify.SURFACE_SM_E2E,
+        job_name="Playwright e2e smoke after install",
+        specs=[
+            classify.FailingSpec(
+                file="tests/SM-8.10/a.spec.ts",
+                test_name="logs in",
+                error="boom",
+                project="chromium",
+                attempts=1,
+                statuses=["failed"],
+            )
+        ],
+    )
+    stubs = {
+        "build_candidates": lambda run_id, base_ref, workdir: ([cand], []),
+        "inflight_keys": lambda: (set(), True),
+        "dedupe_inputs": lambda: (
+            set(),
+            set(),
+            set(),
+            {"covered_by": {}, "keys": {}},
+            True,
+        ),
+        "product_bug_fingerprints": lambda: (set(), {}),
+        "resolve_blame": lambda sha: classify.Blame(None, None, None, "none"),
+        "gh_json": lambda args, default: {},
+    }
+    stubs.update(overrides)
+    for name, value in stubs.items():
+        if hasattr(discover, name):
+            monkeypatch.setattr(discover, name, value)
+    if hasattr(discover, "paths_claimed_by_open_prs"):
+        monkeypatch.setattr(discover, "paths_claimed_by_open_prs", lambda paths: ({}, True))
+
+    out = tmp_path / "plan.json"
+    monkeypatch.setattr(
+        _sys,
+        "argv",
+        ["discover.py", "--run-id", "1", "--base-ref", "main", "--out", str(out)],
+    )
+    runner = getattr(discover, "_run", None) or discover.main
+    assert runner() == 0
+    return _json.loads(out.read_text())
+
+
+def test_discovery_produces_a_plan_the_notifier_can_render(monkeypatch, tmp_path):
+    payload = _run_discovery(monkeypatch, tmp_path)
+
+    assert payload["base_ref"] == "main"
+    assert "covered_by" in payload["references"]
+    assert "keys" in payload["references"]
+    assert "product_bugs" in payload["references"]
+    assert len(payload["dispatches"]) == 1
+
+
+def test_a_failed_lookup_is_named_in_the_plan(monkeypatch, tmp_path):
+    # What lets the Slack message say "could not verify" instead of asserting that
+    # someone else is already on the failure.
+    payload = _run_discovery(
+        monkeypatch, tmp_path, inflight_keys=lambda: (set(), False)
+    )
+
+    assert "inflight" in payload["references"]["lookups_failed"]
+    assert payload["dispatches"] == []

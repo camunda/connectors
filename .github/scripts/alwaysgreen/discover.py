@@ -685,9 +685,20 @@ def build_candidates(run_id: str, base_ref: str, workdir: Path):
     return candidates, noise
 
 
-def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict:
+def serialise(
+    result: planning.Plan,
+    blame: classify.Blame,
+    run_id: str,
+    base_ref: str = "",
+    references: dict | None = None,
+) -> dict:
     return {
         "run_url": f"https://github.com/{REPO}/actions/runs/{run_id}",
+        "base_ref": base_ref,
+        # Which PR or issue accounts for each suppressed fingerprint and each locked
+        # dispatch key. notify.py renders it; the job summary and the artifact keep
+        # using the reason codes.
+        "references": references or {},
         "blame": asdict(blame),
         "dispatches": [
             {
@@ -723,6 +734,7 @@ def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict
             {
                 "surface": s.candidate.surface,
                 "dispatch_key": s.candidate.key,
+                "base_ref": s.candidate.base_ref,
                 "reason": s.reason,
                 "detail": s.detail,
                 "specs": sorted({sp.file for sp in s.candidate.specs}),
@@ -768,19 +780,24 @@ def _run() -> int:
         workdir = Path(tmp)
         candidates, noise = build_candidates(args.run_id, base_ref, workdir)
 
+        lookups_failed: list[str] = []
+
         keys, keys_ok = inflight_keys()
         if not keys_ok:
             # Cannot prove nothing is running; suppress every candidate this tick.
             keys = {c.key for c in candidates}
+            lookups_failed.append("inflight")
             log("::warning::in-flight lookup failed; suppressing dispatch this run")
 
-        covered, pr_keys, pr_keys_covered, dedupe_ok = dedupe_inputs()
+        covered, pr_keys, pr_keys_covered, pr_refs, dedupe_ok = dedupe_inputs()
         if not dedupe_ok:
             # Cannot prove what an open PR already covers, so suppress every candidate:
             # the key set and the coverage set must be one snapshot or a partial read
             # licenses a duplicate PR.
             pr_keys = {c.key for c in candidates}
             pr_keys_covered = set()
+            pr_refs = {}
+            lookups_failed.append("open_prs")
             log("::warning::open fix PR lookup failed; suppressing dispatch this run")
 
         spec_paths = {s.file for c in candidates for s in c.specs if s.file}
@@ -788,7 +805,10 @@ def _run() -> int:
         if not claimed_ok:
             # Cannot prove the files are free; treat every one as claimed.
             claimed = {path: 0 for path in spec_paths}
+            lookups_failed.append("paths")
             log("::warning::open PR path scan failed; suppressing dispatch this run")
+
+        bug_fps, bug_urls = product_bug_fingerprints()
 
         result = planning.plan_dispatches(
             candidates,
@@ -796,7 +816,7 @@ def _run() -> int:
             inflight_keys=keys,
             open_pr_keys=pr_keys,
             open_pr_keys_with_coverage=pr_keys_covered,
-            product_bug_fingerprints=product_bug_fingerprints(),
+            product_bug_fingerprints=bug_fps,
             claimed_paths=claimed,
             max_dispatches=args.max_dispatches,
         )
@@ -805,7 +825,21 @@ def _run() -> int:
         run = gh_json(["api", f"repos/{REPO}/actions/runs/{args.run_id}"], {})
         blame = resolve_blame(run.get("head_sha") or "")
 
-        payload = serialise(result, blame, args.run_id)
+        payload = serialise(
+            result,
+            blame,
+            args.run_id,
+            base_ref=base_ref,
+            references={
+                "covered_by": (pr_refs or {}).get("covered_by") or {},
+                "keys": (pr_refs or {}).get("keys") or {},
+                "product_bugs": bug_urls,
+                # Which lookups could not be proven. Every suppression here fails
+                # closed, so without this the message states a reason that is really a
+                # guess — "an agent is already running" when nothing is.
+                "lookups_failed": lookups_failed,
+            },
+        )
 
     text = json.dumps(payload, indent=2)
     if args.out == "-":
