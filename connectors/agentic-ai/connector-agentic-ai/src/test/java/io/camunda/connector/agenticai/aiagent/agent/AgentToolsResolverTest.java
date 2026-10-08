@@ -13,8 +13,6 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -43,11 +41,7 @@ class AgentToolsResolverTest {
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver =
-        new AgentToolsResolverImpl(
-            toolsSchemaResolver,
-            gatewayToolHandlers,
-            new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())));
+    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
   }
 
   @Nested
@@ -55,7 +49,7 @@ class AgentToolsResolverTest {
 
     private static final ToolDefinition RESERVED_TOOL =
         ToolDefinition.builder()
-            .name("return_document")
+            .name("c8__return_document")
             .description("Clashes with the built-in tool")
             .inputSchema(Map.of("type", "object"))
             .build();
@@ -84,8 +78,41 @@ class AgentToolsResolverTest {
               ConnectorException.class,
               e -> {
                 assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME");
-                assertThat(e.getMessage()).contains("return_document", "reserved");
+                assertThat(e.getMessage()).contains("c8__return_document", "'c8__'", "reserved");
               });
+    }
+
+    @Test
+    void reservesTheWholePrefixNotOnlyTheNamesOfRegisteredTools() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(
+                      ToolDefinition.builder()
+                          .name("c8__not_a_registered_tool")
+                          .inputSchema(Map.of("type", "object"))
+                          .build()),
+                  List.of()));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));
+    }
+
+    @Test
+    void acceptsNamesThatOnlyContainThePrefix() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("my_c8__tool")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
     }
 
     @Test
@@ -97,7 +124,7 @@ class AgentToolsResolverTest {
                   List.of(
                       GatewayToolDefinition.builder()
                           .type("mcp")
-                          .name("return_document")
+                          .name("c8__return_document")
                           .build())));
 
       assertThatThrownBy(

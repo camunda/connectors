@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
+import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import java.util.Collections;
@@ -21,7 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The built-in {@code return_document} tool. The model calls it once per document to select a
+ * The built-in {@code c8__return_document} tool. The model calls it once per document to select a
  * document for the final response of the agent under a key the process can find it by. It is
  * offered to every agent.
  *
@@ -31,8 +32,8 @@ import org.jspecify.annotations.Nullable;
  */
 public final class ReturnDocumentTool implements LocalTool {
 
-  /** The reserved tool name; ad-hoc tool elements must not use it. */
-  public static final String NAME = "return_document";
+  /** The tool name, in the reserved namespace of the tools the agent runs itself. */
+  public static final String NAME = InternalToolNames.PREFIX + "return_document";
 
   /** The parameter carrying the stable identifier the process finds the document by. */
   public static final String PARAMETER_KEY = "key";

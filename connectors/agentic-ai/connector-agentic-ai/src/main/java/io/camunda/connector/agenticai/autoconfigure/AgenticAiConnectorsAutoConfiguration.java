@@ -205,9 +205,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      LocalToolRegistry localToolRegistry) {
-    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers, localToolRegistry);
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
   }
 
   @Bean

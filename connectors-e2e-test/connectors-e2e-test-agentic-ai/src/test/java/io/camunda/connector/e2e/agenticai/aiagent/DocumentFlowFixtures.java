@@ -104,29 +104,34 @@ public final class DocumentFlowFixtures {
         "I will return the document.",
         10,
         20,
-        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))));
+        ToolCall.of(
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))));
   }
 
-  /** One assistant message with a valid {@code return_document} call and a real {@code Ping}. */
+  /**
+   * One assistant message with a valid {@code c8__return_document} call and a real {@code Ping}.
+   */
   public static Turn returnDocumentWithPingTurn() {
     return Turn.toolCalls(
         "I will return the document and check that the tools work.",
         10,
         20,
-        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
+        ToolCall.of(
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
   /**
-   * One assistant message with a valid {@code return_document} call and a real {@code Slow_Tool}
-   * call, which keeps running until the test completes its job.
+   * One assistant message with a valid {@code c8__return_document} call and a real {@code
+   * Slow_Tool} call, which keeps running until the test completes its job.
    */
   public static Turn returnDocumentWithSlowToolTurn() {
     return Turn.toolCalls(
         "I will return the document and run the slow tool.",
         10,
         20,
-        ToolCall.of(RETURN_CALL_ID, "return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
+        ToolCall.of(
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 

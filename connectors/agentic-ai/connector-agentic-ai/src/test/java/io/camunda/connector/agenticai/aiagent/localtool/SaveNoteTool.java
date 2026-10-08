@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  */
 public final class SaveNoteTool {
 
-  public static final String NAME = "save_note";
+  public static final String NAME = "c8__save_note";
   public static final String NOTES_PROPERTY = "notes";
 
   public record Note(@Nullable String text) {}

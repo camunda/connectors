@@ -79,10 +79,20 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
+  void rejectsAToolNameOutsideTheReservedNamespace() {
+    final var outside = LocalTool.builder("save_note").handler((call, context) -> null);
+
+    assertThatThrownBy(() -> new LocalToolRegistryImpl(List.of(outside)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("save_note")
+        .hasMessageContaining("c8__");
+  }
+
+  @Test
   void rejectsDuplicateToolNames() {
     assertThatThrownBy(
             () -> new LocalToolRegistryImpl(List.of(SaveNoteTool.create(), SaveNoteTool.create())))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("save_note");
+        .hasMessageContaining("c8__save_note");
   }
 }

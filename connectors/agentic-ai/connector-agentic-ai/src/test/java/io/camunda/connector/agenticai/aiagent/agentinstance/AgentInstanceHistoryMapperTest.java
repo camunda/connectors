@@ -291,13 +291,13 @@ class AgentInstanceHistoryMapperTest {
     final var toolCall =
         ToolCall.builder()
             .id("call-1")
-            .name("return_document")
+            .name("c8__return_document")
             .arguments(Map.of("key", "report", "document", "a"))
             .build();
     final var result =
         ToolCallResultContent.builder()
             .id("call-1")
-            .name("return_document")
+            .name("c8__return_document")
             .content(
                 List.of(TextContent.textContent("Returned the document under the key 'report'.")))
             .completedAt(TOOL_RESULT_COMPLETED_AT)
@@ -317,7 +317,7 @@ class AgentInstanceHistoryMapperTest {
         .singleElement()
         .satisfies(
             call -> {
-              assertThat(call.getToolName()).isEqualTo("return_document");
+              assertThat(call.getToolName()).isEqualTo("c8__return_document");
               assertThat(call.getElementId()).isNull();
             });
     assertThat(items)
@@ -336,7 +336,7 @@ class AgentInstanceHistoryMapperTest {
                   .singleElement()
                   .satisfies(
                       call -> {
-                        assertThat(call.getToolName()).isEqualTo("return_document");
+                        assertThat(call.getToolName()).isEqualTo("c8__return_document");
                         assertThat(call.getToolCallId()).isEqualTo("call-1");
                         assertThat(call.getElementId()).isNull();
                         assertThat(call.getArguments()).containsEntry("key", "report");
@@ -440,11 +440,11 @@ class AgentInstanceHistoryMapperTest {
       final var call =
           ToolCall.builder()
               .id("call-2")
-              .name("return_document")
+              .name("c8__return_document")
               .arguments(Map.of("key", "report", "document", documentId))
               .build();
 
-      // return_document is not among the offered tool definitions
+      // c8__return_document is not among the offered tool definitions
       final var calls =
           mapper.assistantToolCalls(
               AssistantMessage.builder().toolCalls(List.of(call)).build(), documents);

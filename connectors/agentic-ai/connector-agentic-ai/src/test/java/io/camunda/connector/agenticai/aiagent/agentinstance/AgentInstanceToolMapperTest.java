@@ -59,7 +59,7 @@ class AgentInstanceToolMapperTest {
         .singleElement()
         .satisfies(
             agentTool -> {
-              assertThat(agentTool.getName()).isEqualTo("return_document");
+              assertThat(agentTool.getName()).isEqualTo("c8__return_document");
               assertThat(agentTool.getDescription()).contains("Attaches one document");
               assertThat(agentTool.getElementId()).isNull();
             });

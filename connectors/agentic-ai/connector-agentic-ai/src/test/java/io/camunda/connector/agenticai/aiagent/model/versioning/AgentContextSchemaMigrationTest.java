@@ -604,7 +604,7 @@ class AgentContextSchemaMigrationTest {
       final var pending =
           ToolCallResult.builder()
               .id("call-1")
-              .name("return_document")
+              .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
               .build();

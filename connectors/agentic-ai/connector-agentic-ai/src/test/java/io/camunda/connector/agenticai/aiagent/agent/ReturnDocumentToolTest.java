@@ -40,7 +40,7 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
-/** The {@code return_document} tool run by the framework, the way the agent loop runs it. */
+/** The {@code c8__return_document} tool run by the framework, the way the agent loop runs it. */
 class ReturnDocumentToolTest {
 
   private final LocalToolCallHandler handler =

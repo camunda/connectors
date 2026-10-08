@@ -91,7 +91,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     assertThat(recorded.modelCallCount()).isEqualTo(4);
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "return_document");
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__return_document");
 
     final var downloadResult = recorded.requests().get(1).messages().get(3);
     assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
@@ -204,7 +204,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             "Upload_A_File",
             arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
         .hasToolCallArguments(
-            "return_document",
+            "c8__return_document",
             arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
         .verify();
   }
@@ -229,7 +229,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
     // the slow tool has not answered, the local result is already reported
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
-        .hasExactlyToolResultsInOrder("Download_A_File", "return_document")
+        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document")
         .verify();
     CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
 
@@ -241,7 +241,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
     // the next job reported the local result again: no duplicate, call order kept
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
-        .hasExactlyToolResultsInOrder("Download_A_File", "return_document", "Slow_Tool")
+        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document", "Slow_Tool")
         .verify();
   }
 

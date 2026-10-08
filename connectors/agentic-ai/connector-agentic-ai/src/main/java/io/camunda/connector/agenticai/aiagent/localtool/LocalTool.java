@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -48,8 +49,9 @@ import org.jspecify.annotations.Nullable;
 public interface LocalTool {
 
   /**
-   * The definition shown to the model. The name is unique among the local tools and reserved: no
-   * BPMN element of an agent may use it.
+   * The definition shown to the model. The name is unique among the local tools and starts with the
+   * reserved prefix {@link InternalToolNames#PREFIX}: no BPMN element of an agent may use a name
+   * with it.
    */
   ToolDefinition definition();
 

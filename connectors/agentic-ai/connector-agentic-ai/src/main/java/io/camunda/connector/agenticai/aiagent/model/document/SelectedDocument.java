@@ -12,8 +12,8 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document the model selected for the final response with the {@code return_document} tool, as
- * persisted in the agent context under the key the model chose.
+ * A document the model selected for the final response with the {@code c8__return_document} tool,
+ * as persisted in the agent context under the key the model chose.
  *
  * @param document the {@link DocumentHandle#idFor stable id} of the document in the registry
  * @param description what the model said about the document, if anything

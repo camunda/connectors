@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,13 +24,19 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
   private final Map<String, LocalTool> toolsByName = new LinkedHashMap<>();
 
   /**
-   * @throws IllegalStateException if two tools have the same name or a name is blank
+   * @throws IllegalStateException if two tools have the same name, a name is blank or a name does
+   *     not start with the reserved prefix {@link InternalToolNames#PREFIX}
    */
   public LocalToolRegistryImpl(List<LocalTool> tools) {
     for (final var tool : tools) {
       final var name = tool.definition().name();
       if (name.isBlank()) {
         throw new IllegalStateException("A local tool must have a non-blank name");
+      }
+      if (!InternalToolNames.isReserved(name)) {
+        throw new IllegalStateException(
+            "The local tool '%s' must be named in the reserved namespace, starting with '%s'."
+                .formatted(name, InternalToolNames.PREFIX));
       }
       if (toolsByName.putIfAbsent(name, tool) != null) {
         throw new IllegalStateException(

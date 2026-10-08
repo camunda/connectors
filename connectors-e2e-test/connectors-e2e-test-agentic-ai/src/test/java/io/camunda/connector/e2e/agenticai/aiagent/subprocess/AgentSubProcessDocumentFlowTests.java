@@ -130,7 +130,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     // the built-in tool is offered next to the tools of the process
     assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "return_document");
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__return_document");
     assertNoDocumentInternalsInLlmRequests();
   }
 
@@ -173,7 +173,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(recorded.modelCallCount()).isEqualTo(4);
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "return_document");
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__return_document");
 
     // the id the model works with is the one shown with the downloaded document
     final var downloadResult = recorded.requests().get(1).messages().get(3);
@@ -253,7 +253,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The valid {@code return_document} call is answered by the agent, the real call runs in the
+   * The valid {@code c8__return_document} call is answered by the agent, the real call runs in the
    * process, and the model sees both results in the order of its calls without an extra model call:
    * one call before the tools run and one after.
    */
@@ -309,10 +309,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey()));
 
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
-        .hasToolsContaining("Download_A_File", "Upload_A_File", "Ping", "return_document")
-        .hasToolWithoutElementId("return_document")
-        .hasToolResultsFor("return_document", "Ping")
-        .hasToolCallsWithElementId("return_document", null)
+        .hasToolsContaining("Download_A_File", "Upload_A_File", "Ping", "c8__return_document")
+        .hasToolWithoutElementId("c8__return_document")
+        .hasToolResultsFor("c8__return_document", "Ping")
+        .hasToolCallsWithElementId("c8__return_document", null)
         .hasToolCallsWithElementId("Ping", "Ping")
         .verify();
   }
@@ -346,7 +346,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             "Upload_A_File",
             arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
         .hasToolCallArguments(
-            "return_document",
+            "c8__return_document",
             arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
         .verify();
   }
@@ -371,7 +371,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     // the slow tool has not answered, the local result is already reported
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
-        .hasExactlyToolResultsInOrder("Download_A_File", "return_document")
+        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document")
         .verify();
     CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
 
@@ -383,7 +383,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     // the next job reported the local result again: no duplicate, call order kept
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
-        .hasExactlyToolResultsInOrder("Download_A_File", "return_document", "Slow_Tool")
+        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document", "Slow_Tool")
         .verify();
   }
 

@@ -134,7 +134,7 @@ class LocalToolCallHandlerImplTest {
         .satisfies(
             result -> {
               assertThat(result.id()).isEqualTo("n1");
-              assertThat(result.name()).isEqualTo("save_note");
+              assertThat(result.name()).isEqualTo("c8__save_note");
               assertThat(result.content()).isEqualTo("Saved note #1");
               assertThat(result.completedAt()).isNotNull();
             });
@@ -195,7 +195,7 @@ class LocalToolCallHandlerImplTest {
     assertThat(handler.availableToolDefinitions(WITHOUT_MEMORY)).isEmpty();
     assertThat(handler.availableToolDefinitions(WITH_MEMORY))
         .extracting(ToolDefinition::name)
-        .containsExactly("save_note");
+        .containsExactly("c8__save_note");
   }
 
   @Test
@@ -226,9 +226,9 @@ class LocalToolCallHandlerImplTest {
   void answersArgumentsOfTheWrongTypeWithAnErrorResultTheModelCanActOn() {
     record Args(int limit) {}
     final var tool =
-        LocalTool.builder("limited")
+        LocalTool.builder("c8__limited")
             .handler(Args.class, (args, context) -> LocalToolResult.success("never"));
-    final var call = new ToolCall("l1", "limited", Map.of("limit", "many"));
+    final var call = new ToolCall("l1", "c8__limited", Map.of("limit", "many"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -237,7 +237,7 @@ class LocalToolCallHandlerImplTest {
         .satisfies(
             result ->
                 assertThat(result.content().toString())
-                    .startsWith("Invalid arguments for tool 'limited':"));
+                    .startsWith("Invalid arguments for tool 'c8__limited':"));
   }
 
   @Test
@@ -255,7 +255,7 @@ class LocalToolCallHandlerImplTest {
     final var received = new ArrayList<Document>();
     record Args(Document file) {}
     final var tool =
-        LocalTool.builder("read_file")
+        LocalTool.builder("c8__read_file")
             .inputSchema(LocalToolSchema.object().document("file", "The file", true))
             .handler(
                 Args.class,
@@ -263,7 +263,7 @@ class LocalToolCallHandlerImplTest {
                   received.add(args.file());
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", reportId));
+    final var call = new ToolCall("r1", "c8__read_file", Map.of("file", reportId));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -277,14 +277,14 @@ class LocalToolCallHandlerImplTest {
   void answersAnUnknownDocumentIdOfALocalToolWithTheKnownDocumentsAndDoesNotRunIt() {
     final var runs = new AtomicInteger();
     final var tool =
-        LocalTool.builder("read_file")
+        LocalTool.builder("c8__read_file")
             .inputSchema(LocalToolSchema.object().document("file", "The file", true))
             .handler(
                 (call, context) -> {
                   runs.incrementAndGet();
                   return LocalToolResult.success("read");
                 });
-    final var call = new ToolCall("r1", "read_file", Map.of("file", "bogus"));
+    final var call = new ToolCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -380,7 +380,7 @@ class LocalToolCallHandlerImplTest {
 
     assertThat(both.availableToolDefinitions(WITH_MEMORY))
         .extracting(ToolDefinition::name)
-        .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, "save_note");
+        .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, "c8__save_note");
   }
 
   private static Document createDocument(String content, String fileName) {

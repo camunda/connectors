@@ -250,7 +250,7 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   protected void assertToolSpecifications(
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
-    // the model sees the tools of the process next to the built-in return_document tool
+    // the model sees the tools of the process next to the built-in c8__return_document tool
     final var expected = new ArrayList<>(expectedTools());
     expected.addAll(
         DocumentParameterSchema.toProviderToolDefinitions(

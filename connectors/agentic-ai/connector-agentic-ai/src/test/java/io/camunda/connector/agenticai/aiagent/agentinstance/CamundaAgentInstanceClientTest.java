@@ -884,7 +884,7 @@ class CamundaAgentInstanceClientTest {
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue().get(0).getTools())
           .extracting(AgentTool::getName, AgentTool::getElementId)
-          .containsExactly(tuple("getWeather", "getWeather"), tuple("return_document", null));
+          .containsExactly(tuple("getWeather", "getWeather"), tuple("c8__return_document", null));
     }
 
     @Test
@@ -1083,7 +1083,7 @@ class CamundaAgentInstanceClientTest {
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_document")
+              .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(localCompletedAt)
               .build();
@@ -1114,7 +1114,7 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_document")
+                              .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
                           ToolCall.builder()
@@ -1149,7 +1149,7 @@ class CamundaAgentInstanceClientTest {
                     .satisfies(
                         tc -> {
                           assertThat(tc.getToolCallId()).isEqualTo("local");
-                          assertThat(tc.getToolName()).isEqualTo("return_document");
+                          assertThat(tc.getToolName()).isEqualTo("c8__return_document");
                           // a local tool call has no BPMN element
                           assertThat(tc.getElementId()).isNull();
                           assertThat(tc.getArguments())
@@ -1403,7 +1403,7 @@ class CamundaAgentInstanceClientTest {
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_document")
+              .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(completedAt)
               .build();
@@ -1424,7 +1424,7 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_document")
+                              .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
                           ToolCall.builder()
@@ -1510,7 +1510,7 @@ class CamundaAgentInstanceClientTest {
       final var localResult =
           ToolCallResult.builder()
               .id("local")
-              .name("return_document")
+              .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
               .build();
@@ -1523,7 +1523,7 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCall.builder()
                               .id("local")
-                              .name("return_document")
+                              .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", documentId))
                               .build()))
                   .build(),
