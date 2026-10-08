@@ -201,7 +201,7 @@ class McpSdkClientFactoryTest {
         factory.createClient(
             CLIENT_ID,
             new McpClientConfiguration(
-                true, McpClientType.STDIO, stdioConfig, null, null, null, null, null));
+                true, McpClientType.STDIO, stdioConfig, null, null, null, null, null, null));
 
     assertClientIsOfCorrectType(client);
   }
@@ -223,6 +223,7 @@ class McpSdkClientFactoryTest {
         stdioConfig,
         httpConfig,
         sseConfig,
+        null,
         Duration.ofMillis(100),
         Duration.ofMillis(200),
         Duration.ofMillis(300));

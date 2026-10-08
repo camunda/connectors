@@ -62,6 +62,7 @@ public class McpClientConfiguration {
         .forEach(
             (id, clientConfig) -> {
               if (clientConfig.enabled()) {
+                clientFactory.validate(id, clientConfig);
                 registry.register(
                     id,
                     () -> {
