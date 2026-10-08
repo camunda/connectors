@@ -31,12 +31,13 @@ public class McpClientConfigurationValidator
 
     if (config.type() != null
         && config.transport() instanceof InMemoryMcpClientTransportConfiguration inMemory) {
-      final var beanNameSet = hasText(inMemory.serverBeanName());
-      final var classNameSet = hasText(inMemory.serverClassName());
-      if (beanNameSet == classNameSet) {
+      final var beanName = inMemory.serverBeanName();
+      final var className = inMemory.serverClassName();
+      if ((beanName == null) == (className == null)
+          || !hasText(beanName != null ? beanName : className)) {
         cxt.disableDefaultConstraintViolation();
         cxt.buildConstraintViolationWithTemplate(
-                "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank) for an IN_MEMORY MCP client")
+                "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank), the other must be unset, for an IN_MEMORY MCP client")
             .addConstraintViolation();
         return false;
       }
