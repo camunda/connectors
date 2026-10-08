@@ -11,12 +11,21 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The size limits of a document that {@code c8__get_document} loads into the conversation.
+ * The content types and size limits of a document that {@code c8__get_document} loads into the
+ * conversation.
+ *
+ * <p>Only a conservative allowlist of content types is loadable: the text-based types, {@code
+ * application/pdf} and the images {@code image/png}, {@code image/jpeg}, {@code image/gif} and
+ * {@code image/webp}. A loaded document stays in the conversation until its message leaves the
+ * window, so a type that the model provider cannot render would fail every later model call; any
+ * other type is rejected before the document is loaded. The allowlist is provider-independent: a
+ * provider-specific capability matrix is an open point, and a provider without support for a listed
+ * type, a PDF for example, still fails at the model call.
  *
  * <p>The limit depends on the content type: a text-based document costs a roughly predictable
- * number of tokens per byte, so the limit is small, a binary document (a PDF, an image) gets a
- * higher one. A document whose content type is not known without reading it, such as an external
- * one, is treated as text-based.
+ * number of tokens per byte, so the limit is small, a PDF or an image gets a higher one. A document
+ * whose content type is not known without reading it, such as an external one, is treated as
+ * text-based: it is loadable and gets the stricter text limit.
  *
  * <p>Known limitation: bytes are a poor proxy for the tokens a document costs. A PDF of 214 KB can
  * cost about 230,000 input tokens, depending on the pages and the provider. A guard based on tokens
@@ -42,11 +51,22 @@ final class DocumentLoadLimits {
           "application/sql",
           "application/toml");
 
+  private static final Set<String> BINARY_TYPES =
+      Set.of("application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp");
+
   private static final Set<String> TEXT_SUFFIXES = Set.of("+json", "+xml", "+yaml");
 
   private DocumentLoadLimits() {}
 
-  /** The limit in bytes for a document of the content type, which may be unknown. */
+  /** Whether a document of the content type, which may be unknown, can be loaded. */
+  static boolean isLoadable(@Nullable String contentType) {
+    return isTextBased(contentType) || BINARY_TYPES.contains(mediaType(contentType));
+  }
+
+  /**
+   * The limit in bytes for a loadable document of the content type, which may be unknown. The
+   * result for a type that is not {@link #isLoadable loadable} is the binary limit.
+   */
   static long limitFor(@Nullable String contentType) {
     return isTextBased(contentType) ? TEXT_LIMIT_BYTES : BINARY_LIMIT_BYTES;
   }
@@ -55,9 +75,13 @@ final class DocumentLoadLimits {
     if (contentType == null || contentType.isBlank()) {
       return true;
     }
-    final var mediaType = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+    final var mediaType = mediaType(contentType);
     return mediaType.startsWith("text/")
         || TEXT_APPLICATION_TYPES.contains(mediaType)
         || TEXT_SUFFIXES.stream().anyMatch(mediaType::endsWith);
+  }
+
+  private static String mediaType(@Nullable String contentType) {
+    return contentType == null ? "" : contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
   }
 }

@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
@@ -228,27 +227,51 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
-  /** The prompt shows the tag only, so the unsupported type surfaces when the model loads it. */
+  /**
+   * The model asks to load a document of a type outside the allowlist: the tool answers with an
+   * error before loading it, no incident is raised and the conversation continues.
+   */
   @Test
-  void raisesIncidentWhenALoadedDocumentTypeIsNotSupported() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubRepeatingTurn(getDocumentTurn());
+  void rejectsLoadingADocumentOfATypeThatIsNotSupported() throws Exception {
+    final var responseText = "I cannot read it, so I will not summarize it.";
+
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        getDocumentTurn(), Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        awaitActiveIncidents(
+        awaitProcessCompletion(
             createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip"))));
 
-    assertIncident(
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    // the error is the tool result; no message with the content of the document follows
+    final var messages = recorded.lastRequest().messages();
+    assertThat(messages)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool");
+    assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
+    assertThat(messages.get(3).content())
+        .isEqualTo(
+            "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
+
+    assertAgentResponse(
         zeebeTest,
-        incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
-          assertThat(incident.getErrorMessage())
-              .startsWith("Unsupported content type 'application/zip' for document with reference");
-        });
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   private static String contentBlockType(String filename) {

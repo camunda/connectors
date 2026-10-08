@@ -290,6 +290,31 @@ class GetDocumentToolTest {
   }
 
   @Test
+  void rejectsADocumentOfATypeOutsideTheAllowlistWithoutReadingIt() {
+    store.readable = false;
+
+    final var split =
+        run(
+            List.of(
+                camundaEntry("zip-1", "application/zip", 10L),
+                camundaEntry("tiff-1", "image/tiff", null),
+                camundaEntry("png-1", "image/png", 10L)),
+            List.of(),
+            call("1", "zip-1"),
+            call("2", "tiff-1"),
+            call("3", "png-1"));
+
+    assertThat(split.localResults().get(0).content())
+        .isEqualTo(
+            "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
+    assertThat(split.localResults().get(0).properties()).isEmpty();
+    assertThat(split.localResults().get(1).content().toString())
+        .startsWith("The document is of type image/tiff which cannot be loaded");
+    assertThat(split.localResults().get(2).content()).isEqualTo("Loaded document png-1.");
+    assertThat(store.opened.get()).isZero();
+  }
+
+  @Test
   void readsAtMostOneByteMoreThanTheTextLimitWhenTheSizeIsUnknown() {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", null)), List.of(), call("1", "doc-1"));

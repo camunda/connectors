@@ -51,13 +51,55 @@ class DocumentLoadLimitsTest {
         "application/pdf",
         "image/png",
         "image/jpeg",
-        "application/octet-stream",
-        "application/zip",
-        "audio/mpeg"
+        "image/gif",
+        "image/webp",
+        "IMAGE/PNG",
+        "application/pdf; name=a.pdf"
       })
-  void otherContentTypesGetTheBinaryLimit(String contentType) {
+  void loadableBinaryContentTypesGetTheBinaryLimit(String contentType) {
     assertThat(DocumentLoadLimits.limitFor(contentType))
         .isEqualTo(DocumentLoadLimits.BINARY_LIMIT_BYTES);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "text/plain",
+        "application/json",
+        "image/svg+xml",
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "Application/PDF; charset=binary"
+      })
+  void allowlistedContentTypesAreLoadable(String contentType) {
+    assertThat(DocumentLoadLimits.isLoadable(contentType)).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "application/octet-stream",
+        "application/zip",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/tiff",
+        "image/bmp",
+        "image/heic",
+        "audio/mpeg",
+        "video/mp4"
+      })
+  void contentTypesOutsideTheAllowlistAreNotLoadable(String contentType) {
+    assertThat(DocumentLoadLimits.isLoadable(contentType)).isFalse();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"  "})
+  void anUnknownContentTypeIsLoadable(String contentType) {
+    assertThat(DocumentLoadLimits.isLoadable(contentType)).isTrue();
   }
 
   @ParameterizedTest

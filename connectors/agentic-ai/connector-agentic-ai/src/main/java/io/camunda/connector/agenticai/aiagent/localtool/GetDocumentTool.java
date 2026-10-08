@@ -28,8 +28,9 @@ import org.jspecify.annotations.Nullable;
  * the document ({@link ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content reaches the model
  * in the message that follows the tool results. A document that is already part of the conversation
  * is not loaded again. A document above the {@link DocumentLoadLimits limit} of its content type is
- * rejected without being loaded; the size is read from the reference metadata, and when the
- * metadata has none, from at most one more byte than the limit of the document.
+ * rejected without being loaded, and so is a document of a content type that {@link
+ * DocumentLoadLimits#isLoadable is not loadable}; the size is read from the reference metadata, and
+ * when the metadata has none, from at most one more byte than the limit of the document.
  */
 public final class GetDocumentTool implements LocalTool {
 
@@ -45,8 +46,8 @@ public final class GetDocumentTool implements LocalTool {
           "Loads a known document so that its content can be read in the conversation. Use it when"
               + " you need the content of a document that you only see as a <doc/> tag. It fails"
               + " for documents that are too large: pass the id of a large document to a tool that"
-              + " processes it instead, for example a sandbox. A document that is already in the"
-              + " conversation is not loaded again.",
+              + " processes it instead, for example a sandbox. Only text, PDF and image documents can"
+              + " be loaded. A document that is already in the conversation is not loaded again.",
           ordered(
               "type",
               "object",
@@ -89,7 +90,14 @@ public final class GetDocumentTool implements LocalTool {
       return LocalToolResult.success("Document %s is already in the conversation.".formatted(id));
     }
 
-    final var limit = DocumentLoadLimits.limitFor(DocumentHandle.contentTypeFor(document));
+    final var contentType = DocumentHandle.contentTypeFor(document);
+    if (!DocumentLoadLimits.isLoadable(contentType)) {
+      return LocalToolResult.error(
+          "The document is of type %s which cannot be loaded into the conversation; pass its id to a tool that processes it."
+              .formatted(contentType));
+    }
+
+    final var limit = DocumentLoadLimits.limitFor(contentType);
     final var size = DocumentHandle.sizeFor(document);
     if (size != null) {
       if (size > limit) {
