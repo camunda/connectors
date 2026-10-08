@@ -25,6 +25,8 @@ import io.modelcontextprotocol.spec.McpSchema;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,6 +74,40 @@ class InMemoryMcpClientTest {
         .singleElement()
         .isInstanceOfSatisfying(
             McpTextContent.class, text -> assertThat(text.text()).isEqualTo("echo: hello"));
+  }
+
+  @Test
+  void enforcesToolExecutionTimeoutForBlockedHandler() {
+    final var release = new CountDownLatch(1);
+    beanFactory.registerSingleton("blockingServer", new BlockingServer(release));
+    final var config =
+        new McpClientConfiguration(
+            true,
+            McpClientType.IN_MEMORY,
+            null,
+            null,
+            null,
+            new InMemoryMcpClientTransportConfiguration("blockingServer", null),
+            Duration.ofSeconds(5),
+            Duration.ofMillis(300),
+            null);
+    final var delegate = factory.createClient("blocking", config);
+    client = delegate;
+
+    try {
+      final var start = System.nanoTime();
+      final var result =
+          delegate.callTool(
+              Map.of("name", "block", "arguments", Map.of()),
+              AllowDenyList.allowingEverything(),
+              Map.of());
+
+      assertThat(result.isError()).isTrue();
+      assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(5));
+      assertThat(release.getCount()).isEqualTo(1);
+    } finally {
+      release.countDown();
+    }
   }
 
   @Test
@@ -125,6 +161,35 @@ class InMemoryMcpClientTest {
                       McpSchema.CallToolResult.builder()
                           .addTextContent("echo: " + request.arguments().get("text"))
                           .build())
+              .build());
+    }
+  }
+
+  static class BlockingServer implements InMemoryMcpServer {
+    private final CountDownLatch release;
+
+    BlockingServer(CountDownLatch release) {
+      this.release = release;
+    }
+
+    @Override
+    public List<SyncToolSpecification> tools() {
+      final var tool =
+          McpSchema.Tool.builder("block", McpJsonDefaults.getMapper(), "{\"type\":\"object\"}")
+              .description("Blocks until released")
+              .build();
+      return List.of(
+          SyncToolSpecification.builder()
+              .tool(tool)
+              .callHandler(
+                  (exchange, request) -> {
+                    try {
+                      release.await(10, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                      Thread.currentThread().interrupt();
+                    }
+                    return McpSchema.CallToolResult.builder().addTextContent("released").build();
+                  })
               .build());
     }
   }
