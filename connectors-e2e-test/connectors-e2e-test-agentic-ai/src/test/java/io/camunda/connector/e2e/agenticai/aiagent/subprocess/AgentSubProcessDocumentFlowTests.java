@@ -568,11 +568,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
 
-    // the window of the second request is: system, assistant, tool result, document message
+    // the window of the second request is: system, assistant, tool result
     final var documentId =
         parseDocumentTag(recorded.requests().get(1).messages().get(2).content()).id();
 
-    // the window of the third request no longer holds the download or its document message
+    // the window of the third request no longer holds the download or its tool result
     final var windowed = recorded.requests().get(2).messages();
     assertThat(windowed).extracting(m -> m.toolCallId()).doesNotContain(DOWNLOAD_CALL_ID);
     assertThat(windowed)
