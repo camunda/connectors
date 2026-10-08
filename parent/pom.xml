@@ -189,6 +189,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
     <version.azure-core>1.60.0</version.azure-core>
+    <version.msal4j>1.23.1</version.msal4j>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -890,6 +891,12 @@ limitations under the License.</license.inlineheader>
         <groupId>com.azure</groupId>
         <artifactId>azure-core</artifactId>
         <version>${version.azure-core}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>msal4j</artifactId>
+        <version>${version.msal4j}</version>
       </dependency>
 
       <dependency>
