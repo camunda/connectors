@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.ConfigurationProperty;
+import io.camunda.connector.generator.dsl.ConfigurationTemplate;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
@@ -94,12 +95,17 @@ public class GenerateElementTemplate {
   private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
       "authenticationConfiguration";
   private static final String AUTHENTICATION_CONFIGURATION_DESCRIPTION =
-      "Choose a reusable authentication credential, or configure one-time authentication"
-          + " parameters below. Note: Salesforce requires an OAuth access token, so API key and"
-          + " Basic credentials pass template validation but fail at runtime. For an OAuth"
-          + " credential, set the token endpoint to your Salesforce instance's"
-          + " <code>/services/oauth2/token</code> endpoint and leave audience and scopes empty."
-          + " The credential's own URL field is not used by this connector.";
+      "Choose a reusable Salesforce credential, or configure one-time authentication parameters"
+          + " below.";
+  private static final String REST_AUTHENTICATION_CONFIGURATION_ID =
+      "io.camunda.connectors:rest-authentication:1";
+  // A Salesforce-only credential type, derived from HTTP JSON's REST Authentication one and
+  // narrowed to the auth types Salesforce supports. The runtime still binds it as
+  // RestAuthenticationConfiguration, which never checks the credential type's id.
+  private static final String SALESFORCE_CREDENTIAL_ID =
+      "io.camunda.connectors:salesforce-authentication:1";
+  private static final String SALESFORCE_CREDENTIAL_NAME = "Salesforce Authentication";
+  private static final long SALESFORCE_CREDENTIAL_VERSION = 1L;
   // resultVariable/resultExpression are inherited from HTTP JSON as-is (unconditional, same as
   // every other HTTP JSON-backed connector) rather than rebuilt -- Salesforce has no
   // operation-specific behavior to layer onto response mapping.
@@ -181,6 +187,8 @@ public class GenerateElementTemplate {
                         || isAuthTypeDropdown(p)
                         || idIn(p, KEPT_AUTH_PROPERTY_IDS)
                         || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
+            .removeConfigurationTemplates(ct -> true)
+            .configurationTemplates(List.of(salesforceCredential(httpJsonTemplate)))
             .replaceProperty(salesforceCredentialChooser(httpJsonTemplate))
             // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
             // Salesforce supports.
@@ -213,7 +221,7 @@ public class GenerateElementTemplate {
                 })
             .appliesTo(BpmnType.TASK)
             .elementType(BpmnType.SERVICE_TASK)
-            .engines(new Engines("^8.11"))
+            .engines(new Engines("^8.10"))
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
             // The "operation" group must be first in groups[] -- a validator rule
@@ -353,6 +361,17 @@ public class GenerateElementTemplate {
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
+    var builder = original.toBuilder();
+    builder.choices(keptAuthTypeChoices(original));
+    // HTTP JSON's dropdown defaults to "noAuth" and describes it as the way to opt out of
+    // authentication -- neither applies once pruned down to bearer/OAuth only, matching the
+    // previous hand-authored template, which had no description or default value here.
+    builder.description(null);
+    builder.value(null);
+    return builder.build();
+  }
+
+  private static List<DropdownChoice> keptAuthTypeChoices(DropdownProperty original) {
     Set<String> availableAuthTypes =
         original.getChoices().stream().map(DropdownChoice::value).collect(Collectors.toSet());
     Set<String> missingAuthTypes =
@@ -365,18 +384,68 @@ public class GenerateElementTemplate {
               + missingAuthTypes
               + ", which Salesforce depends on -- has HTTP JSON's auth model changed?");
     }
-    List<DropdownChoice> prunedChoices =
-        original.getChoices().stream()
-            .filter(choice -> KEPT_AUTH_TYPES.contains(choice.value()))
+    return original.getChoices().stream()
+        .filter(choice -> KEPT_AUTH_TYPES.contains(choice.value()))
+        .toList();
+  }
+
+  private static ConfigurationTemplate salesforceCredential(ElementTemplate httpJsonTemplate) {
+    ConfigurationTemplate restAuthentication =
+        httpJsonTemplate.configurationTemplates().stream()
+            .filter(ct -> REST_AUTHENTICATION_CONFIGURATION_ID.equals(ct.id()))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "HTTP JSON's generated template no longer embeds the \""
+                            + REST_AUTHENTICATION_CONFIGURATION_ID
+                            + "\" configuration template -- has it been renamed or removed?"));
+    List<Property> properties =
+        restAuthentication.properties().stream()
+            .filter(
+                p ->
+                    isAuthTypeDropdown(p)
+                        || isCredentialUrl(p)
+                        || (isConditionedOnKeptAuthType(p)
+                            && !idIn(p, UNSUPPORTED_AUTH_PROPERTY_IDS)))
+            .map(GenerateElementTemplate::forSalesforceCredential)
             .toList();
-    var builder = original.toBuilder();
-    builder.choices(prunedChoices);
-    // HTTP JSON's dropdown defaults to "noAuth" and describes it as the way to opt out of
-    // authentication -- neither applies once pruned down to bearer/OAuth only, matching the
-    // previous hand-authored template, which had no description or default value here.
-    builder.description(null);
-    builder.value(null);
-    return builder.build();
+    return new ConfigurationTemplate(
+        SALESFORCE_CREDENTIAL_ID,
+        restAuthentication.kind(),
+        SALESFORCE_CREDENTIAL_VERSION,
+        SALESFORCE_CREDENTIAL_NAME,
+        properties);
+  }
+
+  private static boolean isCredentialUrl(Property p) {
+    return "url".equals(p.getId());
+  }
+
+  private static Property forSalesforceCredential(Property p) {
+    if (p instanceof DropdownProperty authType && isAuthTypeDropdown(p)) {
+      var builder = authType.toBuilder();
+      builder.choices(keptAuthTypeChoices(authType));
+      return builder.build();
+    }
+    return switch (p.getId()) {
+      case "authentication.oauthTokenEndpoint" ->
+          p.toBuilder()
+              .placeholder("https://MyDomainName.my.salesforce.com/services/oauth2/token")
+              .tooltip("Your Salesforce instance's OAuth 2.0 token endpoint.")
+              .build();
+      case "authentication.clientAuthentication" -> p.toBuilder().value("credentialsBody").build();
+      // RestAuthenticationConfiguration requires a URL for a bearer credential, though requests
+      // go to the base URL configured on the task.
+      case "url" ->
+          p.toBuilder()
+              .label("Salesforce instance URL")
+              .description("The Salesforce instance this bearer token was issued for.")
+              .placeholder("https://MyDomainName.my.salesforce.com")
+              .condition(new Equals("authentication.type", "bearer"))
+              .build();
+      default -> p;
+    };
   }
 
   private static boolean isAuthenticationConfiguration(Property p) {
@@ -384,10 +453,11 @@ public class GenerateElementTemplate {
   }
 
   private static Property salesforceCredentialChooser(ElementTemplate httpJsonTemplate) {
-    Property original =
+    ConfigurationProperty original =
         httpJsonTemplate.properties().stream()
             .filter(GenerateElementTemplate::isAuthenticationConfiguration)
             .filter(ConfigurationProperty.class::isInstance)
+            .map(ConfigurationProperty.class::cast)
             .findFirst()
             .orElseThrow(
                 () ->
@@ -395,7 +465,10 @@ public class GenerateElementTemplate {
                         "HTTP JSON's generated template no longer has an \""
                             + AUTHENTICATION_CONFIGURATION_PROPERTY_ID
                             + "\" credential chooser -- has it been renamed or removed?"));
-    return original.toBuilder().description(AUTHENTICATION_CONFIGURATION_DESCRIPTION).build();
+    return original.toBuilder()
+        .configurationTemplate(SALESFORCE_CREDENTIAL_ID)
+        .description(AUTHENTICATION_CONFIGURATION_DESCRIPTION)
+        .build();
   }
 
   private static PropertyCondition inlineOAuthCondition() {

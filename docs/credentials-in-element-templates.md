@@ -247,15 +247,22 @@ in sync.
 
 Salesforce (`connectors/salesforce/`) sits in between: it also has no `src/main` and runs as
 `io.camunda:http-json:1`, but its template is derived from HTTP JSON's generated one by
-`GenerateElementTemplate` (a test-scope class, run manually). It carries over HTTP JSON's chooser
-with a Salesforce-specific description, and HTTP JSON's embedded `rest-authentication` block
-unchanged. A change to that credential makes Salesforce's `GenerateElementTemplateTest` fail as
-stale — rerun the generator and commit the result. If the committed Salesforce template version has
-already been released, that's a non-cosmetic change to it: bump `TEMPLATE_VERSION` and archive the
-previous version under `versioned/` first. The embedded schema can't be narrowed to Salesforce's
-supported auth types, because it's shared under the same configuration-template id, so the
-chooser's description, maintained in the generator, says which credential types work instead, as
-O365 Mail and Azure OpenAI do.
+`GenerateElementTemplate` (a test-scope class, run manually). Instead of reusing HTTP JSON's
+`rest-authentication` credential type, it embeds its own `io.camunda.connectors:salesforce-authentication:1`,
+derived from that one and narrowed to the bearer and OAuth 2.0 client-credentials types Salesforce
+supports, so the chooser offers only Salesforce credentials. Two consequences:
+
+- The runtime binds the credential as `RestAuthenticationConfiguration`, which never checks the
+  credential type's id, so its rules still apply — e.g. a bearer credential must carry a URL, which
+  the Salesforce credential labels as the instance URL.
+- No `@Configuration` class or `ConfigurationValidator` exists for the Salesforce id, so
+  configuration validation reports it as unsupported.
+
+A change to `RestAuthenticationConfiguration` makes Salesforce's `GenerateElementTemplateTest` fail
+as stale — rerun the generator and commit the result. If the committed Salesforce template version
+has already been released, that's a non-cosmetic change to it: bump `TEMPLATE_VERSION` and archive
+the previous version under `versioned/` first, and bump `SALESFORCE_CREDENTIAL_VERSION` too if the
+change would invalidate existing Salesforce credentials.
 
 ## Trying it out locally
 

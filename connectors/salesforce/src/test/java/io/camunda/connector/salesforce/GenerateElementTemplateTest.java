@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.ConfigurationProperty;
 import io.camunda.connector.generator.dsl.ConfigurationTemplate;
+import io.camunda.connector.generator.dsl.DropdownProperty;
+import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyCondition;
@@ -31,8 +33,8 @@ import org.junit.jupiter.api.Test;
  */
 class GenerateElementTemplateTest {
 
-  private static final String REST_AUTHENTICATION_TEMPLATE_ID =
-      "io.camunda.connectors:rest-authentication:1";
+  private static final String SALESFORCE_CREDENTIAL_ID =
+      "io.camunda.connectors:salesforce-authentication:1";
 
   private static ElementTemplate template;
 
@@ -60,19 +62,43 @@ class GenerateElementTemplateTest {
   }
 
   @Test
-  void offersReusableRestAuthenticationCredential() {
+  void offersReusableSalesforceCredential() {
     assertThat(template.configurationTemplates())
         .extracting(ConfigurationTemplate::id)
-        .containsExactly(REST_AUTHENTICATION_TEMPLATE_ID);
+        .containsExactly(SALESFORCE_CREDENTIAL_ID);
     assertThat(authenticationProperties(template).get(0))
         .isInstanceOfSatisfying(
             ConfigurationProperty.class,
             chooser -> {
               assertThat(chooser.getId()).isEqualTo("authenticationConfiguration");
-              assertThat(chooser.getConfigurationTemplate())
-                  .isEqualTo(REST_AUTHENTICATION_TEMPLATE_ID);
+              assertThat(chooser.getConfigurationTemplate()).isEqualTo(SALESFORCE_CREDENTIAL_ID);
             });
-    assertThat(template.engines().camunda()).isEqualTo("^8.11");
+    assertThat(template.engines().camunda()).isEqualTo("^8.10");
+  }
+
+  @Test
+  void salesforceCredentialOffersOnlySupportedAuthTypes() {
+    List<Property> credentialProperties = template.configurationTemplates().get(0).properties();
+
+    assertThat(credentialProperties)
+        .filteredOn(p -> "authentication.type".equals(p.getId()))
+        .singleElement()
+        .isInstanceOfSatisfying(
+            DropdownProperty.class,
+            type ->
+                assertThat(type.getChoices())
+                    .extracting(DropdownChoice::value)
+                    .containsExactly("bearer", "oauth-client-credentials-flow"));
+    assertThat(credentialProperties)
+        .extracting(Property::getId)
+        .containsExactlyInAnyOrder(
+            "authentication.type",
+            "authentication.token",
+            "authentication.oauthTokenEndpoint",
+            "authentication.clientId",
+            "authentication.clientSecret",
+            "authentication.clientAuthentication",
+            "url");
   }
 
   @Test
