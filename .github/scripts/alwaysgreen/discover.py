@@ -390,8 +390,14 @@ def open_fix_prs(repo: str) -> tuple[list[dict], bool]:
     return prs, True
 
 
-def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
-    """(covered fingerprints, keys with an open PR, keys decided per spec, ok).
+def dedupe_inputs() -> tuple[set[str], set[str], set[str], dict[str, object], bool]:
+    """(covered fingerprints, keys with an open PR, keys decided per spec, refs, ok).
+
+    `refs` is what the Slack message needs to say *which* PR accounts for a failure:
+    `{"covered_by": {fingerprint: "owner/repo#n"}, "keys": {key: ["owner/repo#n"]}}`.
+    Built here rather than looked up again by the notifier, because the answer is a
+    by-product of the decision that was already made — re-deriving it would be a second
+    PR listing that could disagree with the one the plan was built from.
 
     One lookup behind one `ok`, across every repo a fix can land in — FIX_PR_REPOS, not
     the source repo alone, since a test-side fix lands in the e2e repository. Coverage
@@ -427,6 +433,8 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
     covered: set[str] = set()
     keys: set[str] = set()
     uncovered: set[str] = set()
+    covered_by: dict[str, str] = {}
+    key_refs: dict[str, list[str]] = {}
     ok = True
     now = datetime.now(timezone.utc)
     for repo in FIX_PR_REPOS:
@@ -437,6 +445,10 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
         for pr in prs:
             claims = planning.parse_coverage_block(pr.get("body"))
             covered |= claims
+            # First claimant wins, so the reported PR matches the one whose claim
+            # actually suppressed the dispatch.
+            for claim in claims:
+                covered_by.setdefault(claim, f"{repo}#{pr.get('number')}")
             pr_keys: set[str] = set()
             for label in pr.get("labels") or []:
                 name = (label.get("name") or "").strip()
@@ -455,6 +467,8 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
                 )
                 continue
             keys |= pr_keys
+            for key in pr_keys:
+                key_refs.setdefault(key, []).append(f"{repo}#{pr.get('number')}")
             if not claims:
                 uncovered |= pr_keys
             log(
@@ -473,7 +487,13 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
                 else "decided per spec (every holder claims some)"
             )
         )
-    return covered, keys, keys - uncovered, ok
+    return (
+        covered,
+        keys,
+        keys - uncovered,
+        {"covered_by": covered_by, "keys": key_refs},
+        ok,
+    )
 
 
 def inflight_keys() -> tuple[set[str], bool]:
@@ -573,21 +593,31 @@ def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:
     return claims, True
 
 
-def product_bug_fingerprints() -> set[str]:
+def product_bug_fingerprints() -> tuple[set[str], dict[str, str]]:
+    """(fingerprints, fingerprint -> issue URL).
+
+    The URL is carried so a suppressed failure can name the bug it is tracked by. A
+    medic told only "tracked as a known product bug" still has to find the issue by
+    hand, which is the whole cost the message was supposed to save.
+    """
     issues = gh_json(
         [
             "search", "issues", "nightly-product-bug is:issue",
             "--owner", "camunda", "--state", "open",
-            "--limit", "200", "--json", "body",
+            "--limit", "200", "--json", "body,url",
         ],
         [],
     )
     out: set[str] = set()
+    urls: dict[str, str] = {}
     for issue in issues if isinstance(issues, list) else []:
         for line in (issue.get("body") or "").splitlines():
             if "nightly-product-bug fp=" in line:
-                out.add(line.split("fp=", 1)[1].strip()[:8])
-    return out
+                fp = line.split("fp=", 1)[1].strip()[:8]
+                out.add(fp)
+                if issue.get("url"):
+                    urls.setdefault(fp, str(issue["url"]))
+    return out, urls
 
 
 # ---------------------------------------------------------------------------
@@ -696,6 +726,13 @@ def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict
                 "reason": s.reason,
                 "detail": s.detail,
                 "specs": sorted({sp.file for sp in s.candidate.specs}),
+                # What failed and how much of it, so the Slack line can say so without
+                # anyone opening the run. `fingerprints` is what maps a suppression to
+                # the PR or issue in `references`.
+                "job_name": classify.job_leaf_name(s.candidate.job_name),
+                "job_level": s.candidate.job_level,
+                "spec_count": len(s.candidate.specs),
+                "fingerprints": s.candidate.fingerprints,
             }
             for s in result.suppressed
         ],
