@@ -180,7 +180,7 @@ functions that return SDK `ConnectorResponse` types.
   `CONNECTOR_AI_AGENT_SUBPROCESS_TYPE` (AI Agent Sub-process) override the job type that the
   runtime registers its job worker for. This lets a custom runtime handle agent elements next to
   the default runtime: give it a distinct type and set the same type on the element, using the
-  hybrid element template. The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
+  hybrid element template (see [hybrid mode](https://docs.camunda.io/docs/components/connectors/use-connectors-in-hybrid-mode/)). The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
   `CONNECTOR_AI_AGENT_JOB_WORKER_TYPE`) only affect the legacy job workers.
 - Use only the `v2` hybrid element templates for new custom runtimes:
   [AI Agent Task](element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
