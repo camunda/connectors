@@ -121,6 +121,23 @@ class EvictedDocumentsNoteTest {
   }
 
   @Test
+  void aDocumentCountsAsVisibleWhileTheMessageThatIntroducedItIsWindowed() {
+    final var toolResultMessage = ToolCallResultMessage.builder().results(List.of()).build();
+    final var introduced =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(
+                        report,
+                        DocumentSource.toolCall(
+                            "search", "call_1", toolResultMessage.id().toString()))));
+
+    assertThat(EvictedDocumentsNote.appendTo(List.of(toolResultMessage), introduced))
+        .containsExactly(toolResultMessage);
+    assertThat(EvictedDocumentsNote.appendTo(List.of(userMessage("next")), introduced)).hasSize(2);
+  }
+
+  @Test
   void aDocumentNestedInAToolResultCountsAsVisible() {
     final List<Message> windowed =
         List.of(

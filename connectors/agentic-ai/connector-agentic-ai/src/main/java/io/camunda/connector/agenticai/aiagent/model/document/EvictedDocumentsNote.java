@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
 
 /**
@@ -29,7 +30,8 @@ import org.apache.commons.text.StringEscapeUtils;
  *
  * <p>A registry document counts as visible when its id appears in a windowed user or tool result
  * message, as {@link DocumentContent}, as a {@link io.camunda.connector.api.document.Document}
- * nested in object content, or as the id of a {@code <doc/>} tag in text. The note is added to the
+ * nested in object content, or as the id of a {@code <doc/>} tag in text, or when the message that
+ * introduced it (see {@link DocumentSource#messageId()}) is windowed. The note is added to the
  * snapshot sent to the model only; it is never part of the stored conversation.
  */
 public final class EvictedDocumentsNote {
@@ -58,8 +60,13 @@ public final class EvictedDocumentsNote {
     }
 
     final var visibleIds = visibleDocumentIds(windowed);
+    final var windowedMessageIds =
+        windowed.stream().map(message -> message.id().toString()).collect(Collectors.toSet());
     final var evicted =
-        registry.entries().stream().filter(entry -> !visibleIds.contains(entry.id())).toList();
+        registry.entries().stream()
+            .filter(entry -> !visibleIds.contains(entry.id()))
+            .filter(entry -> !windowedMessageIds.contains(entry.source().messageId()))
+            .toList();
     if (evicted.isEmpty()) {
       return windowed;
     }
