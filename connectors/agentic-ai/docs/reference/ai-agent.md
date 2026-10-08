@@ -304,7 +304,7 @@ Authoritative definition:
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
-Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/model/tool/ToolCallProcessVariable.java).
+Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
 Arguments are **flattened to the top level** so BPMN expressions can access them directly as
 `toolCall.myParameter` rather than `toolCall.arguments.myParameter`. The `_meta` object holds the tool
 call ID and name.
@@ -1877,7 +1877,7 @@ Only the LangChain4j adapter package may depend on LangChain4j.
 
 ### I2. Domain types never leak framework types
 
-The module owns a framework-agnostic domain model in `io.camunda.connector.agenticai.model.*` (the
+The module owns a framework-agnostic domain model in `io.camunda.connector.agenticai.aiagent.model.*` (the
 `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
 
 - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from

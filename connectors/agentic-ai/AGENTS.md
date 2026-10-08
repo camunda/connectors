@@ -140,7 +140,7 @@ suite will enforce (epic #7537):
   The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
   framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
-  (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4j only through the
+  (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
