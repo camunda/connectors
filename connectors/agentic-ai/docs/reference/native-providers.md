@@ -275,11 +275,17 @@ replay.
 ### Phased output
 
 Responses models can emit multiple assistant messages labeled as intermediate `commentary` or as the
-`final_answer`. When a response contains a final-answer message, only final-answer message content
-and its message ID are exposed through the provider-neutral assistant response. This prevents
-intermediate commentary from being included in `responseText` or concatenated with structured JSON
-before parsing. If no final-answer message exists, all message content is retained as before; this
-includes commentary returned alongside function calls on an intermediate tool-use turn.
+`final_answer`. Each `commentary` message is captured losslessly as `ProviderContent` (provider
+`openai`, payload = the raw output item including `id` and `phase`), in original order. It is not
+`TextContent`, so it stays out of `responseText` and is not concatenated with structured JSON before
+parsing. The final-answer message is `TextContent`, its `msg_*` id is the assistant message ID, and
+its phase is recorded under `metadata.openai.phase`. Unphased messages stay plain `TextContent`
+without a recorded phase.
+
+On replay, `ProviderContent` commentary is sent back verbatim, and the answer message is sent with the
+recorded `phase`. Unphased and cross-provider history is replayed without a phase. Content is
+replayed in the order reasoning/provider items, answer message, tool calls, so commentary interleaved
+with several tool calls in one response is not replayed in its original position relative to them.
 
 ### Caching
 
