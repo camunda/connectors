@@ -118,7 +118,8 @@ public class BoxUtil {
     try {
       client.files.getFileById(fileId);
     } catch (BoxAPIError diagnostic) {
-      return diagnostic;
+      ResponseInfo info = diagnostic.getResponseInfo();
+      return info != null && info.getStatusCode() == response.getStatusCode() ? diagnostic : error;
     } catch (RuntimeException ignored) {
       return error;
     }

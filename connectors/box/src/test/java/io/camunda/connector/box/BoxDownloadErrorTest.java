@@ -25,7 +25,11 @@ import org.junit.jupiter.api.Test;
 public class BoxDownloadErrorTest {
 
   private static BoxAPIError error(String bodyJson) {
-    var response = new ResponseInfo(404, Map.of());
+    return error(404, bodyJson);
+  }
+
+  private static BoxAPIError error(int status, String bodyJson) {
+    var response = new ResponseInfo(status, Map.of());
     if (bodyJson != null) {
       try {
         response.body = new ObjectMapper().readTree(bodyJson);
@@ -35,7 +39,7 @@ public class BoxDownloadErrorTest {
       response.code = "not_found";
     }
     return new BoxAPIError(
-        "Status 404; Request ID: r1",
+        "Status " + status + "; Request ID: r1",
         new RequestInfo("GET", "https://api.box.com", Map.of(), Map.of()),
         response);
   }
@@ -62,6 +66,33 @@ public class BoxDownloadErrorTest {
               var translated = BoxErrors.translate((RuntimeException) e);
               assertThat(translated).isInstanceOf(ConnectorException.class);
               assertThat(translated.getMessage()).contains("HTTP 404").contains("Not Found");
+            });
+    assertThat(calls).hasValue(2);
+  }
+
+  @Test
+  void keepsTheOriginalDownloadErrorWhenTheDiagnosticLookupFailsDifferently() {
+    var calls = new AtomicInteger();
+    var client =
+        new BoxClient.Builder(new BoxDeveloperTokenAuth("token"))
+            .networkSession(
+                new NetworkSession()
+                    .withNetworkClient(
+                        options -> {
+                          if (calls.getAndIncrement() == 0) {
+                            throw error(403, null);
+                          }
+                          throw error(429, "{\"code\":\"rate_limit_exceeded\"}");
+                        }))
+            .build();
+
+    assertThatThrownBy(() -> BoxUtil.download("123", client))
+        .satisfies(
+            e -> {
+              var translated = (RuntimeException) e.getCause();
+              assertThat(translated).isInstanceOf(BoxAPIError.class);
+              assertThat(((BoxAPIError) translated).getResponseInfo().getStatusCode())
+                  .isEqualTo(403);
             });
     assertThat(calls).hasValue(2);
   }
