@@ -651,6 +651,62 @@ What cannot be represented:
   ids, `loopIteration` (assistant turn + 1), `producedAt` (the result's `completedAt`, persisted with the
   pending local results) and the call correlation are identical in both writes.
 
+### 5.2 History auditability
+
+The agent instance history is meant to be an auditable record of what the model receives: the formats
+may differ from the request, but no message the model receives may be missing from it.
+
+**What the history carries.** Each message of a model request is covered by a history item:
+
+| Model request | History |
+|---------------|---------|
+| System prompt | `systemPrompt` of the `CONFIGURATION` item |
+| User message (prompt, follow-up, synthetic document message of a tool result) | `USER` item |
+| Assistant message with its tool calls | `ASSISTANT` item, one call entry per call |
+| Tool result | `TOOL_RESULT` item per call, correlated by `toolCallId` |
+
+**Format differences that are fine.** The content is the same, the representation is not:
+
+- A document is a `DOCUMENT` block (a Camunda document) or an `OBJECT` block (an external document
+  reference) in the history and a tag plus the document content (text, file or image part) in the request.
+- A tool result with a document is an `OBJECT` block with the complete reference in the history and the
+  JSON with the `<doc/>` tag in place of the reference in the request.
+- A document argument of a call is the complete reference in the history and the id the model sent in the
+  request (5.1).
+- A `<doc/>` tag in a text block is wrapped in inline code backticks in the history.
+
+**Guard test.** `AgentSubProcessHistoryAuditTests` records every model request of a document flow (prompt
+document, tool result document, document arguments, `return_document` next to a real call) and requires
+each message to be covered by an item of the history as the engine returns it: system prompt by the
+`CONFIGURATION` item, the other roles by the blocks of the item (text equal without backticks, object
+blocks equal as JSON with a reference matched by the `documentId` of the tag, document blocks matched by a
+part that is not a tag), tool calls by id, name and arguments (an argument equals the request or is the
+reference of the document it names). The only message without a history item is listed in the test
+(`KNOWN_UNREPORTED`): the evicted-documents note. A model-visible message that is neither covered nor
+listed fails the test.
+
+**Known gaps.**
+
+1. **The evicted-documents note is not reported.** The note (3.5) is built per request in
+   `AgentConversation.window`, sent to the model and never persisted, so no history item holds it.
+   Consequence: the model can receive a message the history does not show. Documents of evicted messages
+   are not retained for the model beyond that note and may be lost for it for now. Gap to fix: report the
+   note as a `USER` history item with a content-hash `historyItemId`, so repeated identical notes are
+   one item; remove the entry from `KNOWN_UNREPORTED` then.
+2. **Tool input schemas are not in the history.** A tool entry of the history holds name, description and
+   element id only. Consequence: the parameter schemas, the document id hint of the provider schema, the
+   `camunda-document-id` format marker and the argument shape of `return_document` are invisible in the
+   history. Ask: an engine API request to carry the input schema of a tool.
+3. **Conversations upgraded from Camunda 8.10.** The model receives the window-time normalized form
+   (4.2: canonical tags, tags inserted for documents that had none), the history shows the original
+   content of the earlier jobs. Known limit.
+4. **External documents in arguments.** The history shows the complete reference for the id the model
+   sent, so the `ext-...` id the model passed is not in the arguments of the call; it is only in the tag
+   text of the synthetic message. Known limit.
+5. **Inline documents.** `AgentInstanceHistoryMapper` cannot map an inline reference to a history block and
+   throws an `IllegalArgumentException`; the reference of an inline document also holds its content (3.12,
+   section 7). To be solved with the inline document follow-up.
+
 ## 6. Gaps compared with camunda/experience-pdp#81
 
 - Documents mentioned only in the content of an evicted assistant message are not tracked; only
@@ -769,6 +825,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `return_document` and `Slow_Tool` once each, in that order. |
 | (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
+| (j) history audit | `AgentSubProcessHistoryAuditTests` (`aiagent/subprocess`) | Every message of every model request of a document flow, with a prompt document, a tool result document, document arguments and `return_document` next to a real call, is covered by an item of the history read through the query API; with `contextWindowSize=3` the evicted-documents note is the only message without a history item and no history item holds it (5.2). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
 of every recorded model request for `storeId`, `contentHash` and `camunda.document.type`. It runs in
