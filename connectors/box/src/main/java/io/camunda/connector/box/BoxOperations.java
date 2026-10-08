@@ -28,6 +28,7 @@ import com.box.sdkgen.managers.uploads.UploadFileRequestBodyAttributesField;
 import com.box.sdkgen.managers.uploads.UploadFileRequestBodyAttributesParentField;
 import com.box.sdkgen.networking.auth.Authentication;
 import com.box.sdkgen.networking.network.NetworkSession;
+import com.box.sdkgen.networking.retries.BoxRetryStrategy;
 import com.box.sdkgen.schemas.filefull.FileFull;
 import com.box.sdkgen.schemas.folderfull.FolderFull;
 import com.box.sdkgen.serialization.json.EnumWrapper;
@@ -55,7 +56,7 @@ public class BoxOperations {
 
   private static Object run(
       BoxRequest request, OutboundConnectorContext context, boolean useDocumentReturnFlow) {
-    var client = connectToApi(request.authentication());
+    var client = connectToApi(request.authentication(), sessionFor(request.operation()));
     return switch (request.operation()) {
       case BoxRequest.Operation.UploadFile uploadFile -> uploadFile(uploadFile, client);
       case BoxRequest.Operation.DownloadFile downloadFile ->
@@ -68,8 +69,10 @@ public class BoxOperations {
     };
   }
 
-  private static BoxClient connectToApi(BoxRequest.Authentication authentication) {
-    return connectToApi(authentication, NETWORK_SESSION);
+  static NetworkSession sessionFor(BoxRequest.Operation operation) {
+    return operation instanceof BoxRequest.Operation.UploadFile
+        ? NO_RETRY_SESSION
+        : DEFAULT_SESSION;
   }
 
   static BoxClient connectToApi(
@@ -97,8 +100,14 @@ public class BoxOperations {
     };
   }
 
-  private static final NetworkSession NETWORK_SESSION =
-      new NetworkSession().withRetryStrategy(new BodyAwareRetryStrategy());
+  private static final NetworkSession DEFAULT_SESSION = new NetworkSession();
+
+  // An upload streams the document once, so the SDK must never resend it: a retry would upload an
+  // already consumed stream.
+  private static final NetworkSession NO_RETRY_SESSION =
+      new NetworkSession()
+          .withRetryStrategy(
+              new BoxRetryStrategy.Builder().maxAttempts(1).maxRetriesOnException(0).build());
 
   private static BoxClient client(Authentication auth, NetworkSession networkSession) {
     return new BoxClient.Builder(auth).networkSession(networkSession).build();
