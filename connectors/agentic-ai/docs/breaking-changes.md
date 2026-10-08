@@ -183,5 +183,5 @@ functions that return SDK `ConnectorResponse` types.
   hybrid element template (see [hybrid mode](https://docs.camunda.io/docs/components/connectors/use-connectors-in-hybrid-mode/)). The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
   `CONNECTOR_AI_AGENT_JOB_WORKER_TYPE`) only affect the legacy job workers.
 - Use only the `v2` hybrid element templates for new custom runtimes:
-  [AI Agent Task](element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
-  [AI Agent Sub-process](element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json).
+  [AI Agent Task](../connector-agentic-ai/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
+  [AI Agent Sub-process](../connector-agentic-ai/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json).
