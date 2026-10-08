@@ -73,8 +73,11 @@ for the whole prefix (system prompt, tools, prior messages); there are no per-me
 ### Tool-result documents
 
 A document inside a tool result always renders as its `<doc id=... />` tag
-(`AnthropicContentConverter.toToolResultBlocks`), never embedded natively, so the bytes the
-composer's `<doc/>` fallback message already delivers aren't sent twice.
+(`AnthropicContentConverter.toToolResultBlocks`), never embedded natively. The bytes reach the model only
+when it loads the document with `c8__get_document`: they travel in the user message that follows the tool
+results, after the same tag, so the tool result is never sent together with a second copy. An agent instance
+without the `documents` feature renders the document reference JSON instead (see
+[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md) §4.2).
 
 ### Token usage
 
@@ -168,10 +171,10 @@ always reports a distinct cache-write count in `TokenUsage`.
 ### Tool-result documents
 
 A document inside a tool result always renders as its `<doc id=... />` tag, the same tag the
-composer's `<doc/>` fallback message carries, so the model can correlate the two 1:1
+follow-up message of a `c8__get_document` load carries, so the model can correlate the two 1:1
 (`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) — never
-embedded as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
-the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
+embedded as a native `DocumentBlock`, regardless of content type. The follow-up message of a load is the
+document's only bytes-delivery channel; embedding it here too would send the bytes twice and
 trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
 `DocumentBlock.name` in both places. The nested document is rendered as its tag, never round-tripped
 through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
@@ -296,12 +299,12 @@ the acceptance row sets `reportsCacheCreationTokens = false`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference, on both Responses
+A document inside a tool result always renders as its `<doc id=... />` tag, on both Responses
 (`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
 (`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather
 than sharing the former), regardless of content type — never embedded natively as `input_image`/
-`input_file`, so the bytes the composer's `<doc/>` fallback message already delivers aren't sent
-twice.
+`input_file`. The bytes reach the model only when it loads the document with `c8__get_document`, in the
+user message that follows the tool results.
 
 ### Token usage
 
@@ -385,12 +388,13 @@ else in this file — a different feature from a per-request model call, not a p
 
 ### Tool-result documents
 
-Like Anthropic and OpenAI, a document inside a tool result is flattened to a JSON reference rather
-than embedded natively: `GeminiContentConverter.toFunctionResponseParts` serializes just
-`doc.document()` to a text `Part`, the same reference-only shape `AnthropicContentConverter
+Like Anthropic and OpenAI, a document inside a tool result is rendered as its `<doc/>` tag rather
+than embedded natively: `GeminiContentConverter.toFunctionResponseParts` writes the tag into the
+`functionResponse` output, the same reference-only shape `AnthropicContentConverter
 #toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce — the
-document's actual bytes are already delivered to the model elsewhere for tool results, so embedding
-them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively.
+document's actual bytes reach the model only through `c8__get_document`, in the user message that
+follows, so embedding them here too would send them twice. Only `#toParts` (ordinary message content)
+embeds natively.
 
 ### Token usage
 

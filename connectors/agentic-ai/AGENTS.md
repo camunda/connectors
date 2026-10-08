@@ -127,10 +127,16 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature (created before it) keeps the previous document handling: bare
-  content and the older tag format, no registry, no local tools (`c8__return_document`), no document parameters,
+  content and the older tag format, no registry, no local tools (`c8__return_document`, `c8__get_document`), no document parameters,
   no reserved `c8__` prefix. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   `docs/design/ai-agent-document-flow.md` §4.
+- **Documents are reference-only**: for an instance with the `documents` feature the model sees a `<doc/>` tag
+  and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a document of a
+  type outside the allowlist or above the size limit before loading it. A load is persisted as a tag marked
+  `loaded: true` and expanded from the registry at window time; the content stays in every request until its
+  message leaves the window. Passing an id to a tool never loads content. `docs/design/ai-agent-document-flow.md`
+  "Execution model" and §3.14.
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -353,7 +359,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a local
-tool (a tool the agent runs itself, named with the reserved `c8__` prefix, such as `c8__return_document`) by implementing the SPI and registering
+tool (a tool the agent runs itself, named with the reserved `c8__` prefix, such as `c8__return_document` or `c8__get_document`) by implementing the SPI and registering
 a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
 tools: §19; local tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
 

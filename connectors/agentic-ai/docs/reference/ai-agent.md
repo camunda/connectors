@@ -444,9 +444,10 @@ detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
-also expands the document tags of its user messages from the document registry (`DocumentExpander`): the
-stored messages hold the tag of a document only and the snapshot holds the tag followed by the document
-content (see the document flow design notes, section 4.1). For an agent instance without the `documents`
+also expands the document tags of its user messages that are marked as loaded from the document registry
+(`DocumentExpander`): the stored messages hold the tag of a document only, and the snapshot holds the tag
+followed by the document content for the documents the model loaded with `c8__get_document` (see the document
+flow design notes, section 4.1). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
 
@@ -1172,10 +1173,11 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
    of a document the agent selected with the built-in `c8__return_document` tool (called once per document, see
    [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection is cleared in the
-   returned `agentContext`. The field is omitted when the selection is empty. `c8__return_document` is offered
-   to every agent instance with the `documents` feature (every instance created from this version on) and
-   cannot be switched off; an instance created before the feature is not offered it and has no
-   `responseDocuments`. Whether it should become configurable is an open question in the design document.
+   returned `agentContext`. The field is omitted when the selection is empty. `c8__return_document` and
+   `c8__get_document` are offered to every agent instance with the `documents` feature (every instance created
+   from this version on) and cannot be switched off; an instance created before the feature is not offered
+   them and has no `responseDocuments`. Whether they should become configurable is an open question in the
+   design document.
 
 ### Job Worker Response Variables
 
@@ -1666,14 +1668,22 @@ These are used during discovery checking and tool call result transformation.
 
 ### Document Extraction from Tool Call Results
 
-Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
-embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
-extracts those documents into a synthetic follow-up `UserMessage` that holds one `<doc .../>` tag per
-document (a `TextContent` whose metadata marks it as a `document-reference` and holds the `documentId`). The model
-providers see the tag followed by a native `DocumentContent` block, added from the document registry when
-the conversation is windowed; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the
-document flow design notes, section 4.1. An agent instance without the `documents` feature gets the message
-in the form of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
+Documents are reference-only in the conversation of an agent instance with the `documents` feature: the model
+sees a `<doc .../>` tag, not the content. Tool call results may contain Camunda `Document` instances — at the
+root, nested in maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A
+artifacts). The agent extracts those documents and registers them in the document registry of the
+`agentContext`; the tool result shows each document as its tag, and no follow-up message is added. The content
+of a document enters the conversation only when the model calls the built-in `c8__get_document` tool with the
+document id: the whole document is loaded if its content type is on the allowlist (text-based types, PDF,
+PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
+otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
+processes the document. A successful load is followed by a user message whose tag is marked as loaded
+(`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
+from the registry when the conversation is windowed. Passing a document id to a tool parameter declared with
+`fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference. See
+[ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
+"Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form
+of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
 `DocumentContent`, without a registry.
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` after
@@ -1824,9 +1834,10 @@ lease-fenced `update()` mechanism).
 ### Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document-reference messages). The document tags of a user message are reported with the content of
-  their documents from the registry, as the model sees them (`DocumentExpander`). A message of an agent
-  instance without the `documents` feature is reported as stored.
+  document-reference messages and the follow-up message of documents loaded by `c8__get_document`). The
+  document tags of a user message are reported with the content of their documents from the registry
+  (`DocumentExpander`), so the history shows at least what the model receives. A message of an agent instance
+  without the `documents` feature is reported as stored.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
   block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
   elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the
@@ -1850,7 +1861,7 @@ lease-fenced `update()` mechanism).
   placeholder block.
 
 **Tool calls answered by the agent itself.** Calls answered locally (local tools such as the built-in
-`c8__return_document`, calls rejected for an unknown document id; see the document flow design notes)
+`c8__return_document` and `c8__get_document`, calls rejected for an unknown document id; see the document flow design notes)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
 `applyTurnStart` of the synthetic round of the same job when the agent answered every call. When real
@@ -2079,8 +2090,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 ### 25.4 Add a local tool
 
 A local tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
-implementation: `ReturnDocumentTool` (`aiagent/localtool`, tool name `c8__return_document`), wired in
-`AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentLocalTool`). The full API, the research behind
+implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTool` (`c8__get_document`), both in
+`aiagent/localtool`, wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentLocalTool`,
+`aiAgentGetDocumentLocalTool`). The full API, the research behind
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 
 1. Build the tool with `LocalTool.builder("c8__name")`, a name that starts with the reserved prefix
