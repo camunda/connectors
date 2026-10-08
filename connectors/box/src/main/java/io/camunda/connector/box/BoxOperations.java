@@ -106,7 +106,7 @@ public class BoxOperations {
 
   static BoxResult.Upload uploadFile(BoxRequest.Operation.UploadFile uploadFile, BoxClient client) {
     var folderId = getItemId(uploadFile.folderPath(), client);
-    InputStream content = new SingleUseInputStream(uploadFile.document().asInputStream());
+    InputStream content = uploadFile.document().asInputStream();
     try {
       var requestBody =
           new UploadFileRequestBody(
