@@ -123,8 +123,39 @@ jobs:
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
+      - name: Check time since last snapshot deploy
+        id: snapshot-gate
+        env:
+          ARTIFACTORY_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          ARTIFACTORY_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_VERSION: ${{ steps.maven_version.outputs.maven_version }}
+          MIN_INTERVAL_HOURS: '3'
+          MARKER_ARTIFACT: io/camunda/connector/connector-runtime-core
+        run: |
+          url="https://artifacts.camunda.com/artifactory/connectors-snapshots/${MARKER_ARTIFACT}/${MAVEN_VERSION}/maven-metadata.xml"
+          stamp=$(curl -sf --retry 3 --retry-all-errors -u "${ARTIFACTORY_USR}:${ARTIFACTORY_PSW}" "${url}" \
+                  | sed -n 's:.*<lastUpdated>\([0-9]\{14\}\)</lastUpdated>.*:\1:p' | head -n 1) || true
+          if [[ -z "${stamp}" ]]; then
+            echo "::warning::No lastUpdated at ${url}; deploying without debounce."
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          published=$(date -u -d "${stamp:0:8} ${stamp:8:2}:${stamp:10:2}:${stamp:12:2}" +%s)
+          if (( $(date +%s) - published < MIN_INTERVAL_HOURS * 3600 )); then
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${MAVEN_VERSION} was published at ${stamp} UTC (< ${MIN_INTERVAL_HOURS}h ago); skipping Maven upload."
+          else
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Artifacts
+        if: github.event_name != 'push' || steps.snapshot-gate.outputs.fresh != 'true'
         run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
+
+      # The Docker images below are built from the local target/ jars, so they still need a build.
+      - name: Build Artifacts without deploying
+        if: github.event_name == 'push' && steps.snapshot-gate.outputs.fresh == 'true'
+        run: ./mvnw -B -U package -DskipTests
 
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.5.0
