@@ -685,6 +685,54 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void splitsCacheWriteTokensOutOfInputTokens() {
+    final Response response =
+        baseResponse(
+            "[]",
+            """
+            {
+              "input_tokens": 100,
+              "output_tokens": 50,
+              "total_tokens": 150,
+              "input_tokens_details": {"cached_tokens": 20, "cache_write_tokens": 30},
+              "output_tokens_details": {"reasoning_tokens": 0}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isEqualTo(50);
+    assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(20);
+    assertThat(tokenUsage.cacheCreationTokenCount()).isEqualTo(30);
+    assertThat(
+            tokenUsage.inputTokenCount()
+                + tokenUsage.cacheReadTokenCount()
+                + tokenUsage.cacheCreationTokenCount()
+                + tokenUsage.outputTokenCount())
+        .isEqualTo(150);
+  }
+
+  @Test
+  void clampsInputTokensAtZeroWhenCacheTokensExceedInputTokens() {
+    final Response response =
+        baseResponse(
+            "[]",
+            """
+            {
+              "input_tokens": 10,
+              "output_tokens": 5,
+              "total_tokens": 15,
+              "input_tokens_details": {"cached_tokens": 20},
+              "output_tokens_details": {"reasoning_tokens": 0}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isZero();
+  }
+
+  @Test
   void returnsEmptyTokenUsageWhenUsageAbsent() {
     final Response response = baseResponse("[]");
 
