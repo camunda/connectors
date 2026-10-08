@@ -487,7 +487,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype with the runtime `ObjectMapper` (e.g., via a Spring `Jackson2ObjectMapperBuilderCustomizer` calling `registerSubtypes()`)
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype on the connector runtime's `ObjectMapper` beans (e.g., via a Spring `BeanPostProcessor` calling `registerSubtypes()` on every `ObjectMapper` bean; Boot's `Jackson2ObjectMapperBuilderCustomizer` does not reach the runtime mappers, which are built from `ConnectorsObjectMapperSupplier`)
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
