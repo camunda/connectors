@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -285,6 +286,94 @@ class AgentContextTest {
         .isEqualTo(List.of(textResult, structuredResult));
   }
 
+  @Test
+  void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supportsDocuments()).isFalse();
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void agentContextWithoutFeaturesFieldBindsToEmptySetAndKeepsTheSchemaVersion()
+      throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 1,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supportsDocuments()).isFalse();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void newInstanceFeaturesContainTheDocumentsFeature() {
+    final var context = AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
+    assertThat(context.features()).containsExactly("documents");
+    assertThat(context.supports(AgentContext.FEATURE_DOCUMENTS)).isTrue();
+    assertThat(context.supportsDocuments()).isTrue();
+    assertThat(context.supports("other")).isFalse();
+  }
+
+  @Test
+  void featuresAreSerializedAndDeserializedInInsertionOrder() throws JsonProcessingException {
+    final var features = new LinkedHashSet<String>();
+    for (final var feature : List.of("zeta", "alpha", "documents", "beta", "omega", "gamma")) {
+      features.add(feature);
+    }
+    final var context = AgentContext.builder().features(features).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized)
+        .contains("\"features\":[\"zeta\",\"alpha\",\"documents\",\"beta\",\"omega\",\"gamma\"]");
+    assertThat(deserialized.features())
+        .containsExactly("zeta", "alpha", "documents", "beta", "omega", "gamma");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
+  void featuresSurviveCopiesThatChangeOtherComponents() {
+    final var features = new LinkedHashSet<String>();
+    for (final var feature : List.of("zeta", "alpha", "documents", "beta", "omega", "gamma")) {
+      features.add(feature);
+    }
+    final var context = AgentContext.builder().features(features).build();
+
+    final var copy =
+        context
+            .withState(AgentState.READY)
+            .withProperty("hello", "world")
+            .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
+            .withPendingLocalToolCallResults(List.of());
+
+    assertThat(copy.features())
+        .containsExactly("zeta", "alpha", "documents", "beta", "omega", "gamma");
+    assertThat(copy.supportsDocuments()).isTrue();
+  }
+
+  @Test
+  void featuresAreCopiedDefensively() {
+    final var features = new LinkedHashSet<>(List.of("documents"));
+    final var context = AgentContext.builder().features(features).build();
+
+    features.add("other");
+
+    assertThat(context.features()).containsExactly("documents");
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -304,6 +393,7 @@ class AgentContextTest {
                     List.of(),
                     new LinkedHashMap<>(),
                     List.of(),
+                    new LinkedHashSet<>(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);

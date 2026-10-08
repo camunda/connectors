@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,6 +47,12 @@ public record AgentContext(
     // results the agent answered itself for tool calls of the last assistant message whose other
     // calls were handed to the process; merged into the next turn input, then cleared
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingLocalToolCallResults,
+    // the features the agent instance was created with, fixed at creation and never added later: an
+    // instance without a feature keeps the behavior it started with; a LinkedHashSet because the
+    // record builder copies a Set into an immutable set of unspecified iteration order
+    @RecordBuilder.Initializer(source = AgentContext.class, value = "noFeatures")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        LinkedHashSet<String> features,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
@@ -64,6 +71,13 @@ public record AgentContext(
 
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 
+  /**
+   * The feature of an agent instance that keeps the documents of its conversation in the document
+   * registry and offers the tools of the agent that work with them. An instance created without it
+   * keeps the document handling it was created with.
+   */
+  public static final String FEATURE_DOCUMENTS = "documents";
+
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
@@ -73,6 +87,23 @@ public record AgentContext(
     returnDocuments = new LinkedHashMap<>(returnDocuments);
     Objects.requireNonNull(
         pendingLocalToolCallResults, "Pending local tool call results must not be null");
+    Objects.requireNonNull(features, "Features must not be null");
+    features = new LinkedHashSet<>(features);
+  }
+
+  /** Returns {@code true} if the agent instance was created with the given feature. */
+  public boolean supports(String feature) {
+    return features.contains(feature);
+  }
+
+  /** Returns {@code true} if the agent instance was created with {@link #FEATURE_DOCUMENTS}. */
+  public boolean supportsDocuments() {
+    return supports(FEATURE_DOCUMENTS);
+  }
+
+  /** The features of an agent instance that is created now. */
+  public static LinkedHashSet<String> newInstanceFeatures() {
+    return new LinkedHashSet<>(List.of(FEATURE_DOCUMENTS));
   }
 
   public AgentContext withProperty(String key, Object value) {
@@ -83,6 +114,10 @@ public record AgentContext(
 
   static LinkedHashMap<String, SelectedDocument> noReturnDocuments() {
     return new LinkedHashMap<>();
+  }
+
+  static LinkedHashSet<String> noFeatures() {
+    return new LinkedHashSet<>();
   }
 
   public static AgentContext empty() {

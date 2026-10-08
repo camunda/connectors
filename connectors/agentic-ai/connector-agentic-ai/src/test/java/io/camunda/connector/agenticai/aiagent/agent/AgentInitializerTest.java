@@ -160,11 +160,47 @@ class AgentInitializerTest {
                     .isEqualTo(
                         AgentContext.empty()
                             .withState(AgentState.READY)
-                            .withMetadata(expectedMetadata));
+                            .withMetadata(expectedMetadata)
+                            .withFeatures(AgentContext.newInstanceFeatures()));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
+    }
+
+    @Test
+    void shouldCreateNewAgentInstanceWithDocumentsFeature() {
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().features())
+                    .containsExactly(AgentContext.FEATURE_DOCUMENTS);
+                assertThat(res.agentContext().supportsDocuments()).isTrue();
+              });
+    }
+
+    @Test
+    void shouldNeverAddFeaturesToExistingAgentContext() {
+      final var legacyContext =
+          AgentContext.empty().withState(AgentState.READY).withMetadata(EXECUTION_METADATA);
+      when(executionContext.initialAgentContext()).thenReturn(legacyContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().features()).isEmpty();
+                assertThat(res.agentContext().supportsDocuments()).isFalse();
+              });
     }
 
     @Test
