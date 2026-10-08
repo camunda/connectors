@@ -150,8 +150,10 @@ public class McpSdkClientFactory implements McpClientFactory {
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration
               sseHttpMcpClientTransportConfiguration ->
           createSseTransport(sseHttpMcpClientTransportConfiguration);
-      case McpClientConfigurationProperties.InMemoryMcpClientTransportConfiguration ignored ->
-          throw new IllegalStateException("IN_MEMORY clients do not use a standalone transport");
+      case McpClientConfigurationProperties.InMemoryMcpClientTransportConfiguration
+              inMemoryConfig ->
+          throw new IllegalStateException(
+              "IN_MEMORY clients do not use a standalone transport: %s".formatted(inMemoryConfig));
     };
   }
 
