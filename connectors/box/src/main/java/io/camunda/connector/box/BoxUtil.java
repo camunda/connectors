@@ -12,6 +12,7 @@ import com.box.sdkgen.client.BoxClient;
 import com.box.sdkgen.managers.folders.GetFolderItemsQueryParams;
 import com.box.sdkgen.schemas.items.Items;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.box.model.BoxPath;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -99,6 +100,8 @@ public class BoxUtil {
     try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
       client.downloads.downloadFileToOutputStream(fileId, out);
       return out.toByteArray();
+    } catch (ConnectorRetryException e) {
+      throw e;
     } catch (BoxAPIError e) {
       throw new RuntimeException(
           "Error downloading file: " + fileId, withDiagnostics(e, fileId, client));

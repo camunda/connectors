@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
 import com.box.sdkgen.networking.fetchoptions.FetchOptions;
 import com.box.sdkgen.networking.fetchresponse.FetchResponse;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,5 +96,62 @@ public class BodyAwareRetryStrategyTest {
     assertThatThrownBy(() -> strategy.shouldRetry(download, response, 0))
         .isInstanceOf(RuntimeException.class);
     assertThat(closed).isTrue();
+  }
+
+  private static final class Tracked extends ByteArrayInputStream {
+    final AtomicBoolean closed = new AtomicBoolean();
+
+    Tracked() {
+      super(new byte[] {1});
+    }
+
+    @Override
+    public void close() {
+      closed.set(true);
+    }
+  }
+
+  @Test
+  void closesFollowedRedirectResponses() {
+    var content = new Tracked();
+    var response =
+        new FetchResponse.Builder(302, Map.of("location", "https://dl.box.com/x"))
+            .content(content)
+            .build();
+    var download =
+        new FetchOptions.Builder("https://api.box.com/2.0/files/1/content", "GET")
+            .followRedirects(true)
+            .build();
+
+    assertThat(strategy.shouldRetry(download, response, 0)).isFalse();
+    assertThat(content.closed).isTrue();
+  }
+
+  @Test
+  void keepsRedirectResponseOpenWhenNotFollowingRedirects() {
+    var content = new Tracked();
+    var response =
+        new FetchResponse.Builder(302, Map.of("location", "https://dl.box.com/x"))
+            .content(content)
+            .build();
+    var download =
+        new FetchOptions.Builder("https://api.box.com/2.0/files/1/content", "GET")
+            .followRedirects(false)
+            .build();
+
+    assertThat(strategy.shouldRetry(download, response, 0)).isFalse();
+    assertThat(content.closed).isFalse();
+  }
+
+  @Test
+  void throwsRetryExceptionAndClosesWhenDownloadStays202() {
+    var content = new Tracked();
+    var response = new FetchResponse.Builder(202, Map.of()).content(content).build();
+    var download =
+        new FetchOptions.Builder("https://api.box.com/2.0/files/1/content", "GET").build();
+
+    assertThatThrownBy(() -> strategy.shouldRetry(download, response, 0))
+        .isInstanceOf(ConnectorRetryException.class);
+    assertThat(content.closed).isTrue();
   }
 }
