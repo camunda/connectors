@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 
 import validate_registry
 
@@ -167,6 +168,18 @@ def render_matrix(registry_path):
     return json.dumps(matrix, separators=(",", ":"))
 
 
+def validate_matrix_json(value):
+    try:
+        matrix = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"rendered matrix is not valid JSON: {error.msg}") from error
+    if not isinstance(matrix, list) or not matrix:
+        raise ValueError("rendered matrix must be a non-empty JSON array")
+    if not all(isinstance(row, dict) and row for row in matrix):
+        raise ValueError("rendered matrix rows must be non-empty objects")
+    return matrix
+
+
 def aggregate(registry_path, results_directory, output):
     registry = json.loads(pathlib.Path(registry_path).read_text(encoding="utf-8"))
     expected_rows = [row for row in registry["rows"] if row.get("ci")]
@@ -272,6 +285,7 @@ def parse_args():
     subparsers = parser.add_subparsers(dest="command", required=True)
     matrix_parser = subparsers.add_parser("matrix")
     matrix_parser.add_argument("--registry", required=True)
+    subparsers.add_parser("validate-matrix")
     finalize_parser = subparsers.add_parser("finalize")
     finalize_parser.add_argument("--output", required=True)
     aggregate_parser = subparsers.add_parser("aggregate")
@@ -285,6 +299,8 @@ if __name__ == "__main__":
     arguments = parse_args()
     if arguments.command == "matrix":
         print(render_matrix(arguments.registry))
+    elif arguments.command == "validate-matrix":
+        validate_matrix_json(sys.stdin.read())
     elif arguments.command == "finalize":
         finalize(arguments.output)
     else:
