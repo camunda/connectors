@@ -141,7 +141,7 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
-  void mapsOnlyFinalAnswerWhenResponseContainsCommentary() {
+  void keepsCommentaryAsProviderContentAndFinalAnswerAsTextWithPhase() {
     final Response response =
         baseResponse(
             """
@@ -176,8 +176,23 @@ class OpenAiResponsesResponseConverterTest {
     final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
-        .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
+        .satisfiesExactly(
+            commentary -> {
+              assertThat(commentary).isInstanceOf(ProviderContent.class);
+              assertThat(((ProviderContent) commentary).provider()).isEqualTo("openai");
+              assertThat(((ProviderContent) commentary).payload())
+                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                  .containsEntry("id", "msg_commentary")
+                  .containsEntry("phase", "commentary");
+              assertThat(((ProviderContent) commentary).text())
+                  .isEqualTo("CLASSIFIED FACT SHEET...");
+            },
+            answer ->
+                assertThat(answer).isEqualTo(TextContent.textContent("{\"answer\":\"done\"}")));
     assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .containsEntry("phase", "final_answer");
   }
 
   @Test
@@ -212,10 +227,13 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("First"), TextContent.textContent("Second"));
     assertThat(result.assistantMessage().messageId()).isEqualTo("msg_1");
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .doesNotContainKey("phase");
   }
 
   @Test
-  void retainsCommentaryAlongsideFunctionCallWhenNoFinalAnswerExists() {
+  void keepsCommentaryAsProviderContentAlongsideFunctionCallWhenNoFinalAnswerExists() {
     final Response response =
         baseResponse(
             """
@@ -244,8 +262,20 @@ class OpenAiResponsesResponseConverterTest {
     final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
-        .containsExactly(TextContent.textContent("Checking the weather"));
-    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_commentary");
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ProviderContent.class,
+            commentary ->
+                assertThat(commentary.payload())
+                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                    .containsEntry("id", "msg_commentary")
+                    .containsEntry("phase", "commentary"));
+    assertThat(((ProviderContent) result.assistantMessage().content().get(0)).text())
+        .isEqualTo("Checking the weather");
+    assertThat(result.assistantMessage().messageId()).isNull();
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .doesNotContainKey("phase");
     assertThat(result.assistantMessage().toolCalls())
         .containsExactly(
             ToolCall.builder()
@@ -343,6 +373,7 @@ class OpenAiResponsesResponseConverterTest {
             ContentFilteredException.class,
             e ->
                 assertThat(e.partialResult().assistantMessage().content())
+                    .filteredOn(TextContent.class::isInstance)
                     .containsExactly(TextContent.textContent("I can't help with that.")));
   }
 
@@ -378,6 +409,7 @@ class OpenAiResponsesResponseConverterTest {
     final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
 
     assertThat(result.assistantMessage().content())
+        .filteredOn(TextContent.class::isInstance)
         .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
     assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
   }

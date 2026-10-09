@@ -200,7 +200,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.setup.outputs.ai == 'true'
         with:
           node-version: '24'
