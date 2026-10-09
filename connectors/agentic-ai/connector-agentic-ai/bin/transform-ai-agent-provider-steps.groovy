@@ -21,7 +21,7 @@ def compatiblePresets = [
          "provider.openai.backend.custom.authentication.type": "none"
      ]],
     [id: "camunda", name: "Camunda-provided LLM (SaaS only)",
-     description: "Camunda-managed credentials.",
+     description: "Only on select plans.",
      keywords: ["Camunda", "LLM", "SaaS"],
      properties: [
          "provider.openai.backend.custom.endpoint": "=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_ENDPOINT",

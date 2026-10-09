@@ -120,6 +120,9 @@ class AgentV2ElementTemplateTest {
         .isEqualTo("type_openai_type_custom_lmstudio");
     assertThat(named(openai, "name", "Camunda-provided LLM (SaaS only)").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_camunda");
+    assertThat(
+            named(openai, "name", "Camunda-provided LLM (SaaS only)").get("description").asText())
+        .isEqualTo("Only on select plans.");
     assertThat(preset(template, "type_bedrock").get("provider.type").asText()).isEqualTo("bedrock");
     assertThat(preset(template, "type_custom").get("provider.type").asText()).isEqualTo("custom");
   }

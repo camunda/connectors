@@ -4523,7 +4523,7 @@
       "presetId" : "type_openai_type_custom_lmstudio"
     }, {
       "name" : "Camunda-provided LLM (SaaS only)",
-      "description" : "Camunda-managed credentials.",
+      "description" : "Only on select plans.",
       "keywords" : [ "Camunda", "LLM", "SaaS" ],
       "presetId" : "type_openai_type_custom_camunda"
     } ]
