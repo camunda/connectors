@@ -69,10 +69,10 @@ jobs:
           STATE: ${{ steps.impact.outputs.state }}
         run: |
           set -euo pipefail
-          if [[ -z "$AFFECTED" || -z "$AUTHORIZED" || -z "$STATE" ]]; then
-            echo "::error::AI Agent CPT classification did not produce all required outputs."
-            exit 1
-          fi
+          python3 .github/ai-agent-cpt/classify_impact.py validate-outputs \
+            --affected "$AFFECTED" \
+            --authorized "$AUTHORIZED" \
+            --state "$STATE"
       - name: Validate registry
         id: registry
         run: |

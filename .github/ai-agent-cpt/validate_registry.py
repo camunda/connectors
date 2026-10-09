@@ -3,6 +3,7 @@
 
 import json
 import pathlib
+import re
 import sys
 
 
@@ -119,18 +120,27 @@ def validate(registry, rows):
         row_id = row.get("id")
         if not row_id or row_id in ids:
             fail(f"duplicate or missing row id: {row_id!r}")
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", row_id):
+            fail(f"{row_id}: id must contain only lowercase letters, digits, and hyphens")
         ids.add(row_id)
+        if not row["name"]:
+            fail(f"{row_id}: name must be non-empty")
         if row.get("providerGroup") not in KNOWN_PROVIDER_GROUPS:
             fail(f"{row_id}: unknown providerGroup")
         validate_groups(row.get("groups", ""), row_id)
         row_profiles = row.get("credentialProfiles")
-        if not isinstance(row_profiles, list) or not row_profiles:
-            fail(f"{row_id}: credentialProfiles must be non-empty")
-        if not all(isinstance(profile, str) for profile in row_profiles):
-            fail(f"{row_id}: credentialProfiles must contain only strings")
+        if (
+            not isinstance(row_profiles, list)
+            or not row_profiles
+            or not all(isinstance(profile, str) and profile for profile in row_profiles)
+            or len(row_profiles) != len(set(row_profiles))
+        ):
+            fail(f"{row_id}: credentialProfiles must contain unique non-empty strings")
         unknown_profiles = set(row_profiles) - profiles
         if unknown_profiles:
             fail(f"{row_id}: unknown credential profile(s): {sorted(unknown_profiles)}")
+        if not row["mavenProjects"]:
+            fail(f"{row_id}: mavenProjects must be non-empty")
         if row.get("buildBundle"):
             if not row.get("testClasses") or row.get("groups"):
                 fail(f"{row_id}: bundle rows require testClasses and no groups")
@@ -146,6 +156,7 @@ def validate(registry, rows):
 def render_ci_matrix(rows):
     return [
         {
+            "id": row["id"],
             "name": row["name"],
             "provider-group": row["providerGroup"],
             "groups": " | ".join(row["groups"]),

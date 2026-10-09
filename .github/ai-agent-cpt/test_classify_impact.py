@@ -181,6 +181,36 @@ class ClassifyImpactTest(unittest.TestCase):
                 self.assertEqual(annotation, classify_impact.render_annotation(state))
                 self.assertNotIn("::error", annotation)
 
+    def test_validate_output_tuple_accepts_only_supported_combinations(self):
+        valid = {
+            classify_impact.STATE_NOT_AFFECTED: (False, False),
+            classify_impact.STATE_AFFECTED_WAITING: (True, False),
+            classify_impact.STATE_AFFECTED_AUTHORIZED: (True, True),
+        }
+        for state, values in valid.items():
+            with self.subTest(state=state, values=values):
+                classify_impact.validate_output_tuple(*values, state)
+
+        invalid = [
+            (True, True, classify_impact.STATE_AFFECTED_WAITING),
+            (True, False, classify_impact.STATE_AFFECTED_AUTHORIZED),
+            (False, True, classify_impact.STATE_NOT_AFFECTED),
+            (False, False, "unknown"),
+        ]
+        for affected, authorized, state in invalid:
+            with self.subTest(
+                affected=affected, authorized=authorized, state=state
+            ):
+                with self.assertRaisesRegex(ValueError, "impact"):
+                    classify_impact.validate_output_tuple(
+                        affected, authorized, state
+                    )
+
+        for value in ("", "TRUE", "0", "yes"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "true or false"):
+                    classify_impact.parse_boolean(value, "affected")
+
     def test_rejects_unsupported_glob_patterns(self):
         impact_map = {
             "description": "test",
