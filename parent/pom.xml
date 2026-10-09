@@ -1208,7 +1208,7 @@ limitations under the License.</license.inlineheader>
                    check whether the dd-plist override can be removed (see version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.21\.0$</regex>
+                <regex>^1\.22\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
 If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
@@ -1224,7 +1224,7 @@ See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
                    not only on a langchain4j bump. -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.21\.0$</regex>
+                <regex>^1\.22\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the junrar GHSA-h9h9-2rmf-rvhp override can be removed.
 If the Tika version pinned in connectors/embeddings-vector-database/pom.xml ships a
