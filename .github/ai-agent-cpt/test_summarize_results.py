@@ -51,6 +51,63 @@ class SummarizeResultsTest(unittest.TestCase):
             )
             self.assertEqual(matrix[0]["groups"], "core-smoke")
 
+    def test_validate_matrix_requires_non_empty_json_array(self):
+        complete_row = {
+            "id": "openai-native",
+            "name": "OpenAI native",
+            "provider-group": "openai",
+            "groups": "core-smoke",
+            "test-classes": "",
+            "build-bundle": False,
+            "maven-projects": "agentic-ai",
+            "credential-profiles": ["openai"],
+        }
+        self.assertEqual(
+            [complete_row],
+            summarize_results.validate_matrix_json(json.dumps([complete_row])),
+        )
+        for invalid in ("", "not-json", "{}", "[]", "[null]", "[{}]"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "matrix"):
+                    summarize_results.validate_matrix_json(invalid)
+
+    def test_validate_matrix_requires_complete_typed_unique_rows(self):
+        complete_row = {
+            "id": "openai-native",
+            "name": "OpenAI native",
+            "provider-group": "openai",
+            "groups": "core-smoke",
+            "test-classes": "",
+            "build-bundle": False,
+            "maven-projects": "agentic-ai",
+            "credential-profiles": ["openai"],
+        }
+        invalid_rows = [
+            {key: value for key, value in complete_row.items() if key != "name"},
+            {**complete_row, "name": ""},
+            {**complete_row, "build-bundle": "false"},
+            {**complete_row, "credential-profiles": "openai"},
+            {**complete_row, "credential-profiles": []},
+            {**complete_row, "credential-profiles": ["openai", "openai"]},
+            {**complete_row, "provider-group": None},
+            {**complete_row, "groups": []},
+            {**complete_row, "groups": "", "test-classes": ""},
+            {
+                **complete_row,
+                "groups": "core-smoke",
+                "test-classes": "AiAgentE2ETestIT",
+            },
+        ]
+        for row in invalid_rows:
+            with self.subTest(row=row):
+                with self.assertRaisesRegex(ValueError, "matrix"):
+                    summarize_results.validate_matrix_json(json.dumps([row]))
+
+        with self.assertRaisesRegex(ValueError, "duplicate id"):
+            summarize_results.validate_matrix_json(
+                json.dumps([complete_row, complete_row])
+            )
+
     def test_finalize_extracts_provider_and_model_and_sanitizes_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             report_directory = pathlib.Path(directory, "raw")

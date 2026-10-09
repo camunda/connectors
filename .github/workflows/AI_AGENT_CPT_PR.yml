@@ -1,7 +1,7 @@
 name: AI Agent CPT Tests (PR)
 
-# Runs real-LLM AI Agent E2E coverage on a PR before it reaches the merge queue, gated by the
-# `ai-agent-model-e2e-test` label so it isn't triggered accidentally.
+# Classifies PR changes for real-LLM AI Agent E2E coverage before the merge queue. Paid tests remain
+# gated by the `ai-agent-model-e2e-test` label so they aren't triggered accidentally.
 #
 # This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
 # feeds unrelated SM/SaaS E2E triggers.
@@ -12,7 +12,7 @@ name: AI Agent CPT Tests (PR)
 # The image-backed E2E class and in-process provider capability groups are separate matrix legs.
 on:
   pull_request:
-    types: [ labeled ]
+    types: [ opened, reopened, synchronize, labeled ]
 
 # Scoped to the PR and label so an unrelated label event cannot cancel an authorized run.
 concurrency:
@@ -21,46 +21,77 @@ concurrency:
 
 permissions:
   contents: read
-  # Required by dorny/paths-filter on the `pull_request` event - it calls the GitHub REST API
-  # to list changed files and fails outright without this scope.
-  pull-requests: read
 
 jobs:
   setup:
     name: Validate AI Agent CPT registry
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
-      ai: ${{ steps.changes.outputs.ai }}
+      ai: ${{ steps.impact.outputs.affected }}
+      authorized: ${{ steps.impact.outputs.authorized }}
+      state: ${{ steps.impact.outputs.state }}
       matrix: ${{ steps.registry.outputs.matrix }}
     if: |
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Check for agentic-ai changes
-        id: changes
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            ai:
-              - 'connectors/agentic-ai/**'
-              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
-              - '.github/ai-agent-cpt/**'
-              - '.github/workflows/AI_AGENT_CPT_PR.yml'
-              - '.github/workflows/package.json'
+      - name: Classify AI Agent CPT impact
+        id: impact
+        env:
+          AI_AGENT_CPT_EVENT_ACTION: ${{ github.event.action }}
+          AI_AGENT_CPT_EVENT_LABEL: ${{ github.event.label.name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ || ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The pull request base/head SHA is not a full commit SHA."
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            echo "::error::The checked-out commit does not match the event head SHA."
+            exit 1
+          fi
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+          git diff --name-only --no-renames -z "$BASE_SHA...$HEAD_SHA" -- |
+            python3 .github/ai-agent-cpt/classify_impact.py
+      - name: Require classification outputs
+        env:
+          AFFECTED: ${{ steps.impact.outputs.affected }}
+          AUTHORIZED: ${{ steps.impact.outputs.authorized }}
+          STATE: ${{ steps.impact.outputs.state }}
+        run: |
+          set -euo pipefail
+          python3 .github/ai-agent-cpt/classify_impact.py validate-outputs \
+            --affected "$AFFECTED" \
+            --authorized "$AUTHORIZED" \
+            --state "$STATE"
       - name: Validate registry
         id: registry
         run: |
           set -euo pipefail
+          python3 .github/ai-agent-cpt/test_classify_impact.py
           python3 .github/ai-agent-cpt/validate_registry_test.py
           python3 .github/ai-agent-cpt/test_summarize_results.py
           MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
             --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json)"
-          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
+          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
+      - name: Require rendered matrix output
+        env:
+          MATRIX: ${{ steps.registry.outputs.matrix }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
 
   run-ai-agent-cpt:
     name: ${{ matrix.name }}
@@ -71,17 +102,19 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
+        # Successful setup validates a non-empty matrix. The fallback only keeps evaluation valid
+        # when setup is intentionally skipped for a fork, or has already failed.
         include: ${{ fromJSON(needs.setup.outputs.matrix || '[]') }}
     # Fork PRs get no secrets from `pull_request` by design (never widen this to
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
     # account to unvetted fork code before review).
     if: |
       needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true' &&
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
@@ -90,7 +123,7 @@ jobs:
       - name: Import build secrets
         if: needs.setup.outputs.ai == 'true'
         id: build-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -104,7 +137,7 @@ jobs:
       - name: Import registry secret
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
         id: registry-secret
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -117,7 +150,7 @@ jobs:
       - name: Import OpenAI secret
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'openai')
         id: openai-secret
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -130,7 +163,7 @@ jobs:
       - name: Import Vertex secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'vertex')
         id: vertex-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -145,7 +178,7 @@ jobs:
       - name: Import Bedrock document provider secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-documents')
         id: bedrock-document-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -159,7 +192,7 @@ jobs:
       - name: Import Bedrock provider secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-provider')
         id: bedrock-provider-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -180,7 +213,7 @@ jobs:
 
       - name: Create settings.xml
         if: needs.setup.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -193,7 +226,7 @@ jobs:
 
       - name: Restore Maven cache
         if: needs.setup.outputs.ai == 'true'
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -244,13 +277,13 @@ jobs:
 
       - name: Set up Docker Build
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       # Needed to pull default-bundle's own base image (reg.mini.dev/1212/openjre-base) during
       # the build below, even though the built image is never pushed anywhere.
       - name: Login to Minimus
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -261,7 +294,7 @@ jobs:
       # here, and no orphan PR-tagged images left behind anywhere.
       - name: Build default-bundle image
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/default-bundle/
           load: true
@@ -342,7 +375,11 @@ jobs:
   summarize-ai-agent-cpt:
     name: Summarize AI Agent CPT results
     needs: [setup, run-ai-agent-cpt]
-    if: always() && !cancelled() && needs.setup.outputs.ai == 'true'
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
