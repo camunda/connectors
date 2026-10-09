@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Classify changed repository paths with the curated AI Agent CPT impact map."""
 
+import argparse
 import json
 import os
 import pathlib
@@ -46,6 +47,11 @@ STATE_ANNOTATIONS = {
         "notice",
         "AI Agent CPT is not affected by this change.",
     ),
+}
+VALID_OUTPUT_TUPLES = {
+    STATE_NOT_AFFECTED: (False, False),
+    STATE_AFFECTED_WAITING: (True, False),
+    STATE_AFFECTED_AUTHORIZED: (True, True),
 }
 
 
@@ -153,7 +159,26 @@ def render_annotation(state):
     return f"::{level} title=AI Agent CPT impact::{message}"
 
 
-def main():
+def validate_output_tuple(affected, authorized, state):
+    try:
+        expected = VALID_OUTPUT_TUPLES[state]
+    except KeyError as error:
+        raise ValueError(f"unknown impact state: {state!r}") from error
+    actual = (affected, authorized)
+    if actual != expected:
+        raise ValueError(
+            f"invalid impact outputs for {state}: "
+            f"affected={str(affected).lower()}, authorized={str(authorized).lower()}"
+        )
+
+
+def parse_boolean(value, field):
+    if value not in {"true", "false"}:
+        raise ValueError(f"{field} must be true or false")
+    return value == "true"
+
+
+def classify_main():
     try:
         event_action = os.environ[EVENT_ACTION_ENV]
     except KeyError as error:
@@ -181,10 +206,36 @@ def main():
         output.write(f"affected={str(affected).lower()}\n")
         output.write(f"authorized={str(authorized).lower()}\n")
         output.write(f"state={state}\n")
-        output.write(f"groups={json.dumps(matched_groups, separators=(',', ':'))}\n")
     with pathlib.Path(github_summary).open("a", encoding="utf-8") as summary:
         summary.write(render_summary(state))
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command")
+    subparsers.add_parser("classify")
+    validate_parser = subparsers.add_parser("validate-outputs")
+    validate_parser.add_argument("--affected", required=True)
+    validate_parser.add_argument("--authorized", required=True)
+    validate_parser.add_argument("--state", required=True)
+    return parser.parse_args()
+
+
+def main():
+    arguments = parse_args()
+    if arguments.command in (None, "classify"):
+        classify_main()
+        return
+    validate_output_tuple(
+        parse_boolean(arguments.affected, "affected"),
+        parse_boolean(arguments.authorized, "authorized"),
+        arguments.state,
+    )
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as error:
+        print(f"::error::{error}")
+        raise SystemExit(1) from error
