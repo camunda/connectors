@@ -4479,8 +4479,23 @@
   "steps" : [ {
     "name" : "Anthropic",
     "description" : "Claude models via the Anthropic API, AWS Bedrock, Microsoft Foundry, or a compatible endpoint.",
-    "keywords" : [ "Anthropic", "Claude" ],
-    "presetId" : "type_anthropic"
+    "steps" : [ {
+      "name" : "Anthropic API",
+      "keywords" : [ "Anthropic", "Claude", "Anthropic API" ],
+      "presetId" : "type_anthropic_type_anthropic-api"
+    }, {
+      "name" : "AWS Bedrock Mantle",
+      "keywords" : [ "Anthropic", "Claude", "AWS Bedrock Mantle" ],
+      "presetId" : "type_anthropic_type_aws-bedrock-mantle"
+    }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "keywords" : [ "Anthropic", "Claude", "Microsoft Foundry (Azure)" ],
+      "presetId" : "type_anthropic_type_foundry"
+    }, {
+      "name" : "Anthropic custom / compatible endpoint",
+      "keywords" : [ "Anthropic", "Claude", "Custom / compatible endpoint" ],
+      "presetId" : "type_anthropic_type_custom"
+    } ]
   }, {
     "name" : "AWS Bedrock Converse",
     "description" : "Any Bedrock model via the Converse API.",
@@ -4489,18 +4504,58 @@
   }, {
     "name" : "OpenAI",
     "description" : "GPT models via OpenAI, Microsoft Foundry, or an OpenAI-compatible endpoint.",
-    "keywords" : [ "OpenAI", "GPT", "Azure", "Foundry", "Ollama", "LM Studio" ],
-    "presetId" : "type_openai"
+    "steps" : [ {
+      "name" : "OpenAI API",
+      "keywords" : [ "OpenAI", "GPT", "OpenAI API" ],
+      "presetId" : "type_openai_type_openai-api"
+    }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "keywords" : [ "OpenAI", "GPT", "Microsoft Foundry (Azure)" ],
+      "presetId" : "type_openai_type_foundry"
+    }, {
+      "name" : "OpenAI custom / compatible endpoint",
+      "keywords" : [ "OpenAI", "GPT", "Custom / compatible endpoint" ],
+      "presetId" : "type_openai_type_custom"
+    }, {
+      "name" : "Ollama",
+      "description" : "Local models via Ollama.",
+      "keywords" : [ "Ollama", "Local", "Llama" ],
+      "presetId" : "type_openai_type_custom_ollama"
+    }, {
+      "name" : "LM Studio",
+      "description" : "Local models via LM Studio.",
+      "keywords" : [ "LM Studio", "Local" ],
+      "presetId" : "type_openai_type_custom_lmstudio"
+    }, {
+      "name" : "Camunda-provided LLM (SaaS only)",
+      "description" : "Camunda-managed credentials.",
+      "keywords" : [ "Camunda", "LLM", "SaaS" ],
+      "presetId" : "type_openai_type_custom_camunda"
+    } ]
   }, {
     "name" : "Google Gemini",
     "description" : "Gemini models via the Gemini API or Vertex AI.",
-    "keywords" : [ "Gemini", "Google", "Vertex" ],
-    "presetId" : "type_google-gemini"
+    "steps" : [ {
+      "name" : "Google Gemini API",
+      "keywords" : [ "Gemini", "Google", "Google Gemini API" ],
+      "presetId" : "type_google-gemini_type_google-gemini-api"
+    }, {
+      "name" : "Enterprise Agent Platform (Vertex AI)",
+      "keywords" : [ "Gemini", "Google", "Enterprise Agent Platform (Vertex AI)" ],
+      "presetId" : "type_google-gemini_type_google-vertex-ai"
+    } ]
   }, {
     "name" : "Mistral AI",
     "description" : "Mistral models via the Mistral API or a compatible endpoint.",
-    "keywords" : [ "Mistral" ],
-    "presetId" : "type_mistral"
+    "steps" : [ {
+      "name" : "Mistral API",
+      "keywords" : [ "Mistral", "Mistral API" ],
+      "presetId" : "type_mistral_type_mistral-api"
+    }, {
+      "name" : "Mistral custom / compatible endpoint",
+      "keywords" : [ "Mistral", "Custom / compatible endpoint" ],
+      "presetId" : "type_mistral_type_custom"
+    } ]
   }, {
     "name" : "Custom Implementation (Self-Managed/Hybrid only)",
     "description" : "Your own provider implementation.",
@@ -4508,9 +4563,28 @@
     "presetId" : "type_custom"
   } ],
   "presets" : [ {
-    "id" : "type_anthropic",
+    "id" : "type_anthropic_type_anthropic-api",
     "properties" : {
-      "provider.type" : "anthropic"
+      "provider.type" : "anthropic",
+      "provider.anthropic.backend.type" : "anthropic-api"
+    }
+  }, {
+    "id" : "type_anthropic_type_aws-bedrock-mantle",
+    "properties" : {
+      "provider.type" : "anthropic",
+      "provider.anthropic.backend.type" : "aws-bedrock-mantle"
+    }
+  }, {
+    "id" : "type_anthropic_type_foundry",
+    "properties" : {
+      "provider.type" : "anthropic",
+      "provider.anthropic.backend.type" : "foundry"
+    }
+  }, {
+    "id" : "type_anthropic_type_custom",
+    "properties" : {
+      "provider.type" : "anthropic",
+      "provider.anthropic.backend.type" : "custom"
     }
   }, {
     "id" : "type_bedrock",
@@ -4518,19 +4592,75 @@
       "provider.type" : "bedrock"
     }
   }, {
-    "id" : "type_openai",
+    "id" : "type_openai_type_openai-api",
     "properties" : {
-      "provider.type" : "openai"
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "openai-api"
     }
   }, {
-    "id" : "type_google-gemini",
+    "id" : "type_openai_type_foundry",
     "properties" : {
-      "provider.type" : "google-gemini"
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "foundry"
     }
   }, {
-    "id" : "type_mistral",
+    "id" : "type_openai_type_custom",
     "properties" : {
-      "provider.type" : "mistral"
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "custom"
+    }
+  }, {
+    "id" : "type_openai_type_custom_ollama",
+    "properties" : {
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "custom",
+      "provider.openai.api.type" : "completions",
+      "provider.openai.backend.custom.endpoint" : "http://localhost:11434/v1",
+      "provider.openai.backend.custom.authentication.type" : "none"
+    }
+  }, {
+    "id" : "type_openai_type_custom_lmstudio",
+    "properties" : {
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "custom",
+      "provider.openai.api.type" : "completions",
+      "provider.openai.backend.custom.endpoint" : "http://localhost:1234/v1",
+      "provider.openai.backend.custom.authentication.type" : "none"
+    }
+  }, {
+    "id" : "type_openai_type_custom_camunda",
+    "properties" : {
+      "provider.type" : "openai",
+      "provider.openai.backend.type" : "custom",
+      "provider.openai.api.type" : "completions",
+      "provider.openai.backend.custom.endpoint" : "=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_ENDPOINT",
+      "provider.openai.backend.custom.authentication.type" : "apiKey",
+      "provider.openai.backend.custom.authentication.apiKey" : "=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_KEY",
+      "provider.openai.model.model" : "=camunda.secrets.CAMUNDA_PROVIDED_LLM_DEFAULT_MODEL"
+    }
+  }, {
+    "id" : "type_google-gemini_type_google-gemini-api",
+    "properties" : {
+      "provider.type" : "google-gemini",
+      "provider.googleGemini.backend.type" : "google-gemini-api"
+    }
+  }, {
+    "id" : "type_google-gemini_type_google-vertex-ai",
+    "properties" : {
+      "provider.type" : "google-gemini",
+      "provider.googleGemini.backend.type" : "google-vertex-ai"
+    }
+  }, {
+    "id" : "type_mistral_type_mistral-api",
+    "properties" : {
+      "provider.type" : "mistral",
+      "provider.mistral.backend.type" : "mistral-api"
+    }
+  }, {
+    "id" : "type_mistral_type_custom",
+    "properties" : {
+      "provider.type" : "mistral",
+      "provider.mistral.backend.type" : "custom"
     }
   }, {
     "id" : "type_custom",

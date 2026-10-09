@@ -49,6 +49,22 @@ deprecated in favor of (v2).
 | AI Agent Sub-process (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
 
+### Provider selection in v2 templates
+
+All four v2 templates share provider/backend steps. Under OpenAI, Ollama and LM Studio select Chat
+Completions without authentication at `http://localhost:11434/v1` and `http://localhost:1234/v1`.
+
+The **Camunda-provided LLM (SaaS only)** preset selects the OpenAI-compatible Chat Completions backend
+with API-key authentication and the FEEL secret references
+`=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_ENDPOINT`,
+`=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_KEY`, and
+`=camunda.secrets.CAMUNDA_PROVIDED_LLM_DEFAULT_MODEL`. See the
+[Camunda-provided LLM documentation](https://docs.camunda.io/docs/8.10/components/agentic-orchestration/camunda-provided-llm/)
+for availability and supported models.
+
+Backend IDs and labels come from the generated dropdowns. Edit preset defaults in
+`../bin/transform-ai-agent-provider-steps.groovy`, not the generated JSON.
+
 ## MCP Client connectors
 
 Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).

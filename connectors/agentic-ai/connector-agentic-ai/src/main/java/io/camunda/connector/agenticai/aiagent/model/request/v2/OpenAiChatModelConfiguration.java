@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
     id = OpenAiChatModelConfiguration.OPENAI_ID,
     label = "OpenAI",
     description = "GPT models via OpenAI, Microsoft Foundry, or an OpenAI-compatible endpoint.",
-    keywords = {"OpenAI", "GPT", "Azure", "Foundry", "Ollama", "LM Studio"})
+    keywords = {"OpenAI", "GPT"})
 public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection openai)
     implements ProviderConfiguration {
 

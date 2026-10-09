@@ -35,7 +35,7 @@ import org.jspecify.annotations.Nullable;
     id = GOOGLE_GEMINI_ID,
     label = "Google Gemini",
     description = "Gemini models via the Gemini API or Vertex AI.",
-    keywords = {"Gemini", "Google", "Vertex"})
+    keywords = {"Gemini", "Google"})
 public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection googleGemini)
     implements ProviderConfiguration {
 
