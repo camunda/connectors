@@ -276,7 +276,9 @@ replay.
 
 Responses models can emit multiple assistant messages labeled as intermediate `commentary` or as the
 `final_answer`. Each `commentary` message is captured losslessly as `ProviderContent` (provider
-`openai`, payload = the raw output item including `id` and `phase`), in original order. It is not
+`openai`, payload = the raw output item including `id` and `phase`), in original order, with its
+joined text in `ProviderContent.text` and a `display: reasoning` metadata hint so agent instance
+history shows it like reasoning text. It is not
 `TextContent`, so it stays out of `responseText` and is not concatenated with structured JSON before
 parsing. The final-answer message is `TextContent`, its `msg_*` id is the assistant message ID, and
 its phase is recorded under `metadata.openai.phase`. Unphased messages stay plain `TextContent`

@@ -184,6 +184,10 @@ class OpenAiResponsesResponseConverterTest {
                   .asInstanceOf(InstanceOfAssertFactories.MAP)
                   .containsEntry("id", "msg_commentary")
                   .containsEntry("phase", "commentary");
+              assertThat(((ProviderContent) commentary).text())
+                  .isEqualTo("CLASSIFIED FACT SHEET...");
+              assertThat(((ProviderContent) commentary).metadata())
+                  .containsEntry("display", "reasoning");
             },
             answer ->
                 assertThat(answer).isEqualTo(TextContent.textContent("{\"answer\":\"done\"}")));
@@ -268,6 +272,8 @@ class OpenAiResponsesResponseConverterTest {
                     .asInstanceOf(InstanceOfAssertFactories.MAP)
                     .containsEntry("id", "msg_commentary")
                     .containsEntry("phase", "commentary"));
+    assertThat(((ProviderContent) result.assistantMessage().content().get(0)).text())
+        .isEqualTo("Checking the weather");
     assertThat(result.assistantMessage().messageId()).isNull();
     assertThat(result.assistantMessage().metadata())
         .extractingByKey("openai", InstanceOfAssertFactories.MAP)

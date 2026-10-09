@@ -36,6 +36,20 @@ class ProviderContentTest {
   }
 
   @Test
+  void roundTripsTextAndOmitsItWhenNull() throws Exception {
+    final var withText =
+        new ProviderContent(
+            "openai", Map.of("id", "msg_1"), "hello", Map.of("display", "reasoning"));
+    final var withoutText = ProviderContent.providerContent("openai", Map.of("id", "msg_1"));
+
+    assertThat(
+            objectMapper.readValue(
+                objectMapper.writeValueAsString(withText), ProviderContent.class))
+        .isEqualTo(withText);
+    assertThat(objectMapper.writeValueAsString(withoutText)).doesNotContain("\"text\"");
+  }
+
+  @Test
   void roundTripsThroughContentInterfaceTypeWithTypeDiscriminator() throws Exception {
     final Content providerContent =
         ProviderContent.providerContent("anthropic", Map.of("id", "srvtoolu_01"));

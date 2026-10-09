@@ -242,6 +242,54 @@ class AgentInstanceHistoryMapperTest {
             object -> assertThat(object.getObject()).isEqualTo(providerContent));
   }
 
+  @Test
+  void providerContentWithReasoningDisplayHintMapsToTextOnlyReasoningObject() {
+    final var providerContent =
+        new ProviderContent(
+            "openai",
+            Map.of("id", "msg_1", "phase", "commentary"),
+            "Checking the weather",
+            Map.of("display", "reasoning"));
+
+    final var content =
+        mapper.assistantContent(
+            AssistantMessage.builder().content(List.of(providerContent)).build());
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .isEqualTo(
+                        Map.of(
+                            "camunda.agenticai.content.type",
+                            "reasoning",
+                            "text",
+                            "Checking the weather")));
+  }
+
+  @Test
+  void providerContentWithoutUsableDisplayHintOrTextMapsToTheRecordItself() {
+    final var noHint = new ProviderContent("openai", Map.of("id", "a"), "text", null);
+    final var unknownHint =
+        new ProviderContent("openai", Map.of("id", "b"), "text", Map.of("display", "other"));
+    final var blankText =
+        new ProviderContent("openai", Map.of("id", "c"), "  ", Map.of("display", "reasoning"));
+
+    for (final var providerContent : List.of(noHint, unknownHint, blankText)) {
+      final var content =
+          mapper.assistantContent(
+              AssistantMessage.builder().content(List.of(providerContent)).build());
+
+      assertThat(content)
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object -> assertThat(object.getObject()).isEqualTo(providerContent));
+    }
+  }
+
   private static Map<String, Object> agentInstanceReasoning(String text, Object payload) {
     if (text == null || text.isBlank()) {
       return Map.of("camunda.agenticai.content.type", "reasoning", "payload", payload);

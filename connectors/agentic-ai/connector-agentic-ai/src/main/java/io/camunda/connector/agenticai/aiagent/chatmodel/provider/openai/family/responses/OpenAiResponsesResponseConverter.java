@@ -142,7 +142,7 @@ public class OpenAiResponsesResponseConverter {
           // Intermediate commentary has no place in the domain model, and must not be parsed as the
           // response text. It is preserved as ProviderContent so it replays verbatim, phase
           // included.
-          content.add(ProviderContent.providerContent(OPENAI_ID, toRawMap(item)));
+          content.add(commentaryContent(message, item));
           continue;
         }
         // The first message item's own id, not response.id() (the envelope this turn came from).
@@ -174,6 +174,21 @@ public class OpenAiResponsesResponseConverter {
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))
         .build();
+  }
+
+  private ProviderContent commentaryContent(
+      ResponseOutputMessage message, ResponseOutputItem item) {
+    final String text =
+        message.content().stream()
+            .flatMap(messageContent -> messageContent.outputText().stream())
+            .map(ResponseOutputText::text)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.joining("\n"));
+    return new ProviderContent(
+        OPENAI_ID,
+        toRawMap(item),
+        StringUtils.hasText(text) ? text : null,
+        Map.of("display", "reasoning"));
   }
 
   private Stream<ResponseOutputMessage> responseMessages(Response response) {
