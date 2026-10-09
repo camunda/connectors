@@ -4511,22 +4511,22 @@
       "name" : "OpenAI custom / compatible endpoint",
       "keywords" : [ "OpenAI", "GPT", "Custom / compatible endpoint" ],
       "presetId" : "type_openai_type_custom"
-    }, {
-      "name" : "Ollama",
-      "description" : "Local models via Ollama.",
-      "keywords" : [ "Ollama", "Local", "Llama" ],
-      "presetId" : "type_openai_type_custom_ollama"
-    }, {
-      "name" : "LM Studio",
-      "description" : "Local models via LM Studio.",
-      "keywords" : [ "LM Studio", "Local" ],
-      "presetId" : "type_openai_type_custom_lmstudio"
-    }, {
-      "name" : "Camunda-provided LLM (SaaS only)",
-      "description" : "Only on select plans.",
-      "keywords" : [ "Camunda", "LLM", "SaaS" ],
-      "presetId" : "type_openai_type_custom_camunda"
     } ]
+  }, {
+    "name" : "Ollama",
+    "description" : "Local models via Ollama.",
+    "keywords" : [ "Ollama", "Local", "Llama" ],
+    "presetId" : "type_openai_type_custom_ollama"
+  }, {
+    "name" : "LM Studio",
+    "description" : "Local models via LM Studio.",
+    "keywords" : [ "LM Studio", "Local" ],
+    "presetId" : "type_openai_type_custom_lmstudio"
+  }, {
+    "name" : "Camunda-provided LLM (SaaS only)",
+    "description" : "Only on select plans.",
+    "keywords" : [ "Camunda", "LLM", "SaaS" ],
+    "presetId" : "type_openai_type_custom_camunda"
   }, {
     "name" : "Google Gemini",
     "description" : "Gemini models via the Gemini API or Vertex AI.",

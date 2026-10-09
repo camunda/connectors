@@ -33,7 +33,21 @@ class AgentV2ElementTemplateTest {
     final var task = template("agenticai-ai-agent-task.v2.json");
     assertThat(template.get("steps")).isEqualTo(task.get("steps"));
     assertThat(template.get("presets")).isEqualTo(task.get("presets"));
-    assertThat(template.get("steps")).hasSize(6);
+    final var providerNames =
+        List.of(
+            "Anthropic",
+            "AWS Bedrock Converse",
+            "OpenAI",
+            "Ollama",
+            "LM Studio",
+            "Camunda-provided LLM (SaaS only)",
+            "Google Gemini",
+            "Mistral AI",
+            "Custom Implementation (Self-Managed/Hybrid only)");
+    assertThat(template.get("steps")).hasSize(providerNames.size());
+    for (int i = 0; i < providerNames.size(); i++) {
+      assertThat(template.get("steps").get(i).get("name").asText()).isEqualTo(providerNames.get(i));
+    }
     assertThat(template.get("presets")).hasSize(16);
 
     for (var entry :
@@ -50,10 +64,7 @@ class AgentV2ElementTemplateTest {
                     "provider.openai.backend.type",
                     "OpenAI API",
                     "Microsoft Foundry (Azure)",
-                    "OpenAI custom / compatible endpoint",
-                    "Ollama",
-                    "LM Studio",
-                    "Camunda-provided LLM (SaaS only)"),
+                    "OpenAI custom / compatible endpoint"),
                 "Google Gemini",
                 List.of(
                     "provider.googleGemini.backend.type",
@@ -113,15 +124,14 @@ class AgentV2ElementTemplateTest {
                 .put(
                     "provider.openai.model.model",
                     "=camunda.secrets.CAMUNDA_PROVIDED_LLM_DEFAULT_MODEL"));
-    final var openai = named(template.get("steps"), "name", "OpenAI").get("steps");
-    assertThat(named(openai, "name", "Ollama").get("presetId").asText())
+    final var steps = template.get("steps");
+    assertThat(named(steps, "name", "Ollama").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_ollama");
-    assertThat(named(openai, "name", "LM Studio").get("presetId").asText())
+    assertThat(named(steps, "name", "LM Studio").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_lmstudio");
-    assertThat(named(openai, "name", "Camunda-provided LLM (SaaS only)").get("presetId").asText())
+    assertThat(named(steps, "name", "Camunda-provided LLM (SaaS only)").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_camunda");
-    assertThat(
-            named(openai, "name", "Camunda-provided LLM (SaaS only)").get("description").asText())
+    assertThat(named(steps, "name", "Camunda-provided LLM (SaaS only)").get("description").asText())
         .isEqualTo("Only on select plans.");
     assertThat(preset(template, "type_bedrock").get("provider.type").asText()).isEqualTo("bedrock");
     assertThat(preset(template, "type_custom").get("provider.type").asText()).isEqualTo("custom");

@@ -38,9 +38,11 @@ def compatiblePresets = [
     def json = mapper.readValue(file, Map.class)
     def presetsById = json.presets.collectEntries { [(it.id): it] }
     def presets = []
+    def steps = []
 
     // ETG stops at the connection record instead of following its backend discriminator.
     json.steps.each { step ->
+        steps.add(step)
         def providerPreset = presetsById[step.presetId]
         def providerProperties = providerPreset.get("properties")
         def providerId = providerProperties["provider.type"]
@@ -80,7 +82,7 @@ def compatiblePresets = [
                         "provider.openai.api.type": "completions"
                     ] + preset.get("properties")
                 ])
-                step.steps.add([
+                steps.add([
                     name: preset.name, description: preset.description,
                     keywords: preset.keywords, presetId: presetId
                 ])
@@ -89,5 +91,6 @@ def compatiblePresets = [
     }
 
     json.presets = presets
+    json.steps = steps
     mapper.writeValue(file, json)
 }

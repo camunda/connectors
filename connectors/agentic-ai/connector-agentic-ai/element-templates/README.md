@@ -51,7 +51,8 @@ deprecated in favor of (v2).
 
 ### Provider selection in v2 templates
 
-All four v2 templates share provider/backend steps. Under OpenAI, Ollama and LM Studio select Chat
+All four v2 templates share provider/backend steps. Ollama, LM Studio, and the Camunda-provided LLM
+appear alongside OpenAI. Ollama and LM Studio select Chat
 Completions without authentication at `http://localhost:11434/v1` and `http://localhost:1234/v1`.
 
 The **Camunda-provided LLM (SaaS only)** preset selects the OpenAI-compatible Chat Completions backend
