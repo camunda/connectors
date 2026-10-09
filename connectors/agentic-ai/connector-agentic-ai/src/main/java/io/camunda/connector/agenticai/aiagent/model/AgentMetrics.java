@@ -78,12 +78,14 @@ public record AgentMetrics(
    * count of <b>new, non-cached</b> input tokens: {@code cacheReadTokenCount} and {@code
    * cacheCreationTokenCount} are separate, disjoint auxiliary buckets that are never also included
    * in {@code inputTokenCount} (Anthropic/Bedrock already report {@code input_tokens} excluding
-   * cached tokens; the OpenAI path subtracts cached tokens back out so the semantics stay uniform
-   * across providers). {@code reasoningTokenCount}, in contrast, is a breakdown <b>within</b>
-   * {@code outputTokenCount} (reasoning is billed output) rather than a disjoint bucket — it is
-   * informational only and is already included in {@code outputTokenCount}. There is intentionally
-   * no combined total-token accessor: a single summed figure would be ambiguous about whether
-   * cache/reasoning tokens are already included, so callers combine the fields they need directly.
+   * cached tokens; the OpenAI and Gemini paths subtract cached tokens back out so the semantics
+   * stay uniform across providers). {@code reasoningTokenCount}, in contrast, is a breakdown
+   * <b>within</b> {@code outputTokenCount} (reasoning is billed output) rather than a disjoint
+   * bucket — it is informational only and is already included in {@code outputTokenCount} (Gemini
+   * reports thoughts separately from its candidates count, so its path adds them to the output).
+   * There is intentionally no combined total-token accessor: a single summed figure would be
+   * ambiguous about whether cache/reasoning tokens are already included, so callers combine the
+   * fields they need directly.
    *
    * <ul>
    *   <li>{@code inputTokenCount} – new, non-cached input tokens.
