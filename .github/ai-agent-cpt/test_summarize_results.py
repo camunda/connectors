@@ -51,6 +51,16 @@ class SummarizeResultsTest(unittest.TestCase):
             )
             self.assertEqual(matrix[0]["groups"], "core-smoke")
 
+    def test_validate_matrix_requires_non_empty_json_array(self):
+        self.assertEqual(
+            [{"id": "openai-native"}],
+            summarize_results.validate_matrix_json('[{"id":"openai-native"}]'),
+        )
+        for invalid in ("", "not-json", "{}", "[]", "[null]", "[{}]"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "matrix"):
+                    summarize_results.validate_matrix_json(invalid)
+
     def test_finalize_extracts_provider_and_model_and_sanitizes_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             report_directory = pathlib.Path(directory, "raw")
