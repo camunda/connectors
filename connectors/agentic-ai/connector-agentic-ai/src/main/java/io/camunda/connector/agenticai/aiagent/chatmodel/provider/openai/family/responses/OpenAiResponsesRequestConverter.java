@@ -58,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -258,8 +259,23 @@ public class OpenAiResponsesRequestConverter {
         ResponseOutputMessage.builder()
             .id(assistantMessageId(assistant))
             .status(ResponseOutputMessage.Status.COMPLETED)
+            .phase(assistantPhase(assistant))
             .content(parts)
             .build());
+  }
+
+  /**
+   * The {@code phase} the response converter recorded for the answer text; empty for unphased and
+   * foreign-provider history so no phase is sent for it.
+   */
+  private Optional<ResponseOutputMessage.Phase> assistantPhase(AssistantMessage assistant) {
+    final Map<String, Object> metadata = assistant.metadata();
+    if (metadata != null
+        && metadata.get(OPENAI_ID) instanceof Map<?, ?> openAi
+        && openAi.get(OpenAiResponsesResponseConverter.METADATA_PHASE) instanceof String phase) {
+      return Optional.of(ResponseOutputMessage.Phase.of(phase));
+    }
+    return Optional.empty();
   }
 
   private ResponseOutputMessage.Content outputTextPart(Content content) {

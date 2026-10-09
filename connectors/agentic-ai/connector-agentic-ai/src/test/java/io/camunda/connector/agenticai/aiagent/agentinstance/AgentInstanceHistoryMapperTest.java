@@ -242,6 +242,41 @@ class AgentInstanceHistoryMapperTest {
             object -> assertThat(object.getObject()).isEqualTo(providerContent));
   }
 
+  @Test
+  void providerContentWithTextMapsToTextContent() {
+    final var providerContent =
+        new ProviderContent(
+            "openai", Map.of("id", "msg_1", "phase", "commentary"), "Checking the weather", null);
+
+    final var content =
+        mapper.assistantContent(
+            AssistantMessage.builder().content(List.of(providerContent)).build());
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.TextContent.class,
+            text -> assertThat(text.getText()).isEqualTo("Checking the weather"));
+  }
+
+  @Test
+  void providerContentWithoutUsableTextMapsToTheRecordItself() {
+    final var noText = new ProviderContent("openai", Map.of("id", "a"), null, null);
+    final var blankText = new ProviderContent("openai", Map.of("id", "b"), "  ", null);
+
+    for (final var providerContent : List.of(noText, blankText)) {
+      final var content =
+          mapper.assistantContent(
+              AssistantMessage.builder().content(List.of(providerContent)).build());
+
+      assertThat(content)
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object -> assertThat(object.getObject()).isEqualTo(providerContent));
+    }
+  }
+
   private static Map<String, Object> agentInstanceReasoning(String text, Object payload) {
     if (text == null || text.isBlank()) {
       return Map.of("camunda.agenticai.content.type", "reasoning", "payload", payload);
