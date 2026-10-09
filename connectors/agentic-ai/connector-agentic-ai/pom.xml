@@ -837,6 +837,27 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             </configuration>
           </execution>
           <execution>
+            <id>add-provider-steps-v2</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-provider-steps.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFiles</name>
+                  <value>
+${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json
+${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
             <id>generate-subprocess-v2-template</id>
             <phase>process-classes</phase>
             <goals>
