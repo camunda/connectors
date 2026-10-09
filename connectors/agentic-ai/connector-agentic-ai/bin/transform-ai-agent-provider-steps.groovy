@@ -73,6 +73,7 @@ def compatiblePresets = [
         }
 
         if (providerId == "openai") {
+            def compatibleSteps = []
             compatiblePresets.each { preset ->
                 def presetId = "${prefix}_type_custom_${preset.id}".toString()
                 presets.add([
@@ -82,11 +83,16 @@ def compatiblePresets = [
                         "provider.openai.api.type": "completions"
                     ] + preset.get("properties")
                 ])
-                steps.add([
+                compatibleSteps.add([
                     name: preset.name, description: preset.description,
                     keywords: preset.keywords, presetId: presetId
                 ])
             }
+            steps.add([
+                name: "OpenAI compatible",
+                description: "Models like Ollama, LM Studio, and Camunda-provided LLM.",
+                steps: compatibleSteps
+            ])
         }
     }
 

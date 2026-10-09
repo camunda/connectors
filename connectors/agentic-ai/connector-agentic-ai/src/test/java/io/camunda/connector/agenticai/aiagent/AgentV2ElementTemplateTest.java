@@ -38,9 +38,7 @@ class AgentV2ElementTemplateTest {
             "Anthropic",
             "AWS Bedrock Converse",
             "OpenAI",
-            "Ollama",
-            "LM Studio",
-            "Camunda-provided LLM (SaaS only)",
+            "OpenAI compatible",
             "Google Gemini",
             "Mistral AI",
             "Custom Implementation (Self-Managed/Hybrid only)");
@@ -125,13 +123,26 @@ class AgentV2ElementTemplateTest {
                     "provider.openai.model.model",
                     "=camunda.secrets.CAMUNDA_PROVIDED_LLM_DEFAULT_MODEL"));
     final var steps = template.get("steps");
-    assertThat(named(steps, "name", "Ollama").get("presetId").asText())
+    final var compatible = named(steps, "name", "OpenAI compatible");
+    assertThat(compatible.has("presetId")).isFalse();
+    assertThat(compatible.has("keywords")).isFalse();
+    assertThat(compatible.get("description").asText())
+        .isEqualTo("Models like Ollama, LM Studio, and Camunda-provided LLM.");
+    assertThat(compatible.get("steps").findValuesAsText("name"))
+        .containsExactly("Ollama", "LM Studio", "Camunda-provided LLM (SaaS only)");
+    assertThat(named(compatible.get("steps"), "name", "Ollama").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_ollama");
-    assertThat(named(steps, "name", "LM Studio").get("presetId").asText())
+    assertThat(named(compatible.get("steps"), "name", "LM Studio").get("presetId").asText())
         .isEqualTo("type_openai_type_custom_lmstudio");
-    assertThat(named(steps, "name", "Camunda-provided LLM (SaaS only)").get("presetId").asText())
+    assertThat(
+            named(compatible.get("steps"), "name", "Camunda-provided LLM (SaaS only)")
+                .get("presetId")
+                .asText())
         .isEqualTo("type_openai_type_custom_camunda");
-    assertThat(named(steps, "name", "Camunda-provided LLM (SaaS only)").get("description").asText())
+    assertThat(
+            named(compatible.get("steps"), "name", "Camunda-provided LLM (SaaS only)")
+                .get("description")
+                .asText())
         .isEqualTo("Only on select plans.");
     assertThat(preset(template, "type_bedrock").get("provider.type").asText()).isEqualTo("bedrock");
     assertThat(preset(template, "type_custom").get("provider.type").asText()).isEqualTo("custom");
