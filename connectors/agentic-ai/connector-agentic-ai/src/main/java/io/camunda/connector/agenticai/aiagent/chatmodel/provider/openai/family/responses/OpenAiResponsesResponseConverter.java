@@ -66,6 +66,9 @@ public class OpenAiResponsesResponseConverter {
   private static final String METADATA_RESPONSE_ID = "responseId";
   private static final String METADATA_STOP_REASON = "stopReason";
 
+  /** Phase of the answer text; only stamped for phased output, so unphased history stays as is. */
+  static final String METADATA_PHASE = "phase";
+
   private final ObjectMapper objectMapper;
 
   public OpenAiResponsesResponseConverter(ObjectMapper objectMapper) {
@@ -130,19 +133,21 @@ public class OpenAiResponsesResponseConverter {
   private AssistantMessage toAssistantMessage(Response response) {
     final List<Content> content = new ArrayList<>();
     final List<ToolCall> toolCalls = new ArrayList<>();
-    final boolean hasFinalAnswerMessage = hasFinalAnswerMessage(response);
     @Nullable String assistantMessageId = null;
 
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
-        if (!isAnswerMessage(message, hasFinalAnswerMessage)) {
+        if (isCommentary(message)) {
+          // Intermediate commentary has no place in the domain model, and must not be parsed as the
+          // response text. It is preserved as ProviderContent so it replays verbatim, phase
+          // included.
+          content.add(commentaryContent(message, item));
           continue;
         }
         // The first message item's own id, not response.id() (the envelope this turn came from).
         // The API gives no guarantee of at most one message item per response (its own docs warn
-        // against assuming the first output item is the message). For phased output, commentary is
-        // excluded so the final answer's id and content are retained.
+        // against assuming the first output item is the message).
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
@@ -171,6 +176,18 @@ public class OpenAiResponsesResponseConverter {
         .build();
   }
 
+  private ProviderContent commentaryContent(
+      ResponseOutputMessage message, ResponseOutputItem item) {
+    final String text =
+        message.content().stream()
+            .flatMap(messageContent -> messageContent.outputText().stream())
+            .map(ResponseOutputText::text)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.joining("\n"));
+    return new ProviderContent(
+        OPENAI_ID, toRawMap(item), StringUtils.hasText(text) ? text : null, null);
+  }
+
   private Stream<ResponseOutputMessage> responseMessages(Response response) {
     return response.output().stream().flatMap(item -> item.message().stream());
   }
@@ -183,8 +200,16 @@ public class OpenAiResponsesResponseConverter {
     return message.phase().filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals).isPresent();
   }
 
+  private boolean isCommentary(ResponseOutputMessage message) {
+    return message.phase().filter(ResponseOutputMessage.Phase.COMMENTARY::equals).isPresent();
+  }
+
+  /**
+   * Final-answer messages, or -- when the response has none -- every message that is not
+   * commentary.
+   */
   private boolean isAnswerMessage(ResponseOutputMessage message, boolean hasFinalAnswerMessage) {
-    return !hasFinalAnswerMessage || isFinalAnswer(message);
+    return hasFinalAnswerMessage ? isFinalAnswer(message) : !isCommentary(message);
   }
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
@@ -225,6 +250,9 @@ public class OpenAiResponsesResponseConverter {
   private Map<String, Object> openAiMetadata(Response response) {
     final Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put(METADATA_RESPONSE_ID, response.id());
+    if (hasFinalAnswerMessage(response)) {
+      metadata.put(METADATA_PHASE, ResponseOutputMessage.Phase.FINAL_ANSWER.asString());
+    }
     response
         .incompleteDetails()
         .flatMap(Response.IncompleteDetails::reason)
