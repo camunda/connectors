@@ -689,7 +689,7 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
 
   run-ai-agent-cpt:
-    name: AI Agent E2E Tests (CPT)
+    name: AI Agent bundle E2E (CPT)
     runs-on: ubuntu-latest
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
