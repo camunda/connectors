@@ -31,7 +31,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = GOOGLE_GEMINI_ID, label = "Google Gemini")
+@TemplateSubType(
+    id = GOOGLE_GEMINI_ID,
+    label = "Google Gemini",
+    description = "Gemini models via the Gemini API or Vertex AI.",
+    keywords = {"Gemini", "Google"})
 public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection googleGemini)
     implements ProviderConfiguration {
 

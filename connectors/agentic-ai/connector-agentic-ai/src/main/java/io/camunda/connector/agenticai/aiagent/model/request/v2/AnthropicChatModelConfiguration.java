@@ -36,7 +36,12 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
+@TemplateSubType(
+    id = ANTHROPIC_ID,
+    label = "Anthropic",
+    description =
+        "Claude models via the Anthropic API, AWS Bedrock, Microsoft Foundry, or a compatible endpoint.",
+    keywords = {"Anthropic", "Claude"})
 public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnection anthropic)
     implements ProviderConfiguration {
 

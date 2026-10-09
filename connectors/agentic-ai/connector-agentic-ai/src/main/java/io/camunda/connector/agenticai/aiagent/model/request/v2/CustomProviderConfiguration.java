@@ -21,7 +21,11 @@ import org.jspecify.annotations.Nullable;
  * {@code ChatModelFactory} bean the user implements and registers themselves (see {@code
  * ChatModelRegistry}); {@link #parameters()} is opaque configuration only that factory understands.
  */
-@TemplateSubType(id = CUSTOM_ID, label = "Custom Implementation (Self-Managed/Hybrid only)")
+@TemplateSubType(
+    id = CUSTOM_ID,
+    label = "Custom Implementation (Self-Managed/Hybrid only)",
+    description = "Your own provider implementation.",
+    keywords = {"Custom"})
 public record CustomProviderConfiguration(
     @TemplateProperty(
             group = "provider",
