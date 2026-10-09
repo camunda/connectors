@@ -1042,7 +1042,7 @@ limitations under the License.</license.inlineheader>
                    (see version.parsson, version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.20\.2$</regex>
+                <regex>^1\.22\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
 If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property,
@@ -1063,7 +1063,7 @@ See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
                    not only on a langchain4j bump. -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.20\.2$</regex>
+                <regex>^1\.22\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the junrar GHSA-h9h9-2rmf-rvhp override can be removed.
 If the Tika version pinned in connectors/embeddings-vector-database/pom.xml ships a
