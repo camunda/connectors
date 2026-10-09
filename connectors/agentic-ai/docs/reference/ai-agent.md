@@ -333,8 +333,7 @@ The sealed `Content` model gained two additive members alongside the existing `T
 - **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `payload`,
   optional `text`, `metadata`); each payload self-describes its own block shape (e.g. via an internal
   `type` field), so there is no separate discriminator field. `text` is a display-only rendering that
-  is never replayed; together with a `display: reasoning` entry in `metadata` it makes the history
-  mapper present the block like reasoning text.
+  is never replayed; when present, the history mapper presents the block as plain text.
 
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
@@ -1829,8 +1828,8 @@ base64 copy in transient `Content.metadata()` for the request converter to use d
 replay. `AgentInstanceHistoryMapper` does not persist that metadata.
 `ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
 (`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet). A
-`ProviderContent` with non-blank `text` and `metadata.display = reasoning` instead maps to a
-reasoning-tagged object carrying only `text`; its lossless payload stays in conversation memory.
+`ProviderContent` with non-blank `text` instead maps to a text content carrying only that `text`;
+its lossless payload stays in conversation memory.
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job

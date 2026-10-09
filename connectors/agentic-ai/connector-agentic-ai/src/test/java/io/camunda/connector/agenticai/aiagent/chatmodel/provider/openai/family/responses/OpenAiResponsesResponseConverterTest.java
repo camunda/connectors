@@ -186,8 +186,6 @@ class OpenAiResponsesResponseConverterTest {
                   .containsEntry("phase", "commentary");
               assertThat(((ProviderContent) commentary).text())
                   .isEqualTo("CLASSIFIED FACT SHEET...");
-              assertThat(((ProviderContent) commentary).metadata())
-                  .containsEntry("display", "reasoning");
             },
             answer ->
                 assertThat(answer).isEqualTo(TextContent.textContent("{\"answer\":\"done\"}")));

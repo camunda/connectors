@@ -223,19 +223,10 @@ public class AgentInstanceHistoryMapper {
   }
 
   private AgentInstanceHistoryContent providerHistoryContent(ProviderContent providerContent) {
-    if (!isDisplayedAsReasoning(providerContent)) {
-      return objectHistoryContent(providerContent);
+    if (StringUtils.isNotBlank(providerContent.text())) {
+      return AgentInstanceHistoryContent.text(providerContent.text());
     }
-    final var historyObject = new LinkedHashMap<String, Object>();
-    historyObject.put("camunda.agenticai.content.type", "reasoning");
-    historyObject.put("text", providerContent.text());
-    return objectHistoryContent(historyObject);
-  }
-
-  private boolean isDisplayedAsReasoning(ProviderContent providerContent) {
-    return StringUtils.isNotBlank(providerContent.text())
-        && providerContent.metadata() != null
-        && "reasoning".equals(providerContent.metadata().get("display"));
+    return objectHistoryContent(providerContent);
   }
 
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {

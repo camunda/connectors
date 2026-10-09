@@ -185,10 +185,7 @@ public class OpenAiResponsesResponseConverter {
             .filter(StringUtils::hasText)
             .collect(Collectors.joining("\n"));
     return new ProviderContent(
-        OPENAI_ID,
-        toRawMap(item),
-        StringUtils.hasText(text) ? text : null,
-        Map.of("display", "reasoning"));
+        OPENAI_ID, toRawMap(item), StringUtils.hasText(text) ? text : null, null);
   }
 
   private Stream<ResponseOutputMessage> responseMessages(Response response) {

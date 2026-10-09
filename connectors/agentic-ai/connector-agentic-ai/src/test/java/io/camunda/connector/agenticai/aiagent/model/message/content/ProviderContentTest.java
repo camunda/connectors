@@ -37,9 +37,7 @@ class ProviderContentTest {
 
   @Test
   void roundTripsTextAndOmitsItWhenNull() throws Exception {
-    final var withText =
-        new ProviderContent(
-            "openai", Map.of("id", "msg_1"), "hello", Map.of("display", "reasoning"));
+    final var withText = new ProviderContent("openai", Map.of("id", "msg_1"), "hello", null);
     final var withoutText = ProviderContent.providerContent("openai", Map.of("id", "msg_1"));
 
     assertThat(

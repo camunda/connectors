@@ -243,13 +243,10 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void providerContentWithReasoningDisplayHintMapsToTextOnlyReasoningObject() {
+  void providerContentWithTextMapsToTextContent() {
     final var providerContent =
         new ProviderContent(
-            "openai",
-            Map.of("id", "msg_1", "phase", "commentary"),
-            "Checking the weather",
-            Map.of("display", "reasoning"));
+            "openai", Map.of("id", "msg_1", "phase", "commentary"), "Checking the weather", null);
 
     final var content =
         mapper.assistantContent(
@@ -258,26 +255,16 @@ class AgentInstanceHistoryMapperTest {
     assertThat(content)
         .singleElement()
         .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object ->
-                assertThat(object.getObject())
-                    .isEqualTo(
-                        Map.of(
-                            "camunda.agenticai.content.type",
-                            "reasoning",
-                            "text",
-                            "Checking the weather")));
+            AgentInstanceHistoryContent.TextContent.class,
+            text -> assertThat(text.getText()).isEqualTo("Checking the weather"));
   }
 
   @Test
-  void providerContentWithoutUsableDisplayHintOrTextMapsToTheRecordItself() {
-    final var noHint = new ProviderContent("openai", Map.of("id", "a"), "text", null);
-    final var unknownHint =
-        new ProviderContent("openai", Map.of("id", "b"), "text", Map.of("display", "other"));
-    final var blankText =
-        new ProviderContent("openai", Map.of("id", "c"), "  ", Map.of("display", "reasoning"));
+  void providerContentWithoutUsableTextMapsToTheRecordItself() {
+    final var noText = new ProviderContent("openai", Map.of("id", "a"), null, null);
+    final var blankText = new ProviderContent("openai", Map.of("id", "b"), "  ", null);
 
-    for (final var providerContent : List.of(noHint, unknownHint, blankText)) {
+    for (final var providerContent : List.of(noText, blankText)) {
       final var content =
           mapper.assistantContent(
               AssistantMessage.builder().content(List.of(providerContent)).build());
