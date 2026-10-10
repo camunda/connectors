@@ -104,6 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.amqp-client>5.37.0</version.amqp-client>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
+    <version.log4j>2.25.5</version.log4j>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.software-aws-java-sdk>2.55.14</version.software-aws-java-sdk>
@@ -222,6 +223,15 @@ limitations under the License.</license.inlineheader>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
         <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <!-- CVE-2026-49844: import before Spring Boot to keep the Log4j family aligned. -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${version.log4j}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
