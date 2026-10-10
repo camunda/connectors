@@ -6,10 +6,16 @@
  */
 package io.camunda.connector.google.gcs.model.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 public class ObjectStorageRequest {
@@ -27,6 +33,25 @@ public class ObjectStorageRequest {
   @NestedProperties(addNestedPath = false)
   private ObjectStorageOperation operation;
 
+  @TemplateProperty(
+      id = "googleGcsCredential",
+      label = "Google Cloud Storage credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "googleGcsCredential"),
+      description =
+          "Choose a reusable Google Cloud Storage credential, or configure a one-time service"
+              + " account key below.")
+  @FEEL
+  @Valid
+  private GcsCredentialConfiguration googleGcsCredential;
+
+  @NestedProperties(
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "googleGcsCredential",
+              isEmpty = NullableBoolean.TRUE))
   private Authentication authentication;
 
   public ObjectStorageRequest() {}
@@ -40,10 +65,30 @@ public class ObjectStorageRequest {
   }
 
   public Authentication getAuthentication() {
-    return authentication;
+    return googleGcsCredential != null ? googleGcsCredential.authentication() : authentication;
   }
 
   public void setAuthentication(Authentication authentication) {
     this.authentication = authentication;
+  }
+
+  public GcsCredentialConfiguration getGoogleGcsCredential() {
+    return googleGcsCredential;
+  }
+
+  public void setGoogleGcsCredential(GcsCredentialConfiguration googleGcsCredential) {
+    this.googleGcsCredential = googleGcsCredential;
+  }
+
+  @AssertTrue(message = "No authentication provided by the credential or the element template")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return getAuthentication() != null;
+  }
+
+  @Valid
+  @JsonIgnore
+  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
+    return googleGcsCredential != null ? null : authentication;
   }
 }

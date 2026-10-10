@@ -13,6 +13,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.google.gcs.model.core.ObjectStorageExecutor;
+import io.camunda.connector.google.gcs.model.request.GcsCredentialConfiguration;
 import io.camunda.connector.google.gcs.model.request.ObjectStorageRequest;
 import java.util.function.Function;
 
@@ -20,18 +21,20 @@ import java.util.function.Function;
     name = "Google Cloud Storage",
     inputVariables = {
       "authentication",
+      "googleGcsCredential",
       "operationDiscriminator",
       "operation",
       "documentReturnFormat"
     },
     type = "io.camunda:google-gcs:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.google.gcp.v1",
     name = "Google Cloud Storage Outbound Connector",
     description = "Upload and download files from Google Cloud Storage.",
     inputDataClass = ObjectStorageRequest.class,
-    version = 5,
+    version = 6,
+    configurations = {GcsCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication")
