@@ -32,6 +32,7 @@ jobs:
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.head_ref, 'fix/alwaysgreen-')) || github.event_name == 'push' }}
     timeout-minutes: 30
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
@@ -110,3 +111,13 @@ jobs:
               steps.info.outputs.base-revision
             }}
           revision: ${{ steps.info.outputs.head-revision }}
+
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}

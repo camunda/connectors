@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
@@ -91,4 +92,13 @@ jobs:
           title: "chore(npm-package): bump npm package version"
           body: |
             This PR bumps the npm package version after successful release to npm. Feel free to verifiy it is available: https://www.npmjs.com/package/@camunda/connectors-element-templates?activeTab=versions
-            
+
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}

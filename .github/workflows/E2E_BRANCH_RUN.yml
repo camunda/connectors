@@ -39,6 +39,7 @@ jobs:
       # Modules absent from the map use ubuntu-latest; callers can provide their own map.
       E2E_RUNNER_OVERRIDES: ${{ inputs.runner-overrides }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch }}
@@ -248,6 +249,16 @@ jobs:
           compression-level: 0
           overwrite: true
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+          job_name: "build/${{ inputs.branch }}"
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
   # Runner is baked into each entry by the build job from the runner-overrides input.
   test:
@@ -259,6 +270,7 @@ jobs:
       matrix:
         entry: ${{ fromJson(needs.build.outputs.modules) }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch }}
@@ -390,6 +402,16 @@ jobs:
             **/target/surefire-reports/*.xml
             **/target/surefire-reports/*-output.txt
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+          job_name: "test/${{ inputs.branch }}/${{ matrix.entry.module }}"
   # Slack notification on build OR test failure (a build failure skips the test job, so
   # both results are checked). main/stable only, not PR runs.
   notify:

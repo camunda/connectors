@@ -21,6 +21,7 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
 
       - name: Import Secrets
@@ -155,6 +156,15 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   trigger-sm-e2e:
     name: Trigger SM E2E tests
     needs: [ build-image ]
@@ -330,12 +340,11 @@ jobs:
       # fire for the one event that supplies a PR to comment on.
       status: ${{ steps.job-status.outputs.status }}
     steps:
-      # The waiter's deadline has to be measured on the same clock as this
-      # job's `timeout-minutes`, which starts here -- not when the waiter
-      # step happens to begin. Checkout, Vault/token generation and the
-      # dispatch are all unbounded, so deriving the deadline from the
-      # waiter's own start would make "deadline < job timeout" an assumption
-      # about how long they take rather than a guarantee.
+      # Measure the waiter's deadline near the start of the job, not when the
+      # waiter happens to begin. The mandatory build monitor runs first; the
+      # remaining checkout, Vault/token generation and dispatch time is still
+      # included in the waiter's 75-minute budget.
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Record job start
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
 
@@ -699,6 +708,15 @@ jobs:
         if: always()
         run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
   # which fires at three consecutive failures and says nothing about a single one.
@@ -769,6 +787,7 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
 
       - name: Check for agentic-ai changes
@@ -869,6 +888,15 @@ jobs:
             -Pit-real-llm \
             --batch-mode
 
+      - name: Observe build status
+        if: ${{ always() && steps.changes.outputs.ai == 'true' }}
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x
   # instead of a per-branch `if:` that only this copy of the file ever received.

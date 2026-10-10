@@ -53,6 +53,7 @@ jobs:
         # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
     - name: Checkout repository
       uses: actions/checkout@v7
 
@@ -90,3 +91,14 @@ jobs:
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+
+    - name: Observe build status
+      if: always()
+      continue-on-error: true
+      uses: ./.github/actions/observe-build-status
+      with:
+        build_status: ${{ job.status }}
+        secret_vault_address: ${{ secrets.VAULT_ADDR }}
+        secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+        secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+        job_name: "analyze/${{ matrix.language }}"

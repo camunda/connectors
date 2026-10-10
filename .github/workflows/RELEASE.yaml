@@ -343,6 +343,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
@@ -449,6 +450,15 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
@@ -479,6 +489,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
@@ -564,6 +575,16 @@ jobs:
           readme_file: ${{ matrix.readme }}
           short_description: ${{ matrix.short_description }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+          job_name: "docker-release/${{ matrix.name }}"
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
@@ -575,6 +596,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Download repository
         uses: actions/download-artifact@v8
         with:
@@ -610,6 +632,15 @@ jobs:
             connectors-bundle-templates-${{ inputs.version }}.tar.gz
             connectors-bundle-templates-${{ inputs.version }}.zip
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
     if: |
@@ -653,6 +684,7 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
 
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.version }}
@@ -690,6 +722,15 @@ jobs:
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   notify-prs-released:
     name: Notify PRs that they have been released
     needs:
