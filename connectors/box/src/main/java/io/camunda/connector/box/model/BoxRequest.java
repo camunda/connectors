@@ -9,6 +9,7 @@ package io.camunda.connector.box.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
@@ -144,6 +145,7 @@ public record BoxRequest(
                 id = "createFolderParentPath",
                 group = "operation",
                 label = "Parent path",
+                tooltip = "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
                 defaultValue = "/")
             @NotBlank
             String folderPath)
@@ -155,7 +157,11 @@ public record BoxRequest(
         description = "Delete a folder from Box",
         keywords = {"delete folder", "remove folder", "trash folder", "erase directory"})
     record DeleteFolder(
-        @TemplateProperty(id = "deleteFolderPath", group = "operation", label = "Folder path")
+        @TemplateProperty(
+                id = "deleteFolderPath",
+                group = "operation",
+                label = "Folder path",
+                tooltip = "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.")
             @NotBlank
             String folderPath,
         @TemplateProperty(
@@ -173,9 +179,11 @@ public record BoxRequest(
         description = "Upload a file to Box",
         keywords = {"upload file", "store file", "save document", "put file", "publish file"})
     record UploadFile(
-        @TemplateProperty(id = "uploadFileName", group = "operation", label = "File name") @NotBlank
-            String name,
-        @TemplateProperty(id = "uploadFileFolderPath", group = "operation", label = "Folder path")
+        @TemplateProperty(
+                id = "uploadFileFolderPath",
+                group = "operation",
+                label = "Folder path",
+                tooltip = "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.")
             @NotBlank
             String folderPath,
         @TemplateDocumentProperty(
@@ -183,11 +191,31 @@ public record BoxRequest(
                 group = "operation",
                 tooltip = "The document reference that will be uploaded")
             @NotNull
-            Document document)
+            Document document,
+        @TemplateProperty(
+                id = "uploadFileName",
+                group = "operation",
+                label = "File name",
+                optional = true,
+                tooltip =
+                    "Name of the uploaded file. If empty, the file name of the Camunda document is used.",
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "operation.document_documentSource",
+                        equals = "camunda"))
+            String name)
         implements Operation {
 
       public String getFileName() {
-        return name != null ? name : document.metadata().getFileName();
+        if (name != null && !name.isBlank()) {
+          return name;
+        }
+        var documentName = document.metadata().getFileName();
+        if (documentName == null || documentName.isBlank()) {
+          throw new ConnectorInputException(
+              "The document has no file name. Provide a file name for the upload.");
+        }
+        return documentName;
       }
     }
 
@@ -222,7 +250,8 @@ public record BoxRequest(
         @TemplateProperty(
                 id = "moveFileFolderPath",
                 group = "operation",
-                label = "Target folder path")
+                label = "Target folder path",
+                tooltip = "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.")
             @NotBlank
             String folderPath)
         implements Operation {}

@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Box Outbound Connector",
-  "id" : "io.camunda.connectors.box-hybrid",
+  "name" : "Box Outbound Connector",
+  "id" : "io.camunda.connectors.box",
   "description" : "Interact with the Box Document API",
   "keywords" : [ "create folder", "delete folder", "upload file", "download file", "move file", "delete file", "search files", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -40,14 +37,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:box:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "operation.type",
     "label" : "Operation",
@@ -119,7 +114,6 @@
       "equals" : "createFolder",
       "type" : "simple"
     },
-    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.deleteFolderPath",
@@ -139,7 +133,6 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
-    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.recursive",
@@ -160,6 +153,25 @@
     "tooltip" : "Deletes all items contained by the folder",
     "type" : "Boolean"
   }, {
+    "id" : "operation.uploadFileName",
+    "label" : "File name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "uploadFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "operation.uploadFileFolderPath",
     "label" : "Folder path",
     "optional" : false,
@@ -177,7 +189,6 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
-    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.document_documentSource",
@@ -355,29 +366,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "operation.uploadFileName",
-    "label" : "File name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "operation.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation.document_documentSource",
-        "equals" : "camunda",
-        "type" : "simple"
-      }, {
-        "property" : "operation.type",
-        "equals" : "uploadFile",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Name of the uploaded file. If empty, the file name of the Camunda document is used.",
-    "type" : "String"
-  }, {
     "id" : "operation.downloadFilePath",
     "label" : "File path",
     "optional" : false,
@@ -480,7 +468,6 @@
       "equals" : "moveFile",
       "type" : "simple"
     },
-    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.deleteFilePath",
@@ -782,7 +769,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

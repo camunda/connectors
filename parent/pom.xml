@@ -198,9 +198,9 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
-    <version.box-sdk>5.18.0</version.box-sdk>
+    <version.box-sdk>10.19.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
-         override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
+         override (kafka-clients) — remove once kafka-clients ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
     <version.zstd-jni>1.5.7-22</version.zstd-jni>
 
@@ -1013,7 +1013,7 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: override zstd-jni
-           transitive version brought in by box-java-sdk. Remove once box-java-sdk ships
+           transitive version brought in by kafka-clients. Remove once kafka-clients ships
            zstd-jni >= 1.5.7-14. -->
       <dependency>
         <groupId>com.github.luben</groupId>
@@ -1259,15 +1259,15 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
-              <!-- CVE-2026-87823/87824/87825/87877 guard: fails if version.box-sdk is bumped,
-                   as a reminder to check whether the zstd-jni override can be removed
+              <!-- CVE-2026-87823/87824/87825/87877 guard: fails if kafka-clients is bumped, as a
+                   reminder to check whether the zstd-jni override can be removed
                    (see version.zstd-jni). -->
               <requireProperty>
-                <property>version.box-sdk</property>
-                <regex>^5\.18\.0$</regex>
+                <property>version.kafka-clients</property>
+                <regex>^4\.3\.1$</regex>
                 <regexMessage>
-version.box-sdk was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override can
-be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remove the
+version.kafka-clients was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override
+can be removed. If the new kafka-clients version ships zstd-jni &gt;= 1.5.7-14, remove the
 version.zstd-jni property, the zstd-jni dependencyManagement entry, and this enforcer rule
 from parent/pom.xml.
 See: https://github.com/luben/zstd-jni/security/advisories
