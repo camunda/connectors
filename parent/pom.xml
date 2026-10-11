@@ -166,7 +166,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.4.4</version.httpcore5>
-    <version.httpclient5>5.6.4</version.httpclient5>
+    <version.httpclient5>5.6.5</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.1.0</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
@@ -198,7 +198,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-22</version.zstd-jni>
+    <version.zstd-jni>1.5.7-23</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -212,7 +212,7 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>3.0.0</version.json-path>
 
-    <version.snappy-java>1.1.10.11</version.snappy-java>
+    <version.snappy-java>1.1.10.12</version.snappy-java>
     <version.commons-codec>1.22.1</version.commons-codec>
     <version.guava>33.7.2-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
