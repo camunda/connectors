@@ -158,7 +158,9 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var promptTag =
         parseDocumentTag(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(messages.get(3).content()).isEqualTo("Loaded document " + promptTag.id() + ".");
+    assertThat(messages.get(3).content())
+        .startsWith("Loaded the document <doc id=\"" + promptTag.id() + "\"")
+        .endsWith(" />. Its content follows in the next message.");
 
     assertLoadedDocumentsUserMessage(
         messages.get(4),

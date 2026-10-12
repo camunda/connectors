@@ -120,7 +120,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    (preview/download).
 4. **Read a document.** Start a new instance and prompt: `Download <baseUrl>/image/svg and describe what it shows.`
    Check: the agent calls `c8__get_document` with the id of the downloaded document, the tool result reads
-   `Loaded document <id>.`, and the agent instance history shows a follow-up user item with the tag and the content of
+   `Loaded the document <doc .../>. Its content follows in the next message.`, and the agent instance history shows a follow-up user item with the tag and the content of
    the document. Ask a second question about the same document: the agent answers without another load, or
    `c8__get_document` answers that the document is already in the conversation.
 5. **Document too large.** Prompt: `Download <baseUrl>/range/300000, read it and tell me how many characters it has.`

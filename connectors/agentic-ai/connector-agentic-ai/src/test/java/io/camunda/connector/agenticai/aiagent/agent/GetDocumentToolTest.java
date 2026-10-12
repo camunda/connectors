@@ -15,6 +15,8 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolCall;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolContext;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -23,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
@@ -46,6 +49,7 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -178,7 +182,9 @@ class GetDocumentToolTest {
         .singleElement()
         .satisfies(
             result -> {
-              assertThat(result.content()).isEqualTo("Loaded document doc-1.");
+              assertThat(result.content())
+                  .isEqualTo(
+                      "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
               assertThat(result.properties())
                   .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1");
             });
@@ -268,7 +274,9 @@ class GetDocumentToolTest {
             List.of(),
             call("1", "doc-1"));
 
-    assertThat(split.localResults().getFirst().content()).isEqualTo("Loaded document doc-1.");
+    assertThat(split.localResults().getFirst().content())
+        .isEqualTo(
+            "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"262144\" source=\"user_message\" />. Its content follows in the next message.");
     assertThat(store.opened.get()).isZero();
   }
 
@@ -285,7 +293,9 @@ class GetDocumentToolTest {
             call("1", "pdf-ok"),
             call("2", "pdf-big"));
 
-    assertThat(split.localResults().get(0).content()).isEqualTo("Loaded document pdf-ok.");
+    assertThat(split.localResults().get(0).content())
+        .isEqualTo(
+            "Loaded the document <doc id=\"pdf-ok\" contentType=\"application/pdf\" size=\"5242880\" source=\"user_message\" />. Its content follows in the next message.");
     assertThat(split.localResults().get(1).content().toString())
         .startsWith(
             "The document is 10241 KB, too large to load into the conversation (limit 10240 KB)");
@@ -313,7 +323,9 @@ class GetDocumentToolTest {
     assertThat(split.localResults().get(0).properties()).isEmpty();
     assertThat(split.localResults().get(1).content().toString())
         .startsWith("The document is of type image/tiff which cannot be loaded");
-    assertThat(split.localResults().get(2).content()).isEqualTo("Loaded document png-1.");
+    assertThat(split.localResults().get(2).content())
+        .isEqualTo(
+            "Loaded the document <doc id=\"png-1\" contentType=\"image/png\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
     assertThat(store.opened.get()).isZero();
   }
 
@@ -378,7 +390,9 @@ class GetDocumentToolTest {
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
-    assertThat(split.localResults().getFirst().content()).isEqualTo("Loaded document doc-1.");
+    assertThat(split.localResults().getFirst().content())
+        .isEqualTo(
+            "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" source=\"user_message\" />. Its content follows in the next message.");
   }
 
   @Test
@@ -418,6 +432,31 @@ class GetDocumentToolTest {
     assertThat(split.localResults().getFirst().content().toString())
         .startsWith("The document could not be read to check its size: document expired");
     assertThat(split.localResults().getFirst().properties()).isEmpty();
+  }
+
+  @Test
+  void tagsADocumentWithoutARegistryEntryFromTheDocumentItself() {
+    final var reference = camundaEntry("doc-2", "application/pdf", 20L).reference();
+    final var call =
+        new LocalToolCall(
+            "1", GetDocumentTool.NAME, Map.of("id", "doc-2"), Map.of("id", reference));
+    final var context =
+        new LocalToolContext(
+            CONFIGURATION,
+            Map.of(),
+            DocumentRegistry.empty(),
+            Set.of(),
+            null,
+            objectMapper,
+            mock(DocumentFactory.class));
+
+    final var result = new GetDocumentTool().call(call, context);
+
+    assertThat(result.content())
+        .isEqualTo(
+            "Loaded the document <doc id=\"doc-2\" contentType=\"application/pdf\" size=\"20\" />. Its content follows in the next message.");
+    assertThat(result.properties())
+        .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-2");
   }
 
   @Test

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -24,11 +25,13 @@ import org.jspecify.annotations.Nullable;
  * document, which it otherwise sees as a {@code <doc/>} tag only. It is offered to every agent
  * instance with the documents feature.
  *
- * <p>A successful call answers {@code Loaded document <id>.} and marks its result with the id of
- * the document ({@link ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content reaches the model
- * in the message that follows the tool results. A document that is already part of the conversation
- * is not loaded again. A document that does not pass the {@link DocumentLoadGuard} (a content type
- * outside the allowlist, a size above the limit of its type) is rejected without being loaded.
+ * <p>A successful call answers {@code Loaded the document <doc/ tag>. Its content follows in the
+ * next message.} with the tag of the document, as the model saw it before when the document is
+ * registered, and marks its result with the id of the document ({@link
+ * ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content reaches the model in the message that
+ * follows the tool results. A document that is already part of the conversation is not loaded
+ * again. A document that does not pass the {@link DocumentLoadGuard} (a content type outside the
+ * allowlist, a size above the limit of its type) is rejected without being loaded.
  */
 public final class GetDocumentTool implements LocalTool {
 
@@ -107,7 +110,15 @@ public final class GetDocumentTool implements LocalTool {
               .formatted(rejection.problem()));
     }
 
-    return LocalToolResult.success("Loaded document %s.".formatted(id))
+    final var tag =
+        context
+            .documents()
+            .findById(id)
+            .map(DocumentReferenceXmlTag::from)
+            .orElseGet(() -> DocumentReferenceXmlTag.from(document));
+    return LocalToolResult.success(
+            "Loaded the document %s. Its content follows in the next message."
+                .formatted(tag.toXml()))
         .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, id);
   }
 }

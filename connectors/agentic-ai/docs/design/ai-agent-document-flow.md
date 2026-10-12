@@ -544,7 +544,7 @@ is already in the conversation is not loaded again. The tool checks, in this ord
 | The document is already in the windowed conversation (a tag marked as loaded in a windowed user message, `AgentConversation.loadedDocumentIds`) | Success, `Document <id> is already in the conversation.`; nothing is marked, so no second copy of the content. After the message holding the marker left the window, the document can be loaded again. |
 | The content type is outside the allowlist (`DocumentLoadLimits.isLoadable`) | Error, `The document is of type X which cannot be loaded into the conversation; pass its id to a tool that processes it.` |
 | The size exceeds the limit of the type (`DocumentLoadLimits.limitFor`) | Error, `The document is N KB, too large to load into the conversation (limit L KB); pass its id to a tool that processes it.` |
-| Otherwise | Success, `Loaded document <id>.`; the result carries the property `loadedDocumentId`. |
+| Otherwise | Success, `Loaded the document <doc .../>. Its content follows in the next message.` with the tag of the document, built from its registry entry (the tag the model saw before); the result carries the property `loadedDocumentId`. |
 
 The checks of the three rejecting cases are `DocumentLoadGuard` (`aiagent/localtool/DocumentLoadGuard.java`), which
 also serves the automatic loads of section 3.15; `GetDocumentTool` adds the registry check and the already-loaded check.
@@ -907,7 +907,7 @@ process tools only. The fingerprint of the configuration covers the offered tool
 |------|------------------|--------------------|
 | Batch with no remaining call (synthetic round) | `applyTurnStart` (turn input), `applyTurnCompletion` with `THINKING` (assistant item with all calls), `applyTurnStart` of the synthetic turn (input = the local results), the next `applyTurnCompletion` with the terminal status | `TOOL_RESULT` items in the synthetic `applyTurnStart`, `loopIteration` = assistant turn + 1 |
 | Mixed batch | `applyTurnStart`, `applyTurnCompletion` with `TOOL_CALLING` (assistant item with all calls, local and real), then `applyToolCallResults` with the local results (no status). The next job: `applyTurnStart` with the merged results | `TOOL_RESULT` items of the local results in the `applyToolCallResults` of the job that answered them; the next job's `applyTurnStart` reports them again under the same `historyItemId` and the engine keeps one row. They stay in call order with the process results |
-| `c8__get_document` load (a local call, alone or in a mixed batch) | as in the two rows above | `TOOL_RESULT` item with the text `Loaded document <id>.`; the `USER` item of the follow-up message comes with the `applyTurnStart` that carries the results |
+| `c8__get_document` load (a local call, alone or in a mixed batch) | as in the two rows above | `TOOL_RESULT` item with the text `Loaded the document <doc .../>. Its content follows in the next message.`; the `USER` item of the follow-up message comes with the `applyTurnStart` that carries the results |
 | Mixed batch, partial arrival (`Deferred`) | `applyToolCallResults` with the arrived process results only | none; the local results were reported by the job that answered them |
 
 In a mixed batch `BaseAgentRequestHandler.driveContinuationLoop` calls `applyToolCallResults` with the local

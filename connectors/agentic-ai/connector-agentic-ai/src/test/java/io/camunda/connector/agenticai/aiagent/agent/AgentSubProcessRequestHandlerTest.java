@@ -1036,8 +1036,15 @@ class AgentSubProcessRequestHandlerTest {
                         result -> {
                           assertThat(result.id()).isEqualTo("call-1");
                           assertThat(result.content())
-                              .containsExactly(
-                                  TextContent.textContent("Loaded document " + documentId + "."));
+                              .singleElement()
+                              .isInstanceOfSatisfying(
+                                  TextContent.class,
+                                  text ->
+                                      assertThat(text.text())
+                                          .startsWith(
+                                              "Loaded the document <doc id=\"" + documentId + "\"")
+                                          .endsWith(
+                                              " />. Its content follows in the next message."));
                         }));
     assertThat(secondRequestMessages.getLast())
         .isInstanceOfSatisfying(
