@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.slack.api.Slack;
 import com.slack.api.SlackConfig;
-import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
@@ -31,6 +30,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record SlackRequest<T extends SlackRequestData>(
     @TemplateProperty(
@@ -84,6 +85,8 @@ public record SlackRequest<T extends SlackRequestData>(
         @NestedProperties(addNestedPath = false)
         T data) {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SlackRequest.class);
+
   public SlackRequest {
     if (token != null && token.isBlank()) {
       token = null;
@@ -114,15 +117,26 @@ public record SlackRequest<T extends SlackRequestData>(
   }
 
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
-    final Slack client = baseUrl == null ? slack : slackWithBaseUrl();
-    MethodsClient methods = client.methods(token());
-    return data.invoke(methods);
-  }
-
-  private Slack slackWithBaseUrl() {
+    if (baseUrl == null) {
+      return data.invoke(slack.methods(token()));
+    }
     final var config = new SlackConfig();
     config.setMethodsEndpointUrlPrefix(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
-    return Slack.getInstance(config);
+    final Slack scopedSlack = Slack.getInstance(config);
+    try {
+      return data.invoke(scopedSlack.methods(token()));
+    } finally {
+      closeQuietly(scopedSlack);
+    }
+  }
+
+  /** Releases the per-request client's HTTP resources without masking the invocation result. */
+  private static void closeQuietly(final Slack slack) {
+    try {
+      slack.close();
+    } catch (Exception e) {
+      LOG.warn("Failed to close the Slack client", e);
+    }
   }
 
   @Override
