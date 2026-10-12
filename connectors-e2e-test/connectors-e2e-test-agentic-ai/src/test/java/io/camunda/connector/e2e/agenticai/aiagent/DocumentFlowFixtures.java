@@ -23,12 +23,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -148,6 +150,20 @@ public final class DocumentFlowFixtures {
             RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))));
   }
 
+  /** Returns the document with the given id under the given key. */
+  public static Turn returnDocumentTurn(
+      String callId, String key, String documentId, String description) {
+    return Turn.toolCalls(
+        "I will return the document.",
+        10,
+        20,
+        ToolCall.of(
+            callId,
+            "c8__return_document",
+            "{\"key\": \"%s\", \"document\": \"%s\", \"description\": \"%s\"}"
+                .formatted(key, documentId, description)));
+  }
+
   /**
    * One assistant message with a valid {@code c8__return_document} call and a real {@code Ping}.
    */
@@ -244,6 +260,35 @@ public final class DocumentFlowFixtures {
     final var returned = documents.get(RETURN_KEY);
     assertCamundaDocumentReference(returned.document(), expectedDocumentId);
     assertThat(returned.description()).isEqualTo(RETURN_DESCRIPTION);
+  }
+
+  /**
+   * Asserts that the returned documents hold an entry under the key that is the Camunda document
+   * reference of the document with the given id, with the given description.
+   */
+  public static void assertReturnedDocumentEntry(
+      Map<String, ? extends ReturnedDocument> documents,
+      String key,
+      String expectedDocumentId,
+      String expectedDescription) {
+    assertThat(documents).containsKey(key);
+    final var returned = documents.get(key);
+    assertCamundaDocumentReference(returned.document(), expectedDocumentId);
+    assertThat(returned.description()).isEqualTo(expectedDescription);
+  }
+
+  /**
+   * The id of the document in the {@code <doc/>} tag of the result of the tool call with the given
+   * id, as the last request of the conversation holds it.
+   */
+  public static String documentIdOfToolResult(
+      OpenAiCompletionsRecordedConversation recorded, String toolCallId) {
+    final var result =
+        recorded.lastRequest().messages().stream()
+            .filter(m -> toolCallId.equals(m.toolCallId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No tool result for call " + toolCallId));
+    return parseDocumentTag(result.content()).id();
   }
 
   public static List<Turn> roundTripTurns(String wireMockBaseUrl) {
