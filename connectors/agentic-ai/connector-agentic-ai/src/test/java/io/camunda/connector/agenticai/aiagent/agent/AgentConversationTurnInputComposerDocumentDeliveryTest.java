@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -267,6 +268,44 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                   .hasSize(3);
             });
     assertThat(turn.documents()).extracting(IngestedDocument::document).contains(doc, nested);
+  }
+
+  @Test
+  void toolResults_ofAGatewayToolWhoseDefinitionHasContentDelivery_arePutIntoAFollowUpMessage() {
+    // a gateway handler sets the delivery on the definitions it creates; the extension property of
+    // the element is not read for gateway elements
+    final var doc = document("weather data", "text/plain", "weather.txt");
+    final var handler = mock(GatewayToolHandler.class);
+    when(handler.extractDocuments(any()))
+        .thenAnswer(
+            inv ->
+                ContentTreeDocumentWalker.extractDocumentsFromContent(
+                    ((ToolCallResult) inv.getArgument(0)).content()));
+    final var gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
+    when(gatewayToolHandlers.transformToolCallResults(any(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+    when(gatewayToolHandlers.handlerForToolDefinition("getWeather"))
+        .thenReturn(java.util.Optional.of(handler));
+    when(gatewayToolHandlers.handlerForToolDefinition("getDateTime"))
+        .thenReturn(java.util.Optional.empty());
+    final var gatewayComposer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+
+    final var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(result("abcdef", "getWeather", Map.of("file", doc)), dateTimeResult()));
+    final var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+    final var turn =
+        nextTurn(
+            gatewayComposer.compose(
+                CONFIG, contextWithTools(CONTENT_TOOL, REFERENCE_TOOL), history, input));
+
+    assertThat(turn.messages()).hasSize(2);
+    final var source =
+        DocumentSource.toolCall("getWeather", "abcdef", turn.messages().getFirst().id().toString());
+    assertThat(((UserMessage) turn.messages().get(1)).content()).contains(tag(doc, source, true));
   }
 
   @Test

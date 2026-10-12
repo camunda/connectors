@@ -183,7 +183,7 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   @Test
-  void handsTheCallsOfGatewayToolsToTheGatewayHandlersWithoutResolvingTheirDocuments() {
+  void handsTheCallsOfGatewayToolsWithoutDocumentParametersToTheGatewayHandlersUnchanged() {
     final var upload =
         new ToolDefinition(
             "upload",
