@@ -100,6 +100,17 @@ public class BoxNetworkSessionTest {
   }
 
   @Test
+  void keepsTheSdkDefaultTimeouts() {
+    var timeouts = new com.box.sdkgen.networking.network.NetworkSession().getTimeoutConfig();
+    var client = (BoxNetworkClient) BoxNetworkSession.create().getNetworkClient();
+
+    assertThat(client.getHttpClient().readTimeoutMillis())
+        .isEqualTo(timeouts.getReadTimeoutMs().intValue());
+    assertThat(client.getHttpClient().connectTimeoutMillis())
+        .isEqualTo(timeouts.getConnectionTimeoutMs().intValue());
+  }
+
+  @Test
   void stillRetriesRequestsWithoutAStreamedBody() {
     var file = client.files.getFileById("1");
 

@@ -36,8 +36,12 @@ final class BoxNetworkSession {
 
   static NetworkSession create(OkHttpClient.Builder httpClientBuilder) {
     var httpClient = httpClientBuilder.addInterceptor(BoxNetworkSession::oneShot).build();
-    return new NetworkSession()
-        .withNetworkClient(new BoxNetworkClient(httpClient))
+    var defaults = new NetworkSession();
+    // a custom client replaces the SDK's own, so the session's default timeouts must be reapplied
+    var networkClient =
+        new BoxNetworkClient(httpClient).withTimeoutConfig(defaults.getTimeoutConfig());
+    return defaults
+        .withNetworkClient(networkClient)
         .withRetryStrategy(new StreamSafeRetryStrategy(new BoxRetryStrategy()));
   }
 
