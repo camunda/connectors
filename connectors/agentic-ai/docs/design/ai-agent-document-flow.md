@@ -451,7 +451,7 @@ synthetic round, which counts against `maxModelCalls`.
 
 ### 3.9 Runtime tool names
 
-The names of the built-in runtime tools share the prefix `c8__` (`InternalToolNames.PREFIX`) by convention; the
+The names of the built-in runtime tools share the prefix `c8__` (`BuiltInToolNames.PREFIX`) by convention; the
 prefix is not enforced. A tool element of the process and a custom runtime tool may have any name, as long as
 no tool element of the process has the name of a registered runtime tool.
 `AgentToolsResolverImpl.loadAdHocToolsSchema` rejects every ad-hoc or gateway tool element whose name equals

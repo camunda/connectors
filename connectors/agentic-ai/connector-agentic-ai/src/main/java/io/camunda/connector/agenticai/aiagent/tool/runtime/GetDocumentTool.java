@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
-import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
 public final class GetDocumentTool implements RuntimeTool {
 
   /** The tool name, with the prefix of the built-in tools. */
-  public static final String NAME = InternalToolNames.PREFIX + "get_document";
+  public static final String NAME = BuiltInToolNames.PREFIX + "get_document";
 
   /** The parameter carrying the id of the document to load. */
   public static final String PARAMETER_ID = "id";

@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
-import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,7 +33,7 @@ import org.jspecify.annotations.Nullable;
 public final class ReturnDocumentTool implements RuntimeTool {
 
   /** The tool name, with the prefix of the built-in tools. */
-  public static final String NAME = InternalToolNames.PREFIX + "return_document";
+  public static final String NAME = BuiltInToolNames.PREFIX + "return_document";
 
   /** The parameter carrying the stable identifier the process finds the document by. */
   public static final String PARAMETER_KEY = "key";
