@@ -166,6 +166,7 @@ class OpenSearchVectorStoreFactoryTest {
                   "https://" + OPENSEARCH_HOST + ":" + OPENSEARCH_PORT,
                   null,
                   null,
+                  null,
                   "embeddings_idx")),
           credentialsProvider -> {
             // Verify NO OpenSearch credentials are set (username was null)

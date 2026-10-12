@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.model.embedding.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -24,18 +28,37 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
   public static final String BEDROCK_MODEL_PROVIDER = "bedrockModelProvider";
 
   public record Configuration(
-      @NotBlank
+      // Declared first so the chooser renders before the inline fallback fields it gates below.
+      @FEEL
+          @Valid
           @TemplateProperty(
+              group = "embeddingModel",
+              label = "AWS Bedrock credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              optional = true,
+              description =
+                  "Choose a reusable AWS Bedrock credential, or configure one-time access keys below.")
+          BedrockEmbeddingCredential bedrockCredential,
+      @TemplateProperty(
               group = "embeddingModel",
               label = "Access key",
               description =
-                  "Provide an IAM access key tailored to a user, equipped with the necessary permissions")
+                  "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+              constraints = @PropertyConstraints(notEmpty = true),
+              condition =
+                  @PropertyCondition(
+                      property = "embeddingModelProvider.bedrock.bedrockCredential",
+                      isEmpty = NullableBoolean.TRUE))
           String accessKey,
-      @NotBlank
-          @TemplateProperty(
+      @TemplateProperty(
               group = "embeddingModel",
               label = "Secret key",
-              description = "Provide a secret key associated with the access key")
+              description = "Provide a secret key associated with the access key",
+              constraints = @PropertyConstraints(notEmpty = true),
+              condition =
+                  @PropertyCondition(
+                      property = "embeddingModelProvider.bedrock.bedrockCredential",
+                      isEmpty = NullableBoolean.TRUE))
           String secretKey,
       @NotBlank
           @TemplateProperty(
@@ -92,6 +115,30 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               defaultValueType = DefaultValueType.Number,
               defaultValue = "3")
           Integer maxRetries) {
+
+    /** The bound credential's access key takes precedence; the inline accessKey is the fallback. */
+    @Override
+    public String accessKey() {
+      return bedrockCredential != null ? bedrockCredential.accessKey() : accessKey;
+    }
+
+    /** The bound credential's secret key takes precedence; the inline secretKey is the fallback. */
+    @Override
+    public String secretKey() {
+      return bedrockCredential != null ? bedrockCredential.secretKey() : secretKey;
+    }
+
+    @AssertTrue(message = "No access key provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isAccessKeyPresent() {
+      return accessKey() != null && !accessKey().isBlank();
+    }
+
+    @AssertTrue(message = "No secret key provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isSecretKeyPresent() {
+      return secretKey() != null && !secretKey().isBlank();
+    }
 
     public String resolveSelectedModelName() {
       if (modelName == BedrockModels.Custom) {

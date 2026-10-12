@@ -6,14 +6,20 @@
  */
 package io.camunda.connector.model.embedding.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -45,7 +51,23 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
               description = "Google Cloud region for Vertex AI",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
-      @Valid @NotNull GoogleVertexAiAuthentication authentication,
+      // Declared before the inline authentication it gates below.
+      @FEEL
+          @Valid
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Google Vertex AI credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              optional = true,
+              description =
+                  "Choose a reusable Google Vertex AI credential, or configure one-time authentication below.")
+          GoogleVertexAiEmbeddingCredential googleVertexAiCredential,
+      @NestedProperties(
+              condition =
+                  @PropertyCondition(
+                      property = "embeddingModelProvider.googleVertexAi.googleVertexAiCredential",
+                      isEmpty = NullableBoolean.TRUE))
+          GoogleVertexAiAuthentication authentication,
       @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
@@ -81,6 +103,27 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
               defaultValue = "3",
               optional = true)
           Integer maxRetries) {
+
+    /** The bound credential's authentication takes precedence; the inline value is the fallback. */
+    @Override
+    public GoogleVertexAiAuthentication authentication() {
+      return googleVertexAiCredential != null
+          ? googleVertexAiCredential.authentication()
+          : authentication;
+    }
+
+    @AssertTrue(message = "No authentication provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isAuthenticationPresent() {
+      return authentication() != null;
+    }
+
+    /** Validates the inline authentication only when no credential is bound. */
+    @Valid
+    @JsonIgnore
+    public GoogleVertexAiAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+      return googleVertexAiCredential != null ? null : authentication;
+    }
 
     @AssertFalse(message = "Google application default credentials is not supported on SaaS")
     public boolean isApplicationDefaultCredentialsUsedInSaaS() {
