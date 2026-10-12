@@ -7,10 +7,12 @@
 package io.camunda.connector.aws.bedrock.codeinterpreter.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
+import java.util.List;
 
 public class CodeInterpreterInput {
 
@@ -33,6 +35,19 @@ public class CodeInterpreterInput {
       label = "Code",
       description = "The code to execute in the Code Interpreter sandbox.")
   private String code;
+
+  @TemplateProperty(
+      group = "codeExecution",
+      label = "Files",
+      description =
+          "Documents that are uploaded into the session workspace before the code runs, each as {document: ..., fileName: ...}.",
+      tooltip =
+          "Each file is saved as uploads/<fileName> in the workspace. The fileName is optional and defaults to the file name of the document (document-1, document-2, ... when it has none). "
+              + "The sandbox is stateless: every execution starts with an empty workspace, so pass all files again on every call. "
+              + "Files the code creates in the workspace are returned as documents in the response.",
+      feel = FeelMode.required,
+      optional = true)
+  private List<FileUpload> files;
 
   @TemplateProperty(
       group = "session",
@@ -85,6 +100,14 @@ public class CodeInterpreterInput {
 
   public void setCode(String code) {
     this.code = code;
+  }
+
+  public List<FileUpload> getFiles() {
+    return files;
+  }
+
+  public void setFiles(List<FileUpload> files) {
+    this.files = files;
   }
 
   public String getCodeInterpreterIdentifier() {
