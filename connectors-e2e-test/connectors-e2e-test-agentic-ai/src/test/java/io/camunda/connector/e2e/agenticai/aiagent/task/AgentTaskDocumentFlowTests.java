@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertLoadedOnceAndPassedByIdFlow;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentReturnedOnceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
@@ -407,7 +407,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
     final var zeebeTest = awaitProcessCompletion(startProcess());
 
-    assertLoadedOnceAndPassedByIdFlow(
+    assertContentReturnedOnceAndPassedByIdFlow(
         OpenAiCompletionsRecordedConversation.recorded(),
         block ->
             assertDocumentContentBlockJson(

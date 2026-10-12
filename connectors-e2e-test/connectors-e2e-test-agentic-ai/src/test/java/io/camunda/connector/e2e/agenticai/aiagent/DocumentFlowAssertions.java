@@ -105,7 +105,7 @@ public final class DocumentFlowAssertions {
    *
    * @param contentBlockAssertion the check of the wire form of the document content
    */
-  public static void assertLoadedOnceAndPassedByIdFlow(
+  public static void assertContentReturnedOnceAndPassedByIdFlow(
       OpenAiCompletionsRecordedConversation recorded, Consumer<JsonNode> contentBlockAssertion) {
     assertThat(recorded.modelCallCount()).isEqualTo(5);
     final var requests = recorded.requests();

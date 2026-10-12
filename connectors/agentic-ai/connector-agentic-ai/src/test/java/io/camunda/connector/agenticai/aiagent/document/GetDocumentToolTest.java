@@ -222,14 +222,14 @@ class GetDocumentToolTest {
   }
 
   @Test
-  void doesNotLoadADocumentThatIsAlreadyLoadedInTheConversation() {
+  void doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var loadedTag = DocumentReferenceXmlTag.from(entry).toLoadedContent();
+    final var tagWithContent = DocumentReferenceXmlTag.from(entry).toLoadedContent();
 
     final var split =
         run(
             List.of(entry),
-            List.of(UserMessage.builder().content(List.of(loadedTag)).build()),
+            List.of(UserMessage.builder().content(List.of(tagWithContent)).build()),
             call("1", "doc-1"));
 
     assertThat(split.runtimeResults())

@@ -640,7 +640,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(RUNTIME_RESULT.completedAt());
   }
 
-  private static ToolCallResult loadedResult(String id, String documentId) {
+  private static ToolCallResult contentResult(String id, String documentId) {
     return ToolCallResult.builder()
         .id(id)
         .name(GetDocumentTool.NAME)
@@ -659,7 +659,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void documentContentMessage_showsTheMarkedTagOfEveryLoadedDocumentAfterThePreamble() {
+  void documentContentMessage_showsTheMarkedTagOfEveryDocumentWithContentAfterThePreamble() {
     var first = createDocument("first", "text/plain", "first.txt");
     var second = createDocument("second", "text/plain", "second.txt");
     var registry = registryOf(first, second);
@@ -668,17 +668,17 @@ class AgentConversationTurnInputComposerImplTest {
         composer.composeDocumentContentMessage(
             registry,
             List.of(
-                loadedResult("c1", DocumentHandle.idFor(second)),
+                contentResult("c1", DocumentHandle.idFor(second)),
                 RUNTIME_RESULT,
-                loadedResult("c2", DocumentHandle.idFor(first))));
+                contentResult("c2", DocumentHandle.idFor(first))));
 
     assertThat(message).isNotNull();
     assertThat(message.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
     assertThat(message.content())
         .containsExactly(
             textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
-            loadedTag(second, "second.txt"),
-            loadedTag(first, "first.txt"));
+            tagWithContent(second, "second.txt"),
+            tagWithContent(first, "first.txt"));
   }
 
   @Test
@@ -688,7 +688,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var message =
         composer.composeDocumentContentMessage(
-            registryOf(document), List.of(loadedResult("c1", id), loadedResult("c2", id)));
+            registryOf(document), List.of(contentResult("c1", id), contentResult("c2", id)));
 
     assertThat(message).isNotNull();
     assertThat(message.content()).hasSize(2);
@@ -701,8 +701,8 @@ class AgentConversationTurnInputComposerImplTest {
     var id = DocumentHandle.idFor(document);
 
     // an error or an already-loaded answer carries no id, a result of another tool is not trusted
-    var otherTool = loadedResult("c1", id).withName("getWeather");
-    var unknownDocument = loadedResult("c2", "not-registered");
+    var otherTool = contentResult("c1", id).withName("getWeather");
+    var unknownDocument = contentResult("c2", "not-registered");
     var answered =
         ToolCallResult.builder()
             .id("c3")
@@ -718,13 +718,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingGetDocumentResult_isFollowedByTheLoadedDocumentsMessageNextToTheProcessResults() {
+  void pendingGetDocumentResult_isFollowedByTheDocumentContentMessageNextToTheProcessResults() {
     var document = createDocument("first", "text/plain", "first.txt");
     var context =
         CTX_WITH_CONVERSATION
             .withDocuments(registryOf(document).entries())
             .withPendingRuntimeToolCallResults(
-                List.of(loadedResult("abcdef", DocumentHandle.idFor(document))));
+                List.of(contentResult("abcdef", DocumentHandle.idFor(document))));
     // the second call is the real one: its result arrives, the first was answered by the agent
     var input =
         AgentInput.from(
@@ -748,12 +748,12 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(loaded.content())
                   .containsExactly(
                       textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
-                      loadedTag(document, "first.txt"));
+                      tagWithContent(document, "first.txt"));
             });
   }
 
   @Test
-  void toolResultsWithoutALoadingResult_addNoLoadedDocumentsMessage() {
+  void toolResultsWithoutAGetDocumentResult_addNoDocumentContentMessage() {
     var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     var history =
@@ -765,7 +765,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(1);
   }
 
-  private static TextContent loadedTag(Document document, String fileName) {
+  private static TextContent tagWithContent(Document document, String fileName) {
     final var id = DocumentHandle.idFor(document);
     return new TextContent(
         "<doc id=\"%s\" fileName=\"%s\" contentType=\"text/plain\" source=\"user_message\" />"

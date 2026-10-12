@@ -372,7 +372,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_leavesTheTagOfAnUnloadedDocumentWithoutContent() {
+  void window_leavesTheTagOfAnUnmarkedDocumentWithoutContent() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -618,7 +618,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void documentIdsWithContent_collectsTheLoadedTagsOfTheWindowedUserMessagesOnly() {
+  void documentIdsWithContent_collectsTheTagsWithContentOfTheWindowedUserMessagesOnly() {
     var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
     var referenced = new DocumentReferenceXmlTag("doc-2", null, null, "user_message", null, null);
     var conv =

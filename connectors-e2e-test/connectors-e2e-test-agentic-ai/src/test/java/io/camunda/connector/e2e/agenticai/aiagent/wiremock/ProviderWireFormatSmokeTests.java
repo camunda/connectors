@@ -241,7 +241,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void documentLoadedByTheModel() throws Exception {
+  void documentRequestedByTheModel() throws Exception {
     assumeThat(fixture.supportsDocumentIdPlaceholders()).isTrue();
     final var userPrompt = "Summarize the following document";
     final var toolCallMessage = "I will read the document.";
