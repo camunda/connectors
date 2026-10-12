@@ -4,9 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.document;
+@NullMarked
+package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.api.document.Document;
-
-/** A document that entered the conversation during turn composition, with where it came from. */
-public record IngestedDocument(Document document, DocumentSource source) {}
+import org.jspecify.annotations.NullMarked;

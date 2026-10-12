@@ -1982,7 +1982,7 @@ them so violations fail the build. Until then, enforcement is by review, so resp
 Only the LangChain4j adapter package may depend on LangChain4j.
 
 - **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**` may
-  import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the
+  import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the
   root `model/`, `adhoctoolsschema/`, `tool/`) stays framework-neutral.
 - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
   [§12](#12-framework-abstraction)). Keeping LangChain4j behind the SPI means it can be replaced or
@@ -2120,7 +2120,7 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 A runtime tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
 implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTool` (`c8__get_document`), both in
-`aiagent/tool/runtime`, wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentRuntimeTool`,
+`aiagent/document` (the facility itself is in `aiagent/tool/runtime`), wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentRuntimeTool`,
 `aiAgentGetDocumentRuntimeTool`). The full API, the research behind
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 

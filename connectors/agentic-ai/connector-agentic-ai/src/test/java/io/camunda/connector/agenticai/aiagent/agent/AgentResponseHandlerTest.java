@@ -120,15 +120,15 @@ class AgentResponseHandlerTest {
                     .fileName("report.txt")
                     .build());
     final var registry =
-        io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry.empty()
+        io.camunda.connector.agenticai.aiagent.document.DocumentRegistry.empty()
             .withDocuments(
                 List.of(
-                    new io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument(
+                    new io.camunda.connector.agenticai.aiagent.document.IngestedDocument(
                         document,
-                        io.camunda.connector.agenticai.aiagent.model.document.DocumentSource
-                            .userMessage(null))));
+                        io.camunda.connector.agenticai.aiagent.document.DocumentSource.userMessage(
+                            null))));
     final var documentId =
-        io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle.idFor(document);
+        io.camunda.connector.agenticai.aiagent.document.DocumentHandle.idFor(document);
     final var toolCall =
         new io.camunda.connector.agenticai.aiagent.model.tool.ToolCall(
             "call-1", "upload", java.util.Map.of("doc", documentId, "note", "x"));

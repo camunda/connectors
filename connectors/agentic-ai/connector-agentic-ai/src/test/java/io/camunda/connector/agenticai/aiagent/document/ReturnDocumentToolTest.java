@@ -5,7 +5,7 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.aiagent.agent;
+package io.camunda.connector.agenticai.aiagent.document;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
@@ -14,20 +14,16 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
-import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;

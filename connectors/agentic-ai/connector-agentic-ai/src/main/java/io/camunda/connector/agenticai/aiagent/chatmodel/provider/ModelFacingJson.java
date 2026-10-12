@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.agenticai.aiagent.model.document.ReferenceRenderedDocument;
+import io.camunda.connector.agenticai.aiagent.document.ReferenceRenderedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;

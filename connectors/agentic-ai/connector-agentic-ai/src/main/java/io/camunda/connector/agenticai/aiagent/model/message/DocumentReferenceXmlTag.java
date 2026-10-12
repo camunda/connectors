@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.message;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.util.Collections;

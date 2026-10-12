@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import java.util.Objects;
 
 /**

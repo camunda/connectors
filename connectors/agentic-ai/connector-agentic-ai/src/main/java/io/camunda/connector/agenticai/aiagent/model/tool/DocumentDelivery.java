@@ -19,7 +19,7 @@ public enum DocumentDelivery {
   /**
    * The agent adds the content for the model, as if the model had called {@code c8__get_document},
    * for every document that passes the {@link
-   * io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentContentGuard content guard}.
+   * io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard content guard}.
    */
   @JsonProperty("content")
   CONTENT
