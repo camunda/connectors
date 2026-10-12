@@ -127,8 +127,9 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature (created before it) keeps the previous document handling: bare
-  content and the older tag format, no registry, no local tools (`c8__return_document`, `c8__get_document`), no document parameters,
-  no reserved `c8__` prefix. Gate new behavior that changes the wire format or the persisted shape on
+  content and the older tag format, no registry, no document parameters, and without the `localTools` feature
+  (`documents` implies it) it has no local tools (`c8__return_document`, `c8__get_document`) and no tool
+  element is checked against local tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   `docs/design/ai-agent-document-flow.md` §4.
 - **Documents are reference-only**: for an instance with the `documents` feature the model sees a `<doc/>` tag
@@ -359,7 +360,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a local
-tool (a tool the agent runs itself, named with the reserved `c8__` prefix, such as `c8__return_document` or `c8__get_document`) by implementing the SPI and registering
+tool (a tool the agent runs itself, such as the built-in `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
 a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
 tools: §19; local tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
 

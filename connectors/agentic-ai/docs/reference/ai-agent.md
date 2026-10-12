@@ -283,12 +283,14 @@ on every completion. Authoritative definition:
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
 when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
 current features when its context is created at its first job (`AgentInitializerImpl`, both flavors): today
-`documents` (`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`). A context that exists
-without `features` belongs to an instance created before the feature and never gets features added later,
-so its behavior stays as it was created. Everything the feature gates is described in the document flow
-design notes (section 4); in short, an instance without `documents` keeps documents as stored content with
-the older tag format, has no document registry, no local tool, no document parameters and no reserved tool
-name prefix. The request handler copies the features to `AgentConfiguration.features()`, which is how the
+`localTools` (`AgentContext.FEATURE_LOCAL_TOOLS`, the local tool facility) and `documents`
+(`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`); `documents` implies `localTools`
+(`AgentContext.supportsLocalTools()`). A context that exists without `features` belongs to an instance
+created before the features and never gets features added later, so its behavior stays as it was created.
+Everything the features gate is described in the document flow design notes (section 4); in short, an
+instance without `localTools` has no local tool and no tool element checked against local tool names, and
+an instance without `documents` keeps documents as stored content with the older tag format, has no
+document registry and no document parameters. The request handler copies the features to `AgentConfiguration.features()`, which is how the
 local tool registry and the conversation know them; they are not part of the configuration fingerprint.
 
 ### AgentExecutionContext (the transient request context)
@@ -1218,7 +1220,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element of an agent instance with the `documents` feature has a name that starts with the reserved prefix `c8__` of the built-in tools (today `c8__return_document`) |
+| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element of an agent instance with the `localTools` feature has the name of a registered local tool (for example `c8__return_document`) |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
@@ -1898,8 +1900,8 @@ tool calls the mapper resolves it from the namespaced name via `GatewayToolHandl
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
 gateway element id parsed from the namespaced name; for local tools (calls, results and the tool entry
 of the `CONFIGURATION` item) it is `null`, because the engine field is nullable and a local tool has no
-BPMN element. `LocalToolRegistry.toolNames()` identifies them (those names start with the reserved prefix `c8__`);
-the mapper does so for agent instances with the `documents` feature only.
+BPMN element. `LocalToolRegistry.toolNames()` identifies them (no tool element of the process has one of those names);
+the mapper does so for agent instances with the `localTools` feature only.
 The tool list of a `CONFIGURATION` item holds the process tools plus the available local tools
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
@@ -2095,8 +2097,7 @@ implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTo
 `aiAgentGetDocumentLocalTool`). The full API, the research behind
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 
-1. Build the tool with `LocalTool.builder("c8__name")`, a name that starts with the reserved prefix
-   `InternalToolNames.PREFIX` (`c8__`); `LocalToolRegistryImpl` rejects any other name at startup: `description`, `inputSchema` (a `Map` or the
+1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
    `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or a string schema with the
    format `camunda-document-id`), optionally `available(configuration -> ...)`, and a `handler`. Use
    `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. Or implement
@@ -2110,13 +2111,52 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    carries the schema in the order of the map, which should be the same in every JVM. The configuration
    fingerprint is independent of that order.
 4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans and rejects
-   duplicate names and names outside the prefix at startup. For an agent instance with the `documents` feature,
-   tool discovery and process migration reject every ad-hoc or gateway tool element whose name starts with the
-   prefix (`ERROR_CODE_RESERVED_TOOL_NAME`), whether a tool of that name exists or is available for an agent or not.
-   Gateway tool names (`MCP_<elementId>___<tool>`, `A2A_<elementId>`) never start with the prefix. An agent
-   instance without the feature reserves no name and is offered no local tool.
+   blank and duplicate names at startup. For an agent instance with the `localTools` feature, tool discovery
+   and process migration reject every ad-hoc or gateway tool element whose name equals the name of a registered
+   local tool (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for the agent or not. An agent
+   instance without the feature checks no name and is offered no local tool. A tool that works with the
+   document registry overrides `isAvailable` to require the `documents` feature, as the built-in document
+   tools do.
 5. The framework offers the tool while `isAvailable(AgentConfiguration)` holds, resolves declared document
    parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
    and its calls to agent instance history without an element id, and handles mixed batches with real calls
    (design notes). Test it through `LocalToolCallHandlerImpl` (see `LocalToolCallHandlerImplTest`
    with the test-only `SaveNoteTool`).
+
+#### Writing a custom local tool
+
+A custom local tool is a Spring bean of type `LocalTool` in your own Spring Boot application next to the
+connector runtime; no other registration is needed.
+
+```java
+@Bean
+LocalTool acmeLookup(CustomerDirectory directory) {
+  return LocalTool.builder("acme_lookup")
+      .description("Looks up a customer by id.")
+      .inputSchema(LocalToolSchema.object().string("customerId", "The id of the customer", true))
+      .handler(
+          Lookup.class,
+          (lookup, context) ->
+              LocalToolResult.success(directory.find(lookup.customerId()))
+                  .withContextUpdate(
+                      agentContext -> agentContext.withProperty("lastCustomer", lookup.customerId())));
+}
+
+record Lookup(String customerId) {}
+```
+
+- **Naming.** The name is free but unique among the local tools, and it must not equal the name of a tool
+  element of the process of an agent that runs it: tool discovery then fails with
+  `RESERVED_TOOL_NAME`. The prefix `c8__` is for the built-in tools; use a vendor-specific prefix such as
+  `acme_` for a custom tool.
+- **State** belongs in the agent context, never in a field of the bean: the agent runs one job after the other,
+  possibly on different workers. Change it with `LocalToolResult.withContextUpdate(...)` and read it from
+  `LocalToolContext.properties()`.
+- **Document parameters.** Declare a parameter with `LocalToolSchema.document(...)`; the framework checks the
+  id the model sent against the documents the agent knows and a typed handler receives a `Document`. An
+  unknown id answers the call with an error result and the tool does not run. Document parameters need an
+  agent instance with the `documents` feature.
+- **Creating documents.** `LocalToolContext.documentFactory()` creates a new Camunda document, for example
+  `context.documentFactory().create(DocumentCreationRequest.from(bytes).contentType("text/plain").fileName("report.txt").build())`.
+  Return the document in the content of the result to show it to the model.
+- **Availability.** `available(configuration -> ...)` offers the tool only for some configurations.

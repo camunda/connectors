@@ -74,7 +74,7 @@ public record AgentContext(
   /**
    * The feature of an agent instance that offers the local tools (see {@code LocalTool}) and
    * reserves their names against the tools of the process. An instance created without it offers no
-   * local tool and reserves no name.
+   * local tool and checks no tool name against local tool names.
    */
   public static final String FEATURE_LOCAL_TOOLS = "localTools";
 

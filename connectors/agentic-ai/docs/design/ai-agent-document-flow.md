@@ -37,8 +37,8 @@ store and of the context window.
    (section 3.8).
 
 Both `c8__` tools are local tools: the agent runs them itself, no BPMN element is activated (section 9). Both
-are offered to every instance with the `documents` feature and to no other; the prefix `c8__` is reserved
-against tool elements of the process (sections 3.9, 3.10).
+are offered to every instance with the `documents` feature and to no other; a tool element of the process must not
+have the name of a local tool (sections 3.9, 3.10).
 
 **Persisted form and provider form.** A document is persisted as its tag, a `TextContent` whose metadata is
 `{"kind": "document-reference", "documentId": "<id>"}`. A document that `c8__get_document` loaded is persisted
@@ -63,7 +63,7 @@ shown in inline code. One message is not reported yet, the evicted-documents not
 
 **Instances without the feature.** An instance created by Camunda 8.10 and still running has no `features` in its
 `agentContext` and keeps the 8.10 behavior: documents are content in the conversation, no registry, no local
-tool, no reserved prefix (section 4.2). A feature is assigned only when an instance is created and never added later.
+tool, no name checked against local tools (section 4.2). A feature is assigned only when an instance is created and never added later.
 
 ## 1. Scope
 
@@ -427,37 +427,39 @@ A valid `c8__return_document` call together with real tool calls costs no extra 
 and the model receives all results in the call order (3.6). Only a batch made of local calls alone starts a
 synthetic round, which counts against `maxModelCalls`.
 
-### 3.9 Reserved name
+### 3.9 Local tool names
 
-The names of the tools the agent runs itself share the prefix `c8__` (`InternalToolNames.PREFIX`).
-`AgentToolsResolverImpl.loadAdHocToolsSchema` rejects every ad-hoc or gateway tool element whose name
-starts with it, for an agent instance with the `documents` feature, with a `ConnectorException`
-(`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`) whose message names the prefix. The check covers the whole
-namespace, not only the names of registered tools, whether the agent offers a tool of that name or not.
-`loadAdHocToolsSchema` runs on tool discovery and on process migration (`updateToolDefinitions`), so both
-paths are covered. `LocalToolRegistryImpl` rejects a local tool whose name does not start with the prefix when
-the registry is created. Reason: a BPMN element with such a name would collide with the local tool in the
-tool list and silently lose to it, and a tool added later must not collide with an element that is valid
-today.
+The names of the built-in local tools share the prefix `c8__` (`InternalToolNames.PREFIX`) by convention; the
+prefix is not enforced. A tool element of the process and a custom local tool may have any name, as long as
+no tool element of the process has the name of a registered local tool.
+`AgentToolsResolverImpl.loadAdHocToolsSchema` rejects every ad-hoc or gateway tool element whose name equals
+the name of a registered local tool, for an agent instance with the `localTools` feature (section 4.2), with a
+`ConnectorException` (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`) whose message names the tool and says
+to rename the element or the local tool. The check covers every registered tool, whether the agent offers it
+or not. `loadAdHocToolsSchema` runs on tool discovery and on process migration (`updateToolDefinitions`), so
+both paths are covered. Reason: a BPMN element with the name of a local tool would collide with the local tool
+in the tool list and silently lose to it, and the availability of a tool can change while the agent runs.
+`LocalToolRegistryImpl` rejects a blank name and a duplicate name when the registry is created.
 
-An agent instance without the `documents` feature reserves no name (section 4.2): it is offered no local tool,
-and its process, which may already name an element `return_document` or anything else, must keep running.
+An agent instance without the `localTools` feature checks no name (section 4.2): it is offered no local tool,
+and its process, which may already name an element `c8__return_document` or anything else, must keep running.
 
-Gateway tool names cannot collide with the prefix: the MCP gateway names a tool
-`MCP_<elementId>___<mcpToolName>` and the A2A gateway `A2A_<elementId>` (`McpToolCallIdentifier`,
-`A2aToolCallIdentifier`), so a generated name always starts with `MCP_` or `A2A_`. The element id of a gateway
-element is checked like the id of any tool element.
+The element id of a gateway element is checked like the id of any tool element. The names of the tools a
+gateway generates (the MCP gateway names a tool `MCP_<elementId>___<mcpToolName>` and the A2A gateway
+`A2A_<elementId>`, see `McpToolCallIdentifier`, `A2aToolCallIdentifier`) start with `MCP_` or `A2A_`, so a
+local tool must not use these names either.
 
 ### 3.10 Availability of the `c8__` tools
 
 `c8__return_document` and `c8__get_document` are injected for every agent instance with the `documents` feature;
 no template property or request field switches either off. `LocalToolRegistryImpl` offers no local tool to an
-instance without the feature (`AgentConfiguration.supportsDocuments()`), and `LocalTool.isAvailable` stays a
-generic hook of the local tool API with the default `true`; neither built-in tool overrides it.
+instance without the `localTools` feature (`AgentConfiguration.supportsLocalTools()`), and `LocalTool.isAvailable`
+is a generic hook of the local tool API with the default `true`. Both built-in tools work with the document
+registry and override it to require the `documents` feature (`AgentConfiguration.supportsDocuments()`).
 `BaseAgentRequestHandler.converse` puts the definitions of the available local tools after the process tools in
 `AgentConfiguration.toolDefinitions()` for the invocation; they are not part of `AgentContext.toolDefinitions`, so
 no persisted tool list changes and the migration check (`updateChangedToolDefinitions`) does not see the tools.
-The configuration fingerprint covers the offered tools (section 5.1). The prefix is reserved (3.9). The response
+The configuration fingerprint covers the offered tools (section 5.1). A process tool must not have one of their names (3.9). The response
 carries `responseDocuments` whenever the final response has a selection. Reason: a small configuration
 surface; whether the tools should become configurable is an open question (section 7).
 
@@ -673,11 +675,15 @@ converters and the tool result history read it; the providers render it as the t
 `AgentContext.features` (a `LinkedHashSet<String>`, `@JsonInclude(NON_EMPTY)`, a missing field binds to an
 empty set, no schema version bump) lists the features an agent instance was created with. The set is
 assigned once: `AgentInitializerImpl.createAgentContext` creates the context of a new agent instance, in both
-flavors, with `AgentContext.newInstanceFeatures()`, today `documents` (`AgentContext.FEATURE_DOCUMENTS`).
+flavors, with `AgentContext.newInstanceFeatures()`, today `localTools` (`AgentContext.FEATURE_LOCAL_TOOLS`) and
+`documents` (`AgentContext.FEATURE_DOCUMENTS`). The `localTools` feature turns on the local tool facility (section
+9) independently of documents: the registry offers local tools and tool elements of the process are checked
+against their names. The `documents` feature builds on it and implies it: `AgentContext.supportsLocalTools()` is
+true for an instance with either feature.
 A context that exists without `features` belongs to an instance that was created before the feature and never
 gets features added later, whatever it does next: a half-migrated conversation (messages in the form of the
 feature after messages in the older form) cannot occur. `AgentContext.supports(feature)` and
-`supportsDocuments()` read the set; `BaseAgentRequestHandler` copies it to `AgentConfiguration.features()` so
+`supportsDocuments()` and `supportsLocalTools()` read the set; `BaseAgentRequestHandler` copies it to `AgentConfiguration.features()` so
 the registry of local tools sees it. The features are not part of the configuration fingerprint. The set
 is a `LinkedHashSet` because the record builder copies a `Set` into an immutable set of unspecified order.
 
@@ -699,7 +705,7 @@ here as shared:
   `ReferenceRenderedDocument`) so that every provider path (`ModelFacingJson`) renders them as the Camunda
   document reference JSON, as the object mapper serializes them, not as a `<doc id/>` tag. The stored messages
   are not changed.
-- **No local tool.** `LocalToolRegistryImpl` offers none, `LocalToolCallHandlerImpl.handle` hands every call to
+- **No local tool.** (`localTools` feature absent) `LocalToolRegistryImpl` offers none, `LocalToolCallHandlerImpl.handle` hands every call to
   the process and the offered tool list (and the `CONFIGURATION` history item) holds the process tools only.
   There is no mixed-batch handling, no synthetic round and no pending local results.
 - **No document parameters.** `AgentResponseHandlerImpl` does not resolve document ids and an unknown id is
@@ -709,8 +715,8 @@ here as shared:
   that asks the model for a document id; the model sees no ids in that instance, so the parameter is not
   usable. This is a known limitation: the document parameters need the feature, and an instance that wants them
   starts anew.
-- **No reserved prefix.** The `c8__` prefix is not reserved for such an instance (section 3.9): an element
-  named like a built-in tool must not stop an instance that is running.
+- **No name check.** No tool element is checked against the names of local tools for such an instance (section
+  3.9): an element named like a local tool must not stop an instance that is running.
 - **History.** `HistoryDocuments.withoutDocumentFlow` makes `AgentInstanceHistoryMapper` report the messages as
   stored: no document expansion, no inline code backticks around tags, no document references in the
   arguments, no element-id-less local tool entries. `AgentResponse` has no `responseDocuments`.
@@ -782,7 +788,8 @@ other history write, so a failed report is retried with the job. Each local `TOO
 call, the originating arguments (looked up in the previous turn), `historyItemId` = tool call id, local
 `completedAt` as `producedAt`. The `elementId` of the call entry is `null` because a local call has no BPMN
 element, for the call in the `ASSISTANT` item and for the result (`AgentInstanceHistoryMapper` recognizes the
-call by `LocalToolRegistry.toolNames()`, which is safe because those names are reserved, 3.9). The result
+call by `LocalToolRegistry.toolNames()` for an instance with the `localTools` feature, which is safe because no
+tool element of such an instance has one of those names, 3.9). The result
 text is the content of the `TOOL_RESULT` item, an error result included.
 
 **Loaded documents.** The follow-up message of a load (4.1) is a `USER` item: the preamble text, the tag of each
@@ -1002,8 +1009,8 @@ listed fails the test.
     model may call a tool spuriously or prefer it over the tools of the process.
   - The tool list is part of the configuration fingerprint, so adding or changing a local tool reports a new
     `CONFIGURATION` history item for running instances.
-  - It occupies the reserved prefix `c8__`. An ad-hoc or gateway tool element with a name that starts with it
-    makes tool discovery, and process migration, fail with a `ConnectorException` carrying
+  - It occupies the names of the tools. An ad-hoc or gateway tool element with the name of a local tool makes
+    tool discovery, and process migration, fail with a `ConnectorException` carrying
     `AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME` (3.9); the element has to be renamed.
   - Future local tools (for example `c8__load_skill`, `c8__save_memory`) multiply these effects, so a general
     mechanism to enable and disable local tools is needed.
@@ -1018,13 +1025,13 @@ listed fails the test.
 | Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`), `DocumentHandleTest` (file name and content type of a document and of its reference) |
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, document reference content, attribute parsing) |
 | Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, only flagged tags), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `AwsAgentCoreConversationMapperTest` (text with metadata) |
-| Agent instance features | `aiagent/model/AgentContextTest` (default, omitted when empty, round trip in insertion order, copies), `aiagent/agent/AgentInitializerTest` (a new instance gets `documents`, an existing context never gets features) |
+| Agent instance features | `aiagent/model/AgentContextTest` (default, omitted when empty, round trip in insertion order, copies), `aiagent/agent/AgentInitializerTest` (a new instance gets `localTools` and `documents`, an existing context never gets features) |
 | Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or local tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/model/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `LocalToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
 | Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, rejection of tags, escaped tags and ids inside text, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
 | Loading content | `aiagent/agent/GetDocumentToolTest` (loaded marker, already loaded, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/localtool/DocumentLoadLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the loaded tags), `AgentConversationTest` (`loadedDocumentIds` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the loaded tag), `EvictedDocumentsNoteTest` (introducing message windowed) |
-| Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (reserved name), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
+| Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a local tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
 | Local tool API | `aiagent/localtool/LocalToolBuilderTest`, `LocalToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/LocalToolCallHandlerImplTest` (including a mixed batch with a real call) |
 | Agent instance history of local tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (document references in the arguments), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
 | Mixed batches | `AgentSubProcessRequestHandlerTest` / `AgentTaskRequestHandlerTest` (one model call, only real calls activated, pending results, status, clearing), `AgentResponseHandlerDocumentsTest` (local calls not emitted), `AgentConversationTurnInputComposerImplTest` (merge in call order, partial arrival, interrupt, no gateway transform, foreign ids ignored), `AgentConversationTest` (`withPendingLocalToolCallResults`), `AgentContextTest` and `AgentContextSchemaMigrationTest` (persistence round trip, missing field), `CamundaAgentInstanceClientTest` (history items of merged results, the early item equals the one of the merged turn start) |
@@ -1114,8 +1121,9 @@ row is from its public documentation and not verified against sources here.
   not adopted: the module has no schema generator, and LangChain4j's must not be imported outside the
   LangChain4j adapter (invariant I1). The schema is a `Map` or the small `LocalToolSchema` builder.
 - **Context as the second handler argument** (Spring `ToolContext`, MCP exchange, OpenAI context).
-  `LocalToolContext` is read-only and narrow: configuration, agent properties, documents, agent instance
-  key, `ObjectMapper`.
+  `LocalToolContext` is narrow: configuration, agent properties, documents, loaded document ids, agent instance
+  key, `ObjectMapper`; its state is read-only. It also carries the `DocumentFactory` of the connector, so a tool
+  can create a new Camunda document.
 - **A result object with an error flag** (LangChain4j `isError`, MCP `isError`, Anthropic `is_error`).
   `LocalToolResult` has content, the flag, and context updates. The flag stays inside the agent because the
   domain tool result has no error flag (limitation 4, section 5); the model reads the message as text.
@@ -1156,7 +1164,8 @@ public record LocalToolCall(String id, String name,
 { <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
 
 public record LocalToolContext(AgentConfiguration configuration, Map<String, Object> properties,
-    DocumentRegistry documents, @Nullable AgentInstanceKey agentInstanceKey, ObjectMapper objectMapper) {}
+    DocumentRegistry documents, Set<String> loadedDocumentIds, @Nullable AgentInstanceKey agentInstanceKey,
+    ObjectMapper objectMapper, DocumentFactory documentFactory) {}
 
 public record LocalToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {
   static LocalToolResult success(Object content);
@@ -1201,26 +1210,29 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
 | arguments do not fit the typed handler | error result "Invalid arguments for tool '<name>': <reason>" |
 | any other exception (bug, I/O failure, `ConnectorException`) | propagates; the job fails or becomes an incident like any connector error |
 
-### 9.6 Availability and reserved names
+### 9.6 Availability and names
 
 `isAvailable` is evaluated against the configuration of the invocation, both when the definitions are offered
 and when calls are split, so they cannot diverge. The task flavor evaluates its input per iteration, so
 availability can change between jobs; a call of a tool that is no longer available goes to the process.
 
-The registry offers no tool to an agent instance without the `documents` feature (4.2), whatever `isAvailable`
-says.
+The registry offers no tool to an agent instance without the `localTools` feature (4.2), whatever `isAvailable`
+says. A tool that needs the document registry (`c8__get_document`, `c8__return_document`) is available only for
+an instance with the `documents` feature, through its own `isAvailable`.
 
-The whole prefix `c8__` is reserved against tool elements of the process, for every tool, registered or not,
-available or not (3.9). Reasoning: availability depends on a configuration that can change while the agent
-runs, and a BPMN element that is valid today must not turn into a collision on the next iteration or when a
-local tool is added; the check also has no configuration at hand on process migration. The cost is that a
-modeler cannot name an element with the prefix, whichever tools an agent uses. Uniqueness among local tools
-and the prefix of their names are checked when the registry is created (startup).
+The name of every registered tool, available or not, is checked against the tool elements of the process (3.9).
+Reasoning: availability depends on a configuration that can change while the agent runs, and a BPMN element
+that is valid today must not turn into a collision on the next iteration; the check also has no configuration
+at hand on process migration. Any other name is free: the prefix `c8__` is a convention for the built-in tools,
+not a rule. Recommend a vendor-specific prefix for a custom tool, for example `acme_`, so it is unlikely to
+equal the name of an element. A blank name and a duplicate name are rejected when the registry is created
+(startup).
 
 ### 9.7 Add a local tool
 
-1. Pick a name that starts with the reserved prefix `c8__` and write the definition: description, input schema, with a
-   document parameter (`LocalToolSchema.document`) if the tool takes documents.
+1. Pick a name: `c8__` is for built-in tools, use a vendor-specific prefix for a custom tool, and make sure
+   no tool element of a process that uses the tool has the same name (9.6). Write the definition: description,
+   input schema, with a document parameter (`LocalToolSchema.document`) if the tool takes documents.
 2. Write the handler. Typed arguments are the usual case:
 
    ```java
@@ -1242,7 +1254,8 @@ and the prefix of their names are checked when the registry is created (startup)
                });
    ```
 
-3. Register it as a Spring bean of type `LocalTool` (`@Bean`); `LocalToolRegistryImpl` collects every bean.
+3. Register it as a Spring bean of type `LocalTool` (`@Bean`); `LocalToolRegistryImpl` collects every bean. A
+   tool that works with documents overrides `isAvailable` to require the `documents` feature.
 4. Report failures the model can act on with `LocalToolResult.error` or `LocalToolException`; let bugs
    propagate.
 5. Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request sent to the
@@ -1251,7 +1264,8 @@ and the prefix of their names are checked when the registry is created (startup)
    `LocalToolSchema` does this and `LocalTool.builder` keeps the order of the map it is given; construct a
    definition by hand with the `ToolDefinition` constructor, not `ToolDefinition.builder()` (the record
    builder copies the schema into an immutable map of unspecified order).
-6. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
+6. Create a new Camunda document with `LocalToolContext.documentFactory()` and return it in the content of the
+   result. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
    persisted `AgentContext`; use `AgentContext.properties()` for free-form state.
 7. Test it through `LocalToolCallHandlerImpl` with a conversation, as `LocalToolCallHandlerImplTest` does
    with the test-only `SaveNoteTool`. Add an end-to-end test when the tool changes what crosses a job

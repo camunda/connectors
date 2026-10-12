@@ -25,8 +25,8 @@ It demonstrates:
   `agent.responseDocuments`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
   process reads one document as `agent.responseDocuments.<key>.document` and all documents as
   `get entries(agent.responseDocuments).value.document`.
-- **Reserved names**: the names of the built-in tools (`c8__get_document`, `c8__return_document`) start with `c8__`. A tool element of the process must not use a
-  name with this prefix; tool discovery fails with the error code `RESERVED_TOOL_NAME` for such an element.
+- **Tool names**: a tool element of the process must not have the name of a built-in tool (`c8__get_document`,
+  `c8__return_document`); tool discovery fails with the error code `RESERVED_TOOL_NAME` for such an element.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
   documents it still knows by id, so it can still pass them to a tool or load them again.
 - **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `c8__return_document`
