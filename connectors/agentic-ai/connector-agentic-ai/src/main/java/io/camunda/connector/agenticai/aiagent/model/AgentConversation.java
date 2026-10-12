@@ -337,9 +337,17 @@ public final class AgentConversation {
    * the documents of the tags marked as loaded in the windowed user messages.
    */
   public Set<String> loadedDocumentIds() {
+    return loadedDocumentIds(
+        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
+  }
+
+  /**
+   * Returns the ids of the documents whose content the model reads in the given messages: the
+   * documents of the tags marked as loaded in the user messages.
+   */
+  public static Set<String> loadedDocumentIds(List<Message> messages) {
     final var ids = new LinkedHashSet<String>();
-    for (final var message :
-        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize())) {
+    for (final var message : messages) {
       if (message instanceof UserMessage userMessage) {
         for (final var content : userMessage.content()) {
           if (content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text)) {

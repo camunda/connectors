@@ -10,11 +10,16 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.localtool.DocumentLoadGuard;
+import io.camunda.connector.agenticai.aiagent.localtool.DocumentLoadGuard.Rejection;
 import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
@@ -27,21 +32,27 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -69,7 +80,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
-  static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded by c8__get_document:";
+  static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded for the tool results:";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
@@ -145,7 +156,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
         final var loadedDocumentsMessage =
             composeLoadedDocumentsMessage(
-                DocumentRegistry.of(agentContext.documents()), toolCallResults);
+                getDocumentTags(DocumentRegistry.of(agentContext.documents()), toolCallResults),
+                inlineToolDocumentContent(
+                    agentContext,
+                    configuration,
+                    previousConversation,
+                    toolCallResults,
+                    toolCallResultMessage.id()));
         if (loadedDocumentsMessage != null) {
           messages.add(loadedDocumentsMessage);
         }
@@ -158,7 +175,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       messages.addAll(eventMessages);
     } else {
       messages.add(
-          createUserPromptMessage(agentInput.userPrompt(), documentFlow, ingestedDocuments));
+          createUserPromptMessage(
+              agentInput.userPrompt(),
+              documentFlow,
+              documentFlow && agentInput.userPrompt().loadDocuments()
+                  ? loadedDocumentIds(configuration, previousConversation)
+                  : Set.of(),
+              ingestedDocuments));
       messages.addAll(eventMessages);
     }
 
@@ -176,6 +199,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private @Nullable UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt,
       boolean documentFlow,
+      Set<String> alreadyLoadedDocumentIds,
       List<IngestedDocument> ingestedDocuments) {
 
     final var messageId = MessageUtil.generateId();
@@ -189,10 +213,23 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var source = DocumentSource.userMessage(messageId.toString());
     if (documentFlow) {
-      // add documents as tags, the content of each is added from the registry when the model is
-      // called
+      // add documents as tags; the content is only added, from the registry when the model is
+      // called, for the tags marked as loaded
+      final var handledDocumentIds = new HashSet<>(alreadyLoadedDocumentIds);
       for (var doc : userPrompt.documents()) {
-        content.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+        final var tag = DocumentReferenceXmlTag.from(doc, source);
+        if (!userPrompt.loadDocuments() || !handledDocumentIds.add(tag.id())) {
+          content.add(tag.toContent());
+          continue;
+        }
+
+        final var rejection = DocumentLoadGuard.check(doc).orElse(null);
+        if (rejection == null) {
+          content.add(tag.toLoadedContent());
+        } else {
+          content.add(tag.toContent());
+          content.add(textContent(notLoadedNote(tag.id(), rejection)));
+        }
       }
     } else {
       // an agent instance without the documents feature keeps the documents as content
@@ -283,28 +320,139 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   @Override
   public @Nullable UserMessage composeLoadedDocumentsMessage(
       DocumentRegistry registry, List<ToolCallResult> results) {
-    final var tags =
-        results.stream()
-            .filter(result -> GetDocumentTool.NAME.equals(result.name()))
-            .map(result -> result.properties().get(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID))
-            .filter(String.class::isInstance)
-            .map(String.class::cast)
-            .distinct()
-            .map(registry::findById)
-            .flatMap(Optional::stream)
-            .<Content>map(entry -> DocumentReferenceXmlTag.from(entry).toLoadedContent())
-            .toList();
-    if (tags.isEmpty()) {
+    return composeLoadedDocumentsMessage(getDocumentTags(registry, results), List.of());
+  }
+
+  /** The tags, marked as loaded, of the documents that the results of c8__get_document loaded. */
+  private List<Content> getDocumentTags(DocumentRegistry registry, List<ToolCallResult> results) {
+    return results.stream()
+        .filter(result -> GetDocumentTool.NAME.equals(result.name()))
+        .map(result -> result.properties().get(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID))
+        .filter(String.class::isInstance)
+        .map(String.class::cast)
+        .distinct()
+        .map(registry::findById)
+        .flatMap(Optional::stream)
+        .<Content>map(entry -> DocumentReferenceXmlTag.from(entry).toLoadedContent())
+        .toList();
+  }
+
+  /**
+   * The content for the documents of the results of tools with inline document delivery: the tag,
+   * marked as loaded, of every document that passes the load guard, and a note for every document
+   * that does not. A document that is already loaded in the conversation, or loaded by another
+   * result of the turn, is left out.
+   */
+  private List<Content> inlineToolDocumentContent(
+      AgentContext agentContext,
+      AgentConfiguration configuration,
+      PreviousConversation previousConversation,
+      List<ToolCallResult> results,
+      MessageId toolCallResultMessageId) {
+    final var inlineToolNames =
+        agentContext.toolDefinitions().stream()
+            .filter(tool -> tool.documentDelivery() == DocumentDelivery.INLINE)
+            .map(ToolDefinition::name)
+            .collect(Collectors.toSet());
+    if (inlineToolNames.isEmpty()) {
+      return List.of();
+    }
+
+    final var handledDocumentIds =
+        new HashSet<>(loadedDocumentIds(configuration, previousConversation));
+    results.stream()
+        .filter(result -> GetDocumentTool.NAME.equals(result.name()))
+        .map(result -> result.properties().get(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID))
+        .filter(String.class::isInstance)
+        .map(String.class::cast)
+        .forEach(handledDocumentIds::add);
+
+    final var content = new ArrayList<Content>();
+    for (var group : documentExtractor.extractDocuments(results)) {
+      if (!inlineToolNames.contains(group.toolCallName())) {
+        continue;
+      }
+      final var source =
+          DocumentSource.toolCall(
+              group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
+      for (Document doc : group.documents()) {
+        final var id = DocumentHandle.idFor(doc);
+        if (!handledDocumentIds.add(id)) {
+          continue;
+        }
+
+        final var rejection = DocumentLoadGuard.check(doc).orElse(null);
+        content.add(
+            rejection == null
+                ? DocumentReferenceXmlTag.from(doc, source).toLoadedContent()
+                : textContent(notLoadedNote(id, rejection)));
+      }
+    }
+    return content;
+  }
+
+  /**
+   * The message that follows the tool results of a turn and carries the documents loaded for them:
+   * the tags marked as loaded, after the preamble, then the notes of the documents that were not
+   * loaded.
+   */
+  private @Nullable UserMessage composeLoadedDocumentsMessage(
+      List<Content> loadedTags, List<Content> inlineContent) {
+    final var loadedContent = new ArrayList<Content>(loadedTags);
+    loadedContent.addAll(inlineContent);
+    if (loadedContent.isEmpty()) {
       return null;
     }
 
     final var content = new ArrayList<Content>();
-    content.add(textContent(LOADED_DOCUMENTS_PREAMBLE));
-    content.addAll(tags);
+    if (loadedContent.stream().anyMatch(AgentConversationTurnInputComposerImpl::isLoadedTag)) {
+      content.add(textContent(LOADED_DOCUMENTS_PREAMBLE));
+    }
+    // the notes follow the tags
+    loadedContent.stream()
+        .filter(AgentConversationTurnInputComposerImpl::isLoadedTag)
+        .forEach(content::add);
+    loadedContent.stream().filter(tag -> !isLoadedTag(tag)).forEach(content::add);
 
     final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
     return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
+  private static boolean isLoadedTag(Content content) {
+    return content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text);
+  }
+
+  /**
+   * The ids of the documents loaded in the conversation before this turn, as the model reads it
+   * through the context window.
+   */
+  private static Set<String> loadedDocumentIds(
+      AgentConfiguration configuration, PreviousConversation previousConversation) {
+    final var messages = new ArrayList<Message>();
+    previousConversation.systemMessage().ifPresent(messages::add);
+    for (var turn : previousConversation.turns()) {
+      messages.addAll(turn.inputMessages());
+      if (turn.assistantMessage() != null) {
+        messages.add(turn.assistantMessage());
+      }
+    }
+    return AgentConversation.loadedDocumentIds(
+        MessageWindowFilter.apply(messages, configuration.contextWindowSize()));
+  }
+
+  /**
+   * The note that tells the model a document was not loaded for it and why. A reason that a retry
+   * can overcome points at {@code c8__get_document}.
+   */
+  private static String notLoadedNote(String documentId, Rejection rejection) {
+    return "Document %s was not loaded automatically: it %s. %s"
+        .formatted(
+            documentId,
+            rejection.problem(),
+            rejection.retryable()
+                ? "c8__get_document can try to load it again."
+                : "Pass its id to a tool that processes it.");
   }
 
   private void ingestToolCallResultDocuments(

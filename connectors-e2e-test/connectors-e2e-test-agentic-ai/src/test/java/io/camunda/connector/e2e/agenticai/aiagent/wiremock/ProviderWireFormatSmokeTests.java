@@ -276,7 +276,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111", "Loaded document [0-9a-fA-F-]{36}\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            "Documents loaded by c8__get_document:"));
+            "Documents loaded for the tool results:"));
 
     assertAgentResponse(
         zeebeTest,

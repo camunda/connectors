@@ -27,9 +27,10 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO.
+   * DTO. With {@code loadDocuments}, the content of the documents is loaded into the conversation
+   * instead of shown as references.
    */
-  public record UserPrompt(String prompt, List<Document> documents) {
+  public record UserPrompt(String prompt, List<Document> documents, boolean loadDocuments) {
     public UserPrompt {
       documents = List.copyOf(documents);
     }
@@ -52,7 +53,8 @@ public final class AgentInput {
     return new AgentInput(
         new UserPrompt(
             userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents(),
+            Boolean.TRUE.equals(userPrompt.loadDocuments())),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

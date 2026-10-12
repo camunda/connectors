@@ -133,7 +133,8 @@ class AgentInstanceHistoryMapperTest {
     final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toLoadedContent();
     final var loadedMessage =
         UserMessage.builder()
-            .content(List.of(TextContent.textContent("Documents loaded by c8__get_document:"), tag))
+            .content(
+                List.of(TextContent.textContent("Documents loaded for the tool results:"), tag))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
@@ -150,7 +151,8 @@ class AgentInstanceHistoryMapperTest {
             item -> {
               assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
               assertThat(texts(item.content()))
-                  .containsExactly("Documents loaded by c8__get_document:", "`" + tag.text() + "`");
+                  .containsExactly(
+                      "Documents loaded for the tool results:", "`" + tag.text() + "`");
               assertThat(item.content()).hasSize(3);
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
