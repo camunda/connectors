@@ -31,8 +31,8 @@ import java.util.regex.Pattern;
  * c8__get_document}, and for the document tags of the other messages.
  *
  * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
- * carry one or many loaded documents. Use {@link #assertLoadedDocumentsUserMessage(RecordedMessage,
- * LoadedDocument...)} to assert against any number of documents in one go.
+ * carry one or many loaded documents. Use {@link #assertDocumentContentUserMessage(RecordedMessage,
+ * DocumentWithContent...)} to assert against any number of documents in one go.
  *
  * <p>All assertions operate on OpenAI-compatible wire-format {@link JsonNode} objects recorded by
  * WireMock — no framework-specific types required.
@@ -45,7 +45,7 @@ public final class ToolCallResultDocumentAssertions {
   public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
-  public static final String LOADED_DOCUMENTS_PREAMBLE =
+  public static final String DOCUMENT_CONTENT_PREAMBLE =
       "System message, not written by the user: the content of the documents loaded for the tool results above follows.";
 
   private static final Pattern DOC_TAG = Pattern.compile("<doc ([^>]*?)\\s*/>");
@@ -105,10 +105,10 @@ public final class ToolCallResultDocumentAssertions {
    *
    * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
    * stays in sync with the production format. The content-block {@link JsonNode} is passed directly
-   * to each {@link LoadedDocument#contentBlockAssertion()}.
+   * to each {@link DocumentWithContent#contentBlockAssertion()}.
    */
-  public static void assertLoadedDocumentsUserMessage(
-      RecordedMessage message, LoadedDocument... expectedDocuments) {
+  public static void assertDocumentContentUserMessage(
+      RecordedMessage message, DocumentWithContent... expectedDocuments) {
     assertThat(message.role()).as("message role").isEqualTo("user");
     final List<JsonNode> contentParts = message.contentParts();
     assertThat(contentParts).as("content should be an array").isNotEmpty();
@@ -119,7 +119,7 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(contentParts.get(0).path("type").asText()).as("preamble type").isEqualTo("text");
     assertThat(contentParts.get(0).path("text").asText())
         .as("preamble text")
-        .isEqualTo(LOADED_DOCUMENTS_PREAMBLE);
+        .isEqualTo(DOCUMENT_CONTENT_PREAMBLE);
 
     for (int i = 0; i < expectedDocuments.length; i++) {
       final var expected = expectedDocuments[i];
@@ -188,18 +188,19 @@ public final class ToolCallResultDocumentAssertions {
    * Specification of one expected loaded document slot in the user message: an XML tag plus a
    * content block check operating on the raw OpenAI wire-format {@link JsonNode}.
    */
-  public record LoadedDocument(String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
+  public record DocumentWithContent(
+      String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
 
     /**
      * Document returned by a tool call result, identified by the tag the tool result itself showed
      * (see {@link #parseDocumentTag}).
      */
-    public static LoadedDocument forToolCall(
+    public static DocumentWithContent forToolCall(
         String toolCallId,
         String toolName,
         DocumentReferenceXmlTag resultTag,
         Consumer<JsonNode> contentBlockAssertion) {
-      return new LoadedDocument(
+      return new DocumentWithContent(
           new DocumentReferenceXmlTag(
                   resultTag.id(),
                   resultTag.fileName(),
@@ -216,9 +217,9 @@ public final class ToolCallResultDocumentAssertions {
      * Document of the user prompt, identified by the tag the prompt message showed (see {@link
      * #parseDocumentTag}).
      */
-    public static LoadedDocument forUserPrompt(
+    public static DocumentWithContent forUserPrompt(
         DocumentReferenceXmlTag promptTag, Consumer<JsonNode> contentBlockAssertion) {
-      return new LoadedDocument(
+      return new DocumentWithContent(
           new DocumentReferenceXmlTag(
                   promptTag.id(),
                   promptTag.fileName(),

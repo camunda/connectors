@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
@@ -27,10 +28,11 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO. With {@code loadDocuments}, the content of the documents is loaded into the conversation
-   * instead of shown as references.
+   * DTO. With {@code documentDelivery} {@link DocumentDelivery#CONTENT}, the content of the
+   * documents is part of the conversation instead of references.
    */
-  public record UserPrompt(String prompt, List<Document> documents, boolean loadDocuments) {
+  public record UserPrompt(
+      String prompt, List<Document> documents, DocumentDelivery documentDelivery) {
     public UserPrompt {
       documents = List.copyOf(documents);
     }
@@ -54,7 +56,9 @@ public final class AgentInput {
         new UserPrompt(
             userPrompt.prompt(),
             userPrompt.documents() == null ? List.of() : userPrompt.documents(),
-            Boolean.TRUE.equals(userPrompt.loadDocuments())),
+            userPrompt.documentDelivery() == null
+                ? DocumentDelivery.REFERENCE
+                : userPrompt.documentDelivery()),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

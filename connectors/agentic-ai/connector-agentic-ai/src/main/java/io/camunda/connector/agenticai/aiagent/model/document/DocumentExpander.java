@@ -31,10 +31,10 @@ import org.slf4j.LoggerFactory;
  * DocumentReferenceXmlTag#KIND_DOCUMENT_REFERENCE}; the document is read from the {@link
  * DocumentRegistry}. Expanding adds a {@link DocumentContent} after a flagged tag, unless one for
  * the same document already follows it. The model gets the content only of the tags that are marked
- * as loaded ({@link #expandMessages}); the history shows the document of every flagged tag ({@link
- * #expandContent}). A document the registry does not know, or whose reference cannot be read,
- * leaves the tag alone. Only flagged text is expanded, so a document tag a user typed into a prompt
- * stays text.
+ * as having content ({@link #expandMessages}); the history shows the document of every flagged tag
+ * ({@link #expandContent}). A document the registry does not know, or whose reference cannot be
+ * read, leaves the tag alone. Only flagged text is expanded, so a document tag a user typed into a
+ * prompt stays text.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -55,7 +55,7 @@ public final class DocumentExpander {
 
   /**
    * Returns the messages with the content of their user messages expanded for the model: only the
-   * tags marked as {@link DocumentReferenceXmlTag#isLoaded loaded} get their document.
+   * tags {@link DocumentReferenceXmlTag#isLoaded marked with content} get their document.
    */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());
@@ -83,7 +83,7 @@ public final class DocumentExpander {
   }
 
   private List<Content> expand(
-      List<Content> content, DocumentRegistry registry, boolean loadedOnly) {
+      List<Content> content, DocumentRegistry registry, boolean onlyTagsWithContent) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
@@ -92,7 +92,7 @@ public final class DocumentExpander {
       switch (current) {
         case TextContent text
             when DocumentReferenceXmlTag.documentIdOf(text) != null
-                && (!loadedOnly || DocumentReferenceXmlTag.isLoaded(text)) -> {
+                && (!onlyTagsWithContent || DocumentReferenceXmlTag.isLoaded(text)) -> {
           expanded.add(text);
           final var id = Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text));
           if (!(next instanceof DocumentContent following

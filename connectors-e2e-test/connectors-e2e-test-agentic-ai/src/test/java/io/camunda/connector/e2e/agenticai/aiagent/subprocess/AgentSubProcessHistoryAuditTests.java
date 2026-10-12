@@ -83,8 +83,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
 
-  @Value("classpath:agentic-ai-ahsp-connectors-documents-inline.bpmn")
-  private Resource inlineDocumentsProcess;
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
+  private Resource contentDocumentsProcess;
 
   @Override
   protected Resource testProcess() {
@@ -111,12 +111,13 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * Documents the agent loads without being asked: the user prompt document through the option of
-   * the prompt, the documents of a tool with inline delivery, and the note of a document that
-   * cannot be loaded. The loaded content shows in the history next to its tag, the note as text.
+   * Documents whose content the agent adds without being asked: the user prompt document through
+   * the delivery option of the prompt, the documents of a tool with content delivery, and the note
+   * of a document that fails the content guard. The content shows in the history next to its tag,
+   * the note as text.
    */
   @Test
-  void everyModelVisibleMessageOfInlineDocumentDeliveryIsInTheHistory() throws Exception {
+  void everyModelVisibleMessageOfContentDocumentDeliveryIsInTheHistory() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf"),
         downloadTurn(wireMock.getHttpBaseUrl(), "unsupported.zip", "call_download_zip"),
@@ -124,7 +125,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
     final var agentInstanceKey =
         runAndGetAgentInstanceKey(
-            inlineDocumentsProcess, e -> e.property("data.userPrompt.loadDocuments", "=true"));
+            contentDocumentsProcess,
+            e -> e.property("data.userPrompt.documentDelivery", "content"));
 
     final var messages = OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
     assertThat(messages.toString())

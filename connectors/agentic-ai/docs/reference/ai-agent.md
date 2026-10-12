@@ -446,10 +446,10 @@ detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
-also expands the document tags of its user messages that are marked as loaded from the document registry
+also expands the document tags of its user messages that are marked as having content from the document registry
 (`DocumentExpander`): the stored messages hold the tag of a document only, and the snapshot holds the tag
-followed by the document content for the documents the model loaded with `c8__get_document` or the agent loaded
-for it (inline delivery, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
+followed by the document content for the documents whose content the model asked for with `c8__get_document` or the agent added
+for it (content delivery, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
 
@@ -638,9 +638,9 @@ The `AdHocToolsSchemaResolver` processes these into:
    optional `documentDelivery`
 2. **GatewayToolDefinitions**: Special tools (MCP clients, A2A) that need discovery
 
-A tool activity with the extension property `io.camunda.agenticai.documents.delivery` set to `inline`
-(`AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION`) gets the `documentDelivery` `INLINE`: the agent loads the
-documents the tool returns into the conversation for the model instead of showing them as references. The field is
+A tool activity with the extension property `io.camunda.agenticai.documents.delivery` set to `content`
+(`AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION`) gets the `documentDelivery` `CONTENT`: the agent adds the
+content of the documents the tool returns to the conversation for the model instead of delivering them as references. The field is
 part of the stored tool definition and of the configuration fingerprint when set, and the model providers do not
 get it. Any other value, or no property, leaves it absent (by reference). See the document flow design notes,
 section 3.15.
@@ -1684,15 +1684,15 @@ sees a `<doc .../>` tag, not the content. Tool call results may contain Camunda 
 root, nested in maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A
 artifacts). The agent extracts those documents and registers them in the document registry of the
 `agentContext`; the tool result shows each document as its tag, and no follow-up message is added unless the
-tool has inline delivery (below). The content of a document enters the conversation when the model calls the
-built-in `c8__get_document` tool with the document id, or when the agent loads it for the model (inline delivery,
-below): the whole document is loaded if its content type is on the allowlist (text-based types, PDF,
+tool has content delivery (below). The content of a document enters the conversation when the model calls the
+built-in `c8__get_document` tool with the document id, or when the agent adds it for the model (content delivery,
+below): the whole document is added if its content type is on the allowlist (text-based types, PDF,
 PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
 otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
-processes the document. A successful load is followed by a user message whose tag is marked as loaded
+processes the document. A successful call is followed by a user message whose tag is marked as having content
 (`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
 from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
-`fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference.
+`fromAi(..., "document")` never adds content: the tool receives the full Camunda document reference.
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content has at most 1 MiB (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`,
@@ -1701,13 +1701,13 @@ counted in characters of the base64 or text content). A larger one fails the job
 response documents, which together can exceed the message size limit of the broker; the message
 names the document, its size and the limit and asks to return the file as a Camunda document instead.
 
-Inline delivery is opt-in and loads the content without a `c8__get_document` call, through the same guard
-(`DocumentLoadGuard`) and the same marker: for the documents of the user prompt, with the option *Load documents
-into the prompt* (`data.userPrompt.loadDocuments`, v2 templates only), and for the documents a tool returns, with
-the extension property `io.camunda.agenticai.documents.delivery` = `inline` on the tool activity. The documents of
+Delivery with content is opt-in and adds the content without a `c8__get_document` call, through the same guard
+(`DocumentContentGuard`) and the same marker: for the documents of the user prompt, with the dropdown *Document
+delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`, v2 templates only), and for the documents a tool returns, with
+the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool activity. The documents of
 a tool go into the follow-up user message of the tool results (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`).
-A document that the guard rejects stays a reference and the model gets a note that tells why it was not loaded;
-automatic loading never fails the run. Documents of events and of gateway tools are not covered. See
+A document that the guard rejects stays a reference and the model gets a note that tells why no content was added;
+delivery with content never fails the run. Documents of events and of gateway tools are not covered. See
 [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
 "Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form
 of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the

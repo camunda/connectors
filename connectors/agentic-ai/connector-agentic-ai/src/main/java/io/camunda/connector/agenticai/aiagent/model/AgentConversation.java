@@ -194,7 +194,7 @@ public final class AgentConversation {
   /**
    * Same as {@link #nextRuntimeToolRound(ToolCallResultMessage)}; the new turn's input also holds
    * the given messages that follow the tool call results, such as the message that carries the
-   * content of the documents a tool loaded.
+   * content of the documents a tool returned.
    */
   public AgentConversation nextRuntimeToolRound(
       ToolCallResultMessage toolCallResults, List<Message> followUpMessages) {
@@ -334,18 +334,18 @@ public final class AgentConversation {
 
   /**
    * Returns the ids of the documents whose content the model reads in the windowed conversation:
-   * the documents of the tags marked as loaded in the windowed user messages.
+   * the documents of the tags with content in the windowed user messages.
    */
-  public Set<String> loadedDocumentIds() {
-    return loadedDocumentIds(
+  public Set<String> documentIdsWithContent() {
+    return documentIdsWithContent(
         MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
   }
 
   /**
    * Returns the ids of the documents whose content the model reads in the given messages: the
-   * documents of the tags marked as loaded in the user messages.
+   * documents of the tags with content in the user messages.
    */
-  public static Set<String> loadedDocumentIds(List<Message> messages) {
+  public static Set<String> documentIdsWithContent(List<Message> messages) {
     final var ids = new LinkedHashSet<String>();
     for (final var message : messages) {
       if (message instanceof UserMessage userMessage) {
@@ -416,8 +416,8 @@ public final class AgentConversation {
    * tools.
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
-   * tags of the loaded documents in the windowed user messages are expanded from the registry of
-   * the {@link AgentContext#documents() context} (see {@link DocumentExpander}); every other
+   * tags of the documents with content in the windowed user messages are expanded from the registry
+   * of the {@link AgentContext#documents() context} (see {@link DocumentExpander}); every other
    * document stays a tag. When registry documents are not visible in the windowed messages, the
    * snapshot ends with a transient user message listing them (see {@link EvictedDocumentsNote}).
    * For an agent instance without the feature, the documents of the tool results are marked to be

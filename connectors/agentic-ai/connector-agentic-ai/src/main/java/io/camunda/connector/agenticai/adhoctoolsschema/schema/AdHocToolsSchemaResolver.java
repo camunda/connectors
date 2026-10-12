@@ -18,13 +18,13 @@ public interface AdHocToolsSchemaResolver {
 
   /**
    * The extension property of a tool activity that sets how the documents the tool returns reach
-   * the model. The value {@value #DOCUMENT_DELIVERY_INLINE} makes the agent load them for the
-   * model; any other value, or no property, keeps the documents by reference.
+   * the model. The value {@value #DOCUMENT_DELIVERY_CONTENT} makes the agent add their content for
+   * the model; any other value, or no property, keeps the documents by reference.
    */
   String DOCUMENT_DELIVERY_EXTENSION = "io.camunda.agenticai.documents.delivery";
 
-  /** The value of {@link #DOCUMENT_DELIVERY_EXTENSION} for loading documents for the model. */
-  String DOCUMENT_DELIVERY_INLINE = "inline";
+  /** The value of {@link #DOCUMENT_DELIVERY_EXTENSION} for delivering documents with content. */
+  String DOCUMENT_DELIVERY_CONTENT = "content";
 
   AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);
 }

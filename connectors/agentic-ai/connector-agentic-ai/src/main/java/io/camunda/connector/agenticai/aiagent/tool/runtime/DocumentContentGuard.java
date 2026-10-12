@@ -13,21 +13,21 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The guard every load of a document content into the conversation passes: the content type must be
- * on the {@link DocumentLoadLimits allowlist} and the document must not exceed the limit of its
+ * The guard every addition of document content to the conversation passes: the content type must be
+ * on the {@link DocumentContentLimits allowlist} and the document must not exceed the limit of its
  * type. The size is read from the reference metadata without reading the document; when the
  * metadata has none, at most one byte more than the limit is read.
  *
- * <p>The model triggers a load with {@code c8__get_document}, the agent triggers it for the
- * documents of a user prompt or of an inline tool result. All of them use this guard, so the same
- * documents are loadable whoever asks.
+ * <p>The model asks for content with {@code c8__get_document}, the agent adds it for the documents
+ * of a user prompt or of a tool result with content delivery. All of them use this guard, so the
+ * same documents pass whoever asks.
  */
-public final class DocumentLoadGuard {
+public final class DocumentContentGuard {
 
-  private DocumentLoadGuard() {}
+  private DocumentContentGuard() {}
 
   /**
-   * Why a document is not loaded.
+   * Why a document gets no content.
    *
    * @param reason the kind of the problem
    * @param problem the problem as a predicate of the document, such as {@code is of type X which
@@ -47,7 +47,7 @@ public final class DocumentLoadGuard {
     }
 
     /**
-     * Whether a later attempt to load the same document can succeed. A document that is of an
+     * Whether a later attempt for the same document can succeed. A document that is of an
      * unsupported type or too large stays so.
      */
     public boolean retryable() {
@@ -55,10 +55,13 @@ public final class DocumentLoadGuard {
     }
   }
 
-  /** Returns why the document must not be loaded into the conversation, or empty if it may. */
+  /**
+   * Returns why the content of the document must not be added to the conversation, or empty if it
+   * may.
+   */
   public static Optional<Rejection> check(Document document) {
     final var contentType = DocumentHandle.contentTypeFor(document);
-    if (!DocumentLoadLimits.isLoadable(contentType)) {
+    if (!DocumentContentLimits.isSupported(contentType)) {
       return Optional.of(
           new Rejection(
               Rejection.Reason.UNSUPPORTED_TYPE,
@@ -66,7 +69,7 @@ public final class DocumentLoadGuard {
               null));
     }
 
-    final var limit = DocumentLoadLimits.limitFor(contentType);
+    final var limit = DocumentContentLimits.limitFor(contentType);
     final var size = DocumentHandle.sizeFor(document);
     if (size != null) {
       return size > limit

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentLoadGuard.Rejection.Reason;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentContentGuard.Rejection.Reason;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.junit.jupiter.api.Test;
 
-class DocumentLoadGuardTest {
+class DocumentContentGuardTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -57,8 +57,8 @@ class DocumentLoadGuardTest {
 
   @Test
   void letsALoadableDocumentWithinTheLimitPass() {
-    assertThat(DocumentLoadGuard.check(document(new byte[10], "text/plain"))).isEmpty();
-    assertThat(DocumentLoadGuard.check(document(new byte[1024 * 1024], "application/pdf")))
+    assertThat(DocumentContentGuard.check(document(new byte[10], "text/plain"))).isEmpty();
+    assertThat(DocumentContentGuard.check(document(new byte[1024 * 1024], "application/pdf")))
         .isEmpty();
   }
 
@@ -66,7 +66,7 @@ class DocumentLoadGuardTest {
   void rejectsADocumentOfATypeOutsideTheAllowlistWithoutReadingIt() {
     final var document = document(new byte[10], "application/zip");
 
-    final var rejection = DocumentLoadGuard.check(document).orElseThrow();
+    final var rejection = DocumentContentGuard.check(document).orElseThrow();
 
     assertThat(rejection.reason()).isEqualTo(Reason.UNSUPPORTED_TYPE);
     assertThat(rejection.problem())
@@ -79,7 +79,7 @@ class DocumentLoadGuardTest {
     final var text = camundaDocument("text/plain", 257L * 1024);
     final var pdf = camundaDocument("application/pdf", 257L * 1024);
 
-    final var rejection = DocumentLoadGuard.check(text).orElseThrow();
+    final var rejection = DocumentContentGuard.check(text).orElseThrow();
 
     assertThat(rejection.reason()).isEqualTo(Reason.TOO_LARGE);
     assertThat(rejection.problem())
@@ -87,7 +87,7 @@ class DocumentLoadGuardTest {
     assertThat(rejection.retryable()).isFalse();
     verify(text, never()).asInputStream();
     // the limit of a PDF is higher
-    assertThat(DocumentLoadGuard.check(pdf)).isEmpty();
+    assertThat(DocumentContentGuard.check(pdf)).isEmpty();
   }
 
   @Test
@@ -96,7 +96,7 @@ class DocumentLoadGuardTest {
     when(content.readNBytes(256 * 1024 + 1)).thenReturn(new byte[256 * 1024 + 1]);
     final var document = documentOfUnknownSize("text/plain", content);
 
-    final var rejection = DocumentLoadGuard.check(document).orElseThrow();
+    final var rejection = DocumentContentGuard.check(document).orElseThrow();
 
     assertThat(rejection.reason()).isEqualTo(Reason.TOO_LARGE);
     assertThat(rejection.problem())
@@ -110,7 +110,7 @@ class DocumentLoadGuardTest {
     final var document =
         documentOfUnknownSize("text/plain", new ByteArrayInputStream(new byte[100]));
 
-    assertThat(DocumentLoadGuard.check(document)).isEmpty();
+    assertThat(DocumentContentGuard.check(document)).isEmpty();
   }
 
   @Test
@@ -119,7 +119,7 @@ class DocumentLoadGuardTest {
     final var document = documentOfUnknownSize("text/plain", null);
     when(document.asInputStream()).thenThrow(failure);
 
-    final var rejection = DocumentLoadGuard.check(document).orElseThrow();
+    final var rejection = DocumentContentGuard.check(document).orElseThrow();
 
     assertThat(rejection.reason()).isEqualTo(Reason.UNREADABLE);
     assertThat(rejection.problem())

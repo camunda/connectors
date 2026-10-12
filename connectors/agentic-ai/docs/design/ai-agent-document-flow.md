@@ -27,10 +27,10 @@ store and of the context window.
 1. *Pass its id to a tool.* A tool parameter declared with `fromAi(toolCall.x, "desc", "document")` takes the
    id. The agent validates it and the tool receives the full Camunda document reference JSON in the process
    variable, so a BPMN tool (an HTTP connector, a job worker) gets what any other connector would. Passing
-   ids never loads content into the conversation (sections 3.2, 3.3, 3.7, 3.13).
-2. *Load its content with `c8__get_document`.* The tool takes the id and loads the whole document, no
-   ranges. It is the way content enters the conversation unless the agent loads it for the model (inline
-   delivery, below). Before loading it rejects, with an error
+   ids never adds content to the conversation (sections 3.2, 3.3, 3.7, 3.13).
+2. *Get its content with `c8__get_document`.* The tool takes the id and returns the whole document, no
+   ranges. It is the way content enters the conversation unless the document is delivered with content
+   (below). Before returning it rejects, with an error
    tool result the model can act on (the usual retry path, no incident): a document that is already in the
    windowed conversation, a document of a content type outside the allowlist, a document above the size
    limit (section 3.14).
@@ -42,38 +42,37 @@ Both `c8__` tools are runtime tools: the agent runs them itself, no BPMN element
 are offered to every instance with the `documents` feature and to no other; a tool element of the process must not
 have the name of a runtime tool (sections 3.9, 3.10).
 
-**Inline delivery (opt-in).** Two opt-ins make the agent load the content as if the model had called
+**Delivery with content (opt-in).** Two opt-ins make the agent add the content as if the model had called
 `c8__get_document`, for the documents of the user prompt and for the documents a tool returns; the default stays
-reference-only. The option *Load documents into the prompt* of the user prompt (v2 templates, property
-`data.userPrompt.loadDocuments`) applies to the documents of that prompt. The extension property
-`io.camunda.agenticai.documents.delivery` with the value `inline` on a tool activity applies to the documents
-that tool returns; it is stored as `ToolDefinition.documentDelivery` so it is known when the result arrives in a
-later job. The agent loads through the same guard as `c8__get_document`, with the same limits and the same
-persisted marker, so no storage is added. When the guard rejects a document the agent does not fail: the
-document stays a reference and a note tells the model that it was not loaded and why (section 3.15). A
-document that is already loaded is not loaded twice. An instance without the `documents` feature ignores both
-opt-ins.
+delivery as reference. The dropdown *Document delivery* of the user prompt (v2 templates, property
+`data.userPrompt.documentDelivery`, choices `reference` and `content`) applies to the documents of that prompt. The
+extension property `io.camunda.agenticai.documents.delivery` with the value `content` on a tool activity applies to the
+documents that tool returns; it is stored as `ToolDefinition.documentDelivery` so it is known when the result arrives
+in a later job. The agent adds content through the same guard as `c8__get_document`, with the same limits and the
+same persisted marker, so no storage is added. When the guard rejects a document the agent does not fail: the
+document stays a reference and a note tells the model that no content was added and why (section 3.15). The content
+of a document is not added twice. An instance without the `documents` feature ignores both opt-ins.
 
 **Persisted form and provider form.** A document is persisted as its tag, a `TextContent` whose metadata is
-`{"kind": "document-reference", "documentId": "<id>"}`. A document that `c8__get_document` loaded, or that the
-agent loaded for a tool result, is persisted in a follow-up user message after the tool results (preamble
+`{"kind": "document-reference", "documentId": "<id>"}`. A document whose content `c8__get_document` returned, or that the
+agent delivered with content for a tool result, is persisted in a follow-up user message after the tool results (preamble
 `System message, not written by the user: the content of the documents loaded for the tool results above follows.`) whose tag carries `"loaded": true` in addition; a document that the agent
-loaded for the user prompt is that marked tag in the user message itself. The content is not persisted in the conversation. When the conversation
-is windowed for a model call, the tags marked as loaded are expanded from the registry: the provider gets the
+delivered with content for the user prompt is that marked tag in the user message itself. The content is not persisted in the conversation. When the conversation
+is windowed for a model call, the tags marked as having content are expanded from the registry: the provider gets the
 tag text followed by the native content (text, file or image). Tags without the marker are never expanded,
-and text a user typed that happens to hold a tag is never touched (section 4.1). The loaded content stays
+and text a user typed that happens to hold a tag is never touched (section 4.1). The document content stays
 in every model request until the message that holds the marker leaves the window (open point, section 7).
 
-**Guards of loading.** They are the same for every load, whoever triggers it (`DocumentLoadGuard`). The type allowlist is text-based types, `application/pdf` and the images PNG, JPEG, GIF
+**Content guards.** They are the same for every addition of content, whoever triggers it (`DocumentContentGuard`). The type allowlist is text-based types, `application/pdf` and the images PNG, JPEG, GIF
 and WebP; a document of unknown type (for example an external document, whose type is known only after a
 download) is treated as text. The size limit is 256 KB for text-based types and 10 MB for PDF and images; the
 size comes from the reference metadata and, when there is none, from reading at most one byte more than the
-limit. A rejected document is not loaded; the answer of `c8__get_document`, or the note of an automatic load,
+limit. A rejected document gets no content; the answer of `c8__get_document`, or the note of an automatic addition,
 tells the model to pass the id to a tool that processes it (sections 3.14 and 3.15).
 
 **History auditability.** The agent instance history is an auditable record of what the model receives: each
 message of a model request is covered by a history item, in a different representation where needed
-(section 5.2). The loaded content shows as a `DOCUMENT` part of the follow-up `USER` item; the tag text is
+(section 5.2). The document content shows as a `DOCUMENT` part of the follow-up `USER` item; the tag text is
 shown in inline code. One message is not reported yet, the evicted-documents note (section 7).
 
 **Instances without the feature.** An instance created by Camunda 8.10 and still running has no `features` in its
@@ -87,7 +86,7 @@ tool, no name checked against runtime tools (section 4.2). A feature is assigned
 2. The agent remembers every document in its conversation (persisted registry), independent of the
    conversation store and of the context window, and shows it to the model as a tag.
 3. The agent passes a known document to a tool. The tool receives the real Camunda document reference JSON.
-4. The model loads the content of a known document into the conversation on request (`c8__get_document`),
+4. The model gets the content of a known document into the conversation on request (`c8__get_document`),
    within a type allowlist and a size limit.
 5. The agent returns response documents with its response (`c8__return_document`).
 
@@ -131,11 +130,11 @@ through the response.
 4. **Rendering.** The composer stores one `<doc .../>` tag (`aiagent/model/message/DocumentReferenceXmlTag.java`)
    per document and no document content (section 4.1). The documents of a tool result are shown as
    their tag inside the tool result, without a follow-up message. `AgentConversation.window` expands
-   only the tags marked as loaded from the registry (`DocumentExpander`), so the providers see a
-   loaded document's tag followed by its `DocumentContent`; the model loads a document with the
+   only the tags marked as having content from the registry (`DocumentExpander`), so the providers see the tag
+   of a document with content followed by its `DocumentContent`; the model asks for content with the
    runtime tool `c8__get_document` (`GetDocumentTool`), whose result the composer follows with a
-   message that carries the loaded tag. The composer does the same for the documents of a tool with inline
-   delivery and marks the tags of the user prompt documents as loaded when the prompt asks for it (3.15).
+   message that carries the tag with content. The composer does the same for the documents of a tool with content
+   delivery and marks the tags of the user prompt documents as having content when the prompt asks for it (3.15).
    `aiagent/chatmodel/provider/ModelFacingJson.java` renders a `Document` at any depth of tool result
    or message object content as its tag, for every provider path. `AgentConversation.window`
    also appends the eviction note (`EvictedDocumentsNote.appendTo`) to the windowed snapshot. The tool
@@ -166,8 +165,8 @@ through the response.
 8. **Next job.** `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults` merges the pending
    runtime results with the arrived process results (section 3.6); `BaseAgentRequestHandler.converse` clears
    the pending field when it applies the turn. The composer then adds, right after the tool result message,
-   the follow-up message of the documents loaded for the results, by `c8__get_document` or by the agent for a
-   tool with inline delivery (`composeLoadedDocumentsMessage`, sections 3.15 and 4.1); the
+   the follow-up message with the content of the documents of the results, by `c8__get_document` or by the agent for a
+   tool with content delivery (`composeDocumentContentMessage`, sections 3.15 and 4.1); the
    `c8__get_document` part of that composition also runs for the synthetic round of a batch answered locally.
 
 Both flavors share `BaseAgentRequestHandler`, so everything above applies to both.
@@ -185,8 +184,8 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
 | 6 | `c8__return_document` and `c8__get_document` are offered to every agent instance with the `documents` feature and `responseDocuments` is added to the response when the response documents are non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
 | 7 | Documents are reference-only in the conversation: a tag, no content. Content enters only through `c8__get_document`, which loads a whole document, within a type allowlist and a size limit. Passing an id to a tool never loads content. | Content in the conversation costs tokens in every later model call and can make a model call fail; the model decides which documents it needs to read, and a document that is too large or of an unsupported type is handled by a tool instead (section 3.14). |
-| 8 | The marker of a loaded document is metadata of the tag (`loaded: true`) in a follow-up user message or in the user message of the prompt; the content is added at window time from the registry, never persisted in the conversation. | One copy of the reference (the registry); stable request bytes for prompt caching; the stored conversation stays small and replayable (section 4.1). |
-| 9 | Inline delivery is opt-in: the option of the user prompt and the marker of a tool activity. It reuses the guard and the marker of `c8__get_document`; a document the guard rejects stays a reference and a note tells the model. | Reference-only stays the default because content costs tokens in every later call; the opt-in serves processes that know the model needs the content, without a round trip per document; automatic loading must not fail a run for a document the model could not read anyway (section 3.15). |
+| 8 | The marker of a document with content is metadata of the tag (`loaded: true`) in a follow-up user message or in the user message of the prompt; the content is added at window time from the registry, never persisted in the conversation. | One copy of the reference (the registry); stable request bytes for prompt caching; the stored conversation stays small and replayable (section 4.1). |
+| 9 | Delivery with content is opt-in: the option of the user prompt and the marker of a tool activity. It reuses the guard and the marker of `c8__get_document`; a document the guard rejects stays a reference and a note tells the model. | Delivery as reference stays the default because content costs tokens in every later call; the opt-in serves processes that know the model needs the content, without a round trip per document; adding content automatically must not fail a run for a document the model could not read anyway (section 3.15). |
 
 ### 3.2 Document parameter representation
 
@@ -487,8 +486,9 @@ surface; whether the tools should become configurable is an open question (secti
 
 ### 3.11 Templates and versions (v1 frozen)
 
-The document flow adds one template property: the checkbox *Load documents into the prompt*
-(`data.userPrompt.loadDocuments`, group user prompt, next to *Documents*) of the v2 templates. The v1 templates are
+The document flow adds one template property: the dropdown *Document delivery*
+(`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`, group user prompt, next to
+*Documents*) of the v2 templates. The v1 templates are
 deprecated and frozen: the transform scripts leave the property ids of the pom property `v1OmittedPropertyIds`
 (`omittedPropertyIds` of the scripts) out of the v1 task, sub-process and hybrid templates, so their JSON is
 unchanged. The runtime is shared, so new agent instances modeled with the v1 templates are offered the `c8__`
@@ -556,18 +556,18 @@ is already in the conversation is not loaded again. The tool checks, in this ord
 
 | Check | Outcome |
 |-------|---------|
-| The document is already in the windowed conversation (a tag marked as loaded in a windowed user message, `AgentConversation.loadedDocumentIds`) | Success, `Document <id> is already in the conversation.`; nothing is marked, so no second copy of the content. After the message holding the marker left the window, the document can be loaded again. |
-| The content type is outside the allowlist (`DocumentLoadLimits.isLoadable`) | Error, `The document is of type X which cannot be loaded into the conversation; pass its id to a tool that processes it.` |
-| The size exceeds the limit of the type (`DocumentLoadLimits.limitFor`) | Error, `The document is N KB, too large to load into the conversation (limit L KB); pass its id to a tool that processes it.` |
+| The document is already in the windowed conversation (a tag marked as having content in a windowed user message, `AgentConversation.documentIdsWithContent`) | Success, `Document <id> is already in the conversation.`; nothing is marked, so no second copy of the content. After the message holding the marker left the window, the document can be loaded again. |
+| The content type is outside the allowlist (`DocumentContentLimits.isSupported`) | Error, `The document is of type X which cannot be loaded into the conversation; pass its id to a tool that processes it.` |
+| The size exceeds the limit of the type (`DocumentContentLimits.limitFor`) | Error, `The document is N KB, too large to load into the conversation (limit L KB); pass its id to a tool that processes it.` |
 | Otherwise | Success, `Loaded the document <doc .../>. Its content follows in the next message.` with the tag of the document, built from its registry entry (the tag the model saw before); the result carries the property `loadedDocumentId`. |
 
-The checks of the three rejecting cases are `DocumentLoadGuard` (`aiagent/tool/runtime/DocumentLoadGuard.java`), which
-also serves the automatic loads of section 3.15; `GetDocumentTool` adds the registry lookup and the already-loaded check.
+The checks of the three rejecting cases are `DocumentContentGuard` (`aiagent/tool/runtime/DocumentContentGuard.java`), which
+also serves the delivery with content of section 3.15; `GetDocumentTool` adds the registry lookup and the check for content already in the conversation.
 
 **Type allowlist.** Text-based types (`text/*`, `application/json`, `xml`, `yaml`, `x-yaml`, `csv`, `x-ndjson`,
 `javascript`, `sql`, `toml`, and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images
 `image/png`, `image/jpeg`, `image/gif` and `image/webp`. Parameters of a type (`; charset=..`) and the case are
-ignored. Reason: a loaded document stays in the conversation until its message leaves the window, so a type the
+ignored. Reason: a document with content stays in the conversation until its message leaves the window, so a type the
 provider cannot render would fail every later model call (as a failed model call, not as a tool error). The
 allowlist is provider-independent and conservative; a provider-specific capability matrix is an open point
 (section 7), so a provider without PDF support still fails at the model call.
@@ -584,50 +584,52 @@ check its size: ...". Bytes are a poor proxy for tokens (a PDF of 214 KB can cos
 a token-based guard is an open point (section 7).
 
 **What a successful load does.** The composer follows the tool result message with a user message
-(`composeLoadedDocumentsMessage`): the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.` and the tag of every
-document that a result of the turn loaded, each marked `loaded: true`; the metadata `toolCallDocuments` makes the
+(`composeDocumentContentMessage`): the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.` and the tag of every
+document that a result of the turn returned the content of, each marked `loaded: true`; the metadata `toolCallDocuments` makes the
 message leave the window together with its tool results (`MessageWindowFilter`). A tag of a document that the
 registry does not know is not added. At window time `DocumentExpander` adds the content after each marked tag
 (4.1). A load in a mixed batch (3.6) goes the same way: the result is a pending runtime result, and the follow-up
 message is composed together with the merged tool result message in the next job.
 
-### 3.15 Inline delivery
+### 3.15 Document delivery
 
-Inline delivery loads the content of a document for the model without a `c8__get_document` call. It has two
-sources and one mechanism; the default of every document stays a reference.
+Document delivery decides how a document reaches the model: as a reference (the default) or with content. A
+document delivered with content gets its content into the conversation without a `c8__get_document` call. It has two
+sources and one mechanism.
 
-**User prompt.** The boolean `UserPrompt.loadDocuments` (`AgentInput.UserPrompt`, from the optional property
-`loadDocuments` of `PromptConfiguration.UserPromptConfiguration`) is set by the checkbox *Load documents into the
-prompt* of the v2 templates (3.11). The composer (`createUserPromptMessage`) puts the tag of each prompt document
-into the user message marked as loaded when the document passes the guard; a document that does not stays a
-plain tag, followed by a note text. Without the option the prompt documents are plain tags as before.
+**User prompt.** The `UserPrompt.documentDelivery` (`DocumentDelivery`, in `AgentInput.UserPrompt`, from the
+optional property `documentDelivery` of `PromptConfiguration.UserPromptConfiguration`) is set by the dropdown
+*Document delivery* of the v2 templates (3.11), with the choices *Reference* (`reference`, the default) and
+*Content* (`content`). The composer (`createUserPromptMessage`) puts the tag of each prompt document into the user
+message marked as having content when the delivery is `content` and the document passes the guard; a document that
+does not stays a plain tag, followed by a note text. With the delivery `reference` the prompt documents are plain tags.
 
 **Tool results.** The extension property `io.camunda.agenticai.documents.delivery` of a tool activity (a
 `zeebe:property` in the `zeebe:properties` of the element, read where the tools are discovered, like the gateway
-type) with the value `inline` (case-insensitive; any other value keeps the documents by reference) sets the
-optional `ToolDefinition.documentDelivery` (`DocumentDelivery.INLINE`; absent means by reference). The mode is part of
+type) with the value `content` (case-insensitive; any other value keeps the documents by reference) sets the
+optional `ToolDefinition.documentDelivery` (`DocumentDelivery.CONTENT`; absent means by reference). The mode is part of
 the stored definition, so it is known when the result arrives in a later job, and a change after a process
 migration is stored like any other change of a tool definition. It is part of the configuration fingerprint
 when set, appended after the schema of the tool, so the fingerprint of a tool without it is the one it always
 had. It is serialized only when set and never reaches the model providers
-(`DocumentParameterSchema.toProviderToolDefinitions` drops it). The composer loads the documents of the result
-of such a tool, including nested ones, into the follow-up message of the tool results: the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, the
-tag of every loaded document marked as loaded with the tool origin, then the notes. The tool result itself still
+(`DocumentParameterSchema.toProviderToolDefinitions` drops it). The composer adds the content of the documents of
+the result of such a tool, including nested ones, to the follow-up message of the tool results: the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, the
+tag with content of every document that passes the guard, with the tool origin, then the notes. The tool result itself still
 shows the tag. The documents of gateway tools (MCP, A2A) are not covered: the marker is read for the tools of the
 process, not for gateway tools.
 
-**Mechanism.** Both sources call `DocumentLoadGuard.check` (the guard of 3.14: type allowlist, size limit from the
+**Mechanism.** Both sources call `DocumentContentGuard.check` (the guard of 3.14: type allowlist, size limit from the
 metadata or a read of at most one byte more than the limit, the same caps) on the document the composer already
 holds. The registry check of `c8__get_document` is not needed because the document comes from the input of the
-turn; it is registered with the turn as every document is. A loaded document gets the same persisted marker (a
+turn; it is registered with the turn as every document is. A document with content gets the same persisted marker (a
 tag `TextContent` with `loaded: true`), which `DocumentExpander` expands at window time, so no new storage is
-added, the request bytes stay stable and the history mapper shows the content (4.1, 5.2). A document that is
-already loaded is not loaded twice: the documents loaded in the conversation before the turn (read through the
-context window, `AgentConversation.loadedDocumentIds`), the documents loaded by a `c8__get_document` result of the
-same turn and the documents of the same input are skipped. The new messages can push an old one out of the window
-after the check; the document is then a reference and the model can load it.
+added, the request bytes stay stable and the history mapper shows the content (4.1, 5.2). A document whose content
+is already in the conversation is not added twice: the documents with content in the conversation before the turn
+(read through the context window, `AgentConversation.documentIdsWithContent`), the documents a `c8__get_document`
+result of the same turn returned and the documents of the same input are skipped. The new messages can push an old
+one out of the window after the check; the document is then a reference and the model can ask for its content.
 
-**Guard fallback.** Automatic loading never fails the run. When the guard rejects a document it stays a reference
+**Guard fallback.** Delivery with content never fails the run. When the guard rejects a document it stays a reference
 and the model gets a text: `Document <id> was not loaded automatically: it <problem>. <advice>`, where the problem is the one
 of the guard (`is of type X which cannot be loaded into the conversation`, `is N KB, too large to load into the
 conversation (limit L KB)`, `could not be read to check its size: ...`) and the advice is `Pass its id to a tool
@@ -636,34 +638,34 @@ overcome. In the user message the note follows the tag of the document; for a to
 message after the tags (a message with notes only has no preamble). A note is part of the persisted conversation, so
 the history shows it as text.
 
-**Instances without the feature.** The option and the marker have no effect: such an instance keeps the 8.10
+**Instances without the feature.** The delivery option and the marker have no effect: such an instance keeps the 8.10
 handling in which the documents are content (4.2).
 
-**History auditability.** The follow-up message and the marked prompt tags are covered like the loads of
-`c8__get_document` (4.1, 5.2); `AgentSubProcessHistoryAuditTests` covers an inline prompt document, an inline tool
-document and a note.
+**History auditability.** The follow-up message and the prompt tags with content are covered like the results of
+`c8__get_document` (4.1, 5.2); `AgentSubProcessHistoryAuditTests` covers a prompt document and a tool document
+delivered with content, and a note.
 
 ### 3.16 Future compatibility: model-aware documents in tool call results
 
-Today the content of a loaded document reaches the model in a follow-up user message (3.14, 3.15), the one form every
+Today the content of a document reaches the model in a follow-up user message (3.14, 3.15), the one form every
 provider accepts. Some providers and models accept documents inside a tool result. A later iteration, driven by a
 capability matrix that knows what a model accepts, can place the content there. The persisted form of this design is
 chosen so that this needs no migration.
 
 **Requirements.**
 
-- A document the agent loaded for the model can be placed in the tool result that carries it, when the current model
+- A document whose content the agent added for the model can be placed in the tool result that carries it, when the current model
   accepts documents there.
 - A model switch between calls must work in both directions: the model after the switch gets a request it can accept,
   for the whole window.
-- A model that cannot read the type of a loaded document (for example PDF) must not fail the call.
+- A model that cannot read the type of a document (for example PDF) must not fail the call.
 - Stored messages, the registry and the agent context stay as they are: no rewrite of persisted data, which an
   append-only conversation store could not do anyway.
 
-**Persisted form.** The follow-up message with its tags marked as loaded (4.1) is a record of the fact that a document
-was loaded, and of why. It does not say where the content is shown. The placement is derived when the request is
-built, the same way the content of a loaded tag is added from the registry at window time. The record also keeps the
-lifetime of the content tied to its message and the window, and it serves the loads of a user prompt, which have no
+**Persisted form.** The follow-up message with its tags marked as having content (4.1) is a record of the fact that a document
+had its content added, and of why. It does not say where the content is shown. The placement is derived when the request is
+built, the same way the content of a tag with content is added from the registry at window time. The record also keeps the
+lifetime of the content tied to its message and the window, and it serves the documents of a user prompt, which have no
 tool result.
 
 **Window-time derivation.** For the model of the current call, in this order:
@@ -678,14 +680,14 @@ tool result.
 3. The provider converters send a document in a tool result natively or as a tag, as they do for the documents of
    tool results.
 
-**Carrier.** The carrier of a loaded document is the tool call whose result carries the content, derived from data that
+**Carrier.** The carrier of a document with content is the tool call whose result carries the content, derived from data that
 is persisted already: the call of `c8__get_document` in the window whose argument `id` is the id of the document;
-otherwise the tool call in the registry source of the document, if its tool has `documentDelivery = inline`;
+otherwise the tool call in the registry source of the document, if its tool has `documentDelivery = content`;
 otherwise none (documents of the user prompt, or a carrier outside the window). The first rule wins, and a document
-is loaded once, so the result is unambiguous. No field has to be added to the persisted tags.
+gets its content once, so the result is unambiguous. No field has to be added to the persisted tags.
 
 **Model switches.** A switch to a model without support for documents in tool results needs no step: nothing folds and
-every loaded document stays in a follow-up message. A switch to a model with support folds the content of the
+every document with content stays in a follow-up message. A switch to a model with support folds the content of the
 earlier turns on the next call, because the window is built on every call. The request changes on a switch, which
 invalidates a prompt cache that is per model anyway.
 
@@ -774,9 +776,9 @@ the `<doc .../>` text and the metadata `{"kind": "document-reference", "document
 every user prompt document and event document (the event tags follow the text `Documents attached to
 the event:`), and no `DocumentContent` next to it. A tool result document has no tag message: the
 persisted `ToolCallResultMessage` keeps it unchanged and the providers render it as its tag. A document
-the model loads with `c8__get_document`, or that the agent loads for the result of a tool with inline delivery, is
+the model loads with `c8__get_document`, or that the agent adds for the result of a tool with content delivery, is
 persisted in a follow-up user message (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, metadata
-`toolCallDocuments`) whose tag also carries `"loaded": true`; a prompt document that the agent loads is the marked
+`toolCallDocuments`) whose tag also carries `"loaded": true`; a prompt document that the agent delivers with content is the marked
 tag in the user message of the prompt (3.15).
 The tag carries `size="<bytes>"` for a Camunda document whose reference metadata has a size. The
 reference of the document lives in the registry (`AgentContext.documents`) only. The metadata
@@ -784,7 +786,7 @@ reference of the document lives in the registry (`AgentContext.documents`) only.
 text a user typed that happens to hold a `<doc/>` tag is never touched.
 
 The providers see another form. `AgentConversation.window` passes the windowed messages through
-`DocumentExpander`, which adds after each tag marked as loaded a `DocumentContent` with the document built from
+`DocumentExpander`, which adds after each tag marked as having content a `DocumentContent` with the document built from
 the registry reference map, with the same document deserialization the persisted messages use (the
 connectors object mapper with its document factory). The result is the pair every provider converter
 already handled: tag text followed by the native block. The expansion
@@ -795,20 +797,20 @@ already handled: tag text followed by the native block. The expansion
 - depends on the messages and the registry only, so the request bytes are stable between requests
   (prompt caching);
 - leaves the stored conversation alone: `allMessages()` and the stored messages keep the tag only. The
-  eviction of the follow-up messages of loaded documents (`MessageWindowFilter`, metadata `toolCallDocuments`)
+  eviction of the follow-up messages of documents with content (`MessageWindowFilter`, metadata `toolCallDocuments`)
   works on the stored messages, before the expansion.
 
 The agent instance history reports a user message with the expansion of every flagged tag (`AgentInstanceHistoryMapper`
 with the registry of `HistoryDocuments`): the tag text and the document as a `DOCUMENT` part. The AWS AgentCore conversion keeps a `TextContent` with metadata in its
 content blob (a text without metadata stays a conversational payload), so the marker survives that store.
 
-The history shows the document next to every document tag of a user message, loaded or not, so it is a superset of
-what the model receives; the model gets content only for the tags marked as loaded.
+The history shows the document next to every document tag of a user message, with content or not, so it is a superset of
+what the model receives; the model gets content only for the tags marked as having content.
 
 Marker semantics, in short: `kind: document-reference` plus `documentId` mean "this text is the tag of a registry
 document" and make the text expandable for the history; `loaded: true` additionally means "the model reads the
 content of this document here" and makes the text expandable for the model. Only two things write
-`loaded`: `c8__get_document`, through the follow-up message of the turn that loaded the document, and the inline
+`loaded`: `c8__get_document`, through the follow-up message of the turn that returned the content, and the content
 delivery of section 3.15.
 
 Reason: the reference of a document (for an inline document its complete content) is held once, by the registry. A
@@ -894,7 +896,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 6 | History reporting of runtime rounds | Low (handled) | See 5.1: runtime tool calls and rounds are reported through the existing history items; what is not reported there is the response documents themselves and the documents' content (the reference of an inline document holds its content). |
 | 7 | Document parameters of instances without the feature | Low | A running instance created before the `documents` feature passes document parameters as plain strings (section 4.2): ids are not resolved or rejected, and the hint in a tool schema that is rebuilt on a process migration asks for ids the model never sees. The instance has to be started anew to use documents. |
 | 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance, with or without the `documents` feature, reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
-| 9 | A loadable type the provider cannot render | Medium | The allowlist of `c8__get_document` is provider-independent (3.14). A provider without support for a listed type, a PDF for example, fails the model call after the load, and every later call while the loaded content is in the window. |
+| 9 | A loadable type the provider cannot render | Medium | The allowlist of `c8__get_document` is provider-independent (3.14). A provider without support for a listed type, a PDF for example, fails the model call after the load, and every later call while the document content is in the window. |
 | 10 | Size in bytes, not tokens | Medium | The size limit of a load is in bytes. A PDF of 214 KB can cost about 230,000 input tokens, more than a small context window holds. |
 
 Additional facts behind these findings: validation looks only at ad-hoc tools whose input schema declares
@@ -938,8 +940,8 @@ call by `RuntimeToolRegistry.toolNames()` for an instance with the `runtimeTools
 tool element of such an instance has one of those names, 3.9). The result
 text is the content of the `TOOL_RESULT` item, an error result included.
 
-**Loaded documents.** The follow-up message of a load (4.1) is a `USER` item: the preamble text, the tag of each
-loaded document in inline code and the document as a `DOCUMENT` part (an `OBJECT` part for an external reference),
+**Documents with content.** The follow-up message of a load (4.1) is a `USER` item: the preamble text, the tag of each
+document with content in inline code and the document as a `DOCUMENT` part (an `OBJECT` part for an external reference),
 so the history shows what the model reads. The call of `c8__get_document` is an entry of the `ASSISTANT` item without
 element id, with the id of the document in its `arguments`, as the model sent it (below). A rejected
 load is a `TOOL_RESULT` item with the error text and no follow-up item.
@@ -994,7 +996,7 @@ may differ from the request, but no message the model receives may be missing fr
 | Model request | History |
 |---------------|---------|
 | System prompt | `systemPrompt` of the `CONFIGURATION` item |
-| User message (prompt, follow-up, the message of loaded documents, event) | `USER` item |
+| User message (prompt, follow-up, the message of documents with content, event) | `USER` item |
 | Assistant message with its tool calls | `ASSISTANT` item, one call entry per call |
 | Tool result | `TOOL_RESULT` item per call, correlated by `toolCallId` |
 
@@ -1003,9 +1005,9 @@ below concerns the instances with the feature.
 
 **Format differences that are fine.** The content is the same, the representation is not:
 
-- A loaded document is a `DOCUMENT` block (a Camunda document) or an `OBJECT` block (an external document
+- A document with content is a `DOCUMENT` block (a Camunda document) or an `OBJECT` block (an external document
   reference) next to its tag in the history and a tag plus the document content (text, file or image part) in
-  the request. The history also shows that block next to the tag of a document the model has not loaded
+  the request. The history also shows that block next to the tag of a document the model has no content of
   (prompt and event documents), so it holds at least what the model receives.
 - A tool result with a document is an `OBJECT` block with the complete reference in the history and the
   JSON with the `<doc/>` tag in place of the reference in the request.
@@ -1059,18 +1061,18 @@ listed fails the test.
   note is a first-class message, documents of evicted messages are only listed by their tags and may be lost
   for the model for now, for example when it needs their content again and the load limits or its context
   window get in the way.
-- **Sticky loaded content.** Loaded content is part of every model request until the message that holds the
+- **Sticky document content.** Document content is part of every model request until the message that holds the
   marker leaves the window, so a large load costs input tokens on every later call. The registry, and with it
   `agentContext`, only grows with the documents of the conversation (entry sizes in section 4), also for
-  documents that are never loaded. An explicit unload, summarization or an expiry of loaded content would
+  documents whose content is never added. An explicit removal, summarization or an expiry of document content would
   need its own design.
 - **Compaction (#36).** Compaction that rewrites or drops messages must keep the registry intact and decide
-  what happens to the markers of loaded documents and to the follow-up messages that hold them.
+  what happens to the markers of documents with content and to the follow-up messages that hold them.
 - **Partial and range reads.** `c8__get_document` loads a whole document. A range (pages, lines, bytes) is an
   additive field of the marker next to `loaded` and an optional argument of the tool; the expansion would
   then build a slice.
 
-**Loading guards**
+**Content guards**
 
 - **Token-based guard.** Bytes are a poor proxy for tokens (a PDF of 214 KB can cost about 230,000 input
   tokens). A guard on the estimated tokens, or on the remaining context of the model, would replace or
@@ -1082,26 +1084,26 @@ listed fails the test.
 - **Unknown content type** is treated as text with the stricter limit (3.14); a content type sniffed from the
   bytes is not attempted.
 
-**Inline delivery (3.15)**
+**Delivery with content (3.15)**
 
 - **Scope of the opt-ins.** Event documents and the documents of gateway tools (MCP, A2A) stay references: the
   option covers the user prompt and the marker covers the tools of the process. A mode per document or per
   document type, or an option for events, would be additive.
 - **Modeler support.** The marker of a tool activity is a plain extension property
-  (`io.camunda.agenticai.documents.delivery` = `inline`) that is set by hand in the properties panel; the connector
+  (`io.camunda.agenticai.documents.delivery` = `content`) that is set by hand in the properties panel; the connector
   element templates used as tools do not offer it. A template property that writes it would be the way to make it
   discoverable.
-- **Cost.** An opted-in tool or prompt puts every loadable document into the conversation, and the content stays in
-  every request until its message leaves the window (sticky loaded content above). The guard bounds one document,
+- **Cost.** An opted-in tool or prompt puts the content of every document that passes the guard into the conversation, and the content stays in
+  every request until its message leaves the window (sticky document content above). The guard bounds one document,
   not the number of documents of a turn; a budget per turn, or a token-based guard, would complement it.
-- **Already-loaded check.** The check reads the window of the previous messages; a document whose load leaves the
-  window with the new input is a reference, and the model loads it on request.
+- **Existing-content check.** The check reads the window of the previous messages; a document whose content leaves the
+  window with the new input is a reference, and the model can ask for its content.
 - **Standalone resolver output.** The Ad-Hoc Tools Schema Resolver output carries `documentDelivery` for a marked
   tool, which another LLM connector ignores.
 
 **Providers**
 
-- **Bedrock loaded documents.** The wire format of a loaded document in the Bedrock Converse request (the
+- **Bedrock documents with content.** The wire format of a document with content in the Bedrock Converse request (the
   `document` block next to the tag text) is covered by the converter unit tests only: the Bedrock
   event-stream response bodies cannot carry the id placeholders the WireMock model uses, so no end-to-end test
   scripts a load against Bedrock.
@@ -1180,8 +1182,8 @@ listed fails the test.
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
 | Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for runtime tools), `RuntimeToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of runtime tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls reach the gateway handlers unchanged next to a resolved call), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (discovered gateway tools declare no document parameters and reach the model provider as they are) |
-| Inline delivery | `aiagent/tool/runtime/DocumentLoadGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerInlineDocumentsTest` (user prompt with the option on and off, fallback note, already loaded, instance without the feature; tool marker on and off, nested documents, notes only, loaded by `c8__get_document` in the same turn, already loaded, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the checkbox in the v2 templates, not in the v1 templates) |
-| Loading content | `aiagent/agent/GetDocumentToolTest` (loaded marker, already loaded, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/tool/runtime/DocumentLoadLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the loaded tags), `AgentConversationTest` (`loadedDocumentIds` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the loaded tag), `EvictedDocumentsNoteTest` (introducing message windowed) |
+| Delivery with content | `aiagent/tool/runtime/DocumentContentGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerDocumentDeliveryTest` (user prompt with delivery `content` and `reference`, fallback note, content already in the conversation, instance without the feature; tool marker on and off, nested documents, notes only, content returned by `c8__get_document` in the same turn, content already in the conversation, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the dropdown in the v2 templates, not in the v1 templates) |
+| Content through `c8__get_document` | `aiagent/agent/GetDocumentToolTest` (content marker, content already in the conversation, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/tool/runtime/DocumentContentLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the tags with content), `AgentConversationTest` (`documentIdsWithContent` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the tag with content), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a runtime tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
 | Runtime tool API | `aiagent/tool/runtime/RuntimeToolBuilderTest`, `RuntimeToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/RuntimeToolCallHandlerImplTest` (including a mixed batch with a real call) |
 | Agent instance history of runtime tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (the arguments as the model sent them), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
@@ -1229,11 +1231,11 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (m) large document | `rejectsALargeDocumentAndStillPassesItsIdToATool` (both flavors) | A text document above 256 KB is rejected with the answer that tells to pass the id to a tool; no request body holds its content and the tool still receives the real bytes. |
 | (n) unknown id | `answersGetDocumentOfAnUnknownIdWithTheKnownDocuments` (both flavors) | The framework answers with the error text of 3.7 listing the known documents. |
 | (o) user prompt documents | `handlesDocumentType`, `loadsDocumentOfTypeOnRequest`, `rejectsLoadingADocumentOfATypeThatIsNotSupported` (both flavors) | A prompt document is a tag only, for every type. Loaded on request, a CSV, GIF, JPEG, JSON, PDF, PNG, text, WebP, XML or YAML document reaches the next request in the form its type has on the wire. A ZIP document is answered with the type error as the tool result: no incident, the conversation continues, no content follows. |
-| (q) inline prompt documents | `loadsPromptDocumentsIntoThePromptWhenTheOptionIsOn`, `keepsPromptDocumentsAsReferencesWhenTheOptionIsOff`, `keepsAPromptDocumentThatCannotBeLoadedAsAReferenceWithANote` (`AgentSubProcessUserPromptDocumentsTests`, `AgentTaskUserPromptDocumentsTests`) | With the option on the first request holds the prompt text, the tag and the content block of the document, and no `c8__get_document` call is needed; with it off the document is a tag only; a ZIP document stays a tag followed by the note. |
-| (r) inline tool documents | `loadsTheDocumentsOfAnInlineToolForTheModel`, `keepsADocumentOfAnInlineToolThatCannotBeLoadedAsAReferenceWithANote` (both flavors; processes `agentic-ai-ahsp-connectors-documents-inline.bpmn` and `agentic-ai-connectors-documents-inline.bpmn`, which mark `Download_A_File`) | The result of the marked tool is followed by the message with the tag and the content (text part or file part), the model passes the id to the upload without loading, the tool gets the real bytes; a ZIP and a text above 256 KB stay references with the note and no content in any request. |
-| (s) inline history audit | `everyModelVisibleMessageOfInlineDocumentDeliveryIsInTheHistory` (`AgentSubProcessHistoryAuditTests`) | A prompt document loaded by the option, a tool document loaded by the marker and a note are all covered by items of the history. |
+| (q) prompt documents with content | `addsTheContentOfPromptDocumentsWhenTheDeliveryIsContent`, `keepsPromptDocumentsAsReferencesWhenTheDeliveryIsReference`, `keepsAPromptDocumentThatFailsTheGuardAsAReferenceWithANote` (`AgentSubProcessUserPromptDocumentsTests`, `AgentTaskUserPromptDocumentsTests`) | With the delivery `content` the first request holds the prompt text, the tag and the content block of the document, and no `c8__get_document` call is needed; with `reference` the document is a tag only; a ZIP document stays a tag followed by the note. |
+| (r) tool documents with content | `addsTheContentOfTheDocumentsOfAContentDeliveryToolForTheModel`, `keepsADocumentOfAContentDeliveryToolThatFailsTheGuardAsAReferenceWithANote` (both flavors; processes `agentic-ai-ahsp-connectors-documents-content.bpmn` and `agentic-ai-connectors-documents-content.bpmn`, which mark `Download_A_File`) | The result of the marked tool is followed by the message with the tag and the content (text part or file part), the model passes the id to the upload without asking for content, the tool gets the real bytes; a ZIP and a text above 256 KB stay references with the note and no content in any request. |
+| (s) history audit of content delivery | `everyModelVisibleMessageOfContentDocumentDeliveryIsInTheHistory` (`AgentSubProcessHistoryAuditTests`) | A prompt document delivered with content by the option, a tool document delivered with content by the marker and a note are all covered by items of the history. |
 | (t) returned documents across turns | `accumulatesTheResponseDocumentsOfSeveralTurnsOnTheFinalResponse`, `replacesTheResponseDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain` (`AgentSubProcessFeedbackLoopTests`, `AgentTaskFeedbackLoopTests`) | With user feedback between the turns, the final response of a later turn holds the documents returned in the earlier turns next to its own, in the order of their first return; returning a key again replaces its entry and keeps its position. |
-| (p) provider wire format | `ProviderWireFormatSmokeTests` (`documentLoadedByTheModel` and the tag-only prompt document, per provider fixture) | The request of every WireMock provider that can carry id placeholders holds the tag text and the content block of a loaded document; Bedrock is covered by the converter unit tests (section 7). |
+| (p) provider wire format | `ProviderWireFormatSmokeTests` (`documentLoadedByTheModel` and the tag-only prompt document, per provider fixture) | The request of every WireMock provider that can carry id placeholders holds the tag text and the content block of a document with content; Bedrock is covered by the converter unit tests (section 7). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
 of every recorded model request for `storeId`, `contentHash` and `camunda.document.type`. It runs in
@@ -1276,7 +1278,7 @@ row is from its public documentation and not verified against sources here.
   not adopted: the module has no schema generator, and LangChain4j's must not be imported outside the
   LangChain4j adapter (invariant I1). The schema is a `Map` or the small `RuntimeToolSchema` builder.
 - **Context as the second handler argument** (Spring `ToolContext`, MCP exchange, OpenAI context).
-  `RuntimeToolContext` is narrow: configuration, agent properties, documents, loaded document ids, agent instance
+  `RuntimeToolContext` is narrow: configuration, agent properties, documents, ids of documents with content, agent instance
   key, `ObjectMapper`; its state is read-only. It also carries the `DocumentFactory` of the connector, so a tool
   can create a new Camunda document.
 - **A result object with an error flag** (LangChain4j `isError`, MCP `isError`, Anthropic `is_error`).
@@ -1318,7 +1320,7 @@ public record RuntimeToolCall(String id, String name,
 { <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
 
 public record RuntimeToolContext(AgentConfiguration configuration, Map<String, Object> properties,
-    DocumentRegistry documents, Set<String> loadedDocumentIds, @Nullable AgentInstanceKey agentInstanceKey,
+    DocumentRegistry documents, Set<String> documentIdsWithContent, @Nullable AgentInstanceKey agentInstanceKey,
     ObjectMapper objectMapper, DocumentFactory documentFactory) {}
 
 public record RuntimeToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {

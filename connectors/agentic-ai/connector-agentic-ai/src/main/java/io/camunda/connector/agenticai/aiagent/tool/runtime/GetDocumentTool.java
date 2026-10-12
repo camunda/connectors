@@ -27,11 +27,11 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A successful call answers {@code Loaded the document <doc/ tag>. Its content follows in the
  * next message.} with the tag of the document, as the model saw it before, and marks its result
- * with the id of the document ({@link ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content
- * reaches the model in the message that follows the tool results. A document that is already part
- * of the conversation is not loaded again. A document that does not pass the {@link
- * DocumentLoadGuard} (a content type outside the allowlist, a size above the limit of its type) is
- * rejected without being loaded.
+ * with the id of the document ({@link ToolCallResult#PROPERTY_DOCUMENT_ID_WITH_CONTENT}); the
+ * content reaches the model in the message that follows the tool results. A document that is
+ * already part of the conversation is not added again. A document that does not pass the {@link
+ * DocumentContentGuard} (a content type outside the allowlist, a size above the limit of its type)
+ * is rejected without its content being read.
  */
 public final class GetDocumentTool implements RuntimeTool {
 
@@ -92,14 +92,14 @@ public final class GetDocumentTool implements RuntimeTool {
               .formatted(PARAMETER_ID, context.documents().knownDocumentsText()));
     }
 
-    if (context.loadedDocumentIds().contains(entry.id())) {
+    if (context.documentIdsWithContent().contains(entry.id())) {
       return RuntimeToolResult.success(
           "Document %s is already in the conversation.".formatted(entry.id()));
     }
 
     final var document = documentOf(entry, context);
 
-    final var rejection = DocumentLoadGuard.check(document).orElse(null);
+    final var rejection = DocumentContentGuard.check(document).orElse(null);
     if (rejection != null) {
       if (rejection.retryable()) {
         final var message = "The document " + rejection.problem();
@@ -115,7 +115,7 @@ public final class GetDocumentTool implements RuntimeTool {
     return RuntimeToolResult.success(
             "Loaded the document %s. Its content follows in the next message."
                 .formatted(DocumentReferenceXmlTag.from(entry).toXml()))
-        .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, entry.id());
+        .withProperty(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, entry.id());
   }
 
   /** The document of a registry entry, read from its reference. */

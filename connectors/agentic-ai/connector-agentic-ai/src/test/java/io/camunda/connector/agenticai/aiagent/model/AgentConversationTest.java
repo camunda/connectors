@@ -618,7 +618,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void loadedDocumentIds_collectsTheLoadedTagsOfTheWindowedUserMessagesOnly() {
+  void documentIdsWithContent_collectsTheLoadedTagsOfTheWindowedUserMessagesOnly() {
     var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
     var referenced = new DocumentReferenceXmlTag("doc-2", null, null, "user_message", null, null);
     var conv =
@@ -629,11 +629,11 @@ class AgentConversationTest {
                     .content(List.of(loaded.toLoadedContent(), referenced.toContent()))
                     .build()));
 
-    assertThat(conv.loadedDocumentIds()).containsExactly("doc-1");
+    assertThat(conv.documentIdsWithContent()).containsExactly("doc-1");
   }
 
   @Test
-  void loadedDocumentIds_leavesOutADocumentWhoseMessageWasEvicted() {
+  void documentIdsWithContent_leavesOutADocumentWhoseMessageWasEvicted() {
     var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
     var userMessage = UserMessage.builder().content(List.of(loaded.toLoadedContent())).build();
 
@@ -656,7 +656,8 @@ class AgentConversationTest {
               .ingest(assistantMessage("one"), AgentMetrics.empty());
 
       // the window holds the system message, the user message and the assistant message
-      assertThat(conv.loadedDocumentIds()).isEqualTo(windowSize == 3 ? Set.of("doc-1") : Set.of());
+      assertThat(conv.documentIdsWithContent())
+          .isEqualTo(windowSize == 3 ? Set.of("doc-1") : Set.of());
     }
   }
 

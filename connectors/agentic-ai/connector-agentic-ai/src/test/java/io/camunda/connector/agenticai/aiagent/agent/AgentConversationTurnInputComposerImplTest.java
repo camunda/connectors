@@ -646,7 +646,7 @@ class AgentConversationTurnInputComposerImplTest {
         .name(GetDocumentTool.NAME)
         .content("Loaded document " + documentId + ".")
         .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
-        .properties(Map.of(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, documentId))
+        .properties(Map.of(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, documentId))
         .build();
   }
 
@@ -659,13 +659,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void loadedDocumentsMessage_showsTheMarkedTagOfEveryLoadedDocumentAfterThePreamble() {
+  void documentContentMessage_showsTheMarkedTagOfEveryLoadedDocumentAfterThePreamble() {
     var first = createDocument("first", "text/plain", "first.txt");
     var second = createDocument("second", "text/plain", "second.txt");
     var registry = registryOf(first, second);
 
     var message =
-        composer.composeLoadedDocumentsMessage(
+        composer.composeDocumentContentMessage(
             registry,
             List.of(
                 loadedResult("c1", DocumentHandle.idFor(second)),
@@ -676,18 +676,18 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(message.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
     assertThat(message.content())
         .containsExactly(
-            textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE),
+            textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
             loadedTag(second, "second.txt"),
             loadedTag(first, "first.txt"));
   }
 
   @Test
-  void loadedDocumentsMessage_listsADocumentLoadedByTwoCallsOnce() {
+  void documentContentMessage_listsADocumentFetchedByTwoCallsOnce() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = DocumentHandle.idFor(document);
 
     var message =
-        composer.composeLoadedDocumentsMessage(
+        composer.composeDocumentContentMessage(
             registryOf(document), List.of(loadedResult("c1", id), loadedResult("c2", id)));
 
     assertThat(message).isNotNull();
@@ -695,7 +695,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void loadedDocumentsMessage_isNullWithoutALoadingResult() {
+  void documentContentMessage_isNullWithoutALoadingResult() {
     var document = createDocument("first", "text/plain", "first.txt");
     var registry = registryOf(document);
     var id = DocumentHandle.idFor(document);
@@ -711,10 +711,10 @@ class AgentConversationTurnInputComposerImplTest {
             .build();
 
     assertThat(
-            composer.composeLoadedDocumentsMessage(
+            composer.composeDocumentContentMessage(
                 registry, List.of(otherTool, unknownDocument, answered, RUNTIME_RESULT)))
         .isNull();
-    assertThat(composer.composeLoadedDocumentsMessage(registry, List.of())).isNull();
+    assertThat(composer.composeDocumentContentMessage(registry, List.of())).isNull();
   }
 
   @Test
@@ -747,7 +747,7 @@ class AgentConversationTurnInputComposerImplTest {
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(loaded.content())
                   .containsExactly(
-                      textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE),
+                      textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
                       loadedTag(document, "first.txt"));
             });
   }

@@ -20,13 +20,13 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertLoadedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.LoadedDocument;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -161,9 +161,9 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
         .startsWith("Loaded the document <doc id=\"" + promptTag.id() + "\"")
         .endsWith(" />. Its content follows in the next message.");
 
-    assertLoadedDocumentsUserMessage(
+    assertDocumentContentUserMessage(
         messages.get(4),
-        LoadedDocument.forUserPrompt(
+        DocumentWithContent.forUserPrompt(
             promptTag,
             block ->
                 assertDocumentContentBlockJson(
@@ -277,12 +277,13 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
   }
 
   /**
-   * With the load documents option of the user prompt the content of the document is part of the
-   * user message of the first request, next to its tag: no {@code c8__get_document} call is needed.
+   * With the document delivery {@code content} of the user prompt the content of the document is
+   * part of the user message of the first request, next to its tag: no {@code c8__get_document}
+   * call is needed.
    */
   @ParameterizedTest
   @ValueSource(strings = {"test.csv", "test.jpg", "test.pdf", "test.txt"})
-  void loadsPromptDocumentsIntoThePromptWhenTheOptionIsOn(String filename) throws Exception {
+  void addsTheContentOfPromptDocumentsWhenTheDeliveryIsContent(String filename) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
 
@@ -296,7 +297,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     elementTemplate
                         .property("retryCount", "3")
                         .property("retryBackoff", "PT2S")
-                        .property("data.userPrompt.loadDocuments", "=true"),
+                        .property("data.userPrompt.documentDelivery", "content"),
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
@@ -328,9 +329,9 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                 .hasResponseText(responseText));
   }
 
-  /** Without the option, or with it switched off, the documents stay references. */
+  /** With the document delivery {@code reference}, the documents stay references. */
   @Test
-  void keepsPromptDocumentsAsReferencesWhenTheOptionIsOff() throws Exception {
+  void keepsPromptDocumentsAsReferencesWhenTheDeliveryIsReference() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(Turn.text("TL;DR", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -340,7 +341,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                 elementTemplate
                     .property("retryCount", "3")
                     .property("retryBackoff", "PT2S")
-                    .property("data.userPrompt.loadDocuments", "=false"),
+                    .property("data.userPrompt.documentDelivery", "reference"),
             Map.of(
                 "userPrompt",
                 "Summarize the following document",
@@ -354,11 +355,12 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
   }
 
   /**
-   * A document that must not be loaded stays a reference in the user message, followed by a note
-   * that tells the model why it was not loaded; the conversation goes on without an incident.
+   * A document that fails the content guard stays a reference in the user message, followed by a
+   * note that tells the model why its content was not added; the conversation goes on without an
+   * incident.
    */
   @Test
-  void keepsAPromptDocumentThatCannotBeLoadedAsAReferenceWithANote() throws Exception {
+  void keepsAPromptDocumentThatFailsTheGuardAsAReferenceWithANote() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(Turn.text("I cannot read it.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -369,7 +371,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     elementTemplate
                         .property("retryCount", "3")
                         .property("retryBackoff", "PT2S")
-                        .property("data.userPrompt.loadDocuments", "=true"),
+                        .property("data.userPrompt.documentDelivery", "content"),
                 Map.of(
                     "userPrompt",
                     "Summarize the following document",

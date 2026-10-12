@@ -53,7 +53,7 @@
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda:http-json:1" retries="0" />
           <zeebe:properties>
-            <zeebe:property name="io.camunda.agenticai.documents.delivery" value="inline" />
+            <zeebe:property name="io.camunda.agenticai.documents.delivery" value="content" />
           </zeebe:properties>
           <zeebe:ioMapping>
             <zeebe:input source="noAuth" target="authentication.type" />

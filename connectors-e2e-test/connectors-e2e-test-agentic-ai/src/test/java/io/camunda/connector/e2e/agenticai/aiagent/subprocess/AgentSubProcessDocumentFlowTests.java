@@ -46,7 +46,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.up
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertLoadedDocumentsUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,7 +56,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.LoadedDocument;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -93,8 +93,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
 
-  @Value("classpath:agentic-ai-ahsp-connectors-documents-inline.bpmn")
-  private Resource inlineDocumentsProcess;
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
+  private Resource contentDocumentsProcess;
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
@@ -307,17 +307,17 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A tool whose activity requests inline delivery returns a document: the agent loads it for the
-   * model in the message after the tool result, so the model reads it without a {@code
+   * A tool whose activity requests content delivery returns a document: the agent adds its content
+   * for the model in the message after the tool result, so the model reads it without a {@code
    * c8__get_document} call and still passes its id to a tool. The tool receives the real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
-  void loadsTheDocumentsOfAnInlineToolForTheModel(String file) throws Exception {
+  void addsTheContentOfTheDocumentsOfAContentDeliveryToolForTheModel(String file) throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
 
-    final var zeebeTest = awaitProcessCompletion(startInlineProcess());
+    final var zeebeTest = awaitProcessCompletion(startContentDeliveryProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -327,9 +327,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly("system", "user", "assistant", "tool", "user");
     assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
     final var tag = parseDocumentTag(afterDownload.get(3).content());
-    assertLoadedDocumentsUserMessage(
+    assertDocumentContentUserMessage(
         afterDownload.get(4),
-        LoadedDocument.forToolCall(
+        DocumentWithContent.forToolCall(
             DOWNLOAD_CALL_ID,
             "Download_A_File",
             tag,
@@ -358,19 +358,19 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A document of an inline tool that must not be loaded (a type outside the allowlist, a size
-   * above the limit) stays a reference: a note tells the model that it was not loaded and why, no
-   * content reaches the model, and the tool still receives the real bytes.
+   * A document of a content delivery tool that fails the content guard (a type outside the
+   * allowlist, a size above the limit) stays a reference: a note tells the model that no content
+   * was added and why, no content reaches the model, and the tool still receives the real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"unsupported.zip", LARGE_FILE})
-  void keepsADocumentOfAnInlineToolThatCannotBeLoadedAsAReferenceWithANote(String file)
+  void keepsADocumentOfAContentDeliveryToolThatFailsTheGuardAsAReferenceWithANote(String file)
       throws Exception {
     final var expectedBytes = LARGE_FILE.equals(file) ? stubLargeTextFile() : servedFile(file);
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
 
-    final var zeebeTest = awaitProcessCompletion(startInlineProcess());
+    final var zeebeTest = awaitProcessCompletion(startContentDeliveryProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -696,9 +696,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             uploadUrl(wireMock.getHttpBaseUrl())));
   }
 
-  private io.camunda.connector.e2e.ZeebeTest startInlineProcess() throws Exception {
+  private io.camunda.connector.e2e.ZeebeTest startContentDeliveryProcess() throws Exception {
     return createProcessInstance(
-        inlineDocumentsProcess,
+        contentDocumentsProcess,
         e -> e,
         Map.of(
             "userPrompt",

@@ -984,16 +984,16 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void carriesTheContentOfADocumentLoadedByAGetDocumentCallIntoTheNextRoundOfTheSameJob() {
+  void carriesTheContentOfADocumentRequestedByAGetDocumentCallIntoTheNextRoundOfTheSameJob() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
     mockProceedWithDocument(document);
     final var realComposer =
         new AgentConversationTurnInputComposerImpl(mock(GatewayToolHandlerRegistry.class));
-    when(agentInputComposer.composeLoadedDocumentsMessage(any(), any()))
+    when(agentInputComposer.composeDocumentContentMessage(any(), any()))
         .thenAnswer(
-            i -> realComposer.composeLoadedDocumentsMessage(i.getArgument(0), i.getArgument(1)));
+            i -> realComposer.composeDocumentContentMessage(i.getArgument(0), i.getArgument(1)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -1054,7 +1054,7 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(message.content().get(0))
                   .isEqualTo(
                       TextContent.textContent(
-                          AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE));
+                          AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE));
               assertThat(message.content().get(1))
                   .isInstanceOfSatisfying(
                       TextContent.class,

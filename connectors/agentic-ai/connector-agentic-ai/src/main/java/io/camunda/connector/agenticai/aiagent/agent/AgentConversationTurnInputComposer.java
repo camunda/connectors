@@ -25,10 +25,10 @@ public interface AgentConversationTurnInputComposer {
       AgentInput agentInput);
 
   /**
-   * Composes the message that carries the documents the given tool call results load into the
-   * conversation: the results of {@code c8__get_document} that loaded a document. The message shows
-   * the tag of each loaded document marked as loaded, so the content of the document is added for
-   * the model. It is evicted together with the tool call results (see {@link
+   * Composes the message that carries the content of the documents the given tool call results get
+   * into the conversation: the results of {@code c8__get_document}. The message shows the tag of
+   * each document with content, so the content of the document is added for the model. It is
+   * evicted together with the tool call results (see {@link
    * UserMessage#METADATA_TOOL_CALL_DOCUMENTS}).
    *
    * @param registry the documents the agent knows
@@ -36,6 +36,6 @@ public interface AgentConversationTurnInputComposer {
    *     agent
    * @return the message, or {@code null} if no result loads a document known to the registry
    */
-  @Nullable UserMessage composeLoadedDocumentsMessage(
+  @Nullable UserMessage composeDocumentContentMessage(
       DocumentRegistry registry, List<ToolCallResult> results);
 }

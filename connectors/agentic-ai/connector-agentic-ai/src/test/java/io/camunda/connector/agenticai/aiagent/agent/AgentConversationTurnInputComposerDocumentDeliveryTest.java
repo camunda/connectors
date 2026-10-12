@@ -47,8 +47,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** The inline delivery of documents: the user prompt option and the tool marker. */
-class AgentConversationTurnInputComposerInlineDocumentsTest {
+/** The document delivery: the option of the user prompt and the marker of a tool activity. */
+class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null, null);
@@ -59,11 +59,11 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
           .build();
   private static final AgentContext CTX_WITH_CONVERSATION =
       CTX.withConversation(InProcessConversationContext.builder("conv").build());
-  private static final ToolDefinition INLINE_TOOL =
+  private static final ToolDefinition CONTENT_TOOL =
       ToolDefinition.builder()
           .name("getWeather")
           .inputSchema(Map.of("type", "object"))
-          .documentDelivery(DocumentDelivery.INLINE)
+          .documentDelivery(DocumentDelivery.CONTENT)
           .build();
   private static final ToolDefinition REFERENCE_TOOL =
       ToolDefinition.builder().name("getDateTime").inputSchema(Map.of("type", "object")).build();
@@ -95,7 +95,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
     return (CompositionResult.NextTurn) result;
   }
 
-  private static boolean isLoadedTag(Content content) {
+  private static boolean isTagWithContent(Content content) {
     return content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text);
   }
 
@@ -108,21 +108,20 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
 
   private CompositionResult composePrompt(
       AgentContext context,
-      boolean loadDocuments,
+      DocumentDelivery delivery,
       List<Message> previousMessages,
       Document... docs) {
     final var input =
-        AgentInput.from(
-            new UserPromptConfiguration("Hello?", List.of(docs), loadDocuments), List.of());
+        AgentInput.from(new UserPromptConfiguration("Hello?", List.of(docs), delivery), List.of());
     return composer.compose(
         CONFIG, context, TurnReconstructor.reconstruct(previousMessages), input);
   }
 
   @Test
-  void userPrompt_withTheOptionOn_marksTheTagOfALoadableDocumentAsLoaded() {
+  void userPrompt_withContentDelivery_addsTheContentOfADocumentThatPassesTheGuard() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
-    final var turn = nextTurn(composePrompt(CTX, true, List.of(), doc));
+    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc));
 
     final var message = turn.messages().getFirst();
     final var source = DocumentSource.userMessage(message.id().toString());
@@ -132,10 +131,10 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void userPrompt_withTheOptionOff_keepsTheDocumentAsAReference() {
+  void userPrompt_withReferenceDelivery_keepsTheDocumentAsAReference() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
-    final var turn = nextTurn(composePrompt(CTX, false, List.of(), doc));
+    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), doc));
 
     final var message = turn.messages().getFirst();
     assertThat(((UserMessage) message).content())
@@ -145,11 +144,13 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void userPrompt_withTheOptionOn_fallsBackToTheReferenceAndANoteForADocumentThatIsNotLoadable() {
+  void
+      userPrompt_withContentDelivery_fallsBackToTheReferenceAndANoteForADocumentThatFailsTheGuard() {
     final var loadable = document("prompt data", "text/plain", "prompt.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
-    final var turn = nextTurn(composePrompt(CTX, true, List.of(), loadable, archive));
+    final var turn =
+        nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), loadable, archive));
 
     final var message = turn.messages().getFirst();
     final var source = DocumentSource.userMessage(message.id().toString());
@@ -166,18 +167,19 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void userPrompt_withTheOptionOn_loadsADocumentOnlyOnce() {
+  void userPrompt_withContentDelivery_addsTheContentOfADocumentOnlyOnce() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
-    final var turn = nextTurn(composePrompt(CTX, true, List.of(), doc, doc));
+    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc, doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .filteredOn(AgentConversationTurnInputComposerInlineDocumentsTest::isLoadedTag)
+        .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent)
         .hasSize(1);
   }
 
   @Test
-  void userPrompt_withTheOptionOn_doesNotLoadADocumentThatIsAlreadyLoadedInTheConversation() {
+  void
+      userPrompt_withContentDelivery_doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
     final var earlier =
         UserMessage.builder()
@@ -187,7 +189,10 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
     final var turn =
         nextTurn(
             composePrompt(
-                CTX_WITH_CONVERSATION, true, List.of(earlier, assistantMessage("done")), doc));
+                CTX_WITH_CONVERSATION,
+                DocumentDelivery.CONTENT,
+                List.of(earlier, assistantMessage("done")),
+                doc));
 
     final var message = turn.messages().getFirst();
     assertThat(((UserMessage) message).content())
@@ -197,11 +202,11 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void userPrompt_ofAnAgentInstanceWithoutTheDocumentsFeature_ignoresTheOption() {
+  void userPrompt_ofAnAgentInstanceWithoutTheDocumentsFeature_ignoresTheDelivery() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
     final var legacy = AgentContext.builder().state(AgentState.READY).build();
 
-    final var turn = nextTurn(composePrompt(legacy, true, List.of(), doc));
+    final var turn = nextTurn(composePrompt(legacy, DocumentDelivery.CONTENT, List.of(), doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
         .containsExactly(textContent("Hello?"), DocumentContent.documentContent(doc));
@@ -232,14 +237,14 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void toolResults_ofAnInlineTool_arePutIntoAFollowUpMessageAsLoadedTags() {
+  void toolResults_ofAContentDeliveryTool_arePutIntoAFollowUpMessageAsTagsWithContent() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var nested = document("nested data", "application/json", "nested.json");
 
     final var turn =
         nextTurn(
             composeToolResults(
-                contextWithTools(INLINE_TOOL, REFERENCE_TOOL),
+                contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
                 result("abcdef", "getWeather", Map.of("file", doc, "more", List.of(nested))),
                 result("fedcba", "getDateTime", "15:00")));
 
@@ -255,7 +260,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(followUp.content())
                   .startsWith(
-                      textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE))
+                      textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE))
                   .contains(tag(doc, source, true), tag(nested, source, true))
                   .hasSize(3);
             });
@@ -269,7 +274,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
     final var turn =
         nextTurn(
             composeToolResults(
-                contextWithTools(INLINE_TOOL, REFERENCE_TOOL),
+                contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
                 result("abcdef", "getWeather", "Sunny"),
                 result("fedcba", "getDateTime", Map.of("file", doc))));
 
@@ -278,14 +283,14 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void toolResults_ofAnInlineTool_fallBackToANoteForADocumentThatIsNotLoadable() {
+  void toolResults_ofAContentDeliveryTool_fallBackToANoteForADocumentThatFailsTheGuard() {
     final var loadable = document("weather data", "text/plain", "weather.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
     final var turn =
         nextTurn(
             composeToolResults(
-                contextWithTools(INLINE_TOOL),
+                contextWithTools(CONTENT_TOOL),
                 result("abcdef", "getWeather", Map.of("a", loadable, "b", archive)),
                 dateTimeResult()));
 
@@ -293,7 +298,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
         DocumentSource.toolCall("getWeather", "abcdef", turn.messages().getFirst().id().toString());
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .containsExactly(
-            textContent(AgentConversationTurnInputComposerImpl.LOADED_DOCUMENTS_PREAMBLE),
+            textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
             tag(loadable, source, true),
             textContent(
                 "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its id to a tool that processes it."
@@ -301,13 +306,13 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void toolResults_ofAnInlineTool_withOnlyDocumentsThatAreNotLoadable_addOnlyTheNote() {
+  void toolResults_ofAContentDeliveryTool_withOnlyDocumentsThatFailTheGuard_addOnlyTheNote() {
     final var archive = document("zip", "application/zip", "archive.zip");
 
     final var turn =
         nextTurn(
             composeToolResults(
-                contextWithTools(INLINE_TOOL),
+                contextWithTools(CONTENT_TOOL),
                 result("abcdef", "getWeather", archive),
                 dateTimeResult()));
 
@@ -321,13 +326,13 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
   }
 
   @Test
-  void toolResults_ofAnInlineTool_doNotLoadADocumentTheModelLoadedInTheSameTurn() {
+  void toolResults_ofAContentDeliveryTool_doNotAddTheContentOfADocumentTheModelGotInTheSameTurn() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var id = DocumentHandle.idFor(doc);
     final var registry =
         io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry.empty()
             .withDocuments(List.of(new IngestedDocument(doc, DocumentSource.userMessage(null))));
-    final var context = contextWithTools(INLINE_TOOL).withDocuments(registry.entries());
+    final var context = contextWithTools(CONTENT_TOOL).withDocuments(registry.entries());
 
     final var turn =
         nextTurn(
@@ -338,16 +343,17 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
                     .id("fedcba")
                     .name(GetDocumentTool.NAME)
                     .content("Loaded document " + id + ".")
-                    .properties(Map.of(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, id))
+                    .properties(Map.of(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, id))
                     .build()));
 
     assertThat(((UserMessage) turn.messages().get(1)).content())
-        .filteredOn(AgentConversationTurnInputComposerInlineDocumentsTest::isLoadedTag)
+        .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent)
         .hasSize(1);
   }
 
   @Test
-  void toolResults_ofAnInlineTool_doNotLoadADocumentThatIsAlreadyLoadedInTheConversation() {
+  void
+      toolResults_ofAContentDeliveryTool_doNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var earlier =
         UserMessage.builder()
@@ -363,7 +369,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
         TurnReconstructor.reconstruct(List.of(earlier, assistantMessage("thinking", TOOL_CALLS)));
 
     final var turn =
-        nextTurn(composer.compose(CONFIG, contextWithTools(INLINE_TOOL), history, input));
+        nextTurn(composer.compose(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
 
     assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
@@ -375,7 +381,7 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
         AgentContext.builder()
             .state(AgentState.READY)
             .conversation(InProcessConversationContext.builder("conv").build())
-            .toolDefinitions(List.of(INLINE_TOOL))
+            .toolDefinitions(List.of(CONTENT_TOOL))
             .build();
 
     final var turn =
@@ -388,6 +394,6 @@ class AgentConversationTurnInputComposerInlineDocumentsTest {
     assertThat(turn.messages()).hasSize(2);
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .contains(DocumentContent.documentContent(doc))
-        .noneMatch(AgentConversationTurnInputComposerInlineDocumentsTest::isLoadedTag);
+        .noneMatch(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent);
   }
 }

@@ -129,7 +129,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
             conversation.configuration(),
             conversation.toAgentContext().properties(),
             documents,
-            conversation.loadedDocumentIds(),
+            conversation.documentIdsWithContent(),
             conversation.agentInstanceKey(),
             objectMapper,
             documentFactory);

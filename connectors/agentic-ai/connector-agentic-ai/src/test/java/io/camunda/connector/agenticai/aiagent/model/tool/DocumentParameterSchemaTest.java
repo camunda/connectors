@@ -152,13 +152,13 @@ class DocumentParameterSchemaTest {
   @Test
   void leavesTheDocumentDeliveryOutOfWhatTheProviderGets() {
     final var plain =
-        new ToolDefinition("plain", null, object("text", string()), DocumentDelivery.INLINE);
+        new ToolDefinition("plain", null, object("text", string()), DocumentDelivery.CONTENT);
     final var withDocument =
         new ToolDefinition(
             "withDocument",
             null,
             object("doc", Map.of("type", "string", "format", "camunda-document-id")),
-            DocumentDelivery.INLINE);
+            DocumentDelivery.CONTENT);
 
     final var result =
         DocumentParameterSchema.toProviderToolDefinitions(List.of(plain, withDocument));
@@ -166,7 +166,7 @@ class DocumentParameterSchemaTest {
     assertThat(result).extracting(ToolDefinition::documentDelivery).containsExactly(null, null);
     assertThat(result.getFirst().inputSchema()).isEqualTo(plain.inputSchema());
     // the stored definitions keep it
-    assertThat(plain.documentDelivery()).isEqualTo(DocumentDelivery.INLINE);
+    assertThat(plain.documentDelivery()).isEqualTo(DocumentDelivery.CONTENT);
   }
 
   @Test

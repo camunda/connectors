@@ -102,8 +102,8 @@ class AdHocToolsSchemaResolverTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"inline", "INLINE", " Inline "})
-  void marksAToolWhoseActivityRequestsInlineDocumentDelivery(String value) {
+  @ValueSource(strings = {"content", "CONTENT", " Content "})
+  void marksAToolWhoseActivityRequestsContentDocumentDelivery(String value) {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
@@ -116,7 +116,7 @@ class AdHocToolsSchemaResolverTest {
         .singleElement()
         .satisfies(
             toolDefinition ->
-                assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.INLINE));
+                assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.CONTENT));
   }
 
   @ParameterizedTest
@@ -140,7 +140,7 @@ class AdHocToolsSchemaResolverTest {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of("some.other.property", "inline"))
+            .properties(Map.of("some.other.property", "content"))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);

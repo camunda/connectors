@@ -11,27 +11,26 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The content types and size limits of a document that {@code c8__get_document} loads into the
- * conversation.
+ * The content types and size limits of a document whose content is added to the conversation.
  *
- * <p>Only a conservative allowlist of content types is loadable: the text-based types, {@code
+ * <p>Only a conservative allowlist of content types is supported: the text-based types, {@code
  * application/pdf} and the images {@code image/png}, {@code image/jpeg}, {@code image/gif} and
- * {@code image/webp}. A loaded document stays in the conversation until its message leaves the
- * window, so a type that the model provider cannot render would fail every later model call; any
- * other type is rejected before the document is loaded. The allowlist is provider-independent: a
+ * {@code image/webp}. A document with content stays in the conversation until its message leaves
+ * the window, so a type that the model provider cannot render would fail every later model call;
+ * any other type is rejected before the content is added. The allowlist is provider-independent: a
  * provider-specific capability matrix is an open point, and a provider without support for a listed
  * type, a PDF for example, still fails at the model call.
  *
  * <p>The limit depends on the content type: a text-based document costs a roughly predictable
  * number of tokens per byte, so the limit is small, a PDF or an image gets a higher one. A document
  * whose content type is not known without reading it, such as an external one, is treated as
- * text-based: it is loadable and gets the stricter text limit.
+ * text-based: it is supported and gets the stricter text limit.
  *
  * <p>Known limitation: bytes are a poor proxy for the tokens a document costs. A PDF of 214 KB can
  * cost about 230,000 input tokens, depending on the pages and the provider. A guard based on tokens
  * is an open point.
  */
-final class DocumentLoadLimits {
+final class DocumentContentLimits {
 
   /** The limit in bytes of a text-based document: 256 KB. */
   static final long TEXT_LIMIT_BYTES = 256L * 1024;
@@ -56,16 +55,16 @@ final class DocumentLoadLimits {
 
   private static final Set<String> TEXT_SUFFIXES = Set.of("+json", "+xml", "+yaml");
 
-  private DocumentLoadLimits() {}
+  private DocumentContentLimits() {}
 
-  /** Whether a document of the content type, which may be unknown, can be loaded. */
-  static boolean isLoadable(@Nullable String contentType) {
+  /** Whether the content of a document of the content type, which may be unknown, can be added. */
+  static boolean isSupported(@Nullable String contentType) {
     return isTextBased(contentType) || BINARY_TYPES.contains(mediaType(contentType));
   }
 
   /**
-   * The limit in bytes for a loadable document of the content type, which may be unknown. The
-   * result for a type that is not {@link #isLoadable loadable} is the binary limit.
+   * The limit in bytes for a supported document of the content type, which may be unknown. The
+   * result for a type that is not {@link #isSupported supported} is the binary limit.
    */
   static long limitFor(@Nullable String contentType) {
     return isTextBased(contentType) ? TEXT_LIMIT_BYTES : BINARY_LIMIT_BYTES;

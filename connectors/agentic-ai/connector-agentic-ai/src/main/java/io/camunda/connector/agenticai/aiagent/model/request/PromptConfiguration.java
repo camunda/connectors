@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -59,16 +60,20 @@ public interface PromptConfiguration {
           @Nullable List<Document> documents,
       @TemplateProperty(
               group = "userPrompt",
-              label = "Load documents into the prompt",
+              label = "Document delivery",
               description =
-                  "Put the content of the documents into the conversation instead of references the model loads on demand.",
+                  "How the documents of the user prompt reach the model: as references or with their content.",
               tooltip =
-                  "By default the model sees a reference to each document and loads the content it needs with a tool. "
-                      + "With this option the content of text, PDF and image documents is part of the conversation right away. "
+                  "<code>Reference</code>: the model sees a reference to each document and loads the content it needs with a tool. "
+                      + "<code>Content</code>: the content of text, PDF and image documents is part of the conversation right away. "
                       + "Large documents cost many tokens in every model call; a document that is too large or of an unsupported type stays a reference.",
-              type = TemplateProperty.PropertyType.Boolean,
-              optional = true)
-          @Nullable Boolean loadDocuments)
+              type = TemplateProperty.PropertyType.Dropdown,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(value = "reference", label = "Reference"),
+                @TemplateProperty.DropdownPropertyChoice(value = "content", label = "Content")
+              },
+              defaultValue = "reference")
+          @Nullable DocumentDelivery documentDelivery)
       implements PromptConfiguration {
 
     public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {

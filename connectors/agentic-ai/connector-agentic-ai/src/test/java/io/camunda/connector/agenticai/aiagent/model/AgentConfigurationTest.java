@@ -403,14 +403,14 @@ class AgentConfigurationTest {
               .build();
 
       final var byReference = configuration("gpt-4o", "Be nice.", 10, List.of(tool));
-      final var inline =
+      final var content =
           configuration(
               "gpt-4o",
               "Be nice.",
               10,
-              List.of(tool.withDocumentDelivery(DocumentDelivery.INLINE)));
+              List.of(tool.withDocumentDelivery(DocumentDelivery.CONTENT)));
 
-      assertThat(inline.fingerprint()).isNotEqualTo(byReference.fingerprint());
+      assertThat(content.fingerprint()).isNotEqualTo(byReference.fingerprint());
     }
   }
 }

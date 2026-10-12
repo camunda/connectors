@@ -20,13 +20,13 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DO
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_AGAIN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertLoadedDocumentsUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.LoadedDocument;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import java.util.List;
 import java.util.function.Consumer;
@@ -127,9 +127,9 @@ public final class DocumentFlowAssertions {
     assertThat(afterLoad.get(5).content())
         .startsWith("Loaded the document <doc id=\"" + tag.id() + "\"")
         .endsWith(" />. Its content follows in the next message.");
-    assertLoadedDocumentsUserMessage(
+    assertDocumentContentUserMessage(
         afterLoad.get(6),
-        LoadedDocument.forToolCall(
+        DocumentWithContent.forToolCall(
             DOWNLOAD_CALL_ID, "Download_A_File", tag, contentBlockAssertion));
 
     // the second load adds nothing

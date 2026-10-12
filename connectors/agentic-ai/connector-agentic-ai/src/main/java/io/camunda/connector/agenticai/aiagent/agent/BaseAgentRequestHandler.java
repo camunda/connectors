@@ -342,8 +342,8 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn().iterationKey());
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
-        final var loadedDocumentsMessage =
-            agentInputComposer.composeLoadedDocumentsMessage(
+        final var documentContentMessage =
+            agentInputComposer.composeDocumentContentMessage(
                 workingConversation.documentRegistry(), split.runtimeResults());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
@@ -351,7 +351,7 @@ public abstract class BaseAgentRequestHandler<
                     .results(
                         split.runtimeResults().stream().map(ToolCallResultContent::from).toList())
                     .build(),
-                loadedDocumentsMessage == null ? List.of() : List.of(loadedDocumentsMessage));
+                documentContentMessage == null ? List.of() : List.of(documentContentMessage));
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(
             executionContext,

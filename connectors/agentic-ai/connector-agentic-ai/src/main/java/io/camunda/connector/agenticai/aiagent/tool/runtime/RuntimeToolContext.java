@@ -24,8 +24,8 @@ import org.jspecify.annotations.Nullable;
  * @param properties the free-form properties of the agent context (see {@code
  *     AgentContext.properties()}), as of the call
  * @param documents the documents the agent knows, as of the call
- * @param loadedDocumentIds the ids of the documents whose content is part of the conversation the
- *     model reads, as of the call
+ * @param documentIdsWithContent the ids of the documents whose content is part of the conversation
+ *     the model reads, as of the call
  * @param agentInstanceKey the key of the agent instance, or {@code null} if there is none yet
  * @param objectMapper the mapper for converting values, for example to bind arguments
  * @param documentFactory creates a new Camunda document, for example from the content a tool
@@ -35,7 +35,7 @@ public record RuntimeToolContext(
     AgentConfiguration configuration,
     Map<String, Object> properties,
     DocumentRegistry documents,
-    Set<String> loadedDocumentIds,
+    Set<String> documentIdsWithContent,
     @Nullable AgentInstanceKey agentInstanceKey,
     ObjectMapper objectMapper,
     DocumentFactory documentFactory) {}

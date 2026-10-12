@@ -186,7 +186,7 @@ class GetDocumentToolTest {
                   .isEqualTo(
                       "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
               assertThat(result.properties())
-                  .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1");
+                  .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1");
             });
     assertThat(split.remainingCalls()).isEmpty();
   }
@@ -204,7 +204,7 @@ class GetDocumentToolTest {
         .satisfies(
             result ->
                 assertThat(result.properties())
-                    .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1"));
+                    .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1"));
   }
 
   @Test
@@ -258,7 +258,7 @@ class GetDocumentToolTest {
             call("1", "doc-1"));
 
     assertThat(split.runtimeResults().getFirst().properties())
-        .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1");
+        .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1");
   }
 
   @Test

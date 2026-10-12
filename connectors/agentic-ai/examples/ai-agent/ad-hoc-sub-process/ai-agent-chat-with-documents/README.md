@@ -18,13 +18,13 @@ It demonstrates:
 - **`c8__get_document`**: the agent gets a built-in tool that loads the whole content of a known document into the
   conversation (text, PDF and the PNG, JPEG, GIF and WebP images). A document of another type, or a document above the
   size limit (256 KB for text-based types, 10 MB for PDF and images), is rejected with an error tool result that tells
-  the agent to pass the id to a tool that processes it; this is not an incident. A document that is already loaded is not
-  loaded again. The loaded content stays in every model request until its message leaves the context window.
-- **Load documents into the prompt**: the checkbox of the user prompt group of the template (property
-  `data.userPrompt.loadDocuments`, off in this process) puts the content of the prompt documents into the conversation
-  instead of tags the model loads on demand. The same guard applies; a document that is too large or of an unsupported
+  the agent to pass the id to a tool that processes it; this is not an incident. A document whose content is already in the
+  conversation is not added again. The document content stays in every model request until its message leaves the context window.
+- **Document delivery**: the dropdown of the user prompt group of the template (property
+  `data.userPrompt.documentDelivery`, `reference` in this process) with the choice `content` puts the content of the
+  prompt documents into the conversation instead of tags the model asks content for on demand. The same guard applies; a document that is too large or of an unsupported
   type stays a tag, followed by a note. A tool whose activity has the extension property
-  `io.camunda.agenticai.documents.delivery` = `inline` gets the same treatment for the documents it returns.
+  `io.camunda.agenticai.documents.delivery` = `content` gets the same treatment for the documents it returns.
 - **`c8__return_document`**: the agent gets a built-in tool
   to hand a document back, called once per document with a key, the document and an optional description. They arrive in
   `agent.responseDocuments`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
@@ -120,7 +120,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    next feedback task `agent.responseDocuments` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
    (preview/download).
 4. **Read a document.** Start a new instance and prompt: `Download <baseUrl>/image/svg and describe what it shows.`
-   Check: the agent calls `c8__get_document` with the id of the downloaded document, the tool result reads
+   Check: the agent calls `c8__get_document` with the id of the downdocument with content, the tool result reads
    `Loaded the document <doc .../>. Its content follows in the next message.`, and the agent instance history shows a follow-up user item with the tag and the content of
    the document. Ask a second question about the same document: the agent answers without another load, or
    `c8__get_document` answers that the document is already in the conversation.
@@ -148,8 +148,8 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
     `c8__get_document` to read it. Then ask `Upload the attached file.`: no download step is needed, `Upload_File` receives
     the prompt document, `agent.context.documents` lists it.
 
-12. **Load documents into the prompt.** Set `data.userPrompt.loadDocuments` of `AI Agent` to `=true` (the checkbox *Load
-    documents into the prompt* of the user prompt group), redeploy, start an instance with a small text file and ask
+12. **Deliver the prompt documents with content.** Set `data.userPrompt.documentDelivery` of `AI Agent` to `content` (the
+    dropdown *Document delivery* of the user prompt group), redeploy, start an instance with a small text file and ask
     `Summarize the attached file.` Check: the agent instance history shows the prompt with the tag and the content of
     the document in the first user item, and the agent answers without calling `c8__get_document`. Repeat with a binary
     file (for example a ZIP): the user item shows the tag followed by a note that the document was not loaded because of

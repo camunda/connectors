@@ -6,16 +6,21 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
- * How the documents a tool returns reach the model. A tool without a delivery mode delivers them as
- * {@link #REFERENCE}.
+ * How the documents reach the model: as a reference, or with their content. Documents are delivered
+ * as {@link #REFERENCE} unless a delivery mode says otherwise.
  */
 public enum DocumentDelivery {
   /** The model sees the {@code <doc/>} tag and loads the content with {@code c8__get_document}. */
+  @JsonProperty("reference")
   REFERENCE,
   /**
-   * The agent loads the content for the model, as if the model had called {@code c8__get_document},
-   * for every document that passes the load guard.
+   * The agent adds the content for the model, as if the model had called {@code c8__get_document},
+   * for every document that passes the {@link
+   * io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentContentGuard content guard}.
    */
-  INLINE
+  @JsonProperty("content")
+  CONTENT
 }

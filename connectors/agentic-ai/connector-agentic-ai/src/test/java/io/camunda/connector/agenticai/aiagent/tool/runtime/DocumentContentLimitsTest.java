@@ -13,12 +13,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class DocumentLoadLimitsTest {
+class DocumentContentLimitsTest {
 
   @Test
   void textLimitIs256KbAndBinaryLimitIs10Mb() {
-    assertThat(DocumentLoadLimits.TEXT_LIMIT_BYTES).isEqualTo(256 * 1024);
-    assertThat(DocumentLoadLimits.BINARY_LIMIT_BYTES).isEqualTo(10 * 1024 * 1024);
+    assertThat(DocumentContentLimits.TEXT_LIMIT_BYTES).isEqualTo(256 * 1024);
+    assertThat(DocumentContentLimits.BINARY_LIMIT_BYTES).isEqualTo(10 * 1024 * 1024);
   }
 
   @ParameterizedTest
@@ -41,8 +41,8 @@ class DocumentLoadLimitsTest {
         "application/x-ndjson"
       })
   void textBasedContentTypesGetTheTextLimit(String contentType) {
-    assertThat(DocumentLoadLimits.limitFor(contentType))
-        .isEqualTo(DocumentLoadLimits.TEXT_LIMIT_BYTES);
+    assertThat(DocumentContentLimits.limitFor(contentType))
+        .isEqualTo(DocumentContentLimits.TEXT_LIMIT_BYTES);
   }
 
   @ParameterizedTest
@@ -57,8 +57,8 @@ class DocumentLoadLimitsTest {
         "application/pdf; name=a.pdf"
       })
   void loadableBinaryContentTypesGetTheBinaryLimit(String contentType) {
-    assertThat(DocumentLoadLimits.limitFor(contentType))
-        .isEqualTo(DocumentLoadLimits.BINARY_LIMIT_BYTES);
+    assertThat(DocumentContentLimits.limitFor(contentType))
+        .isEqualTo(DocumentContentLimits.BINARY_LIMIT_BYTES);
   }
 
   @ParameterizedTest
@@ -75,7 +75,7 @@ class DocumentLoadLimitsTest {
         "Application/PDF; charset=binary"
       })
   void allowlistedContentTypesAreLoadable(String contentType) {
-    assertThat(DocumentLoadLimits.isLoadable(contentType)).isTrue();
+    assertThat(DocumentContentLimits.isSupported(contentType)).isTrue();
   }
 
   @ParameterizedTest
@@ -92,21 +92,21 @@ class DocumentLoadLimitsTest {
         "video/mp4"
       })
   void contentTypesOutsideTheAllowlistAreNotLoadable(String contentType) {
-    assertThat(DocumentLoadLimits.isLoadable(contentType)).isFalse();
+    assertThat(DocumentContentLimits.isSupported(contentType)).isFalse();
   }
 
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"  "})
   void anUnknownContentTypeIsLoadable(String contentType) {
-    assertThat(DocumentLoadLimits.isLoadable(contentType)).isTrue();
+    assertThat(DocumentContentLimits.isSupported(contentType)).isTrue();
   }
 
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"  "})
   void anUnknownContentTypeGetsTheTextLimit(String contentType) {
-    assertThat(DocumentLoadLimits.limitFor(contentType))
-        .isEqualTo(DocumentLoadLimits.TEXT_LIMIT_BYTES);
+    assertThat(DocumentContentLimits.limitFor(contentType))
+        .isEqualTo(DocumentContentLimits.TEXT_LIMIT_BYTES);
   }
 }

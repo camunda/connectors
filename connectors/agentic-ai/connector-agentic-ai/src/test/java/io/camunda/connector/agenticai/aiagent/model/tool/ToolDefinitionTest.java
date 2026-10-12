@@ -54,20 +54,20 @@ class ToolDefinitionTest {
 
   @Test
   void roundTripsTheDocumentDeliveryAndOmitsItWhenAbsent() throws Exception {
-    final var inline =
+    final var content =
         ToolDefinition.builder()
             .name("tool")
             .inputSchema(Map.of("type", "object"))
-            .documentDelivery(DocumentDelivery.INLINE)
+            .documentDelivery(DocumentDelivery.CONTENT)
             .build();
     final var byReference =
         ToolDefinition.builder().name("tool").inputSchema(Map.of("type", "object")).build();
 
-    final var inlineJson = objectMapper.writeValueAsString(inline);
+    final var contentJson = objectMapper.writeValueAsString(content);
     final var referenceJson = objectMapper.writeValueAsString(byReference);
 
-    assertThat(inlineJson).contains("\"documentDelivery\":\"INLINE\"");
-    assertThat(objectMapper.readValue(inlineJson, ToolDefinition.class)).isEqualTo(inline);
+    assertThat(contentJson).contains("\"documentDelivery\":\"content\"");
+    assertThat(objectMapper.readValue(contentJson, ToolDefinition.class)).isEqualTo(content);
     assertThat(referenceJson).doesNotContain("documentDelivery");
     assertThat(objectMapper.readValue(referenceJson, ToolDefinition.class).documentDelivery())
         .isNull();

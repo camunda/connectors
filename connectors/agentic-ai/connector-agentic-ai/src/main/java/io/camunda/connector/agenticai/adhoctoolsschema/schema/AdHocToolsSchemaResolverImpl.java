@@ -72,9 +72,9 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
   private static @Nullable DocumentDelivery documentDelivery(AdHocToolElement element) {
     final var properties = element.properties();
     return properties != null
-            && DOCUMENT_DELIVERY_INLINE.equalsIgnoreCase(
+            && DOCUMENT_DELIVERY_CONTENT.equalsIgnoreCase(
                 StringUtils.trim(properties.get(DOCUMENT_DELIVERY_EXTENSION)))
-        ? DocumentDelivery.INLINE
+        ? DocumentDelivery.CONTENT
         : null;
   }
 }

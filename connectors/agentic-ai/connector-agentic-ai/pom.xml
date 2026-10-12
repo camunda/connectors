@@ -33,7 +33,7 @@
          legacy <thinking> XML scaffold that DEFAULT_SYSTEM_PROMPT (the v2 default) dropped in
          favor of each provider's native reasoning/thinking configuration. -->
     <!-- Comma-separated ids of the template properties the frozen v1 templates leave out. -->
-    <v1OmittedPropertyIds>data.userPrompt.loadDocuments</v1OmittedPropertyIds>
+    <v1OmittedPropertyIds>data.userPrompt.documentDelivery</v1OmittedPropertyIds>
     <systemPromptOverrides>
 io.camunda.connectors.agenticai.aiagent.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
 io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
