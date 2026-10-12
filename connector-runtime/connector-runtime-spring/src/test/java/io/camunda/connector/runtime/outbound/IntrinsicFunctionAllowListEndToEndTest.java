@@ -168,6 +168,28 @@ class IntrinsicFunctionAllowListEndToEndTest {
       </bpmn:definitions>
       """;
 
+  // A REST connector body that concatenates a secret placeholder with a variable on
+  // one key, next to a base64 attachment declared on another key.
+  private static final String SECRET_CONCATENATION_ATTACHMENT_MODEL_XML =
+      """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                        id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+        <bpmn:process id="proc" isExecutable="true">
+          <bpmn:serviceTask id="http_task" name="HTTP">
+            <bpmn:extensionElements>
+              <zeebe:ioMapping>
+                <zeebe:input
+                    source="={&quot;message&quot;:{&quot;subject&quot;: &quot;{{secrets.ENV_TAG}}&quot; + envVariables.SUBJECT, &quot;attachments&quot;: for document in attachments return {&quot;contentBytes&quot;:{&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}}}}"
+                    target="body" />
+              </zeebe:ioMapping>
+            </bpmn:extensionElements>
+          </bpmn:serviceTask>
+        </bpmn:process>
+      </bpmn:definitions>
+      """;
+
   private CamundaClient clientReturningXml(String xml) {
     var client = mock(CamundaClient.class);
     var request = mock(ProcessDefinitionGetXmlRequest.class);
@@ -343,6 +365,21 @@ class IntrinsicFunctionAllowListEndToEndTest {
         ]}}}
         """;
     var context = contextFor(NESTED_ATTACHMENT_MODEL_XML, variablesJson);
+
+    var result = context.bindVariables(TargetType.class);
+
+    assertThat(result.body()).isNotNull();
+  }
+
+  @Test
+  void aCallDeclaredNextToASecretConcatenationIsNotBlockedByTheGate() {
+    String variablesJson =
+        """
+        {"body": {"message": {"subject": "Daily report", "attachments": [
+          {"contentBytes": {"camunda.function.type":"base64","params":["ZG9jdW1lbnQ="]}}
+        ]}}}
+        """;
+    var context = contextFor(SECRET_CONCATENATION_ATTACHMENT_MODEL_XML, variablesJson);
 
     var result = context.bindVariables(TargetType.class);
 
