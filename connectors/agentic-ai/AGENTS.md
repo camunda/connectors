@@ -364,7 +364,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the agent runs itself, such as the built-in `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
+tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
 a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
 tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
 

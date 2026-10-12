@@ -2118,7 +2118,8 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### 25.4 Add a runtime tool
 
-A runtime tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
+A runtime tool is a tool the connector runtime runs itself, without activating a BPMN element: a definition plus a
+handler. A built-in tool is a runtime tool the connector ships. Reference
 implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTool` (`c8__get_document`), both in
 `aiagent/document` (the facility itself is in `aiagent/tool/runtime`), wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentRuntimeTool`,
 `aiAgentGetDocumentRuntimeTool`). The full API, the research behind
