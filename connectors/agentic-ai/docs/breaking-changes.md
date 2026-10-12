@@ -158,9 +158,14 @@ functions that return SDK `ConnectorResponse` types.
   `completedAt` timestamp ([ADR 008](adr/008-tool-result-history-timestamps.md)). For the AI Agent
   Task, the tools sub-process must set `completedAt: now()` in the output element, otherwise the
   connector uses the time it processes the results.
-- The content model gains `ReasoningContent` (opaque provider reasoning payload) and
-  `ProviderContent` (a provider native block, preserved verbatim). Code that switches over `Content`
-  must handle or ignore them.
+- The content model gains `ReasoningContent` (opaque provider reasoning payload),
+  `ProviderContent` (a provider native block, preserved verbatim) and `DocumentReferenceContent` (the
+  persisted form of a document of an agent instance with the documents feature: the document id, the
+  attributes of its `<doc/>` tag and a delivery of `reference` or `content`). Code that switches over
+  `Content` must handle or ignore them. A chat model provider never receives a `DocumentReferenceContent`:
+  the conversation window expands it to its tag text and, with the delivery `content`, the document content
+  before the request is built, and the provider converters of the connector fail with an
+  `IllegalStateException` if one is handed over.
 - `AgentMetrics.TokenUsage` gains `cacheReadTokenCount`, `cacheCreationTokenCount` and
   `reasoningTokenCount` (omitted from JSON when zero). There is no combined total.
 - Only the LangChain4j converter writes the `metadata.framework` entry (`tokenUsage`,

@@ -135,12 +135,12 @@ High-frequency traps (detail behind each link):
 - **Documents are delivered as reference by default**: for an instance with the `documents` feature the model sees a
   `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
   document of a type outside the allowlist or above the size limit before returning its content. Content is persisted
-  as a tag marked `loaded: true` and expanded from the registry at window time; the content stays in every request
+  as a document reference (`DocumentReferenceContent`) with the delivery `content`, expanded to its tag text and the content from the registry at window time; the content stays in every request
   until its message leaves the window. Passing an id to a tool never adds content. Delivery with content is the opt-in
   exception: the user prompt dropdown `data.userPrompt.documentDelivery` (`reference` by default, or `content`; v2
   templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity
   extension property `io.camunda.agenticai.documents.delivery` = `content` (`ToolDefinition.documentDelivery`) make the
-  agent add the content through the same guard and marker, and a rejected document stays a reference with a note,
+  agent add the content through the same guard and the delivery `content`, and a rejected document stays a reference with a note,
   never an error. `docs/design/ai-agent-document-flow.md` "Execution model", §3.14 and §3.15.
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has

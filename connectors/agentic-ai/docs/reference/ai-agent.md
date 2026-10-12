@@ -352,6 +352,14 @@ The sealed `Content` model gained two additive members alongside the existing `T
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
 
+`DocumentReferenceContent` (content type `documentReference`) is the persisted form of a document of an agent
+instance with the `documents` feature: the document id, the attributes of its `<doc .../>` tag (`fileName`,
+`contentType`, `size`, `source`, `toolName`, `toolCallId`) and a `delivery`, `reference` or `content`. Its `toTag()`
+renders the tag the model sees. `AgentConversation.window` expands it before a request is built (the tag text and,
+with the delivery `content`, the document content); a provider converter that is handed one fails with an
+`IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes
+when a document is delivered again later (prompt caching).
+
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
 additional framework-internal properties were flattened as top-level fields. Old state is migrated on
@@ -446,9 +454,10 @@ detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
-also expands the document tags of its user messages that are marked as having content from the document registry
-(`DocumentExpander`): the stored messages hold the tag of a document only, and the snapshot holds the tag
-followed by the document content for the documents whose content the model asked for with `c8__get_document` or the agent added
+also expands the document references of its user messages (`DocumentReferenceContent`, a typed content block
+with the delivery `reference` or `content`) with the document registry
+(`DocumentExpander`): the stored messages hold the document reference only, and the snapshot holds its tag text
+followed, for a reference with the delivery `content`, by the document content for the documents whose content the model asked for with `c8__get_document` or the agent added
 for it (content delivery, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
@@ -1689,8 +1698,8 @@ built-in `c8__get_document` tool with the document id, or when the agent adds it
 below): the whole document is added if its content type is on the allowlist (text-based types, PDF,
 PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
 otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
-processes the document. A successful call is followed by a user message whose tag is marked as having content
-(`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
+processes the document. A successful call is followed by a user message with a document reference with the
+delivery `content`; the tag text and the content are added
 from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
 `fromAi(..., "document")` never adds content: the tool receives the full Camunda document reference.
 
@@ -1862,7 +1871,7 @@ lease-fenced `update()` mechanism).
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
   document-reference messages and the follow-up message of documents loaded by `c8__get_document`). The
-  document tags of a user message are reported with the content of their documents from the registry
+  document references of a user message are reported as their tag text and the content of their documents from the registry
   (`DocumentExpander`), so the history shows at least what the model receives. A message of an agent instance
   without the `documents` feature is reported as stored.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
@@ -1932,7 +1941,8 @@ the mapper does so for agent instances with the `runtimeTools` feature only.
 The tool list of a `CONFIGURATION` item holds the process tools plus the available runtime tools
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
-Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
+Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
+`DocumentReferenceContent` → the text of its tag, and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
