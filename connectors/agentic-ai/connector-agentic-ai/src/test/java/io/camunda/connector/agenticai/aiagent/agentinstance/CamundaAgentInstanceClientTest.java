@@ -113,7 +113,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CamundaAgentInstanceClientTest {
 
   private static final HistoryDocuments NO_DOCUMENTS =
-      new HistoryDocuments(List.of(), DocumentRegistry.empty());
+      new HistoryDocuments(DocumentRegistry.empty());
 
   private static final AgenticAiConnectorsConfigurationProperties.RetriesProperties
       RETRIES_CONFIGURATION =
@@ -1476,7 +1476,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldReportTheDocumentReferenceOfADocumentParameterIdenticallyInEveryWriteOfACall() {
+    void shouldReportTheArgumentsOfACallAsTheModelSentThemInEveryWriteOfTheCall() {
       givenUpdateCommand();
       final var configuration = configuration();
       final var document =
@@ -1503,10 +1503,8 @@ class CamundaAgentInstanceClientTest {
                                   .fileName("other.txt")
                                   .build()),
                       DocumentSource.userMessage(null))));
-      final var reference = earlyRegistry.findById(documentId).orElseThrow().reference();
-      final var returnDocument = new ReturnDocumentTool().definition();
-      final var early = new HistoryDocuments(List.of(returnDocument), earlyRegistry);
-      final var later = new HistoryDocuments(List.of(returnDocument), laterRegistry);
+      final var early = new HistoryDocuments(earlyRegistry);
+      final var later = new HistoryDocuments(laterRegistry);
 
       final var localResult =
           ToolCallResult.builder()
@@ -1564,7 +1562,7 @@ class CamundaAgentInstanceClientTest {
       final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
       final var earlyResult = historyCaptor.getAllValues().get(1).getFirst();
       final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
-      final var expectedArguments = Map.of("key", "report", "document", reference);
+      final var expectedArguments = Map.of("key", "report", "document", documentId);
       assertThat(assistantItem.getToolCalls().getFirst().getArguments())
           .isEqualTo(expectedArguments);
       assertThat(earlyResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);

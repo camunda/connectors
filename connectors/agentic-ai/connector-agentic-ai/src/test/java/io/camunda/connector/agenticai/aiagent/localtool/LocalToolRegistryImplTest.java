@@ -92,14 +92,6 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
-  void findsTheDefinitionOfARegisteredToolWhetherAvailableOrNot() {
-    assertThat(registry.findDefinition(SaveNoteTool.NAME))
-        .hasValueSatisfying(
-            definition -> assertThat(definition.name()).isEqualTo(SaveNoteTool.NAME));
-    assertThat(registry.findDefinition("unknown")).isEmpty();
-  }
-
-  @Test
   void acceptsAToolNameOutsideTheBuiltInPrefix() {
     final var custom = LocalTool.builder("acme_lookup").handler((call, context) -> null);
 

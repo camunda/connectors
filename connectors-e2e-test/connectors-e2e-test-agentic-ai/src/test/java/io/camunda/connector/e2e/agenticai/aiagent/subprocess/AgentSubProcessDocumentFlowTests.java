@@ -30,7 +30,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PI
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReportedDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
@@ -531,12 +530,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The history of the agent instance shows the reference of a document where the model passed its
-   * id: in the call of the assistant item and in the arguments of the result item, for a tool of
-   * the process and for the local tool.
+   * The history of the agent instance shows the arguments of a call as the model sent them: the id
+   * of a document in the call of the assistant item and in the arguments of the result item, for a
+   * tool of the process and for the local tool.
    */
   @Test
-  void agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments() throws Exception {
+  void agentInstanceHistoryShowsTheDocumentIdInTheToolCallArguments() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
 
@@ -545,7 +544,6 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     final var documentId =
         parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
-    // the model and the persisted conversation keep the tag the model passed
     assertThat(recorded.requests().get(2).messages().toString()).contains(documentId);
 
     final var agentInstanceKey = new AtomicLong();
@@ -557,10 +555,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasToolCallArguments(
             "Upload_A_File",
-            arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
+            arguments -> assertThat(arguments.get("document")).isEqualTo(documentId))
         .hasToolCallArguments(
             "c8__return_document",
-            arguments -> assertReportedDocumentReference(arguments.get("document"), documentId))
+            arguments -> assertThat(arguments.get("document")).isEqualTo(documentId))
         .verify();
   }
 

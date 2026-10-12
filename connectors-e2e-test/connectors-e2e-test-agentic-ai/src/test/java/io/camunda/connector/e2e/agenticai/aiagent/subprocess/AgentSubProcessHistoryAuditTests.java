@@ -61,8 +61,7 @@ import org.springframework.core.io.Resource;
  * Guards that the agent instance history is an auditable record of what the model receives: every
  * message of every model request must be covered by an item of the history as the engine returns
  * it. The formats may differ (a document is a block in the history and a tag in the request, a
- * history tag text is wrapped in backticks, a document argument is the reference in the history and
- * the id in the request), the content may not.
+ * history tag text is wrapped in backticks), the content may not.
  *
  * <p>The only model-visible messages without a history item are listed in {@link
  * #KNOWN_UNREPORTED}. A message that is neither covered nor listed fails the test.
@@ -315,29 +314,14 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
         && blocksCover(item.getContent(), modelParts(message));
   }
 
-  /**
-   * The history holds the model's arguments, except that a document id is shown as the reference of
-   * the document: every argument of the request is equal in the history or its reference holds the
-   * id.
-   */
+  /** The history holds the arguments of the call as the model sent them. */
   private static boolean argumentsCover(Map<String, Object> reported, String sentJson) {
-    final Map<String, Object> sent;
     try {
-      sent = OBJECT_MAPPER.readValue(sentJson, new TypeReference<>() {});
+      final Map<String, Object> sent = OBJECT_MAPPER.readValue(sentJson, new TypeReference<>() {});
+      return reported.equals(sent);
     } catch (Exception e) {
       return false;
     }
-    if (!reported.keySet().equals(sent.keySet())) {
-      return false;
-    }
-    return sent.entrySet().stream()
-        .allMatch(
-            argument -> {
-              final var shown = reported.get(argument.getKey());
-              return argument.getValue().equals(shown)
-                  || (shown instanceof Map<?, ?> reference
-                      && argument.getValue().equals(reference.get("documentId")));
-            });
   }
 
   /** A part of a message of the request: its text, or {@code null} for a non-text part. */

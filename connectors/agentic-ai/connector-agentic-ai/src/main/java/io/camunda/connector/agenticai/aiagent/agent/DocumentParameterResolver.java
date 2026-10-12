@@ -83,28 +83,11 @@ public final class DocumentParameterResolver {
       DocumentRegistry registry,
       Function<DocumentRegistryEntry, Object> replacement) {
     final var problems = new ArrayList<String>();
-    final var resolved = walkAll(arguments, toolDefinition, registry, replacement, problems, false);
+    final var resolved = walkAll(arguments, toolDefinition, registry, replacement, problems);
     if (!problems.isEmpty()) {
       return new Resolution.Invalid(problems);
     }
     return new Resolution.Resolved(resolved);
-  }
-
-  /**
-   * Replaces the ids and the tags of the document parameters of {@code arguments} that are known to
-   * the registry by the document references, for reporting. Anything else is left as given: unknown
-   * ids, values of an unexpected shape, missing parameters, and the arguments of a tool without
-   * document parameters. Nothing is validated, so this never fails.
-   */
-  public static Map<String, Object> substituteKnownReferences(
-      Map<String, Object> arguments, ToolDefinition toolDefinition, DocumentRegistry registry) {
-    return walkAll(
-        arguments,
-        toolDefinition,
-        registry,
-        DocumentRegistryEntry::reference,
-        new ArrayList<>(),
-        true);
   }
 
   @SuppressWarnings("unchecked")
@@ -113,12 +96,11 @@ public final class DocumentParameterResolver {
       ToolDefinition toolDefinition,
       DocumentRegistry registry,
       Function<DocumentRegistryEntry, Object> replacement,
-      List<String> problems,
-      boolean lenient) {
+      List<String> problems) {
     @Nullable Object resolved = arguments;
     for (final var steps :
         DocumentParameterSchema.documentParameterPaths(toolDefinition.inputSchema())) {
-      resolved = walk(resolved, steps, 0, "", registry, replacement, problems, lenient);
+      resolved = walk(resolved, steps, 0, "", registry, replacement, problems);
     }
     // the root is the arguments object, which is never replaced by null
     return Objects.requireNonNull((Map<String, Object>) resolved);
@@ -167,20 +149,15 @@ public final class DocumentParameterResolver {
       String path,
       DocumentRegistry registry,
       Function<DocumentRegistryEntry, Object> replacement,
-      List<String> problems,
-      boolean lenient) {
+      List<String> problems) {
     if (index == steps.size()) {
-      return lenient
-          ? substituteKnown(node, registry)
-          : resolveId(node, path, registry, replacement, problems);
+      return resolveId(node, path, registry, replacement, problems);
     }
 
     return switch (steps.get(index)) {
       case Step.Property(var name) -> {
         if (!(node instanceof Map<?, ?> map)) {
-          if (!lenient) {
-            problems.add("Parameter '%s' must be an object.".formatted(path));
-          }
+          problems.add("Parameter '%s' must be an object.".formatted(path));
           yield node;
         }
         final var value = map.get(name);
@@ -197,15 +174,12 @@ public final class DocumentParameterResolver {
                 path.isEmpty() ? name : path + "." + name,
                 registry,
                 replacement,
-                problems,
-                lenient));
+                problems));
         yield copy;
       }
       case Step.Items() -> {
         if (!(node instanceof List<?> list)) {
-          if (!lenient) {
-            problems.add("Parameter '%s' must be an array.".formatted(path));
-          }
+          problems.add("Parameter '%s' must be an array.".formatted(path));
           yield node;
         }
         final var copy = new ArrayList<Object>(list.size());
@@ -218,8 +192,7 @@ public final class DocumentParameterResolver {
                   path + "[" + i + "]",
                   registry,
                   replacement,
-                  problems,
-                  lenient));
+                  problems));
         }
         yield copy;
       }
@@ -255,16 +228,5 @@ public final class DocumentParameterResolver {
   private static String idOf(String value) {
     final var tagId = DocumentReferenceXmlTag.idOfSingleTag(value);
     return tagId != null ? tagId : value;
-  }
-
-  private static @Nullable Object substituteKnown(
-      @Nullable Object value, DocumentRegistry registry) {
-    if (value instanceof String text) {
-      return registry
-          .findById(idOf(text))
-          .<Object>map(DocumentRegistryEntry::reference)
-          .orElse(value);
-    }
-    return value;
   }
 }

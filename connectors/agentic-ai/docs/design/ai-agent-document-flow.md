@@ -500,8 +500,8 @@ tools as well; they never set the option. There is no template version bump and 
 The registry entry keeps the complete reference, so for an inline document it contains the full
 content (base64 in `content`). Reason: the tool payload of decision 5 must be the real reference.
 External documents keep the URL (never rendered to the model, decision 2) and Camunda documents keep
-the full reference with metadata. The agent instance history shows the same reference as the arguments
-of a call (section 5.1), so the content of an inline document is part of the history item too. The cost
+the full reference with metadata. The agent instance history shows the reference of a document in the
+blocks of its items (section 5.1), so the content of an inline document is part of the history item too. The cost
 is described in section 4 and listed as a limitation in section 5. The size guard of `c8__get_document` (3.14)
 bounds what a load puts into the conversation, not what the registry, the tool result and the history hold of an
 inline document, and the history mapper does not support inline references at all (section 7).
@@ -853,8 +853,7 @@ here as shared:
 - **No name check.** No tool element is checked against the names of local tools for such an instance (section
   3.9): an element named like a local tool must not stop an instance that is running.
 - **History.** `HistoryDocuments.withoutDocumentFlow` makes `AgentInstanceHistoryMapper` report the messages as
-  stored: no document expansion, no inline code backticks around tags, no document references in the
-  arguments, no element-id-less local tool entries. `AgentResponse` has no `responseDocuments`.
+  stored: no document expansion, no inline code backticks around tags, no element-id-less local tool entries. `AgentResponse` has no `responseDocuments`.
 - **Shared.** The AWS AgentCore conversion keeps a `TextContent` with metadata as a blob (new instances need
   it), which does not change messages without metadata. `ToolDefinition` and the provider rewrite of the
   document format are applied to every instance; a persisted tool definition without the format is not changed.
@@ -880,7 +879,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 3 | Gateway tools unsupported | Medium | MCP and A2A tool definitions never declare document parameters; a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
-| 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the arguments of a call show the document reference, which holds the content of an inline document). |
+| 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the reference of an inline document holds its content). |
 | 7 | Document parameters of instances without the feature | Low | A running instance created before the `documents` feature passes document parameters as plain strings (section 4.2): ids are not resolved or rejected, and the hint in a tool schema that is rebuilt on a process migration asks for ids the model never sees. The instance has to be started anew to use documents. |
 | 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance, with or without the `documents` feature, reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
 | 9 | A loadable type the provider cannot render | Medium | The allowlist of `c8__get_document` is provider-independent (3.14). A provider without support for a listed type, a PDF for example, fails the model call after the load, and every later call while the loaded content is in the window. |
@@ -930,7 +929,7 @@ text is the content of the `TOOL_RESULT` item, an error result included.
 **Loaded documents.** The follow-up message of a load (4.1) is a `USER` item: the preamble text, the tag of each
 loaded document in inline code and the document as a `DOCUMENT` part (an `OBJECT` part for an external reference),
 so the history shows what the model reads. The call of `c8__get_document` is an entry of the `ASSISTANT` item without
-element id, with the reference of the document in its `arguments` like any document argument (below). A rejected
+element id, with the id of the document in its `arguments`, as the model sent it (below). A rejected
 load is a `TOOL_RESULT` item with the error text and no follow-up item.
 
 **Document tags in the text.** The text parts of the history items (user, assistant and tool result
@@ -939,28 +938,21 @@ text, the document tags and their preambles included) show every `<doc .../>` ta
 is already inside backticks is left as it is. `AgentInstanceHistoryMapper` does this when it maps a
 `TextContent`; the persisted messages and the text the model reads are not changed.
 
-**Document arguments.** A document parameter of a call (a schema node with the format `camunda-document-id` of the tool's
-definition, found as in 3.3; for a tool of the process and for a local tool such as `c8__return_document`,
-whose definition is looked up in `LocalToolRegistry` even while the tool is unavailable) is shown with the
-registry entry's `reference` map instead of the id the model sent, in the `arguments` of the call in the
-`ASSISTANT` item and of the `TOOL_RESULT` item. This is the complete reference JSON, so the history of an
-inline document holds its content (section 3.12). The substitution is for reporting only: persisted
-messages, the process variable and the text the model reads keep the ids. A value that is not exactly the
-id of a registry document (unknown id, a tag, text around an id), a value of an unexpected shape and a parameter that is missing stay as given
-(`DocumentParameterResolver.substituteKnownReferences`, which never validates). The mapper needs the tool
-definitions and the registry, so `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and
-`applyToolCallResults` take a `HistoryDocuments(toolDefinitions, documents)`; the request handler builds
-it from `AgentConfiguration.toolDefinitions()` and the registry of the conversation (of the agent context
-when the composer defers). The early write of a local result and the later write of the merged turn
-start, like the assistant item, show identical arguments: the result depends only on the call, the tool
-definition and the registry entry of the id, which is immutable once registered, so it does not matter
+**Document arguments.** The `arguments` of a call, in the `ASSISTANT` item and in the `TOOL_RESULT` item, are shown as
+the model sent them: a document parameter holds the id the model passed (or the `<doc />` tag, when the model
+passed the tag), for a tool of the process and for a local tool such as `c8__return_document`. The persisted
+messages, the process variable and the text the model reads keep the same values. The mapper needs the
+registry for the content of the messages only, so `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and
+`applyToolCallResults` take a `HistoryDocuments(documents)`; the request handler builds it from the registry of
+the conversation (of the agent context when the composer defers). The early write of a local result and the
+later write of the merged turn start, like the assistant item, show identical arguments, so it does not matter
 which write the engine's deduplication keeps.
 The `ASSISTANT` item lists every call of the message; the per-turn metrics count them all in `toolCalls`
 (a measure of what the model requested, consistent with the listed calls and the status choice
 `IDLE`/`TOOL_CALLING`). Unit tests: `AgentSubProcessRequestHandlerTest` and `AgentTaskRequestHandlerTest`
 (call order, status and arguments), `CamundaAgentInstanceClientTest` (merged local and process results
 as items, local tools in the `CONFIGURATION` item), `AgentInstanceToolMapperTest` and
-`AgentInstanceHistoryMapperTest` (no element id for local tools, document references in the arguments of the assistant and the result items), `AgentConversationTurnInputComposerImplTest`
+`AgentInstanceHistoryMapperTest` (no element id for local tools, the arguments of the assistant and the result items as the model sent them), `AgentConversationTurnInputComposerImplTest`
 (what `Deferred` carries). End to end: `AgentSubProcessDocumentFlowTests` reads the agent instance back
 through the query API (`agentInstanceHistoryReportsTheLocalToolAndItsCalls`).
 
@@ -971,7 +963,7 @@ What cannot be represented:
   error result of a local tool (invalid document id, `LocalToolException`, invalid arguments) is plain
   text content, the same way the model reads it.
 - The documents the agent returns are not reported; the selection of `c8__return_document` appears only as the
-  text of its result and as the references in its call arguments.
+  text of its result and as the ids in its call arguments.
 - The agent instance history is written repeatedly for the same result: a local result by the job that
   answers it and again by the next job, a process result that arrived early by every incomplete job and
   again by the batch-complete `applyTurnStart`. This is intended: the engine deduplicates history items by
@@ -1005,8 +997,6 @@ below concerns the instances with the feature.
   (prompt and event documents), so it holds at least what the model receives.
 - A tool result with a document is an `OBJECT` block with the complete reference in the history and the
   JSON with the `<doc/>` tag in place of the reference in the request.
-- A document argument of a call is the complete reference in the history and the id the model sent in the
-  request (5.1).
 - A `<doc/>` tag in a text block is wrapped in inline code backticks in the history.
 
 **Guard test.** `AgentSubProcessHistoryAuditTests` records every model request of a document flow (prompt
@@ -1027,9 +1017,7 @@ listed fails the test.
 2. **Tool input schemas are not in the history.** A tool entry of the history holds name, description and
    element id only, so the parameter schemas, the document id hint, the `camunda-document-id` format marker and
    the argument shape of the `c8__` tools are invisible (section 7).
-3. **External documents in arguments.** The history shows the complete reference for the id the model sent, so
-   the `ext-...` id the model passed is not in the arguments of the call; it is only in the tag text.
-4. **Inline documents.** `AgentInstanceHistoryMapper` cannot map an inline reference to a history block and
+3. **Inline documents.** `AgentInstanceHistoryMapper` cannot map an inline reference to a history block and
    throws an `IllegalArgumentException`; the reference of an inline document also holds its content
    (3.12, section 7).
 
@@ -1144,10 +1132,8 @@ listed fails the test.
   missing element id; an error result is plain text), and the tool input schemas are not reported (the
   document id format and hint, the arguments of the `c8__` tools are invisible). Ask: an engine API request for
   both (5.1, 5.2).
-- **External documents in arguments.** The history shows the complete reference for the id the model sent, so
-  the `ext-...` id the model passed is not in the arguments of the call; it is only in the tag text.
 - **Documents the agent returns** are not reported; the selection appears only as the text of the result of
-  `c8__return_document` and as the references in its call arguments.
+  `c8__return_document` and as the ids in its call arguments.
 
 **Local tools**
 
@@ -1181,12 +1167,12 @@ listed fails the test.
 | Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or local tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/model/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `LocalToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, rejection of tags, escaped tags and ids inside text, arrays, nested, `substituteKnownReferences`), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
+| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for local tools), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
 | Inline delivery | `aiagent/localtool/DocumentLoadGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerInlineDocumentsTest` (user prompt with the option on and off, fallback note, already loaded, instance without the feature; tool marker on and off, nested documents, notes only, loaded by `c8__get_document` in the same turn, already loaded, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the checkbox in the v2 templates, not in the v1 templates) |
 | Loading content | `aiagent/agent/GetDocumentToolTest` (loaded marker, already loaded, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/localtool/DocumentLoadLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the loaded tags), `AgentConversationTest` (`loadedDocumentIds` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the loaded tag), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a local tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
 | Local tool API | `aiagent/localtool/LocalToolBuilderTest`, `LocalToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/LocalToolCallHandlerImplTest` (including a mixed batch with a real call) |
-| Agent instance history of local tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (document references in the arguments), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
+| Agent instance history of local tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (the arguments as the model sent them), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
 | Mixed batches | `AgentSubProcessRequestHandlerTest` / `AgentTaskRequestHandlerTest` (one model call, only real calls activated, pending results, status, clearing), `AgentResponseHandlerDocumentsTest` (local calls not emitted), `AgentConversationTurnInputComposerImplTest` (merge in call order, partial arrival, interrupt, no gateway transform, foreign ids ignored), `AgentConversationTest` (`withPendingLocalToolCallResults`), `AgentContextTest` and `AgentContextSchemaMigrationTest` (persistence round trip, missing field), `CamundaAgentInstanceClientTest` (history items of merged results, the early item equals the one of the merged turn start) |
 
 ### End-to-end tests (`connectors-e2e-test/connectors-e2e-test-agentic-ai`, WireMock model)
@@ -1222,7 +1208,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.responseDocuments` on the `AgentResponse`). |
 | (g) mixed batch | `mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall` (both flavors) | `c8__return_document` and `Ping` in one assistant message: three model calls in total (download, mixed, final), `Ping` ran, the model got both results in call order, `agent.responseDocuments` holds the document under its key, nothing pending afterwards. |
 | (g2) mixed batch, early report | `localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `c8__return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `c8__return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `c8__return_document` and `Slow_Tool` once each, in that order. |
-| (i) history arguments | `agentInstanceHistoryShowsTheDocumentReferenceInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the Camunda reference (`camunda.document.type`, `storeId`, `documentId`, `contentHash`) and not the id in the arguments of `Upload_A_File` (document parameter) and of `c8__return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items, while the model requests keep the tag. |
+| (i) history arguments | `agentInstanceHistoryShowsTheDocumentIdInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the id the model sent in the arguments of `Upload_A_File` (document parameter) and of `c8__return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
 | (k) instance without the feature | `AgentTaskLegacyInstanceDocumentsTests` (`aiagent/task`) | A Task flavor agent whose initial `agent.context` has no features: user prompt documents as bare content, the tool result document as the reference JSON followed by the older tag and the content (Camunda and external documents), the model gets the process tools only, and the returned context has no features, registry or selection. |
 | (j) history audit | `AgentSubProcessHistoryAuditTests` (`aiagent/subprocess`) | Every message of every model request of a document flow, with a prompt document, a tool result document, a load with `c8__get_document`, document arguments and `c8__return_document` next to a real call, is covered by an item of the history read through the query API; with `contextWindowSize=3` the evicted-documents note is the only message without a history item and no history item holds it (5.2). |
@@ -1330,7 +1316,7 @@ public record LocalToolResult(Object content, boolean error, List<UnaryOperator<
 
 public class LocalToolException extends RuntimeException {}   // an error the model can act on
 public interface LocalToolRegistry { Set<String> toolNames(); List<LocalTool> availableTools(AgentConfiguration);
-    Optional<LocalTool> findAvailable(String name, AgentConfiguration); Optional<ToolDefinition> findDefinition(String name);
+    Optional<LocalTool> findAvailable(String name, AgentConfiguration);
     List<ToolDefinition> availableToolDefinitions(AgentConfiguration); }
 ```
 

@@ -315,36 +315,6 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void substituteKnownReferencesReplacesAKnownId() {
-    final var definition =
-        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
-
-    assertThat(
-            DocumentParameterResolver.substituteKnownReferences(
-                Map.of("doc", firstId), definition, registry))
-        .containsEntry("doc", reference(firstId));
-  }
-
-  @Test
-  void substituteKnownReferencesReplacesAKnownTagAndLeavesOtherTextAsGiven() {
-    final var definition =
-        ToolDefinition.builder()
-            .name("tool")
-            .inputSchema(object("doc", DOC, "other", DOC, "unknown", DOC))
-            .build();
-    final var tag = "<doc id=\"" + firstId + "\" fileName=\"x\" />";
-    final var withText = tag + " here";
-    final var unknown = "<doc id=\"nope\" />";
-
-    assertThat(
-            DocumentParameterResolver.substituteKnownReferences(
-                Map.of("doc", tag, "other", withText, "unknown", unknown), definition, registry))
-        .containsEntry("doc", reference(firstId))
-        .containsEntry("other", withText)
-        .containsEntry("unknown", unknown);
-  }
-
-  @Test
   void reportsABlankValueAsAnUnknownId() {
     assertThat(resolve(Map.of("doc", "  "), object("doc", DOC)))
         .isInstanceOfSatisfying(
@@ -382,64 +352,6 @@ class DocumentParameterResolverTest {
             Resolution.Resolved.class,
             resolved ->
                 assertThat(resolved.arguments()).containsEntry("a/b~c", reference(firstId)));
-  }
-
-  @Test
-  void substituteKnownReferencesReplacesKnownIdsAndLeavesEverythingElseAsGiven() {
-    final var definition =
-        ToolDefinition.builder()
-            .name("tool")
-            .inputSchema(object("doc", DOC, "docs", array(DOC), "req", object("file", DOC)))
-            .build();
-    final var arguments =
-        Map.<String, Object>of(
-            "doc",
-            firstId,
-            "docs",
-            List.of(secondId, "nope"),
-            "req",
-            Map.of("file", "gone", "note", "n"),
-            "other",
-            "kept");
-
-    final var result =
-        DocumentParameterResolver.substituteKnownReferences(arguments, definition, registry);
-
-    assertThat(result)
-        .containsEntry("doc", reference(firstId))
-        .containsEntry("docs", List.of(reference(secondId), "nope"))
-        .containsEntry("req", Map.of("file", "gone", "note", "n"))
-        .containsEntry("other", "kept");
-    assertThat(arguments).containsEntry("doc", firstId);
-  }
-
-  @Test
-  void substituteKnownReferencesToleratesValuesOfAnUnexpectedShape() {
-    final var definition =
-        ToolDefinition.builder()
-            .name("tool")
-            .inputSchema(object("doc", DOC, "docs", array(DOC), "req", object("file", DOC)))
-            .build();
-    final var arguments = new java.util.HashMap<String, Object>();
-    arguments.put("doc", 42);
-    arguments.put("docs", firstId);
-    arguments.put("req", "not an object");
-
-    assertThat(DocumentParameterResolver.substituteKnownReferences(arguments, definition, registry))
-        .isEqualTo(arguments);
-    assertThat(DocumentParameterResolver.substituteKnownReferences(Map.of(), definition, registry))
-        .isEmpty();
-  }
-
-  @Test
-  void substituteKnownReferencesLeavesToolsWithoutDocumentParametersAlone() {
-    final var definition =
-        ToolDefinition.builder().name("other").inputSchema(Map.of("type", "object")).build();
-
-    assertThat(
-            DocumentParameterResolver.substituteKnownReferences(
-                Map.of("doc", firstId), definition, registry))
-        .containsEntry("doc", firstId);
   }
 
   @Test

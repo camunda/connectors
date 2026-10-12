@@ -53,8 +53,8 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
-   * @param documents shows the document parameters of the arguments of the tool calls the results
-   *     correlate to with the document references instead of the ids (see {@link HistoryDocuments})
+   * @param documents the documents the history shows for the messages (see {@link
+   *     HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -76,8 +76,8 @@ public interface AgentInstanceClient {
    * is {@code null}.
    *
    * @param producedAt when the assistant response was produced
-   * @param documents shows the document parameters of the arguments of the tool calls with the
-   *     document references instead of the ids (see {@link HistoryDocuments})
+   * @param documents the documents the history shows for the messages (see {@link
+   *     HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -96,8 +96,8 @@ public interface AgentInstanceClient {
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
-   * @param documents shows the document parameters of the arguments of the tool calls the results
-   *     correlate to with the document references instead of the ids (see {@link HistoryDocuments})
+   * @param documents the documents the history shows for the messages (see {@link
+   *     HistoryDocuments})
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries

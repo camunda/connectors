@@ -157,7 +157,7 @@ public abstract class BaseAgentRequestHandler<
               agentContext,
               arrivedResults,
               previousConversation,
-              historyDocuments(agentContext, configuration));
+              historyDocuments(agentContext));
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -192,13 +192,10 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /** The documents the history shows for the agent context, before this turn registers any. */
-  private HistoryDocuments historyDocuments(
-      AgentContext agentContext, AgentConfiguration configuration) {
+  private HistoryDocuments historyDocuments(AgentContext agentContext) {
     return agentContext.supportsDocuments()
-        ? new HistoryDocuments(
-            configuration.toolDefinitions(), documentRegistryStorage.load(agentContext))
-        : HistoryDocuments.withoutDocumentFlow(
-            configuration.toolDefinitions(), agentContext.supportsLocalTools());
+        ? new HistoryDocuments(documentRegistryStorage.load(agentContext))
+        : HistoryDocuments.withoutDocumentFlow(agentContext.supportsLocalTools());
   }
 
   /**
@@ -249,7 +246,7 @@ public abstract class BaseAgentRequestHandler<
         conversation.currentTurn(),
         conversation.lastTurn(),
         OffsetDateTime.now(),
-        historyDocuments(agentConfiguration, conversation));
+        historyDocuments(conversation));
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -326,7 +323,7 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn(),
           OffsetDateTime.now(),
           status,
-          historyDocuments(agentConfiguration, workingConversation));
+          historyDocuments(workingConversation));
 
       if (continued) {
         LOGGER.debug(
@@ -359,7 +356,7 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn(),
             workingConversation.lastTurn(),
             OffsetDateTime.now(),
-            historyDocuments(agentConfiguration, workingConversation));
+            historyDocuments(workingConversation));
       } else if (split.hasLocalResults()) {
         LOGGER.debug(
             "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
@@ -376,7 +373,7 @@ public abstract class BaseAgentRequestHandler<
             agentInstanceKey,
             split.localResults(),
             workingConversation.currentTurn(),
-            historyDocuments(agentConfiguration, workingConversation));
+            historyDocuments(workingConversation));
 
         // the results join the process results of the remaining calls in the next job
         workingConversation =
@@ -386,12 +383,10 @@ public abstract class BaseAgentRequestHandler<
     return workingConversation;
   }
 
-  private static HistoryDocuments historyDocuments(
-      AgentConfiguration configuration, AgentConversation conversation) {
+  private static HistoryDocuments historyDocuments(AgentConversation conversation) {
     return conversation.supportsDocuments()
-        ? new HistoryDocuments(configuration.toolDefinitions(), conversation.documentRegistry())
-        : HistoryDocuments.withoutDocumentFlow(
-            configuration.toolDefinitions(), conversation.supportsLocalTools());
+        ? new HistoryDocuments(conversation.documentRegistry())
+        : HistoryDocuments.withoutDocumentFlow(conversation.supportsLocalTools());
   }
 
   /**

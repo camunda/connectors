@@ -502,9 +502,7 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             documentsCaptor.capture());
     assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
-    // the history shows the documents the agent knows in the arguments of the call
     assertThat(documentsCaptor.getValue().documents().entries()).containsExactly(knownEntry);
-    assertThat(documentsCaptor.getValue().toolDefinitions()).containsAll(TOOL_DEFINITIONS);
   }
 
   @Test
@@ -1527,7 +1525,6 @@ class AgentSubProcessRequestHandlerTest {
             eq(agentExecutionContext), any(), any(), any(), any(), completionDocuments.capture());
     for (final var documents : List.of(startDocuments.getValue(), completionDocuments.getValue())) {
       assertThat(documents.documents().findById(DocumentHandle.idFor(document))).isPresent();
-      assertThat(documents.toolDefinitions()).containsAll(TOOL_DEFINITIONS);
     }
   }
 

@@ -16,7 +16,6 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
-import io.camunda.connector.agenticai.aiagent.agent.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
@@ -33,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -128,7 +126,7 @@ public class AgentInstanceHistoryMapper {
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name(), documents))
-                .arguments(argumentsForResult(result, toolCallsById, documents))),
+                .arguments(argumentsForResult(result, toolCallsById))),
         requireCompletedAt(result),
         AgentInstanceHistoryItemIds.forToolCallResult(result));
   }
@@ -152,18 +150,15 @@ public class AgentInstanceHistoryMapper {
    * Resolves the originating request arguments for a tool-call result. Event results (no id) have
    * no originating tool call and carry empty arguments; a result with an id is expected to
    * correlate to a tool call in the previous turn, so a missing correlation is treated as an
-   * invariant violation. The ids of document parameters are shown as document references (see
-   * {@link #reportedArguments}).
+   * invariant violation. The arguments are shown as the model sent them.
    */
   private Map<String, Object> argumentsForResult(
-      ToolCallResultContent result,
-      Map<String, ToolCall> toolCallsById,
-      HistoryDocuments documents) {
+      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
     if (result.id() == null) {
       return Map.of();
     }
     return Optional.ofNullable(toolCallsById.get(result.id()))
-        .map(toolCall -> reportedArguments(toolCall, documents))
+        .map(AgentInstanceHistoryMapper::argumentsOf)
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
@@ -189,42 +184,13 @@ public class AgentInstanceHistoryMapper {
                     .toolCallId(toolCall.id())
                     .toolName(toolCall.name())
                     .elementId(elementIdFor(null, toolCall.name(), documents))
-                    .arguments(reportedArguments(toolCall, documents)))
+                    .arguments(argumentsOf(toolCall)))
         .toList();
   }
 
-  /**
-   * The arguments of {@code toolCall} as the history shows them: a document parameter, a schema
-   * node with the document id format of the tool's definition, carries the reference of the
-   * document (see {@link DocumentParameterResolver#substituteKnownReferences}) instead of its id.
-   * The persisted messages and what the model reads keep the ids. An id the registry does not know
-   * stays as given. The result only depends on the tool call, its tool definition and the registry
-   * entries, which never change once registered, so every write of the same call shows the same
-   * arguments.
-   */
-  private Map<String, Object> reportedArguments(ToolCall toolCall, HistoryDocuments documents) {
-    final Map<String, Object> arguments =
-        requireNonNullElse(toolCall.arguments(), Map.<String, Object>of());
-    if (documents.documents().isEmpty()) {
-      return arguments;
-    }
-    return definitionOf(toolCall.name(), documents)
-        .map(
-            definition ->
-                DocumentParameterResolver.substituteKnownReferences(
-                    arguments, definition, documents.documents()))
-        .orElse(arguments);
-  }
-
-  /**
-   * The definition of a tool: one of the offered tools, else a registered local tool, which is not
-   * offered while it is unavailable but whose calls are still reported alike.
-   */
-  private Optional<ToolDefinition> definitionOf(String toolName, HistoryDocuments documents) {
-    return documents.toolDefinitions().stream()
-        .filter(definition -> definition.name().equals(toolName))
-        .findFirst()
-        .or(() -> localToolRegistry.findDefinition(toolName));
+  /** The arguments of {@code toolCall} as the model sent them, document ids included. */
+  private static Map<String, Object> argumentsOf(ToolCall toolCall) {
+    return requireNonNullElse(toolCall.arguments(), Map.<String, Object>of());
   }
 
   /**
