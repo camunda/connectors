@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
@@ -58,6 +59,11 @@ public record DocumentReferenceXmlTag(
 
   /** Metadata key whose value {@code true} marks a tag whose document content is loaded. */
   public static final String METADATA_LOADED = "loaded";
+
+  /** A text that is exactly one tag: {@code <doc}, optional attributes, {@code />}. */
+  private static final Pattern SINGLE_TAG = Pattern.compile("<doc(\\s[^<>]*)?/>");
+
+  private static final Pattern ID_ATTRIBUTE = Pattern.compile("(?:^|\\s)id=\"([^\"]*)\"");
 
   /** Creates a tag without a size. */
   public DocumentReferenceXmlTag(
@@ -111,6 +117,25 @@ public record DocumentReferenceXmlTag(
         documentSource.type().tagValue(),
         documentSource.toolName(),
         documentSource.toolCallId());
+  }
+
+  /**
+   * Returns the id of the document if the text is exactly one tag, surrounded by whitespace at
+   * most, and the tag has a non-blank {@code id} attribute; the value is XML-unescaped. Returns
+   * {@code null} for any other text: text around the tag, more than one tag, or a tag without an
+   * id.
+   */
+  public static @Nullable String idOfSingleTag(String text) {
+    final var tag = SINGLE_TAG.matcher(text.strip());
+    if (!tag.matches() || tag.group(1) == null) {
+      return null;
+    }
+    final var id = ID_ATTRIBUTE.matcher(tag.group(1));
+    if (!id.find()) {
+      return null;
+    }
+    final var unescaped = StringEscapeUtils.unescapeXml(id.group(1));
+    return unescaped.isBlank() ? null : unescaped;
   }
 
   /**

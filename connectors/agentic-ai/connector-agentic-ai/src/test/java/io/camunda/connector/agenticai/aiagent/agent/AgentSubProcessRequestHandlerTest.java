@@ -916,7 +916,7 @@ class AgentSubProcessRequestHandlerTest {
                                   text ->
                                       assertThat(text.text())
                                           .startsWith(
-                                              "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
+                                              "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
                                           .contains(documentId));
                         }));
 
@@ -1136,7 +1136,7 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(result.content())
                   .asString()
                   .startsWith(
-                      "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:");
+                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:");
             });
 
     // the stored assistant message keeps both calls, no results are stored yet
@@ -1394,7 +1394,7 @@ class AgentSubProcessRequestHandlerTest {
                         text ->
                             assertThat(text.text())
                                 .startsWith(
-                                    "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.")));
+                                    "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.")));
     assertThat(response.responseValue().context().returnDocuments()).isEmpty();
   }
 

@@ -109,7 +109,7 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
 Use the Operate instance view (variables `agent`, `toolCallResults`) and the agent instance history.
 
 1. **Tool schema.** Start with `List your tools and their parameters.` Check the answer: `Upload_File` has a string
-   parameter `document` whose description ends with `Pass the id of a known document (the id attribute of its <doc /> tag).`; `Upload_Many`
+   parameter `document` whose description ends with `Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself.`; `Upload_Many`
    has an array of strings; `c8__get_document` and `c8__return_document` are listed.
 2. **Download and upload.** Prompt: `Download <baseUrl>/image/png and upload it with the description "logo".` Check:
    `Download_File` returned a document (`toolCallResult.document`, a Camunda document reference), `Upload_File` has status

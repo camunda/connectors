@@ -28,10 +28,10 @@ import org.jspecify.annotations.Nullable;
  * {@code items}. The format inside {@code anyOf}, {@code oneOf} or {@code $ref} does not make a
  * document parameter.
  *
- * <p>The model passes the id of a known document as the value. The description of a document
- * parameter ends with {@link #HINT}, see {@link #withHint}. The stored schema keeps the format;
- * some model providers reject unknown formats, so {@link #toProviderToolDefinitions} derives the
- * schema they get by dropping the format.
+ * <p>The model passes the id of a known document as the value, or the {@code <doc />} tag itself.
+ * The description of a document parameter ends with {@link #HINT}, see {@link #withHint}. The
+ * stored schema keeps the format; some model providers reject unknown formats, so {@link
+ * #toProviderToolDefinitions} derives the schema they get by dropping the format.
  */
 public final class DocumentParameterSchema {
 
@@ -47,7 +47,7 @@ public final class DocumentParameterSchema {
 
   /** Ends the description of every document parameter. */
   public static final String HINT =
-      "Pass the id of a known document (the id attribute of its <doc /> tag).";
+      "Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself.";
 
   private DocumentParameterSchema() {}
 

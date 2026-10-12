@@ -187,7 +187,7 @@ class AgentTaskRequestHandlerTest {
               assertThat(result.content())
                   .asString()
                   .startsWith(
-                      "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.");
+                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
             });
     verify(agentInstanceClient)
         .applyTurnCompletion(

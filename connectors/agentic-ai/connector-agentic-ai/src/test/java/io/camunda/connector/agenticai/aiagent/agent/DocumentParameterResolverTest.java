@@ -42,15 +42,15 @@ class DocumentParameterResolverTest {
   private final String secondId = DocumentHandle.idFor(second);
 
   private static String notAString(String path) {
-    return "Parameter '%s' must be the exact id of a known document (the id attribute of a"
+    return "Parameter '%s' must be the exact id of a known document (the id attribute of its"
             .formatted(path)
-        + " <doc/> tag in the conversation), a string.";
+        + " <doc /> tag) or that tag itself, a string.";
   }
 
   private static String problem(String path, String value) {
-    return "Parameter '%s' must be the exact id of a known document (the id attribute of a"
+    return "Parameter '%s' must be the exact id of a known document (the id attribute of its"
             .formatted(path)
-        + " <doc/> tag in the conversation), got '%s'.".formatted(value);
+        + " <doc /> tag) or that tag itself, got '%s'.".formatted(value);
   }
 
   private Map<String, Object> reference(String id) {
@@ -147,11 +147,76 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void rejectsATagInsteadOfTheId() {
-    final var tag = "<doc id=\"" + firstId + "\" fileName=\"first.txt\" />";
+  void acceptsTheTagOfADocumentLikeItsId() {
+    final var tag =
+        "<doc id=\"" + firstId + "\" fileName=\"first.txt\" contentType=\"text/plain\" />";
 
     assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", tag))));
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId))));
+  }
+
+  @Test
+  void acceptsATagWithSurroundingWhitespaceAndWithoutASpaceBeforeTheEnd() {
+    final var spaced = "\n  <doc id=\"" + firstId + "\" />  \t";
+    final var compact = "<doc id=\"" + secondId + "\"/>";
+
+    assertThat(resolve(Map.of("a", spaced, "b", compact), object("a", DOC, "b", DOC)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
+  }
+
+  @Test
+  void usesTheIdAttributeOfATagWhateverItsPositionAndUnescapesIt() {
+    final var tag = "<doc fileName=\"a&amp;b.txt\" toolCallId=\"x\" id=\"" + firstId + "\" />";
+
+    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId))));
+  }
+
+  @Test
+  void reportsATagWithAnUnknownIdByItsId() {
+    final var tag = "<doc id=\"nope\" fileName=\"x\" />";
+
+    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+  }
+
+  @Test
+  void rejectsATagWithTextAroundIt() {
+    final var leading = "see <doc id=\"" + firstId + "\" />";
+    final var trailing = "<doc id=\"" + firstId + "\" /> please";
+
+    assertThat(resolve(Map.of("a", leading, "b", trailing), object("a", DOC, "b", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("a", leading), problem("b", trailing))));
+  }
+
+  @Test
+  void rejectsTwoTags() {
+    final var tags = "<doc id=\"" + firstId + "\" /><doc id=\"" + secondId + "\" />";
+    final var spaced = "<doc id=\"" + firstId + "\" /> <doc id=\"" + secondId + "\" />";
+
+    assertThat(resolve(Map.of("a", tags, "b", spaced), object("a", DOC, "b", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("a", tags), problem("b", spaced))));
+  }
+
+  @Test
+  void rejectsATagWithoutAnIdOrThatIsNotClosed() {
+    final var noId = "<doc fileName=\"first.txt\" />";
+    final var blankId = "<doc id=\"\" />";
+    final var open = "<doc id=\"" + firstId + "\">";
+    final var otherElement = "<document id=\"" + firstId + "\" />";
+
+    assertThat(
+            resolve(
+                Map.of("a", noId, "b", blankId, "c", open, "d", otherElement),
+                object("a", DOC, "b", DOC, "c", DOC, "d", DOC)))
+        .isEqualTo(
+            new Resolution.Invalid(
+                List.of(
+                    problem("a", noId),
+                    problem("b", blankId),
+                    problem("c", open),
+                    problem("d", otherElement))));
   }
 
   @Test
@@ -175,7 +240,7 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void rejectsTagsInArraysAndNestedObjects() {
+  void acceptsTagsInArraysAndNestedObjects() {
     final var tag = "<doc id=\"" + secondId + "\" />";
     final var result =
         resolve(
@@ -183,8 +248,27 @@ class DocumentParameterResolverTest {
             object("docs", array(DOC), "req", object("file", DOC)));
 
     assertThat(result)
+        .isInstanceOfSatisfying(
+            Resolution.Resolved.class,
+            resolved -> {
+              assertThat(resolved.arguments().get("docs"))
+                  .isEqualTo(List.of(reference(firstId), reference(secondId)));
+              assertThat(resolved.arguments().get("req"))
+                  .isEqualTo(Map.of("file", reference(secondId)));
+            });
+  }
+
+  @Test
+  void reportsInvalidTagsInArraysAndNestedObjects() {
+    final var twoTags = "<doc id=\"" + firstId + "\" /><doc id=\"" + secondId + "\" />";
+    final var result =
+        resolve(
+            Map.of("docs", List.of(firstId, twoTags), "req", Map.of("file", "<doc id=\"x\" />")),
+            object("docs", array(DOC), "req", object("file", DOC)));
+
+    assertThat(result)
         .isEqualTo(
-            new Resolution.Invalid(List.of(problem("docs[1]", tag), problem("req.file", tag))));
+            new Resolution.Invalid(List.of(problem("docs[1]", twoTags), problem("req.file", "x"))));
   }
 
   @Test
@@ -199,15 +283,22 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void substituteKnownReferencesLeavesATagAsGiven() {
+  void substituteKnownReferencesReplacesAKnownTagAndLeavesOtherTextAsGiven() {
     final var definition =
-        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
+        ToolDefinition.builder()
+            .name("tool")
+            .inputSchema(object("doc", DOC, "other", DOC, "unknown", DOC))
+            .build();
     final var tag = "<doc id=\"" + firstId + "\" fileName=\"x\" />";
+    final var withText = tag + " here";
+    final var unknown = "<doc id=\"nope\" />";
 
     assertThat(
             DocumentParameterResolver.substituteKnownReferences(
-                Map.of("doc", tag), definition, registry))
-        .containsEntry("doc", tag);
+                Map.of("doc", tag, "other", withText, "unknown", unknown), definition, registry))
+        .containsEntry("doc", reference(firstId))
+        .containsEntry("other", withText)
+        .containsEntry("unknown", unknown);
   }
 
   @Test

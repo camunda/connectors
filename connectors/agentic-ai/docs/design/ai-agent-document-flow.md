@@ -181,7 +181,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 1 | The registry is persisted in `agentContext` (typed field `documents`) behind a small storage interface. | Deriving it from nested tool result documents is hard; filling at ingestion reuses the existing deep extraction. One place for all stores (including AWS AgentCore); commits atomically with job completion. |
 | 2 | Document id is `DocumentHandle.idFor`. The model sees only `<doc id [fileName] [contentType] [source] [toolName] [toolCallId] />`. | Never expose `storeId`, `contentHash`, other metadata or URLs (presigned URLs carry tokens). |
 | 3 | Documents out are a built-in local tool `c8__return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
-| 4 | A document parameter that is not exactly the id of a known document (an unknown id, a `<doc/>` tag, text around an id) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
+| 4 | A document parameter that is not exactly the id of a known document (an unknown id, text around an id or a tag, two tags) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
 | 6 | `c8__return_document` and `c8__get_document` are offered to every agent instance with the `documents` feature and `responseDocuments` is added to the response when the selection is non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
 | 7 | Documents are reference-only in the conversation: a tag, no content. Content enters only through `c8__get_document`, which loads a whole document, within a type allowlist and a size limit. Passing an id to a tool never loads content. | Content in the conversation costs tokens in every later model call and can make a model call fail; the model decides which documents it needs to read, and a document that is too large or of an unsupported type is handled by a tool instead (section 3.14). |
@@ -203,7 +203,7 @@ parameters by it, not by the type. `ToolDefinition` has no further field for it:
 `ToolDefinition` records, so an unchanged tool stays unchanged.
 
 The model passes the id of a known document as the value, exactly the `id` attribute of the `<doc />` tag it
-sees. The description of every document parameter ends with the hint `DocumentParameterSchema.HINT` (the hint
+sees, or the tag itself (section 3.7). The description of every document parameter ends with the hint `DocumentParameterSchema.HINT` (the hint
 alone when the parameter has no description). The hint is applied by the constructor of `ToolDefinition`
 (`DocumentParameterSchema.withHint`), the one point every tool definition passes through (the generated
 schema of an ad-hoc tool, the definitions of gateway tools, the output of the Ad-Hoc Tools Schema Resolver,
@@ -226,7 +226,7 @@ rewritten. Example for `fromAi(toolCall.docs, "The attachments", "array", {"item
 {"type": "object",
  "properties": {"docs": {"type": "array", "description": "The attachments",
    "items": {"type": "string", "format": "camunda-document-id",
-             "description": "Pass the id of a known document (the id attribute of its <doc /> tag)."}}},
+             "description": "Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself."}}},
  "required": ["docs"]}
 ```
 
@@ -236,7 +236,7 @@ which the provider gets as
 {"type": "object",
  "properties": {"docs": {"type": "array", "description": "The attachments",
    "items": {"type": "string",
-             "description": "Pass the id of a known document (the id attribute of its <doc /> tag)."}}},
+             "description": "Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself."}}},
  "required": ["docs"]}
 ```
 
@@ -258,7 +258,9 @@ The rewrite for the provider and `DocumentParameterResolver` walk the same schem
 objects and arrays. Reason: tools commonly take lists of files or an object with a file field.
 The format inside `anyOf`/`oneOf`/`$ref` does not make a document parameter: it is neither rewritten nor
 resolved and would reach the provider with the format still set (a known limitation, not worth the
-schema-walking complexity now).
+schema-walking complexity now). A parameter that accepts either a string or a document is such a union, so it
+is not supported yet. Its explicit form would be the tag: a value that is exactly one `<doc />` tag is a
+document, any other value is a string.
 
 ### 3.4 Tag format
 
@@ -383,23 +385,25 @@ until the process results are in, which `agentContext` already carries.
 
 ### 3.7 Reading the value, error text
 
-A document parameter value is a string that is exactly the id of a document of the registry: the whole field is
-compared, nothing is parsed, trimmed, unescaped or extracted. A `<doc/>` tag, an id with surrounding
-whitespace or an id inside other text is not a known id and is rejected. A value that reaches the process
-is the Camunda document reference of the registry entry; the persisted assistant message keeps the id exactly
-as the model sent it.
+A document parameter value is a string that is either exactly the id of a document of the registry or exactly
+one `<doc ... />` tag, surrounded by whitespace at most. An id is compared as a whole: it is not trimmed,
+unescaped or extracted from other text. For a tag, the XML-unescaped `id` attribute is the id, and the other
+attributes are ignored (`DocumentReferenceXmlTag.idOfSingleTag`). An unknown id, an id with surrounding
+whitespace, an id or a tag inside other text, and a value with more than one tag are rejected. A value that
+reaches the process is the Camunda document reference of the registry entry; the persisted assistant message
+keeps the value exactly as the model sent it.
 
 One sentence per invalid value, then the known documents (at most 50 are listed, the rest is
 counted):
 
 ```
-Parameter 'docs[1]' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'x'. Known documents:
+Parameter 'docs[1]' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'x'. Known documents:
 <doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />
 ```
 
 The parameter path is `name`, `parent.name` for nested objects and `name[i]` for array elements. A
-non-string value reads "Parameter 'p' must be the exact id of a known document (the id attribute of a
-<doc/> tag in the conversation), a string.", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
+non-string value reads "Parameter 'p' must be the exact id of a known document (the id attribute of its
+<doc /> tag) or that tag itself, a string.", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
 registry the list is replaced by "No documents are known.". Results are plain text because no provider
 has a tool error flag in the domain model, so the model reads the text. Reason: the list of known tags
 lets the model correct itself in one retry without any further tool call. The error result reaches the model with its next request: in the synthetic round when the whole batch was local, in the next job together with the results of the real calls of the batch otherwise (section 3.6).

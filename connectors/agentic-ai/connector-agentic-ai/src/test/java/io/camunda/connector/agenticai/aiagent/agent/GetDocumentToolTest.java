@@ -192,6 +192,22 @@ class GetDocumentToolTest {
   }
 
   @Test
+  void loadsADocumentPassedAsItsTag() {
+    final var split =
+        run(
+            List.of(camundaEntry("doc-1", "text/plain", 10L)),
+            List.of(),
+            call("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
+
+    assertThat(split.localResults())
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(result.properties())
+                    .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1"));
+  }
+
+  @Test
   void answersAnUnknownIdWithAnErrorListingTheKnownDocuments() {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), call("1", "bogus"));
@@ -202,7 +218,7 @@ class GetDocumentToolTest {
             result -> {
               assertThat(result.content().toString())
                   .startsWith(
-                      "Parameter 'id' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
+                      "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
                   .contains("doc-1");
               assertThat(result.properties()).isEmpty();
             });

@@ -323,7 +323,7 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content().toString())
                     .startsWith(
-                        "Parameter 'file' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
+                        "Parameter 'file' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
                     .contains(reportId));
   }
 
@@ -361,7 +361,7 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content())
                     .isEqualTo(
-                        "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'nope'. Known documents:\n"
+                        "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. Known documents:\n"
                             + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
                                 .formatted(reportId)));
   }
@@ -389,7 +389,7 @@ class LocalToolCallHandlerImplTest {
             result ->
                 assertThat(result.content())
                     .isEqualTo(
-                        "Parameter 'doc' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'nope'. No documents are known."));
+                        "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. No documents are known."));
   }
 
   @Test

@@ -158,14 +158,26 @@ class ReturnDocumentToolTest {
             result ->
                 assertThat(result.content().toString())
                     .startsWith(
-                        "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'. Known documents:")
+                        "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
                     .contains(reportId, summaryId));
     assertThat(split.conversation().returnDocuments()).isEmpty();
   }
 
   @Test
-  void rejectsATagInsteadOfTheId() {
-    final var tag = "<doc id=\"" + reportId + "\" />";
+  void acceptsTheTagOfTheDocumentLikeItsId() {
+    final var tag = "<doc id=\"" + reportId + "\" fileName=\"report.txt\" />";
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
+
+    assertThat(split.localResults())
+        .extracting(ToolCallResult::content)
+        .containsExactly("Returned the document under the key 'k'.");
+    assertThat(split.conversation().returnDocuments())
+        .containsExactly(Map.entry("k", new SelectedDocument(reportId, null)));
+  }
+
+  @Test
+  void rejectsATagWithTextAroundIt() {
+    final var tag = "<doc id=\"" + reportId + "\" /> now";
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
     assertThat(split.localResults())
@@ -234,7 +246,7 @@ class ReturnDocumentToolTest {
         .isEqualTo("Returned the document under the key 'report'.");
     assertThat(split.localResults().get(1).content().toString())
         .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'bogus'.");
+            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
   }
 
   private static ToolCall call(String id, Map<String, Object> arguments) {

@@ -1690,7 +1690,7 @@ PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types,
 otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
 processes the document. A successful load is followed by a user message whose tag is marked as loaded
 (`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
-from the registry when the conversation is windowed. Passing a document id to a tool parameter declared with
+from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
 `fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference.
 
 Inline delivery is opt-in and loads the content without a `c8__get_document` call, through the same guard
@@ -1868,9 +1868,9 @@ lease-fenced `update()` mechanism).
   tool call is an invariant violation and fails the turn.
 - The `arguments` of a tool call, in the `ASSISTANT` item and in the `TOOL_RESULT` items, show the
   reference of a document where the model passed its id: a document parameter (a string schema node with
-  the format `camunda-document-id`, see the document flow design notes) holding the id of a known document carries the registry entry's
+  the format `camunda-document-id`, see the document flow design notes) holding the id of a known document, or its `<doc />` tag, carries the registry entry's
   `reference` map, the complete JSON the document serializer emits (an inline document with its
-  content). A value that is not exactly a known id stays as given, and so do the persisted messages and the text the model reads. The text parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and the text the model reads are not changed. An agent instance without the `documents` feature has no registry and reports texts and arguments as they are (`HistoryDocuments.documentFlow()` is `false`).
+  content). A value that is neither exactly a known id nor exactly one tag of a known document stays as given, and so do the persisted messages and the text the model reads. The text parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and the text the model reads are not changed. An agent instance without the `documents` feature has no registry and reports texts and arguments as they are (`HistoryDocuments.documentFlow()` is `false`).
   `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take a
   `HistoryDocuments` (the offered tool definitions and the document registry) for this.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because

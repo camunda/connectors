@@ -40,6 +40,30 @@ class DocumentReferenceXmlTagTest {
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
   @Test
+  void idOfSingleTagReadsTheIdOfARenderedTag() {
+    final var tag =
+        new DocumentReferenceXmlTag(
+            "a&b\"c", "re<port>.pdf", "application/pdf", 10L, null, "search", "call_abc");
+
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag(tag.toXml())).isEqualTo("a&b\"c");
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("  \n" + tag.toXml() + "\t "))
+        .isEqualTo("a&b\"c");
+  }
+
+  @Test
+  void idOfSingleTagIsNullForAnythingButExactlyOneTagWithAnId() {
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("some-id")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("see <doc id=\"a\" />")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\" /> see")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\" /><doc id=\"b\" />")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\">")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc fileName=\"x\" />")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\" \" />")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc />")).isNull();
+    assertThat(DocumentReferenceXmlTag.idOfSingleTag("")).isNull();
+  }
+
+  @Test
   void camundaDocumentRendersIdFileNameContentTypeAndToolOrigin() {
     final var doc =
         documentFactory.create(

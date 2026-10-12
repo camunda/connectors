@@ -268,7 +268,8 @@ class DocumentParameterSchemaTest {
   @Test
   void hintAsksForTheIdOfAKnownDocument() {
     assertThat(HINT)
-        .isEqualTo("Pass the id of a known document (the id attribute of its <doc /> tag).");
+        .isEqualTo(
+            "Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself.");
   }
 
   @Test

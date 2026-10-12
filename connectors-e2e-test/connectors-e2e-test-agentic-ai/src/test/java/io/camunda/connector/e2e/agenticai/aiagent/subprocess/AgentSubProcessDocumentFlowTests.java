@@ -411,7 +411,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(errorResult.role()).isEqualTo("tool");
     assertThat(errorResult.content())
         .startsWith(
-            "Parameter 'id' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
+            "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
         .contains("<doc id=\"" + documentId + "\"");
     assertAgentResponse(
         zeebeTest,
@@ -444,7 +444,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(errorResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
     assertThat(errorResult.content())
         .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
+            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
         .contains("Known documents:")
         .contains("<doc id=\"" + documentId + "\"");
 
@@ -626,7 +626,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
         .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of a <doc/> tag in the conversation), got 'no-such-document'.")
+            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
         .contains("<doc id=\"" + documentId + "\"");
     assertThat(results.get(1).content()).contains("pong");
 
