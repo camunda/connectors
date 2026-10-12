@@ -122,6 +122,18 @@
     },
     "type" : "String"
   }, {
+    "id" : "baseUrl",
+    "label" : "API base URL",
+    "description" : "Override the Slack API base URL, e.g. to use a proxy, a gateway, or a Slack-compatible endpoint. Defaults to <code>https://slack.com/api/</code>.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.messageType",
     "label" : "Message type",
     "optional" : false,

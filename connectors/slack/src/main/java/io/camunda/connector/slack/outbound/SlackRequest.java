@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.slack.api.Slack;
+import com.slack.api.SlackConfig;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -52,6 +53,15 @@ public record SlackRequest<T extends SlackRequestData>(
                 @PropertyCondition(property = "slackCredential", isEmpty = NullableBoolean.TRUE),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String token,
+    @TemplateProperty(
+            id = "baseUrl",
+            label = "API base URL",
+            group = "authentication",
+            feel = FeelMode.optional,
+            optional = true,
+            description =
+                "Override the Slack API base URL, e.g. to use a proxy, a gateway, or a Slack-compatible endpoint. Defaults to <code>https://slack.com/api/</code>.")
+        String baseUrl,
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
@@ -78,10 +88,17 @@ public record SlackRequest<T extends SlackRequestData>(
     if (token != null && token.isBlank()) {
       token = null;
     }
+    if (baseUrl != null && baseUrl.isBlank()) {
+      baseUrl = null;
+    }
   }
 
   public SlackRequest(String token, T data) {
-    this(null, token, data);
+    this(null, token, null, data);
+  }
+
+  public SlackRequest(SlackTokenConfiguration slackCredential, String token, T data) {
+    this(slackCredential, token, null, data);
   }
 
   @Override
@@ -97,8 +114,15 @@ public record SlackRequest<T extends SlackRequestData>(
   }
 
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
-    MethodsClient methods = slack.methods(token());
+    final Slack client = baseUrl == null ? slack : slackWithBaseUrl();
+    MethodsClient methods = client.methods(token());
     return data.invoke(methods);
+  }
+
+  private Slack slackWithBaseUrl() {
+    final var config = new SlackConfig();
+    config.setMethodsEndpointUrlPrefix(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
+    return Slack.getInstance(config);
   }
 
   @Override
@@ -107,6 +131,8 @@ public record SlackRequest<T extends SlackRequestData>(
         + "slackCredential="
         + (slackCredential != null ? "[REDACTED]" : "null")
         + ", token=[REDACTED]"
+        + ", baseUrl="
+        + baseUrl
         + ", data=[REDACTED]"
         + "}";
   }
