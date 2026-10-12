@@ -107,10 +107,10 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
               .isReady()
               .hasNoToolCalls()
               .hasResponseText(responseText);
-          // the instance never gets features, a registry or a selection of returned documents
+          // the instance never gets features, a registry or response documents
           assertThat(agentResponse.context().features()).isEmpty();
           assertThat(agentResponse.context().documents()).isEmpty();
-          assertThat(agentResponse.context().returnDocuments()).isEmpty();
+          assertThat(agentResponse.context().responseDocuments()).isEmpty();
           assertThat(agentResponse.responseDocuments()).isEmpty();
         });
   }

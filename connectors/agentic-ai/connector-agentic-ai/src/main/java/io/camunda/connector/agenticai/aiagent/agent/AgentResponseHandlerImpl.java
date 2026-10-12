@@ -93,9 +93,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (toolCalls.isEmpty() && conversation.supportsDocuments()) {
-      // every final response carries the whole selection of returned documents, which stays in the
+      // every final response carries all response documents, which stay in the
       // context for the lifetime of the agent instance
-      builder.responseDocuments(returnedDocuments(conversation));
+      builder.responseDocuments(responseDocuments(conversation));
     }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
@@ -108,12 +108,12 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     return builder.build();
   }
 
-  private LinkedHashMap<String, ReturnedDocument> returnedDocuments(
+  private LinkedHashMap<String, ReturnedDocument> responseDocuments(
       AgentConversation conversation) {
     final var registry = conversation.documentRegistry();
     final var returned = new LinkedHashMap<String, ReturnedDocument>();
     conversation
-        .returnDocuments()
+        .responseDocuments()
         .forEach(
             (key, selected) ->
                 registry

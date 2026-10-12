@@ -22,8 +22,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DO
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_DESCRIPTION;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocumentEntry;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocumentEntry;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.documentIdOfToolResult;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentTurn;
@@ -124,7 +124,7 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void keepsTheReturnedDocumentOnTheFinalResponseOfALaterTurn() throws Exception {
+  void keepsTheResponseDocumentOnTheFinalResponseOfALaterTurn() throws Exception {
     final var firstAnswer = "Here is the file.";
     final var secondAnswer = "Glad to help.";
     OpenAiCompletionsChatModelStubs.stubConversation(
@@ -152,14 +152,14 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(secondAnswer);
-          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
+          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          assertThat(agentResponse.context().responseDocuments()).containsOnlyKeys(RETURN_KEY);
         });
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
   @Test
-  void accumulatesTheReturnedDocumentsOfSeveralTurnsOnTheFinalResponse() throws Exception {
+  void accumulatesTheResponseDocumentsOfSeveralTurnsOnTheFinalResponse() throws Exception {
     final var secondAnswer = "Here are the notes too.";
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf", DOWNLOAD_CALL_ID),
@@ -189,18 +189,18 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
               .hasResponseText(secondAnswer);
           assertThat(agentResponse.responseDocuments().keySet())
               .containsExactly(RETURN_KEY, NOTES_KEY);
-          assertReturnedDocumentEntry(
+          assertResponseDocumentEntry(
               agentResponse.responseDocuments(), RETURN_KEY, reportId, RETURN_DESCRIPTION);
-          assertReturnedDocumentEntry(
+          assertResponseDocumentEntry(
               agentResponse.responseDocuments(), NOTES_KEY, notesId, NOTES_DESCRIPTION);
-          assertThat(agentResponse.context().returnDocuments().keySet())
+          assertThat(agentResponse.context().responseDocuments().keySet())
               .containsExactly(RETURN_KEY, NOTES_KEY);
         });
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
   @Test
-  void replacesTheReturnedDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain() throws Exception {
+  void replacesTheResponseDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain() throws Exception {
     final var thirdAnswer = "I updated the report.";
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf", DOWNLOAD_CALL_ID),
@@ -236,11 +236,11 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
               .hasResponseText(thirdAnswer);
           assertThat(agentResponse.responseDocuments().keySet())
               .containsExactly(RETURN_KEY, NOTES_KEY);
-          assertReturnedDocumentEntry(
+          assertResponseDocumentEntry(
               agentResponse.responseDocuments(), RETURN_KEY, updatedReportId, UPDATED_DESCRIPTION);
-          assertReturnedDocumentEntry(
+          assertResponseDocumentEntry(
               agentResponse.responseDocuments(), NOTES_KEY, notesId, NOTES_DESCRIPTION);
-          assertThat(agentResponse.context().returnDocuments().keySet())
+          assertThat(agentResponse.context().responseDocuments().keySet())
               .containsExactly(RETURN_KEY, NOTES_KEY);
         });
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(3);

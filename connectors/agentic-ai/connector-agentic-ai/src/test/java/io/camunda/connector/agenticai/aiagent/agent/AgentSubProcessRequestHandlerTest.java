@@ -72,7 +72,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEnt
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -1178,7 +1178,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void runsTheRealCallOfABatchWithAReturnDocumentCallAndRecordsTheSelectionImmediately() {
+  void runsTheRealCallOfABatchWithAReturnDocumentCallAndRecordsTheResponseDocumentImmediately() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
@@ -1219,9 +1219,9 @@ class AgentSubProcessRequestHandlerTest {
         .containsExactly(ToolCallProcessVariable.from(otherCall));
     assertThat(response.elementActivations()).hasSize(1);
 
-    // the selection is persisted with this job, the answer waits for the process result
-    assertThat(context.returnDocuments())
-        .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
+    // the response documents are persisted with this job, the answer waits for the process result
+    assertThat(context.responseDocuments())
+        .containsExactly(Map.entry("report", new ResponseDocumentSelection(documentId, null)));
     assertThat(context.pendingRuntimeToolCallResults())
         .singleElement()
         .satisfies(
@@ -1290,8 +1290,8 @@ class AgentSubProcessRequestHandlerTest {
             });
 
     final var context = response.responseValue().context();
-    assertThat(context.returnDocuments())
-        .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
+    assertThat(context.responseDocuments())
+        .containsExactly(Map.entry("report", new ResponseDocumentSelection(documentId, null)));
     assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
@@ -1394,11 +1394,11 @@ class AgentSubProcessRequestHandlerTest {
                             assertThat(text.text())
                                 .startsWith(
                                     "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.")));
-    assertThat(response.responseValue().context().returnDocuments()).isEmpty();
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
   }
 
   @Test
-  void carriesTheReturnedDocumentsIntoTheAgentResponseVariable() {
+  void carriesTheResponseDocumentsIntoTheAgentResponseVariable() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -1554,7 +1554,7 @@ class AgentSubProcessRequestHandlerTest {
 
     assertThat(response.responseValue().context().documents()).isEmpty();
     assertThat(response.responseValue().context().features()).isEmpty();
-    assertThat(response.responseValue().context().returnDocuments()).isEmpty();
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
   }
 
   private Document createDocument(String content, String fileName) {

@@ -30,7 +30,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PI
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
@@ -222,12 +222,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          // the registry and the selection are part of the agent context
+          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          // the registry and the response documents are part of the agent context
           assertThat(agentResponse.context().documents())
               .extracting(entry -> entry.id())
               .containsExactly(documentId);
-          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
+          assertThat(agentResponse.context().responseDocuments()).containsOnlyKeys(RETURN_KEY);
         });
 
     assertNoDocumentInternalsInLlmRequests();
@@ -496,8 +496,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
+          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          assertThat(agentResponse.context().responseDocuments()).containsOnlyKeys(RETURN_KEY);
           assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();

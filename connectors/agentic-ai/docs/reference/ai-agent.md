@@ -304,8 +304,8 @@ response settings that shape the turn. Authoritative definition:
 ### AgentResponse (the output)
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
-a final response to emit (text, JSON, the full assistant message, or the documents the agent selected
-with its built-in `c8__return_document` tool, by key, see the document flow design notes). Authoritative definition:
+a final response to emit (text, JSON, the full assistant message, or the response documents the agent
+returns with its built-in `c8__return_document` tool, by key, see the document flow design notes). Authoritative definition:
 [`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
@@ -1179,11 +1179,11 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 3. **Full message**: If `includeAssistantMessage` is true, the raw `AssistantMessage` is included in the response.
 
-4. **Documents**: If the response carries no tool calls and the agent selected documents, `responseDocuments` is a map from
+4. **Documents**: If the response carries no tool calls and the agent has response documents, `responseDocuments` is a map from
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
-   of a document the agent selected with the built-in `c8__return_document` tool (called once per document, see
-   [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection stays in the
-   returned `agentContext`, so every later final response of the agent instance carries the documents returned earlier as well as new ones (a key returned again replaces its entry). The field is omitted when the selection is empty. `c8__return_document` and
+   of a document the agent returned with the built-in `c8__return_document` tool (called once per document, see
+   [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the response documents stay in the
+   returned `agentContext`, so every later final response of the agent instance carries the documents returned earlier as well as new ones (a key returned again replaces its entry). The field is omitted when there are no response documents. `c8__return_document` and
    `c8__get_document` are offered to every agent instance with the `documents` feature (every instance created
    from this version on) and cannot be switched off; an instance created before the feature is not offered
    them and has no `responseDocuments`. Whether they should become configurable is an open question in the
@@ -1698,7 +1698,7 @@ A document with inline content (a reference that holds the content itself, as op
 document) is registered only if its content has at most 1 MiB (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`,
 counted in characters of the base64 or text content). A larger one fails the job with the error code
 `INLINE_DOCUMENT_TOO_LARGE`, because the content would be held in the registry, in the tool result and in the
-returned documents of the response, which together can exceed the message size limit of the broker; the message
+response documents, which together can exceed the message size limit of the broker; the message
 names the document, its size and the limit and asks to return the file as a Camunda document instead.
 
 Inline delivery is opt-in and loads the content without a `c8__get_document` call, through the same guard

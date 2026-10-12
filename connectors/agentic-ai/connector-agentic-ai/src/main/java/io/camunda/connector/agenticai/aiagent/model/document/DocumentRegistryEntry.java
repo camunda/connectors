@@ -38,9 +38,8 @@ import java.util.Objects;
  * the reference.
  *
  * <p>The reference of an inline document holds its content in the registry, in the tool result and
- * in the returned documents of the response, all of which are part of the job completion. {@link
- * #from} therefore rejects an inline document whose content exceeds {@link
- * #MAX_INLINE_CONTENT_LENGTH}.
+ * in the response documents, all of which are part of the job completion. {@link #from} therefore
+ * rejects an inline document whose content exceeds {@link #MAX_INLINE_CONTENT_LENGTH}.
  *
  * @param id the {@link DocumentHandle#idFor stable id} the registry is keyed by
  * @param source where the document entered the conversation

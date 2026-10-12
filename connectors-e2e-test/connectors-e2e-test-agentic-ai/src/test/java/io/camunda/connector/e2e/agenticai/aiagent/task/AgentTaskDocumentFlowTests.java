@@ -29,7 +29,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PI
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
@@ -126,8 +126,8 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         zeebeTest,
         agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse).isReady().hasNoToolCalls();
-          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
+          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          assertThat(agentResponse.context().responseDocuments()).containsOnlyKeys(RETURN_KEY);
         });
 
     assertNoDocumentInternalsInLlmRequests();
@@ -280,7 +280,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
               .isReady()
               .hasNoToolCalls()
               .hasResponseText(FINAL_TEXT);
-          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
+          assertResponseDocument(agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();

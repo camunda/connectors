@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
@@ -38,12 +38,12 @@ public record AgentContext(
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<DocumentRegistryEntry> documents,
-    // the documents selected for the final response by the key the model chose, in call order; a
+    // the response documents by the key the model chose, in call order; a
     // LinkedHashMap because the record builder copies a Map into an immutable map of unspecified
     // iteration order
-    @RecordBuilder.Initializer(source = AgentContext.class, value = "noReturnDocuments")
+    @RecordBuilder.Initializer(source = AgentContext.class, value = "noResponseDocuments")
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        LinkedHashMap<String, SelectedDocument> returnDocuments,
+        LinkedHashMap<String, ResponseDocumentSelection> responseDocuments,
     // results the agent answered itself for tool calls of the last assistant message whose other
     // calls were handed to the process; merged into the next turn input, then cleared
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingRuntimeToolCallResults,
@@ -91,8 +91,8 @@ public record AgentContext(
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     Objects.requireNonNull(documents, "Documents must not be null");
-    Objects.requireNonNull(returnDocuments, "Return documents must not be null");
-    returnDocuments = new LinkedHashMap<>(returnDocuments);
+    Objects.requireNonNull(responseDocuments, "Response documents must not be null");
+    responseDocuments = new LinkedHashMap<>(responseDocuments);
     Objects.requireNonNull(
         pendingRuntimeToolCallResults, "Pending runtime tool call results must not be null");
     Objects.requireNonNull(features, "Features must not be null");
@@ -128,7 +128,7 @@ public record AgentContext(
     return withProperties(properties);
   }
 
-  static LinkedHashMap<String, SelectedDocument> noReturnDocuments() {
+  static LinkedHashMap<String, ResponseDocumentSelection> noResponseDocuments() {
     return new LinkedHashMap<>();
   }
 

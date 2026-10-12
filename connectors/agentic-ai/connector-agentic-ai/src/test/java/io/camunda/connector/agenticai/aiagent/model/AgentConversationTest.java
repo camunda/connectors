@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEnt
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -245,13 +245,14 @@ class AgentConversationTest {
     var updated =
         conv.withContextUpdate(
                 context ->
-                    context.withReturnDocuments(
-                        new LinkedHashMap<>(Map.of("b", new SelectedDocument("doc-b", null)))))
+                    context.withResponseDocuments(
+                        new LinkedHashMap<>(
+                            Map.of("b", new ResponseDocumentSelection("doc-b", null)))))
             .withContextUpdate(context -> context.withProperty("note", "x"));
 
-    assertThat(conv.returnDocuments()).isEmpty();
-    assertThat(updated.returnDocuments()).containsOnlyKeys("b");
-    assertThat(updated.toAgentContext().returnDocuments()).containsOnlyKeys("b");
+    assertThat(conv.responseDocuments()).isEmpty();
+    assertThat(updated.responseDocuments()).containsOnlyKeys("b");
+    assertThat(updated.toAgentContext().responseDocuments()).containsOnlyKeys("b");
     assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by an update
     assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());

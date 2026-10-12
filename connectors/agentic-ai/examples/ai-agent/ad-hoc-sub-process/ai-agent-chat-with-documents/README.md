@@ -93,7 +93,7 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
    `c8ctl deploy`).
 
 4. Start an instance with the start form (a prompt and optional documents) and work in Tasklist: the `User Feedback`
-   task shows the latest answer and returned documents; the `Slow tool` task is completed manually.
+   task shows the latest answer and response documents; the `Slow tool` task is completed manually.
 
 ## What was uploaded?
 
@@ -162,6 +162,6 @@ Repeat scenarios 2 to 4 with `data.memory.storage.type` set to `camunda-document
 
 - `ai-agent-chat-with-documents.bpmn`: the process
 - `ai-agent-chat-with-documents-initial-request.form`: prompt and file picker
-- `ai-agent-chat-with-documents-user-feedback.form`: latest answer, returned documents, follow-up
+- `ai-agent-chat-with-documents-user-feedback.form`: latest answer, response documents, follow-up
 - `ai-agent-chat-with-documents-slow-tool.form`: form of the `Slow_Tool` user task
 - `docker-compose.yml`: file server on port 8081

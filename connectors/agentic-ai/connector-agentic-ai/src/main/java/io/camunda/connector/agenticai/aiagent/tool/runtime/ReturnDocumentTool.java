@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -25,10 +25,10 @@ import org.jspecify.annotations.Nullable;
  * document for the final response of the agent under a key the process can find it by. It is
  * offered to every agent.
  *
- * <p>Every valid call puts its document into the selection of the agent context under its key; a
- * call with a key that is already selected replaces that entry in place. The selection stays in the
- * agent context for the lifetime of the agent instance, and every response without tool calls
- * returns all of it.
+ * <p>Every valid call puts its document into the response documents of the agent context under its
+ * key; a call with a key that is already used replaces that entry in place. The response documents
+ * stay in the agent context for the lifetime of the agent instance, and every response without tool
+ * calls returns all of it.
  */
 public final class ReturnDocumentTool implements RuntimeTool {
 
@@ -123,7 +123,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
 
     final var key = arguments.key();
     final var selected =
-        new SelectedDocument(
+        new ResponseDocumentSelection(
             arguments.document(),
             StringUtils.isBlank(arguments.description()) ? null : arguments.description());
     return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
@@ -131,13 +131,13 @@ public final class ReturnDocumentTool implements RuntimeTool {
   }
 
   private static AgentContext select(
-      AgentContext agentContext, String key, SelectedDocument selected) {
-    if (selected.equals(agentContext.returnDocuments().get(key))) {
+      AgentContext agentContext, String key, ResponseDocumentSelection selected) {
+    if (selected.equals(agentContext.responseDocuments().get(key))) {
       return agentContext;
     }
     // put keeps the position of a key that is already selected
-    final var updated = new LinkedHashMap<>(agentContext.returnDocuments());
+    final var updated = new LinkedHashMap<>(agentContext.responseDocuments());
     updated.put(key, selected);
-    return agentContext.withReturnDocuments(updated);
+    return agentContext.withResponseDocuments(updated);
   }
 }

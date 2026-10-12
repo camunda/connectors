@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.model.document.LegacyDocumentRendering;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -360,8 +360,8 @@ public final class AgentConversation {
   }
 
   /** Returns the documents selected for the final response so far, by key. */
-  public Map<String, SelectedDocument> returnDocuments() {
-    return currentContext.returnDocuments();
+  public Map<String, ResponseDocumentSelection> responseDocuments() {
+    return currentContext.responseDocuments();
   }
 
   /**

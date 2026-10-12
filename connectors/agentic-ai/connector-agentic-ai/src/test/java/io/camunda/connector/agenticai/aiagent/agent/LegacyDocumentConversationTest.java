@@ -55,7 +55,7 @@ import org.junit.jupiter.api.Test;
  * Golden-fixture test: an agent instance created by Camunda 8.10 (no features, documents stored as
  * bare content or as a tag in the older attribute format followed by the content, no registry)
  * loads and continues with new documents of every kind in the form Camunda 8.10 composes them, and
- * never gets a registry, features, selected documents or runtime tools.
+ * never gets a registry, features, response documents or runtime tools.
  */
 class LegacyDocumentConversationTest {
 
@@ -123,7 +123,7 @@ class LegacyDocumentConversationTest {
     assertThat(context.features()).isEmpty();
     assertThat(context.supportsDocuments()).isFalse();
     assertThat(context.documents()).isEmpty();
-    assertThat(context.returnDocuments()).isEmpty();
+    assertThat(context.responseDocuments()).isEmpty();
     assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
   }
 
@@ -240,18 +240,19 @@ class LegacyDocumentConversationTest {
             text -> assertThat(text).isEqualTo(textContent("Next")),
             content -> assertThat(content).isInstanceOf(DocumentContent.class));
 
-    // the persisted shape holds the document content, and no registry, features or selection
+    // the persisted shape holds the document content, and no registry, features or response
+    // documents
     final var stored = conversation.allMessages().getLast();
     assertThat(objectMapper.valueToTree(stored).at("/content/1/type").asText())
         .isEqualTo("document");
     final var storedContext = conversation.toAgentContext();
     assertThat(storedContext.features()).isEmpty();
     assertThat(storedContext.documents()).isEmpty();
-    assertThat(storedContext.returnDocuments()).isEmpty();
+    assertThat(storedContext.responseDocuments()).isEmpty();
     final var serialized = objectMapper.valueToTree(storedContext);
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
-    assertThat(serialized.has("returnDocuments")).isFalse();
+    assertThat(serialized.has("responseDocuments")).isFalse();
     assertThat(serialized.has("pendingRuntimeToolCallResults")).isFalse();
   }
 

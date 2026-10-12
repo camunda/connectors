@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
-import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.time.OffsetDateTime;
@@ -180,16 +180,16 @@ class AgentContextTest {
   }
 
   @Test
-  void returnDocumentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+  void responseDocumentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
       throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.returnDocuments()).isEmpty();
+    assertThat(context.responseDocuments()).isEmpty();
 
-    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("returnDocuments");
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("responseDocuments");
   }
 
   @Test
-  void agentContextWithoutReturnDocumentsFieldBindsToEmptyMap() throws JsonProcessingException {
+  void agentContextWithoutResponseDocumentsFieldBindsToEmptyMap() throws JsonProcessingException {
     final var json =
         """
         {
@@ -202,27 +202,27 @@ class AgentContextTest {
 
     final var context = objectMapper.readValue(json, AgentContext.class);
 
-    assertThat(context.returnDocuments()).isEmpty();
+    assertThat(context.responseDocuments()).isEmpty();
     assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
   }
 
   @Test
-  void returnDocumentsAreSerializedAndDeserializedInInsertionOrder()
+  void responseDocumentsAreSerializedAndDeserializedInInsertionOrder()
       throws JsonProcessingException {
-    final var selection = new LinkedHashMap<String, SelectedDocument>();
+    final var responseDocuments = new LinkedHashMap<String, ResponseDocumentSelection>();
     for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
-      selection.put(key, new SelectedDocument("doc-" + key, null));
+      responseDocuments.put(key, new ResponseDocumentSelection("doc-" + key, null));
     }
-    selection.put("alpha", new SelectedDocument("doc-alpha-2", "Replaced"));
-    final var context = AgentContext.builder().returnDocuments(selection).build();
+    responseDocuments.put("alpha", new ResponseDocumentSelection("doc-alpha-2", "Replaced"));
+    final var context = AgentContext.builder().responseDocuments(responseDocuments).build();
 
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
     assertThat(serialized)
-        .contains("\"returnDocuments\":{\"zeta\":{\"document\":\"doc-zeta\"},\"alpha\":");
+        .contains("\"responseDocuments\":{\"zeta\":{\"document\":\"doc-zeta\"},\"alpha\":");
     assertThat(serialized).contains("{\"document\":\"doc-alpha-2\",\"description\":\"Replaced\"}");
-    assertThat(deserialized.returnDocuments().keySet())
+    assertThat(deserialized.responseDocuments().keySet())
         .containsExactly("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta");
     assertThat(deserialized).isEqualTo(context);
   }

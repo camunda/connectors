@@ -89,7 +89,7 @@ tool, no name checked against runtime tools (section 4.2). A feature is assigned
 3. The agent passes a known document to a tool. The tool receives the real Camunda document reference JSON.
 4. The model loads the content of a known document into the conversation on request (`c8__get_document`),
    within a type allowlist and a size limit.
-5. The agent returns selected documents in its response (`c8__return_document`).
+5. The agent returns response documents with its response (`c8__return_document`).
 
 Out of scope: documents for gateway tools (MCP, A2A), Modeler support, document retention (see
 sections 6 and 7).
@@ -151,15 +151,15 @@ through the response.
    (`c8__get_document` and `c8__return_document` are the built-in ones, section 9; the tools are beans collected by `RuntimeToolRegistry`,
    `autoconfigure/AgenticAiConnectorsAutoConfiguration.java`), answers the calls of process tools whose
    document parameter is not the id of a known document, and splits the batch into runtime results and the calls that
-   remain for the process (section 3.6). The context updates of the runtime results (the selection of
+   remain for the process (section 3.6). The context updates of the runtime results (the response documents of
    `c8__return_document`) are applied to the conversation the handler returns, in both outcomes. Without
    remaining calls the loop opens a synthetic round (`applyTurnStart`, `throwIfLimitsReached`); with remaining calls the runtime
    results are kept as `AgentContext.pendingRuntimeToolCallResults` (`withPendingRuntimeToolCallResults`) and
    the loop ends with the normal tool calling status.
 7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending runtime results
    answer, then `DocumentParameterResolver.resolveAll` replaces document ids by registry references in the
-   process variable only. For a response without tool calls the selection is turned into `responseDocuments`; the
-   selection stays in the context. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `responseDocuments` into the `agent`
+   process variable only. For a response without tool calls the response documents of the context become the `responseDocuments` of the response; they
+   stay in the context. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `responseDocuments` into the `agent`
    variable; the task flavor returns the `AgentResponse` itself. `AgentSubProcessRequestHandler` uses
    `AgentConversation.hasInterruptedToolCallResultsInInvocation` so that interrupted results of the first
    round still cancel the remaining tool instances after a runtime round replaced the current turn.
@@ -183,7 +183,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 3 | Documents out are a built-in runtime tool `c8__return_document`, run by the agent in the model loop. | The tool must never become a BPMN element activation. |
 | 4 | A document parameter that is not exactly the id of a known document (an unknown id, text around an id or a tag, two tags) yields an error tool result and the model retries. | No incident; the tool does not run. The result is delivered with the next model call: in the same job when the whole batch was answered locally, in the next job together with the results of the real calls of the batch otherwise; the agent instance history shows it right away in both cases. |
 | 5 | Tools receive the full Camunda document reference JSON. | Same shape other connectors emit and consume; no agent-internal handle leaves the agent. |
-| 6 | `c8__return_document` and `c8__get_document` are offered to every agent instance with the `documents` feature and `responseDocuments` is added to the response when the selection is non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
+| 6 | `c8__return_document` and `c8__get_document` are offered to every agent instance with the `documents` feature and `responseDocuments` is added to the response when the response documents are non-empty; there is no opt-out. | A small configuration surface. The effects of an injected tool are recorded as an open question (section 7). |
 | 7 | Documents are reference-only in the conversation: a tag, no content. Content enters only through `c8__get_document`, which loads a whole document, within a type allowlist and a size limit. Passing an id to a tool never loads content. | Content in the conversation costs tokens in every later model call and can make a model call fail; the model decides which documents it needs to read, and a document that is too large or of an unsupported type is handled by a tool instead (section 3.14). |
 | 8 | The marker of a loaded document is metadata of the tag (`loaded: true`) in a follow-up user message or in the user message of the prompt; the content is added at window time from the registry, never persisted in the conversation. | One copy of the reference (the registry); stable request bytes for prompt caching; the stored conversation stays small and replayable (section 4.1). |
 | 9 | Inline delivery is opt-in: the option of the user prompt and the marker of a tool activity. It reuses the guard and the marker of `c8__get_document`; a document the guard rejects stays a reference and a note tells the model. | Reference-only stays the default because content costs tokens in every later call; the opt-in serves processes that know the model needs the content, without a round trip per document; automatic loading must not fail a run for a document the model could not read anyway (section 3.15). |
@@ -349,8 +349,8 @@ The request handler then proceeds by what is left:
 | none | The runtime results become the input of a synthetic round of the same job (`nextRuntimeToolRound`); the model is called again. The round counts against `maxModelCalls` (`throwIfLimitsReached`). | one more in the job |
 | some | The job completes with only the remaining calls activated (`ToolCallProcessVariable` list and element activations hold only them, status `TOOL_CALLING`). The runtime results are stored in `AgentContext.pendingRuntimeToolCallResults` and reported to the agent instance history right away (5.1). | none extra |
 
-The context updates of the runtime results, for `c8__return_document` the selection in
-`AgentContext.returnDocuments`, are applied immediately in both cases.
+The context updates of the runtime results, for `c8__return_document` the response documents in
+`AgentContext.responseDocuments`, are applied immediately in both cases.
 
 **Pending runtime results.** `AgentContext.pendingRuntimeToolCallResults` is a `List<ToolCallResult>`,
 `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty list, no schema version bump. It rides in
@@ -420,19 +420,19 @@ is offered to every agent instance with the `documents` feature. Its description
 user should receive in the answer, not for documents it merely passes to other tools, to call it once per
 document, what the key is, that the description is optional and that the same key again replaces the
 document returned under it. A valid call answers "Returned the document under the key 'k'." and
-selects the document with a context update (put into `AgentContext.returnDocuments`). A key that does not
+adds the document to the response documents with a context update (put into `AgentContext.responseDocuments`). A key that does not
 match the pattern or is missing gives an error answer that states the pattern so the model retries; a
-missing `document` gives an error answer listing the known documents. An error answer selects nothing.
+missing `document` gives an error answer listing the known documents. An error answer adds nothing.
 
-- **Accumulate.** Every valid call puts its document into the selection under its key, also across jobs and
-  turns of the same run. A key that is already selected is replaced in place and keeps its position.
-  The selection lives in `AgentContext.returnDocuments` (`key -> SelectedDocument{document, description?}`,
+- **Accumulate.** Every valid call puts its document into the response documents under its key, also across jobs and
+  turns of the same run. A key that is already used is replaced in place and keeps its position.
+  The response documents live in `AgentContext.responseDocuments` (`key -> ResponseDocumentSelection{document, description?}`,
   insertion ordered, `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty map, no schema version
   bump) because the tool can be called in an earlier job than the final response. The component is a
   `LinkedHashMap` because the record builder copies a `Map` into an immutable map of unspecified order.
-- **Return on every final response.** A response without tool calls returns the selection as `responseDocuments`, a map
-  `key -> ReturnedDocument{document, description?}` in selection order, where `document` is the registry entry
-  `reference` map (selections whose id is not in the registry are skipped). The selection stays in the
+- **Return on every final response.** A response without tool calls returns the response documents as `responseDocuments`, a map
+  `key -> ReturnedDocument{document, description?}` in insertion order, where `document` is the registry entry
+  `reference` map (entries whose id is not in the registry are skipped). The response documents of the context stay in the
   returned context for the lifetime of the agent instance, so each later final response (for example after a user
   feedback turn) carries the documents of the earlier ones and the new ones; a key that is returned again replaces
   its entry in place. A response with tool calls leaves it alone. The sub-process flavor copies the map
@@ -440,9 +440,9 @@ missing `document` gives an error answer listing the known documents. An error a
   `get entries(agent.responseDocuments).value.document`.
 - **No retract.** There is no tool to remove a key. A model can only replace the document of a key. A
   document is only ever returned if the model named it, and the answer text names the key of that call.
-- A selection recorded in a batch that also holds real calls (3.6) is persisted with that job, before the
+- A response document recorded in a batch that also holds real calls (3.6) is persisted with that job, before the
   real calls ran, because the model receives the "Returned ..." result for it with the results of the batch.
-- `responseDocuments` is added to the response whenever the selection is non-empty and omitted otherwise
+- `responseDocuments` is added to the response whenever the response documents are non-empty and omitted otherwise
   (`@JsonInclude(NON_EMPTY)`); there is no option that switches the tool or the field off (3.10).
 
 A valid `c8__return_document` call together with real tool calls costs no extra model call: the real calls run
@@ -482,7 +482,7 @@ registry and override it to require the `documents` feature (`AgentConfiguration
 `AgentConfiguration.toolDefinitions()` for the invocation; they are not part of `AgentContext.toolDefinitions`, so
 no persisted tool list changes and the migration check (`updateChangedToolDefinitions`) does not see the tools.
 The configuration fingerprint covers the offered tools (section 5.1). A process tool must not have one of their names (3.9). The response
-carries `responseDocuments` whenever the final response has a selection. Reason: a small configuration
+carries `responseDocuments` whenever the final response has response documents. Reason: a small configuration
 surface; whether the tools should become configurable is an open question (section 7).
 
 ### 3.11 Templates and versions (v1 frozen)
@@ -754,7 +754,7 @@ field binds to an empty list (builder default for collections, same as `toolDefi
 through the raw-tree path of `AgentContextSchemaMigration`. Agent instances created by Camunda 8.10, which
 has no registry and stores documents as content, keep working without a rewrite of their messages: they
 have no `features` and keep their document handling (section 4.2). On downgrade, an older connector runtime
-ignores `features`, `documents`, `returnDocuments` and `pendingRuntimeToolCallResults` (`ignoreUnknown`) and
+ignores `features`, `documents`, `responseDocuments` and `pendingRuntimeToolCallResults` (`ignoreUnknown`) and
 drops them on its next write. It also reads a document that was stored as a tag only (section 4.1) as the
 tag text without the document content. An instance that an upgraded runtime reads again after that has
 neither features nor registry, so it is handled as an instance without the feature and its documents of the
@@ -844,7 +844,7 @@ here as shared:
   (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`,
   `fileName`, or `url` and `name` for an external document) and the `DocumentContent`. The messages carry no
   `document-reference` metadata and nothing is ingested into a registry (`NextTurn.documents` is empty).
-- **No registry, no selection.** `AgentContext.documents`, `returnDocuments` and `pendingRuntimeToolCallResults`
+- **No registry, no response documents.** `AgentContext.documents`, `responseDocuments` and `pendingRuntimeToolCallResults`
   stay empty and are never written; no registry is backfilled from the stored messages and no tag of a stored
   message is normalized. The window (`AgentConversation.window`) expands nothing and adds no
   `EvictedDocumentsNote`.
@@ -875,7 +875,7 @@ The behavior is verified against Camunda 8.10 by a golden conversation:
 (a prompt document as bare content, a tool result with a nested Camunda and a nested inline document, tag-and-content
 pairs of a tool call, an inline and an event document, an event message without an id), composes a turn with a
 new prompt document, a new event document and a new tool result document, and asserts the composed messages, that the
-stored messages stay as they are, the rendered tool result JSON, that no registry, feature, selection or runtime tool
+stored messages stay as they are, the rendered tool result JSON, that no registry, feature, response documents or runtime tool
 appears and that every call goes to the process. `AgentTaskLegacyInstanceDocumentsTests` runs an instance without
 features against the WireMock model and asserts the wire format of Camunda 8.10 (bare document content, the
 document reference in the tool result, the older tag, no built-in tool).
@@ -891,7 +891,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 | 3 | Gateway tools unsupported | Medium | The connector never declares document parameters for MCP and A2A tool definitions (the A2A schema is fixed, the MCP schema is the one of the server, kept as it is); a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
-| 6 | History reporting of runtime rounds | Low (handled) | See 5.1: runtime tool calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the reference of an inline document holds its content). |
+| 6 | History reporting of runtime rounds | Low (handled) | See 5.1: runtime tool calls and rounds are reported through the existing history items; what is not reported there is the response documents themselves and the documents' content (the reference of an inline document holds its content). |
 | 7 | Document parameters of instances without the feature | Low | A running instance created before the `documents` feature passes document parameters as plain strings (section 4.2): ids are not resolved or rejected, and the hint in a tool schema that is rebuilt on a process migration asks for ids the model never sees. The instance has to be started anew to use documents. |
 | 8 | Order of tool schemas in the fingerprint | Low | `ToolDefinition.builder()` copies the input schema into an immutable map (`Map.copyOf`) whose iteration order depends on a per-JVM salt and the insertion order, so every Jackson round trip of the persisted tool definitions can reorder the top-level schema entries, on another worker or within the same JVM. `AgentConfiguration.fingerprint()` therefore hashes a canonical form of the tool definitions instead of their `toString`: tools in list order, each `name`, `description` and `inputSchema` with map keys sorted recursively (also maps inside lists), list order kept, numbers compared by value (integral values of any numeric type agree), `null` explicit. The fingerprint thus stays equal across round trips and JVMs, and a job reports a `CONFIGURATION` history item only when model, provider, system prompt, model-call limit or the tools really change. Nothing is sorted on the definitions themselves: the order sent to the model and persisted is as authored. A fingerprint persisted before this canonical form does not match it, so an in-flight agent instance, with or without the `documents` feature, reports one extra `CONFIGURATION` item at upgrade (acceptable, the feature is 8.11-only). |
 | 9 | A loadable type the provider cannot render | Medium | The allowlist of `c8__get_document` is provider-independent (3.14). A provider without support for a listed type, a PDF for example, fails the model call after the load, and every later call while the loaded content is in the window. |
@@ -974,7 +974,7 @@ What cannot be represented:
   element id on its tool entry and on its call entries; a runtime result and a real one are otherwise alike. An
   error result of a runtime tool (invalid document id, `RuntimeToolException`, invalid arguments) is plain
   text content, the same way the model reads it.
-- The documents the agent returns are not reported; the selection of `c8__return_document` appears only as the
+- The documents the agent returns are not reported; the response documents of `c8__return_document` appear only as the
   text of its result and as the ids in its call arguments.
 - The agent instance history is written repeatedly for the same result: a runtime result by the job that
   answers it and again by the next job, a process result that arrived early by every incomplete job and
@@ -1144,7 +1144,7 @@ listed fails the test.
   missing element id; an error result is plain text), and the tool input schemas are not reported (the
   document id format and hint, the arguments of the `c8__` tools are invisible). Ask: an engine API request for
   both (5.1, 5.2).
-- **Documents the agent returns** are not reported; the selection appears only as the text of the result of
+- **Documents the agent returns** are not reported; the response documents appear only as the text of the result of
   `c8__return_document` and as the ids in its call arguments.
 
 **Runtime tools**
@@ -1213,7 +1213,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | Scenario | Test | Proves |
 |----------|------|--------|
 | (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; the model gets the process tools and `c8__return_document`. |
-| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (runtime round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection kept in `agentContext`. |
+| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (runtime round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); response documents kept in `agentContext`. |
 | (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its tool result, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
@@ -1222,7 +1222,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (g2) mixed batch, early report | `runtimeResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique` (both flavors) | `c8__return_document` and `Slow_Tool` (a job the test holds) in one assistant message: while `Slow_Tool` runs, the committed history already holds the `c8__return_document` result; after the test completes `Slow_Tool` the history holds the results of `Download_A_File`, `c8__return_document` and `Slow_Tool` once each, in that order. |
 | (i) history arguments | `agentInstanceHistoryShowsTheDocumentIdInTheToolCallArguments` (both flavors) | After the round trip, the history read through the query API shows the id the model sent in the arguments of `Upload_A_File` (document parameter) and of `c8__return_document` (the `document` argument), in the `ASSISTANT` and in the `TOOL_RESULT` items. |
 | (h) mixed batch with an unknown id | `mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne` (both flavors) | Upload with an unknown id plus `Ping`: `Ping` runs, the next request holds the error result and the `Ping` result in call order, the corrected upload is the only upload, four model calls. |
-| (k) instance without the feature | `AgentTaskLegacyInstanceDocumentsTests` (`aiagent/task`) | A Task flavor agent whose initial `agent.context` has no features: user prompt documents as bare content, the tool result document as the reference JSON followed by the older tag and the content (Camunda and external documents), the model gets the process tools only, and the returned context has no features, registry or selection. |
+| (k) instance without the feature | `AgentTaskLegacyInstanceDocumentsTests` (`aiagent/task`) | A Task flavor agent whose initial `agent.context` has no features: user prompt documents as bare content, the tool result document as the reference JSON followed by the older tag and the content (Camunda and external documents), the model gets the process tools only, and the returned context has no features, registry or response documents. |
 | (j) history audit | `AgentSubProcessHistoryAuditTests` (`aiagent/subprocess`) | Every message of every model request of a document flow, with a prompt document, a tool result document, a load with `c8__get_document`, document arguments and `c8__return_document` next to a real call, is covered by an item of the history read through the query API; with `contextWindowSize=3` the evicted-documents note is the only message without a history item and no history item holds it (5.2). |
 
 | (l) load | `loadsAFetchedDocumentOnceAndPassesItsIdToATool` (both flavors, text and PDF) | A tool returns a document, the model loads it twice and passes its id to a tool: the first load puts the content next to the tag (text part or file part), the second is answered without loading again, the tool gets the real bytes. |
@@ -1232,7 +1232,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (q) inline prompt documents | `loadsPromptDocumentsIntoThePromptWhenTheOptionIsOn`, `keepsPromptDocumentsAsReferencesWhenTheOptionIsOff`, `keepsAPromptDocumentThatCannotBeLoadedAsAReferenceWithANote` (`AgentSubProcessUserPromptDocumentsTests`, `AgentTaskUserPromptDocumentsTests`) | With the option on the first request holds the prompt text, the tag and the content block of the document, and no `c8__get_document` call is needed; with it off the document is a tag only; a ZIP document stays a tag followed by the note. |
 | (r) inline tool documents | `loadsTheDocumentsOfAnInlineToolForTheModel`, `keepsADocumentOfAnInlineToolThatCannotBeLoadedAsAReferenceWithANote` (both flavors; processes `agentic-ai-ahsp-connectors-documents-inline.bpmn` and `agentic-ai-connectors-documents-inline.bpmn`, which mark `Download_A_File`) | The result of the marked tool is followed by the message with the tag and the content (text part or file part), the model passes the id to the upload without loading, the tool gets the real bytes; a ZIP and a text above 256 KB stay references with the note and no content in any request. |
 | (s) inline history audit | `everyModelVisibleMessageOfInlineDocumentDeliveryIsInTheHistory` (`AgentSubProcessHistoryAuditTests`) | A prompt document loaded by the option, a tool document loaded by the marker and a note are all covered by items of the history. |
-| (t) returned documents across turns | `accumulatesTheReturnedDocumentsOfSeveralTurnsOnTheFinalResponse`, `replacesTheReturnedDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain` (`AgentSubProcessFeedbackLoopTests`, `AgentTaskFeedbackLoopTests`) | With user feedback between the turns, the final response of a later turn holds the documents returned in the earlier turns next to its own, in the order of their first return; returning a key again replaces its entry and keeps its position. |
+| (t) returned documents across turns | `accumulatesTheResponseDocumentsOfSeveralTurnsOnTheFinalResponse`, `replacesTheResponseDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain` (`AgentSubProcessFeedbackLoopTests`, `AgentTaskFeedbackLoopTests`) | With user feedback between the turns, the final response of a later turn holds the documents returned in the earlier turns next to its own, in the order of their first return; returning a key again replaces its entry and keeps its position. |
 | (p) provider wire format | `ProviderWireFormatSmokeTests` (`documentLoadedByTheModel` and the tag-only prompt document, per provider fixture) | The request of every WireMock provider that can carry id placeholders holds the tag text and the content block of a loaded document; Bedrock is covered by the converter unit tests (section 7). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body

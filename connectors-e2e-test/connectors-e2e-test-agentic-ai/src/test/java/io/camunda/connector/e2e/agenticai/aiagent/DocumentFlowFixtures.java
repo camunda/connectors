@@ -238,7 +238,7 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * Asserts that a returned document reference is the Camunda document reference of the document
+   * Asserts that a response document reference is the Camunda document reference of the document
    * with the given id.
    */
   public static void assertCamundaDocumentReference(
@@ -251,10 +251,10 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * Asserts that the returned documents of an agent response hold only the document with the given
+   * Asserts that the response documents of an agent response hold only the document with the given
    * id, under the key and with the description the model sent.
    */
-  public static void assertReturnedDocument(
+  public static void assertResponseDocument(
       Map<String, ? extends ReturnedDocument> documents, String expectedDocumentId) {
     assertThat(documents).containsOnlyKeys(RETURN_KEY);
     final var returned = documents.get(RETURN_KEY);
@@ -263,10 +263,10 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * Asserts that the returned documents hold an entry under the key that is the Camunda document
+   * Asserts that the response documents hold an entry under the key that is the Camunda document
    * reference of the document with the given id, with the given description.
    */
-  public static void assertReturnedDocumentEntry(
+  public static void assertResponseDocumentEntry(
       Map<String, ? extends ReturnedDocument> documents,
       String key,
       String expectedDocumentId,
