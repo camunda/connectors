@@ -21,9 +21,10 @@ Resolve the actual target branch once, and reuse it (as `$BASE`) for every diff,
 BASE_REF=$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null)
 ```
 
-If that command fails (no PR yet, not authenticated, network error), do not guess `main` — ask the user which branch this targets, and use their answer as `BASE_REF`. Once resolved:
+If that command fails (no PR yet, not authenticated, network error), do not guess `main` — ask the user which branch this targets, and use their answer as `BASE_REF`. Once resolved, fetch it so the merge base and squash point are computed against the current target branch, not a stale or missing remote-tracking ref:
 
 ```
+git fetch origin "$BASE_REF"
 BASE="origin/$BASE_REF"
 git merge-base "$BASE" HEAD
 git diff --name-only $(git merge-base "$BASE" HEAD)...HEAD
