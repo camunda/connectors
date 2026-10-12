@@ -561,3 +561,23 @@ For examples, see existing connectors in `connectors/` directory:
 - **Webhook connector** (`connectors/webhook/`): Reference implementation for inbound connectors
 - **Kafka connector** (`connectors/kafka/`): Example of both inbound and outbound patterns
 - **Azure Blob Storage** (`connectors/microsoft/azure-blobstorage/`): Document handling example
+
+## Agent skills
+
+All skills live in `.agents/skills/`; `.claude/skills/<name>` are symlinks to them so Claude Code
+picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `domain-modeling`,
+`handoff`) are managed with [`npx skills`](https://github.com/vercel-labs/skills) and tracked in
+`skills-lock.json`; the others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`,
+`update-salesforce-api-version`) are authored in this repo.
+
+```bash
+npx skills experimental_install                                  # reinstall the locked skills from their upstream source
+npx skills add mattpocock/skills --skill <name> --agent claude-code  # add a skill (updates lock file)
+npx skills update                                                # update to latest versions
+npx skills list                                                  # list installed skills
+```
+
+The CLI does not pin revisions or enforce the recorded hashes, so a reinstall or update fetches
+the current upstream content; review the resulting diff. Commit `skills-lock.json` and
+`.agents/skills/` together. After adding a skill, make sure the
+`.claude/skills/<name>` symlink exists.
