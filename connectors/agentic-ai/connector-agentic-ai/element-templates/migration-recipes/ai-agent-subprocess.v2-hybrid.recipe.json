@@ -1,0 +1,895 @@
+{
+  "$schema": "../migration/migrates-from.schema.json",
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "kind": "change",
+      "sourceTemplateId": "io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid",
+      "minSourceVersion": 10,
+      "paths": [
+        {
+          "from": "provider.type",
+          "to": "provider.type",
+          "valueMap": {
+            "rules": [
+              {
+                "match": "anthropic",
+                "value": "anthropic"
+              },
+              {
+                "match": "bedrock",
+                "value": "bedrock"
+              },
+              {
+                "match": "openai",
+                "value": "openai"
+              },
+              {
+                "match": "azureOpenAi",
+                "value": "openai"
+              },
+              {
+                "match": "openaiCompatible",
+                "value": "openai"
+              },
+              {
+                "match": "google-vertex-ai",
+                "value": "google-gemini"
+              }
+            ]
+          }
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "anthropic"
+          },
+          "rules": [
+            {
+              "to": "provider.anthropic.model.parameters.promptCaching.enabled",
+              "set": true,
+              "note": "Anthropic prompt caching is now enabled, and effort and thinking use the model default. v1 sent no caching or reasoning settings."
+            },
+            {
+              "when": {
+                "path": "provider.anthropic.endpoint",
+                "exists": false
+              },
+              "rules": [
+                {
+                  "to": "provider.anthropic.backend.type",
+                  "set": "anthropic-api"
+                },
+                {
+                  "from": "provider.anthropic.authentication.apiKey",
+                  "to": "provider.anthropic.backend.anthropic.apiKey"
+                }
+              ]
+            },
+            {
+              "when": {
+                "path": "provider.anthropic.endpoint",
+                "matches": "*.azure.com*"
+              },
+              "rules": [
+                {
+                  "to": "provider.anthropic.backend.type",
+                  "set": "foundry"
+                },
+                {
+                  "to": "provider.anthropic.backend.foundry.authentication.type",
+                  "set": "apiKey"
+                },
+                {
+                  "from": "provider.anthropic.authentication.apiKey",
+                  "to": "provider.anthropic.backend.foundry.authentication.apiKey"
+                },
+                {
+                  "from": "provider.anthropic.endpoint",
+                  "to": "provider.anthropic.backend.foundry.endpoint",
+                  "note": {
+                    "level": "warning",
+                    "message": "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+                  }
+                }
+              ]
+            },
+            {
+              "when": {
+                "path": "provider.anthropic.endpoint",
+                "matches": "*.azure.us*"
+              },
+              "rules": [
+                {
+                  "to": "provider.anthropic.backend.type",
+                  "set": "foundry"
+                },
+                {
+                  "to": "provider.anthropic.backend.foundry.authentication.type",
+                  "set": "apiKey"
+                },
+                {
+                  "from": "provider.anthropic.authentication.apiKey",
+                  "to": "provider.anthropic.backend.foundry.authentication.apiKey"
+                },
+                {
+                  "from": "provider.anthropic.endpoint",
+                  "to": "provider.anthropic.backend.foundry.endpoint",
+                  "note": {
+                    "level": "warning",
+                    "message": "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+                  }
+                }
+              ]
+            },
+            {
+              "when": {
+                "path": "provider.anthropic.endpoint",
+                "matches": "*.azure.cn*"
+              },
+              "rules": [
+                {
+                  "to": "provider.anthropic.backend.type",
+                  "set": "foundry"
+                },
+                {
+                  "to": "provider.anthropic.backend.foundry.authentication.type",
+                  "set": "apiKey"
+                },
+                {
+                  "from": "provider.anthropic.authentication.apiKey",
+                  "to": "provider.anthropic.backend.foundry.authentication.apiKey"
+                },
+                {
+                  "from": "provider.anthropic.endpoint",
+                  "to": "provider.anthropic.backend.foundry.endpoint",
+                  "note": {
+                    "level": "warning",
+                    "message": "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+                  }
+                }
+              ]
+            },
+            {
+              "when": [
+                {
+                  "path": "provider.anthropic.endpoint",
+                  "exists": true
+                },
+                {
+                  "path": "provider.anthropic.endpoint",
+                  "matches": "*.azure.com*",
+                  "not": true
+                },
+                {
+                  "path": "provider.anthropic.endpoint",
+                  "matches": "*.azure.us*",
+                  "not": true
+                },
+                {
+                  "path": "provider.anthropic.endpoint",
+                  "matches": "*.azure.cn*",
+                  "not": true
+                }
+              ],
+              "rules": [
+                {
+                  "to": "provider.anthropic.backend.type",
+                  "set": "custom"
+                },
+                {
+                  "to": "provider.anthropic.backend.custom.authentication.type",
+                  "set": "apiKey"
+                },
+                {
+                  "from": "provider.anthropic.authentication.apiKey",
+                  "to": "provider.anthropic.backend.custom.authentication.apiKey"
+                },
+                {
+                  "from": "provider.anthropic.endpoint",
+                  "to": "provider.anthropic.backend.custom.endpoint",
+                  "note": {
+                    "level": "warning",
+                    "message": "The Anthropic endpoint was copied as-is to the custom backend. v2 appends /v1/messages, so remove a trailing /v1."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "bedrock"
+          },
+          "rules": [
+            {
+              "to": "provider.bedrock.model.parameters.promptCaching.enabled",
+              "set": true,
+              "note": "AWS Bedrock prompt caching is now enabled. v1 sent no caching settings."
+            }
+          ]
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "openai"
+          },
+          "rules": [
+            {
+              "to": "provider.openai.api.type",
+              "set": "completions"
+            },
+            {
+              "to": "provider.openai.backend.type",
+              "set": "openai-api"
+            },
+            {
+              "from": "provider.openai.authentication.apiKey",
+              "to": "provider.openai.backend.openai.apiKey"
+            },
+            {
+              "from": "provider.openai.authentication.organizationId",
+              "to": "provider.openai.backend.openai.organizationId"
+            },
+            {
+              "from": "provider.openai.authentication.projectId",
+              "to": "provider.openai.backend.openai.projectId"
+            },
+            {
+              "from": "provider.openai.model.parameters.maxCompletionTokens",
+              "to": "provider.openai.api.completions.maxCompletionTokens"
+            },
+            {
+              "from": "provider.openai.model.parameters.temperature",
+              "to": "provider.openai.api.completions.temperature"
+            },
+            {
+              "from": "provider.openai.model.parameters.topP",
+              "to": "provider.openai.api.completions.topP"
+            }
+          ]
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "azureOpenAi"
+          },
+          "rules": [
+            {
+              "to": "provider.openai.api.type",
+              "set": "completions"
+            },
+            {
+              "to": "provider.openai.backend.type",
+              "set": "foundry"
+            },
+            {
+              "from": "provider.azureOpenAi.endpoint",
+              "to": "provider.openai.backend.foundry.endpoint"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.type",
+              "to": "provider.openai.backend.foundry.authentication.type"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.apiKey",
+              "to": "provider.openai.backend.foundry.authentication.apiKey"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.clientId",
+              "to": "provider.openai.backend.foundry.authentication.clientId"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.clientSecret",
+              "to": "provider.openai.backend.foundry.authentication.clientSecret"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.tenantId",
+              "to": "provider.openai.backend.foundry.authentication.tenantId"
+            },
+            {
+              "from": "provider.azureOpenAi.authentication.authorityHost",
+              "to": "provider.openai.backend.foundry.authentication.authorityHost"
+            },
+            {
+              "from": "provider.azureOpenAi.timeouts.timeout",
+              "to": "provider.openai.timeouts.timeout"
+            },
+            {
+              "from": "provider.azureOpenAi.model.deploymentName",
+              "to": "provider.openai.model.model"
+            },
+            {
+              "from": "provider.azureOpenAi.model.parameters.maxTokens",
+              "to": "provider.openai.api.completions.maxCompletionTokens"
+            },
+            {
+              "from": "provider.azureOpenAi.model.parameters.temperature",
+              "to": "provider.openai.api.completions.temperature"
+            },
+            {
+              "from": "provider.azureOpenAi.model.parameters.topP",
+              "to": "provider.openai.api.completions.topP"
+            }
+          ]
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "openaiCompatible"
+          },
+          "rules": [
+            {
+              "to": "provider.openai.api.type",
+              "set": "completions"
+            },
+            {
+              "to": "provider.openai.backend.type",
+              "set": "custom"
+            },
+            {
+              "from": "provider.openaiCompatible.endpoint",
+              "to": "provider.openai.backend.custom.endpoint"
+            },
+            {
+              "from": "provider.openaiCompatible.headers",
+              "to": "provider.openai.backend.custom.headers"
+            },
+            {
+              "from": "provider.openaiCompatible.queryParameters",
+              "to": "provider.openai.backend.custom.queryParameters"
+            },
+            {
+              "from": "provider.openaiCompatible.timeouts.timeout",
+              "to": "provider.openai.timeouts.timeout"
+            },
+            {
+              "from": "provider.openaiCompatible.model.model",
+              "to": "provider.openai.model.model"
+            },
+            {
+              "from": "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+              "to": "provider.openai.api.completions.maxCompletionTokens"
+            },
+            {
+              "from": "provider.openaiCompatible.model.parameters.temperature",
+              "to": "provider.openai.api.completions.temperature"
+            },
+            {
+              "from": "provider.openaiCompatible.model.parameters.topP",
+              "to": "provider.openai.api.completions.topP"
+            },
+            {
+              "from": "provider.openaiCompatible.model.parameters.customParameters",
+              "to": "provider.openai.backend.custom.bodyProperties"
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*"
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* authorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nauthorization*"
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* authorization*",
+                  "not": true
+                }
+              ],
+              "note": "The Authorization header was kept in the HTTP headers and authentication is set to none. In v1 this header took precedence over the API key."
+            },
+            {
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nauthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.authentication.apiKey",
+                  "exists": true
+                }
+              ],
+              "rules": [
+                {
+                  "to": "provider.openai.backend.custom.authentication.type",
+                  "set": "apiKey"
+                },
+                {
+                  "from": "provider.openaiCompatible.authentication.apiKey",
+                  "to": "provider.openai.backend.custom.authentication.apiKey"
+                }
+              ]
+            },
+            {
+              "to": "provider.openai.backend.custom.authentication.type",
+              "set": "none",
+              "when": [
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"Authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* Authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nAuthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\"authorization\"*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*{authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*,authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "* authorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.headers",
+                  "matches": "*\nauthorization*",
+                  "not": true
+                },
+                {
+                  "path": "provider.openaiCompatible.authentication.apiKey",
+                  "exists": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "path": "provider.type",
+            "equals": "google-vertex-ai"
+          },
+          "rules": [
+            {
+              "to": "provider.googleGemini.backend.type",
+              "set": "google-vertex-ai"
+            },
+            {
+              "from": "provider.googleVertexAi.projectId",
+              "to": "provider.googleGemini.backend.googleVertexAi.projectId"
+            },
+            {
+              "from": "provider.googleVertexAi.region",
+              "to": "provider.googleGemini.backend.googleVertexAi.region"
+            },
+            {
+              "from": "provider.googleVertexAi.endpoint",
+              "to": "provider.googleGemini.backend.googleVertexAi.endpoint",
+              "note": {
+                "level": "warning",
+                "message": "The custom Vertex AI endpoint was moved to a hidden v2 field. It applies at runtime, but Modeler no longer shows or edits it."
+              }
+            },
+            {
+              "from": "provider.googleVertexAi.authentication.type",
+              "to": "provider.googleGemini.backend.googleVertexAi.authentication.type"
+            },
+            {
+              "from": "provider.googleVertexAi.authentication.jsonKey",
+              "to": "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey"
+            },
+            {
+              "from": "provider.googleVertexAi.timeouts.timeout",
+              "to": "provider.googleGemini.timeouts.timeout"
+            },
+            {
+              "from": "provider.googleVertexAi.model.model",
+              "to": "provider.googleGemini.model.model"
+            },
+            {
+              "from": "provider.googleVertexAi.model.parameters.maxOutputTokens",
+              "to": "provider.googleGemini.model.parameters.maxTokens"
+            },
+            {
+              "from": "provider.googleVertexAi.model.parameters.temperature",
+              "to": "provider.googleGemini.model.parameters.temperature"
+            },
+            {
+              "from": "provider.googleVertexAi.model.parameters.topP",
+              "to": "provider.googleGemini.model.parameters.topP"
+            },
+            {
+              "from": "provider.googleVertexAi.model.parameters.topK",
+              "to": "provider.googleGemini.model.parameters.topK"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
