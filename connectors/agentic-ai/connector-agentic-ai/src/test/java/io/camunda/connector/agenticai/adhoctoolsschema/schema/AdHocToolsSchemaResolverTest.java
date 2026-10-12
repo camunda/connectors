@@ -98,7 +98,7 @@ class AdHocToolsSchemaResolverTest {
                                     "format",
                                     "camunda-document-id",
                                     "description",
-                                    "The invoice " + DocumentParameterSchema.HINT)))));
+                                    "The invoice. " + DocumentParameterSchema.HINT)))));
   }
 
   @ParameterizedTest

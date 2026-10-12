@@ -59,7 +59,7 @@ class LocalToolBuilderTest {
                 "format",
                 "camunda-document-id",
                 "description",
-                "The file " + DocumentParameterSchema.HINT));
+                "The file. " + DocumentParameterSchema.HINT));
   }
 
   @Test

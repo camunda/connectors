@@ -119,7 +119,7 @@ public final class DocumentParameterSchema {
       if (!(description instanceof String text) || StringUtils.isBlank(text)) {
         result.put(PROPERTY_DESCRIPTION, HINT);
       } else if (!text.contains(HINT)) {
-        result.put(PROPERTY_DESCRIPTION, text + " " + HINT);
+        result.put(PROPERTY_DESCRIPTION, appendHint(text));
       }
     } else if (result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties) {
       final var mapped = new LinkedHashMap<String, Object>();
@@ -136,6 +136,17 @@ public final class DocumentParameterSchema {
       result.put(PROPERTY_ITEMS, withHint((Map<String, Object>) items));
     }
     return Collections.unmodifiableMap(result);
+  }
+
+  /**
+   * The description followed by the hint as a sentence of its own: a description that does not end
+   * in sentence punctuation gets a period first.
+   */
+  private static String appendHint(String description) {
+    final var trimmed = description.stripTrailing();
+    final var last = trimmed.charAt(trimmed.length() - 1);
+    final var separator = last == '.' || last == '!' || last == '?' ? " " : ". ";
+    return trimmed + separator + HINT;
   }
 
   /** The schema of a document parameter: a string with the format {@link #FORMAT_DOCUMENT_ID}. */

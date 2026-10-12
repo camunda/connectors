@@ -232,7 +232,7 @@ class AgentConversationTest {
                         "type",
                         "string",
                         "description",
-                        "The file " + DocumentParameterSchema.HINT))));
+                        "The file. " + DocumentParameterSchema.HINT))));
     // nothing persisted or configured is rewritten
     assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
     assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);

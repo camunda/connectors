@@ -13,6 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DocumentParameterSchemaTest {
 
@@ -105,7 +107,7 @@ class DocumentParameterSchemaTest {
     assertThat(rewritten.inputSchema())
         .isEqualTo(
             object(
-                "doc", Map.of("type", "string", "description", "A document " + HINT),
+                "doc", Map.of("type", "string", "description", "A document. " + HINT),
                 "bare", Map.of("type", "string", "description", HINT),
                 "docs",
                     Map.of(
@@ -190,7 +192,7 @@ class DocumentParameterSchemaTest {
     assertThat(DocumentParameterSchema.withHint(schema))
         .isEqualTo(
             object(
-                "doc", described("A document " + HINT),
+                "doc", described("A document. " + HINT),
                 "bare", described(HINT),
                 "docs", Map.of("type", "array", "description", "Many", "items", described(HINT)),
                 "req", object("file", described(HINT), "note", string()),
@@ -206,6 +208,46 @@ class DocumentParameterSchemaTest {
 
     assertThat(twice).isEqualTo(once);
     assertThat(once.toString()).containsOnlyOnce(HINT);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"A document.", "A document!", "A document?", "A document.  \n"})
+  void withHintSeparatesTheHintWithASpaceWhenTheDescriptionEndsInSentencePunctuation(
+      String description) {
+    final var result = DocumentParameterSchema.withHint(object("doc", described(description)));
+
+    assertThat(result)
+        .isEqualTo(object("doc", described(description.stripTrailing() + " " + HINT)));
+  }
+
+  @Test
+  void withHintAddsAPeriodWhenTheDescriptionHasNoFinalPunctuation() {
+    final var result = DocumentParameterSchema.withHint(object("doc", described("A document")));
+
+    assertThat(result).isEqualTo(object("doc", described("A document. " + HINT)));
+  }
+
+  @Test
+  void withHintIgnoresTrailingWhitespaceOfTheDescription() {
+    final var result = DocumentParameterSchema.withHint(object("doc", described("A document \n")));
+
+    assertThat(result).isEqualTo(object("doc", described("A document. " + HINT)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   "})
+  void withHintUsesOnlyTheHintForABlankDescription(String description) {
+    final var result = DocumentParameterSchema.withHint(object("doc", described(description)));
+
+    assertThat(result).isEqualTo(object("doc", described(HINT)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"A document", "A document.", "A document!"})
+  void withHintIsIdempotentForEveryKindOfDescription(String description) {
+    final var once = DocumentParameterSchema.withHint(object("doc", described(description)));
+
+    assertThat(DocumentParameterSchema.withHint(once)).isEqualTo(once);
   }
 
   @Test
