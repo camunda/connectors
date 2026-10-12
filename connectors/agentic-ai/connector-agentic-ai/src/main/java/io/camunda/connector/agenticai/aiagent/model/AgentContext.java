@@ -46,7 +46,7 @@ public record AgentContext(
         LinkedHashMap<String, SelectedDocument> returnDocuments,
     // results the agent answered itself for tool calls of the last assistant message whose other
     // calls were handed to the process; merged into the next turn input, then cleared
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingLocalToolCallResults,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingRuntimeToolCallResults,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with; a LinkedHashSet because the
     // record builder copies a Set into an immutable set of unspecified iteration order
@@ -72,16 +72,16 @@ public record AgentContext(
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 
   /**
-   * The feature of an agent instance that offers the local tools (see {@code LocalTool}) and
+   * The feature of an agent instance that offers the runtime tools (see {@code RuntimeTool}) and
    * reserves their names against the tools of the process. An instance created without it offers no
-   * local tool and checks no tool name against local tool names.
+   * runtime tool and checks no tool name against runtime tool names.
    */
-  public static final String FEATURE_LOCAL_TOOLS = "localTools";
+  public static final String FEATURE_RUNTIME_TOOLS = "runtimeTools";
 
   /**
    * The feature of an agent instance that keeps the documents of its conversation in the document
    * registry and offers the tools of the agent that work with them. It implies {@link
-   * #FEATURE_LOCAL_TOOLS}. An instance created without it keeps the document handling it was
+   * #FEATURE_RUNTIME_TOOLS}. An instance created without it keeps the document handling it was
    * created with.
    */
   public static final String FEATURE_DOCUMENTS = "documents";
@@ -94,7 +94,7 @@ public record AgentContext(
     Objects.requireNonNull(returnDocuments, "Return documents must not be null");
     returnDocuments = new LinkedHashMap<>(returnDocuments);
     Objects.requireNonNull(
-        pendingLocalToolCallResults, "Pending local tool call results must not be null");
+        pendingRuntimeToolCallResults, "Pending runtime tool call results must not be null");
     Objects.requireNonNull(features, "Features must not be null");
     features = new LinkedHashSet<>(features);
   }
@@ -110,16 +110,16 @@ public record AgentContext(
   }
 
   /**
-   * Returns {@code true} if the agent instance was created with {@link #FEATURE_LOCAL_TOOLS} or
+   * Returns {@code true} if the agent instance was created with {@link #FEATURE_RUNTIME_TOOLS} or
    * with {@link #FEATURE_DOCUMENTS}, which implies it.
    */
-  public boolean supportsLocalTools() {
-    return supports(FEATURE_LOCAL_TOOLS) || supportsDocuments();
+  public boolean supportsRuntimeTools() {
+    return supports(FEATURE_RUNTIME_TOOLS) || supportsDocuments();
   }
 
   /** The features of an agent instance that is created now. */
   public static LinkedHashSet<String> newInstanceFeatures() {
-    return new LinkedHashSet<>(List.of(FEATURE_LOCAL_TOOLS, FEATURE_DOCUMENTS));
+    return new LinkedHashSet<>(List.of(FEATURE_RUNTIME_TOOLS, FEATURE_DOCUMENTS));
   }
 
   public AgentContext withProperty(String key, Object value) {

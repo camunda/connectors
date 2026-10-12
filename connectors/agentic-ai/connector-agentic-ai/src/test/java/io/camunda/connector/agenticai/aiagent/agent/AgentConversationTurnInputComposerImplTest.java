@@ -18,7 +18,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -42,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -600,7 +600,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
   }
 
-  private static final ToolCallResult LOCAL_RESULT =
+  private static final ToolCallResult RUNTIME_RESULT =
       ToolCallResult.builder()
           .id("abcdef")
           .name("getWeather")
@@ -609,7 +609,7 @@ class AgentConversationTurnInputComposerImplTest {
           .build();
 
   private static AgentContext contextWithPending(ToolCallResult... pending) {
-    return CTX_WITH_CONVERSATION.withPendingLocalToolCallResults(List.of(pending));
+    return CTX_WITH_CONVERSATION.withPendingRuntimeToolCallResults(List.of(pending));
   }
 
   private static List<ToolCallResultContent> resultsOf(CompositionResult result) {
@@ -618,7 +618,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_mergeWithTheArrivedProcessResultsInToolCallOrder() {
+  void pendingRuntimeResults_mergeWithTheArrivedProcessResultsInToolCallOrder() {
     // the second call is the real one: its result arrives, the first was answered by the agent
     var input =
         AgentInput.from(
@@ -628,7 +628,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+    var result = composer.compose(CONFIG, contextWithPending(RUNTIME_RESULT), history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
     assertThat(resultsOf(result))
@@ -636,8 +636,8 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(tuple("abcdef", "getWeather"), tuple("fedcba", "getDateTime"));
     assertThat(resultsOf(result).getFirst().content())
         .containsExactly(textContent("answered by the agent"));
-    // a message with results of both kinds keeps the local completion time
-    assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(LOCAL_RESULT.completedAt());
+    // a message with results of both kinds keeps the runtime completion time
+    assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(RUNTIME_RESULT.completedAt());
   }
 
   private static ToolCallResult loadedResult(String id, String documentId) {
@@ -669,7 +669,7 @@ class AgentConversationTurnInputComposerImplTest {
             registry,
             List.of(
                 loadedResult("c1", DocumentHandle.idFor(second)),
-                LOCAL_RESULT,
+                RUNTIME_RESULT,
                 loadedResult("c2", DocumentHandle.idFor(first))));
 
     assertThat(message).isNotNull();
@@ -712,7 +712,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(
             composer.composeLoadedDocumentsMessage(
-                registry, List.of(otherTool, unknownDocument, answered, LOCAL_RESULT)))
+                registry, List.of(otherTool, unknownDocument, answered, RUNTIME_RESULT)))
         .isNull();
     assertThat(composer.composeLoadedDocumentsMessage(registry, List.of())).isNull();
   }
@@ -723,7 +723,7 @@ class AgentConversationTurnInputComposerImplTest {
     var context =
         CTX_WITH_CONVERSATION
             .withDocuments(registryOf(document).entries())
-            .withPendingLocalToolCallResults(
+            .withPendingRuntimeToolCallResults(
                 List.of(loadedResult("abcdef", DocumentHandle.idFor(document))));
     // the second call is the real one: its result arrives, the first was answered by the agent
     var input =
@@ -774,8 +774,8 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_keepToolCallOrderWhenTheLocalCallComesLast() {
-    var localSecond = LOCAL_RESULT.withId("fedcba").withName("getDateTime");
+  void pendingRuntimeResults_keepToolCallOrderWhenTheRuntimeCallComesLast() {
+    var runtimeSecond = RUNTIME_RESULT.withId("fedcba").withName("getDateTime");
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -784,7 +784,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, contextWithPending(localSecond), history, input);
+    var result = composer.compose(CONFIG, contextWithPending(runtimeSecond), history, input);
 
     assertThat(resultsOf(result))
         .extracting(ToolCallResultContent::id)
@@ -792,7 +792,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_doNotGoThroughTheGatewayTransformation() {
+  void pendingRuntimeResults_doNotGoThroughTheGatewayTransformation() {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -801,7 +801,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+    composer.compose(CONFIG, contextWithPending(RUNTIME_RESULT), history, input);
 
     org.mockito.Mockito.verify(gatewayToolHandlers)
         .transformToolCallResults(
@@ -809,7 +809,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
+  void pendingRuntimeResults_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
     var threeCalls =
         List.of(
             TOOL_CALLS.get(0),
@@ -822,28 +822,28 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", threeCalls)));
 
-    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+    var result = composer.compose(CONFIG, contextWithPending(RUNTIME_RESULT), history, input);
 
-    // "fedcba" is still running: wait for it, the local result is not reported with the arrivals
+    // "fedcba" is still running: wait for it, the runtime result is not reported with the arrivals
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults()).containsExactly(thirdResult);
   }
 
   @Test
-  void pendingLocalResults_withoutAnyProcessResultDeferWithNothingArrived() {
+  void pendingRuntimeResults_withoutAnyProcessResultDeferWithNothingArrived() {
     var input = AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of());
     var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+    var result = composer.compose(CONFIG, contextWithPending(RUNTIME_RESULT), history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults()).isEmpty();
   }
 
   @Test
-  void pendingLocalResults_interruptCancelsOnlyTheMissingProcessCalls() {
+  void pendingRuntimeResults_interruptCancelsOnlyTheMissingProcessCalls() {
     var config =
         new AgentConfiguration(
             null,
@@ -861,7 +861,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(config, contextWithPending(LOCAL_RESULT), history, input);
+    var result = composer.compose(config, contextWithPending(RUNTIME_RESULT), history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
     var results = resultsOf(result);
@@ -875,8 +875,8 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_ofOtherToolCallsAreIgnored() {
-    var stale = LOCAL_RESULT.withId("from-an-earlier-turn");
+  void pendingRuntimeResults_ofOtherToolCallsAreIgnored() {
+    var stale = RUNTIME_RESULT.withId("from-an-earlier-turn");
     var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     var history =
@@ -892,12 +892,12 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void pendingLocalResults_areNotUsedForAPromptTurn() {
+  void pendingRuntimeResults_areNotUsedForAPromptTurn() {
     var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
     var history =
         TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));
 
-    var result = composer.compose(CONFIG, contextWithPending(LOCAL_RESULT), history, input);
+    var result = composer.compose(CONFIG, contextWithPending(RUNTIME_RESULT), history, input);
 
     assertThat(((CompositionResult.NextTurn) result).messages())
         .singleElement()

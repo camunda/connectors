@@ -63,14 +63,14 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                             "Cannot create an agent response: the conversation has no completed turn"))
                 .assistantMessage(),
             "Cannot create an agent response: the last turn has no assistant message");
-    // calls the agent answered itself (pending local results) never reach the process
-    final var locallyAnsweredIds =
-        conversation.pendingLocalToolCallResults().stream()
+    // calls the agent answered itself (pending runtime results) never reach the process
+    final var runtimeAnsweredIds =
+        conversation.pendingRuntimeToolCallResults().stream()
             .map(ToolCallResult::id)
             .collect(Collectors.toSet());
     final var rawToolCalls =
         Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of()).stream()
-            .filter(toolCall -> !locallyAnsweredIds.contains(toolCall.id()))
+            .filter(toolCall -> !runtimeAnsweredIds.contains(toolCall.id()))
             .toList();
     // the stored assistant message keeps the document ids the model sent; only the tool call
     // handed to the process carries the document references

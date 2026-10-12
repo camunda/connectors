@@ -589,13 +589,13 @@ class AgentConversationTest {
   }
 
   @Test
-  void nextLocalToolRound_closesTheTurnAndOpensAPendingTurnCarryingTheToolResults() {
+  void nextRuntimeToolRound_closesTheTurnAndOpensAPendingTurnCarryingTheToolResults() {
     var results = toolCallResultMessage(TOOL_CALL_RESULTS);
     var firstRound = new AgentMetrics(1, new TokenUsage(10, 20), 2);
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), firstRound)
-            .nextLocalToolRound(results);
+            .nextRuntimeToolRound(results);
 
     assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results);
@@ -605,13 +605,13 @@ class AgentConversationTest {
   }
 
   @Test
-  void nextLocalToolRound_carriesTheFollowUpMessagesAfterTheToolResults() {
+  void nextRuntimeToolRound_carriesTheFollowUpMessagesAfterTheToolResults() {
     var results = toolCallResultMessage(TOOL_CALL_RESULTS);
     var followUp = userMessage("loaded");
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
-            .nextLocalToolRound(results, List.of(followUp));
+            .nextRuntimeToolRound(results, List.of(followUp));
 
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
   }
@@ -660,48 +660,48 @@ class AgentConversationTest {
   }
 
   @Test
-  void withPendingLocalToolCallResults_carriesTheResultsInTheAgentContext() {
+  void withPendingRuntimeToolCallResults_carriesTheResultsInTheAgentContext() {
     var pending = TOOL_CALL_RESULTS.getFirst();
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
-            .withPendingLocalToolCallResults(List.of(pending));
+            .withPendingRuntimeToolCallResults(List.of(pending));
 
-    assertThat(conv.pendingLocalToolCallResults()).containsExactly(pending);
-    assertThat(conv.toAgentContext().pendingLocalToolCallResults()).containsExactly(pending);
+    assertThat(conv.pendingRuntimeToolCallResults()).containsExactly(pending);
+    assertThat(conv.toAgentContext().pendingRuntimeToolCallResults()).containsExactly(pending);
     // a mixed batch ends the invocation: no further round is opened
     assertThat(conv.currentTurn().assistantMessage()).isNotNull();
   }
 
   @Test
-  void nextLocalToolRound_throwsBeforeTheCurrentTurnIsIngested() {
+  void nextRuntimeToolRound_throwsBeforeTheCurrentTurnIsIngested() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
-    assertThatThrownBy(() -> conv.nextLocalToolRound(toolCallResultMessage(TOOL_CALL_RESULTS)))
+    assertThatThrownBy(() -> conv.nextRuntimeToolRound(toolCallResultMessage(TOOL_CALL_RESULTS)))
         .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
-  void nextLocalToolRound_throwsWhenTheResultsDoNotMatchTheToolCalls() {
+  void nextRuntimeToolRound_throwsWhenTheResultsDoNotMatchTheToolCalls() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
 
     assertThatThrownBy(
             () ->
-                conv.nextLocalToolRound(
+                conv.nextRuntimeToolRound(
                     toolCallResultMessage(List.of(TOOL_CALL_RESULTS.getFirst()))))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void nextLocalToolRound_keepsTheAssistantAndItsResultsPairableInTheWindow() {
+  void nextRuntimeToolRound_keepsTheAssistantAndItsResultsPairableInTheWindow() {
     var results = toolCallResultMessage(TOOL_CALL_RESULTS);
     var calling = assistantMessage("calling", TOOL_CALLS);
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(calling, AgentMetrics.empty())
-            .nextLocalToolRound(results);
+            .nextRuntimeToolRound(results);
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
@@ -711,7 +711,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void hasInterruptedToolCallResultsInInvocation_coversTheRoundsBeforeALocalToolRound() {
+  void hasInterruptedToolCallResultsInInvocation_coversTheRoundsBeforeARuntimeToolRound() {
     var interrupted =
         toolCallResultMessage(
             List.of(
@@ -724,7 +724,7 @@ class AgentConversationTest {
                 List.of(userMessage("hi"), assistantMessage("calling", TOOL_CALLS)),
                 List.of(interrupted))
             .ingest(assistantMessage("calling again", TOOL_CALLS), AgentMetrics.empty())
-            .nextLocalToolRound(toolCallResultMessage(TOOL_CALL_RESULTS));
+            .nextRuntimeToolRound(toolCallResultMessage(TOOL_CALL_RESULTS));
 
     assertThat(conv.currentTurn().hasInterruptedToolCallResults()).isFalse();
     assertThat(conv.hasInterruptedToolCallResultsInInvocation()).isTrue();

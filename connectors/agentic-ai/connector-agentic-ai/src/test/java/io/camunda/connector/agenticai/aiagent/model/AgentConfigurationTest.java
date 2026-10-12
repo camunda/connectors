@@ -352,10 +352,10 @@ class AgentConfigurationTest {
     }
 
     @Test
-    void localToolDefinitionsAreUnaffected() {
+    void runtimeToolDefinitionsAreUnaffected() {
       final var tool =
           ToolDefinition.builder()
-              .name("local")
+              .name("runtime")
               .description("d")
               .inputSchema(ordered("type", "object"))
               .build();

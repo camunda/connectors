@@ -5,7 +5,7 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -19,10 +19,10 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class LocalToolBuilderTest {
+class RuntimeToolBuilderTest {
 
-  private static LocalToolContext context() {
-    return new LocalToolContext(
+  private static RuntimeToolContext context() {
+    return new RuntimeToolContext(
         null,
         Map.of(),
         DocumentRegistry.empty(),
@@ -35,13 +35,13 @@ class LocalToolBuilderTest {
   @Test
   void buildsTheDefinitionFromNameDescriptionAndSchema() {
     final var tool =
-        LocalTool.builder("lookup")
+        RuntimeTool.builder("lookup")
             .description("Looks something up.")
             .inputSchema(
-                LocalToolSchema.object()
+                RuntimeToolSchema.object()
                     .string("query", "What to look up", true)
                     .document("file", "The file", false))
-            .handler((call, context) -> LocalToolResult.success("ok"));
+            .handler((call, context) -> RuntimeToolResult.success("ok"));
 
     assertThat(tool.definition().name()).isEqualTo("lookup");
     assertThat(tool.definition().description()).isEqualTo("Looks something up.");
@@ -65,7 +65,7 @@ class LocalToolBuilderTest {
   @Test
   void keepsTheSchemaInDeclarationOrder() {
     final var schema =
-        LocalToolSchema.object()
+        RuntimeToolSchema.object()
             .string("zeta", "z", true)
             .integer("alpha", "a", false)
             .stringArray("mid", "m", true)
@@ -90,7 +90,7 @@ class LocalToolBuilderTest {
     schema.put("properties", Map.of());
     schema.put("required", List.of());
 
-    final var tool = LocalTool.builder("t").inputSchema(schema).handler((call, context) -> null);
+    final var tool = RuntimeTool.builder("t").inputSchema(schema).handler((call, context) -> null);
 
     assertThat(tool.definition().inputSchema().keySet())
         .containsExactly("type", "properties", "required");
@@ -114,20 +114,21 @@ class LocalToolBuilderTest {
   void bindsTheArgumentsToTheTypeOfTheHandler() {
     record Args(String query, int limit) {}
     final var tool =
-        LocalTool.builder("lookup")
+        RuntimeTool.builder("lookup")
             .handler(
                 Args.class,
-                (args, context) -> LocalToolResult.success(args.query() + ":" + args.limit()));
+                (args, context) -> RuntimeToolResult.success(args.query() + ":" + args.limit()));
 
     final var result =
-        tool.call(new LocalToolCall("1", "lookup", Map.of("query", "a", "limit", 3)), context());
+        tool.call(new RuntimeToolCall("1", "lookup", Map.of("query", "a", "limit", 3)), context());
 
     assertThat(result.content()).isEqualTo("a:3");
   }
 
   @Test
   void anErrorResultCarriesNoContextUpdate() {
-    final var result = LocalToolResult.error("no").withContextUpdate(agentContext -> agentContext);
+    final var result =
+        RuntimeToolResult.error("no").withContextUpdate(agentContext -> agentContext);
 
     assertThat(result.error()).isTrue();
     assertThat(result.contextUpdates()).isEmpty();
@@ -137,7 +138,7 @@ class LocalToolBuilderTest {
   void usesAReadyMadeDefinitionAsIs() {
     final var definition = new ReturnDocumentTool().definition();
 
-    final var tool = LocalTool.builder(definition).handler((call, context) -> null);
+    final var tool = RuntimeTool.builder(definition).handler((call, context) -> null);
 
     assertThat(tool.definition()).isSameAs(definition);
   }

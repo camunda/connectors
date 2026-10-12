@@ -14,8 +14,6 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -29,6 +27,8 @@ import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -45,9 +45,9 @@ import org.junit.jupiter.api.Test;
 /** The {@code c8__return_document} tool run by the framework, the way the agent loop runs it. */
 class ReturnDocumentToolTest {
 
-  private final LocalToolCallHandler handler =
-      new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
+  private final RuntimeToolCallHandler handler =
+      new RuntimeToolCallHandlerImpl(
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
           TestObjectMapperSupplier.INSTANCE,
           mock(DocumentFactory.class));
 
@@ -107,7 +107,7 @@ class ReturnDocumentToolTest {
             CONFIGURATION,
             call("1", Map.of("key", "summary", "document", summaryId, "description", "Short")));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .extracting(ToolCallResult::content)
         .containsExactly("Returned the document under the key 'summary'.");
     assertThat(split.conversation().returnDocuments())
@@ -152,7 +152,7 @@ class ReturnDocumentToolTest {
   void answersAnUnknownIdWithAnErrorListingTheKnownDocumentsAndSelectsNothing() {
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", "bogus")));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -168,7 +168,7 @@ class ReturnDocumentToolTest {
     final var tag = "<doc id=\"" + reportId + "\" fileName=\"report.txt\" />";
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .extracting(ToolCallResult::content)
         .containsExactly("Returned the document under the key 'k'.");
     assertThat(split.conversation().returnDocuments())
@@ -180,7 +180,7 @@ class ReturnDocumentToolTest {
     final var tag = "<doc id=\"" + reportId + "\" /> now";
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -195,7 +195,7 @@ class ReturnDocumentToolTest {
     for (final var key : List.of("", "1abc", "a b", "a.b", "-a")) {
       final var split = run(CONFIGURATION, call("1", Map.of("key", key, "document", reportId)));
 
-      assertThat(split.localResults())
+      assertThat(split.runtimeResults())
           .singleElement()
           .satisfies(
               result ->
@@ -223,14 +223,14 @@ class ReturnDocumentToolTest {
         List.<Map<String, Object>>of(Map.of("document", reportId), nullKey, Map.of("key", "k"))) {
       final var split = run(CONFIGURATION, call("1", arguments));
 
-      assertThat(split.localResults()).singleElement();
-      assertThat(split.localResults().get(0).content().toString()).contains("Parameter");
+      assertThat(split.runtimeResults()).singleElement();
+      assertThat(split.runtimeResults().get(0).content().toString()).contains("Parameter");
       assertThat(split.conversation().returnDocuments()).isEmpty();
     }
   }
 
   @Test
-  void answersTheLocalCallsOfAMixedBatchAndLeavesTheRealCallToTheProcess() {
+  void answersTheRuntimeCallsOfAMixedBatchAndLeavesTheRealCallToTheProcess() {
     final var split =
         run(
             CONFIGURATION,
@@ -240,11 +240,11 @@ class ReturnDocumentToolTest {
 
     assertThat(split.conversation().returnDocuments())
         .containsExactly(Map.entry("report", new SelectedDocument(reportId, null)));
-    assertThat(split.localResults()).extracting(ToolCallResult::id).containsExactly("r1", "r2");
+    assertThat(split.runtimeResults()).extracting(ToolCallResult::id).containsExactly("r1", "r2");
     assertThat(split.remainingCalls()).extracting(ToolCall::id).containsExactly("t1");
-    assertThat(split.localResults().get(0).content())
+    assertThat(split.runtimeResults().get(0).content())
         .isEqualTo("Returned the document under the key 'report'.");
-    assertThat(split.localResults().get(1).content().toString())
+    assertThat(split.runtimeResults().get(1).content().toString())
         .startsWith(
             "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
   }
@@ -253,7 +253,7 @@ class ReturnDocumentToolTest {
     return new ToolCall(id, ReturnDocumentTool.NAME, arguments);
   }
 
-  private LocalToolCallHandler.LocalToolCallSplit run(
+  private RuntimeToolCallHandler.RuntimeToolCallSplit run(
       AgentConfiguration configuration, ToolCall... toolCalls) {
     final var conversation =
         AgentConversation.rehydrate(

@@ -578,7 +578,7 @@ class AgentContextSchemaMigrationTest {
     }
 
     @Test
-    void legacyContextWithoutPendingLocalToolCallResultsBindsToEmptyList() throws Exception {
+    void legacyContextWithoutPendingRuntimeToolCallResultsBindsToEmptyList() throws Exception {
       JsonNode tree =
           objectMapper.readTree(
               """
@@ -594,12 +594,12 @@ class AgentContextSchemaMigrationTest {
           AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
-      assertThat(agentContext.pendingLocalToolCallResults()).isEmpty();
+      assertThat(agentContext.pendingRuntimeToolCallResults()).isEmpty();
       assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
     }
 
     @Test
-    void pendingLocalToolCallResultsSurviveTheRoundTripOfTheVersionedDeserialization()
+    void pendingRuntimeToolCallResultsSurviveTheRoundTripOfTheVersionedDeserialization()
         throws Exception {
       final var pending =
           ToolCallResult.builder()
@@ -618,15 +618,15 @@ class AgentContextSchemaMigrationTest {
                                   .results(List.of(ToolCallResultContent.from(pending)))
                                   .build()))
                       .build())
-              .pendingLocalToolCallResults(List.of(pending))
+              .pendingRuntimeToolCallResults(List.of(pending))
               .build();
 
       // the process variable is written as JSON and bound again by the next job
       final var serialized = objectMapper.writeValueAsString(context);
       final var bound = objectMapper.readValue(serialized, AgentContext.class);
 
-      assertThat(serialized).contains("\"pendingLocalToolCallResults\"");
-      assertThat(bound.pendingLocalToolCallResults())
+      assertThat(serialized).contains("\"pendingRuntimeToolCallResults\"");
+      assertThat(bound.pendingRuntimeToolCallResults())
           .usingRecursiveComparison()
           .isEqualTo(List.of(pending));
     }

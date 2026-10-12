@@ -169,7 +169,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void shouldCreateNewAgentInstanceWithLocalToolsAndDocumentsFeatures() {
+    void shouldCreateNewAgentInstanceWithRuntimeToolsAndDocumentsFeatures() {
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -182,7 +182,7 @@ class AgentInitializerTest {
               res -> {
                 assertThat(res.agentContext().features())
                     .containsExactly(
-                        AgentContext.FEATURE_LOCAL_TOOLS, AgentContext.FEATURE_DOCUMENTS);
+                        AgentContext.FEATURE_RUNTIME_TOOLS, AgentContext.FEATURE_DOCUMENTS);
                 assertThat(res.agentContext().supportsDocuments()).isTrue();
               });
     }

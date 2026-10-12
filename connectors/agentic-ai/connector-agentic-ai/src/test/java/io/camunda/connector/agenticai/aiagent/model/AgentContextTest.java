@@ -228,17 +228,17 @@ class AgentContextTest {
   }
 
   @Test
-  void pendingLocalToolCallResultsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+  void pendingRuntimeToolCallResultsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
       throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.pendingLocalToolCallResults()).isEmpty();
+    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
 
     assertThat(objectMapper.writeValueAsString(context))
-        .doesNotContain("pendingLocalToolCallResults");
+        .doesNotContain("pendingRuntimeToolCallResults");
   }
 
   @Test
-  void agentContextWithoutPendingLocalToolCallResultsFieldBindsToEmptyList()
+  void agentContextWithoutPendingRuntimeToolCallResultsFieldBindsToEmptyList()
       throws JsonProcessingException {
     final var json =
         """
@@ -252,12 +252,12 @@ class AgentContextTest {
 
     final var context = objectMapper.readValue(json, AgentContext.class);
 
-    assertThat(context.pendingLocalToolCallResults()).isEmpty();
+    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
     assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
   }
 
   @Test
-  void pendingLocalToolCallResultsAreSerializedAndDeserialized() throws JsonProcessingException {
+  void pendingRuntimeToolCallResultsAreSerializedAndDeserialized() throws JsonProcessingException {
     final var textResult =
         ToolCallResult.builder()
             .id("call-1")
@@ -274,14 +274,14 @@ class AgentContextTest {
             .build();
     final var context =
         AgentContext.builder()
-            .pendingLocalToolCallResults(List.of(textResult, structuredResult))
+            .pendingRuntimeToolCallResults(List.of(textResult, structuredResult))
             .build();
 
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
-    assertThat(serialized).contains("\"pendingLocalToolCallResults\"");
-    assertThat(deserialized.pendingLocalToolCallResults())
+    assertThat(serialized).contains("\"pendingRuntimeToolCallResults\"");
+    assertThat(deserialized.pendingRuntimeToolCallResults())
         .usingRecursiveComparison()
         .isEqualTo(List.of(textResult, structuredResult));
   }
@@ -317,27 +317,27 @@ class AgentContextTest {
   }
 
   @Test
-  void newInstanceFeaturesContainTheLocalToolsAndDocumentsFeatures() {
+  void newInstanceFeaturesContainTheRuntimeToolsAndDocumentsFeatures() {
     final var context = AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
-    assertThat(context.features()).containsExactly("localTools", "documents");
-    assertThat(context.supportsLocalTools()).isTrue();
+    assertThat(context.features()).containsExactly("runtimeTools", "documents");
+    assertThat(context.supportsRuntimeTools()).isTrue();
     assertThat(context.supports(AgentContext.FEATURE_DOCUMENTS)).isTrue();
     assertThat(context.supportsDocuments()).isTrue();
     assertThat(context.supports("other")).isFalse();
   }
 
   @Test
-  void theDocumentsFeatureImpliesTheLocalToolsFeature() {
+  void theDocumentsFeatureImpliesTheRuntimeToolsFeature() {
     final var documentsOnly =
         AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("documents")));
-    final var localToolsOnly =
-        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("localTools")));
+    final var runtimeToolsOnly =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("runtimeTools")));
 
-    assertThat(documentsOnly.supportsLocalTools()).isTrue();
-    assertThat(localToolsOnly.supportsLocalTools()).isTrue();
-    assertThat(localToolsOnly.supportsDocuments()).isFalse();
-    assertThat(AgentContext.empty().supportsLocalTools()).isFalse();
+    assertThat(documentsOnly.supportsRuntimeTools()).isTrue();
+    assertThat(runtimeToolsOnly.supportsRuntimeTools()).isTrue();
+    assertThat(runtimeToolsOnly.supportsDocuments()).isFalse();
+    assertThat(AgentContext.empty().supportsRuntimeTools()).isFalse();
   }
 
   @Test
@@ -371,7 +371,7 @@ class AgentContextTest {
             .withState(AgentState.READY)
             .withProperty("hello", "world")
             .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-            .withPendingLocalToolCallResults(List.of());
+            .withPendingRuntimeToolCallResults(List.of());
 
     assertThat(copy.features())
         .containsExactly("zeta", "alpha", "documents", "beta", "omega", "gamma");

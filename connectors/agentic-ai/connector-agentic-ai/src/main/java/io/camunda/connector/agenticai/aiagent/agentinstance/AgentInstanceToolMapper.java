@@ -7,40 +7,41 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentTool;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Maps agentic-ai {@link ToolDefinition} instances into Camunda client {@link AgentTool} objects.
  * Resolves BPMN element IDs for gateway-backed tools via {@link GatewayToolHandlerRegistry} and
- * falls back to the tool name for ad-hoc tools. A local tool has no BPMN element: its element ID is
- * left empty.
+ * falls back to the tool name for ad-hoc tools. A runtime tool has no BPMN element: its element ID
+ * is left empty.
  */
 public class AgentInstanceToolMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final LocalToolRegistry localToolRegistry;
+  private final RuntimeToolRegistry runtimeToolRegistry;
 
   public AgentInstanceToolMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers, LocalToolRegistry localToolRegistry) {
+      GatewayToolHandlerRegistry gatewayToolHandlers, RuntimeToolRegistry runtimeToolRegistry) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.localToolRegistry = localToolRegistry;
+    this.runtimeToolRegistry = runtimeToolRegistry;
   }
 
   /**
-   * Maps the tools of the agent. A local tool has no BPMN element; {@code localTools} tells whether
-   * the agent instance has the local tools feature, without which no tool is a local tool.
+   * Maps the tools of the agent. A runtime tool has no BPMN element; {@code runtimeTools} tells
+   * whether the agent instance has the runtime tools feature, without which no tool is a runtime
+   * tool.
    */
-  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions, boolean localTools) {
-    return toolDefinitions.stream().map(tool -> mapTool(tool, localTools)).toList();
+  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions, boolean runtimeTools) {
+    return toolDefinitions.stream().map(tool -> mapTool(tool, runtimeTools)).toList();
   }
 
-  private AgentTool mapTool(ToolDefinition toolDefinition, boolean localTools) {
+  private AgentTool mapTool(ToolDefinition toolDefinition, boolean runtimeTools) {
     final @Nullable String elementId =
-        localTools && localToolRegistry.toolNames().contains(toolDefinition.name())
+        runtimeTools && runtimeToolRegistry.toolNames().contains(toolDefinition.name())
             ? null
             : gatewayToolHandlers
                 .resolveElementId(toolDefinition.name())

@@ -15,12 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolResult;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolSchema;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
-import io.camunda.connector.agenticai.aiagent.localtool.SaveNoteTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -35,6 +29,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolSchema;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.SaveNoteTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -50,7 +50,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class LocalToolCallHandlerImplTest {
+class RuntimeToolCallHandlerImplTest {
 
   private static final ToolDefinition UPLOAD =
       ToolDefinition.builder()
@@ -88,24 +88,24 @@ class LocalToolCallHandlerImplTest {
               List.of(
                   new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null))));
 
-  private final LocalToolCallHandler handler = handlerOf(SaveNoteTool.create());
+  private final RuntimeToolCallHandler handler = handlerOf(SaveNoteTool.create());
 
-  private static LocalToolCallHandlerImpl handlerOf(LocalTool... tools) {
+  private static RuntimeToolCallHandlerImpl handlerOf(RuntimeTool... tools) {
     return handlerOf(mock(DocumentFactory.class), tools);
   }
 
-  private static LocalToolCallHandlerImpl handlerOf(
-      DocumentFactory documentFactory, LocalTool... tools) {
-    return new LocalToolCallHandlerImpl(
-        new LocalToolRegistryImpl(List.of(tools)),
+  private static RuntimeToolCallHandlerImpl handlerOf(
+      DocumentFactory documentFactory, RuntimeTool... tools) {
+    return new RuntimeToolCallHandlerImpl(
+        new RuntimeToolRegistryImpl(List.of(tools)),
         TestObjectMapperSupplier.INSTANCE,
         documentFactory);
   }
 
-  private static final LocalTool ECHO_TOOL =
-      LocalTool.builder("acme_echo")
+  private static final RuntimeTool ECHO_TOOL =
+      RuntimeTool.builder("acme_echo")
           .description("Echoes.")
-          .handler((call, context) -> LocalToolResult.success("echo"));
+          .handler((call, context) -> RuntimeToolResult.success("echo"));
 
   private static AgentConversation conversationWithFeatures(
       Set<String> features, ToolCall... calls) {
@@ -142,22 +142,22 @@ class LocalToolCallHandlerImplTest {
   private static final ToolCall WEATHER_CALL = new ToolCall("w", "getWeather", Map.of());
 
   @Test
-  void leavesEveryCallToTheProcessWhenNoLocalToolIsRegistered() {
+  void leavesEveryCallToTheProcessWhenNoRuntimeToolIsRegistered() {
     final var split =
         handlerOf().handle(conversation(WITH_MEMORY, WEATHER_CALL), List.of(WEATHER_CALL));
 
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(WEATHER_CALL);
   }
 
   @Test
-  void runsALocalToolAndAnswersItsCall() {
+  void runsARuntimeToolAndAnswersItsCall() {
     final var call = note("n1", "buy milk");
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
     assertThat(split.answersAllCalls()).isTrue();
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -189,7 +189,7 @@ class LocalToolCallHandlerImplTest {
     final var split =
         handler.handle(conversation(WITH_MEMORY, first, second), List.of(first, second));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .extracting(ToolCallResult::content)
         .containsExactly("Saved note #1", "Saved note #2");
     assertThat(SaveNoteTool.notesOf(split.conversation().toAgentContext().properties()))
@@ -208,17 +208,17 @@ class LocalToolCallHandlerImplTest {
             List.of(first, WEATHER_CALL, second, other));
 
     assertThat(split.answersAllCalls()).isFalse();
-    assertThat(split.localResults()).extracting(ToolCallResult::id).containsExactly("n1", "n2");
+    assertThat(split.runtimeResults()).extracting(ToolCallResult::id).containsExactly("n1", "n2");
     assertThat(split.remainingCalls()).containsExactly(WEATHER_CALL, other);
   }
 
   @Test
-  void callsOfAnUnavailableLocalToolGoToTheProcess() {
+  void callsOfAnUnavailableRuntimeToolGoToTheProcess() {
     final var call = note("n1", "a");
 
     final var split = handler.handle(conversation(WITHOUT_MEMORY, call), List.of(call));
 
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(call);
     assertThat(handler.availableToolDefinitions(WITHOUT_MEMORY)).isEmpty();
     assertThat(handler.availableToolDefinitions(WITH_MEMORY))
@@ -233,19 +233,19 @@ class LocalToolCallHandlerImplTest {
 
     final var split = handler.handle(conversation, List.of(call));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(result -> assertThat(result.content()).isEqualTo("The note must not be blank."));
     assertThat(split.conversation().toAgentContext().properties()).isEmpty();
   }
 
   @Test
-  void answersALocalToolExceptionWithItsMessage() {
+  void answersARuntimeToolExceptionWithItsMessage() {
     final var call = note("n1", "reject");
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(result -> assertThat(result.content()).isEqualTo("This note is not allowed."));
   }
@@ -254,13 +254,13 @@ class LocalToolCallHandlerImplTest {
   void answersArgumentsOfTheWrongTypeWithAnErrorResultTheModelCanActOn() {
     record Args(int limit) {}
     final var tool =
-        LocalTool.builder("c8__limited")
-            .handler(Args.class, (args, context) -> LocalToolResult.success("never"));
+        RuntimeTool.builder("c8__limited")
+            .handler(Args.class, (args, context) -> RuntimeToolResult.success("never"));
     final var call = new ToolCall("l1", "c8__limited", Map.of("limit", "many"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -279,13 +279,13 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void handsTheIdsOfTheDocumentParametersToALocalToolAfterCheckingThem() {
+  void handsTheIdsOfTheDocumentParametersToARuntimeToolAfterCheckingThem() {
     final var received = new ArrayList<Object>();
     record Args(String file, List<String> files) {}
     final var tool =
-        LocalTool.builder("c8__read_file")
+        RuntimeTool.builder("c8__read_file")
             .inputSchema(
-                LocalToolSchema.object()
+                RuntimeToolSchema.object()
                     .document("file", "The file", true)
                     .stringArray("files", "More files", false))
             .handler(
@@ -293,26 +293,26 @@ class LocalToolCallHandlerImplTest {
                 (args, context) -> {
                   received.add(args.file());
                   received.add(args.files());
-                  return LocalToolResult.success("read");
+                  return RuntimeToolResult.success("read");
                 });
     final var call = new ToolCall("r1", "c8__read_file", Map.of("file", reportId));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.localResults()).extracting(ToolCallResult::content).containsExactly("read");
+    assertThat(split.runtimeResults()).extracting(ToolCallResult::content).containsExactly("read");
     assertThat(received).containsExactly(reportId, null);
   }
 
   @Test
-  void handsTheIdOfATagPassedToADocumentParameterOfALocalTool() {
+  void handsTheIdOfATagPassedToADocumentParameterOfARuntimeTool() {
     final var received = new ArrayList<Object>();
     final var tool =
-        LocalTool.builder("c8__read_file")
-            .inputSchema(LocalToolSchema.object().document("file", "The file", true))
+        RuntimeTool.builder("c8__read_file")
+            .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
             .handler(
                 (call, context) -> {
                   received.add(call.arguments());
-                  return LocalToolResult.success("read");
+                  return RuntimeToolResult.success("read");
                 });
     final var arguments =
         Map.<String, Object>of(
@@ -321,27 +321,27 @@ class LocalToolCallHandlerImplTest {
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.localResults()).extracting(ToolCallResult::content).containsExactly("read");
+    assertThat(split.runtimeResults()).extracting(ToolCallResult::content).containsExactly("read");
     assertThat(received).containsExactly(Map.of("file", reportId, "other", "kept"));
   }
 
   @Test
-  void answersAnUnknownDocumentIdOfALocalToolWithTheKnownDocumentsAndDoesNotRunIt() {
+  void answersAnUnknownDocumentIdOfARuntimeToolWithTheKnownDocumentsAndDoesNotRunIt() {
     final var runs = new AtomicInteger();
     final var tool =
-        LocalTool.builder("c8__read_file")
-            .inputSchema(LocalToolSchema.object().document("file", "The file", true))
+        RuntimeTool.builder("c8__read_file")
+            .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
             .handler(
                 (call, context) -> {
                   runs.incrementAndGet();
-                  return LocalToolResult.success("read");
+                  return RuntimeToolResult.success("read");
                 });
     final var call = new ToolCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
     assertThat(runs).hasValue(0);
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -359,7 +359,7 @@ class LocalToolCallHandlerImplTest {
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(call);
   }
 
@@ -379,7 +379,7 @@ class LocalToolCallHandlerImplTest {
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
     assertThat(split.remainingCalls()).isEmpty();
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -407,7 +407,7 @@ class LocalToolCallHandlerImplTest {
 
     final var split = handler.handle(conversation, List.of(call));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -423,7 +423,7 @@ class LocalToolCallHandlerImplTest {
     final var split = handler.handle(conversation, List.of());
 
     assertThat(split.conversation()).isSameAs(conversation);
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
   }
 
   @Test
@@ -436,14 +436,14 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void runsACustomToolForAnAgentWithOnlyTheLocalToolsFeature() {
+  void runsACustomToolForAnAgentWithOnlyTheRuntimeToolsFeature() {
     final var call = new ToolCall("e1", "acme_echo", Map.of());
-    final var conversation = conversationWithFeatures(Set.of("localTools"), call);
+    final var conversation = conversationWithFeatures(Set.of("runtimeTools"), call);
 
     final var split = handlerOf(ECHO_TOOL).handle(conversation, List.of(call));
 
     assertThat(split.answersAllCalls()).isTrue();
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(result -> assertThat(result.content()).isEqualTo("echo"));
     assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
@@ -452,8 +452,8 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void doesNotOfferTheDocumentToolsToAnAgentWithOnlyTheLocalToolsFeature() {
-    final var configuration = conversationWithFeatures(Set.of("localTools")).configuration();
+  void doesNotOfferTheDocumentToolsToAnAgentWithOnlyTheRuntimeToolsFeature() {
+    final var configuration = conversationWithFeatures(Set.of("runtimeTools")).configuration();
 
     assertThat(
             handlerOf(ECHO_TOOL, new ReturnDocumentTool()).availableToolDefinitions(configuration))
@@ -462,13 +462,13 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void leavesTheCallsOfAnAgentWithoutTheLocalToolsFeatureToTheProcess() {
+  void leavesTheCallsOfAnAgentWithoutTheRuntimeToolsFeatureToTheProcess() {
     final var call = new ToolCall("e1", "acme_echo", Map.of());
     final var conversation = conversationWithFeatures(Set.of(), call);
 
     final var split = handlerOf(ECHO_TOOL).handle(conversation, List.of(call));
 
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(call);
     assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
         .isEmpty();
@@ -478,11 +478,11 @@ class LocalToolCallHandlerImplTest {
   void aToolCreatesADocumentThroughTheContext() {
     final var factory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
     final var creating =
-        LocalTool.builder("acme_create")
+        RuntimeTool.builder("acme_create")
             .description("Creates a document.")
             .handler(
                 (call, context) ->
-                    LocalToolResult.success(
+                    RuntimeToolResult.success(
                         context
                             .documentFactory()
                             .create(
@@ -492,11 +492,11 @@ class LocalToolCallHandlerImplTest {
                                     .fileName("created.txt")
                                     .build())));
     final var call = new ToolCall("c1", "acme_create", Map.of());
-    final var conversation = conversationWithFeatures(Set.of("localTools"), call);
+    final var conversation = conversationWithFeatures(Set.of("runtimeTools"), call);
 
     final var split = handlerOf(factory, creating).handle(conversation, List.of(call));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->

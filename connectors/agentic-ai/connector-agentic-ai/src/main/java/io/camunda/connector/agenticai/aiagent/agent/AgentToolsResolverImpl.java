@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -34,15 +34,15 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
   private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final LocalToolRegistry localToolRegistry;
+  private final RuntimeToolRegistry runtimeToolRegistry;
 
   public AgentToolsResolverImpl(
       AdHocToolsSchemaResolver toolsSchemaResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      LocalToolRegistry localToolRegistry) {
+      RuntimeToolRegistry runtimeToolRegistry) {
     this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.localToolRegistry = localToolRegistry;
+    this.runtimeToolRegistry = runtimeToolRegistry;
   }
 
   @Override
@@ -50,30 +50,30 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       AgentExecutionContext executionContext, AgentContext agentContext) {
     final var adHocToolsSchema =
         toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
-    if (agentContext.supportsLocalTools()) {
-      rejectLocalToolNames(adHocToolsSchema);
+    if (agentContext.supportsRuntimeTools()) {
+      rejectRuntimeToolNames(adHocToolsSchema);
     }
     return adHocToolsSchema;
   }
 
   /**
-   * Rejects an ad-hoc or gateway tool element whose name equals the name of a registered local
-   * tool, whether the agent offers that tool or not: the tool of the process and the local tool
-   * would be indistinguishable to the model. An agent instance created without the local tools
-   * feature offers no local tool and must keep running its process.
+   * Rejects an ad-hoc or gateway tool element whose name equals the name of a registered runtime
+   * tool, whether the agent offers that tool or not: the tool of the process and the runtime tool
+   * would be indistinguishable to the model. An agent instance created without the runtime tools
+   * feature offers no runtime tool and must keep running its process.
    */
-  private void rejectLocalToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
-    final var localToolNames = localToolRegistry.toolNames();
+  private void rejectRuntimeToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
+    final var runtimeToolNames = runtimeToolRegistry.toolNames();
     Stream.concat(
             adHocToolsSchema.toolDefinitions().stream().map(ToolDefinition::name),
             adHocToolsSchema.gatewayToolDefinitions().stream().map(GatewayToolDefinition::name))
-        .filter(localToolNames::contains)
+        .filter(runtimeToolNames::contains)
         .findFirst()
         .ifPresent(
             name -> {
               throw new ConnectorException(
-                  AgentErrorCodes.ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT,
-                  "The tool name '%s' is also the name of a local tool of the AI Agent. Rename the ad-hoc sub-process element with this ID or the local tool."
+                  AgentErrorCodes.ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT,
+                  "The tool name '%s' is also the name of a runtime tool of the AI Agent. Rename the ad-hoc sub-process element with this ID or the runtime tool."
                       .formatted(name));
             });
   }

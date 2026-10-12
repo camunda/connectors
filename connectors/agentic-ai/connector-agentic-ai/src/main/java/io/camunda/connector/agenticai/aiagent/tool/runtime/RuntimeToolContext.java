@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
@@ -16,9 +16,9 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * What a local tool can read about the agent while it runs. The state is read-only: a tool changes
- * the agent state through the {@link LocalToolResult#withContextUpdate context updates} of its
- * result.
+ * What a runtime tool can read about the agent while it runs. The state is read-only: a tool
+ * changes the agent state through the {@link RuntimeToolResult#withContextUpdate context updates}
+ * of its result.
  *
  * @param configuration the configuration of the current invocation
  * @param properties the free-form properties of the agent context (see {@code
@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
  * @param documentFactory creates a new Camunda document, for example from the content a tool
  *     produced; return the document in the content of the result to show it to the model
  */
-public record LocalToolContext(
+public record RuntimeToolContext(
     AgentConfiguration configuration,
     Map<String, Object> properties,
     DocumentRegistry documents,

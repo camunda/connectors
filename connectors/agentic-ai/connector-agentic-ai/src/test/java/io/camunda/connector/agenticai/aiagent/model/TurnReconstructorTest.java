@@ -107,7 +107,7 @@ class TurnReconstructorTest {
   @Test
   void
       toolCallRoundAnsweredWithinTheInvocation_isReconstructedAsItsOwnTurnWithoutIterationKeyDrift() {
-    // assistant(tool calls) -> synthetic tool results -> assistant, as persisted by a local tool
+    // assistant(tool calls) -> synthetic tool results -> assistant, as persisted by a runtime tool
     // round
     var u = userMessage("what's the weather?");
     var a1 = assistantMessage("let me check", TOOL_CALLS);
@@ -127,7 +127,7 @@ class TurnReconstructorTest {
                 null,
                 List.of(u))
             .ingest(a1, AgentMetrics.empty())
-            .nextLocalToolRound(synthetic)
+            .nextRuntimeToolRound(synthetic)
             .ingest(a2, AgentMetrics.empty());
 
     var persisted = conversation.allMessages();

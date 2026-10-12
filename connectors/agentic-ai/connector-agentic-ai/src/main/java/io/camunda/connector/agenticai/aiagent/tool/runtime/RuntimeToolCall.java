@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
@@ -12,16 +12,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * A call of a local tool by the model.
+ * A call of a runtime tool by the model.
  *
  * @param id the tool call id assigned by the model provider
  * @param name the name of the tool
  * @param arguments the arguments as the model sent them; a document parameter holds the id of its
  *     document, also when the model passed the {@code <doc />} tag of the document
  */
-public record LocalToolCall(String id, String name, Map<String, Object> arguments) {
+public record RuntimeToolCall(String id, String name, Map<String, Object> arguments) {
 
-  public LocalToolCall {
+  public RuntimeToolCall {
     // a model can send an explicit null value, which an immutable Map.copyOf would reject
     arguments = Collections.unmodifiableMap(new LinkedHashMap<>(arguments));
   }
@@ -30,13 +30,13 @@ public record LocalToolCall(String id, String name, Map<String, Object> argument
    * Binds the {@link #arguments() arguments} to {@code type}; a document parameter is bound to a
    * {@code String}, the id of the document.
    *
-   * @throws LocalToolException if the arguments do not match {@code type}
+   * @throws RuntimeToolException if the arguments do not match {@code type}
    */
   public <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper) {
     try {
       return objectMapper.convertValue(arguments, type);
     } catch (IllegalArgumentException e) {
-      throw new LocalToolException(
+      throw new RuntimeToolException(
           "Invalid arguments for tool '%s': %s".formatted(name, rootMessage(e)), e);
     }
   }

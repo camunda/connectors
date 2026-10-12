@@ -7,9 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
 /**
- * The names of the built-in local tools share one prefix by convention. The prefix is not enforced:
- * a tool of the process or a custom local tool may use any name, as long as it does not equal the
- * name of a local tool the agent offers (see {@code LocalToolRegistry}).
+ * The names of the built-in runtime tools share one prefix by convention. The prefix is not
+ * enforced: a tool of the process or a custom runtime tool may use any name, as long as it does not
+ * equal the name of a runtime tool the agent offers (see {@code RuntimeToolRegistry}).
  */
 public final class InternalToolNames {
 

@@ -7,18 +7,18 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolCall;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolContext;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolException;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolException;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -29,48 +29,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs the calls of available {@link LocalTool}s of a batch and validates the document parameters
- * of the calls of process tools. A call that gets a local result is answered by the agent, every
+ * Runs the calls of available {@link RuntimeTool}s of a batch and validates the document parameters
+ * of the calls of process tools. A call that gets a runtime result is answered by the agent, every
  * other call remains for the process.
  */
-public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
+public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LocalToolCallHandlerImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeToolCallHandlerImpl.class);
 
-  private final LocalToolRegistry localToolRegistry;
+  private final RuntimeToolRegistry runtimeToolRegistry;
   private final ObjectMapper objectMapper;
   private final DocumentFactory documentFactory;
 
-  public LocalToolCallHandlerImpl(
-      LocalToolRegistry localToolRegistry,
+  public RuntimeToolCallHandlerImpl(
+      RuntimeToolRegistry runtimeToolRegistry,
       ObjectMapper objectMapper,
       DocumentFactory documentFactory) {
-    this.localToolRegistry = localToolRegistry;
+    this.runtimeToolRegistry = runtimeToolRegistry;
     this.objectMapper = objectMapper;
     this.documentFactory = documentFactory;
   }
 
   @Override
   public List<ToolDefinition> availableToolDefinitions(AgentConfiguration configuration) {
-    return localToolRegistry.availableToolDefinitions(configuration);
+    return runtimeToolRegistry.availableToolDefinitions(configuration);
   }
 
   @Override
-  public LocalToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
-    // an agent instance without the local tools feature has no local tools: every call goes to the
+  public RuntimeToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
+    // an agent instance without the runtime tools feature has no runtime tools: every call goes to
+    // the
     // process as the model sent it
-    if (toolCalls.isEmpty() || !conversation.supportsLocalTools()) {
-      return LocalToolCallSplit.allRemaining(conversation, toolCalls);
+    if (toolCalls.isEmpty() || !conversation.supportsRuntimeTools()) {
+      return RuntimeToolCallSplit.allRemaining(conversation, toolCalls);
     }
 
     final var completedAt = OffsetDateTime.now();
-    final var localResults = new ArrayList<ToolCallResult>();
+    final var runtimeResults = new ArrayList<ToolCallResult>();
     final var remainingCalls = new ArrayList<ToolCall>();
     var workingConversation = conversation;
     for (final var toolCall : toolCalls) {
       final var tool =
-          localToolRegistry.findAvailable(toolCall.name(), workingConversation.configuration());
-      final LocalToolResult result;
+          runtimeToolRegistry.findAvailable(toolCall.name(), workingConversation.configuration());
+      final RuntimeToolResult result;
       if (tool.isPresent()) {
         result = run(tool.get(), toolCall, workingConversation);
       } else {
@@ -86,7 +87,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
         result = rejection;
       }
 
-      localResults.add(
+      runtimeResults.add(
           ToolCallResult.builder()
               .id(toolCall.id())
               .name(toolCall.name())
@@ -98,10 +99,11 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
         workingConversation = workingConversation.withContextUpdate(update);
       }
     }
-    return new LocalToolCallSplit(workingConversation, localResults, remainingCalls);
+    return new RuntimeToolCallSplit(workingConversation, runtimeResults, remainingCalls);
   }
 
-  private LocalToolResult run(LocalTool tool, ToolCall toolCall, AgentConversation conversation) {
+  private RuntimeToolResult run(
+      RuntimeTool tool, ToolCall toolCall, AgentConversation conversation) {
     final var documents = conversation.documentRegistry();
     final Map<String, Object> arguments =
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
@@ -116,14 +118,14 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
         case DocumentParameterResolver.Resolution.Resolved resolved ->
             toolArguments = resolved.arguments();
         case DocumentParameterResolver.Resolution.Invalid invalid -> {
-          return LocalToolResult.error(
+          return RuntimeToolResult.error(
               String.join(" ", invalid.problems()) + " " + documents.knownDocumentsText());
         }
       }
     }
 
     final var context =
-        new LocalToolContext(
+        new RuntimeToolContext(
             conversation.configuration(),
             conversation.toAgentContext().properties(),
             documents,
@@ -132,10 +134,10 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
             objectMapper,
             documentFactory);
     try {
-      return tool.call(new LocalToolCall(toolCall.id(), toolCall.name(), toolArguments), context);
-    } catch (LocalToolException e) {
-      LOGGER.debug("Local tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
-      return LocalToolResult.error(e.getMessage());
+      return tool.call(new RuntimeToolCall(toolCall.id(), toolCall.name(), toolArguments), context);
+    } catch (RuntimeToolException e) {
+      LOGGER.debug("Runtime tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
+      return RuntimeToolResult.error(e.getMessage());
     }
   }
 
@@ -144,7 +146,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
    * a known document, or {@code null} if the call is valid or the tool declares no document
    * parameter.
    */
-  private static @Nullable LocalToolResult validateDocumentParameters(
+  private static @Nullable RuntimeToolResult validateDocumentParameters(
       ToolCall toolCall, AgentConversation conversation) {
     final var definition =
         conversation.configuration().toolDefinitions().stream()
@@ -160,7 +162,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
     return switch (DocumentParameterResolver.resolve(toolCall, definition.get(), documents)) {
       case DocumentParameterResolver.Resolution.Resolved ignored -> null;
       case DocumentParameterResolver.Resolution.Invalid invalid ->
-          LocalToolResult.error(
+          RuntimeToolResult.error(
               String.join(" ", invalid.problems()) + " " + documents.knownDocumentsText());
     };
   }

@@ -32,7 +32,7 @@ import org.jspecify.annotations.Nullable;
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
  * handler invocation; does not change mid-conversation, with the exception of {@link
  * #toolDefinitions()}, which the handler fills in once tool resolution has run (see {@link
- * #withToolDefinitions}) with the tools of the process and the available local tools, and which
+ * #withToolDefinitions}) with the tools of the process and the available runtime tools, and which
  * then becomes the authoritative source of the current tool list for the rest of the invocation.
  *
  * <p>{@link #features()} are the features of the agent instance (see {@link
@@ -101,11 +101,11 @@ public record AgentConfiguration(
   }
 
   /**
-   * Returns {@code true} if the agent instance was created with the local tools feature or with the
-   * documents feature, which implies it.
+   * Returns {@code true} if the agent instance was created with the runtime tools feature or with
+   * the documents feature, which implies it.
    */
-  public boolean supportsLocalTools() {
-    return supports(AgentContext.FEATURE_LOCAL_TOOLS) || supportsDocuments();
+  public boolean supportsRuntimeTools() {
+    return supports(AgentContext.FEATURE_RUNTIME_TOOLS) || supportsDocuments();
   }
 
   public int contextWindowSize() {

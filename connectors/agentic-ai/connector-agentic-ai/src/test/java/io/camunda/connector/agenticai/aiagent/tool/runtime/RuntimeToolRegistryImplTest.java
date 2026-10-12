@@ -5,7 +5,7 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class LocalToolRegistryImplTest {
+class RuntimeToolRegistryImplTest {
 
   private static final AgentConfiguration PLAIN =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
@@ -35,13 +35,13 @@ class LocalToolRegistryImplTest {
               null)
           .withFeatures(AgentContext.newInstanceFeatures());
   private static final AgentConfiguration WITHOUT_FEATURES = PLAIN.withFeatures(Set.of());
-  private static final AgentConfiguration LOCAL_TOOLS_ONLY =
-      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_LOCAL_TOOLS));
+  private static final AgentConfiguration RUNTIME_TOOLS_ONLY =
+      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_RUNTIME_TOOLS));
   private static final AgentConfiguration DOCUMENTS_ONLY =
       PLAIN.withFeatures(Set.of(AgentContext.FEATURE_DOCUMENTS));
 
-  private final LocalToolRegistry registry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
+  private final RuntimeToolRegistry registry =
+      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
 
   @Test
   void reservesTheNamesOfAllRegisteredToolsWhetherAvailableOrNot() {
@@ -60,25 +60,25 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
-  void offersNoToolToAnAgentWithoutTheLocalToolsFeature() {
+  void offersNoToolToAnAgentWithoutTheRuntimeToolsFeature() {
     assertThat(registry.availableTools(WITHOUT_FEATURES)).isEmpty();
     assertThat(registry.availableToolDefinitions(WITHOUT_FEATURES)).isEmpty();
     assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITHOUT_FEATURES)).isEmpty();
   }
 
   @Test
-  void offersOnlyTheToolsThatDoNotNeedDocumentsToAnAgentWithOnlyTheLocalToolsFeature() {
-    final var withMemory = WITH_MEMORY.withFeatures(Set.of(AgentContext.FEATURE_LOCAL_TOOLS));
+  void offersOnlyTheToolsThatDoNotNeedDocumentsToAnAgentWithOnlyTheRuntimeToolsFeature() {
+    final var withMemory = WITH_MEMORY.withFeatures(Set.of(AgentContext.FEATURE_RUNTIME_TOOLS));
 
-    assertThat(registry.availableToolDefinitions(LOCAL_TOOLS_ONLY)).isEmpty();
+    assertThat(registry.availableToolDefinitions(RUNTIME_TOOLS_ONLY)).isEmpty();
     assertThat(registry.availableToolDefinitions(withMemory))
         .extracting(definition -> definition.name())
         .containsExactly(SaveNoteTool.NAME);
-    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, LOCAL_TOOLS_ONLY)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, RUNTIME_TOOLS_ONLY)).isEmpty();
   }
 
   @Test
-  void treatsTheDocumentsFeatureAsImplyingTheLocalToolsFeature() {
+  void treatsTheDocumentsFeatureAsImplyingTheRuntimeToolsFeature() {
     assertThat(registry.availableToolDefinitions(DOCUMENTS_ONLY))
         .extracting(definition -> definition.name())
         .containsExactly(ReturnDocumentTool.NAME);
@@ -93,17 +93,17 @@ class LocalToolRegistryImplTest {
 
   @Test
   void acceptsAToolNameOutsideTheBuiltInPrefix() {
-    final var custom = LocalTool.builder("acme_lookup").handler((call, context) -> null);
+    final var custom = RuntimeTool.builder("acme_lookup").handler((call, context) -> null);
 
-    assertThat(new LocalToolRegistryImpl(List.of(custom)).toolNames())
+    assertThat(new RuntimeToolRegistryImpl(List.of(custom)).toolNames())
         .containsExactly("acme_lookup");
   }
 
   @Test
   void rejectsABlankToolName() {
-    final var blank = LocalTool.builder(" ").handler((call, context) -> null);
+    final var blank = RuntimeTool.builder(" ").handler((call, context) -> null);
 
-    assertThatThrownBy(() -> new LocalToolRegistryImpl(List.of(blank)))
+    assertThatThrownBy(() -> new RuntimeToolRegistryImpl(List.of(blank)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("non-blank");
   }
@@ -111,7 +111,8 @@ class LocalToolRegistryImplTest {
   @Test
   void rejectsDuplicateToolNames() {
     assertThatThrownBy(
-            () -> new LocalToolRegistryImpl(List.of(SaveNoteTool.create(), SaveNoteTool.create())))
+            () ->
+                new RuntimeToolRegistryImpl(List.of(SaveNoteTool.create(), SaveNoteTool.create())))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("c8__save_note");
   }

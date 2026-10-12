@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -35,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -147,18 +147,18 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   @Test
-  void handsOnlyTheCallsThePendingLocalResultsDoNotAnswerToTheProcess() {
-    final var localCall = new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of());
+  void handsOnlyTheCallsThePendingRuntimeResultsDoNotAnswerToTheProcess() {
+    final var runtimeCall = new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of());
     final var realCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
-    final var local =
+    final var runtimeResult =
         ToolCallResult.builder().id("call-1").name(ReturnDocumentTool.NAME).content("ok").build();
 
     final var response =
         responseHandler.createResponse(
             conversation(
                     selection("report", new SelectedDocument(reportId, null)),
-                    assistantMessage("both", List.of(localCall, realCall)))
-                .withPendingLocalToolCallResults(List.of(local)));
+                    assistantMessage("both", List.of(runtimeCall, realCall)))
+                .withPendingRuntimeToolCallResults(List.of(runtimeResult)));
 
     assertThat(response.toolCalls())
         .extracting(call -> call.metadata().id())
@@ -166,7 +166,7 @@ class AgentResponseHandlerDocumentsTest {
     // the batch is not final, the selection stays and no documents are returned yet
     assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().returnDocuments()).containsOnlyKeys("report");
-    assertThat(response.context().pendingLocalToolCallResults()).containsExactly(local);
+    assertThat(response.context().pendingRuntimeToolCallResults()).containsExactly(runtimeResult);
   }
 
   @Test

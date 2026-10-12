@@ -43,9 +43,6 @@ import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -78,6 +75,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -152,8 +152,8 @@ class CamundaAgentInstanceClientTest {
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
-  private final LocalToolRegistry localToolRegistry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool()));
+  private final RuntimeToolRegistry runtimeToolRegistry =
+      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
 
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
@@ -164,9 +164,9 @@ class CamundaAgentInstanceClientTest {
     var historyMapper =
         new AgentInstanceHistoryMapper(
             gatewayToolHandlers,
-            localToolRegistry,
+            runtimeToolRegistry,
             new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
-    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
+    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
     client =
         new CamundaAgentInstanceClient(
             singleTenant(camundaClient),
@@ -198,9 +198,9 @@ class CamundaAgentInstanceClientTest {
                 recordedSleeps::add,
                 new AgentInstanceHistoryMapper(
                     gatewayToolHandlers,
-                    localToolRegistry,
+                    runtimeToolRegistry,
                     new DocumentExpander(TestObjectMapperSupplier.INSTANCE)),
-                new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry))
+                new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry))
             .create(executionContext);
 
     assertThat(key.value()).isEqualTo(AGENT_INSTANCE_KEY);
@@ -864,7 +864,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void reportsTheAvailableLocalToolsWithoutAnElementIdNextToTheToolsOfTheProcess() {
+    void reportsTheAvailableRuntimeToolsWithoutAnElementIdNextToTheToolsOfTheProcess() {
       givenUpdateCommand();
       final var tools =
           List.of(
@@ -1076,17 +1076,17 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldReportLocalAndProcessResultsOfOneAssistantMessageAsToolResultsInCallOrder() {
+    void shouldReportRuntimeAndProcessResultsOfOneAssistantMessageAsToolResultsInCallOrder() {
       givenUpdateCommand();
       final var configuration = configuration("Be nice.", List.of());
-      final var localCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
+      final var runtimeCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
       final var processCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
-      final var localResult =
+      final var runtimeResult =
           ToolCallResult.builder()
-              .id("local")
+              .id("runtime")
               .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
-              .completedAt(localCompletedAt)
+              .completedAt(runtimeCompletedAt)
               .build();
       final var processResult =
           ToolCallResultContent.builder()
@@ -1101,7 +1101,7 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(localResult), processResult))
+                      .results(List.of(ToolCallResultContent.from(runtimeResult), processResult))
                       .build()),
               null,
               AgentMetrics.empty(),
@@ -1114,7 +1114,7 @@ class CamundaAgentInstanceClientTest {
                   .toolCalls(
                       List.of(
                           ToolCall.builder()
-                              .id("local")
+                              .id("runtime")
                               .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
@@ -1140,18 +1140,18 @@ class CamundaAgentInstanceClientTest {
       // the configuration is unchanged; each result is one item correlated to its own call
       assertThat(historyCaptor.getValue())
           .satisfiesExactly(
-              local -> {
-                assertThat(local.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
-                assertThat(local.getHistoryItemId()).isEqualTo("local");
-                assertThat(local.getLoopIteration()).isEqualTo(2);
-                assertThat(local.getProducedAt()).isEqualTo(localCompletedAt);
-                assertThat(local.getToolCalls())
+              runtime -> {
+                assertThat(runtime.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(runtime.getHistoryItemId()).isEqualTo("runtime");
+                assertThat(runtime.getLoopIteration()).isEqualTo(2);
+                assertThat(runtime.getProducedAt()).isEqualTo(runtimeCompletedAt);
+                assertThat(runtime.getToolCalls())
                     .singleElement()
                     .satisfies(
                         tc -> {
-                          assertThat(tc.getToolCallId()).isEqualTo("local");
+                          assertThat(tc.getToolCallId()).isEqualTo("runtime");
                           assertThat(tc.getToolName()).isEqualTo("c8__return_document");
-                          // a local tool call has no BPMN element
+                          // a runtime tool call has no BPMN element
                           assertThat(tc.getElementId()).isNull();
                           assertThat(tc.getArguments())
                               .containsExactlyEntriesOf(
@@ -1397,13 +1397,13 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldReportALocalResultEarlyUnderTheSameItemAsTheMergedTurnStartOfTheNextJob() {
+    void shouldReportARuntimeResultEarlyUnderTheSameItemAsTheMergedTurnStartOfTheNextJob() {
       givenUpdateCommand();
       final var configuration = configuration();
       final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
-      final var localResult =
+      final var runtimeResult =
           ToolCallResult.builder()
-              .id("local")
+              .id("runtime")
               .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(completedAt)
@@ -1424,7 +1424,7 @@ class CamundaAgentInstanceClientTest {
                   .toolCalls(
                       List.of(
                           ToolCall.builder()
-                              .id("local")
+                              .id("runtime")
                               .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", "doc-1"))
                               .build(),
@@ -1441,17 +1441,17 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(localResult), realResult))
+                      .results(List.of(ToolCallResultContent.from(runtimeResult), realResult))
                       .build()),
               null,
               AgentMetrics.empty(),
               configuration.fingerprint());
 
-      // first job: the local result is reported right after the assistant turn
+      // first job: the runtime result is reported right after the assistant turn
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          List.of(localResult),
+          List.of(runtimeResult),
           assistantTurn,
           NO_DOCUMENTS);
       // next job: the merged results are reported with the turn start
@@ -1469,7 +1469,7 @@ class CamundaAgentInstanceClientTest {
       final var merged = historyCaptor.getAllValues().get(1).getFirst();
       // everything the engine's dedup by history item id would otherwise have to pick between
       // is identical, so it is irrelevant which of the two writes it keeps
-      assertThat(early.getHistoryItemId()).isEqualTo("local");
+      assertThat(early.getHistoryItemId()).isEqualTo("runtime");
       assertThat(early.getLoopIteration()).isEqualTo(2);
       assertThat(early.getProducedAt()).isEqualTo(completedAt);
       assertThat(merged).usingRecursiveComparison().isEqualTo(early);
@@ -1506,9 +1506,9 @@ class CamundaAgentInstanceClientTest {
       final var early = new HistoryDocuments(earlyRegistry);
       final var later = new HistoryDocuments(laterRegistry);
 
-      final var localResult =
+      final var runtimeResult =
           ToolCallResult.builder()
-              .id("local")
+              .id("runtime")
               .name("c8__return_document")
               .content("Returned the document under the key 'report'.")
               .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
@@ -1521,7 +1521,7 @@ class CamundaAgentInstanceClientTest {
                   .toolCalls(
                       List.of(
                           ToolCall.builder()
-                              .id("local")
+                              .id("runtime")
                               .name("c8__return_document")
                               .arguments(Map.of("key", "report", "document", documentId))
                               .build()))
@@ -1533,7 +1533,7 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(localResult)))
+                      .results(List.of(ToolCallResultContent.from(runtimeResult)))
                       .build()),
               null,
               AgentMetrics.empty(),
@@ -1548,7 +1548,11 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceUpdateStatus.TOOL_CALLING,
           early);
       client.applyToolCallResults(
-          TestAgentExecutionContext.withLimits(), key, List.of(localResult), assistantTurn, early);
+          TestAgentExecutionContext.withLimits(),
+          key,
+          List.of(runtimeResult),
+          assistantTurn,
+          early);
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
           configuration,

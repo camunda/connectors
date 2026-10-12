@@ -498,17 +498,17 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .hasResponseText(FINAL_TEXT);
           assertReturnedDocument(agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
-          assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
+          assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
   }
 
   /**
-   * The agent instance lists the available local tool without a BPMN element and reports its call
+   * The agent instance lists the available runtime tool without a BPMN element and reports its call
    * and its result next to the real call of the batch.
    */
   @Test
-  void agentInstanceHistoryReportsTheLocalToolAndItsCalls() throws Exception {
+  void agentInstanceHistoryReportsTheRuntimeToolAndItsCalls() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
 
@@ -532,7 +532,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   /**
    * The history of the agent instance shows the arguments of a call as the model sent them: the id
    * of a document in the call of the assistant item and in the arguments of the result item, for a
-   * tool of the process and for the local tool.
+   * tool of the process and for the runtime tool.
    */
   @Test
   void agentInstanceHistoryShowsTheDocumentIdInTheToolCallArguments() throws Exception {
@@ -563,12 +563,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The local result of a mixed batch is in the agent instance history as soon as the job that
+   * The runtime result of a mixed batch is in the agent instance history as soon as the job that
    * answered it completes, while the real call of the batch is still running. The next job reports
    * it again with the merged results, and the history still holds it exactly once.
    */
   @Test
-  void localResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique()
+  void runtimeResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique()
       throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithSlowToolTurn(), finalTurn());
@@ -580,7 +580,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         AgentInstanceEngineVerifier.awaitAgentInstanceKey(
             camundaClient, processInstance.getProcessInstanceKey());
 
-    // the slow tool has not answered, the local result is already reported
+    // the slow tool has not answered, the runtime result is already reported
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
         .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document")
         .verify();
@@ -592,7 +592,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         Map.of("toolCallResult", "slow tool done"));
     awaitProcessCompletion(zeebeTest);
 
-    // the next job reported the local result again: no duplicate, call order kept
+    // the next job reported the runtime result again: no duplicate, call order kept
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
         .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document", "Slow_Tool")
         .verify();
@@ -638,7 +638,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
+          assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
   }

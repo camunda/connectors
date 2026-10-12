@@ -259,7 +259,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
         .tools(
             toolMapper.mapTools(
-                configuration.toolDefinitions(), configuration.supportsLocalTools()))
+                configuration.toolDefinitions(), configuration.supportsRuntimeTools()))
         .limits(AgentInstanceLimits.of(-1, configuration.maxModelCalls(), -1));
   }
 

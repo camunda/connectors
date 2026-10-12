@@ -50,9 +50,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
-import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -93,6 +90,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -176,9 +176,9 @@ class AgentSubProcessRequestHandlerTest {
       new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Spy
-  private LocalToolCallHandler localToolCallHandler =
-      new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
+  private RuntimeToolCallHandler runtimeToolCallHandler =
+      new RuntimeToolCallHandlerImpl(
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
           TestObjectMapperSupplier.INSTANCE,
           mock(DocumentFactory.class));
 
@@ -1124,7 +1124,7 @@ class AgentSubProcessRequestHandlerTest {
         .satisfies(activation -> assertThat(activation.elementId()).isEqualTo("getWeather"));
 
     // the error result waits in the agent context for the results of the process
-    assertThat(agentResponse.context().pendingLocalToolCallResults())
+    assertThat(agentResponse.context().pendingRuntimeToolCallResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -1147,7 +1147,7 @@ class AgentSubProcessRequestHandlerTest {
             });
 
     // history: one turn start, one completion with the status of a tool calling turn, then the
-    // local result right away (status-less), correlated to the completed assistant turn
+    // runtime result right away (status-less), correlated to the completed assistant turn
     final var inOrder = inOrder(agentInstanceClient);
     inOrder
         .verify(agentInstanceClient)
@@ -1174,7 +1174,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(turnCaptor.getValue().toolCalls()).containsExactly(badCall, otherCall);
     // the reported result is the one kept pending, with the same completion timestamp
     assertThat(reportedResultsCaptor.getValue())
-        .isEqualTo(agentResponse.context().pendingLocalToolCallResults());
+        .isEqualTo(agentResponse.context().pendingRuntimeToolCallResults());
   }
 
   @Test
@@ -1222,7 +1222,7 @@ class AgentSubProcessRequestHandlerTest {
     // the selection is persisted with this job, the answer waits for the process result
     assertThat(context.returnDocuments())
         .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
-    assertThat(context.pendingLocalToolCallResults())
+    assertThat(context.pendingRuntimeToolCallResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -1233,7 +1233,8 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void keepsAllResultsOutOfTheContextOfAFullyLocalBatchBecauseTheModelIsCalledAgain() {
+  void
+      keepsAllResultsOutOfTheContextOfABatchAnsweredEntirelyByRuntimeToolsBecauseTheModelIsCalledAgain() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
@@ -1291,13 +1292,13 @@ class AgentSubProcessRequestHandlerTest {
     final var context = response.responseValue().context();
     assertThat(context.returnDocuments())
         .containsExactly(Map.entry("report", new SelectedDocument(documentId, null)));
-    assertThat(context.pendingLocalToolCallResults()).isEmpty();
+    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
   }
 
   @Test
-  void clearsThePendingLocalResultsOnceTheComposerConsumedThem() {
+  void clearsThePendingRuntimeResultsOnceTheComposerConsumedThem() {
     final var pending =
         ToolCallResult.builder()
             .id("call-1")
@@ -1310,18 +1311,18 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT.withPendingLocalToolCallResults(List.of(pending)),
+                INITIAL_AGENT_CONTEXT.withPendingRuntimeToolCallResults(List.of(pending)),
                 List.of()));
     mockChatModelExecution(assistantMessage("done"));
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(response.responseValue().context().pendingLocalToolCallResults()).isEmpty();
+    assertThat(response.responseValue().context().pendingRuntimeToolCallResults()).isEmpty();
   }
 
   @Test
-  void keepsThePendingLocalResultsWhileTheProcessResultsAreStillMissing() {
+  void keepsThePendingRuntimeResultsWhileTheProcessResultsAreStillMissing() {
     final var pending =
         ToolCallResult.builder()
             .id("call-1")
@@ -1332,7 +1333,7 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT.withPendingLocalToolCallResults(List.of(pending)),
+                INITIAL_AGENT_CONTEXT.withPendingRuntimeToolCallResults(List.of(pending)),
                 List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of()));
@@ -1588,15 +1589,15 @@ class AgentSubProcessRequestHandlerTest {
             i -> {
               final var conversation = i.getArgument(0, AgentConversation.class);
               final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
-              final var locallyAnsweredIds =
-                  conversation.pendingLocalToolCallResults().stream()
+              final var runtimeAnsweredIds =
+                  conversation.pendingRuntimeToolCallResults().stream()
                       .map(ToolCallResult::id)
                       .collect(Collectors.toSet());
               final var toolCalls =
                   assistantMessage.toolCalls() == null
                       ? List.<ToolCallProcessVariable>of()
                       : assistantMessage.toolCalls().stream()
-                          .filter(toolCall -> !locallyAnsweredIds.contains(toolCall.id()))
+                          .filter(toolCall -> !runtimeAnsweredIds.contains(toolCall.id()))
                           .map(ToolCallProcessVariable::from)
                           .toList();
               return AgentResponse.builder()

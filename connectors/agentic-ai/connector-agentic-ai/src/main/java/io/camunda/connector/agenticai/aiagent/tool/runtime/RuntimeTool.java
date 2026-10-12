@@ -4,11 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -18,10 +17,9 @@ import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A tool the agent executes itself instead of handing the call to the process (for example
- * returning documents, loading a skill or saving a memory). A local tool is a definition, shown to
- * the model next to the tools of the process, and a handler, run by the agent when the model calls
- * the tool.
+ * A tool the connector runtime runs itself, without activating a BPMN element. A runtime tool is a
+ * definition, shown to the model next to the tools of the process, and a handler, run by the agent
+ * when the model calls the tool.
  *
  * <p>Register a tool as a Spring bean of this type. Build one with {@link #builder(String)} or
  * implement the interface.
@@ -35,25 +33,24 @@ import org.jspecify.annotations.Nullable;
  *       with the document format, are checked: an unknown document answers the call with an error
  *       result listing the known documents and the tool does not run. The tool receives the id of
  *       each document, also when the model passed the {@code <doc />} tag of the document; it looks
- *       the document up in {@link LocalToolContext#documents()}.
- *   <li>{@link #call} runs. A {@link LocalToolException} or an {@link LocalToolResult#error error
- *       result} answers the call with an error the model can act on; any other exception propagates
- *       and fails the job.
+ *       the document up in {@link RuntimeToolContext#documents()}.
+ *   <li>{@link #call} runs. A {@link RuntimeToolException} or an {@link RuntimeToolResult#error
+ *       error result} answers the call with an error the model can act on; any other exception
+ *       propagates and fails the job.
  *   <li>The content becomes the tool result, the context updates of the result are applied to the
  *       agent context.
  * </ol>
  *
  * <p>The tool must not keep state of its own: an agent can run in any connector worker, one job
  * after the other. State of the agent belongs into the agent context, changed by {@link
- * LocalToolResult#withContextUpdate context updates}.
+ * RuntimeToolResult#withContextUpdate context updates}.
  */
-public interface LocalTool {
+public interface RuntimeTool {
 
   /**
-   * The definition shown to the model. The name is unique among the local tools. A custom tool may
-   * use any name, but it must not equal the name of a tool of the process of the agent it runs in:
-   * the agent then fails with an error. Use the prefix {@link InternalToolNames#PREFIX} for
-   * built-in tools only and a vendor-specific prefix for custom tools.
+   * The definition shown to the model. The name is unique among the runtime tools. It must not
+   * equal the name of a tool of the process of the agent the runtime tool runs in: the agent then
+   * fails with an error. Custom tools should use a vendor-specific prefix.
    */
   ToolDefinition definition();
 
@@ -66,7 +63,7 @@ public interface LocalTool {
   }
 
   /** Runs the tool for {@code call}. */
-  LocalToolResult call(LocalToolCall call, LocalToolContext context);
+  RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context);
 
   /** Starts building a tool with the given name. */
   static Builder builder(String name) {
@@ -81,22 +78,22 @@ public interface LocalTool {
   /** Runs a call with the arguments the model sent. */
   @FunctionalInterface
   interface Handler {
-    LocalToolResult call(LocalToolCall call, LocalToolContext context);
+    RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context);
   }
 
   /** Runs a call with arguments bound to a type. */
   @FunctionalInterface
   interface TypedHandler<A> {
-    LocalToolResult call(A arguments, LocalToolContext context);
+    RuntimeToolResult call(A arguments, RuntimeToolContext context);
   }
 
-  /** Builds a {@link LocalTool} from a name, a description, a schema and a handler. */
+  /** Builds a {@link RuntimeTool} from a name, a description, a schema and a handler. */
   final class Builder {
 
     private final String name;
     private final @Nullable ToolDefinition definition;
     private @Nullable String description;
-    private Map<String, Object> inputSchema = LocalToolSchema.object().build();
+    private Map<String, Object> inputSchema = RuntimeToolSchema.object().build();
     private Predicate<AgentConfiguration> availability = configuration -> true;
 
     private Builder(String name, @Nullable ToolDefinition definition) {
@@ -119,7 +116,7 @@ public interface LocalTool {
     }
 
     /** The schema of the arguments. */
-    public Builder inputSchema(LocalToolSchema schema) {
+    public Builder inputSchema(RuntimeToolSchema schema) {
       this.inputSchema = schema.build();
       return this;
     }
@@ -131,8 +128,8 @@ public interface LocalTool {
     }
 
     /** Completes the tool with a handler that reads the arguments as the model sent them. */
-    public LocalTool handler(Handler handler) {
-      return new DefaultLocalTool(buildDefinition(), availability, handler::call);
+    public RuntimeTool handler(Handler handler) {
+      return new DefaultRuntimeTool(buildDefinition(), availability, handler::call);
     }
 
     /**
@@ -141,8 +138,8 @@ public interface LocalTool {
      * a {@code String}, the id of the document. Arguments that do not match {@code type} answer the
      * call with an error result.
      */
-    public <A> LocalTool handler(Class<A> type, TypedHandler<A> handler) {
-      return new DefaultLocalTool(
+    public <A> RuntimeTool handler(Class<A> type, TypedHandler<A> handler) {
+      return new DefaultRuntimeTool(
           buildDefinition(),
           availability,
           (call, context) -> {

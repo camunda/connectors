@@ -31,7 +31,7 @@ public class AgentTaskRequestHandler
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler,
+      RuntimeToolCallHandler runtimeToolCallHandler,
       DocumentExpander documentExpander) {
     super(
         agentInitializer,
@@ -42,7 +42,7 @@ public class AgentTaskRequestHandler
         responseHandler,
         agentInstanceClient,
         documentRegistryStorage,
-        localToolCallHandler,
+        runtimeToolCallHandler,
         documentExpander);
   }
 

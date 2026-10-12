@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
@@ -33,7 +33,7 @@ import org.jspecify.annotations.Nullable;
  * DocumentLoadGuard} (a content type outside the allowlist, a size above the limit of its type) is
  * rejected without being loaded.
  */
-public final class GetDocumentTool implements LocalTool {
+public final class GetDocumentTool implements RuntimeTool {
 
   /** The tool name, with the prefix of the built-in tools. */
   public static final String NAME = InternalToolNames.PREFIX + "get_document";
@@ -83,17 +83,17 @@ public final class GetDocumentTool implements LocalTool {
   }
 
   @Override
-  public LocalToolResult call(LocalToolCall call, LocalToolContext context) {
+  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
     final var id = call.argumentsAs(Arguments.class, context.objectMapper()).id();
     final var entry = id == null ? null : context.documents().findById(id).orElse(null);
     if (entry == null) {
-      return LocalToolResult.error(
+      return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
               .formatted(PARAMETER_ID, context.documents().knownDocumentsText()));
     }
 
     if (context.loadedDocumentIds().contains(entry.id())) {
-      return LocalToolResult.success(
+      return RuntimeToolResult.success(
           "Document %s is already in the conversation.".formatted(entry.id()));
     }
 
@@ -104,26 +104,26 @@ public final class GetDocumentTool implements LocalTool {
       if (rejection.retryable()) {
         final var message = "The document " + rejection.problem();
         throw rejection.cause() == null
-            ? new LocalToolException(message)
-            : new LocalToolException(message, rejection.cause());
+            ? new RuntimeToolException(message)
+            : new RuntimeToolException(message, rejection.cause());
       }
-      return LocalToolResult.error(
+      return RuntimeToolResult.error(
           "The document %s; pass its id to a tool that processes it."
               .formatted(rejection.problem()));
     }
 
-    return LocalToolResult.success(
+    return RuntimeToolResult.success(
             "Loaded the document %s. Its content follows in the next message."
                 .formatted(DocumentReferenceXmlTag.from(entry).toXml()))
         .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, entry.id());
   }
 
   /** The document of a registry entry, read from its reference. */
-  private static Document documentOf(DocumentRegistryEntry entry, LocalToolContext context) {
+  private static Document documentOf(DocumentRegistryEntry entry, RuntimeToolContext context) {
     try {
       return context.objectMapper().convertValue(entry.reference(), Document.class);
     } catch (IllegalArgumentException e) {
-      throw new LocalToolException(
+      throw new RuntimeToolException(
           "The document %s could not be read from its reference: %s"
               .formatted(entry.id(), e.getMessage()),
           e);

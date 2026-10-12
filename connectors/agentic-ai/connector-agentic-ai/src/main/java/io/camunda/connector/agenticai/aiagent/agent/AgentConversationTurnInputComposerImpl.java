@@ -10,9 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.localtool.DocumentLoadGuard;
-import io.camunda.connector.agenticai.aiagent.localtool.DocumentLoadGuard.Rejection;
-import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -40,6 +37,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentLoadGuard;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.DocumentLoadGuard.Rejection;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
@@ -277,8 +277,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         transformedToolCallResults.stream()
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
     // answered by the agent when the tool calls were issued; never gateway-transformed
-    final var localToolCallResultsById =
-        agentContext.pendingLocalToolCallResults().stream()
+    final var runtimeToolCallResultsById =
+        agentContext.pendingRuntimeToolCallResults().stream()
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity(), (a, b) -> a));
 
     final var missingToolCalls = new ArrayList<ToolCall>();
@@ -286,10 +286,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var arrivedToolCallResults = new ArrayList<ToolCallResult>();
     toolCalls.forEach(
         toolCall -> {
-          final var localResult = localToolCallResultsById.get(toolCall.id());
+          final var runtimeResult = runtimeToolCallResultsById.get(toolCall.id());
           final var result = toolCallResultsById.get(toolCall.id());
-          if (localResult != null) {
-            orderedToolCallResults.add(localResult);
+          if (runtimeResult != null) {
+            orderedToolCallResults.add(runtimeResult);
           } else if (result != null) {
             orderedToolCallResults.add(result);
             arrivedToolCallResults.add(result);

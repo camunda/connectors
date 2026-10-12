@@ -11,8 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
@@ -31,6 +29,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -58,7 +58,7 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class),
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
           new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
 
   @Test
@@ -275,7 +275,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void withoutTheDocumentsFeatureTextsAndLocalToolNamesAreReportedAsStored() {
+  void withoutTheDocumentsFeatureTextsAndRuntimeToolNamesAreReportedAsStored() {
     final var withoutDocumentFlow = HistoryDocuments.withoutDocumentFlow(false);
     final var tag = "<doc toolName=\"t\" toolCallId=\"c\" documentId=\"d1\" />";
     final var toolCall =
@@ -328,7 +328,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aCallAndAResultOfALocalToolHaveNoElementId() {
+  void aCallAndAResultOfARuntimeToolHaveNoElementId() {
     final var toolCall =
         ToolCall.builder()
             .id("call-1")
@@ -457,7 +457,7 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void showsTheIdsOfTheDocumentParametersOfALocalToolCall() {
+    void showsTheIdsOfTheDocumentParametersOfARuntimeToolCall() {
       final var call =
           ToolCall.builder()
               .id("call-2")

@@ -16,8 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -37,6 +35,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -55,7 +55,7 @@ import org.junit.jupiter.api.Test;
  * Golden-fixture test: an agent instance created by Camunda 8.10 (no features, documents stored as
  * bare content or as a tag in the older attribute format followed by the content, no registry)
  * loads and continues with new documents of every kind in the form Camunda 8.10 composes them, and
- * never gets a registry, features, selected documents or local tools.
+ * never gets a registry, features, selected documents or runtime tools.
  */
 class LegacyDocumentConversationTest {
 
@@ -124,7 +124,7 @@ class LegacyDocumentConversationTest {
     assertThat(context.supportsDocuments()).isFalse();
     assertThat(context.documents()).isEmpty();
     assertThat(context.returnDocuments()).isEmpty();
-    assertThat(context.pendingLocalToolCallResults()).isEmpty();
+    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
   }
 
   @Test
@@ -252,7 +252,7 @@ class LegacyDocumentConversationTest {
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
     assertThat(serialized.has("returnDocuments")).isFalse();
-    assertThat(serialized.has("pendingLocalToolCallResults")).isFalse();
+    assertThat(serialized.has("pendingRuntimeToolCallResults")).isFalse();
   }
 
   @Test
@@ -299,16 +299,16 @@ class LegacyDocumentConversationTest {
   }
 
   @Test
-  void offersNoLocalToolAndHandsEveryCallToTheProcess() throws IOException {
+  void offersNoRuntimeToolAndHandsEveryCallToTheProcess() throws IOException {
     final var context = loadContext();
     final var configuration = configurationOf(context);
-    final var registry = new LocalToolRegistryImpl(List.of(new ReturnDocumentTool()));
+    final var registry = new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
 
     assertThat(registry.availableToolDefinitions(configuration)).isEmpty();
     assertThat(registry.findAvailable(ReturnDocumentTool.NAME, configuration)).isEmpty();
 
     final var handler =
-        new LocalToolCallHandlerImpl(registry, objectMapper, mock(DocumentFactory.class));
+        new RuntimeToolCallHandlerImpl(registry, objectMapper, mock(DocumentFactory.class));
     final var conversation =
         AgentConversation.rehydrate(
             configuration,
@@ -326,7 +326,7 @@ class LegacyDocumentConversationTest {
 
     final var split = handler.handle(conversation, calls);
 
-    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).isEqualTo(calls);
   }
 }

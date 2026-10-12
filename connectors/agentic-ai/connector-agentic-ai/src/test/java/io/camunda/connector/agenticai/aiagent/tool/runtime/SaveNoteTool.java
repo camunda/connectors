@@ -5,7 +5,7 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A stateful local tool used to prove the API: it appends a note to the {@code notes} property of
+ * A stateful runtime tool used to prove the API: it appends a note to the {@code notes} property of
  * the agent context. It is available while the agent has a memory configuration, binds its
  * arguments to a record, answers an invalid call with an error result and changes the agent state
  * through a context update.
@@ -27,25 +27,25 @@ public final class SaveNoteTool {
 
   private SaveNoteTool() {}
 
-  public static LocalTool create() {
-    return LocalTool.builder(NAME)
+  public static RuntimeTool create() {
+    return RuntimeTool.builder(NAME)
         .description("Saves a note for later.")
-        .inputSchema(LocalToolSchema.object().string("text", "The text of the note", true))
+        .inputSchema(RuntimeToolSchema.object().string("text", "The text of the note", true))
         .available(configuration -> configuration.memory() != null)
         .handler(
             Note.class,
             (note, context) -> {
               if (note.text() == null || note.text().isBlank()) {
-                return LocalToolResult.error("The note must not be blank.");
+                return RuntimeToolResult.error("The note must not be blank.");
               }
               if (note.text().equals("explode")) {
                 throw new IllegalStateException("unexpected failure");
               }
               if (note.text().equals("reject")) {
-                throw new LocalToolException("This note is not allowed.");
+                throw new RuntimeToolException("This note is not allowed.");
               }
               final var count = notesOf(context.properties()).size() + 1;
-              return LocalToolResult.success("Saved note #" + count)
+              return RuntimeToolResult.success("Saved note #" + count)
                   .withContextUpdate(
                       agentContext -> {
                         final var notes = new ArrayList<>(notesOf(agentContext.properties()));

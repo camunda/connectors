@@ -16,7 +16,6 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -33,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
@@ -58,15 +58,15 @@ public class AgentInstanceHistoryMapper {
   private static final Pattern DOC_TAG = Pattern.compile("<doc(?:\\s[^<>]*)?>");
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final LocalToolRegistry localToolRegistry;
+  private final RuntimeToolRegistry runtimeToolRegistry;
   private final DocumentExpander documentExpander;
 
   public AgentInstanceHistoryMapper(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      LocalToolRegistry localToolRegistry,
+      RuntimeToolRegistry runtimeToolRegistry,
       DocumentExpander documentExpander) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.localToolRegistry = localToolRegistry;
+    this.runtimeToolRegistry = runtimeToolRegistry;
     this.documentExpander = documentExpander;
   }
 
@@ -197,7 +197,7 @@ public class AgentInstanceHistoryMapper {
    * Resolves the BPMN element id for a tool call history entry. Prefers an already-resolved {@code
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
    * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools. A call of
-   * a local tool has no BPMN element: its element id is {@code null}.
+   * a runtime tool has no BPMN element: its element id is {@code null}.
    */
   private @Nullable String elementIdFor(
       @Nullable String elementId, @Nullable String toolName, HistoryDocuments documents) {
@@ -208,7 +208,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
-    if (documents.localTools() && localToolRegistry.toolNames().contains(toolName)) {
+    if (documents.runtimeTools() && runtimeToolRegistry.toolNames().contains(toolName)) {
       return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);

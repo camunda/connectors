@@ -187,20 +187,20 @@ public final class AgentConversation {
    * @throws IllegalStateException if the current turn has not been ingested yet
    * @throws IllegalArgumentException if the results do not match the assistant message's tool calls
    */
-  public AgentConversation nextLocalToolRound(ToolCallResultMessage toolCallResults) {
-    return nextLocalToolRound(toolCallResults, List.of());
+  public AgentConversation nextRuntimeToolRound(ToolCallResultMessage toolCallResults) {
+    return nextRuntimeToolRound(toolCallResults, List.of());
   }
 
   /**
-   * Same as {@link #nextLocalToolRound(ToolCallResultMessage)}; the new turn's input also holds the
-   * given messages that follow the tool call results, such as the message that carries the content
-   * of the documents a tool loaded.
+   * Same as {@link #nextRuntimeToolRound(ToolCallResultMessage)}; the new turn's input also holds
+   * the given messages that follow the tool call results, such as the message that carries the
+   * content of the documents a tool loaded.
    */
-  public AgentConversation nextLocalToolRound(
+  public AgentConversation nextRuntimeToolRound(
       ToolCallResultMessage toolCallResults, List<Message> followUpMessages) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
-          "nextLocalToolRound() called before the current turn was ingested");
+          "nextRuntimeToolRound() called before the current turn was ingested");
     }
     var expectedIds = currentTurn.toolCallsById().keySet();
     var resultIds = toolCallResults.results().stream().map(r -> r.id()).collect(Collectors.toSet());
@@ -275,10 +275,10 @@ public final class AgentConversation {
    * answered itself while the other calls of the same assistant message go to the process. The
    * results are merged with the process results when the next turn input is composed.
    */
-  public AgentConversation withPendingLocalToolCallResults(List<ToolCallResult> results) {
+  public AgentConversation withPendingRuntimeToolCallResults(List<ToolCallResult> results) {
     return new AgentConversation(
         configuration,
-        currentContext.withPendingLocalToolCallResults(results),
+        currentContext.withPendingRuntimeToolCallResults(results),
         systemMessage,
         previousTurns,
         currentTurn,
@@ -290,8 +290,8 @@ public final class AgentConversation {
    * Returns the results of tool calls the agent answered itself that still wait for the process
    * results of the same assistant message.
    */
-  public List<ToolCallResult> pendingLocalToolCallResults() {
-    return currentContext.pendingLocalToolCallResults();
+  public List<ToolCallResult> pendingRuntimeToolCallResults() {
+    return currentContext.pendingRuntimeToolCallResults();
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -319,9 +319,9 @@ public final class AgentConversation {
     return currentContext.supportsDocuments();
   }
 
-  /** Returns {@code true} if the agent instance has the local tools feature. */
-  public boolean supportsLocalTools() {
-    return currentContext.supportsLocalTools();
+  /** Returns {@code true} if the agent instance has the runtime tools feature. */
+  public boolean supportsRuntimeTools() {
+    return currentContext.supportsRuntimeTools();
   }
 
   /**
@@ -412,7 +412,7 @@ public final class AgentConversation {
    * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
-   * AgentConfiguration#withToolDefinitions} with the tools of the process and the available local
+   * AgentConfiguration#withToolDefinitions} with the tools of the process and the available runtime
    * tools.
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
@@ -480,7 +480,7 @@ public final class AgentConversation {
 
   /**
    * Returns the metrics accrued during THIS invocation: the current turn's delta plus any
-   * continuation-round and local tool round turns rolled into {@link #previousTurns} within this
+   * continuation-round and runtime tool round turns rolled into {@link #previousTurns} within this
    * invocation. Durable turns reconstructed by {@link TurnReconstructor} carry empty metrics, so
    * turns from prior invocations contribute zero here. This is the per-job delta pushed to the
    * agent instance (the engine applies it additively): it must cover the whole invocation — not
@@ -499,7 +499,7 @@ public final class AgentConversation {
    * turn's metrics plus the current turn's delta). Durable turns reconstructed by {@link
    * TurnReconstructor} always carry empty metrics (the cumulative counter lives on the base context
    * instead), so they contribute zero here; the only {@link #previousTurns} entries with non-empty
-   * metrics are those rolled in by {@link #nextContinuationRound} or {@link #nextLocalToolRound}
+   * metrics are those rolled in by {@link #nextContinuationRound} or {@link #nextRuntimeToolRound}
    * within this invocation.
    */
   public AgentMetrics totalMetrics() {

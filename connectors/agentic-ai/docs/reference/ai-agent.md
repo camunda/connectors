@@ -283,15 +283,15 @@ on every completion. Authoritative definition:
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
 when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
 current features when its context is created at its first job (`AgentInitializerImpl`, both flavors): today
-`localTools` (`AgentContext.FEATURE_LOCAL_TOOLS`, the local tool facility) and `documents`
-(`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`); `documents` implies `localTools`
-(`AgentContext.supportsLocalTools()`). A context that exists without `features` belongs to an instance
+`runtimeTools` (`AgentContext.FEATURE_RUNTIME_TOOLS`, the runtime tool facility) and `documents`
+(`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`); `documents` implies `runtimeTools`
+(`AgentContext.supportsRuntimeTools()`). A context that exists without `features` belongs to an instance
 created before the features and never gets features added later, so its behavior stays as it was created.
 Everything the features gate is described in the document flow design notes (section 4); in short, an
-instance without `localTools` has no local tool and no tool element checked against local tool names, and
+instance without `runtimeTools` has no runtime tool and no tool element checked against runtime tool names, and
 an instance without `documents` keeps documents as stored content with the older tag format, has no
 document registry and no document parameters. The request handler copies the features to `AgentConfiguration.features()`, which is how the
-local tool registry and the conversation know them; they are not part of the configuration fingerprint.
+runtime tool registry and the conversation know them; they are not part of the configuration fingerprint.
 
 ### AgentExecutionContext (the transient request context)
 
@@ -830,20 +830,20 @@ if (!resolution.complete()) {
 
 The method correlates and gateway (MCP/A2A) transforms the available results, merges them with the
 results the agent answered itself for the same assistant message
-(`AgentContext.pendingLocalToolCallResults`, see the document flow design notes), then checks each
+(`AgentContext.pendingRuntimeToolCallResults`, see the document flow design notes), then checks each
 tool call from the last assistant message against them
 (`ToolCallResultsResolution(results, arrivedResults, complete)`):
 - If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
-  ordered to match the original tool call order (local and process results interleaved as the calls
+  ordered to match the original tool call order (runtime and process results interleaved as the calls
   were issued)
 - If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
   results that arrived so far → `compose` returns `CompositionResult.Deferred(arrivedResults)`
   (ADR 011) → handler reports them to agent instance history and completes as a no-op. Only calls
-  handed to the process are waited for, and pending local results are not reported here
+  handed to the process are waited for, and pending runtime results are not reported here
 - If missing and interrupting (due to event): `complete` is `true`; cancelled results are added for
   the missing tool calls (never for locally answered ones), alongside the present ones
 
-The handler clears `pendingLocalToolCallResults` when it applies a `NextTurn`, so the results are
+The handler clears `pendingRuntimeToolCallResults` when it applies a `NextTurn`, so the results are
 consumed once and cannot reach a later turn; only pending results whose id is a tool call id of the
 last assistant message are ever used.
 
@@ -894,8 +894,8 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
   The engine deduplicates the repeats by `historyItemId`, so the history holds each result once.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
-- **Local results are not part of `arrivedResults`.** Results the agent answered itself
-  (`pendingLocalToolCallResults`) are reported by the job that answers them (see §23), so incomplete jobs
+- **Runtime results are not part of `arrivedResults`.** Results the agent answered itself
+  (`pendingRuntimeToolCallResults`) are reported by the job that answers them (see §23), so incomplete jobs
   do not write them again.
 - **Strict failure.** This call runs before job completion, synchronously, like every other
   `AgentInstanceClient` write since [ADR 013](../adr/013-unified-agent-instance-turn-updates.md) — a
@@ -1228,7 +1228,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`                   | `LOCAL_TOOL_NAME_CONFLICT`                     | an ad-hoc or gateway tool element of an agent instance with the `localTools` feature has the name of a registered local tool (for example `c8__return_document`) |
+| `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`                   | `RUNTIME_TOOL_NAME_CONFLICT`                     | an ad-hoc or gateway tool element of an agent instance with the `runtimeTools` feature has the name of a registered runtime tool (for example `c8__return_document`) |
 | `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more than 1 MiB of content (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`, characters of base64 or text) when it enters the document registry; Camunda and external documents are unaffected |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
@@ -1888,18 +1888,18 @@ lease-fenced `update()` mechanism).
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
 
-**Tool calls answered by the agent itself.** Calls answered locally (local tools such as the built-in
+**Tool calls answered by the agent itself.** Calls answered locally (runtime tools such as the built-in
 `c8__return_document` and `c8__get_document`, calls rejected for an unknown document id; see the document flow design notes)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
-every one of them in `toolCalls`, local or not. Their `TOOL_RESULT` items are written with the
+every one of them in `toolCalls`, runtime or not. Their `TOOL_RESULT` items are written with the
 `applyTurnStart` of the synthetic round of the same job when the agent answered every call. When real
 calls remain (a mixed batch), `applyToolCallResults` writes them right after the turn completion of the job
 that answered them, so they are visible while the real calls still run; the next job's `applyTurnStart`
 carries them again with the process results under the same `historyItemId` and the engine keeps one row. They use the
-tool-call id as `historyItemId`, no `elementId` (there is no BPMN element), the local `completedAt` and
+tool-call id as `historyItemId`, no `elementId` (there is no BPMN element), the runtime `completedAt` and
 the originating arguments, like every other result; an error result is plain text content, the history
 has no result status. A mixed batch completes
-its job with `TOOL_CALLING`, a fully local batch with `THINKING` followed by the next round.
+its job with `TOOL_CALLING`, a fully runtime batch with `THINKING` followed by the next round.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
@@ -1925,11 +1925,11 @@ namespaced) `toolName`. For tool results it is resolved once on the model in
 `AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
 tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
-gateway element id parsed from the namespaced name; for local tools (calls, results and the tool entry
-of the `CONFIGURATION` item) it is `null`, because the engine field is nullable and a local tool has no
-BPMN element. `LocalToolRegistry.toolNames()` identifies them (no tool element of the process has one of those names);
-the mapper does so for agent instances with the `localTools` feature only.
-The tool list of a `CONFIGURATION` item holds the process tools plus the available local tools
+gateway element id parsed from the namespaced name; for runtime tools (calls, results and the tool entry
+of the `CONFIGURATION` item) it is `null`, because the engine field is nullable and a runtime tool has no
+BPMN element. `RuntimeToolRegistry.toolNames()` identifies them (no tool element of the process has one of those names);
+the mapper does so for agent instances with the `runtimeTools` feature only.
+The tool list of a `CONFIGURATION` item holds the process tools plus the available runtime tools
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
@@ -1962,7 +1962,7 @@ arrived so far as a batched, status-less `update()`, one `TOOL_RESULT` item per 
 as above. Its iteration key (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the
 batch-complete write's key is. `applyTurnStart` writes these items again once the batch
 completes; the engine deduplicates them by `historyItemId` (camunda/camunda#58792), so no duplicate row remains. The
-same call reports the local results of a mixed batch right after the turn completion of the job that answers them. See
+same call reports the runtime results of a mixed batch right after the turn completion of the job that answers them. See
 [§9](#9-tool-completion) and
 [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
@@ -2020,7 +2020,7 @@ a new provider, store, or contributor. The SPIs:
 | `SystemPromptContributor` | system-prompt contribution      | [§25.2](#252-add-a-systempromptcontributor) |
 | `ConversationStore`       | conversation memory backend     | [§25.3](#253-add-a-conversationstore) |
 | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [§19](#19-gateway-tool-pattern) |
-| `LocalTool`               | tool the agent runs itself      | [§25.4](#254-add-a-local-tool) |
+| `RuntimeTool`               | tool the agent runs itself      | [§25.4](#254-add-a-runtime-tool) |
 
 ### I5. Conversation stores follow the write-ahead, pointer-based contract
 
@@ -2114,58 +2114,58 @@ write-ahead, pointer-based storage contract in [§6](#6-conversation-memory) (in
 store (`InProcessConversationStore` and its session/context). For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
 
-<a id="254-add-a-local-tool"></a>
+<a id="254-add-a-runtime-tool"></a>
 
-### 25.4 Add a local tool
+### 25.4 Add a runtime tool
 
-A local tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
+A runtime tool is a tool the agent runs itself (no BPMN element): a definition plus a handler. Reference
 implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTool` (`c8__get_document`), both in
-`aiagent/localtool`, wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentLocalTool`,
-`aiAgentGetDocumentLocalTool`). The full API, the research behind
+`aiagent/tool/runtime`, wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentRuntimeTool`,
+`aiAgentGetDocumentRuntimeTool`). The full API, the research behind
 it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
 
-1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
-   `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or a string schema with the
+1. Build the tool with `RuntimeTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
+   `RuntimeToolSchema` helper; declare a document parameter with `RuntimeToolSchema.document` or a string schema with the
    format `camunda-document-id`), optionally `available(configuration -> ...)`, and a `handler`. Use
    `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. A document parameter
    arrives as the document id (`String`); look the document up with `context.documents().findById(id)`. Or implement
-   `LocalTool` directly.
-2. Return `LocalToolResult.success(content)`; report failures the model can act on with
-   `LocalToolResult.error(message)` or a thrown `LocalToolException`. Any other exception propagates and
+   `RuntimeTool` directly.
+2. Return `RuntimeToolResult.success(content)`; report failures the model can act on with
+   `RuntimeToolResult.error(message)` or a thrown `RuntimeToolException`. Any other exception propagates and
    fails the job.
-3. Change agent state only with `LocalToolResult.withContextUpdate(agentContext -> ...)`; the framework
+3. Change agent state only with `RuntimeToolResult.withContextUpdate(agentContext -> ...)`; the framework
    applies the updates in call order. Never keep state in the tool.
    Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request to the model
    carries the schema in the order of the map, which should be the same in every JVM. The configuration
    fingerprint is independent of that order.
-4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans and rejects
-   blank and duplicate names at startup. For an agent instance with the `localTools` feature, tool discovery
+4. Register it as a Spring bean of type `RuntimeTool`. `RuntimeToolRegistryImpl` collects the beans and rejects
+   blank and duplicate names at startup. For an agent instance with the `runtimeTools` feature, tool discovery
    and process migration reject every ad-hoc or gateway tool element whose name equals the name of a registered
-   local tool (`ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`), whether the tool is available for the agent or not. An agent
-   instance without the feature checks no name and is offered no local tool. A tool that works with the
+   runtime tool (`ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`), whether the tool is available for the agent or not. An agent
+   instance without the feature checks no name and is offered no runtime tool. A tool that works with the
    document registry overrides `isAvailable` to require the `documents` feature, as the built-in document
    tools do.
 5. The framework offers the tool while `isAvailable(AgentConfiguration)` holds, resolves declared document
    parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
    and its calls to agent instance history without an element id, and handles mixed batches with real calls
-   (design notes). Test it through `LocalToolCallHandlerImpl` (see `LocalToolCallHandlerImplTest`
+   (design notes). Test it through `RuntimeToolCallHandlerImpl` (see `RuntimeToolCallHandlerImplTest`
    with the test-only `SaveNoteTool`).
 
-#### Writing a custom local tool
+#### Writing a custom runtime tool
 
-A custom local tool is a Spring bean of type `LocalTool` in your own Spring Boot application next to the
+A custom runtime tool is a Spring bean of type `RuntimeTool` in your own Spring Boot application next to the
 connector runtime; no other registration is needed.
 
 ```java
 @Bean
-LocalTool acmeLookup(CustomerDirectory directory) {
-  return LocalTool.builder("acme_lookup")
+RuntimeTool acmeLookup(CustomerDirectory directory) {
+  return RuntimeTool.builder("acme_lookup")
       .description("Looks up a customer by id.")
-      .inputSchema(LocalToolSchema.object().string("customerId", "The id of the customer", true))
+      .inputSchema(RuntimeToolSchema.object().string("customerId", "The id of the customer", true))
       .handler(
           Lookup.class,
           (lookup, context) ->
-              LocalToolResult.success(directory.find(lookup.customerId()))
+              RuntimeToolResult.success(directory.find(lookup.customerId()))
                   .withContextUpdate(
                       agentContext -> agentContext.withProperty("lastCustomer", lookup.customerId())));
 }
@@ -2173,20 +2173,20 @@ LocalTool acmeLookup(CustomerDirectory directory) {
 record Lookup(String customerId) {}
 ```
 
-- **Naming.** The name is free but unique among the local tools, and it must not equal the name of a tool
+- **Naming.** The name is free but unique among the runtime tools, and it must not equal the name of a tool
   element of the process of an agent that runs it: tool discovery then fails with
-  `LOCAL_TOOL_NAME_CONFLICT`. The prefix `c8__` is for the built-in tools; use a vendor-specific prefix such as
+  `RUNTIME_TOOL_NAME_CONFLICT`. The prefix `c8__` is for the built-in tools; use a vendor-specific prefix such as
   `acme_` for a custom tool.
 - **State** belongs in the agent context, never in a field of the bean: the agent runs one job after the other,
-  possibly on different workers. Change it with `LocalToolResult.withContextUpdate(...)` and read it from
-  `LocalToolContext.properties()`.
-- **Document parameters.** Declare a parameter with `LocalToolSchema.document(...)`; the framework checks the
+  possibly on different workers. Change it with `RuntimeToolResult.withContextUpdate(...)` and read it from
+  `RuntimeToolContext.properties()`.
+- **Document parameters.** Declare a parameter with `RuntimeToolSchema.document(...)`; the framework checks the
   id the model sent (or the `<doc />` tag it passed) against the documents the agent knows. The handler receives
-  the document id as a `String` and looks the document up in `LocalToolContext.documents()`; a process tool
+  the document id as a `String` and looks the document up in `RuntimeToolContext.documents()`; a process tool
   receives the document references instead. An unknown id answers the call with an error result and the tool
   does not run. Document parameters need an
   agent instance with the `documents` feature.
-- **Creating documents.** `LocalToolContext.documentFactory()` creates a new Camunda document, for example
+- **Creating documents.** `RuntimeToolContext.documentFactory()` creates a new Camunda document, for example
   `context.documentFactory().create(DocumentCreationRequest.from(bytes).contentType("text/plain").fileName("report.txt").build())`.
   Return the document in the content of the result to show it to the model.
 - **Availability.** `available(configuration -> ...)` offers the tool only for some configurations.

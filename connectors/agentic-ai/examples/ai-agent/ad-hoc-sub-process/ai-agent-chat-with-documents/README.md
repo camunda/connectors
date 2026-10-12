@@ -32,11 +32,11 @@ It demonstrates:
   `get entries(agent.responseDocuments).value.document`. Documents returned in earlier turns stay in
   `agent.responseDocuments` of the later responses, so the map grows over the conversation.
 - **Tool names**: a tool element of the process must not have the name of a built-in tool (`c8__get_document`,
-  `c8__return_document`); tool discovery fails with the error code `LOCAL_TOOL_NAME_CONFLICT` for such an element.
+  `c8__return_document`); tool discovery fails with the error code `RUNTIME_TOOL_NAME_CONFLICT` for such an element.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
   documents it still knows by id, so it can still pass them to a tool or load them again.
 - **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `c8__return_document`
-  keeps the process tool open while the local result of `c8__return_document` is already visible in the agent instance history.
+  keeps the process tool open while the runtime result of `c8__return_document` is already visible in the agent instance history.
 - **Memory stores**: `in-process` (default), `camunda-document` and `aws-agentcore` all carry the registry.
 
 ## Process

@@ -37,8 +37,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -63,6 +61,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
@@ -115,9 +115,9 @@ class AgentTaskRequestHandlerTest {
       new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Spy
-  private LocalToolCallHandler localToolCallHandler =
-      new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
+  private RuntimeToolCallHandler runtimeToolCallHandler =
+      new RuntimeToolCallHandlerImpl(
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
           TestObjectMapperSupplier.INSTANCE,
           mock(DocumentFactory.class));
 
@@ -179,7 +179,7 @@ class AgentTaskRequestHandlerTest {
     final var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
-    assertThat(agentResponse.context().pendingLocalToolCallResults())
+    assertThat(agentResponse.context().pendingRuntimeToolCallResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -197,13 +197,13 @@ class AgentTaskRequestHandlerTest {
             any(),
             eq(AgentInstanceUpdateStatus.TOOL_CALLING),
             any());
-    // the local result is reported right away, without a status of its own
+    // the runtime result is reported right away, without a status of its own
     final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
         .applyToolCallResults(
             eq(agentExecutionContext), any(), reportedResultsCaptor.capture(), any(), any());
     assertThat(reportedResultsCaptor.getValue())
-        .isEqualTo(agentResponse.context().pendingLocalToolCallResults());
+        .isEqualTo(agentResponse.context().pendingRuntimeToolCallResults());
   }
 
   @Test

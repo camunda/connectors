@@ -16,14 +16,14 @@ import java.util.Objects;
  *
  * <p>The history of an agent instance created without the documents feature has no document
  * registry: its messages are reported as they are stored. The history of an agent instance created
- * without the local tools feature has no local tools either.
+ * without the runtime tools feature has no runtime tools either.
  *
  * @param documents the documents known to the agent at the time of the write
  * @param documentFlow whether the agent instance has the documents feature
- * @param localTools whether the agent instance has the local tools feature
+ * @param runtimeTools whether the agent instance has the runtime tools feature
  */
 public record HistoryDocuments(
-    DocumentRegistry documents, boolean documentFlow, boolean localTools) {
+    DocumentRegistry documents, boolean documentFlow, boolean runtimeTools) {
 
   public HistoryDocuments {
     Objects.requireNonNull(documents);
@@ -35,10 +35,10 @@ public record HistoryDocuments(
   }
 
   /**
-   * The documents of an agent instance created without the documents feature; {@code localTools}
-   * tells whether it has the local tools feature.
+   * The documents of an agent instance created without the documents feature; {@code runtimeTools}
+   * tells whether it has the runtime tools feature.
    */
-  public static HistoryDocuments withoutDocumentFlow(boolean localTools) {
-    return new HistoryDocuments(DocumentRegistry.empty(), false, localTools);
+  public static HistoryDocuments withoutDocumentFlow(boolean runtimeTools) {
+    return new HistoryDocuments(DocumentRegistry.empty(), false, runtimeTools);
   }
 }

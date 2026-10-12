@@ -14,11 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolCall;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolContext;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -33,6 +28,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentLinkParameters;
@@ -112,9 +112,9 @@ class GetDocumentToolTest {
 
   private final CountingStore store = new CountingStore();
   private final ObjectMapper objectMapper = objectMapperFor(store);
-  private final LocalToolCallHandler handler =
-      new LocalToolCallHandlerImpl(
-          new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
+  private final RuntimeToolCallHandler handler =
+      new RuntimeToolCallHandlerImpl(
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
           objectMapper,
           mock(DocumentFactory.class));
 
@@ -178,7 +178,7 @@ class GetDocumentToolTest {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), call("1", "doc-1"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -199,7 +199,7 @@ class GetDocumentToolTest {
             List.of(),
             call("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result ->
@@ -212,7 +212,7 @@ class GetDocumentToolTest {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), call("1", "bogus"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -235,7 +235,7 @@ class GetDocumentToolTest {
             List.of(UserMessage.builder().content(List.of(loadedTag)).build()),
             call("1", "doc-1"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -257,7 +257,7 @@ class GetDocumentToolTest {
             List.of(UserMessage.builder().content(List.of(referenceTag)).build()),
             call("1", "doc-1"));
 
-    assertThat(split.localResults().getFirst().properties())
+    assertThat(split.runtimeResults().getFirst().properties())
         .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-1");
   }
 
@@ -268,7 +268,7 @@ class GetDocumentToolTest {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/csv", 300L * 1024)), List.of(), call("1", "doc-1"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -290,7 +290,7 @@ class GetDocumentToolTest {
             List.of(),
             call("1", "doc-1"));
 
-    assertThat(split.localResults().getFirst().content())
+    assertThat(split.runtimeResults().getFirst().content())
         .isEqualTo(
             "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"262144\" source=\"user_message\" />. Its content follows in the next message.");
     assertThat(store.opened.get()).isZero();
@@ -309,10 +309,10 @@ class GetDocumentToolTest {
             call("1", "pdf-ok"),
             call("2", "pdf-big"));
 
-    assertThat(split.localResults().get(0).content())
+    assertThat(split.runtimeResults().get(0).content())
         .isEqualTo(
             "Loaded the document <doc id=\"pdf-ok\" contentType=\"application/pdf\" size=\"5242880\" source=\"user_message\" />. Its content follows in the next message.");
-    assertThat(split.localResults().get(1).content().toString())
+    assertThat(split.runtimeResults().get(1).content().toString())
         .startsWith(
             "The document is 10241 KB, too large to load into the conversation (limit 10240 KB)");
     assertThat(store.opened.get()).isZero();
@@ -333,13 +333,13 @@ class GetDocumentToolTest {
             call("2", "tiff-1"),
             call("3", "png-1"));
 
-    assertThat(split.localResults().get(0).content())
+    assertThat(split.runtimeResults().get(0).content())
         .isEqualTo(
             "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
-    assertThat(split.localResults().get(0).properties()).isEmpty();
-    assertThat(split.localResults().get(1).content().toString())
+    assertThat(split.runtimeResults().get(0).properties()).isEmpty();
+    assertThat(split.runtimeResults().get(1).content().toString())
         .startsWith("The document is of type image/tiff which cannot be loaded");
-    assertThat(split.localResults().get(2).content())
+    assertThat(split.runtimeResults().get(2).content())
         .isEqualTo(
             "Loaded the document <doc id=\"png-1\" contentType=\"image/png\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
     assertThat(store.opened.get()).isZero();
@@ -350,7 +350,7 @@ class GetDocumentToolTest {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", null)), List.of(), call("1", "doc-1"));
 
-    assertThat(split.localResults())
+    assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
             result -> {
@@ -367,7 +367,7 @@ class GetDocumentToolTest {
     final var split =
         run(List.of(camundaEntry("doc-1", "application/pdf", null)), List.of(), call("1", "doc-1"));
 
-    assertThat(split.localResults().getFirst().content().toString())
+    assertThat(split.runtimeResults().getFirst().content().toString())
         .startsWith("The document is larger than 10240 KB");
     assertThat(store.bytesRead.get()).isEqualTo(BINARY_LIMIT + 1);
   }
@@ -396,8 +396,8 @@ class GetDocumentToolTest {
           }
         };
     final var smallHandler =
-        new LocalToolCallHandlerImpl(
-            new LocalToolRegistryImpl(List.of(new GetDocumentTool())),
+        new RuntimeToolCallHandlerImpl(
+            new RuntimeToolRegistryImpl(List.of(new GetDocumentTool())),
             objectMapperFor(smallStore),
             mock(DocumentFactory.class));
 
@@ -406,7 +406,7 @@ class GetDocumentToolTest {
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
-    assertThat(split.localResults().getFirst().content())
+    assertThat(split.runtimeResults().getFirst().content())
         .isEqualTo(
             "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" source=\"user_message\" />. Its content follows in the next message.");
   }
@@ -435,8 +435,8 @@ class GetDocumentToolTest {
           }
         };
     final var failingHandler =
-        new LocalToolCallHandlerImpl(
-            new LocalToolRegistryImpl(List.of(new GetDocumentTool())),
+        new RuntimeToolCallHandlerImpl(
+            new RuntimeToolRegistryImpl(List.of(new GetDocumentTool())),
             objectMapperFor(failingStore),
             mock(DocumentFactory.class));
 
@@ -445,16 +445,16 @@ class GetDocumentToolTest {
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
-    assertThat(split.localResults().getFirst().content().toString())
+    assertThat(split.runtimeResults().getFirst().content().toString())
         .startsWith("The document could not be read to check its size: document expired");
-    assertThat(split.localResults().getFirst().properties()).isEmpty();
+    assertThat(split.runtimeResults().getFirst().properties()).isEmpty();
   }
 
   @Test
   void answersAnIdWithoutARegistryEntryWithAnError() {
-    final var call = new LocalToolCall("1", GetDocumentTool.NAME, Map.of("id", "doc-2"));
+    final var call = new RuntimeToolCall("1", GetDocumentTool.NAME, Map.of("id", "doc-2"));
     final var context =
-        new LocalToolContext(
+        new RuntimeToolContext(
             CONFIGURATION,
             Map.of(),
             DocumentRegistry.empty(),
@@ -481,7 +481,7 @@ class GetDocumentToolTest {
             call("1", "doc-1"),
             new ToolCall("2", "getWeather", Map.of("location", "MUC")));
 
-    assertThat(split.localResults()).extracting(ToolCallResult::id).containsExactly("1");
+    assertThat(split.runtimeResults()).extracting(ToolCallResult::id).containsExactly("1");
     assertThat(split.remainingCalls()).extracting(ToolCall::id).containsExactly("2");
   }
 
@@ -507,7 +507,7 @@ class GetDocumentToolTest {
         .ingest(assistantMessage("calling"), AgentMetrics.empty());
   }
 
-  private LocalToolCallHandler.LocalToolCallSplit run(
+  private RuntimeToolCallHandler.RuntimeToolCallSplit run(
       List<DocumentRegistryEntry> entries, List<Message> messages, ToolCall... toolCalls) {
     return handler.handle(conversation(entries, messages), List.of(toolCalls));
   }

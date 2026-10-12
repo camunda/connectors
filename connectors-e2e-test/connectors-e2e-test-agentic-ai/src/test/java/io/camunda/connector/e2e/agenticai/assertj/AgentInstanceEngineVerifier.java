@@ -103,7 +103,7 @@ public class AgentInstanceEngineVerifier {
   }
 
   /**
-   * Asserts the instance lists the tool without a BPMN element, as a local tool of the agent is.
+   * Asserts the instance lists the tool without a BPMN element, as a runtime tool of the agent is.
    */
   public AgentInstanceEngineVerifier hasToolWithoutElementId(String toolName) {
     instanceChecks.add(

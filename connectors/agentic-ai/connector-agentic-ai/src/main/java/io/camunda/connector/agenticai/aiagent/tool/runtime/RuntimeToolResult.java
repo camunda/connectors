@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.ArrayList;
@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 /**
- * The outcome of a local tool call: the content the model reads as the tool result and, optionally,
- * changes of the agent context.
+ * The outcome of a runtime tool call: the content the model reads as the tool result and,
+ * optionally, changes of the agent context.
  *
  * <p>The content is handled like the content of any other tool result: text or an object (a map, a
  * list, a record the mapper can serialize); a document inside the content is shown to the model as
@@ -30,25 +30,25 @@ import java.util.function.UnaryOperator;
  * @param properties properties of the tool call result the agent creates from this result (see
  *     {@code ToolCallResult.properties()}); an error result carries none
  */
-public record LocalToolResult(
+public record RuntimeToolResult(
     Object content,
     boolean error,
     List<UnaryOperator<AgentContext>> contextUpdates,
     Map<String, Object> properties) {
 
-  public LocalToolResult {
+  public RuntimeToolResult {
     contextUpdates = error ? List.of() : List.copyOf(contextUpdates);
     properties = error ? Map.of() : Map.copyOf(properties);
   }
 
   /** A successful result with the given content and no change of the agent context. */
-  public static LocalToolResult success(Object content) {
-    return new LocalToolResult(content, false, List.of(), Map.of());
+  public static RuntimeToolResult success(Object content) {
+    return new RuntimeToolResult(content, false, List.of(), Map.of());
   }
 
   /** An error result; {@code message} is what the model reads, so it says what to change. */
-  public static LocalToolResult error(String message) {
-    return new LocalToolResult(message, true, List.of(), Map.of());
+  public static RuntimeToolResult error(String message) {
+    return new RuntimeToolResult(message, true, List.of(), Map.of());
   }
 
   /**
@@ -57,16 +57,16 @@ public record LocalToolResult(
    * update receives the context as it is at that moment and must not depend on anything else, as it
    * is applied by the framework after the tool returned. Ignored for an error result.
    */
-  public LocalToolResult withContextUpdate(UnaryOperator<AgentContext> update) {
+  public RuntimeToolResult withContextUpdate(UnaryOperator<AgentContext> update) {
     final var updates = new ArrayList<>(contextUpdates);
     updates.add(update);
-    return new LocalToolResult(content, error, updates, properties);
+    return new RuntimeToolResult(content, error, updates, properties);
   }
 
   /** Returns a copy whose tool call result carries the property. Ignored for an error result. */
-  public LocalToolResult withProperty(String key, Object value) {
+  public RuntimeToolResult withProperty(String key, Object value) {
     final var updated = new LinkedHashMap<>(properties);
     updated.put(key, value);
-    return new LocalToolResult(content, error, contextUpdates, updated);
+    return new RuntimeToolResult(content, error, contextUpdates, updated);
   }
 }

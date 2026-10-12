@@ -4,23 +4,23 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.function.Predicate;
 
-/** The {@link LocalTool} that {@link LocalTool#builder(String)} builds. */
-final class DefaultLocalTool implements LocalTool {
+/** The {@link RuntimeTool} that {@link RuntimeTool#builder(String)} builds. */
+final class DefaultRuntimeTool implements RuntimeTool {
 
   private final ToolDefinition definition;
   private final Predicate<AgentConfiguration> availability;
-  private final LocalTool.Handler handler;
+  private final RuntimeTool.Handler handler;
 
-  DefaultLocalTool(
+  DefaultRuntimeTool(
       ToolDefinition definition,
       Predicate<AgentConfiguration> availability,
-      LocalTool.Handler handler) {
+      RuntimeTool.Handler handler) {
     this.definition = definition;
     this.availability = availability;
     this.handler = handler;
@@ -37,7 +37,7 @@ final class DefaultLocalTool implements LocalTool {
   }
 
   @Override
-  public LocalToolResult call(LocalToolCall call, LocalToolContext context) {
+  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
     return handler.call(call, context);
   }
 }

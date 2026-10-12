@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -30,7 +30,7 @@ import org.jspecify.annotations.Nullable;
  * agent context for the lifetime of the agent instance, and every response without tool calls
  * returns all of it.
  */
-public final class ReturnDocumentTool implements LocalTool {
+public final class ReturnDocumentTool implements RuntimeTool {
 
   /** The tool name, with the prefix of the built-in tools. */
   public static final String NAME = InternalToolNames.PREFIX + "return_document";
@@ -106,17 +106,17 @@ public final class ReturnDocumentTool implements LocalTool {
   }
 
   @Override
-  public LocalToolResult call(LocalToolCall call, LocalToolContext context) {
+  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
     final var arguments = call.argumentsAs(Arguments.class, context.objectMapper());
     if (arguments.key() == null || !KEY_PATTERN.matcher(arguments.key()).matches()) {
-      return LocalToolResult.error(
+      return RuntimeToolResult.error(
           "Parameter '%s' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
                   .formatted(PARAMETER_KEY)
               + " underscore and continues with letters, digits, underscores or hyphens.");
     }
     if (arguments.document() == null
         || context.documents().findById(arguments.document()).isEmpty()) {
-      return LocalToolResult.error(
+      return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
               .formatted(PARAMETER_DOCUMENT, context.documents().knownDocumentsText()));
     }
@@ -126,7 +126,7 @@ public final class ReturnDocumentTool implements LocalTool {
         new SelectedDocument(
             arguments.document(),
             StringUtils.isBlank(arguments.description()) ? null : arguments.description());
-    return LocalToolResult.success("Returned the document under the key '%s'.".formatted(key))
+    return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
         .withContextUpdate(agentContext -> select(agentContext, key, selected));
   }
 

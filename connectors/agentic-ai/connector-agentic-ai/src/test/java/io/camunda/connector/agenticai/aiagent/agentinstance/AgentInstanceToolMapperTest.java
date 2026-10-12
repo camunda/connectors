@@ -10,11 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
-import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,12 +22,12 @@ import org.junit.jupiter.api.Test;
 
 class AgentInstanceToolMapperTest {
 
-  private final LocalToolRegistry localToolRegistry =
-      new LocalToolRegistryImpl(List.of(new ReturnDocumentTool()));
+  private final RuntimeToolRegistry runtimeToolRegistry =
+      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
   private final AgentInstanceToolMapper mapper =
-      new AgentInstanceToolMapper(gatewayToolHandlers, localToolRegistry);
+      new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
 
   @Test
   void adHocToolFallsBackToItsNameAsElementId() {
@@ -52,7 +52,7 @@ class AgentInstanceToolMapperTest {
   }
 
   @Test
-  void localToolHasNoElementId() {
+  void runtimeToolHasNoElementId() {
     final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), true);
 
     assertThat(mapped)
@@ -66,7 +66,7 @@ class AgentInstanceToolMapperTest {
   }
 
   @Test
-  void aToolOfTheProcessWithTheNameOfALocalToolKeepsItsElementIdWithoutTheLocalToolsFeature() {
+  void aToolOfTheProcessWithTheNameOfARuntimeToolKeepsItsElementIdWithoutTheRuntimeToolsFeature() {
     when(gatewayToolHandlers.resolveElementId("c8__return_document")).thenReturn(Optional.empty());
 
     final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), false);

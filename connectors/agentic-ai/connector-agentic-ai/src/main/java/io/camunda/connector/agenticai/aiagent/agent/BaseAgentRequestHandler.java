@@ -73,7 +73,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final DocumentRegistryStorage documentRegistryStorage;
-  private final LocalToolCallHandler localToolCallHandler;
+  private final RuntimeToolCallHandler runtimeToolCallHandler;
   private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
@@ -85,7 +85,7 @@ public abstract class BaseAgentRequestHandler<
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       DocumentRegistryStorage documentRegistryStorage,
-      LocalToolCallHandler localToolCallHandler,
+      RuntimeToolCallHandler runtimeToolCallHandler,
       DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
@@ -95,7 +95,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.documentRegistryStorage = documentRegistryStorage;
-    this.localToolCallHandler = localToolCallHandler;
+    this.runtimeToolCallHandler = runtimeToolCallHandler;
     this.documentExpander = documentExpander;
   }
 
@@ -130,14 +130,16 @@ public abstract class BaseAgentRequestHandler<
     try (var session = store.createSession(executionContext, agentContext)) {
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
       // rest of this invocation once populated here: the durable tool definitions of the
-      // AgentContext plus the local tools available for this agent, which are never persisted.
+      // AgentContext plus the runtime tools available for this agent, which are never persisted.
       final var requestConfiguration =
           executionContext.configuration().withFeatures(agentContext.features());
       final var configuration =
           requestConfiguration.withToolDefinitions(
               Stream.concat(
                       agentContext.toolDefinitions().stream(),
-                      localToolCallHandler.availableToolDefinitions(requestConfiguration).stream())
+                      runtimeToolCallHandler
+                          .availableToolDefinitions(requestConfiguration)
+                          .stream())
                   .toList());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
@@ -168,9 +170,9 @@ public abstract class BaseAgentRequestHandler<
             proceed(
                 executionContext,
                 agentContext.supportsDocuments()
-                    // the pending local results are part of newMessages now
+                    // the pending runtime results are part of newMessages now
                     ? registerDocuments(agentContext, newDocuments)
-                        .withPendingLocalToolCallResults(List.of())
+                        .withPendingRuntimeToolCallResults(List.of())
                     : agentContext,
                 configuration,
                 previousConversation,
@@ -195,7 +197,7 @@ public abstract class BaseAgentRequestHandler<
   private HistoryDocuments historyDocuments(AgentContext agentContext) {
     return agentContext.supportsDocuments()
         ? new HistoryDocuments(documentRegistryStorage.load(agentContext))
-        : HistoryDocuments.withoutDocumentFlow(agentContext.supportsLocalTools());
+        : HistoryDocuments.withoutDocumentFlow(agentContext.supportsRuntimeTools());
   }
 
   /**
@@ -276,8 +278,9 @@ public abstract class BaseAgentRequestHandler<
    * Drives the given chat model until it returns a {@code Completed} result whose tool calls (if
    * any) are left to the process, ingesting each round as its own turn. Further rounds are
    * intermediate {@code Continuation} rounds and rounds that follow a batch of tool calls the agent
-   * answered completely itself (see {@link LocalToolCallHandler}). A batch that mixes local and
-   * process calls ends the loop; its local results are kept as pending results of the conversation.
+   * answered completely itself (see {@link RuntimeToolCallHandler}). A batch that mixes local and
+   * process calls ends the loop; its runtime results are kept as pending results of the
+   * conversation.
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -302,17 +305,18 @@ public abstract class BaseAgentRequestHandler<
       final boolean continued = chatResult instanceof ChatResult.Continuation;
       final var split =
           continued
-              ? LocalToolCallHandler.LocalToolCallSplit.allRemaining(workingConversation, List.of())
-              : localToolCallHandler.handle(
+              ? RuntimeToolCallHandler.RuntimeToolCallSplit.allRemaining(
+                  workingConversation, List.of())
+              : runtimeToolCallHandler.handle(
                   workingConversation, workingConversation.currentTurn().toolCalls());
       workingConversation = split.conversation();
-      final boolean localRound = split.answersAllCalls();
-      anotherRound = continued || localRound;
+      final boolean runtimeRound = split.answersAllCalls();
+      anotherRound = continued || runtimeRound;
 
       // Exactly one status per round (engine constraint): a round that is followed by another one
       // within this job re-asserts THINKING alongside its assistant item, the final round sends its
       // terminal status instead. Every tool call the model requested counts as a tool call of the
-      // turn, local or not.
+      // turn, runtime or not.
       final var status =
           anotherRound
               ? AgentInstanceUpdateStatus.THINKING
@@ -332,7 +336,7 @@ public abstract class BaseAgentRequestHandler<
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
         workingConversation = workingConversation.nextContinuationRound();
-      } else if (localRound) {
+      } else if (runtimeRound) {
         LOGGER.debug(
             "Answered the tool calls of turn (iterationKey={}) locally; calling the model again",
             workingConversation.currentTurn().iterationKey());
@@ -340,12 +344,12 @@ public abstract class BaseAgentRequestHandler<
         throwIfLimitsReached(workingConversation, agentConfiguration);
         final var loadedDocumentsMessage =
             agentInputComposer.composeLoadedDocumentsMessage(
-                workingConversation.documentRegistry(), split.localResults());
+                workingConversation.documentRegistry(), split.runtimeResults());
         workingConversation =
-            workingConversation.nextLocalToolRound(
+            workingConversation.nextRuntimeToolRound(
                 ToolCallResultMessage.builder()
                     .results(
-                        split.localResults().stream().map(ToolCallResultContent::from).toList())
+                        split.runtimeResults().stream().map(ToolCallResultContent::from).toList())
                     .build(),
                 loadedDocumentsMessage == null ? List.of() : List.of(loadedDocumentsMessage));
         // the previous turn is the one whose tool calls these results answer
@@ -357,27 +361,27 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.lastTurn(),
             OffsetDateTime.now(),
             historyDocuments(workingConversation));
-      } else if (split.hasLocalResults()) {
+      } else if (split.hasRuntimeResults()) {
         LOGGER.debug(
             "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
-            split.localResults().size(),
+            split.runtimeResults().size(),
             workingConversation.currentTurn().iterationKey(),
             split.remainingCalls().size());
 
-        // the local results become visible in the history right away, correlated to the assistant
+        // the runtime results become visible in the history right away, correlated to the assistant
         // turn that was just completed (no status change: the round already carries its one
         // status). The next job reports them again with its turn start under the same history item
         // ids, which the engine deduplicates.
         agentInstanceClient.applyToolCallResults(
             executionContext,
             agentInstanceKey,
-            split.localResults(),
+            split.runtimeResults(),
             workingConversation.currentTurn(),
             historyDocuments(workingConversation));
 
         // the results join the process results of the remaining calls in the next job
         workingConversation =
-            workingConversation.withPendingLocalToolCallResults(split.localResults());
+            workingConversation.withPendingRuntimeToolCallResults(split.runtimeResults());
       }
     } while (anotherRound);
     return workingConversation;
@@ -386,7 +390,7 @@ public abstract class BaseAgentRequestHandler<
   private static HistoryDocuments historyDocuments(AgentConversation conversation) {
     return conversation.supportsDocuments()
         ? new HistoryDocuments(conversation.documentRegistry())
-        : HistoryDocuments.withoutDocumentFlow(conversation.supportsLocalTools());
+        : HistoryDocuments.withoutDocumentFlow(conversation.supportsRuntimeTools());
   }
 
   /**

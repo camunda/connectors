@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.localtool;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.ArrayList;
@@ -14,49 +14,49 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A small fluent builder of the object schema of a local tool's arguments. It covers flat
- * parameters; pass a {@link Map} schema to {@link LocalTool.Builder#inputSchema(Map)} for anything
- * more elaborate.
+ * A small fluent builder of the object schema of a runtime tool's arguments. It covers flat
+ * parameters; pass a {@link Map} schema to {@link RuntimeTool.Builder#inputSchema(Map)} for
+ * anything more elaborate.
  *
  * <p>The maps keep the order of declaration, so the schema serializes to the same bytes in every
  * JVM; the definition is part of the configuration fingerprint and of the request sent to the
  * model. Build a schema passed as a {@link Map} the same way.
  *
  * <pre>{@code
- * LocalToolSchema.object()
+ * RuntimeToolSchema.object()
  *     .string("title", "The title of the note", true)
  *     .document("file", "The document to attach", false)
  * }</pre>
  */
-public final class LocalToolSchema {
+public final class RuntimeToolSchema {
 
   private final Map<String, Object> properties = new LinkedHashMap<>();
   private final List<String> required = new ArrayList<>();
 
-  private LocalToolSchema() {}
+  private RuntimeToolSchema() {}
 
-  public static LocalToolSchema object() {
-    return new LocalToolSchema();
+  public static RuntimeToolSchema object() {
+    return new RuntimeToolSchema();
   }
 
-  public LocalToolSchema string(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema string(String name, String description, boolean isRequired) {
     return property(name, "string", description, isRequired);
   }
 
-  public LocalToolSchema integer(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema integer(String name, String description, boolean isRequired) {
     return property(name, "integer", description, isRequired);
   }
 
-  public LocalToolSchema number(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema number(String name, String description, boolean isRequired) {
     return property(name, "number", description, isRequired);
   }
 
-  public LocalToolSchema bool(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema bool(String name, String description, boolean isRequired) {
     return property(name, "boolean", description, isRequired);
   }
 
   /** An array of strings. */
-  public LocalToolSchema stringArray(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema stringArray(String name, String description, boolean isRequired) {
     final var array = new LinkedHashMap<String, Object>();
     array.put("type", "array");
     array.put("description", description);
@@ -70,7 +70,7 @@ public final class LocalToolSchema {
    * DocumentParameterSchema#FORMAT_DOCUMENT_ID}: the model passes the id of a known document, the
    * tool receives the id and looks the document up in the registry of its context.
    */
-  public LocalToolSchema document(String name, String description, boolean isRequired) {
+  public RuntimeToolSchema document(String name, String description, boolean isRequired) {
     properties.put(
         name, Collections.unmodifiableMap(DocumentParameterSchema.documentSchema(description)));
     return markRequired(name, isRequired);
@@ -87,7 +87,7 @@ public final class LocalToolSchema {
     return Collections.unmodifiableMap(schema);
   }
 
-  private LocalToolSchema property(
+  private RuntimeToolSchema property(
       String name, String type, String description, boolean isRequired) {
     final var property = new LinkedHashMap<String, Object>();
     property.put("type", type);
@@ -96,7 +96,7 @@ public final class LocalToolSchema {
     return markRequired(name, isRequired);
   }
 
-  private LocalToolSchema markRequired(String name, boolean isRequired) {
+  private RuntimeToolSchema markRequired(String name, boolean isRequired) {
     if (isRequired) {
       required.add(name);
     }
