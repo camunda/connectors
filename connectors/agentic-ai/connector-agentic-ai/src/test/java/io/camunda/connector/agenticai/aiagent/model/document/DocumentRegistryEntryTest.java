@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -17,12 +19,14 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class DocumentRegistryEntryTest {
@@ -37,6 +41,12 @@ class DocumentRegistryEntryTest {
             .contentType("application/pdf")
             .fileName("report.pdf")
             .build());
+  }
+
+  private static IngestedDocument inlineIngested(String content, @Nullable String fileName) {
+    return new IngestedDocument(
+        documentWith(new InlineDocumentReferenceModel(content, fileName, "text/plain"), null),
+        DocumentSource.toolCall("search", "call-1", null));
   }
 
   private static Document documentWith(
@@ -161,6 +171,72 @@ class DocumentRegistryEntryTest {
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "inline")
         .containsEntry("content", "aGVsbG8=");
+  }
+
+  @Test
+  void inlineDocumentWithTheLimitAsContentLengthIsAccepted() {
+    final var content = "x".repeat(DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH);
+
+    final var entry = DocumentRegistryEntry.from(inlineIngested(content, "limit.txt"));
+
+    assertThat(entry.reference()).containsEntry("content", content);
+  }
+
+  @Test
+  void inlineDocumentAboveTheLimitIsRejectedWithTheFileNameTheSizeAndTheLimit() {
+    final var content = "x".repeat(DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH + 1);
+
+    assertThatThrownBy(() -> DocumentRegistryEntry.from(inlineIngested(content, "big.png")))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE);
+              assertThat(e.getMessage())
+                  .contains("'big.png'", "1048577 characters", "limit is 1048576")
+                  .contains("Camunda document");
+            });
+  }
+
+  @Test
+  void inlineDocumentAboveTheLimitWithoutAFileNameIsRejectedWithItsId() {
+    final var content = "x".repeat(DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH + 1);
+    final var ingested = inlineIngested(content, null);
+
+    assertThatThrownBy(() -> DocumentRegistryEntry.from(ingested))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE);
+              assertThat(e.getMessage())
+                  .contains("'" + DocumentHandle.idFor(ingested.document()) + "'");
+            });
+  }
+
+  @Test
+  void camundaAndExternalDocumentsAreAcceptedWhateverTheirSize() {
+    final var large = new byte[2 * DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH];
+    final var camunda =
+        documentFactory.create(
+            DocumentCreationRequest.from(large)
+                .contentType("application/octet-stream")
+                .fileName("large.bin")
+                .build());
+    final var external =
+        documentWith(
+            new ExternalDocumentReferenceModel(
+                "https://example.com/"
+                    + "a".repeat(2 * DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH),
+                "large.bin"),
+            null);
+
+    assertThat(
+            DocumentRegistryEntry.from(new IngestedDocument(camunda, DocumentSource.event(null)))
+                .id())
+        .isEqualTo(DocumentHandle.idFor(camunda));
+    assertThat(
+            DocumentRegistryEntry.from(new IngestedDocument(external, DocumentSource.event(null)))
+                .id())
+        .isEqualTo(DocumentHandle.idFor(external));
   }
 
   @Test

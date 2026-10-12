@@ -6,10 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +35,12 @@ class DocumentRegistryTest {
             .contentType("text/plain")
             .fileName(fileName)
             .build());
+  }
+
+  private static Document documentWith(DocumentReference reference) {
+    final var document = mock(Document.class);
+    when(document.reference()).thenReturn(reference);
+    return document;
   }
 
   @Test
@@ -64,6 +77,25 @@ class DocumentRegistryTest {
               assertThat(entry.source())
                   .isEqualTo(DocumentSource.toolCall("search", "call-1", null));
             });
+  }
+
+  @Test
+  void rejectsABatchWithAnInlineDocumentAboveTheLimit() {
+    final var tooLarge =
+        documentWith(
+            new InlineDocumentReferenceModel(
+                "x".repeat(DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH + 1),
+                "big.txt",
+                "text/plain"));
+    final var batch =
+        List.of(
+            new IngestedDocument(document("one", "one.txt"), DocumentSource.userMessage(null)),
+            new IngestedDocument(tooLarge, DocumentSource.userMessage(null)));
+
+    assertThatThrownBy(() -> DocumentRegistry.empty().withDocuments(batch))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE));
   }
 
   @Test

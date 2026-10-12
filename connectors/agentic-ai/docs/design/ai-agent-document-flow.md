@@ -502,7 +502,14 @@ content (base64 in `content`). Reason: the tool payload of decision 5 must be th
 External documents keep the URL (never rendered to the model, decision 2) and Camunda documents keep
 the full reference with metadata. The agent instance history shows the reference of a document in the
 blocks of its items (section 5.1), so the content of an inline document is part of the history item too. The cost
-is described in section 4 and listed as a limitation in section 5. The size guard of `c8__get_document` (3.14)
+is described in section 4 and listed as a limitation in section 5. Because the content is held several times, the
+registry admits an inline document only up to `DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH` (1 MiB, counted in
+characters of the base64 or text content the reference holds). `DocumentRegistryEntry.from`, the one place where an
+ingested document becomes an entry (prompt, event and tool result documents alike), rejects a larger one with a
+`ConnectorException` carrying `AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE` (`INLINE_DOCUMENT_TOO_LARGE`);
+the message names the file name of the document (its id without one), the size and the limit and tells the process
+designer to return the file as a Camunda document instead. The job fails before the model call and before anything
+of the turn is stored. Camunda and external documents have no such limit. The size guard of `c8__get_document` (3.14)
 bounds what a load puts into the conversation, not what the registry, the tool result and the history hold of an
 inline document, and the history mapper does not support inline references at all (section 7).
 
@@ -735,9 +742,12 @@ only matters together with the in-process store (messages in the same variable) 
 **Large inline document risk.** The content of an inline document is held a second time in
 `agentContext`, in addition to the tool result in the conversation, and a returned inline document
 repeats it again in `agent.responseDocuments`. Inline documents are rare (Camunda documents are the norm), but
-a large inline image counts fully against the 4 MB limit. There is no size guard or fallback to a
-reference-only entry for the registry; the guard of `c8__get_document` (3.14) bounds only what a load adds
-to the model request.
+a large inline image would count fully against the 4 MB limit. The registry therefore rejects an inline document
+with more than 1 MiB of content (3.12) with the error code `INLINE_DOCUMENT_TOO_LARGE` instead of letting the
+job completion fail with an opaque broker error. Up to the limit the content is still held about three times (the
+registry, the tool result and `agent.responseDocuments`) and does not leave room for many such documents in
+one job completion; there is no fallback to a reference-only entry. The guard of `c8__get_document` (3.14)
+bounds only what a load adds to the model request.
 
 **Backward compatibility and downgrade.** No `CURRENT_SCHEMA_VERSION` bump. A missing `documents`
 field binds to an empty list (builder default for collections, same as `toolDefinitions`), also
@@ -876,7 +886,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 
 | # | Finding | Severity | Detail |
 |---|---------|----------|--------|
-| 1 | Large inline documents | High (rare trigger) | Content is stored in the registry and in the tool result, and again in `agent.responseDocuments` when returned. A large inline image can push the job completion past the 4 MB broker message limit; there is no size guard or fallback to a reference-only entry. A load through `c8__get_document` is bounded by its size guard (3.14), the registry and the tool result are not. |
+| 1 | Large inline documents | Medium (rare trigger, fails early) | Content is stored in the registry and in the tool result, and again in `agent.responseDocuments` when returned. An inline document with more than 1 MiB of content is rejected when it is registered, with the error code `INLINE_DOCUMENT_TOO_LARGE` that names the document, its size and the limit (3.12). Several inline documents below the limit can still add up past the 4 MB broker message limit of the job completion; there is no fallback to a reference-only entry. A load through `c8__get_document` is bounded by its size guard (3.14). |
 | 2 | Local answers of a mixed batch reach the model late | Low | The agent instance history shows the local results of a batch that also holds real calls as soon as the job that answered them completes (5.1). The model only receives them with the next request, in the next job, when the real calls have completed; a real call that never completes holds that request back. A batch made of local calls alone is answered in the same job. |
 | 3 | Gateway tools unsupported | Medium | The connector never declares document parameters for MCP and A2A tool definitions (the A2A schema is fixed, the MCP schema is the one of the server, kept as it is); a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
@@ -1102,7 +1112,7 @@ listed fails the test.
 **Documents in tools and results**
 
 - **Inline documents.** The registry entry keeps the complete reference, so an inline document holds its content
-  (base64, 4 MB limit of the job completion) in `agentContext`, in the tool result and in
+  (base64; at most 1 MiB per document, 3.12) in `agentContext`, in the tool result and in
   `responseDocuments`. `AgentInstanceHistoryMapper` cannot map an inline reference and throws an
   `IllegalArgumentException`. Decide on a reference-only entry for inline documents and on how the history
   shows them (3.12, 5.1).
@@ -1162,7 +1172,7 @@ listed fails the test.
 | Area | Tests |
 |------|-------|
 | Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization), `AgentConversationTest` (the window rewrites, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
-| Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`), `DocumentHandleTest` (file name and content type of a document and of its reference) |
+| Registry, entry sizes, handles | `aiagent/model/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`; the limit for inline content exactly accepted, one character more rejected with the error code, Camunda and external documents of any size accepted), `DocumentHandleTest` (file name and content type of a document and of its reference) |
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (flagged tags, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/DocumentReferenceXmlTagTest` (source attribute, document reference content, attribute parsing) |
 | Persisted form and expansion | `aiagent/model/document/DocumentExpanderTest` (expansion, idempotence, dangling and unreadable references, only flagged tags), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `AwsAgentCoreConversationMapperTest` (text with metadata) |
 | Agent instance features | `aiagent/model/AgentContextTest` (default, omitted when empty, round trip in insertion order, copies), `aiagent/agent/AgentInitializerTest` (a new instance gets `localTools` and `documents`, an existing context never gets features) |

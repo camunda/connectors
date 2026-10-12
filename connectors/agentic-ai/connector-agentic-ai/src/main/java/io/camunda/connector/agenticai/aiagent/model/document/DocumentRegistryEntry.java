@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,6 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,6 +37,11 @@ import java.util.Objects;
  * DocumentHandle#fileNameFor(Map)} and {@link DocumentHandle#contentTypeFor(Map)} read them from
  * the reference.
  *
+ * <p>The reference of an inline document holds its content in the registry, in the tool result and
+ * in the returned documents of the response, all of which are part of the job completion. {@link
+ * #from} therefore rejects an inline document whose content exceeds {@link
+ * #MAX_INLINE_CONTENT_LENGTH}.
+ *
  * @param id the {@link DocumentHandle#idFor stable id} the registry is keyed by
  * @param source where the document entered the conversation
  * @param reference the document reference JSON
@@ -41,6 +50,14 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentRegistryEntry(
     String id, DocumentSource source, Map<String, Object> reference) {
+
+  /**
+   * The largest content of an inline document the registry accepts, counted in characters of the
+   * content the reference holds (base64 for binary documents, text otherwise). A larger document is
+   * rejected with {@code ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE} so that the job completion, which
+   * carries the content several times, stays well below the message size limit of the broker.
+   */
+  public static final int MAX_INLINE_CONTENT_LENGTH = 1024 * 1024;
 
   private static final ObjectMapper REFERENCE_MAPPER =
       new ObjectMapper()
@@ -59,10 +76,34 @@ public record DocumentRegistryEntry(
     reference = Collections.unmodifiableMap(new LinkedHashMap<>(reference));
   }
 
+  /**
+   * Creates the entry of an ingested document.
+   *
+   * @throws ConnectorException with {@code ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE} if the document is
+   *     an inline document with more than {@link #MAX_INLINE_CONTENT_LENGTH} characters of content
+   */
   public static DocumentRegistryEntry from(IngestedDocument ingested) {
     final var document = ingested.document();
+    rejectLargeInlineContent(document);
     return new DocumentRegistryEntry(
         DocumentHandle.idFor(document), ingested.source(), serializeReference(document));
+  }
+
+  private static void rejectLargeInlineContent(Document document) {
+    if (document.reference() instanceof InlineDocumentReference inline
+        && inline.content() != null
+        && inline.content().length() > MAX_INLINE_CONTENT_LENGTH) {
+      final var name = DocumentHandle.fileNameFor(document);
+      throw new ConnectorException(
+          ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE,
+          ("The inline document '%s' is too large: its content has %d characters, the limit is %d."
+                  + " Model the process so that the file is returned as a Camunda document instead of"
+                  + " inline content.")
+              .formatted(
+                  name != null ? name : DocumentHandle.idFor(document),
+                  inline.content().length(),
+                  MAX_INLINE_CONTENT_LENGTH));
+    }
   }
 
   private static Map<String, Object> serializeReference(Document document) {

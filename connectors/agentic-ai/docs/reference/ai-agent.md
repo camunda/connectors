@@ -1229,6 +1229,7 @@ on).
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`                   | `LOCAL_TOOL_NAME_CONFLICT`                     | an ad-hoc or gateway tool element of an agent instance with the `localTools` feature has the name of a registered local tool (for example `c8__return_document`) |
+| `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more than 1 MiB of content (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`, characters of base64 or text) when it enters the document registry; Camunda and external documents are unaffected |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
@@ -1692,6 +1693,13 @@ processes the document. A successful load is followed by a user message whose ta
 (`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
 from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
 `fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference.
+
+A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
+document) is registered only if its content has at most 1 MiB (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`,
+counted in characters of the base64 or text content). A larger one fails the job with the error code
+`INLINE_DOCUMENT_TOO_LARGE`, because the content would be held in the registry, in the tool result and in the
+returned documents of the response, which together can exceed the message size limit of the broker; the message
+names the document, its size and the limit and asks to return the file as a Camunda document instead.
 
 Inline delivery is opt-in and loads the content without a `c8__get_document` call, through the same guard
 (`DocumentLoadGuard`) and the same marker: for the documents of the user prompt, with the option *Load documents
