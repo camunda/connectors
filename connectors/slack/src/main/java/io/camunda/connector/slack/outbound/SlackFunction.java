@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.slack.outbound.model.SlackTokenConfiguration;
 
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.Slack.v1",
     name = "Slack Outbound Connector",
     description = "Create a channel or send a message to a channel or user",

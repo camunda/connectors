@@ -29,7 +29,7 @@ import java.util.Map;
     },
     type = "io.camunda:connector-automationanywhere:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.AutomationAnywhere",
     name = "Automation Anywhere Outbound Connector",
     description = "Manage work items in Automation Anywhere queues.",
