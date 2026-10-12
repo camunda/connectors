@@ -1,5 +1,4 @@
 {
-  "$schema": "../migration/migrates-from.schema.json",
   "schemaVersion": 1,
   "sources": [
     {

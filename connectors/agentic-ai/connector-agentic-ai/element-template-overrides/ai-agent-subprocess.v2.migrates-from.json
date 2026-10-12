@@ -1,10 +1,9 @@
 {
-  "$schema": "../migration/migrates-from.schema.json",
   "schemaVersion": 1,
   "sources": [
     {
       "kind": "change",
-      "sourceTemplateId": "io.camunda.connectors.agenticai.aiagent.v1-hybrid",
+      "sourceTemplateId": "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
       "minSourceVersion": 10,
       "paths": [
         {
