@@ -59,7 +59,7 @@ public record SlackRequest<T extends SlackRequestData>(
             group = "authentication",
             feel = FeelMode.optional,
             optional = true,
-            description =
+            tooltip =
                 "Override the Slack API base URL, e.g. to use a proxy, a gateway, or a Slack-compatible endpoint. Defaults to <code>https://slack.com/api/</code>.")
         String baseUrl,
     @JsonTypeInfo(
