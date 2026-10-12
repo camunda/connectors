@@ -13,6 +13,8 @@ import io.modelcontextprotocol.spec.McpSchema.JSONRPCMessage;
 import io.modelcontextprotocol.spec.McpServerSession;
 import io.modelcontextprotocol.spec.McpServerTransport;
 import io.modelcontextprotocol.spec.McpServerTransportProvider;
+import io.modelcontextprotocol.spec.McpTransportSessionClosedException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
@@ -26,6 +28,7 @@ import reactor.core.publisher.Mono;
  */
 public class InMemoryMcpTransport {
 
+  private final AtomicBoolean closed = new AtomicBoolean(false);
   private final ServerSide serverSide = new ServerSide();
   private final ClientSide clientSide = new ClientSide();
 
@@ -85,14 +88,23 @@ public class InMemoryMcpTransport {
       this.sessionFactory = sessionFactory;
     }
 
-    void openSession() {
+    synchronized void openSession() {
+      if (closed.get()) {
+        throw new McpTransportSessionClosedException();
+      }
       if (sessionFactory == null) {
         throw new IllegalStateException("In-memory MCP server is not started");
+      }
+      if (session != null) {
+        throw new IllegalStateException("In-memory MCP client is already connected");
       }
       session = sessionFactory.create(sessionTransport);
     }
 
     Mono<Void> receive(JSONRPCMessage message) {
+      if (closed.get()) {
+        return Mono.error(new McpTransportSessionClosedException());
+      }
       final var currentSession = session;
       if (currentSession == null) {
         return Mono.error(new IllegalStateException("In-memory MCP session is not open"));
@@ -109,7 +121,8 @@ public class InMemoryMcpTransport {
     }
 
     @Override
-    public Mono<Void> closeGracefully() {
+    public synchronized Mono<Void> closeGracefully() {
+      closed.set(true);
       final var currentSession = session;
       session = null;
       return currentSession == null ? Mono.empty() : currentSession.closeGracefully();
@@ -120,6 +133,9 @@ public class InMemoryMcpTransport {
 
     @Override
     public Mono<Void> sendMessage(JSONRPCMessage message) {
+      if (closed.get()) {
+        return Mono.error(new McpTransportSessionClosedException());
+      }
       return clientSide.deliver(message);
     }
 
