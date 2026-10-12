@@ -13,6 +13,8 @@ Final pass before requesting review: strip comments added on this branch, squash
 
 ### 1. Remove comments added on this branch
 
+Start from a clean working tree. If `git status --porcelain` prints anything (including untracked files), stop and ask the user to commit or discard those changes first — untracked files are invisible to the diffs and hashes below and would be silently left out of the squashed commit.
+
 Resolve the actual target branch once, and reuse it (as `$BASE`) for every diff, log, hash, and reset command below — don't hard-code `origin/main`, since a branch may target `stable/*` or another base:
 
 ```
