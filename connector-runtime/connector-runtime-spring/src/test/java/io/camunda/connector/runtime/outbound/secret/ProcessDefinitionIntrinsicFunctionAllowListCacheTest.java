@@ -171,7 +171,7 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         """;
     var cache =
         new ProcessDefinitionIntrinsicFunctionAllowListCache(
-            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+            "tenant-a", modelCacheReturning(xml), Caffeine.newBuilder().build());
 
     var allowed =
         cache.getAllowedFunctions(
@@ -206,7 +206,7 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         """;
     var cache =
         new ProcessDefinitionIntrinsicFunctionAllowListCache(
-            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+            "tenant-a", modelCacheReturning(xml), Caffeine.newBuilder().build());
 
     var allowed =
         cache.getAllowedFunctions(
@@ -239,7 +239,7 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         """;
     var cache =
         new ProcessDefinitionIntrinsicFunctionAllowListCache(
-            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+            "tenant-a", modelCacheReturning(xml), Caffeine.newBuilder().build());
 
     var allowed =
         cache.getAllowedFunctions(
@@ -273,7 +273,7 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
         """;
     var cache =
         new ProcessDefinitionIntrinsicFunctionAllowListCache(
-            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+            "tenant-a", modelCacheReturning(xml), Caffeine.newBuilder().build());
 
     var allowed =
         cache.getAllowedFunctions(
