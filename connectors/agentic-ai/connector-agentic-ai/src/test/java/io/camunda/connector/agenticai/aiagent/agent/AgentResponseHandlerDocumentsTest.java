@@ -67,7 +67,7 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   @Test
-  void returnsTheReferencesOfTheSelectedDocumentsByKeyInSelectionOrderAndClearsTheSelection() {
+  void returnsTheReferencesOfTheSelectedDocumentsByKeyInSelectionOrderAndKeepsTheSelection() {
     final var response =
         responseHandler.createResponse(
             conversation(
@@ -87,8 +87,35 @@ class AgentResponseHandlerDocumentsTest {
     assertThat(response.responseDocuments().get("summary").document())
         .containsEntry("camunda.document.type", "camunda")
         .containsKeys("storeId", "documentId", "contentHash");
-    assertThat(response.context().returnDocuments()).isEmpty();
+    assertThat(response.context().returnDocuments()).containsOnlyKeys("summary", "report");
     assertThat(response.responseText()).isEqualTo("done");
+  }
+
+  @Test
+  void aLaterFinalResponseCarriesTheEarlierDocumentsInOrderAndAReplacedKeyKeepsItsPosition() {
+    final var first =
+        responseHandler.createResponse(
+            conversation(
+                selection(
+                    "summary", new SelectedDocument(summaryId, "Short version"),
+                    "report", new SelectedDocument(reportId, null)),
+                assistantMessage("first")));
+    assertThat(first.responseDocuments().keySet()).containsExactly("summary", "report");
+
+    // the next turn replaces the first key and adds a new one on top of the kept selection
+    final var next = new LinkedHashMap<>(first.context().returnDocuments());
+    next.put("summary", new SelectedDocument(reportId, "Replaced"));
+    next.put("extra", new SelectedDocument(summaryId, null));
+
+    final var second =
+        responseHandler.createResponse(conversation(next, assistantMessage("second")));
+
+    assertThat(second.responseDocuments().keySet()).containsExactly("summary", "report", "extra");
+    assertThat(second.responseDocuments().get("summary").description()).isEqualTo("Replaced");
+    assertThat(second.responseDocuments().get("summary").document())
+        .isEqualTo(registry.findById(reportId).orElseThrow().reference());
+    assertThat(second.context().returnDocuments().keySet())
+        .containsExactly("summary", "report", "extra");
   }
 
   @Test

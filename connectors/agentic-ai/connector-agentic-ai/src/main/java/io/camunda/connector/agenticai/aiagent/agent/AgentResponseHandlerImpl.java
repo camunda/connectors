@@ -93,9 +93,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (toolCalls.isEmpty() && conversation.supportsDocuments()) {
-      // a final response consumes the selection of returned documents
+      // every final response carries the whole selection of returned documents, which stays in the
+      // context for the lifetime of the agent instance
       builder.responseDocuments(returnedDocuments(conversation));
-      builder.context(agentContext.withReturnDocuments(new LinkedHashMap<>()));
     }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);

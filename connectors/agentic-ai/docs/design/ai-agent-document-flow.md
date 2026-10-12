@@ -158,8 +158,8 @@ through the response.
    the loop ends with the normal tool calling status.
 7. **Response.** `AgentResponseHandlerImpl.createResponse`. It leaves out the calls the pending local results
    answer, then `DocumentParameterResolver.resolveAll` replaces document ids by registry references in the
-   process variable only. For a response without tool calls the selection is turned into `responseDocuments` and
-   cleared. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `responseDocuments` into the `agent`
+   process variable only. For a response without tool calls the selection is turned into `responseDocuments`; the
+   selection stays in the context. `AgentSubProcessRequestHandler.createAgentResponseVariable` copies `responseDocuments` into the `agent`
    variable; the task flavor returns the `AgentResponse` itself. `AgentSubProcessRequestHandler` uses
    `AgentConversation.hasInterruptedToolCallResultsInInvocation` so that interrupted results of the first
    round still cancel the remaining tool instances after a local round replaced the current turn.
@@ -427,10 +427,12 @@ missing `document` gives an error answer listing the known documents. An error a
   insertion ordered, `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty map, no schema version
   bump) because the tool can be called in an earlier job than the final response. The component is a
   `LinkedHashMap` because the record builder copies a `Map` into an immutable map of unspecified order.
-- **Consume on the final response.** A response without tool calls returns the selection as `responseDocuments`, a map
+- **Return on every final response.** A response without tool calls returns the selection as `responseDocuments`, a map
   `key -> ReturnedDocument{document, description?}` in selection order, where `document` is the registry entry
-  `reference` map (selections whose id is not in the registry are skipped), and clears the selection in
-  the returned context. A response with tool calls leaves it alone. The sub-process flavor copies the map
+  `reference` map (selections whose id is not in the registry are skipped). The selection stays in the
+  returned context for the lifetime of the agent instance, so each later final response (for example after a user
+  feedback turn) carries the documents of the earlier ones and the new ones; a key that is returned again replaces
+  its entry in place. A response with tool calls leaves it alone. The sub-process flavor copies the map
   into the `agent` variable, so the process reads `agent.responseDocuments.report.document`; all documents are
   `get entries(agent.responseDocuments).value.document`.
 - **No retract.** There is no tool to remove a key. A model can only replace the document of a key. A
@@ -1209,7 +1211,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | Scenario | Test | Proves |
 |----------|------|--------|
 | (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; the model gets the process tools and `c8__return_document`. |
-| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (local round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection consumed in `agentContext`. |
+| (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (local round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); selection kept in `agentContext`. |
 | (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its tool result, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |

@@ -1182,8 +1182,8 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 4. **Documents**: If the response carries no tool calls and the agent selected documents, `responseDocuments` is a map from
    the key the agent chose to `{document, description?}`, where `document` is the Camunda document reference
    of a document the agent selected with the built-in `c8__return_document` tool (called once per document, see
-   [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection is cleared in the
-   returned `agentContext`. The field is omitted when the selection is empty. `c8__return_document` and
+   [`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md)); the selection stays in the
+   returned `agentContext`, so every later final response of the agent instance carries the documents returned earlier as well as new ones (a key returned again replaces its entry). The field is omitted when the selection is empty. `c8__return_document` and
    `c8__get_document` are offered to every agent instance with the `documents` feature (every instance created
    from this version on) and cannot be switched off; an instance created before the feature is not offered
    them and has no `responseDocuments`. Whether they should become configurable is an open question in the

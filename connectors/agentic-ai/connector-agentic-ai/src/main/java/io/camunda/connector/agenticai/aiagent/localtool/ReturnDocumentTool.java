@@ -28,8 +28,9 @@ import org.jspecify.annotations.Nullable;
  * offered to every agent.
  *
  * <p>Every valid call puts its document into the selection of the agent context under its key; a
- * call with a key that is already selected replaces that entry in place. A response without tool
- * calls returns the selection and clears it.
+ * call with a key that is already selected replaces that entry in place. The selection stays in the
+ * agent context for the lifetime of the agent instance, and every response without tool calls
+ * returns all of it.
  */
 public final class ReturnDocumentTool implements LocalTool {
 
@@ -56,7 +57,8 @@ public final class ReturnDocumentTool implements LocalTool {
               + " process uses to find the document; it starts with a letter or an underscore and"
               + " continues with letters, digits, underscores or hyphens. The description is"
               + " optional. Calling it again with the same key replaces the document returned"
-              + " under that key.",
+              + " under that key. Documents you returned earlier stay attached to your later final"
+              + " responses too, so you do not need to return them again.",
           ordered(
               "type",
               "object",

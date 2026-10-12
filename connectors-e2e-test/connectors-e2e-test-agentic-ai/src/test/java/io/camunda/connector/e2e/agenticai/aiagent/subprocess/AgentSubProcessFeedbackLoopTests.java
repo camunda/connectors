@@ -18,6 +18,12 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.search.enums.IncidentErrorType;
@@ -101,6 +107,41 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
                 .hasResponseMessageText(emojiResponse)
                 .hasResponseText(emojiResponse));
 
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  @Test
+  void keepsTheReturnedDocumentOnTheFinalResponseOfALaterTurn() throws Exception {
+    final var firstAnswer = "Here is the file.";
+    final var secondAnswer = "Glad to help.";
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()),
+        returnDocumentTurn(),
+        Turn.text(firstAnswer, 10, 20),
+        Turn.text(secondAnswer, 10, 20));
+
+    enqueueUserFeedback(userFollowUpFeedback("Thanks, anything else?"), userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(Map.of("userPrompt", "Download the file and give it to me")));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(4);
+    final var downloadResult = recorded.requests().get(1).messages().get(3);
+    assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var documentId = parseDocumentTag(downloadResult.content()).id();
+
+    // the second final response did not return the document again, it is still attached
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasResponseText(secondAnswer);
+          assertReturnedDocument(agentResponse.responseDocuments(), documentId);
+          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
+        });
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 

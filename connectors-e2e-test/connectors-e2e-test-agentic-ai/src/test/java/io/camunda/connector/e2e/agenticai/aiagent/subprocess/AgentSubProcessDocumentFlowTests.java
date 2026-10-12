@@ -28,6 +28,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LA
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE_MARKER;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReportedDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
@@ -223,11 +224,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasResponseText(FINAL_TEXT);
           assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          // the registry is part of the agent context; the selection is consumed
+          // the registry and the selection are part of the agent context
           assertThat(agentResponse.context().documents())
               .extracting(entry -> entry.id())
               .containsExactly(documentId);
-          assertThat(agentResponse.context().returnDocuments()).isEmpty();
+          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
         });
 
     assertNoDocumentInternalsInLlmRequests();
@@ -497,7 +498,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasResponseText(FINAL_TEXT);
           assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().returnDocuments()).isEmpty();
+          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
           assertThat(agentResponse.context().pendingLocalToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();

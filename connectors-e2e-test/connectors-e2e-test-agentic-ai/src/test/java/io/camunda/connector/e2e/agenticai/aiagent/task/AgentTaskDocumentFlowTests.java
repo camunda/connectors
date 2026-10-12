@@ -27,6 +27,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LA
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE_MARKER;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReportedDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertReturnedDocument;
@@ -127,7 +128,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse).isReady().hasNoToolCalls();
           assertReturnedDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().returnDocuments()).isEmpty();
+          assertThat(agentResponse.context().returnDocuments()).containsOnlyKeys(RETURN_KEY);
         });
 
     assertNoDocumentInternalsInLlmRequests();
