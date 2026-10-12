@@ -79,8 +79,9 @@ public final class DocumentParameterSchema {
 
   /**
    * Returns the tool definitions with the schema the model providers get: every document parameter
-   * is a string schema without the format. A definition without document parameters is returned as
-   * is; the others are deep copies, so no stored definition is modified.
+   * is a string schema without the format, and without the document delivery. A definition without
+   * document parameters and without a document delivery is returned as is; the others are copies,
+   * so no stored definition is modified.
    */
   public static List<ToolDefinition> toProviderToolDefinitions(
       List<ToolDefinition> toolDefinitions) {
@@ -89,9 +90,12 @@ public final class DocumentParameterSchema {
 
   private static ToolDefinition toProviderToolDefinition(ToolDefinition toolDefinition) {
     if (!containsDocument(toolDefinition.inputSchema())) {
-      return toolDefinition;
+      return toolDefinition.documentDelivery() == null
+          ? toolDefinition
+          : toolDefinition.withDocumentDelivery(null);
     }
-    // the canonical constructor keeps the order of the schema, which is part of the request bytes
+    // the canonical constructor keeps the order of the schema, which is part of the request bytes;
+    // the document delivery is not part of what the provider gets
     return new ToolDefinition(
         toolDefinition.name(),
         toolDefinition.description(),

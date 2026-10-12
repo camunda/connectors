@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.math.BigDecimal;
@@ -376,6 +377,40 @@ class AgentConfigurationTest {
       // silently suppress a real update or dedup two distinct configurations
       final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
       assertThat(fingerprint).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void toolWithoutDocumentDeliveryKeepsItsFingerprint() {
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("getWeather")
+                  .description("Get the weather forecast")
+                  .inputSchema(Map.of("type", "object", "required", List.of("city")))
+                  .build());
+
+      assertThat(configuration("gpt-4o", "Be nice.", 10, tools).fingerprint())
+          .isEqualTo("26048a00651b1b3de08ae8573907ecedaa240349a017052f117e995812de6f69");
+    }
+
+    @Test
+    void documentDeliveryOfAToolChangesTheFingerprint() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("getWeather")
+              .description("Get the weather forecast")
+              .inputSchema(Map.of("type", "object", "required", List.of("city")))
+              .build();
+
+      final var byReference = configuration("gpt-4o", "Be nice.", 10, List.of(tool));
+      final var inline =
+          configuration(
+              "gpt-4o",
+              "Be nice.",
+              10,
+              List.of(tool.withDocumentDelivery(DocumentDelivery.INLINE)));
+
+      assertThat(inline.fingerprint()).isNotEqualTo(byReference.fingerprint());
     }
   }
 }

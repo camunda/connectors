@@ -148,6 +148,26 @@ class DocumentParameterSchemaTest {
   }
 
   @Test
+  void leavesTheDocumentDeliveryOutOfWhatTheProviderGets() {
+    final var plain =
+        new ToolDefinition("plain", null, object("text", string()), DocumentDelivery.INLINE);
+    final var withDocument =
+        new ToolDefinition(
+            "withDocument",
+            null,
+            object("doc", Map.of("type", "string", "format", "camunda-document-id")),
+            DocumentDelivery.INLINE);
+
+    final var result =
+        DocumentParameterSchema.toProviderToolDefinitions(List.of(plain, withDocument));
+
+    assertThat(result).extracting(ToolDefinition::documentDelivery).containsExactly(null, null);
+    assertThat(result.getFirst().inputSchema()).isEqualTo(plain.inputSchema());
+    // the stored definitions keep it
+    assertThat(plain.documentDelivery()).isEqualTo(DocumentDelivery.INLINE);
+  }
+
+  @Test
   void aTypeDocumentNodeIsNotADocumentParameter() {
     assertThat(
             DocumentParameterSchema.hasDocumentParameters(

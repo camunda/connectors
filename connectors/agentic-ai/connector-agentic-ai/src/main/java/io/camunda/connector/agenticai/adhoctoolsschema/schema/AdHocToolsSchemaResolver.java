@@ -15,5 +15,16 @@ import java.util.List;
  * definitions and gateway tool definitions.
  */
 public interface AdHocToolsSchemaResolver {
+
+  /**
+   * The extension property of a tool activity that sets how the documents the tool returns reach
+   * the model. The value {@value #DOCUMENT_DELIVERY_INLINE} makes the agent load them for the
+   * model; any other value, or no property, keeps the documents by reference.
+   */
+  String DOCUMENT_DELIVERY_EXTENSION = "io.camunda.agenticai.documents.delivery";
+
+  /** The value of {@link #DOCUMENT_DELIVERY_EXTENSION} for loading documents for the model. */
+  String DOCUMENT_DELIVERY_INLINE = "inline";
+
   AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);
 }

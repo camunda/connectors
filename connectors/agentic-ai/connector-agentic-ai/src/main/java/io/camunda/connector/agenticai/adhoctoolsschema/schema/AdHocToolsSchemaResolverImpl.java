@@ -8,10 +8,13 @@ package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts a list of {@link AdHocToolElement} to a {@link AdHocToolsSchemaResponse} containing tool
@@ -62,6 +65,16 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
         .name(element.elementId())
         .description(element.documentationWithNameFallback())
         .inputSchema(schemaGenerator.generateToolSchema(element))
+        .documentDelivery(documentDelivery(element))
         .build();
+  }
+
+  private static @Nullable DocumentDelivery documentDelivery(AdHocToolElement element) {
+    final var properties = element.properties();
+    return properties != null
+            && DOCUMENT_DELIVERY_INLINE.equalsIgnoreCase(
+                StringUtils.trim(properties.get(DOCUMENT_DELIVERY_EXTENSION)))
+        ? DocumentDelivery.INLINE
+        : null;
   }
 }

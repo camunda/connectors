@@ -160,7 +160,8 @@ public record AgentConfiguration(
    * iteration order of the maps they hold (a definition rebuilt through {@link
    * ToolDefinition#builder()} or a JSON round trip holds its schema in an immutable map of
    * unspecified order). Per tool, in list order: {@code name}, {@code description} and {@code
-   * inputSchema}. The rules for the schema:
+   * inputSchema}, followed by the {@code documentDelivery} when the tool has one. The rules for the
+   * schema:
    *
    * <ul>
    *   <li>maps are written with their keys sorted, recursively, including maps nested in lists;
@@ -190,6 +191,10 @@ public record AgentConfiguration(
       appendCanonical(canonical, tool.name());
       appendCanonical(canonical, tool.description());
       appendCanonical(canonical, tool.inputSchema());
+      // written only when set, so the fingerprint of a tool without it is the one it always had
+      if (tool.documentDelivery() != null) {
+        appendCanonical(canonical, tool.documentDelivery().name());
+      }
       canonical.append('}');
     }
     canonical.append(']');

@@ -21,15 +21,28 @@ import org.jspecify.annotations.Nullable;
  * sees. The model providers see the schema without the format, which {@link
  * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
  * built.
+ *
+ * <p>{@code documentDelivery} is the optional mode in which the documents the tool returns reach
+ * the model ({@link DocumentDelivery}); absent means by reference. It is part of the stored
+ * definition and of the configuration fingerprint, but not of what the model providers get.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
 public record ToolDefinition(
-    String name, @Nullable String description, Map<String, Object> inputSchema)
+    String name,
+    @Nullable String description,
+    Map<String, Object> inputSchema,
+    @Nullable DocumentDelivery documentDelivery)
     implements ToolDefinitionBuilder.With {
 
   public ToolDefinition {
     inputSchema = DocumentParameterSchema.withHint(inputSchema);
+  }
+
+  /** Creates a tool definition whose documents are delivered by reference. */
+  public ToolDefinition(
+      String name, @Nullable String description, Map<String, Object> inputSchema) {
+    this(name, description, inputSchema, null);
   }
 
   public static ToolDefinitionBuilder builder() {
