@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -71,6 +72,18 @@ class EvictedDocumentsNoteTest {
                 textContent("here"),
                 DocumentContent.documentContent(report),
                 DocumentContent.documentContent(notes)));
+
+    assertThat(EvictedDocumentsNote.appendTo(windowed, registry)).isSameAs(windowed);
+  }
+
+  @Test
+  void aDocumentReferenceCountsAsVisible() {
+    final List<Message> windowed =
+        List.of(
+            userMessageWith(
+                textContent("here"),
+                DocumentReferenceContent.from(registry.entries().get(0)),
+                DocumentReferenceContent.from(registry.entries().get(1))));
 
     assertThat(EvictedDocumentsNote.appendTo(windowed, registry)).isSameAs(windowed);
   }

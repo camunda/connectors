@@ -33,16 +33,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -879,7 +880,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void aLoadedTagOnlyDocumentMessageSurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
+  void aDocumentReferenceWithContentDeliverySurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -890,7 +891,7 @@ class AwsAgentCoreConversationStoreTest {
     final var entry =
         DocumentRegistryEntry.from(
             new IngestedDocument(document, DocumentSource.userMessage(null)));
-    final var tag = DocumentReferenceXmlTag.from(entry).toLoadedContent();
+    final var tag = DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT);
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -946,10 +947,11 @@ class AwsAgentCoreConversationStoreTest {
               assertThat(user.content()).containsExactly(TextContent.textContent("see"), tag);
               assertThat(user.content().get(1))
                   .isInstanceOfSatisfying(
-                      TextContent.class,
-                      text ->
-                          assertThat(DocumentReferenceXmlTag.documentIdOf(text))
-                              .isEqualTo(entry.id()));
+                      DocumentReferenceContent.class,
+                      reference -> {
+                        assertThat(reference.id()).isEqualTo(entry.id());
+                        assertThat(reference.delivery()).isEqualTo(DocumentDelivery.CONTENT);
+                      });
             });
 
     final var conversation =
@@ -969,10 +971,11 @@ class AwsAgentCoreConversationStoreTest {
             expanded -> {
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
-                  .containsExactly(TextContent.textContent("see"), tag);
+                  .containsExactly(
+                      TextContent.textContent("see"), TextContent.textContent(tag.toTag()));
               assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
             });
-    // the loaded conversation keeps the tag only
+    // the loaded conversation keeps the document reference only
     assertThat(conversation.allMessages().get(0)).isEqualTo(loaded.get(0));
   }
 

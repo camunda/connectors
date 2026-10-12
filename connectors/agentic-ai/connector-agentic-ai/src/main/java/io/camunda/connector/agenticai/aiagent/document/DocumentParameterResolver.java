@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -224,7 +223,7 @@ public final class DocumentParameterResolver {
 
   /** The id a value stands for: the id attribute of a value that is one tag, else the value. */
   private static String idOf(String value) {
-    final var tagId = DocumentReferenceXmlTag.idOfSingleTag(value);
+    final var tagId = DocumentTag.idOfSingleTag(value);
     return tagId != null ? tagId : value;
   }
 }

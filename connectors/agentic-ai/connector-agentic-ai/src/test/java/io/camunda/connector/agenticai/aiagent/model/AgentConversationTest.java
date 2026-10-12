@@ -19,12 +19,13 @@ import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -324,7 +325,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_expandsDocumentTagsFromTheRegistryAndLeavesTheStoredMessagesAlone() {
+  void window_expandsDocumentReferencesFromTheRegistryAndLeavesTheStoredMessagesAlone() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -335,9 +336,9 @@ class AgentConversationTest {
     var entry =
         DocumentRegistryEntry.from(
             new IngestedDocument(document, DocumentSource.userMessage(null)));
-    var tag = DocumentReferenceXmlTag.from(entry);
+    var reference = DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT);
     var storedMessage =
-        UserMessage.builder().content(List.of(textContent("see"), tag.toLoadedContent())).build();
+        UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
@@ -356,7 +357,7 @@ class AgentConversationTest {
               assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
-                  .containsExactly(textContent("see"), tag.toLoadedContent());
+                  .containsExactly(textContent("see"), textContent(reference.toTag()));
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
@@ -366,13 +367,13 @@ class AgentConversationTest {
                                       documentContent.document(), Map.class))
                               .isEqualTo(entry.reference()));
             });
-    // the stored conversation keeps the tag only
+    // the stored conversation keeps the document reference only
     assertThat(conv.allMessages().getLast()).isSameAs(storedMessage);
-    assertThat(storedMessage.content()).containsExactly(textContent("see"), tag.toLoadedContent());
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
   }
 
   @Test
-  void window_leavesTheTagOfAnUnmarkedDocumentWithoutContent() {
+  void window_expandsAReferenceWithReferenceDeliveryToItsTagWithoutContent() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -383,9 +384,9 @@ class AgentConversationTest {
     var entry =
         DocumentRegistryEntry.from(
             new IngestedDocument(document, DocumentSource.userMessage(null)));
-    var tag = DocumentReferenceXmlTag.from(entry);
+    var reference = DocumentReferenceContent.from(entry);
     var storedMessage =
-        UserMessage.builder().content(List.of(textContent("see"), tag.toContent())).build();
+        UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
@@ -397,7 +398,64 @@ class AgentConversationTest {
     var windowed = conv.window(20, DOCUMENT_EXPANDER).messages();
 
     assertThat(windowed).hasSize(2);
-    assertThat(windowed.getLast()).isSameAs(storedMessage);
+    assertThat(windowed.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            expanded -> {
+              assertThat(expanded.id()).isEqualTo(storedMessage.id());
+              assertThat(expanded.content())
+                  .containsExactly(textContent("see"), textContent(reference.toTag()));
+            });
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
+  }
+
+  @Test
+  void window_listsADocumentWhoseReferenceWithContentLeftTheWindowInsteadOfExpandingIt() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var withContent = UserMessage.builder().content(List.of(textContent("see"))).build();
+    var entry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(
+                document, DocumentSource.userMessage(withContent.id().toString())));
+    var evictedMessage =
+        withContent.withContent(
+            List.of(
+                textContent("see"),
+                DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT)));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(
+                List.of(
+                    evictedMessage,
+                    assistantMessage("one"),
+                    userMessage("two"),
+                    assistantMessage("three"))),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("next")));
+
+    var windowed = conv.window(3, DOCUMENT_EXPANDER).messages();
+
+    assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
+    assertThat(windowed)
+        .filteredOn(UserMessage.class::isInstance)
+        .map(message -> ((UserMessage) message).content())
+        .allSatisfy(content -> assertThat(content).noneMatch(DocumentContent.class::isInstance));
+    assertThat(windowed.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            note ->
+                assertThat(note.content())
+                    .containsExactly(
+                        textContent(EvictedDocumentsNote.PREAMBLE),
+                        textContent(DocumentReferenceContent.from(entry).toTag())));
   }
 
   @Test
@@ -617,25 +675,26 @@ class AgentConversationTest {
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
   }
 
+  private static DocumentReferenceContent reference(String id, DocumentDelivery delivery) {
+    return new DocumentReferenceContent(id, null, null, null, "user_message", null, null, delivery);
+  }
+
   @Test
-  void documentIdsWithContent_collectsTheTagsWithContentOfTheWindowedUserMessagesOnly() {
-    var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
-    var referenced = new DocumentReferenceXmlTag("doc-2", null, null, "user_message", null, null);
+  void
+      documentIdsWithContent_collectsTheReferencesWithContentDeliveryOfTheWindowedUserMessagesOnly() {
+    var loaded = reference("doc-1", DocumentDelivery.CONTENT);
+    var referenced = reference("doc-2", DocumentDelivery.REFERENCE);
     var conv =
         rehydrate(
-            List.of(),
-            List.of(
-                UserMessage.builder()
-                    .content(List.of(loaded.toLoadedContent(), referenced.toContent()))
-                    .build()));
+            List.of(), List.of(UserMessage.builder().content(List.of(loaded, referenced)).build()));
 
     assertThat(conv.documentIdsWithContent()).containsExactly("doc-1");
   }
 
   @Test
   void documentIdsWithContent_leavesOutADocumentWhoseMessageWasEvicted() {
-    var loaded = new DocumentReferenceXmlTag("doc-1", null, null, "user_message", null, null);
-    var userMessage = UserMessage.builder().content(List.of(loaded.toLoadedContent())).build();
+    var loaded = reference("doc-1", DocumentDelivery.CONTENT);
+    var userMessage = UserMessage.builder().content(List.of(loaded)).build();
 
     for (var windowSize : List.of(3, 2)) {
       var conv =

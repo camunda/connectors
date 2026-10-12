@@ -10,11 +10,13 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -49,6 +51,15 @@ class DocumentExpanderTest {
     return UserMessage.builder().content(List.of(content)).build();
   }
 
+  private static DocumentReferenceContent reference(
+      DocumentRegistry registry, int index, DocumentDelivery delivery) {
+    return DocumentReferenceContent.from(registry.entries().get(index), delivery);
+  }
+
+  private static TextContent tagOf(DocumentReferenceContent reference) {
+    return textContent(reference.toTag());
+  }
+
   private List<Content> expand(List<Content> content, DocumentRegistry registry) {
     return expander.expandContent(content, registry);
   }
@@ -69,20 +80,20 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void addsTheDocumentFromTheRegistryAfterAFlaggedTag() {
+  void expandsAReferenceToItsTagAndTheDocumentFromTheRegistryForTheHistory() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.toolCall("search", "call-1", "m-1"));
-    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent();
+    final var reference = reference(registry, 0, DocumentDelivery.REFERENCE);
 
-    final var expanded = expand(List.of(textContent("preamble"), tag), registry);
+    final var expanded = expand(List.of(textContent("preamble"), reference), registry);
 
     assertThat(expanded).hasSize(3);
-    assertThat(expanded.subList(0, 2)).containsExactly(textContent("preamble"), tag);
+    assertThat(expanded.subList(0, 2)).containsExactly(textContent("preamble"), tagOf(reference));
     assertRebuiltDocumentIs(expanded.get(2), document);
   }
 
   @Test
-  void expandingForTheModelAddsTheDocumentOnlyAfterATagWithContent() {
+  void expandingForTheModelAddsTheDocumentOnlyAfterAReferenceWithDeliveryContent() {
     final var documentWithContent = camundaDocument("loaded");
     final var referencedDocument = camundaDocument("referenced");
     final var registry =
@@ -91,40 +102,62 @@ class DocumentExpanderTest {
                 List.of(
                     new IngestedDocument(documentWithContent, DocumentSource.userMessage("m-1")),
                     new IngestedDocument(referencedDocument, DocumentSource.userMessage("m-1"))));
-    final var tagWithContent =
-        DocumentReferenceXmlTag.from(registry.entries().get(0)).toLoadedContent();
-    final var referencedTag = DocumentReferenceXmlTag.from(registry.entries().get(1)).toContent();
-    final var message = userMessage(tagWithContent, referencedTag);
+    final var withContent = reference(registry, 0, DocumentDelivery.CONTENT);
+    final var referenced = reference(registry, 1, DocumentDelivery.REFERENCE);
+    final var message = userMessage(withContent, referenced);
 
     final var expanded = expander.expandMessages(List.of(message), registry);
 
     final var content = ((UserMessage) expanded.getFirst()).content();
     assertThat(content).hasSize(3);
-    assertThat(content.get(0)).isEqualTo(tagWithContent);
+    assertThat(content.get(0)).isEqualTo(tagOf(withContent));
     assertRebuiltDocumentIs(content.get(1), documentWithContent);
-    assertThat(content.get(2)).isEqualTo(referencedTag);
+    assertThat(content.get(2)).isEqualTo(tagOf(referenced));
   }
 
   @Test
-  void expandingForTheModelLeavesAMessageWithoutTagsWithContentAlone() {
+  void expandingForTheModelTurnsAReferenceWithDeliveryReferenceIntoItsTagOnly() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.userMessage(null));
-    final var message =
-        userMessage(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent());
-    final var messages = List.<Message>of(message);
+    final var reference = reference(registry, 0, DocumentDelivery.REFERENCE);
+    final var message = userMessage(reference);
 
-    assertThat(expander.expandMessages(messages, registry)).isSameAs(messages);
+    final var expanded = expander.expandMessages(List.of(message), registry);
+
+    assertThat(((UserMessage) expanded.getFirst()).content()).containsExactly(tagOf(reference));
+    assertThat(((UserMessage) expanded.getFirst()).id()).isEqualTo(message.id());
   }
 
   @Test
-  void expandingForTheHistoryAddsTheDocumentAfterEveryFlaggedTag() {
+  void expandingForTheModelLeavesAMessageWithoutDocumentReferencesAlone() {
+    final var messages =
+        List.<Message>of(userMessage(textContent("hello")), assistantMessage("hi"));
+
+    assertThat(expander.expandMessages(messages, DocumentRegistry.empty())).isSameAs(messages);
+  }
+
+  @Test
+  void expandingForTheModelKeepsTheTagWithoutContentWhenTheDocumentIsNotInTheRegistry() {
+    final var reference =
+        new DocumentReferenceContent(
+            "unknown", null, null, null, null, null, null, DocumentDelivery.CONTENT);
+
+    final var expanded =
+        expander.expandMessages(List.of(userMessage(reference)), DocumentRegistry.empty());
+
+    assertThat(((UserMessage) expanded.getFirst()).content()).containsExactly(tagOf(reference));
+  }
+
+  @Test
+  void expandingForTheHistoryAddsTheDocumentAfterEveryReference() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.userMessage(null));
-    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent();
+    final var reference = reference(registry, 0, DocumentDelivery.REFERENCE);
 
-    final var expanded = expander.expandContent(List.of(tag), registry);
+    final var expanded = expander.expandContent(List.of(reference), registry);
 
     assertThat(expanded).hasSize(2);
+    assertThat(expanded.get(0)).isEqualTo(tagOf(reference));
     assertRebuiltDocumentIs(expanded.get(1), document);
   }
 
@@ -138,12 +171,10 @@ class DocumentExpanderTest {
                 List.of(
                     new IngestedDocument(external, DocumentSource.userMessage("m-1")),
                     new IngestedDocument(inline, DocumentSource.userMessage("m-1"))));
-    final var tags =
-        registry.entries().stream()
-            .<Content>map(entry -> DocumentReferenceXmlTag.from(entry).toContent())
-            .toList();
+    final var references =
+        registry.entries().stream().<Content>map(DocumentReferenceContent::from).toList();
 
-    final var expanded = expand(tags, registry);
+    final var expanded = expand(references, registry);
 
     assertThat(expanded).hasSize(4);
     assertRebuiltDocumentIs(expanded.get(1), external);
@@ -151,28 +182,30 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void leavesAFlaggedTagAloneWhenItsDocumentAlreadyFollows() {
+  void doesNotAddTheDocumentAgainWhenItAlreadyFollowsTheReference() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.userMessage(null));
-    final var content =
-        List.<Content>of(
-            DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent(),
-            DocumentContent.documentContent(document));
+    final var reference = reference(registry, 0, DocumentDelivery.REFERENCE);
+    final var content = List.<Content>of(reference, DocumentContent.documentContent(document));
 
-    assertThat(expand(content, registry)).isSameAs(content);
+    assertThat(expand(content, registry))
+        .hasSize(2)
+        .containsExactly(tagOf(reference), DocumentContent.documentContent(document));
   }
 
   @Test
-  void leavesAFlaggedTagWithoutRegistryEntryAlone() {
-    final var tag =
-        new DocumentReferenceXmlTag("unknown", null, null, null, null, null).toContent();
-    final var content = List.<Content>of(textContent("text"), tag);
+  void expandsAReferenceWithoutRegistryEntryToItsTagOnly() {
+    final var reference =
+        new DocumentReferenceContent(
+            "unknown", null, null, null, null, null, null, DocumentDelivery.REFERENCE);
+    final var content = List.<Content>of(textContent("text"), reference);
 
-    assertThat(expand(content, DocumentRegistry.empty())).isSameAs(content);
+    assertThat(expand(content, DocumentRegistry.empty()))
+        .containsExactly(textContent("text"), tagOf(reference));
   }
 
   @Test
-  void leavesAFlaggedTagAloneWhenTheReferenceCannotBeRead() {
+  void expandsAReferenceToItsTagOnlyWhenTheRegistryReferenceCannotBeRead() {
     final var registry =
         DocumentRegistry.of(
             List.of(
@@ -180,15 +213,15 @@ class DocumentExpanderTest {
                     "broken",
                     DocumentSource.userMessage(null),
                     Map.of("camunda.document.type", "unsupported"))));
-    final var content =
-        List.<Content>of(
-            new DocumentReferenceXmlTag("broken", null, null, null, null, null).toContent());
+    final var reference =
+        new DocumentReferenceContent(
+            "broken", null, null, null, null, null, null, DocumentDelivery.REFERENCE);
 
-    assertThat(expand(content, registry)).isSameAs(content);
+    assertThat(expand(List.of(reference), registry)).containsExactly(tagOf(reference));
   }
 
   @Test
-  void onlyExpandsFlaggedTags() {
+  void leavesTagsInPlainTextAlone() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.userMessage(null));
     final var literal =
@@ -202,8 +235,7 @@ class DocumentExpanderTest {
   void expandingTwiceGivesTheSameContent() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.event("m-1"));
-    final var content =
-        List.<Content>of(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent());
+    final var content = List.<Content>of(reference(registry, 0, DocumentDelivery.REFERENCE));
 
     final var once = expand(content, registry);
 
@@ -215,13 +247,12 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void onlyChangesUserMessages() {
+  void expandsTheContentOfUserMessagesOnly() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.userMessage(null));
     final var assistant = assistantMessage("hi");
     final var plainUser = userMessage(textContent("hello"));
-    final var documentUser =
-        userMessage(DocumentReferenceXmlTag.from(registry.entries().getFirst()).toLoadedContent());
+    final var documentUser = userMessage(reference(registry, 0, DocumentDelivery.CONTENT));
     final var messages = List.<Message>of(assistant, plainUser, documentUser);
 
     final var expanded = expander.expandMessages(messages, registry);

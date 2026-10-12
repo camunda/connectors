@@ -33,11 +33,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -221,15 +223,22 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(userMessage.content())
         .containsExactly(
             textContent("Tell me a story"),
-            documentTag(
-                document,
-                "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"));
+            documentReference(
+                document, "notes.txt", "text/plain", "user_message", DocumentDelivery.REFERENCE));
+    assertThat(((DocumentReferenceContent) userMessage.content().get(1)).toTag())
+        .isEqualTo(
+            "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
+                .formatted(DocumentHandle.idFor(document)));
   }
 
-  private static TextContent documentTag(Document document, String xmlFormat) {
-    final var id = DocumentHandle.idFor(document);
-    return new TextContent(
-        xmlFormat.formatted(id), Map.of("kind", "document-reference", "documentId", id));
+  private static DocumentReferenceContent documentReference(
+      Document document,
+      String fileName,
+      String contentType,
+      String source,
+      DocumentDelivery delivery) {
+    return new DocumentReferenceContent(
+        DocumentHandle.idFor(document), fileName, contentType, null, source, null, null, delivery);
   }
 
   @Test
@@ -515,9 +524,12 @@ class AgentConversationTurnInputComposerImplTest {
                       textContent(
                           AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_TAGS_PREAMBLE))
                   .contains(
-                      documentTag(
+                      documentReference(
                           eventDoc,
-                          "<doc id=\"%s\" fileName=\"event.pdf\" contentType=\"application/pdf\" source=\"event\" />"))
+                          "event.pdf",
+                          "application/pdf",
+                          "event",
+                          DocumentDelivery.REFERENCE))
                   .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
@@ -765,12 +777,9 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(1);
   }
 
-  private static TextContent tagWithContent(Document document, String fileName) {
-    final var id = DocumentHandle.idFor(document);
-    return new TextContent(
-        "<doc id=\"%s\" fileName=\"%s\" contentType=\"text/plain\" source=\"user_message\" />"
-            .formatted(id, fileName),
-        Map.of("kind", "document-reference", "documentId", id, "loaded", true));
+  private static DocumentReferenceContent tagWithContent(Document document, String fileName) {
+    return documentReference(
+        document, fileName, "text/plain", "user_message", DocumentDelivery.CONTENT);
   }
 
   @Test

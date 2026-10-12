@@ -56,6 +56,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTag;
 import io.camunda.connector.agenticai.aiagent.document.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
@@ -76,16 +77,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionCont
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -1058,10 +1060,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(message.content().get(1))
                   .isInstanceOfSatisfying(
                       TextContent.class,
-                      tag -> {
-                        assertThat(DocumentReferenceXmlTag.documentIdOf(tag)).isEqualTo(documentId);
-                        assertThat(DocumentReferenceXmlTag.isLoaded(tag)).isTrue();
-                      });
+                      tag ->
+                          assertThat(DocumentTag.idOfSingleTag(tag.text())).isEqualTo(documentId));
               assertThat(message.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
@@ -1070,7 +1070,8 @@ class AgentSubProcessRequestHandlerTest {
                               .isEqualTo(documentId));
             });
 
-    // the stored conversation keeps the follow-up message as the tag only
+    // the stored conversation keeps the follow-up message as the document reference with content
+    // delivery only
     assertThat(response.responseValue().context().conversation())
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
@@ -1080,10 +1081,19 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages().get(4))
                   .isInstanceOfSatisfying(
                       UserMessage.class,
-                      message ->
-                          assertThat(message.content())
-                              .noneMatch(DocumentContent.class::isInstance)
-                              .hasSize(2));
+                      message -> {
+                        assertThat(message.content())
+                            .noneMatch(DocumentContent.class::isInstance)
+                            .hasSize(2);
+                        assertThat(message.content().get(1))
+                            .isInstanceOfSatisfying(
+                                DocumentReferenceContent.class,
+                                reference -> {
+                                  assertThat(reference.id()).isEqualTo(documentId);
+                                  assertThat(reference.delivery())
+                                      .isEqualTo(DocumentDelivery.CONTENT);
+                                });
+                      });
             });
 
     // the synthetic round reports both messages as input of its turn

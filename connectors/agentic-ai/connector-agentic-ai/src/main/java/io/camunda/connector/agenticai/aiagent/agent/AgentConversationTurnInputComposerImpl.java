@@ -23,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -32,7 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -214,23 +213,23 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var source = DocumentSource.userMessage(messageId.toString());
     if (documentFlow) {
-      // add documents as tags; the content is only added, from the registry when the model is
-      // called, for the tags with content
+      // add documents as references; the content is only added, from the registry when the model
+      // is called, for the references with delivery content
       final var handledDocumentIds = new HashSet<>(idsWithContent);
       for (var doc : userPrompt.documents()) {
-        final var tag = DocumentReferenceXmlTag.from(doc, source);
+        final var reference = DocumentReferenceContent.from(doc, source);
         if (userPrompt.documentDelivery() != DocumentDelivery.CONTENT
-            || !handledDocumentIds.add(tag.id())) {
-          content.add(tag.toContent());
+            || !handledDocumentIds.add(reference.id())) {
+          content.add(reference);
           continue;
         }
 
         final var rejection = DocumentContentGuard.check(doc).orElse(null);
         if (rejection == null) {
-          content.add(tag.toLoadedContent());
+          content.add(reference.withDelivery(DocumentDelivery.CONTENT));
         } else {
-          content.add(tag.toContent());
-          content.add(textContent(noContentNote(tag.id(), rejection)));
+          content.add(reference);
+          content.add(textContent(noContentNote(reference.id(), rejection)));
         }
       }
     } else {
@@ -335,7 +334,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         .distinct()
         .map(registry::findById)
         .flatMap(Optional::stream)
-        .<Content>map(entry -> DocumentReferenceXmlTag.from(entry).toLoadedContent())
+        .<Content>map(entry -> DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT))
         .toList();
   }
 
@@ -386,7 +385,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         final var rejection = DocumentContentGuard.check(doc).orElse(null);
         content.add(
             rejection == null
-                ? DocumentReferenceXmlTag.from(doc, source).toLoadedContent()
+                ? DocumentReferenceContent.from(doc, source, DocumentDelivery.CONTENT)
                 : textContent(noContentNote(id, rejection)));
       }
     }
@@ -423,7 +422,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private static boolean isTagWithContent(Content content) {
-    return content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text);
+    return content instanceof DocumentReferenceContent reference
+        && reference.delivery() == DocumentDelivery.CONTENT;
   }
 
   /**
@@ -520,7 +520,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         for (var group : eventDocuments) {
           for (var doc : group.documents()) {
             ingestedDocuments.add(new IngestedDocument(doc, source));
-            userMessageContent.add(DocumentReferenceXmlTag.from(doc, source).toContent());
+            userMessageContent.add(DocumentReferenceContent.from(doc, source));
           }
         }
       } else {

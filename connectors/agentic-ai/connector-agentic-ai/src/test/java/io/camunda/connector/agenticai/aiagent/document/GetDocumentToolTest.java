@@ -22,9 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
@@ -224,7 +225,7 @@ class GetDocumentToolTest {
   @Test
   void doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var tagWithContent = DocumentReferenceXmlTag.from(entry).toLoadedContent();
+    final var tagWithContent = DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT);
 
     final var split =
         run(
@@ -246,7 +247,7 @@ class GetDocumentToolTest {
   @Test
   void loadsADocumentWhoseTagIsOnlyAReference() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var referenceTag = DocumentReferenceXmlTag.from(entry).toContent();
+    final var referenceTag = DocumentReferenceContent.from(entry);
 
     final var split =
         run(

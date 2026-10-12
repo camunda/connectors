@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -87,7 +87,7 @@ public final class DocumentRegistry {
     final var listed =
         entriesById.values().stream()
             .limit(MAX_LISTED_DOCUMENTS)
-            .map(entry -> DocumentReferenceXmlTag.from(entry).toXml())
+            .map(entry -> DocumentReferenceContent.from(entry).toTag())
             .collect(Collectors.joining("\n"));
     final var omitted = entriesById.size() - MAX_LISTED_DOCUMENTS;
     return "Known documents:\n"

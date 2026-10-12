@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.ArrayList;
@@ -29,10 +29,11 @@ import org.apache.commons.text.StringEscapeUtils;
  * longer part of the windowed conversation.
  *
  * <p>A registry document counts as visible when its id appears in a windowed user or tool result
- * message, as {@link DocumentContent}, as a {@link io.camunda.connector.api.document.Document}
- * nested in object content, or as the id of a {@code <doc/>} tag in text, or when the message that
- * introduced it (see {@link DocumentSource#messageId()}) is windowed. The note is added to the
- * snapshot sent to the model only; it is never part of the stored conversation.
+ * message, as {@link DocumentContent}, as a {@link DocumentReferenceContent}, as a {@link
+ * io.camunda.connector.api.document.Document} nested in object content, or as the id of a {@code
+ * <doc/>} tag in text, or when the message that introduced it (see {@link
+ * DocumentSource#messageId()}) is windowed. The note is added to the snapshot sent to the model
+ * only; it is never part of the stored conversation.
  */
 public final class EvictedDocumentsNote {
 
@@ -74,7 +75,8 @@ public final class EvictedDocumentsNote {
     final var content = new ArrayList<Content>();
     content.add(TextContent.textContent(PREAMBLE));
     evicted.forEach(
-        entry -> content.add(TextContent.textContent(DocumentReferenceXmlTag.from(entry).toXml())));
+        entry ->
+            content.add(TextContent.textContent(DocumentReferenceContent.from(entry).toTag())));
 
     final var messages = new ArrayList<>(windowed);
     messages.add(UserMessage.builder().content(content).build());
@@ -105,6 +107,7 @@ public final class EvictedDocumentsNote {
       case ObjectContent objectContent ->
           ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content())
               .forEach(document -> ids.add(DocumentHandle.idFor(document)));
+      case DocumentReferenceContent reference -> ids.add(reference.id());
       case TextContent textContent -> {
         final var matcher = TAG_ID.matcher(textContent.text());
         while (matcher.find()) {

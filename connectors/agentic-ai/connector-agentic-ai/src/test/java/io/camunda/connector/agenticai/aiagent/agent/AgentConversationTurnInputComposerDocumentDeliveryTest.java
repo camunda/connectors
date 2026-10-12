@@ -25,12 +25,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
@@ -96,12 +96,14 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   private static boolean isTagWithContent(Content content) {
-    return content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text);
+    return content instanceof DocumentReferenceContent reference
+        && reference.delivery() == DocumentDelivery.CONTENT;
   }
 
-  private static TextContent tag(Document document, DocumentSource source, boolean loaded) {
-    final var tag = DocumentReferenceXmlTag.from(document, source);
-    return loaded ? tag.toLoadedContent() : tag.toContent();
+  private static DocumentReferenceContent tag(
+      Document document, DocumentSource source, boolean loaded) {
+    return DocumentReferenceContent.from(
+        document, source, loaded ? DocumentDelivery.CONTENT : DocumentDelivery.REFERENCE);
   }
 
   // --- user prompt

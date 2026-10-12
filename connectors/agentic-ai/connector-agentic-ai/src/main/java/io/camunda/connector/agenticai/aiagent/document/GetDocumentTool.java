@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -118,7 +118,7 @@ public final class GetDocumentTool implements RuntimeTool {
 
     return RuntimeToolResult.success(
             "Loaded the document %s. Its content follows in the next message."
-                .formatted(DocumentReferenceXmlTag.from(entry).toXml()))
+                .formatted(DocumentReferenceContent.from(entry).toTag()))
         .withProperty(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, entry.id());
   }
 

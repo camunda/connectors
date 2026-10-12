@@ -16,12 +16,12 @@ import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.ArrayList;
@@ -334,7 +334,7 @@ public final class AgentConversation {
 
   /**
    * Returns the ids of the documents whose content the model reads in the windowed conversation:
-   * the documents of the tags with content in the windowed user messages.
+   * the documents of the references with delivery content in the windowed user messages.
    */
   public Set<String> documentIdsWithContent() {
     return documentIdsWithContent(
@@ -343,15 +343,16 @@ public final class AgentConversation {
 
   /**
    * Returns the ids of the documents whose content the model reads in the given messages: the
-   * documents of the tags with content in the user messages.
+   * documents of the references with delivery content in the user messages.
    */
   public static Set<String> documentIdsWithContent(List<Message> messages) {
     final var ids = new LinkedHashSet<String>();
     for (final var message : messages) {
       if (message instanceof UserMessage userMessage) {
         for (final var content : userMessage.content()) {
-          if (content instanceof TextContent text && DocumentReferenceXmlTag.isLoaded(text)) {
-            ids.add(Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text)));
+          if (content instanceof DocumentReferenceContent reference
+              && reference.delivery() == DocumentDelivery.CONTENT) {
+            ids.add(reference.id());
           }
         }
       }
@@ -416,14 +417,14 @@ public final class AgentConversation {
    * tools.
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
-   * tags of the documents with content in the windowed user messages are expanded from the registry
-   * of the {@link AgentContext#documents() context} (see {@link DocumentExpander}); every other
-   * document stays a tag. When registry documents are not visible in the windowed messages, the
-   * snapshot ends with a transient user message listing them (see {@link EvictedDocumentsNote}).
-   * For an agent instance without the feature, the documents of the tool results are marked to be
-   * rendered as their document reference (see {@link LegacyDocumentRendering}) and the messages are
-   * otherwise left as they are. {@link #allMessages()} and the stored conversation are not
-   * affected.
+   * document references in the windowed user messages are expanded to their tag text and, for the
+   * references with delivery content, the document read from the registry of the {@link
+   * AgentContext#documents() context} (see {@link DocumentExpander}); every other document stays a
+   * tag. When registry documents are not visible in the windowed messages, the snapshot ends with a
+   * transient user message listing them (see {@link EvictedDocumentsNote}). For an agent instance
+   * without the feature, the documents of the tool results are marked to be rendered as their
+   * document reference (see {@link LegacyDocumentRendering}) and the messages are otherwise left as
+   * they are. {@link #allMessages()} and the stored conversation are not affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);

@@ -19,14 +19,15 @@ import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -92,7 +93,7 @@ class AgentInstanceHistoryMapperTest {
         DocumentRegistry.empty()
             .withDocuments(
                 List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
-    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toContent();
+    final var tag = DocumentReferenceContent.from(registry.entries().getFirst());
     final var userMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -105,7 +106,7 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(
             item -> {
               assertThat(item.content()).hasSize(3);
-              assertThat(texts(item.content())).containsExactly("see", "`" + tag.text() + "`");
+              assertThat(texts(item.content())).containsExactly("see", "`" + tag.toTag() + "`");
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
             });
@@ -126,7 +127,8 @@ class AgentInstanceHistoryMapperTest {
                 List.of(
                     new IngestedDocument(
                         document, DocumentSource.toolCall("fetch", "call-1", null))));
-    final var tag = DocumentReferenceXmlTag.from(registry.entries().getFirst()).toLoadedContent();
+    final var tag =
+        DocumentReferenceContent.from(registry.entries().getFirst(), DocumentDelivery.CONTENT);
     final var loadedMessage =
         UserMessage.builder()
             .content(
@@ -149,7 +151,7 @@ class AgentInstanceHistoryMapperTest {
               assertThat(texts(item.content()))
                   .containsExactly(
                       "System message, not written by the user: the content of the documents loaded for the tool results above follows.",
-                      "`" + tag.text() + "`");
+                      "`" + tag.toTag() + "`");
               assertThat(item.content()).hasSize(3);
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
@@ -159,7 +161,8 @@ class AgentInstanceHistoryMapperTest {
   @Test
   void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
     final var tag =
-        new DocumentReferenceXmlTag("unknown", null, null, null, null, null).toContent();
+        new DocumentReferenceContent(
+            "unknown", null, null, null, null, null, null, DocumentDelivery.REFERENCE);
     final var userMessage = UserMessage.builder().content(List.of(tag)).build();
 
     final var items =
@@ -168,7 +171,7 @@ class AgentInstanceHistoryMapperTest {
     assertThat(items)
         .singleElement()
         .satisfies(
-            item -> assertThat(texts(item.content())).containsExactly("`" + tag.text() + "`"));
+            item -> assertThat(texts(item.content())).containsExactly("`" + tag.toTag() + "`"));
   }
 
   @Test

@@ -17,6 +17,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -118,6 +119,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     try {
       return switch (content) {
         case TextContent t -> t.text();
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent o -> modelFacingJson.write(o.content());
         case DocumentContent d -> modelFacingJson.write(d.document());
         case ReasoningContent ignored ->

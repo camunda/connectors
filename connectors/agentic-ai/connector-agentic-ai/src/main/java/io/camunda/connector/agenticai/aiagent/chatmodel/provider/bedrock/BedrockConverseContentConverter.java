@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -97,6 +98,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(documentContentBlock(doc));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> blocks.add(ContentBlock.fromText(writeAsJson(obj.content())));
         case ReasoningContent rc when BEDROCK_CONVERSE_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlock(rc));
@@ -123,6 +125,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(toolResultContentBlock(doc.document()));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> blocks.add(toolResultContentBlock(obj.content()));
         case ReasoningContent rc ->
             throw new ConnectorException(

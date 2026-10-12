@@ -7,34 +7,33 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Turns the persisted form of the documents in user messages into the form the model providers and
- * the agent instance history see: a document tag next to the content of its document.
+ * Turns the persisted {@link DocumentReferenceContent document references} in user messages into
+ * the form the model providers and the agent instance history see: the tag text of the document
+ * and, depending on the delivery, the content of the document next to it.
  *
- * <p>The persisted form of a document is its tag only, a {@link TextContent} marked with {@link
- * DocumentReferenceXmlTag#KIND_DOCUMENT_REFERENCE}; the document is read from the {@link
- * DocumentRegistry}. Expanding adds a {@link DocumentContent} after a flagged tag, unless one for
- * the same document already follows it. The model gets the content only of the tags that are marked
- * as having content ({@link #expandMessages}); the history shows the document of every flagged tag
- * ({@link #expandContent}). A document the registry does not know, or whose reference cannot be
- * read, leaves the tag alone. Only flagged text is expanded, so a document tag a user typed into a
- * prompt stays text.
+ * <p>The persisted form of a document is its reference only; the document is read from the {@link
+ * DocumentRegistry}. The model gets the tag text of every reference and the document content of the
+ * references with {@link DocumentDelivery#CONTENT} ({@link #expandMessages}); the history shows the
+ * document of every reference ({@link #expandContent}). A document the registry does not know, or
+ * whose reference cannot be read, leaves the tag text alone. A tag a user typed into a prompt is
+ * text and stays text.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -54,8 +53,9 @@ public final class DocumentExpander {
   }
 
   /**
-   * Returns the messages with the content of their user messages expanded for the model: only the
-   * tags {@link DocumentReferenceXmlTag#isLoaded marked with content} get their document.
+   * Returns the messages with the content of their user messages expanded for the model: the tag
+   * text of every document reference, followed by the document for the references with delivery
+   * content.
    */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());
@@ -75,36 +75,36 @@ public final class DocumentExpander {
   }
 
   /**
-   * Returns the content expanded with the document of every flagged tag, or the same list when
-   * nothing needs to change.
+   * Returns the content expanded to the tag text and the document of every document reference, or
+   * the same list when nothing needs to change.
    */
   public List<Content> expandContent(List<Content> content, DocumentRegistry registry) {
     return expand(content, registry, false);
   }
 
   private List<Content> expand(
-      List<Content> content, DocumentRegistry registry, boolean onlyTagsWithContent) {
+      List<Content> content, DocumentRegistry registry, boolean onlyDeliveryContent) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
       final var current = content.get(i);
       final var next = i + 1 < content.size() ? content.get(i + 1) : null;
-      switch (current) {
-        case TextContent text
-            when DocumentReferenceXmlTag.documentIdOf(text) != null
-                && (!onlyTagsWithContent || DocumentReferenceXmlTag.isLoaded(text)) -> {
-          expanded.add(text);
-          final var id = Objects.requireNonNull(DocumentReferenceXmlTag.documentIdOf(text));
-          if (!(next instanceof DocumentContent following
-              && isDocumentWithId(following.document(), id))) {
-            final var document = rehydrate(registry, id);
-            if (document != null) {
-              expanded.add(DocumentContent.documentContent(document));
-              changed = true;
-            }
-          }
+      if (!(current instanceof DocumentReferenceContent reference)) {
+        expanded.add(current);
+        continue;
+      }
+
+      expanded.add(new TextContent(reference.toTag(), reference.metadata()));
+      changed = true;
+      final var withContent =
+          !onlyDeliveryContent || reference.delivery() == DocumentDelivery.CONTENT;
+      if (withContent
+          && !(next instanceof DocumentContent following
+              && isDocumentWithId(following.document(), reference.id()))) {
+        final var document = rehydrate(registry, reference.id());
+        if (document != null) {
+          expanded.add(DocumentContent.documentContent(document));
         }
-        default -> expanded.add(current);
       }
     }
     return changed ? List.copyOf(expanded) : content;

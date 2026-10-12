@@ -4,22 +4,23 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.aiagent.model.message.content;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -34,34 +35,10 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
-class DocumentReferenceXmlTagTest {
+class DocumentReferenceContentTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-
-  @Test
-  void idOfSingleTagReadsTheIdOfARenderedTag() {
-    final var tag =
-        new DocumentReferenceXmlTag(
-            "a&b\"c", "re<port>.pdf", "application/pdf", 10L, null, "search", "call_abc");
-
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag(tag.toXml())).isEqualTo("a&b\"c");
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("  \n" + tag.toXml() + "\t "))
-        .isEqualTo("a&b\"c");
-  }
-
-  @Test
-  void idOfSingleTagIsNullForAnythingButExactlyOneTagWithAnId() {
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("some-id")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("see <doc id=\"a\" />")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\" /> see")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\" /><doc id=\"b\" />")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\"a\">")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc fileName=\"x\" />")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc id=\" \" />")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("<doc />")).isNull();
-    assertThat(DocumentReferenceXmlTag.idOfSingleTag("")).isNull();
-  }
 
   @Test
   void camundaDocumentRendersIdFileNameContentTypeAndToolOrigin() {
@@ -73,8 +50,8 @@ class DocumentReferenceXmlTagTest {
                 .build());
 
     assertThat(
-            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("search", "call_abc", null))
-                .toXml())
+            DocumentReferenceContent.from(doc, DocumentSource.toolCall("search", "call_abc", null))
+                .toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -89,7 +66,7 @@ class DocumentReferenceXmlTagTest {
                 .fileName("a.txt")
                 .build());
 
-    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+    assertThat(DocumentReferenceContent.from(doc).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -105,8 +82,8 @@ class DocumentReferenceXmlTagTest {
                 .build());
 
     assertThat(
-            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("tool", "call_1", null))
-                .toXml())
+            DocumentReferenceContent.from(doc, DocumentSource.toolCall("tool", "call_1", null))
+                .toTag())
         .doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
   }
 
@@ -116,7 +93,7 @@ class DocumentReferenceXmlTagTest {
         documentFactory.create(
             DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build());
 
-    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+    assertThat(DocumentReferenceContent.from(doc).toTag())
         .startsWith("<doc id=\"%s\"".formatted(DocumentHandle.idFor(doc)))
         .doesNotContain("fileName", "contentType", "toolName", "toolCallId");
   }
@@ -129,8 +106,8 @@ class DocumentReferenceXmlTagTest {
             "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
 
     final var xml =
-        DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("search", "call_abc", null))
-            .toXml();
+        DocumentReferenceContent.from(doc, DocumentSource.toolCall("search", "call_abc", null))
+            .toTag();
 
     assertThat(xml)
         .isEqualTo(
@@ -145,10 +122,10 @@ class DocumentReferenceXmlTagTest {
         new ExternalDocument(
             "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
 
-    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+    assertThat(DocumentReferenceContent.from(doc).toTag())
         .isEqualTo("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(doc)));
     assertThat(
-            DocumentReferenceXmlTag.from(
+            DocumentReferenceContent.from(
                     new ExternalDocument("https://example.com/x", "", u -> null))
                 .fileName())
         .isNull();
@@ -158,7 +135,7 @@ class DocumentReferenceXmlTagTest {
   void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
 
-    assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+    assertThat(DocumentReferenceContent.from(doc).toTag())
         .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(DocumentHandle.idFor(doc)));
   }
 
@@ -167,8 +144,8 @@ class DocumentReferenceXmlTagTest {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
 
     assertThat(
-            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("gen", "call_1", null))
-                .toXml())
+            DocumentReferenceContent.from(doc, DocumentSource.toolCall("gen", "call_1", null))
+                .toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -191,17 +168,17 @@ class DocumentReferenceXmlTagTest {
             + " toolName=\"tool\" toolCallId=\"call_1\" />";
 
     assertThat(
-            DocumentReferenceXmlTag.from(doc, DocumentSource.toolCall("tool", "call_1", null))
-                .toXml())
+            DocumentReferenceContent.from(doc, DocumentSource.toolCall("tool", "call_1", null))
+                .toTag())
         .isEqualTo(expected);
-    assertThat(DocumentReferenceXmlTag.from(entry).toXml()).isEqualTo(expected);
+    assertThat(DocumentReferenceContent.from(entry).toTag()).isEqualTo(expected);
     assertThat(DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsText())
         .doesNotContain("fileName");
   }
 
   @Test
   void keepsAFileNameThatDiffersFromTheId() {
-    assertThat(new DocumentReferenceXmlTag("doc-1", "doc-1.txt", null, null, null, null).toXml())
+    assertThat(reference("doc-1", "doc-1.txt", null, null, null, null, null).toTag())
         .isEqualTo("<doc id=\"doc-1\" fileName=\"doc-1.txt\" />");
   }
 
@@ -210,9 +187,9 @@ class DocumentReferenceXmlTagTest {
     final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
 
     assertThat(
-            DocumentReferenceXmlTag.from(
+            DocumentReferenceContent.from(
                     doc, DocumentSource.toolCall("tool<with\"quotes>", "call_1", null))
-                .toXml())
+                .toTag())
         .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
         .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
   }
@@ -242,16 +219,16 @@ class DocumentReferenceXmlTagTest {
             DocumentRegistryEntry.from(
                 new IngestedDocument(doc, DocumentSource.toolCall(toolName, toolCallId, null)));
 
-        assertThat(DocumentReferenceXmlTag.from(entry))
+        assertThat(DocumentReferenceContent.from(entry))
             .as("%s from %s", doc.reference(), origin)
             .isEqualTo(
-                DocumentReferenceXmlTag.from(
+                DocumentReferenceContent.from(
                     doc, DocumentSource.toolCall(toolName, toolCallId, null)));
-        assertThat(DocumentReferenceXmlTag.from(entry).toXml())
+        assertThat(DocumentReferenceContent.from(entry).toTag())
             .isEqualTo(
-                DocumentReferenceXmlTag.from(
+                DocumentReferenceContent.from(
                         doc, DocumentSource.toolCall(toolName, toolCallId, null))
-                    .toXml());
+                    .toTag());
       }
     }
   }
@@ -265,11 +242,11 @@ class DocumentReferenceXmlTagTest {
                 .fileName("a.txt")
                 .build());
 
-    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.userMessage("message-1")).toXml())
+    assertThat(DocumentReferenceContent.from(doc, DocumentSource.userMessage("message-1")).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"user_message\" />"
                 .formatted(DocumentHandle.idFor(doc)));
-    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.event("message-1")).toXml())
+    assertThat(DocumentReferenceContent.from(doc, DocumentSource.event("message-1")).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -282,8 +259,8 @@ class DocumentReferenceXmlTagTest {
         DocumentRegistryEntry.from(
             new IngestedDocument(doc, DocumentSource.toolCall("tool", "call_1", "message-1")));
 
-    assertThat(DocumentReferenceXmlTag.from(entry).toXml()).doesNotContain("message-1");
-    assertThat(DocumentReferenceXmlTag.from(doc, DocumentSource.userMessage("message-2")).toXml())
+    assertThat(DocumentReferenceContent.from(entry).toTag()).doesNotContain("message-1");
+    assertThat(DocumentReferenceContent.from(doc, DocumentSource.userMessage("message-2")).toTag())
         .doesNotContain("message-2");
   }
 
@@ -293,26 +270,9 @@ class DocumentReferenceXmlTagTest {
     final var entry =
         DocumentRegistryEntry.from(new IngestedDocument(doc, DocumentSource.event(null)));
 
-    assertThat(DocumentReferenceXmlTag.from(entry))
-        .isEqualTo(DocumentReferenceXmlTag.from(doc, DocumentSource.event(null)));
-    assertThat(DocumentReferenceXmlTag.from(entry).source()).isEqualTo("event");
-  }
-
-  @Test
-  void toContentMarksTheTagTextAsADocumentReferenceOfTheDocument() {
-    final var tag = new DocumentReferenceXmlTag("doc-1", "a.txt", null, "event", null, null);
-
-    final var content = tag.toContent();
-
-    assertThat(content.text()).isEqualTo(tag.toXml());
-    assertThat(content.metadata())
-        .containsExactly(entry("kind", "document-reference"), entry("documentId", "doc-1"));
-    assertThat(DocumentReferenceXmlTag.documentIdOf(content)).isEqualTo("doc-1");
-    assertThat(DocumentReferenceXmlTag.documentIdOf(TextContent.textContent(tag.toXml()))).isNull();
-    assertThat(
-            DocumentReferenceXmlTag.documentIdOf(
-                new TextContent(tag.toXml(), Map.of("documentId", "doc-1"))))
-        .isNull();
+    assertThat(DocumentReferenceContent.from(entry))
+        .isEqualTo(DocumentReferenceContent.from(doc, DocumentSource.event(null)));
+    assertThat(DocumentReferenceContent.from(entry).source()).isEqualTo("event");
   }
 
   private static Document camundaDocumentWithSize(@Nullable Long size) {
@@ -332,7 +292,7 @@ class DocumentReferenceXmlTagTest {
   void camundaDocumentWithASizeInItsMetadataRendersTheSizeAfterTheContentType() {
     final var document = camundaDocumentWithSize(48213L);
 
-    assertThat(DocumentReferenceXmlTag.from(document).toXml())
+    assertThat(DocumentReferenceContent.from(document).toTag())
         .isEqualTo(
             "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" />");
   }
@@ -341,7 +301,7 @@ class DocumentReferenceXmlTagTest {
   void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
     final var document = camundaDocumentWithSize(10L);
 
-    DocumentReferenceXmlTag.from(document, DocumentSource.toolCall("search", "call_1", null));
+    DocumentReferenceContent.from(document, DocumentSource.toolCall("search", "call_1", null));
 
     verify(document, atLeastOnce()).reference();
     verify(document, atLeastOnce()).metadata();
@@ -350,21 +310,21 @@ class DocumentReferenceXmlTagTest {
 
   @Test
   void camundaDocumentWithoutASizeOmitsIt() {
-    assertThat(DocumentReferenceXmlTag.from(camundaDocumentWithSize(null)).toXml())
+    assertThat(DocumentReferenceContent.from(camundaDocumentWithSize(null)).toTag())
         .doesNotContain("size=");
   }
 
   @Test
   void externalAndInlineDocumentsNeverRenderASize() {
     assertThat(
-            DocumentReferenceXmlTag.from(
+            DocumentReferenceContent.from(
                     new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null))
-                .toXml())
+                .toTag())
         .doesNotContain("size=");
     assertThat(
-            DocumentReferenceXmlTag.from(
+            DocumentReferenceContent.from(
                     new InlineDocument("{\"a\":1}", "d.json", "application/json"))
-                .toXml())
+                .toTag())
         .doesNotContain("size=");
   }
 
@@ -382,36 +342,173 @@ class DocumentReferenceXmlTagTest {
                 "metadata",
                 Map.of("fileName", "report.pdf", "contentType", "application/pdf", "size", 48213)));
 
-    assertThat(DocumentReferenceXmlTag.from(entry).toXml())
+    assertThat(DocumentReferenceContent.from(entry).toTag())
         .isEqualTo(
             "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" />");
     assertThat(
-            DocumentReferenceXmlTag.from(
+            DocumentReferenceContent.from(
                     new DocumentRegistryEntry(
                         "ext",
                         DocumentSource.userMessage(null),
                         Map.of("camunda.document.type", "external", "size", 5)))
-                .toXml())
+                .toTag())
         .doesNotContain("size=");
   }
 
+  private static DocumentReferenceContent reference(
+      String id,
+      @Nullable String fileName,
+      @Nullable String contentType,
+      @Nullable Long size,
+      @Nullable String source,
+      @Nullable String toolName,
+      @Nullable String toolCallId) {
+    return new DocumentReferenceContent(
+        id, fileName, contentType, size, source, toolName, toolCallId, DocumentDelivery.REFERENCE);
+  }
+
   @Test
-  void toLoadedContentAddsTheLoadedMarkerToTheDocumentReferenceMarker() {
-    final var tag = new DocumentReferenceXmlTag("doc-1", "a.txt", null, "event", null, null);
-
-    final var content = tag.toLoadedContent();
-
-    assertThat(content.text()).isEqualTo(tag.toXml());
-    assertThat(content.metadata())
-        .containsExactly(
-            entry("kind", "document-reference"),
-            entry("documentId", "doc-1"),
-            entry("loaded", true));
-    assertThat(DocumentReferenceXmlTag.isLoaded(content)).isTrue();
-    assertThat(DocumentReferenceXmlTag.isLoaded(tag.toContent())).isFalse();
-    assertThat(DocumentReferenceXmlTag.isLoaded(TextContent.textContent(tag.toXml()))).isFalse();
+  void rendersAllAttributesInOrder() {
     assertThat(
-            DocumentReferenceXmlTag.isLoaded(new TextContent(tag.toXml(), Map.of("loaded", true))))
-        .isFalse();
+            reference(
+                    "doc-1",
+                    "report.pdf",
+                    "application/pdf",
+                    48213L,
+                    "user_message",
+                    "search",
+                    "call_abc")
+                .toTag())
+        .isEqualTo(
+            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" toolName=\"search\" toolCallId=\"call_abc\" />");
+  }
+
+  @Test
+  void omitsNullAndBlankAttributes() {
+    assertThat(reference("doc-1", " ", "", null, "  ", null, "").toTag())
+        .isEqualTo("<doc id=\"doc-1\" />");
+  }
+
+  @Test
+  void theDeliveryDoesNotChangeTheTag() {
+    final var reference = reference("doc-1", "a.txt", "text/plain", 3L, "event", null, null);
+
+    assertThat(reference.withDelivery(DocumentDelivery.CONTENT).toTag())
+        .isEqualTo(reference.toTag());
+  }
+
+  @Test
+  void theDeliveryDefaultsToReference() {
+    assertThat(
+            new DocumentReferenceContent("doc-1", null, null, null, null, null, null, null)
+                .delivery())
+        .isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(DocumentReferenceContent.from(new InlineDocument("{}", "d.json", null)).delivery())
+        .isEqualTo(DocumentDelivery.REFERENCE);
+  }
+
+  @Test
+  void fromTakesTheGivenDelivery() {
+    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+    final var entry =
+        DocumentRegistryEntry.from(new IngestedDocument(doc, DocumentSource.event(null)));
+
+    assertThat(
+            DocumentReferenceContent.from(doc, DocumentSource.event(null), DocumentDelivery.CONTENT)
+                .delivery())
+        .isEqualTo(DocumentDelivery.CONTENT);
+    assertThat(DocumentReferenceContent.from(entry, DocumentDelivery.CONTENT).delivery())
+        .isEqualTo(DocumentDelivery.CONTENT);
+    assertThat(DocumentReferenceContent.from(entry).delivery())
+        .isEqualTo(DocumentDelivery.REFERENCE);
+  }
+
+  @Test
+  void withDeliveryReturnsACopyWithTheDeliveryAndEverythingElseUnchanged() {
+    final var reference =
+        new DocumentReferenceContent(
+            "doc-1",
+            "a.txt",
+            "text/plain",
+            3L,
+            null,
+            "tool",
+            "call_1",
+            DocumentDelivery.REFERENCE,
+            Map.of("k", "v"));
+
+    final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
+
+    assertThat(withContent)
+        .isEqualTo(
+            new DocumentReferenceContent(
+                "doc-1",
+                "a.txt",
+                "text/plain",
+                3L,
+                null,
+                "tool",
+                "call_1",
+                DocumentDelivery.CONTENT,
+                Map.of("k", "v")));
+    assertThat(reference.delivery()).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(withContent.withDelivery(DocumentDelivery.REFERENCE)).isEqualTo(reference);
+  }
+
+  @Test
+  void rejectsABlankId() {
+    assertThatThrownBy(() -> reference(" ", null, null, null, null, null, null))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> reference(null, null, null, null, null, null, null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void roundTripsThroughContentInterfaceTypeWithTypeDiscriminator() throws Exception {
+    final var objectMapper = new ObjectMapper();
+    final Content reference =
+        new DocumentReferenceContent(
+            "doc-1",
+            "a.txt",
+            "text/plain",
+            3L,
+            null,
+            "tool",
+            "call_1",
+            DocumentDelivery.CONTENT,
+            Map.of("k", "v"));
+
+    final var serialized = objectMapper.writeValueAsString(reference);
+
+    assertThat(serialized).contains("\"type\":\"documentReference\"");
+    assertThat(serialized).contains("\"delivery\":\"content\"");
+    assertThat(objectMapper.readValue(serialized, Content.class)).isEqualTo(reference);
+  }
+
+  @Test
+  void serializesWithoutAbsentAttributesAndReadsAMissingDeliveryAsReference() throws Exception {
+    final var objectMapper = new ObjectMapper();
+    final var reference = reference("doc-1", null, null, null, "event", null, null);
+
+    final var serialized = objectMapper.writeValueAsString(reference);
+
+    assertThat(serialized)
+        .isEqualTo(
+            "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":\"event\",\"delivery\":\"reference\"}");
+    assertThat(
+            objectMapper.readValue(
+                "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":\"event\"}",
+                Content.class))
+        .isEqualTo(reference);
+  }
+
+  @Test
+  void notExpandedFailureNamesTheTypeAndTheExpansion() {
+    final var failure = reference("doc-1", null, null, null, null, null, null).notExpandedFailure();
+
+    assertThat(failure)
+        .hasMessageContaining("DocumentReferenceContent")
+        .hasMessageContaining("doc-1")
+        .hasMessageContaining("expanded");
   }
 }

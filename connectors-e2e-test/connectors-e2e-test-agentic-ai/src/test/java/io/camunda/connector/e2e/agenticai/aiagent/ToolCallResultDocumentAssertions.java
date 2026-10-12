@@ -19,7 +19,8 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import java.util.HashMap;
 import java.util.List;
@@ -55,12 +56,12 @@ public final class ToolCallResultDocumentAssertions {
 
   /**
    * Parses the first {@code <doc/>} tag out of a serialized tool call result (a bare tag or a JSON
-   * value embedding one) into the production {@link DocumentReferenceXmlTag}, without tool call
+   * value embedding one) into the production {@link DocumentReferenceContent}, without tool call
    * attributes. Also asserts that the text does not carry any document reference field.
    *
    * <p>Throws {@link AssertionError} if no tag is present.
    */
-  public static DocumentReferenceXmlTag parseDocumentTag(String toolResultText) {
+  public static DocumentReferenceContent parseDocumentTag(String toolResultText) {
     assertThat(toolResultText)
         .as("tool result text")
         .doesNotContain("storeId", "contentHash", "camunda.document.type");
@@ -79,14 +80,15 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(attributes.keySet())
         .as("tag attributes")
         .isSubsetOf("id", "fileName", "contentType", "size", "source", "toolName", "toolCallId");
-    return new DocumentReferenceXmlTag(
+    return new DocumentReferenceContent(
         attributes.get("id"),
         attributes.get("fileName"),
         attributes.get("contentType"),
         attributes.containsKey("size") ? Long.valueOf(attributes.get("size")) : null,
         null,
         null,
-        null);
+        null,
+        DocumentDelivery.REFERENCE);
   }
 
   private static String unescapeXml(String value) {
@@ -103,7 +105,7 @@ public final class ToolCallResultDocumentAssertions {
    * "loaded documents" structure: a preamble text block followed by an {@code (xml-tag,
    * content-block)} pair per expected document.
    *
-   * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
+   * <p>The XML tag is built using the production {@link DocumentReferenceContent}, so the assertion
    * stays in sync with the production format. The content-block {@link JsonNode} is passed directly
    * to each {@link DocumentWithContent#contentBlockAssertion()}.
    */
@@ -198,18 +200,19 @@ public final class ToolCallResultDocumentAssertions {
     public static DocumentWithContent forToolCall(
         String toolCallId,
         String toolName,
-        DocumentReferenceXmlTag resultTag,
+        DocumentReferenceContent resultTag,
         Consumer<JsonNode> contentBlockAssertion) {
       return new DocumentWithContent(
-          new DocumentReferenceXmlTag(
+          new DocumentReferenceContent(
                   resultTag.id(),
                   resultTag.fileName(),
                   resultTag.contentType(),
                   resultTag.size(),
                   null,
                   toolName,
-                  toolCallId)
-              .toXml(),
+                  toolCallId,
+                  DocumentDelivery.REFERENCE)
+              .toTag(),
           contentBlockAssertion);
     }
 
@@ -218,17 +221,18 @@ public final class ToolCallResultDocumentAssertions {
      * #parseDocumentTag}).
      */
     public static DocumentWithContent forUserPrompt(
-        DocumentReferenceXmlTag promptTag, Consumer<JsonNode> contentBlockAssertion) {
+        DocumentReferenceContent promptTag, Consumer<JsonNode> contentBlockAssertion) {
       return new DocumentWithContent(
-          new DocumentReferenceXmlTag(
+          new DocumentReferenceContent(
                   promptTag.id(),
                   promptTag.fileName(),
                   promptTag.contentType(),
                   promptTag.size(),
                   "user_message",
                   null,
-                  null)
-              .toXml(),
+                  null,
+                  DocumentDelivery.REFERENCE)
+              .toTag(),
           contentBlockAssertion);
     }
   }

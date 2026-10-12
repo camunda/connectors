@@ -13,16 +13,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.agenticai.aiagent.document.ReferenceRenderedDocument;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Serializes content to JSON text for the model. A {@link Document} at any nesting depth is
- * rendered as its {@code <doc id="..." />} tag (see {@link DocumentReferenceXmlTag}) instead of the
- * Camunda document reference, so a store id, content hash or URL never reaches the model. A {@link
- * Document} as the whole value is returned as the bare tag, not as a JSON string.
+ * rendered as its {@code <doc id="..." />} tag (see {@link DocumentReferenceContent#toTag()})
+ * instead of the Camunda document reference, so a store id, content hash or URL never reaches the
+ * model. A {@link Document} as the whole value is returned as the bare tag, not as a JSON string.
  *
  * <p>A {@link ReferenceRenderedDocument} is rendered as its Camunda document reference, the way the
  * tool results of an agent instance created without the documents feature always were.
@@ -53,7 +53,7 @@ public final class ModelFacingJson {
       return referenceMapper.writeValueAsString(document.delegate());
     }
     if (value instanceof Document document) {
-      return DocumentReferenceXmlTag.from(document).toXml();
+      return DocumentReferenceContent.from(document).toTag();
     }
     return mapper.writeValueAsString(value);
   }
@@ -78,7 +78,7 @@ public final class ModelFacingJson {
         provider.defaultSerializeValue(referenceMapper.valueToTree(rendered.delegate()), gen);
         return;
       }
-      gen.writeString(DocumentReferenceXmlTag.from(document).toXml());
+      gen.writeString(DocumentReferenceContent.from(document).toTag());
     }
   }
 }
