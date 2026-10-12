@@ -315,20 +315,24 @@ public class GeminiContentResponseConverter {
   private AgentMetrics toMetrics(
       GenerateContentResponse response, int toolCalls, Duration executionTime) {
     final Optional<GenerateContentResponseUsageMetadata> usage = response.usageMetadata();
+    final int promptTokens =
+        usage.flatMap(GenerateContentResponseUsageMetadata::promptTokenCount).orElse(0);
+    final int cachedTokens =
+        usage.flatMap(GenerateContentResponseUsageMetadata::cachedContentTokenCount).orElse(0);
+    final int toolUsePromptTokens =
+        usage.flatMap(GenerateContentResponseUsageMetadata::toolUsePromptTokenCount).orElse(0);
+    final int candidatesTokens =
+        usage.flatMap(GenerateContentResponseUsageMetadata::candidatesTokenCount).orElse(0);
+    final int thoughtsTokens =
+        usage.flatMap(GenerateContentResponseUsageMetadata::thoughtsTokenCount).orElse(0);
+
+    // Prompt includes cached tokens; candidates exclude thoughts; no cache write.
     final var tokenUsage =
         AgentMetrics.TokenUsage.builder()
-            .inputTokenCount(
-                usage.flatMap(GenerateContentResponseUsageMetadata::promptTokenCount).orElse(0))
-            .outputTokenCount(
-                usage.flatMap(GenerateContentResponseUsageMetadata::candidatesTokenCount).orElse(0))
-            // Gemini's implicit caching reports cache reads only; there is no cache-write counter,
-            // so cacheCreationTokenCount stays at its default of 0.
-            .cacheReadTokenCount(
-                usage
-                    .flatMap(GenerateContentResponseUsageMetadata::cachedContentTokenCount)
-                    .orElse(0))
-            .reasoningTokenCount(
-                usage.flatMap(GenerateContentResponseUsageMetadata::thoughtsTokenCount).orElse(0))
+            .inputTokenCount(Math.max(0, promptTokens - cachedTokens) + toolUsePromptTokens)
+            .outputTokenCount(candidatesTokens + thoughtsTokens)
+            .cacheReadTokenCount(cachedTokens)
+            .reasoningTokenCount(thoughtsTokens)
             .build();
 
     return AgentMetrics.builder()

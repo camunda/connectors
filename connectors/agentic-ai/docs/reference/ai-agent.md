@@ -304,7 +304,7 @@ Authoritative definition:
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
-Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/model/tool/ToolCallProcessVariable.java).
+Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
 Arguments are **flattened to the top level** so BPMN expressions can access them directly as
 `toolCall.myParameter` rather than `toolCall.arguments.myParameter`. The `_meta` object holds the tool
 call ID and name.
@@ -331,8 +331,9 @@ The sealed `Content` model gained two additive members alongside the existing `T
   when a provider has nothing human-readable to extract (e.g. Anthropic's `redacted_thinking`
   blocks).
 - **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `payload`,
-  `metadata`); each payload self-describes its own block shape (e.g. via an internal `type` field), so
-  there is no separate discriminator field.
+  optional `text`, `metadata`); each payload self-describes its own block shape (e.g. via an internal
+  `type` field), so there is no separate discriminator field. `text` is a display-only rendering that
+  is never replayed; when present, the history mapper presents the block as plain text.
 
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
@@ -486,7 +487,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype with the runtime `ObjectMapper` (e.g., via a Spring `Jackson2ObjectMapperBuilderCustomizer` calling `registerSubtypes()`)
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype on the connector runtime's `ObjectMapper` beans (e.g., via a Spring `BeanPostProcessor` calling `registerSubtypes()` on every `ObjectMapper` bean)
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
@@ -1826,7 +1827,9 @@ For Gemini, the raw payload retains `thoughtSignature`, while the response conve
 base64 copy in transient `Content.metadata()` for the request converter to use during in-memory
 replay. `AgentInstanceHistoryMapper` does not persist that metadata.
 `ProviderContent` maps to an object wrapping its content discriminator, provider, and raw payload
-(`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet).
+(`AgentInstanceHistoryMapper`; neither content type is produced by the LangChain4j path yet). A
+`ProviderContent` with non-blank `text` instead maps to a text content carrying only that `text`;
+its lossless payload stays in conversation memory.
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job
@@ -1874,7 +1877,7 @@ Only the LangChain4j adapter package may depend on LangChain4j.
 
 ### I2. Domain types never leak framework types
 
-The module owns a framework-agnostic domain model in `io.camunda.connector.agenticai.model.*` (the
+The module owns a framework-agnostic domain model in `io.camunda.connector.agenticai.aiagent.model.*` (the
 `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
 
 - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from

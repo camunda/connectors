@@ -29,7 +29,11 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = MistralChatModelConfiguration.MISTRAL_ID, label = "Mistral AI")
+@TemplateSubType(
+    id = MistralChatModelConfiguration.MISTRAL_ID,
+    label = "Mistral AI",
+    description = "Mistral models via the Mistral API or a compatible endpoint.",
+    keywords = {"Mistral"})
 public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mistral)
     implements ProviderConfiguration {
 

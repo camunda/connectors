@@ -20,7 +20,7 @@ public record FactoryRoutingData(
                     property = "authentication.authType",
                     equals = "credentials"),
             tooltip =
-                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
+                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String virtualHost,
     @NotBlank
         @TemplateProperty(
@@ -31,7 +31,7 @@ public record FactoryRoutingData(
                     property = "authentication.authType",
                     equals = "credentials"),
             tooltip =
-                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
+                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String hostName,
     @NotNull
         @TemplateProperty(
@@ -42,5 +42,5 @@ public record FactoryRoutingData(
                     property = "authentication.authType",
                     equals = "credentials"),
             tooltip =
-                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
+                "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String port) {}

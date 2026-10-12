@@ -116,7 +116,7 @@ jobs:
         run: |
           set -euo pipefail
           missing=""
-          for p in .github/actions/alwaysgreen-flag .github/scripts/alwaysgreen/discover.py; do
+          for p in .github/actions/alwaysgreen-flag .github/scripts/alwaysgreen/discover.py .github/scripts/alwaysgreen/notify.py; do
             [ -e "$p" ] || missing="${missing} ${p}"
           done
           if [ -n "${missing}" ]; then
@@ -324,29 +324,26 @@ jobs:
         run: |
           set -euo pipefail
           [ -f /tmp/alwaysgreen-plan.json ] || echo '{"dispatches":[],"suppressed":[],"noise":[],"blame":{}}' > /tmp/alwaysgreen-plan.json
-          count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
-          failing_url=$(jq -r '.run_url // ""' /tmp/alwaysgreen-plan.json)
-          [ -n "$failing_url" ] || failing_url="${TARGET_RUN_URL}"
-          surfaces=$(jq -r '[.dispatches[].surface] | join(", ")' /tmp/alwaysgreen-plan.json)
-
+          # What happened to the plan, which the plan itself cannot say: discovery may
+          # have failed, and a planned dispatch is withheld when the Vault flag is not
+          # `enabled`. Announcing an agent that never ran reads as "someone is on it".
           if [ "${PLAN_OUTCOME}" != "success" ]; then
-            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
-          elif [ "${count}" != "0" ] && [ "${DISPATCHED}" = "true" ]; then
-            text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${BASE_REF}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
-          elif [ "${count}" != "0" ]; then
-            # Candidates found but the gate is closed. Say so plainly: an announced
-            # dispatch that never happened is worse than no message at all.
-            text=":mag: *AlwaysGreen: would dispatch — withheld* on \`${BASE_REF}\`"$'\n'"${count} agent(s) held back: ${surfaces}"$'\n'"Fix-agent dispatch is off for this run."$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+            state=triage-failed
+          elif [ "${DISPATCHED}" = "true" ]; then
+            state=dispatched
           else
-            # Nothing actionable. Name the reasons so the thread explains itself without
-            # anyone opening the run.
-            reasons=$(jq -r '
-              ([.suppressed[]? | .reason] + [.noise[]? | .verdict])
-              | if length == 0 then "no failing job mapped to a known surface"
-                else (group_by(.) | map("\(.[0]) x\(length)") | join(", ")) end' \
-              /tmp/alwaysgreen-plan.json 2>/dev/null || echo "unknown")
-            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+            state=dry-run
           fi
+
+          # The wording lives in notify.py, where it is unit-tested: this message is the
+          # only thing most people ever read about a triage decision, and building it in
+          # bash is how it ended up reporting raw reason codes with no PR links.
+          text=$(python .github/scripts/alwaysgreen/notify.py \
+            --report /tmp/alwaysgreen-plan.json \
+            --base-ref "${BASE_REF}" \
+            --failing-run-url "${TARGET_RUN_URL}" \
+            --triage-run-url "${RUN_URL}" \
+            --state "${state}")
 
           # Thread onto the post-failure-feedback message when the caller handed one
           # down, so one failure produces one Slack thread. Falling back to a new

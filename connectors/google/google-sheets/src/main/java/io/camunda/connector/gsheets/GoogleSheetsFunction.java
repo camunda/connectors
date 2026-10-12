@@ -13,15 +13,16 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.gsheets.model.request.GoogleSheetsRequest;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.google.GoogleApiErrors;
+import io.camunda.google.model.GoogleCredentialConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "Google Spreadsheets",
-    inputVariables = {"authentication", "operation", "operationDetails"},
+    inputVariables = {"authentication", "googleCredential", "operation", "operationDetails"},
     type = "io.camunda:google-sheets:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.GoogleSheets.v1",
     name = "Google Sheets Outbound Connector",
     description = "Manage spreadsheets with Google Sheets",
@@ -40,14 +41,15 @@ import org.slf4j.LoggerFactory;
       "excel"
     },
     inputDataClass = GoogleSheetsRequest.class,
-    version = 7,
+    version = 8,
+    configurations = {GoogleCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-sheets/",
     icon = "icon.svg")
 public class GoogleSheetsFunction implements OutboundConnectorFunction {
 

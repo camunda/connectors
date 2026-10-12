@@ -12,7 +12,7 @@
     "message broker",
     "queue"
   ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
   "version" : 7,
   "category" : {
     "id" : "connectors",
@@ -133,7 +133,7 @@
   }, {
     "id" : "routing.virtualHost",
     "label" : "Virtual host",
-    "description" : "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "description" : "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -152,7 +152,7 @@
   }, {
     "id" : "routing.hostName",
     "label" : "Host name",
-    "description" : "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "description" : "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -171,7 +171,7 @@
   }, {
     "id" : "routing.port",
     "label" : "Port",
-    "description" : "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "description" : "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
