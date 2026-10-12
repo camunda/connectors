@@ -21,6 +21,13 @@ import java.util.List;
  *
  * <p>A single handler is expected to handle gateway tools identified by a specific {@link
  * GatewayToolDefinitionResolver}.
+ *
+ * <p>A handler that defines its tools itself can declare document parameters in the {@link
+ * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults}, in the stored form of
+ * {@link io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema#documentSchema}.
+ * The document parameters of a call are resolved before {@link #transformToolCalls}, so the handler
+ * receives the Camunda document references in the call arguments. A handler can also set {@link
+ * ToolDefinition#documentDelivery()} to deliver the documents its tools return with content.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();

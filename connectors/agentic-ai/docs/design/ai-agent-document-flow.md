@@ -94,8 +94,9 @@ tool, no name checked against runtime tools (section 4.2). A feature is assigned
    within a type allowlist and a size limit.
 5. The agent returns response documents with its response (`c8__return_document`).
 
-Out of scope: documents for gateway tools (MCP, A2A), Modeler support, document retention (see
-sections 6 and 7).
+Out of scope: document parameters in the MCP and A2A tool definitions (their schemas come from the remote server or
+are fixed and have no document type), Modeler support, document retention (see sections 6 and 7). A gateway handler that
+defines its tools itself can declare document parameters (section 3.13).
 
 The flow described here belongs to the `documents` feature of an agent instance (section 4.2). An agent
 instance created without it keeps the document handling it was created with; section 4.2 describes that
@@ -526,8 +527,14 @@ inline document, and the history mapper does not support inline references at al
   references; the persisted assistant message keeps the ids the model sent, and the original arguments
   are never modified. A missing or `null` argument is left alone (optional parameters). Resolution
   runs on the raw tool calls, by tool name and only for definitions that declare document parameters,
-  before the gateway transformation; the connector gives gateway tool definitions no document parameters,
-  so their calls stay untouched.
+  before the gateway transformation. The definitions it uses are the ones the model saw, among them those of
+  gateway tools. A gateway handler that defines its tools itself can therefore declare document parameters in them
+  (the stored form of 3.2, `DocumentParameterSchema.documentSchema`; the shorthand type `document` is normalized
+  only for `fromAi` parameters) and receives the documents resolved in the arguments of the calls it wraps in
+  `transformToolCalls`; an unknown id is answered with an error result and the handler is not given the call
+  (`GatewayToolDocumentParametersTest`). The MCP and A2A handlers declare no document parameters: the schema of an MCP
+  tool comes from the remote server and the A2A schema is fixed, and neither has a document type, so nothing of theirs
+  is resolved and their calls stay untouched.
 - **Runtime tool handler abstraction.** `RuntimeToolCallHandler.handle(executionContext, conversation, toolCalls)` returns a
   `RuntimeToolCallSplit(conversation, runtimeResults, remainingCalls)`; a runtime tool returns a `RuntimeToolResult`
   with content and context updates. Reason: the loop stays generic and a future runtime tool is one more
@@ -621,8 +628,9 @@ had. It is serialized only when set and never reaches the model providers
 (`DocumentParameterSchema.toProviderToolDefinitions` drops it). The composer adds the content of the documents of
 the result of such a tool, including nested ones, to the follow-up message of the tool results: the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, the
 reference with the delivery `content` of every document that passes the guard, with the tool origin, then the notes. The tool result itself still
-shows the tag. The documents of gateway tools (MCP, A2A) are not covered: the delivery is read for the tools of the
-process, not for gateway tools.
+shows the tag. The extension property is read for the tool elements of the process, not for gateway elements; a
+gateway handler opts its tools in by setting `documentDelivery` on the definitions it creates, matched by the name of
+the (transformed) tool call result. The MCP and A2A handlers set none, so their documents stay references.
 
 **Mechanism.** Both sources call `DocumentContentGuard.check` (the guard of 3.14: type allowlist, size limit from the
 metadata or a read of at most one byte more than the limit, the same caps) on the document the composer already
@@ -913,7 +921,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 |---|---------|----------|--------|
 | 1 | Large inline documents | Medium (rare trigger, fails early) | Content is stored in the registry and in the tool result, and again in `agent.responseDocuments` when returned. An inline document with more than 1 MiB of content is rejected when it is registered, with the error code `INLINE_DOCUMENT_TOO_LARGE` that names the document, its size and the limit (3.12). Several inline documents below the limit can still add up past the 4 MB broker message limit of the job completion; there is no fallback to a reference-only entry. A load through `c8__get_document` is bounded by its size guard (3.14). |
 | 2 | Runtime answers of a mixed batch reach the model late | Low | The agent instance history shows the runtime results of a batch that also holds real calls as soon as the job that answered them completes (5.1). The model only receives them with the next request, in the next job, when the real calls have completed; a real call that never completes holds that request back. A batch made of runtime tool calls alone is answered in the same job. |
-| 3 | Gateway tools unsupported | Medium | The connector never declares document parameters for MCP and A2A tool definitions (the A2A schema is fixed, the MCP schema is the one of the server, kept as it is); a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
+| 3 | MCP and A2A tools take no documents | Medium | The MCP and A2A tool definitions declare no document parameters (the A2A schema is fixed, the MCP schema is the one of the server and has no document type), so a document id or tag passed to them is not resolved. Documents returned by them are ingested and passable to ad-hoc tools and to the tools of a gateway handler that declares document parameters, not to MCP and A2A tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | History reporting of runtime rounds | Low (handled) | See 5.1: runtime tool calls and rounds are reported through the existing history items; what is not reported there is the response documents themselves and the documents' content (the reference of an inline document holds its content). |
 | 6 | Document parameters of instances without the feature | Low | A running instance created before the `documents` feature passes document parameters as plain strings (section 4.2): ids are not resolved or rejected, and the hint in a tool schema that is rebuilt on a process migration asks for ids the model never sees. The instance has to be started anew to use documents. |
@@ -1069,7 +1077,7 @@ listed fails the test.
 - External documents have no `contentType` in any tag, because it would require a download.
 - No document TTL or expiry handling (section 7).
 - No Modeler support for the fromAi type `document` (section 7).
-- Gateway tools (MCP, A2A) cannot receive documents (section 7).
+- MCP and A2A tools declare no document parameters, so they receive no documents (section 7).
 - Returned references are registry snapshots, including inline documents with their content.
 - The registry lives in `agentContext` for all stores; it does not use the store-specific
   persistence.
@@ -1108,8 +1116,9 @@ listed fails the test.
 
 **Delivery with content (3.15)**
 
-- **Scope of the opt-ins.** Event documents and the documents of gateway tools (MCP, A2A) stay references: the
-  option covers the user prompt and the marker covers the tools of the process. A mode per document or per
+- **Scope of the opt-ins.** Event documents and the documents of the MCP and A2A tools stay references: the
+  option covers the user prompt and the marker covers the tool elements of the process (a gateway handler can set
+  `documentDelivery` on the definitions it creates). A mode per document or per
   document type, or an option for events, would be additive.
 - **Modeler support.** The marker of a tool activity is a plain extension property
   (`io.camunda.agenticai.documents.delivery` = `content`) that is set by hand in the properties panel; the connector
@@ -1140,10 +1149,12 @@ listed fails the test.
   `responseDocuments`. `AgentInstanceHistoryMapper` cannot map an inline reference and throws an
   `IllegalArgumentException`. Decide on a reference-only entry for inline documents and on how the history
   shows them (3.12, 5.1).
-- **Gateway tools (MCP, A2A).** The connector never declares document parameters in their definitions; the
-  gateway handler seam (`transformToolCalls`) is unchanged and runs after the document resolution, which
-  leaves their calls untouched. Gateway tools with document-typed definitions, and passing documents into
-  them, need their own design because the gateway wraps the call arguments in an envelope the handler builds.
+- **MCP and A2A tools.** Their definitions declare no document parameters: the A2A schema is fixed and the MCP
+  schema is the one of the remote server, which has no document type. The gateway handler seam
+  (`transformToolCalls`) runs after the document resolution, so a handler that defines its tools itself can declare
+  document parameters (3.13) and wraps the resolved documents into its envelope. Passing documents to MCP and A2A
+  tools would need a mapping from the schema of the remote side to document parameters, and a mapping of a
+  document reference into the format the remote side expects.
 - **Resolver output for standalone use.** The Ad-Hoc Tools Schema Resolver returns the authored schema with the
   format `camunda-document-id` and the hint in the description (3.2), so its output carries the document id
   format. The AI Agent derives the provider schema (no format) at the snapshot, but another LLM connector that
@@ -1203,7 +1214,7 @@ listed fails the test.
 | Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or runtime tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `RuntimeToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/document/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for runtime tools), `RuntimeToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of runtime tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls reach the gateway handlers unchanged next to a resolved call), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (discovered gateway tools declare no document parameters and reach the model provider as they are) |
+| Documents into tools | `aiagent/document/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for runtime tools), `RuntimeToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of runtime tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls without document parameters reach the gateway handlers unchanged next to a resolved call), `aiagent/agent/GatewayToolDocumentParametersTest` (a test-double gateway handler that defines a tool with a document parameter: the stored definition keeps the format and the hint and the provider gets a plain string; the handler receives the resolved document for a known id or tag; an unknown id is answered with an error and the handler is not given the call; a gateway tool without document parameters is untouched), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (the discovered MCP and A2A tools declare no document parameters and reach the model provider as they are), `AgentConversationTurnInputComposerDocumentDeliveryTest` (a gateway tool whose definition sets the delivery gets content delivery) |
 | Delivery with content | `aiagent/document/DocumentContentGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerDocumentDeliveryTest` (user prompt with delivery `content` and `reference`, fallback note, content already in the conversation, instance without the feature; tool delivery on and off, nested documents, notes only, content returned by `c8__get_document` in the same turn, content already in the conversation, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the dropdown in the v2 templates, not in the v1 templates) |
 | Content through `c8__get_document` | `aiagent/document/GetDocumentToolTest` (content delivery, content already in the conversation, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/document/DocumentContentLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the references with content), `AgentConversationTest` (`documentIdsWithContent` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the reference with content), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/document/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a runtime tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
@@ -1264,8 +1275,10 @@ of every recorded model request for `storeId`, `contentHash` and `camunda.docume
 every document flow scenario and in the existing tool result and user prompt document tests of both
 flavors.
 
-Not covered: the real-provider document tests (`DocumentToolCallResultsIT`), which need real model calls, and
-gateway tools (MCP, A2A), because the feature does not apply to them.
+Not covered: the real-provider document tests (`DocumentToolCallResultsIT`), which need real model calls, and a gateway
+handler that defines document parameters, which the unit tests above cover without a gateway element in a process
+(a custom handler needs a definition resolver, a gateway element and a discovery round trip). The MCP and A2A tools declare
+no document parameters, so there is nothing to resolve for them.
 
 ## 9. Runtime tool API
 

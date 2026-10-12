@@ -1677,6 +1677,23 @@ The gateway pattern uses namespaced tool names to maintain uniqueness:
 
 This mapping happens in `transformToolCalls()` (LLM → process) and `transformToolCallResults()` (process → LLM).
 
+### Documents and Gateway Tools
+
+A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
+a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
+parameter (`DocumentParameterSchema.documentSchema(...)`: a string schema with the format `camunda-document-id`); the
+shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
+on the model's raw tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
+Camunda document references in the arguments it wraps into its envelope. An unknown id is answered with an error result to
+the model, and the handler is not given the call; a call of a tool without document parameters is not touched. The MCP and
+A2A handlers declare no document parameters, because the schema of an MCP tool comes from the remote server and the A2A schema
+is fixed, and neither has a document type; nothing of theirs is resolved.
+
+The delivery of the documents a tool returns with content (`ToolDefinition.documentDelivery`) is set by the extension property
+`io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
+it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
+their documents are delivered as references. See the document flow design notes, sections 3.3 and 3.15.
+
 ### Agent Context Properties
 
 Gateway handlers store per-handler state in `AgentContext.properties`:
@@ -1716,7 +1733,8 @@ delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and
 the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool activity. The documents of
 a tool go into the follow-up user message of the tool results (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`).
 A document that the guard rejects stays a reference and the model gets a note that tells why no content was added;
-delivery with content never fails the run. Documents of events and of gateway tools are not covered. See
+delivery with content never fails the run. Documents of events stay references, and so do those of the MCP and A2A gateway
+tools (a gateway handler can opt its tools in through `ToolDefinition.documentDelivery`). See
 [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
 "Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form
 of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
