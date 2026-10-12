@@ -6,6 +6,12 @@
  */
 package io.camunda.connector.slack.outbound;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -13,19 +19,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.model.Message;
-import com.sun.net.httpserver.HttpServer;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
+@WireMockTest
 class SlackRequestBaseUrlTest {
 
   private static final String TOKEN = "xoxb-token";
@@ -69,31 +75,20 @@ class SlackRequestBaseUrlTest {
   }
 
   @Test
-  void baseUrl_redirectsRequestsToTheConfiguredHost() throws Exception {
-    var path = new AtomicReference<String>();
-    var server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-    server.createContext(
-        "/",
-        exchange -> {
-          path.set(exchange.getRequestURI().getPath());
-          var body =
-              "{\"ok\":true,\"channel\":\"C123ABC456\",\"ts\":\"1.1\",\"message\":{\"type\":\"message\"}}";
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          var bytes = body.getBytes(StandardCharsets.UTF_8);
-          exchange.sendResponseHeaders(200, bytes.length);
-          exchange.getResponseBody().write(bytes);
-          exchange.close();
-        });
-    server.start();
-    try {
-      var baseUrl = "http://localhost:" + server.getAddress().getPort() + "/api";
+  void baseUrl_redirectsRequestsToTheConfiguredHost(WireMockRuntimeInfo wm) throws Exception {
+    stubFor(
+        post("/api/chat.postMessage")
+            .willReturn(
+                okJson(
+                    "{\"ok\":true,\"channel\":\"C123ABC456\",\"ts\":\"1.1\",\"message\":{\"type\":\"message\"}}")));
 
-      var response = bind("\"baseUrl\": \"" + baseUrl + "\",").invoke(mock(Slack.class));
+    var response =
+        bind("\"baseUrl\": \"" + wm.getHttpBaseUrl() + "/api\",").invoke(mock(Slack.class));
 
-      assertThat(path.get()).isEqualTo("/api/chat.postMessage");
-      assertThat(response).isNotNull();
-    } finally {
-      server.stop(0);
-    }
+    assertThat(response).isNotNull();
+    WireMock.verify(
+        1,
+        postRequestedFor(urlEqualTo("/api/chat.postMessage"))
+            .withHeader("Authorization", equalTo("Bearer " + TOKEN)));
   }
 }
