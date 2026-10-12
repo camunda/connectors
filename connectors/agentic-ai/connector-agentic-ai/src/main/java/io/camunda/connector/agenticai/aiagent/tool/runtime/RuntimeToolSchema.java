@@ -16,7 +16,9 @@ import java.util.Map;
 /**
  * A small fluent builder of the object schema of a runtime tool's arguments. It covers flat
  * parameters; pass a {@link Map} schema to {@link RuntimeTool.Builder#inputSchema(Map)} for
- * anything more elaborate.
+ * anything more elaborate, for example a parameter that takes text or a document: {@code {"anyOf":
+ * [{"type": "string"}, <document schema>]}} with {@link DocumentParameterSchema#documentSchema} as
+ * the document schema.
  *
  * <p>The maps keep the order of declaration, so the schema serializes to the same bytes in every
  * JVM; the definition is part of the configuration fingerprint and of the request sent to the

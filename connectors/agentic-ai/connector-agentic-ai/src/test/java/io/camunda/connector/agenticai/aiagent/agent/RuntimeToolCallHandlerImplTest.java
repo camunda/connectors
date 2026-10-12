@@ -61,6 +61,16 @@ class RuntimeToolCallHandlerImplTest {
                   "properties",
                   Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
           .build();
+  private static final Map<String, Object> TEXT_OR_DOCUMENT =
+      Map.of(
+          "anyOf",
+          List.of(
+              Map.of("type", "string"), Map.of("type", "string", "format", "camunda-document-id")));
+  private static final ToolDefinition SEND =
+      ToolDefinition.builder()
+          .name("send")
+          .inputSchema(Map.of("type", "object", "properties", Map.of("body", TEXT_OR_DOCUMENT)))
+          .build();
   private static final ToolDefinition WEATHER =
       ToolDefinition.builder().name("getWeather").inputSchema(Map.of()).build();
 
@@ -137,7 +147,7 @@ class RuntimeToolCallHandlerImplTest {
   private AgentConversation conversation(AgentConfiguration configuration, ToolCall... calls) {
     return AgentConversation.rehydrate(
             configuration
-                .withToolDefinitions(List.of(UPLOAD, WEATHER))
+                .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER))
                 .withFeatures(AgentContext.newInstanceFeatures()),
             AgentContext.builder()
                 .state(AgentState.READY)
@@ -370,7 +380,98 @@ class RuntimeToolCallHandlerImplTest {
                     .contains(reportId));
   }
 
+  @Test
+  void handsTheIdOfATagAndOtherValuesAsTheyAreToAUnionParameterOfARuntimeTool() {
+    final var received = new ArrayList<Object>();
+    final var tool =
+        RuntimeTool.builder("c8__send")
+            .inputSchema(Map.of("type", "object", "properties", Map.of("body", TEXT_OR_DOCUMENT)))
+            .handler(
+                (call, executionContext, conv) -> {
+                  received.add(call.arguments().get("body"));
+                  return RuntimeToolResult.success("sent");
+                });
+    final var tagCall =
+        new ToolCall("s1", "c8__send", Map.of("body", "<doc id=\"" + reportId + "\" />"));
+    final var bareIdCall = new ToolCall("s2", "c8__send", Map.of("body", reportId));
+    final var textCall = new ToolCall("s3", "c8__send", Map.of("body", "hello"));
+
+    final var split =
+        handlerOf(tool)
+            .handle(
+                conversation(WITH_MEMORY, tagCall, bareIdCall, textCall),
+                List.of(tagCall, bareIdCall, textCall));
+
+    assertThat(split.runtimeResults())
+        .extracting(ToolCallResult::content)
+        .containsExactly("sent", "sent", "sent");
+    assertThat(received).containsExactly(reportId, reportId, "hello");
+  }
+
+  @Test
+  void answersATagWithAnUnknownIdOfAUnionParameterOfARuntimeToolAndDoesNotRunIt() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        RuntimeTool.builder("c8__send")
+            .inputSchema(Map.of("type", "object", "properties", Map.of("body", TEXT_OR_DOCUMENT)))
+            .handler(
+                (call, executionContext, conv) -> {
+                  runs.incrementAndGet();
+                  return RuntimeToolResult.success("sent");
+                });
+    final var call = new ToolCall("s1", "c8__send", Map.of("body", "<doc id=\"bogus\" />"));
+
+    final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
+
+    assertThat(runs).hasValue(0);
+    assertThat(split.runtimeResults())
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(result.content().toString())
+                    .startsWith(
+                        "Parameter 'body' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
+                    .contains(reportId));
+  }
+
   // document parameters of the tools of the process
+
+  @Test
+  void passesACallWithTextOrAKnownTagToAUnionParameterToTheProcess() {
+    final var text = new ToolCall("s1", "send", Map.of("body", "hello"));
+    final var bareId = new ToolCall("s2", "send", Map.of("body", reportId));
+    final var tag = new ToolCall("s3", "send", Map.of("body", "<doc id=\"" + reportId + "\" />"));
+    final var number = new ToolCall("s4", "send", Map.of("body", 3));
+
+    final var split =
+        handler.handle(
+            conversation(WITH_MEMORY, text, bareId, tag, number),
+            List.of(text, bareId, tag, number));
+
+    assertThat(split.hasRuntimeResults()).isFalse();
+    assertThat(split.remainingCalls()).containsExactly(text, bareId, tag, number);
+  }
+
+  @Test
+  void answersATagWithAnUnknownIdOfAUnionParameterOfAProcessToolWithTheKnownDocuments() {
+    final var good = new ToolCall("s1", "send", Map.of("body", "hello"));
+    final var bad = new ToolCall("s2", "send", Map.of("body", "<doc id=\"nope\" />"));
+
+    final var split = handler.handle(conversation(WITH_MEMORY, good, bad), List.of(good, bad));
+
+    assertThat(split.remainingCalls()).containsExactly(good);
+    assertThat(split.runtimeResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("s2");
+              assertThat(result.content())
+                  .isEqualTo(
+                      "Parameter 'body' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. Known documents:\n"
+                          + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
+                              .formatted(reportId));
+            });
+  }
 
   @Test
   void passesACallWithKnownDocumentsToTheProcess() {

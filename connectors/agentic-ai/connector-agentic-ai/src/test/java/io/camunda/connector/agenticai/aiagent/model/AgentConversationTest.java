@@ -240,6 +240,57 @@ class AgentConversationTest {
   }
 
   @Test
+  void window_offersUnionParametersAsPlainStringsToTheProviderAndKeepsTheAuthoredDefinitions() {
+    var authored =
+        ToolDefinition.builder()
+            .name("send")
+            .description("Sends a message")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "body",
+                        Map.of(
+                            "anyOf",
+                            List.of(
+                                Map.of("type", "string"),
+                                Map.of("type", "string", "format", "camunda-document-id")),
+                            "description",
+                            "The body"))))
+            .build();
+    var configuration = CONFIG.withToolDefinitions(List.of(authored));
+    var conv =
+        AgentConversation.rehydrate(
+            configuration,
+            BASE_CONTEXT.withToolDefinitions(List.of(authored)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
+
+    assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
+        .isEqualTo(
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of(
+                    "body",
+                    Map.of(
+                        "type",
+                        "string",
+                        "description",
+                        "The body. " + DocumentParameterSchema.UNION_HINT))));
+    // nothing persisted or configured is rewritten
+    assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
+    assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
+    assertThat(authored.inputSchema().toString()).contains("camunda-document-id", "anyOf");
+  }
+
+  @Test
   void withContextUpdate_appliesTheUpdateToThePersistedContextOnly() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
