@@ -191,7 +191,7 @@ public class GenerateElementTemplate {
             .version(TEMPLATE_VERSION)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
-                "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
+                "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/salesforce/")
             .description("Call the Salesforce APIs from your process")
             .keywords(
                 new String[] {
@@ -751,7 +751,7 @@ public class GenerateElementTemplate {
                 .id("errorExpression")
                 .label("Error expression")
                 .tooltip(
-                    "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
+                    "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
                 .group("errors")
                 .feel(FeelMode.required)
                 .binding(new ZeebeTaskHeader("errorExpression"))

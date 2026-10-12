@@ -70,7 +70,8 @@ import org.slf4j.LoggerFactory;
       "HTTP callback",
       "listen for event"
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/",
     outputDataClass = WebhookOutputExample.class,
     defaultResultExpression =
         "{\n"
@@ -181,7 +182,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           "The webhook property 'responseBodyExpression' is deprecated and no longer supported. "
               + "Replace it with 'responseExpression', which returns a full HTTP response, e.g. "
               + "'={body: ..., statusCode: 200, headers: {...}}'. See "
-              + "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/ for details.");
+              + "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/ for details.");
     }
   }
 

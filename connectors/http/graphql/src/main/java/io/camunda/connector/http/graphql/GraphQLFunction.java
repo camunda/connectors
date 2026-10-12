@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "graphql", label = "GraphQL query"),
       @ElementTemplate.PropertyGroup(id = "timeout", label = "Connection timeout"),
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/components/connectors/protocol/graphql/",
     icon = "icon.svg")
 public class GraphQLFunction implements OutboundConnectorFunction {
 

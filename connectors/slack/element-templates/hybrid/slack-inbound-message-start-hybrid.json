@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1-hybrid",
   "description" : "Receive events from Slack",
   "keywords" : [ "message received", "event received", "channel event", "webhook", "messaging", "new message" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "version" : 9,
   "category" : {
     "id" : "connectors",
@@ -30,7 +30,7 @@
   }, {
     "id" : "correlation",
     "label" : "Correlation",
-    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-correlation-overview\">documentation</a>."
   }, {
     "id" : "deduplication",
     "label" : "Deduplication",
@@ -226,7 +226,7 @@
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
     "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
@@ -291,7 +291,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "name" : "resultVariable",
@@ -301,7 +301,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: request.body.event.user\n}",
     "feel" : "required",
     "group" : "output",
