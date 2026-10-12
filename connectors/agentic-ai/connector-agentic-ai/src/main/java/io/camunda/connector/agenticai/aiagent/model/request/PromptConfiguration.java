@@ -56,6 +56,23 @@ public interface PromptConfiguration {
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
-          @Nullable List<Document> documents)
-      implements PromptConfiguration {}
+          @Nullable List<Document> documents,
+      @TemplateProperty(
+              group = "userPrompt",
+              label = "Load documents into the prompt",
+              description =
+                  "Put the content of the documents into the conversation instead of references the model loads on demand.",
+              tooltip =
+                  "By default the model sees a reference to each document and loads the content it needs with a tool. "
+                      + "With this option the content of text, PDF and image documents is part of the conversation right away. "
+                      + "Large documents cost many tokens in every model call; a document that is too large or of an unsupported type stays a reference.",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true)
+          @Nullable Boolean loadDocuments)
+      implements PromptConfiguration {
+
+    public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {
+      this(prompt, documents, null);
+    }
+  }
 }

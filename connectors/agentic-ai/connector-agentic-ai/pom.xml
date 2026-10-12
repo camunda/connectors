@@ -32,6 +32,8 @@
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
          legacy <thinking> XML scaffold that DEFAULT_SYSTEM_PROMPT (the v2 default) dropped in
          favor of each provider's native reasoning/thinking configuration. -->
+    <!-- Comma-separated ids of the template properties the frozen v1 templates leave out. -->
+    <v1OmittedPropertyIds>data.userPrompt.loadDocuments</v1OmittedPropertyIds>
     <systemPromptOverrides>
 io.camunda.connectors.agenticai.aiagent.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
 io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
@@ -704,6 +706,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
                 <property>
+                  <name>omittedPropertyIds</name>
+                  <value>${v1OmittedPropertyIds}</value>
+                </property>
+                <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
@@ -754,6 +760,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
                 <property>
+                  <name>omittedPropertyIds</name>
+                  <value>${v1OmittedPropertyIds}</value>
+                </property>
+                <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
@@ -790,6 +800,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <property>
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+                <property>
+                  <name>omittedPropertyIds</name>
+                  <value>${v1OmittedPropertyIds}</value>
                 </property>
                 <property>
                   <name>systemPromptOverrides</name>
@@ -832,6 +846,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <property>
                   <name>deprecationDocumentationRef</name>
                   <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+                <property>
+                  <name>omittedPropertyIds</name>
+                  <value>${v1OmittedPropertyIds}</value>
                 </property>
                 <property>
                   <name>systemPromptOverrides</name>

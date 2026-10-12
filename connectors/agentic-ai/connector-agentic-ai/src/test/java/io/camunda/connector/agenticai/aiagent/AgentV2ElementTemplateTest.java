@@ -22,6 +22,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class AgentV2ElementTemplateTest {
 
+  private static final String LOAD_DOCUMENTS_ID = "data.userPrompt.loadDocuments";
+
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -171,6 +173,45 @@ class AgentV2ElementTemplateTest {
     assertThat(migratesFrom.get("sources")).hasSize(1);
     assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
         .isEqualTo(sourceTemplateId);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void offersTheLoadDocumentsCheckboxNextToTheDocumentsOfTheUserPrompt(String file)
+      throws IOException {
+    final var properties = template(file).get("properties");
+
+    final var checkbox = named(properties, "id", LOAD_DOCUMENTS_ID);
+
+    assertThat(checkbox.get("type").asText()).isEqualTo("Boolean");
+    assertThat(checkbox.get("label").asText()).isEqualTo("Load documents into the prompt");
+    assertThat(checkbox.get("group").asText()).isEqualTo("userPrompt");
+    assertThat(checkbox.get("optional").asBoolean()).isTrue();
+    assertThat(checkbox.has("value")).isFalse();
+    assertThat(checkbox.get("binding").get("name").asText()).isEqualTo(LOAD_DOCUMENTS_ID);
+    final var ids = properties.findValuesAsText("id");
+    assertThat(ids.indexOf(LOAD_DOCUMENTS_ID))
+        .isEqualTo(ids.indexOf("data.userPrompt.documents") + 1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-aiagent-outbound-connector.json",
+        "agenticai-aiagent-job-worker.json",
+        "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+        "hybrid/agenticai-aiagent-job-worker-hybrid.json"
+      })
+  void leavesTheLoadDocumentsCheckboxOutOfTheFrozenV1Templates(String file) throws IOException {
+    assertThat(template(file).get("properties").findValuesAsText("id"))
+        .contains("data.userPrompt.documents")
+        .doesNotContain(LOAD_DOCUMENTS_ID);
   }
 
   private static JsonNode preset(JsonNode template, String id) {

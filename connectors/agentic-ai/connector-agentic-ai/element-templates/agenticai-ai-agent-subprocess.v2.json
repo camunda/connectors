@@ -4356,6 +4356,19 @@
     "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
+    "id" : "data.userPrompt.loadDocuments",
+    "label" : "Load documents into the prompt",
+    "description" : "Put the content of the documents into the conversation instead of references the model loads on demand.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.loadDocuments",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "By default the model sees a reference to each document and loads the content it needs with a tool. With this option the content of text, PDF and image documents is part of the conversation right away. Large documents cost many tokens in every model call; a document that is too large or of an unsupported type stays a reference.",
+    "type" : "Boolean"
+  }, {
     "id" : "agentContext",
     "label" : "Agent context",
     "description" : "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
