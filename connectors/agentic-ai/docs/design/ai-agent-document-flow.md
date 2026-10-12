@@ -628,6 +628,57 @@ handling in which the documents are content (4.2).
 `c8__get_document` (4.1, 5.2); `AgentSubProcessHistoryAuditTests` covers an inline prompt document, an inline tool
 document and a note.
 
+### 3.16 Future compatibility: model-aware documents in tool call results
+
+Today the content of a loaded document reaches the model in a follow-up user message (3.14, 3.15), the one form every
+provider accepts. Some providers and models accept documents inside a tool result. A later iteration, driven by a
+capability matrix that knows what a model accepts, can place the content there. The persisted form of this design is
+chosen so that this needs no migration.
+
+**Requirements.**
+
+- A document the agent loaded for the model can be placed in the tool result that carries it, when the current model
+  accepts documents there.
+- A model switch between calls must work in both directions: the model after the switch gets a request it can accept,
+  for the whole window.
+- A model that cannot read the type of a loaded document (for example PDF) must not fail the call.
+- Stored messages, the registry and the agent context stay as they are: no rewrite of persisted data, which an
+  append-only conversation store could not do anyway.
+
+**Persisted form.** The follow-up message with its tags marked as loaded (4.1) is a record of the fact that a document
+was loaded, and of why. It does not say where the content is shown. The placement is derived when the request is
+built, the same way the content of a loaded tag is added from the registry at window time. The record also keeps the
+lifetime of the content tied to its message and the window, and it serves the loads of a user prompt, which have no
+tool result.
+
+**Window-time derivation.** For the model of the current call, in this order:
+
+1. The capability matrix says whether the model reads the content type of the document. If not, the tag stays and a
+   note says that the content is not shown to this model; the call does not fail. This also covers a provider that
+   cannot read a type today.
+2. If the model accepts documents in tool results and the tag has a carrier, the content is added to the tool result
+   message of the carrier and removed from the follow-up message; a follow-up message left without content is
+   dropped from the request. Without a carrier, or when the model does not accept documents there, the follow-up
+   message stays as it is.
+3. The provider converters send a document in a tool result natively or as a tag, as they do for the documents of
+   tool results.
+
+**Carrier.** The carrier of a loaded document is the tool call whose result carries the content, derived from data that
+is persisted already: the call of `c8__get_document` in the window whose argument `id` is the id of the document;
+otherwise the tool call in the registry source of the document, if its tool has `documentDelivery = inline`;
+otherwise none (documents of the user prompt, or a carrier outside the window). The first rule wins, and a document
+is loaded once, so the result is unambiguous. No field has to be added to the persisted tags.
+
+**Model switches.** A switch to a model without support for documents in tool results needs no step: nothing folds and
+every loaded document stays in a follow-up message. A switch to a model with support folds the content of the
+earlier turns on the next call, because the window is built on every call. The request changes on a switch, which
+invalidates a prompt cache that is per model anyway.
+
+**Open for the iteration.** The capability matrix needs two keys, the support of a model for documents in tool results
+and its supported content types; both belong to the capability matrix design. The providers whose wire format for
+documents in tool results has no end-to-end test yet need one before the placement is enabled for them. The history
+reports the persisted form, so it stays correct for either placement.
+
 ## 4. Registry storage
 
 **Where.** `AgentContext.documents` (`List<DocumentRegistryEntry>`, `@JsonInclude(NON_EMPTY)`),
