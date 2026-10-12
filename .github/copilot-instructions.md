@@ -590,8 +590,8 @@ For examples, see existing connectors in `connectors/` directory:
 All skills live in `.agents/skills/`; `.claude/skills/<name>` are symlinks to them so Claude Code
 picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `domain-modeling`,
 `handoff`) are managed with [`npx skills`](https://github.com/vercel-labs/skills) and tracked in
-`skills-lock.json`; the others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`,
-`update-salesforce-api-version`) are authored in this repo.
+`skills-lock.json`; the others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`) are
+authored in this repo.
 
 ```bash
 npx skills experimental_install                                  # reinstall the locked skills from their upstream source
@@ -604,3 +604,7 @@ The CLI does not pin revisions or enforce the recorded hashes, so a reinstall or
 the current upstream content; review the resulting diff. Commit `skills-lock.json` and
 `.agents/skills/` together. After adding a skill, make sure the
 `.claude/skills/<name>` symlink exists.
+
+ADRs for `connectors/agentic-ai` follow the location and format in the "Architecture Decision
+Records" section of `connectors/agentic-ai/AGENTS.md`; it overrides the generic ADR rules in the
+third-party `domain-modeling` skill (`.agents/skills/domain-modeling`).
