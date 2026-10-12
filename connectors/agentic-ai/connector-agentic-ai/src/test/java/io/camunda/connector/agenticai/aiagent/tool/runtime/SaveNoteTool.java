@@ -7,6 +7,7 @@
 
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +32,12 @@ public final class SaveNoteTool {
     return RuntimeTool.builder(NAME)
         .description("Saves a note for later.")
         .inputSchema(RuntimeToolSchema.object().string("text", "The text of the note", true))
-        .available(configuration -> configuration.memory() != null)
+        .available(
+            (executionContext, agentContext) -> executionContext.configuration().memory() != null)
         .handler(
             Note.class,
-            (note, context) -> {
+            TestObjectMapperSupplier.INSTANCE,
+            (note, executionContext, conversation) -> {
               if (note.text() == null || note.text().isBlank()) {
                 return RuntimeToolResult.error("The note must not be blank.");
               }
@@ -44,7 +47,7 @@ public final class SaveNoteTool {
               if (note.text().equals("reject")) {
                 throw new RuntimeToolException("This note is not allowed.");
               }
-              final var count = notesOf(context.properties()).size() + 1;
+              final var count = notesOf(conversation.toAgentContext().properties()).size() + 1;
               return RuntimeToolResult.success("Saved note #" + count)
                   .withContextUpdate(
                       agentContext -> {

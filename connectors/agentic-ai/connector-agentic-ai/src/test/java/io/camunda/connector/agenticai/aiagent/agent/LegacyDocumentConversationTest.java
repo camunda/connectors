@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
@@ -40,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryIm
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
@@ -303,13 +303,14 @@ class LegacyDocumentConversationTest {
   void offersNoRuntimeToolAndHandsEveryCallToTheProcess() throws IOException {
     final var context = loadContext();
     final var configuration = configurationOf(context);
-    final var registry = new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
+    final var registry = new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(objectMapper)));
 
-    assertThat(registry.availableToolDefinitions(configuration)).isEmpty();
-    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, configuration)).isEmpty();
+    final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);
+    assertThat(registry.availableToolDefinitions(executionContext, context)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, executionContext, context))
+        .isEmpty();
 
-    final var handler =
-        new RuntimeToolCallHandlerImpl(registry, objectMapper, mock(DocumentFactory.class));
+    final var handler = new RuntimeToolCallHandlerImpl(registry);
     final var conversation =
         AgentConversation.rehydrate(
             configuration,
@@ -325,7 +326,7 @@ class LegacyDocumentConversationTest {
                 .arguments(Map.of("key", "k", "document", "d"))
                 .build());
 
-    final var split = handler.handle(conversation, calls);
+    final var split = handler.handle(executionContext, conversation, calls);
 
     assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).isEqualTo(calls);

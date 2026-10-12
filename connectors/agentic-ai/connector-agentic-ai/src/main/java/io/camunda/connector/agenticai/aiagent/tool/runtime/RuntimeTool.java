@@ -7,13 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -22,18 +23,26 @@ import org.jspecify.annotations.Nullable;
  * when the model calls the tool.
  *
  * <p>Register a tool as a Spring bean of this type. Build one with {@link #builder(String)} or
- * implement the interface.
+ * implement the interface. The tool must not keep state of its own: an agent can run in any
+ * connector worker, one job after the other. State of the agent belongs into the agent context,
+ * changed by {@link RuntimeToolResult#withContextUpdate context updates}. A tool receives the
+ * services it needs, such as an {@link ObjectMapper}, through its constructor.
+ *
+ * <p>Availability: the agent offers a tool to the model, and answers its calls, only while {@link
+ * #isAvailable the tool is available} for the agent execution. The decision must depend only on the
+ * configuration of the invocation and on the features of the agent instance, which do not change
+ * while a job runs, and must be cheap. An unavailable tool is not shown to the model, and a call of
+ * its name is not answered by the agent but goes to the process like the call of any other tool.
  *
  * <p>The agent runs a call like this:
  *
  * <ol>
- *   <li>The call is looked up among the tools that are {@link #isAvailable available} for the
- *       agent; other calls go to the process.
+ *   <li>The call is looked up among the available tools; other calls go to the process.
  *   <li>The {@link DocumentParameterSchema document parameters} of the definition, the schema nodes
  *       with the document format, are checked: an unknown document answers the call with an error
  *       result listing the known documents and the tool does not run. The tool receives the id of
  *       each document, also when the model passed the {@code <doc />} tag of the document; it looks
- *       the document up in {@link RuntimeToolContext#documents()}.
+ *       the document up in {@link RuntimeToolConversation#documentRegistry()}.
  *   <li>{@link #call} runs. A {@link RuntimeToolException} or an {@link RuntimeToolResult#error
  *       error result} answers the call with an error the model can act on; any other exception
  *       propagates and fails the job.
@@ -41,29 +50,41 @@ import org.jspecify.annotations.Nullable;
  *       agent context.
  * </ol>
  *
- * <p>The tool must not keep state of its own: an agent can run in any connector worker, one job
- * after the other. State of the agent belongs into the agent context, changed by {@link
- * RuntimeToolResult#withContextUpdate context updates}.
+ * <p>The name of a runtime tool must not equal the name of a tool of a process: the agent then
+ * fails with an error, whether the runtime tool is available or not. A custom tool should use a
+ * name with a vendor-specific prefix.
  */
 public interface RuntimeTool {
 
-  /**
-   * The definition shown to the model. The name is unique among the runtime tools. It must not
-   * equal the name of a tool of the process of the agent the runtime tool runs in: the agent then
-   * fails with an error. Custom tools should use a vendor-specific prefix.
-   */
+  /** The definition shown to the model. The name is unique among the runtime tools. */
   ToolDefinition definition();
 
   /**
-   * Whether the tool is offered to the agent of {@code configuration}. An unavailable tool is not
-   * shown to the model and its calls are not answered by the agent.
+   * Whether the tool is offered to the agent of the given execution, and its calls are answered by
+   * the agent. An unavailable tool is not shown to the model and its calls are not answered by the
+   * agent.
+   *
+   * @param executionContext the invocation of the agent: its configuration, prompts and limits. The
+   *     features of the agent instance are not part of it
+   * @param agentContext the persisted state of the agent; it holds the features of the agent
+   *     instance, for example {@link AgentContext#supportsDocuments()}
    */
-  default boolean isAvailable(AgentConfiguration configuration) {
+  default boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext) {
     return true;
   }
 
-  /** Runs the tool for {@code call}. */
-  RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context);
+  /**
+   * Runs the tool for {@code call}.
+   *
+   * @param call the call of the model; a document parameter holds the id of its document
+   * @param executionContext the invocation of the agent; the features of the agent instance are not
+   *     part of it, read them from {@link RuntimeToolConversation#toAgentContext()}
+   * @param conversation the conversation of the agent as of the call
+   */
+  RuntimeToolResult call(
+      RuntimeToolCall call,
+      AgentExecutionContext executionContext,
+      RuntimeToolConversation conversation);
 
   /** Starts building a tool with the given name. */
   static Builder builder(String name) {
@@ -75,16 +96,26 @@ public interface RuntimeTool {
     return new Builder(definition.name(), definition);
   }
 
+  /** Decides whether a tool is available for an agent execution. */
+  @FunctionalInterface
+  interface Availability {
+    boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext);
+  }
+
   /** Runs a call with the arguments the model sent. */
   @FunctionalInterface
   interface Handler {
-    RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context);
+    RuntimeToolResult call(
+        RuntimeToolCall call,
+        AgentExecutionContext executionContext,
+        RuntimeToolConversation conversation);
   }
 
   /** Runs a call with arguments bound to a type. */
   @FunctionalInterface
   interface TypedHandler<A> {
-    RuntimeToolResult call(A arguments, RuntimeToolContext context);
+    RuntimeToolResult call(
+        A arguments, AgentExecutionContext executionContext, RuntimeToolConversation conversation);
   }
 
   /** Builds a {@link RuntimeTool} from a name, a description, a schema and a handler. */
@@ -94,7 +125,7 @@ public interface RuntimeTool {
     private final @Nullable ToolDefinition definition;
     private @Nullable String description;
     private Map<String, Object> inputSchema = RuntimeToolSchema.object().build();
-    private Predicate<AgentConfiguration> availability = configuration -> true;
+    private Availability availability = (executionContext, agentContext) -> true;
 
     private Builder(String name, @Nullable ToolDefinition definition) {
       this.name = Objects.requireNonNull(name, "name must not be null");
@@ -121,31 +152,30 @@ public interface RuntimeTool {
       return this;
     }
 
-    /** The tool is offered only to agents whose configuration satisfies the predicate. */
-    public Builder available(Predicate<AgentConfiguration> availability) {
+    /** The tool is available only for the agent executions that satisfy {@code availability}. */
+    public Builder available(Availability availability) {
       this.availability = availability;
       return this;
     }
 
     /** Completes the tool with a handler that reads the arguments as the model sent them. */
     public RuntimeTool handler(Handler handler) {
-      return new DefaultRuntimeTool(buildDefinition(), availability, handler::call);
+      return new DefaultRuntimeTool(buildDefinition(), availability, handler);
     }
 
     /**
      * Completes the tool with a handler that receives the arguments bound to {@code type}, a record
-     * or a bean the {@link ObjectMapper} of the context can read. A document parameter is bound to
-     * a {@code String}, the id of the document. Arguments that do not match {@code type} answer the
-     * call with an error result.
+     * or a bean {@code objectMapper} can read. A document parameter is bound to a {@code String},
+     * the id of the document. Arguments that do not match {@code type} answer the call with an
+     * error result.
      */
-    public <A> RuntimeTool handler(Class<A> type, TypedHandler<A> handler) {
+    public <A> RuntimeTool handler(
+        Class<A> type, ObjectMapper objectMapper, TypedHandler<A> handler) {
       return new DefaultRuntimeTool(
           buildDefinition(),
           availability,
-          (call, context) -> {
-            final A arguments = call.argumentsAs(type, context.objectMapper());
-            return handler.call(arguments, context);
-          });
+          (call, executionContext, conversation) ->
+              handler.call(call.argumentsAs(type, objectMapper), executionContext, conversation));
     }
 
     private ToolDefinition buildDefinition() {

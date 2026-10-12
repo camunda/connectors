@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +24,8 @@ import org.junit.jupiter.api.Test;
 class AgentInstanceToolMapperTest {
 
   private final RuntimeToolRegistry runtimeToolRegistry =
-      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
+      new RuntimeToolRegistryImpl(
+          List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE)));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
   private final AgentInstanceToolMapper mapper =
@@ -53,7 +55,9 @@ class AgentInstanceToolMapperTest {
 
   @Test
   void runtimeToolHasNoElementId() {
-    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), true);
+    final var mapped =
+        mapper.mapTools(
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()), true);
 
     assertThat(mapped)
         .singleElement()
@@ -69,7 +73,9 @@ class AgentInstanceToolMapperTest {
   void aToolOfTheProcessWithTheNameOfARuntimeToolKeepsItsElementIdWithoutTheRuntimeToolsFeature() {
     when(gatewayToolHandlers.resolveElementId("c8__return_document")).thenReturn(Optional.empty());
 
-    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), false);
+    final var mapped =
+        mapper.mapTools(
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()), false);
 
     assertThat(mapped)
         .singleElement()

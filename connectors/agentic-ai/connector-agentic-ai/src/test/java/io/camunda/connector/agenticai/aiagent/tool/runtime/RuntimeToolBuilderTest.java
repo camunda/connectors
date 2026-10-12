@@ -10,28 +10,21 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
-import io.camunda.connector.api.document.DocumentFactory;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolBuilderTest {
 
-  private static RuntimeToolContext context() {
-    return new RuntimeToolContext(
-        null,
-        Map.of(),
-        DocumentRegistry.empty(),
-        Set.of(),
-        null,
-        TestObjectMapperSupplier.INSTANCE,
-        mock(DocumentFactory.class));
-  }
+  private static final AgentExecutionContext EXECUTION_CONTEXT = mock(AgentExecutionContext.class);
+  private static final RuntimeToolConversation CONVERSATION = mock(RuntimeToolConversation.class);
 
   @Test
   void buildsTheDefinitionFromNameDescriptionAndSchema() {
@@ -42,7 +35,7 @@ class RuntimeToolBuilderTest {
                 RuntimeToolSchema.object()
                     .string("query", "What to look up", true)
                     .document("file", "The file", false))
-            .handler((call, context) -> RuntimeToolResult.success("ok"));
+            .handler((call, executionContext, conversation) -> RuntimeToolResult.success("ok"));
 
     assertThat(tool.definition().name()).isEqualTo("lookup");
     assertThat(tool.definition().description()).isEqualTo("Looks something up.");
@@ -91,7 +84,10 @@ class RuntimeToolBuilderTest {
     schema.put("properties", Map.of());
     schema.put("required", List.of());
 
-    final var tool = RuntimeTool.builder("t").inputSchema(schema).handler((call, context) -> null);
+    final var tool =
+        RuntimeTool.builder("t")
+            .inputSchema(schema)
+            .handler((call, executionContext, conversation) -> null);
 
     assertThat(tool.definition().inputSchema().keySet())
         .containsExactly("type", "properties", "required");
@@ -99,7 +95,8 @@ class RuntimeToolBuilderTest {
 
   @Test
   void theReturnDocumentDefinitionKeepsADeterministicKeyOrder() {
-    final var schema = new ReturnDocumentTool().definition().inputSchema();
+    final var schema =
+        new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition().inputSchema();
 
     assertThat(schema.keySet()).containsExactly("type", "properties", "required");
     @SuppressWarnings("unchecked")
@@ -118,12 +115,72 @@ class RuntimeToolBuilderTest {
         RuntimeTool.builder("lookup")
             .handler(
                 Args.class,
-                (args, context) -> RuntimeToolResult.success(args.query() + ":" + args.limit()));
+                TestObjectMapperSupplier.INSTANCE,
+                (args, executionContext, conversation) ->
+                    RuntimeToolResult.success(args.query() + ":" + args.limit()));
 
     final var result =
-        tool.call(new RuntimeToolCall("1", "lookup", Map.of("query", "a", "limit", 3)), context());
+        tool.call(
+            new RuntimeToolCall("1", "lookup", Map.of("query", "a", "limit", 3)),
+            EXECUTION_CONTEXT,
+            CONVERSATION);
 
     assertThat(result.content()).isEqualTo("a:3");
+  }
+
+  @Test
+  void aToolIsAvailableByDefault() {
+    final var tool =
+        RuntimeTool.builder("t").handler((call, executionContext, conversation) -> null);
+
+    assertThat(tool.isAvailable(EXECUTION_CONTEXT, AgentContext.empty())).isTrue();
+  }
+
+  @Test
+  void decidesAvailabilityOnTheExecutionContextAndTheAgentContext() {
+    final var other = mock(AgentExecutionContext.class);
+    final var withFeature = AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("acme")));
+    final var tool =
+        RuntimeTool.builder("t")
+            .available(
+                (executionContext, agentContext) ->
+                    executionContext == EXECUTION_CONTEXT && agentContext.supports("acme"))
+            .handler((call, executionContext, conversation) -> null);
+
+    assertThat(tool.isAvailable(EXECUTION_CONTEXT, withFeature)).isTrue();
+    assertThat(tool.isAvailable(EXECUTION_CONTEXT, AgentContext.empty())).isFalse();
+    assertThat(tool.isAvailable(other, withFeature)).isFalse();
+  }
+
+  @Test
+  void handsTheContextsOfTheCallToTheHandlers() {
+    record Args(String query) {}
+    final var seen = new ArrayList<Object>();
+    final var untyped =
+        RuntimeTool.builder("untyped")
+            .handler(
+                (call, executionContext, conversation) -> {
+                  seen.add(executionContext);
+                  seen.add(conversation);
+                  return RuntimeToolResult.success("ok");
+                });
+    final var typed =
+        RuntimeTool.builder("typed")
+            .handler(
+                Args.class,
+                TestObjectMapperSupplier.INSTANCE,
+                (args, executionContext, conversation) -> {
+                  seen.add(executionContext);
+                  seen.add(conversation);
+                  return RuntimeToolResult.success(args.query());
+                });
+
+    untyped.call(new RuntimeToolCall("1", "untyped", Map.of()), EXECUTION_CONTEXT, CONVERSATION);
+    typed.call(
+        new RuntimeToolCall("2", "typed", Map.of("query", "a")), EXECUTION_CONTEXT, CONVERSATION);
+
+    assertThat(seen)
+        .containsExactly(EXECUTION_CONTEXT, CONVERSATION, EXECUTION_CONTEXT, CONVERSATION);
   }
 
   @Test
@@ -137,9 +194,10 @@ class RuntimeToolBuilderTest {
 
   @Test
   void usesAReadyMadeDefinitionAsIs() {
-    final var definition = new ReturnDocumentTool().definition();
+    final var definition = new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition();
 
-    final var tool = RuntimeTool.builder(definition).handler((call, context) -> null);
+    final var tool =
+        RuntimeTool.builder(definition).handler((call, executionContext, conversation) -> null);
 
     assertThat(tool.definition()).isSameAs(definition);
   }

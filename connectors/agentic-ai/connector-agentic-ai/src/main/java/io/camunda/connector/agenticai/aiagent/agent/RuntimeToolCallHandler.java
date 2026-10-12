@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -35,16 +36,20 @@ import java.util.List;
 public interface RuntimeToolCallHandler {
 
   /**
-   * The definitions of the runtime tools available for the agent of {@code configuration}; they are
-   * offered to the model next to the tools of the process.
+   * The definitions of the runtime tools available for the agent execution; they are offered to the
+   * model next to the tools of the process.
    */
-  List<ToolDefinition> availableToolDefinitions(AgentConfiguration configuration);
+  List<ToolDefinition> availableToolDefinitions(
+      AgentExecutionContext executionContext, AgentContext agentContext);
 
   /**
    * Splits {@code toolCalls}, the tool calls of the last assistant message of {@code conversation},
    * and runs the runtime ones in call order.
    */
-  RuntimeToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls);
+  RuntimeToolCallSplit handle(
+      AgentExecutionContext executionContext,
+      AgentConversation conversation,
+      List<ToolCall> toolCalls);
 
   /**
    * The outcome of splitting a batch.

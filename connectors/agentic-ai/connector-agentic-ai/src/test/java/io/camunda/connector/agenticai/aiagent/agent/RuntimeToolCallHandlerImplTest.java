@@ -7,13 +7,13 @@
 
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
@@ -38,7 +38,6 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.SaveNoteTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -78,6 +77,8 @@ class RuntimeToolCallHandlerImplTest {
   private static final AgentConfiguration WITHOUT_MEMORY =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
           .withFeatures(AgentContext.newInstanceFeatures());
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
   private final Document report = createDocument("report", "report.txt");
   private final String reportId = DocumentHandle.idFor(report);
@@ -88,24 +89,38 @@ class RuntimeToolCallHandlerImplTest {
               List.of(
                   new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null))));
 
-  private final RuntimeToolCallHandler handler = handlerOf(SaveNoteTool.create());
+  /**
+   * The handler under test, run for an agent execution that has the configuration of the
+   * conversation.
+   */
+  private record Handler(RuntimeToolCallHandler delegate) {
 
-  private static RuntimeToolCallHandlerImpl handlerOf(RuntimeTool... tools) {
-    return handlerOf(mock(DocumentFactory.class), tools);
+    RuntimeToolCallHandler.RuntimeToolCallSplit handle(
+        AgentConversation conversation, List<ToolCall> toolCalls) {
+      return delegate.handle(
+          withConfiguration(conversation.configuration()), conversation, toolCalls);
+    }
+
+    List<ToolDefinition> availableToolDefinitions(
+        AgentConfiguration configuration, AgentContext agentContext) {
+      return delegate.availableToolDefinitions(withConfiguration(configuration), agentContext);
+    }
+
+    List<ToolDefinition> availableToolDefinitions(AgentConversation conversation) {
+      return availableToolDefinitions(conversation.configuration(), conversation.toAgentContext());
+    }
   }
 
-  private static RuntimeToolCallHandlerImpl handlerOf(
-      DocumentFactory documentFactory, RuntimeTool... tools) {
-    return new RuntimeToolCallHandlerImpl(
-        new RuntimeToolRegistryImpl(List.of(tools)),
-        TestObjectMapperSupplier.INSTANCE,
-        documentFactory);
+  private final Handler handler = handlerOf(SaveNoteTool.create());
+
+  private static Handler handlerOf(RuntimeTool... tools) {
+    return new Handler(new RuntimeToolCallHandlerImpl(new RuntimeToolRegistryImpl(List.of(tools))));
   }
 
   private static final RuntimeTool ECHO_TOOL =
       RuntimeTool.builder("acme_echo")
           .description("Echoes.")
-          .handler((call, context) -> RuntimeToolResult.success("echo"));
+          .handler((call, executionContext, conv) -> RuntimeToolResult.success("echo"));
 
   private static AgentConversation conversationWithFeatures(
       Set<String> features, ToolCall... calls) {
@@ -220,8 +235,8 @@ class RuntimeToolCallHandlerImplTest {
 
     assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(call);
-    assertThat(handler.availableToolDefinitions(WITHOUT_MEMORY)).isEmpty();
-    assertThat(handler.availableToolDefinitions(WITH_MEMORY))
+    assertThat(handler.availableToolDefinitions(WITHOUT_MEMORY, NEW_INSTANCE)).isEmpty();
+    assertThat(handler.availableToolDefinitions(WITH_MEMORY, NEW_INSTANCE))
         .extracting(ToolDefinition::name)
         .containsExactly("c8__save_note");
   }
@@ -255,7 +270,10 @@ class RuntimeToolCallHandlerImplTest {
     record Args(int limit) {}
     final var tool =
         RuntimeTool.builder("c8__limited")
-            .handler(Args.class, (args, context) -> RuntimeToolResult.success("never"));
+            .handler(
+                Args.class,
+                TestObjectMapperSupplier.INSTANCE,
+                (args, executionContext, conv) -> RuntimeToolResult.success("never"));
     final var call = new ToolCall("l1", "c8__limited", Map.of("limit", "many"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
@@ -290,7 +308,8 @@ class RuntimeToolCallHandlerImplTest {
                     .stringArray("files", "More files", false))
             .handler(
                 Args.class,
-                (args, context) -> {
+                TestObjectMapperSupplier.INSTANCE,
+                (args, executionContext, conv) -> {
                   received.add(args.file());
                   received.add(args.files());
                   return RuntimeToolResult.success("read");
@@ -310,7 +329,7 @@ class RuntimeToolCallHandlerImplTest {
         RuntimeTool.builder("c8__read_file")
             .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
             .handler(
-                (call, context) -> {
+                (call, executionContext, conv) -> {
                   received.add(call.arguments());
                   return RuntimeToolResult.success("read");
                 });
@@ -332,7 +351,7 @@ class RuntimeToolCallHandlerImplTest {
         RuntimeTool.builder("c8__read_file")
             .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
             .handler(
-                (call, context) -> {
+                (call, executionContext, conv) -> {
                   runs.incrementAndGet();
                   return RuntimeToolResult.success("read");
                 });
@@ -428,9 +447,10 @@ class RuntimeToolCallHandlerImplTest {
 
   @Test
   void aReturnDocumentToolCanBeRegisteredNextToOtherTools() {
-    final var both = handlerOf(new ReturnDocumentTool(), SaveNoteTool.create());
+    final var both =
+        handlerOf(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), SaveNoteTool.create());
 
-    assertThat(both.availableToolDefinitions(WITH_MEMORY))
+    assertThat(both.availableToolDefinitions(WITH_MEMORY, NEW_INSTANCE))
         .extracting(ToolDefinition::name)
         .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, "c8__save_note");
   }
@@ -446,17 +466,18 @@ class RuntimeToolCallHandlerImplTest {
     assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(result -> assertThat(result.content()).isEqualTo("echo"));
-    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
+    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation))
         .extracting(ToolDefinition::name)
         .containsExactly("acme_echo");
   }
 
   @Test
   void doesNotOfferTheDocumentToolsToAnAgentWithOnlyTheRuntimeToolsFeature() {
-    final var configuration = conversationWithFeatures(Set.of("runtimeTools")).configuration();
+    final var conversation = conversationWithFeatures(Set.of("runtimeTools"));
 
     assertThat(
-            handlerOf(ECHO_TOOL, new ReturnDocumentTool()).availableToolDefinitions(configuration))
+            handlerOf(ECHO_TOOL, new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE))
+                .availableToolDefinitions(conversation))
         .extracting(ToolDefinition::name)
         .containsExactly("acme_echo");
   }
@@ -470,31 +491,76 @@ class RuntimeToolCallHandlerImplTest {
 
     assertThat(split.hasRuntimeResults()).isFalse();
     assertThat(split.remainingCalls()).containsExactly(call);
-    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
-        .isEmpty();
+    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation)).isEmpty();
   }
 
   @Test
-  void aToolCreatesADocumentThroughTheContext() {
+  void answersTheCallsOfAToolOnlyForAgentsThatHaveTheFeatureItNeeds() {
+    final var featured =
+        RuntimeTool.builder("acme_featured")
+            .available((executionContext, agentContext) -> agentContext.supports("acme"))
+            .handler((call, executionContext, conv) -> RuntimeToolResult.success("featured"));
+    final var call = new ToolCall("f1", "acme_featured", Map.of());
+
+    final var without =
+        handlerOf(featured)
+            .handle(conversationWithFeatures(Set.of("runtimeTools"), call), List.of(call));
+    final var with =
+        handlerOf(featured)
+            .handle(conversationWithFeatures(Set.of("runtimeTools", "acme"), call), List.of(call));
+
+    assertThat(without.hasRuntimeResults()).isFalse();
+    assertThat(without.remainingCalls()).containsExactly(call);
+    assertThat(with.answersAllCalls()).isTrue();
+    assertThat(with.runtimeResults())
+        .singleElement()
+        .satisfies(result -> assertThat(result.content()).isEqualTo("featured"));
+  }
+
+  @Test
+  void aToolReadsTheConversationAndTheExecutionContextItIsCalledWith() {
+    final var seen = new ArrayList<Object>();
+    final var reading =
+        RuntimeTool.builder("acme_reading")
+            .handler(
+                (call, executionContext, conv) -> {
+                  seen.add(executionContext);
+                  seen.add(conv.documentRegistry().entries());
+                  seen.add(conv.toAgentContext().features());
+                  return RuntimeToolResult.success("read");
+                });
+    final var call = new ToolCall("r1", "acme_reading", Map.of());
+    final var conversation = conversation(WITH_MEMORY, call);
+
+    final var executionContext = withConfiguration(WITH_MEMORY);
+
+    handlerOf(reading).delegate().handle(executionContext, conversation, List.of(call));
+
+    assertThat(seen)
+        .containsExactly(
+            executionContext,
+            conversation.documentRegistry().entries(),
+            AgentContext.newInstanceFeatures());
+  }
+
+  @Test
+  void aToolCreatesADocumentWithTheFactoryItWasGiven() {
     final var factory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
     final var creating =
         RuntimeTool.builder("acme_create")
             .description("Creates a document.")
             .handler(
-                (call, context) ->
+                (call, executionContext, conv) ->
                     RuntimeToolResult.success(
-                        context
-                            .documentFactory()
-                            .create(
-                                DocumentCreationRequest.from(
-                                        "created".getBytes(StandardCharsets.UTF_8))
-                                    .contentType("text/plain")
-                                    .fileName("created.txt")
-                                    .build())));
+                        factory.create(
+                            DocumentCreationRequest.from("created".getBytes(StandardCharsets.UTF_8))
+                                .contentType("text/plain")
+                                .fileName("created.txt")
+                                .build())));
     final var call = new ToolCall("c1", "acme_create", Map.of());
     final var conversation = conversationWithFeatures(Set.of("runtimeTools"), call);
 
-    final var split = handlerOf(factory, creating).handle(conversation, List.of(call));
+    final var split = handlerOf(creating).handle(conversation, List.of(call));
 
     assertThat(split.runtimeResults())
         .singleElement()

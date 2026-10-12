@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
@@ -29,10 +29,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -47,7 +45,6 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -56,8 +53,7 @@ import org.junit.jupiter.api.Test;
 class GetDocumentToolTest {
 
   private static final AgentConfiguration CONFIGURATION =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withFeatures(AgentContext.newInstanceFeatures());
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
   private static final long TEXT_LIMIT = 256L * 1024;
   private static final long BINARY_LIMIT = 10L * 1024 * 1024;
@@ -110,11 +106,10 @@ class GetDocumentToolTest {
 
   private final CountingStore store = new CountingStore();
   private final ObjectMapper objectMapper = objectMapperFor(store);
+  private final GetDocumentTool tool = new GetDocumentTool(objectMapper);
   private final RuntimeToolCallHandler handler =
       new RuntimeToolCallHandlerImpl(
-          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
-          objectMapper,
-          mock(DocumentFactory.class));
+          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(objectMapper), tool)));
 
   private static ObjectMapper objectMapperFor(CamundaDocumentStore store) {
     final var copy = ConnectorsObjectMapperSupplier.getCopy();
@@ -145,7 +140,7 @@ class GetDocumentToolTest {
 
   @Test
   void definitionHasASingleRequiredDocumentParameterAndTellsAboutLargeDocuments() {
-    final var definition = new GetDocumentTool().definition();
+    final var definition = tool.definition();
 
     assertThat(GetDocumentTool.NAME).isEqualTo("c8__get_document");
     assertThat(definition.description())
@@ -164,11 +159,15 @@ class GetDocumentToolTest {
 
   @Test
   void isOfferedToEveryAgentWithTheDocumentsFeatureOnly() {
-    assertThat(handler.availableToolDefinitions(CONFIGURATION))
+    final var executionContext = withConfiguration(CONFIGURATION);
+
+    assertThat(
+            handler.availableToolDefinitions(
+                executionContext,
+                AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures())))
         .extracting(definition -> definition.name())
         .containsExactly("c8__return_document", "c8__get_document");
-    assertThat(handler.availableToolDefinitions(CONFIGURATION.withFeatures(java.util.Set.of())))
-        .isEmpty();
+    assertThat(handler.availableToolDefinitions(executionContext, AgentContext.empty())).isEmpty();
   }
 
   @Test
@@ -395,12 +394,11 @@ class GetDocumentToolTest {
         };
     final var smallHandler =
         new RuntimeToolCallHandlerImpl(
-            new RuntimeToolRegistryImpl(List.of(new GetDocumentTool())),
-            objectMapperFor(smallStore),
-            mock(DocumentFactory.class));
+            new RuntimeToolRegistryImpl(List.of(new GetDocumentTool(objectMapperFor(smallStore)))));
 
     final var split =
         smallHandler.handle(
+            withConfiguration(CONFIGURATION),
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
@@ -434,12 +432,12 @@ class GetDocumentToolTest {
         };
     final var failingHandler =
         new RuntimeToolCallHandlerImpl(
-            new RuntimeToolRegistryImpl(List.of(new GetDocumentTool())),
-            objectMapperFor(failingStore),
-            mock(DocumentFactory.class));
+            new RuntimeToolRegistryImpl(
+                List.of(new GetDocumentTool(objectMapperFor(failingStore)))));
 
     final var split =
         failingHandler.handle(
+            withConfiguration(CONFIGURATION),
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
@@ -451,17 +449,8 @@ class GetDocumentToolTest {
   @Test
   void answersAnIdWithoutARegistryEntryWithAnError() {
     final var call = new RuntimeToolCall("1", GetDocumentTool.NAME, Map.of("id", "doc-2"));
-    final var context =
-        new RuntimeToolContext(
-            CONFIGURATION,
-            Map.of(),
-            DocumentRegistry.empty(),
-            Set.of(),
-            null,
-            objectMapper,
-            mock(DocumentFactory.class));
-
-    final var result = new GetDocumentTool().call(call, context);
+    final var result =
+        tool.call(call, withConfiguration(CONFIGURATION), conversation(List.of(), List.of()));
 
     assertThat(result.error()).isTrue();
     assertThat(result.content().toString())
@@ -507,6 +496,7 @@ class GetDocumentToolTest {
 
   private RuntimeToolCallHandler.RuntimeToolCallSplit run(
       List<DocumentRegistryEntry> entries, List<Message> messages, ToolCall... toolCalls) {
-    return handler.handle(conversation(entries, messages), List.of(toolCalls));
+    return handler.handle(
+        withConfiguration(CONFIGURATION), conversation(entries, messages), List.of(toolCalls));
   }
 }

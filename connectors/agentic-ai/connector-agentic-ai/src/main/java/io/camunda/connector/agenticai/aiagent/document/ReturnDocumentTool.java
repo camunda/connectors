@@ -6,14 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -26,7 +27,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * The built-in {@code c8__return_document} tool. The model calls it once per document to select a
  * document for the final response of the agent under a key the process can find it by. It is
- * offered to every agent.
+ * offered to every agent instance with the documents feature.
  *
  * <p>Every valid call puts its document into the response documents of the agent context under its
  * key; a call with a key that is already used replaces that entry in place. The response documents
@@ -97,6 +98,12 @@ public final class ReturnDocumentTool implements RuntimeTool {
   /** The arguments of a call: the key, the id of the document and its description. */
   record Arguments(@Nullable String key, @Nullable String document, @Nullable String description) {}
 
+  private final ObjectMapper objectMapper;
+
+  public ReturnDocumentTool(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
+
   @Override
   public ToolDefinition definition() {
     return DEFINITION;
@@ -104,24 +111,27 @@ public final class ReturnDocumentTool implements RuntimeTool {
 
   /** The tool works with the document registry: only an agent with the documents feature has it. */
   @Override
-  public boolean isAvailable(AgentConfiguration configuration) {
-    return configuration.supportsDocuments();
+  public boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext) {
+    return agentContext.supportsDocuments();
   }
 
   @Override
-  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
-    final var arguments = call.argumentsAs(Arguments.class, context.objectMapper());
+  public RuntimeToolResult call(
+      RuntimeToolCall call,
+      AgentExecutionContext executionContext,
+      RuntimeToolConversation conversation) {
+    final var arguments = call.argumentsAs(Arguments.class, objectMapper);
+    final var documents = conversation.documentRegistry();
     if (arguments.key() == null || !KEY_PATTERN.matcher(arguments.key()).matches()) {
       return RuntimeToolResult.error(
           "Parameter '%s' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
                   .formatted(PARAMETER_KEY)
               + " underscore and continues with letters, digits, underscores or hyphens.");
     }
-    if (arguments.document() == null
-        || context.documents().findById(arguments.document()).isEmpty()) {
+    if (arguments.document() == null || documents.findById(arguments.document()).isEmpty()) {
       return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
-              .formatted(PARAMETER_DOCUMENT, context.documents().knownDocumentsText()));
+              .formatted(PARAMETER_DOCUMENT, documents.knownDocumentsText()));
     }
 
     final var key = arguments.key();

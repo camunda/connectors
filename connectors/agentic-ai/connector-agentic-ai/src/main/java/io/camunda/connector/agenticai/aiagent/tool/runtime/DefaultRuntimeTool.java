@@ -6,20 +6,20 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.util.function.Predicate;
 
 /** The {@link RuntimeTool} that {@link RuntimeTool#builder(String)} builds. */
 final class DefaultRuntimeTool implements RuntimeTool {
 
   private final ToolDefinition definition;
-  private final Predicate<AgentConfiguration> availability;
+  private final RuntimeTool.Availability availability;
   private final RuntimeTool.Handler handler;
 
   DefaultRuntimeTool(
       ToolDefinition definition,
-      Predicate<AgentConfiguration> availability,
+      RuntimeTool.Availability availability,
       RuntimeTool.Handler handler) {
     this.definition = definition;
     this.availability = availability;
@@ -32,12 +32,15 @@ final class DefaultRuntimeTool implements RuntimeTool {
   }
 
   @Override
-  public boolean isAvailable(AgentConfiguration configuration) {
-    return availability.test(configuration);
+  public boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext) {
+    return availability.isAvailable(executionContext, agentContext);
   }
 
   @Override
-  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
-    return handler.call(call, context);
+  public RuntimeToolResult call(
+      RuntimeToolCall call,
+      AgentExecutionContext executionContext,
+      RuntimeToolConversation conversation) {
+    return handler.call(call, executionContext, conversation);
   }
 }

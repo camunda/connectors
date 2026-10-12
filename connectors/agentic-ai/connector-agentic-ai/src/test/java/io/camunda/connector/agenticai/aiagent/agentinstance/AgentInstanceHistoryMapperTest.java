@@ -59,7 +59,8 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class),
-          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
+          new RuntimeToolRegistryImpl(
+              List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE))),
           new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
 
   @Test

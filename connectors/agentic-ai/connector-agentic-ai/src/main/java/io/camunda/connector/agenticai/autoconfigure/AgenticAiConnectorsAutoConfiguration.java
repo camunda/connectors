@@ -192,14 +192,16 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(name = "aiAgentReturnDocumentRuntimeTool")
-  public RuntimeTool aiAgentReturnDocumentRuntimeTool() {
-    return new ReturnDocumentTool();
+  public RuntimeTool aiAgentReturnDocumentRuntimeTool(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new ReturnDocumentTool(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean(name = "aiAgentGetDocumentRuntimeTool")
-  public RuntimeTool aiAgentGetDocumentRuntimeTool() {
-    return new GetDocumentTool();
+  public RuntimeTool aiAgentGetDocumentRuntimeTool(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new GetDocumentTool(objectMapper);
   }
 
   @Bean
@@ -339,10 +341,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public RuntimeToolCallHandler aiAgentRuntimeToolCallHandler(
-      RuntimeToolRegistry runtimeToolRegistry,
-      @ConnectorsObjectMapper ObjectMapper objectMapper,
-      DocumentFactory documentFactory) {
-    return new RuntimeToolCallHandlerImpl(runtimeToolRegistry, objectMapper, documentFactory);
+      RuntimeToolRegistry runtimeToolRegistry) {
+    return new RuntimeToolCallHandlerImpl(runtimeToolRegistry);
   }
 
   @Bean

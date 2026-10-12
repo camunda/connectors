@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
@@ -14,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
 import io.camunda.connector.api.document.Document;
@@ -75,6 +77,12 @@ public final class GetDocumentTool implements RuntimeTool {
   /** The arguments of a call: the id of the document to load. */
   record Arguments(@Nullable String id) {}
 
+  private final ObjectMapper objectMapper;
+
+  public GetDocumentTool(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
+
   @Override
   public ToolDefinition definition() {
     return DEFINITION;
@@ -82,26 +90,30 @@ public final class GetDocumentTool implements RuntimeTool {
 
   /** The tool works with the document registry: only an agent with the documents feature has it. */
   @Override
-  public boolean isAvailable(AgentConfiguration configuration) {
-    return configuration.supportsDocuments();
+  public boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext) {
+    return agentContext.supportsDocuments();
   }
 
   @Override
-  public RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context) {
-    final var id = call.argumentsAs(Arguments.class, context.objectMapper()).id();
-    final var entry = id == null ? null : context.documents().findById(id).orElse(null);
+  public RuntimeToolResult call(
+      RuntimeToolCall call,
+      AgentExecutionContext executionContext,
+      RuntimeToolConversation conversation) {
+    final var id = call.argumentsAs(Arguments.class, objectMapper).id();
+    final var documents = conversation.documentRegistry();
+    final var entry = id == null ? null : documents.findById(id).orElse(null);
     if (entry == null) {
       return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
-              .formatted(PARAMETER_ID, context.documents().knownDocumentsText()));
+              .formatted(PARAMETER_ID, documents.knownDocumentsText()));
     }
 
-    if (context.documentIdsWithContent().contains(entry.id())) {
+    if (conversation.documentIdsWithContent().contains(entry.id())) {
       return RuntimeToolResult.success(
           "Document %s is already in the conversation.".formatted(entry.id()));
     }
 
-    final var document = documentOf(entry, context);
+    final var document = documentOf(entry);
 
     final var rejection = DocumentContentGuard.check(document).orElse(null);
     if (rejection != null) {
@@ -123,9 +135,9 @@ public final class GetDocumentTool implements RuntimeTool {
   }
 
   /** The document of a registry entry, read from its reference. */
-  private static Document documentOf(DocumentRegistryEntry entry, RuntimeToolContext context) {
+  private Document documentOf(DocumentRegistryEntry entry) {
     try {
-      return context.objectMapper().convertValue(entry.reference(), Document.class);
+      return objectMapper.convertValue(entry.reference(), Document.class);
     } catch (IllegalArgumentException e) {
       throw new RuntimeToolException(
           "The document %s could not be read from its reference: %s"

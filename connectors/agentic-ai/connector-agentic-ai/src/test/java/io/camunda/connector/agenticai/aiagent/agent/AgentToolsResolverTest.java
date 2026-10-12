@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -51,8 +52,9 @@ class AgentToolsResolverTest {
             gatewayToolHandlers,
             new RuntimeToolRegistryImpl(
                 List.of(
-                    new ReturnDocumentTool(),
-                    RuntimeTool.builder("acme_lookup").handler((call, context) -> null))));
+                    new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE),
+                    RuntimeTool.builder("acme_lookup")
+                        .handler((call, executionContext, conversation) -> null))));
   }
 
   @Nested

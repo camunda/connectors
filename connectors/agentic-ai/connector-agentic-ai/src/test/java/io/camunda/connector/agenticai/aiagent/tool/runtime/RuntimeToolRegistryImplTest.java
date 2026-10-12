@@ -7,6 +7,7 @@
 
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
+import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,34 +16,56 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolRegistryImplTest {
 
-  private static final AgentConfiguration PLAIN =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withFeatures(AgentContext.newInstanceFeatures());
-  private static final AgentConfiguration WITH_MEMORY =
-      new AgentConfiguration(
+  private static final AgentExecutionContext PLAIN =
+      withConfiguration(
+          new AgentConfiguration(
+              TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null));
+  private static final AgentExecutionContext WITH_MEMORY =
+      withConfiguration(
+          new AgentConfiguration(
               TEST_CHAT_MODEL,
               TEST_SYSTEM_PROMPT,
               null,
               new MemoryConfiguration(null, 10),
               null,
               null,
-              null)
-          .withFeatures(AgentContext.newInstanceFeatures());
-  private static final AgentConfiguration WITHOUT_FEATURES = PLAIN.withFeatures(Set.of());
-  private static final AgentConfiguration RUNTIME_TOOLS_ONLY =
-      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_RUNTIME_TOOLS));
-  private static final AgentConfiguration DOCUMENTS_ONLY =
-      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_DOCUMENTS));
+              null));
+
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+  private static final AgentContext WITHOUT_FEATURES = AgentContext.empty();
+  private static final AgentContext RUNTIME_TOOLS_ONLY = withFeatures(Set.of("runtimeTools"));
+  private static final AgentContext DOCUMENTS_ONLY = withFeatures(Set.of("documents"));
 
   private final RuntimeToolRegistry registry =
-      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
+      new RuntimeToolRegistryImpl(
+          List.of(
+              new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), SaveNoteTool.create()));
+
+  private static AgentContext withFeatures(Set<String> features) {
+    return AgentContext.empty().withFeatures(new LinkedHashSet<>(features));
+  }
+
+  private static RuntimeTool tool(String name, RuntimeTool.Availability availability) {
+    return RuntimeTool.builder(name)
+        .available(availability)
+        .handler((call, executionContext, conversation) -> RuntimeToolResult.success(name));
+  }
+
+  private static List<String> names(List<ToolDefinition> definitions) {
+    return definitions.stream().map(ToolDefinition::name).toList();
+  }
 
   @Test
   void reservesTheNamesOfAllRegisteredToolsWhetherAvailableOrNot() {
@@ -51,50 +74,93 @@ class RuntimeToolRegistryImplTest {
   }
 
   @Test
-  void offersOnlyTheToolsAvailableForTheConfiguration() {
-    assertThat(registry.availableToolDefinitions(PLAIN))
-        .extracting(definition -> definition.name())
+  void offersOnlyTheToolsAvailableForTheAgentExecution() {
+    assertThat(names(registry.availableToolDefinitions(PLAIN, NEW_INSTANCE)))
         .containsExactly(ReturnDocumentTool.NAME);
-    assertThat(registry.availableToolDefinitions(WITH_MEMORY))
-        .extracting(definition -> definition.name())
+    assertThat(names(registry.availableToolDefinitions(WITH_MEMORY, NEW_INSTANCE)))
         .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, SaveNoteTool.NAME);
   }
 
   @Test
   void offersNoToolToAnAgentWithoutTheRuntimeToolsFeature() {
-    assertThat(registry.availableTools(WITHOUT_FEATURES)).isEmpty();
-    assertThat(registry.availableToolDefinitions(WITHOUT_FEATURES)).isEmpty();
-    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITHOUT_FEATURES)).isEmpty();
+    assertThat(registry.availableTools(WITH_MEMORY, WITHOUT_FEATURES)).isEmpty();
+    assertThat(registry.availableToolDefinitions(WITH_MEMORY, WITHOUT_FEATURES)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITH_MEMORY, WITHOUT_FEATURES))
+        .isEmpty();
   }
 
   @Test
   void offersOnlyTheToolsThatDoNotNeedDocumentsToAnAgentWithOnlyTheRuntimeToolsFeature() {
-    final var withMemory = WITH_MEMORY.withFeatures(Set.of(AgentContext.FEATURE_RUNTIME_TOOLS));
-
-    assertThat(registry.availableToolDefinitions(RUNTIME_TOOLS_ONLY)).isEmpty();
-    assertThat(registry.availableToolDefinitions(withMemory))
-        .extracting(definition -> definition.name())
+    assertThat(registry.availableToolDefinitions(PLAIN, RUNTIME_TOOLS_ONLY)).isEmpty();
+    assertThat(names(registry.availableToolDefinitions(WITH_MEMORY, RUNTIME_TOOLS_ONLY)))
         .containsExactly(SaveNoteTool.NAME);
-    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, RUNTIME_TOOLS_ONLY)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, PLAIN, RUNTIME_TOOLS_ONLY))
+        .isEmpty();
   }
 
   @Test
   void treatsTheDocumentsFeatureAsImplyingTheRuntimeToolsFeature() {
-    assertThat(registry.availableToolDefinitions(DOCUMENTS_ONLY))
-        .extracting(definition -> definition.name())
+    assertThat(names(registry.availableToolDefinitions(PLAIN, DOCUMENTS_ONLY)))
         .containsExactly(ReturnDocumentTool.NAME);
   }
 
   @Test
   void findsAToolOnlyWhileItIsAvailable() {
-    assertThat(registry.findAvailable(SaveNoteTool.NAME, WITH_MEMORY)).isPresent();
-    assertThat(registry.findAvailable(SaveNoteTool.NAME, PLAIN)).isEmpty();
-    assertThat(registry.findAvailable("unknown", WITH_MEMORY)).isEmpty();
+    assertThat(registry.findAvailable(SaveNoteTool.NAME, WITH_MEMORY, NEW_INSTANCE)).isPresent();
+    assertThat(registry.findAvailable(SaveNoteTool.NAME, PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(registry.findAvailable("unknown", WITH_MEMORY, NEW_INSTANCE)).isEmpty();
+  }
+
+  @Test
+  void aToolCanBeAvailableOnlyWithAFeatureOfTheAgentInstance() {
+    final var featured =
+        new RuntimeToolRegistryImpl(
+            List.of(tool("acme_featured", (execution, agent) -> agent.supports("acme"))));
+
+    assertThat(featured.findAvailable("acme_featured", PLAIN, withFeatures(Set.of("runtimeTools"))))
+        .isEmpty();
+    assertThat(
+            featured.findAvailable(
+                "acme_featured", PLAIN, withFeatures(Set.of("runtimeTools", "acme"))))
+        .isPresent();
+  }
+
+  @Test
+  void aToolCanBeAvailableOnlyWithAConfigurationValue() {
+    final var configured =
+        new RuntimeToolRegistryImpl(
+            List.of(
+                tool(
+                    "acme_configured",
+                    (execution, agent) -> execution.configuration().memory() != null)));
+
+    assertThat(configured.availableTools(PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(configured.availableTools(WITH_MEMORY, NEW_INSTANCE)).hasSize(1);
+  }
+
+  @Test
+  void keepsTheRegistrationOrderOfTheAvailableTools() {
+    final var ordered =
+        new RuntimeToolRegistryImpl(
+            List.of(
+                tool("acme_c", (execution, agent) -> true),
+                tool("acme_hidden", (execution, agent) -> false),
+                tool("acme_a", (execution, agent) -> true),
+                tool("acme_b", (execution, agent) -> true)));
+
+    assertThat(names(ordered.availableToolDefinitions(PLAIN, NEW_INSTANCE)))
+        .containsExactly("acme_c", "acme_a", "acme_b");
+    assertThat(ordered.availableTools(PLAIN, NEW_INSTANCE))
+        .extracting(tool -> tool.definition().name())
+        .containsExactly("acme_c", "acme_a", "acme_b");
+    assertThat(ordered.toolNames())
+        .containsExactlyInAnyOrder("acme_a", "acme_b", "acme_c", "acme_hidden");
   }
 
   @Test
   void acceptsAToolNameOutsideTheBuiltInPrefix() {
-    final var custom = RuntimeTool.builder("acme_lookup").handler((call, context) -> null);
+    final var custom =
+        RuntimeTool.builder("acme_lookup").handler((call, executionContext, conversation) -> null);
 
     assertThat(new RuntimeToolRegistryImpl(List.of(custom)).toolNames())
         .containsExactly("acme_lookup");
@@ -102,7 +168,8 @@ class RuntimeToolRegistryImplTest {
 
   @Test
   void rejectsABlankToolName() {
-    final var blank = RuntimeTool.builder(" ").handler((call, context) -> null);
+    final var blank =
+        RuntimeTool.builder(" ").handler((call, executionContext, conversation) -> null);
 
     assertThatThrownBy(() -> new RuntimeToolRegistryImpl(List.of(blank)))
         .isInstanceOf(IllegalStateException.class)

@@ -153,7 +153,8 @@ class CamundaAgentInstanceClientTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   private final RuntimeToolRegistry runtimeToolRegistry =
-      new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool()));
+      new RuntimeToolRegistryImpl(
+          List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE)));
 
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
@@ -869,7 +870,7 @@ class CamundaAgentInstanceClientTest {
       final var tools =
           List.of(
               ToolDefinition.builder().name("getWeather").description("d").build(),
-              new ReturnDocumentTool().definition());
+              new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition());
       final var configuration =
           configuration("Be nice.", tools).withFeatures(AgentContext.newInstanceFeatures());
 

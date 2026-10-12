@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,19 +45,23 @@ public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
   }
 
   @Override
-  public List<RuntimeTool> availableTools(AgentConfiguration configuration) {
-    if (!configuration.supportsRuntimeTools()) {
+  public List<RuntimeTool> availableTools(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+    if (!agentContext.supportsRuntimeTools()) {
       return List.of();
     }
-    return toolsByName.values().stream().filter(tool -> tool.isAvailable(configuration)).toList();
+    return toolsByName.values().stream()
+        .filter(tool -> tool.isAvailable(executionContext, agentContext))
+        .toList();
   }
 
   @Override
-  public Optional<RuntimeTool> findAvailable(String name, AgentConfiguration configuration) {
-    if (!configuration.supportsRuntimeTools()) {
+  public Optional<RuntimeTool> findAvailable(
+      String name, AgentExecutionContext executionContext, AgentContext agentContext) {
+    if (!agentContext.supportsRuntimeTools()) {
       return Optional.empty();
     }
     return Optional.ofNullable(toolsByName.get(name))
-        .filter(tool -> tool.isAvailable(configuration));
+        .filter(tool -> tool.isAvailable(executionContext, agentContext));
   }
 }

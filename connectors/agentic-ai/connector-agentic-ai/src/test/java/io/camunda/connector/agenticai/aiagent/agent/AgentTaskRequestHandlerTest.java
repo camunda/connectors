@@ -20,7 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -64,7 +63,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
@@ -117,9 +115,8 @@ class AgentTaskRequestHandlerTest {
   @Spy
   private RuntimeToolCallHandler runtimeToolCallHandler =
       new RuntimeToolCallHandlerImpl(
-          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
-          TestObjectMapperSupplier.INSTANCE,
-          mock(DocumentFactory.class));
+          new RuntimeToolRegistryImpl(
+              List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE))));
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 

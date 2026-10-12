@@ -336,7 +336,7 @@ invocation.
 
 ### 3.6 Batch policy (mixed batches)
 
-A batch is split per call. `RuntimeToolCallHandler.handle(conversation, toolCalls)` returns a
+A batch is split per call. `RuntimeToolCallHandler.handle(executionContext, conversation, toolCalls)` returns a
 `RuntimeToolCallSplit(conversation, runtimeResults, remainingCalls)`; `conversation` is the input conversation
 with the context updates of the runtime results applied:
 
@@ -480,9 +480,9 @@ runtime tool must not use these names either.
 
 `c8__return_document` and `c8__get_document` are injected for every agent instance with the `documents` feature;
 no template property or request field switches either off. `RuntimeToolRegistryImpl` offers no runtime tool to an
-instance without the `runtimeTools` feature (`AgentConfiguration.supportsRuntimeTools()`), and `RuntimeTool.isAvailable`
+instance without the `runtimeTools` feature (`AgentContext.supportsRuntimeTools()`), and `RuntimeTool.isAvailable`
 is a generic hook of the runtime tool API with the default `true`. Both built-in tools work with the document
-registry and override it to require the `documents` feature (`AgentConfiguration.supportsDocuments()`).
+registry and override it to require the `documents` feature (`AgentContext.supportsDocuments()`).
 `BaseAgentRequestHandler.converse` puts the definitions of the available runtime tools after the process tools in
 `AgentConfiguration.toolDefinitions()` for the invocation; they are not part of `AgentContext.toolDefinitions`, so
 no persisted tool list changes and the migration check (`updateChangedToolDefinitions`) does not see the tools.
@@ -528,7 +528,7 @@ inline document, and the history mapper does not support inline references at al
   runs on the raw tool calls, by tool name and only for definitions that declare document parameters,
   before the gateway transformation; the connector gives gateway tool definitions no document parameters,
   so their calls stay untouched.
-- **Runtime tool handler abstraction.** `RuntimeToolCallHandler.handle(conversation, toolCalls)` returns a
+- **Runtime tool handler abstraction.** `RuntimeToolCallHandler.handle(executionContext, conversation, toolCalls)` returns a
   `RuntimeToolCallSplit(conversation, runtimeResults, remainingCalls)`; a runtime tool returns a `RuntimeToolResult`
   with content and context updates. Reason: the loop stays generic and a future runtime tool is one more
   bean (3.6, section 9).
@@ -1207,7 +1207,7 @@ listed fails the test.
 | Delivery with content | `aiagent/document/DocumentContentGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerDocumentDeliveryTest` (user prompt with delivery `content` and `reference`, fallback note, content already in the conversation, instance without the feature; tool delivery on and off, nested documents, notes only, content returned by `c8__get_document` in the same turn, content already in the conversation, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the dropdown in the v2 templates, not in the v1 templates) |
 | Content through `c8__get_document` | `aiagent/document/GetDocumentToolTest` (content delivery, content already in the conversation, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/document/DocumentContentLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the references with content), `AgentConversationTest` (`documentIdsWithContent` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the reference with content), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/document/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a runtime tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
-| Runtime tool API | `aiagent/tool/runtime/RuntimeToolBuilderTest`, `RuntimeToolRegistryImplTest`, the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/RuntimeToolCallHandlerImplTest` (including a mixed batch with a real call) |
+| Runtime tool API | `aiagent/tool/runtime/RuntimeToolBuilderTest` (definition, availability and the contexts handed to the handlers), `RuntimeToolRegistryImplTest` (availability by feature and by configuration value, registration order, feature gate), the test-only `SaveNoteTool` (stateful, typed arguments, error results, availability) driven through `aiagent/agent/RuntimeToolCallHandlerImplTest` (including a mixed batch with a real call) |
 | Agent instance history of runtime tools | `aiagent/agentinstance/AgentInstanceToolMapperTest`, `AgentInstanceHistoryMapperTest` (the arguments as the model sent them), `CamundaAgentInstanceClientTest` (tools of the `CONFIGURATION` item, call and result items without element id, identical arguments in every write of a call) |
 | Mixed batches | `AgentSubProcessRequestHandlerTest` / `AgentTaskRequestHandlerTest` (one model call, only real calls activated, pending results, status, clearing), `AgentResponseHandlerDocumentsTest` (runtime tool calls not emitted), `AgentConversationTurnInputComposerImplTest` (merge in call order, partial arrival, interrupt, no gateway transform, foreign ids ignored), `AgentConversationTest` (`withPendingRuntimeToolCallResults`), `AgentContextTest` and `AgentContextSchemaMigrationTest` (persistence round trip, missing field), `CamundaAgentInstanceClientTest` (history items of merged results, the early item equals the one of the merged turn start) |
 
@@ -1296,19 +1296,24 @@ row is from its public documentation and not verified against sources here.
 - **Definition and handler are one registered object** (LangChain4j, Spring AI, MCP all pair them). A tool
   is one `RuntimeTool` bean; the registry collects the beans.
 - **Typed arguments, no reflection scan.** The Anthropic runner and Spring's `FunctionToolCallback` bind the
-  JSON to a type. `RuntimeTool.builder(..).handler(Class<A>, handler)` does that with the connector
-  `ObjectMapper`. Annotation scanning (`@Tool`, `MethodToolCallback`) and schema derivation from a class are
+  JSON to a type. `RuntimeTool.builder(..).handler(Class<A>, ObjectMapper, handler)` does that with the
+  `ObjectMapper` it is given (the connector one, when the tool is a bean). Annotation scanning (`@Tool`, `MethodToolCallback`) and schema derivation from a class are
   not adopted: the module has no schema generator, and LangChain4j's must not be imported outside the
   LangChain4j adapter (invariant I1). The schema is a `Map` or the small `RuntimeToolSchema` builder.
-- **Context as the second handler argument** (Spring `ToolContext`, MCP exchange, OpenAI context).
-  `RuntimeToolContext` is narrow: configuration, agent properties, documents, ids of documents with content, agent instance
-  key, `ObjectMapper`; its state is read-only. It also carries the `DocumentFactory` of the connector, so a tool
-  can create a new Camunda document.
+- **Context as the second and third handler argument** (Spring `ToolContext`, MCP exchange, OpenAI context). A
+  tool receives the `AgentExecutionContext` of the invocation, which the module uses everywhere else, and a
+  `RuntimeToolConversation`, a read-only view of the working conversation: the document registry, the ids of the
+  documents with content, the agent instance key and the agent context (its properties are the free-form state).
+  `AgentConversation` implements the view, so a tool cannot reach the messages, the turns or the copy-on-write
+  methods of the conversation. Services such as the `ObjectMapper` or a `DocumentFactory` are not per-call
+  context: a tool receives them through its constructor, as a Spring bean does, and creates a new Camunda document
+  with the factory it was given.
 - **A result object with an error flag** (LangChain4j `isError`, MCP `isError`, Anthropic `is_error`).
   `RuntimeToolResult` has content, the flag, and context updates. The flag stays inside the agent because the
   domain tool result has no error flag (limitation 4, section 5); the model reads the message as text.
 - **Dynamic enablement** (OpenAI `is_enabled`, LangChain4j dynamic providers, MCP add/remove).
-  `RuntimeTool.isAvailable(AgentConfiguration)` is evaluated per invocation.
+  `RuntimeTool.isAvailable(AgentExecutionContext, AgentContext)` is evaluated per invocation: the execution
+  context carries the configuration of the invocation, the agent context the features of the agent instance.
 - **Declarative document parameters.** None of the frameworks has them; a string schema node with the format
   `camunda-document-id` (3.2) is honored for runtime tools, so a tool that takes a document never validates ids itself.
 - **State through context updates.** The frameworks keep state in the caller (memory id, context map, mutable
@@ -1327,24 +1332,28 @@ row is from its public documentation and not verified against sources here.
 ```java
 public interface RuntimeTool {
   ToolDefinition definition();
-  default boolean isAvailable(AgentConfiguration configuration) { return true; }
-  RuntimeToolResult call(RuntimeToolCall call, RuntimeToolContext context);
+  default boolean isAvailable(AgentExecutionContext executionContext, AgentContext agentContext) { return true; }
+  RuntimeToolResult call(RuntimeToolCall call, AgentExecutionContext executionContext,
+      RuntimeToolConversation conversation);
 
   static Builder builder(String name);
   static Builder builder(ToolDefinition definition);
   // Builder: description(String), inputSchema(Map | RuntimeToolSchema),
-  //          available(Predicate<AgentConfiguration>),
+  //          available(Availability),              // (executionContext, agentContext) -> boolean
   //          handler(Handler)                      // raw call
-  //          handler(Class<A>, TypedHandler<A>)    // arguments bound to A
+  //          handler(Class<A>, ObjectMapper, TypedHandler<A>)   // arguments bound to A
 }
 
 public record RuntimeToolCall(String id, String name,
     Map<String, Object> arguments)          // as the model sent them; document parameters hold the document ids
 { <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
 
-public record RuntimeToolContext(AgentConfiguration configuration, Map<String, Object> properties,
-    DocumentRegistry documents, Set<String> documentIdsWithContent, @Nullable AgentInstanceKey agentInstanceKey,
-    ObjectMapper objectMapper, DocumentFactory documentFactory) {}
+public interface RuntimeToolConversation {   // implemented by AgentConversation; read-only
+  DocumentRegistry documentRegistry();
+  Set<String> documentIdsWithContent();
+  @Nullable AgentInstanceKey agentInstanceKey();
+  AgentContext toAgentContext();             // properties() is the free-form state
+}
 
 public record RuntimeToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {
   static RuntimeToolResult success(Object content);
@@ -1353,9 +1362,10 @@ public record RuntimeToolResult(Object content, boolean error, List<UnaryOperato
 }
 
 public class RuntimeToolException extends RuntimeException {}   // an error the model can act on
-public interface RuntimeToolRegistry { Set<String> toolNames(); List<RuntimeTool> availableTools(AgentConfiguration);
-    Optional<RuntimeTool> findAvailable(String name, AgentConfiguration);
-    List<ToolDefinition> availableToolDefinitions(AgentConfiguration); }
+public interface RuntimeToolRegistry { Set<String> toolNames();
+    List<RuntimeTool> availableTools(AgentExecutionContext, AgentContext);
+    Optional<RuntimeTool> findAvailable(String name, AgentExecutionContext, AgentContext);
+    List<ToolDefinition> availableToolDefinitions(AgentExecutionContext, AgentContext); }
 ```
 
 `RuntimeToolSchema.object().string(..).integer(..).number(..).bool(..).stringArray(..).document(..).build()`
@@ -1372,9 +1382,10 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
 3. **Document parameters.** If the definition declares document parameters, `DocumentParameterResolver`
    checks them against the registry first. An invalid value answers the call with the error text of 3.7 and
    the tool does not run. The tool receives `arguments` with the id of every document, a tag the model passed
-   replaced by its id. A runtime tool gets ids and looks a document up with `RuntimeToolContext.documents()`; a
+   replaced by its id. A runtime tool gets ids and looks a document up with `RuntimeToolConversation.documentRegistry()`; a
    process tool gets the document references (3.7).
-4. **Run.** The tool runs with a `RuntimeToolContext` of the working conversation. The typed handler binds
+4. **Run.** The tool runs with the `AgentExecutionContext` of the invocation and the working conversation as a
+   `RuntimeToolConversation`. The typed handler binds
    `arguments` to its type (a document parameter is a `String`, the id), and an argument that does not fit
    the type answers the call with "Invalid arguments for tool '<name>': ...".
 5. **Result.** The content becomes the `ToolCallResult` (text or object content, a `Document` inside renders
@@ -1393,13 +1404,20 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
 
 ### 9.6 Availability and names
 
-`isAvailable` is evaluated against the configuration of the invocation, both when the definitions are offered
-and when calls are split, so they cannot diverge. The task flavor evaluates its input per iteration, so
+`isAvailable` is evaluated against the execution context of the invocation and the agent context, both when the
+definitions are offered (once per job, with the agent context the job starts from) and when calls are split (with the
+agent context of the working conversation). The decision must therefore depend only on the configuration of the
+invocation (`AgentExecutionContext.configuration()`) and on the features of the agent instance
+(`AgentContext.supports(..)`), which do not change while a job runs, never on state a tool call changes
+(`AgentContext.properties()`); otherwise the offer and the split could diverge. The features are not part of the
+`AgentExecutionContext`: `executionContext.configuration().supportsDocuments()` is always `false`, use the agent
+context. The task flavor evaluates its input per iteration, so
 availability can change between jobs; a call of a tool that is no longer available goes to the process.
 
 The registry offers no tool to an agent instance without the `runtimeTools` feature (4.2), whatever `isAvailable`
 says. A tool that needs the document registry (`c8__get_document`, `c8__return_document`) is available only for
-an instance with the `documents` feature, through its own `isAvailable`.
+an instance with the `documents` feature, through its own `isAvailable`; a tool that depends on a configuration
+value reads it from `AgentExecutionContext.configuration()`.
 
 The name of every registered tool, available or not, is checked against the tool elements of the process (3.9).
 Reasoning: availability depends on a configuration that can change while the agent runs, and a BPMN element
@@ -1414,7 +1432,7 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
 1. Pick a name: `c8__` is for built-in tools, use a vendor-specific prefix for a custom tool, and make sure
    no tool element of a process that uses the tool has the same name (9.6). Write the definition: description,
    input schema, with a document parameter (`RuntimeToolSchema.document`) if the tool takes documents; the handler
-   receives the document id and looks the document up in `RuntimeToolContext.documents()`.
+   receives the document id and looks the document up in `RuntimeToolConversation.documentRegistry()`.
 2. Write the handler. Typed arguments are the usual case:
 
    ```java
@@ -1424,10 +1442,11 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
        RuntimeTool.builder("c8__save_note")
            .description("Saves a note for later.")
            .inputSchema(RuntimeToolSchema.object().string("text", "The text of the note", true))
-           .available(configuration -> configuration.memory() != null)
+           .available((executionContext, agentContext) -> executionContext.configuration().memory() != null)
            .handler(
                Note.class,
-               (note, context) -> {
+               objectMapper,
+               (note, executionContext, conversation) -> {
                  if (note.text() == null || note.text().isBlank()) {
                    return RuntimeToolResult.error("The note must not be blank.");
                  }
@@ -1437,7 +1456,9 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
    ```
 
 3. Register it as a Spring bean of type `RuntimeTool` (`@Bean`); `RuntimeToolRegistryImpl` collects every bean. A
-   tool that works with documents overrides `isAvailable` to require the `documents` feature.
+   tool that works with documents overrides `isAvailable` to require the `documents` feature
+   (`agentContext.supportsDocuments()`). A tool receives the services it needs, such as the `ObjectMapper` or the
+   `DocumentFactory`, through its constructor or the closure of its handler.
 4. Report failures the model can act on with `RuntimeToolResult.error` or `RuntimeToolException`; let bugs
    propagate.
 5. Build a schema passed as a `Map` insertion-ordered (`LinkedHashMap`, not `Map.of`): the request sent to the
@@ -1446,7 +1467,7 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
    `RuntimeToolSchema` does this and `RuntimeTool.builder` keeps the order of the map it is given; construct a
    definition by hand with the `ToolDefinition` constructor, not `ToolDefinition.builder()` (the record
    builder copies the schema into an immutable map of unspecified order).
-6. Create a new Camunda document with `RuntimeToolContext.documentFactory()` and return it in the content of the
+6. Create a new Camunda document with a `DocumentFactory` the tool was given and return it in the content of the
    result. Change agent state only through `withContextUpdate`, never in a field of the tool. The update receives the
    persisted `AgentContext`; use `AgentContext.properties()` for free-form state.
 7. Test it through `RuntimeToolCallHandlerImpl` with a conversation, as `RuntimeToolCallHandlerImplTest` does

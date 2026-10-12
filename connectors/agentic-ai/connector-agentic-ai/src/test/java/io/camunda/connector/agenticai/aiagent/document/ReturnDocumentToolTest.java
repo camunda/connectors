@@ -7,12 +7,12 @@
 
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandlerImpl;
@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryIm
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -41,11 +40,11 @@ import org.junit.jupiter.api.Test;
 /** The {@code c8__return_document} tool run by the framework, the way the agent loop runs it. */
 class ReturnDocumentToolTest {
 
+  private static final ReturnDocumentTool TOOL =
+      new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE);
+
   private final RuntimeToolCallHandler handler =
-      new RuntimeToolCallHandlerImpl(
-          new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool())),
-          TestObjectMapperSupplier.INSTANCE,
-          mock(DocumentFactory.class));
+      new RuntimeToolCallHandlerImpl(new RuntimeToolRegistryImpl(List.of(TOOL)));
 
   private final Document report = createDocument("report", "report.txt");
   private final Document summary = createDocument("summary", "summary.txt");
@@ -60,12 +59,13 @@ class ReturnDocumentToolTest {
                   new IngestedDocument(summary, DocumentSource.userMessage(null))));
 
   private static final AgentConfiguration CONFIGURATION =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withFeatures(AgentContext.newInstanceFeatures());
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+  private static final AgentContext WITH_DOCUMENTS =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
   @Test
   void definitionDescribesOneDocumentPerCallUnderAKey() {
-    final var definition = new ReturnDocumentTool().definition();
+    final var definition = TOOL.definition();
 
     assertThat(definition.description())
         .isEqualTo(
@@ -86,13 +86,15 @@ class ReturnDocumentToolTest {
 
   @Test
   void isOfferedToEveryAgentWithTheDocumentsFeature() {
-    assertThat(handler.availableToolDefinitions(CONFIGURATION))
-        .containsExactly(new ReturnDocumentTool().definition());
+    assertThat(handler.availableToolDefinitions(withConfiguration(CONFIGURATION), WITH_DOCUMENTS))
+        .containsExactly(TOOL.definition());
   }
 
   @Test
   void isNotOfferedToAnAgentWithoutTheDocumentsFeature() {
-    assertThat(handler.availableToolDefinitions(CONFIGURATION.withFeatures(java.util.Set.of())))
+    assertThat(
+            handler.availableToolDefinitions(
+                withConfiguration(CONFIGURATION), AgentContext.empty()))
         .isEmpty();
   }
 
@@ -263,7 +265,7 @@ class ReturnDocumentToolTest {
                 null,
                 List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", List.of(toolCalls)), AgentMetrics.empty());
-    return handler.handle(conversation, List.of(toolCalls));
+    return handler.handle(withConfiguration(configuration), conversation, List.of(toolCalls));
   }
 
   private static Document createDocument(String content, String fileName) {

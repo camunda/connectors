@@ -2137,10 +2137,11 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
 
 1. Build the tool with `RuntimeTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
    `RuntimeToolSchema` helper; declare a document parameter with `RuntimeToolSchema.document` or a string schema with the
-   format `camunda-document-id`), optionally `available(configuration -> ...)`, and a `handler`. Use
-   `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. A document parameter
-   arrives as the document id (`String`); look the document up with `context.documents().findById(id)`. Or implement
-   `RuntimeTool` directly.
+   format `camunda-document-id`), optionally `available((executionContext, agentContext) -> ...)`, and a `handler`
+   `(call, executionContext, conversation) -> ...`. Use `handler(Class<A>, objectMapper, (args, executionContext,
+   conversation) -> ...)` to receive a record instead of a map. A document parameter arrives as the document id
+   (`String`); look the document up with `conversation.documentRegistry().findById(id)`. Or implement
+   `RuntimeTool` directly. A tool receives the services it needs, such as the `ObjectMapper`, through its constructor.
 2. Return `RuntimeToolResult.success(content)`; report failures the model can act on with
    `RuntimeToolResult.error(message)` or a thrown `RuntimeToolException`. Any other exception propagates and
    fails the job.
@@ -2154,9 +2155,9 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    and process migration reject every ad-hoc or gateway tool element whose name equals the name of a registered
    runtime tool (`ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`), whether the tool is available for the agent or not. An agent
    instance without the feature checks no name and is offered no runtime tool. A tool that works with the
-   document registry overrides `isAvailable` to require the `documents` feature, as the built-in document
-   tools do.
-5. The framework offers the tool while `isAvailable(AgentConfiguration)` holds, resolves declared document
+   document registry overrides `isAvailable` to require the `documents` feature (`agentContext.supportsDocuments()`),
+   as the built-in document tools do.
+5. The framework offers the tool while `isAvailable(AgentExecutionContext, AgentContext)` holds, resolves declared document
    parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
    and its calls to agent instance history without an element id, and handles mixed batches with real calls
    (design notes). Test it through `RuntimeToolCallHandlerImpl` (see `RuntimeToolCallHandlerImplTest`
@@ -2169,13 +2170,14 @@ connector runtime; no other registration is needed.
 
 ```java
 @Bean
-RuntimeTool acmeLookup(CustomerDirectory directory) {
+RuntimeTool acmeLookup(CustomerDirectory directory, @ConnectorsObjectMapper ObjectMapper objectMapper) {
   return RuntimeTool.builder("acme_lookup")
       .description("Looks up a customer by id.")
       .inputSchema(RuntimeToolSchema.object().string("customerId", "The id of the customer", true))
       .handler(
           Lookup.class,
-          (lookup, context) ->
+          objectMapper,
+          (lookup, executionContext, conversation) ->
               RuntimeToolResult.success(directory.find(lookup.customerId()))
                   .withContextUpdate(
                       agentContext -> agentContext.withProperty("lastCustomer", lookup.customerId())));
@@ -2190,14 +2192,16 @@ record Lookup(String customerId) {}
   `acme_` for a custom tool.
 - **State** belongs in the agent context, never in a field of the bean: the agent runs one job after the other,
   possibly on different workers. Change it with `RuntimeToolResult.withContextUpdate(...)` and read it from
-  `RuntimeToolContext.properties()`.
+  `conversation.toAgentContext().properties()`.
 - **Document parameters.** Declare a parameter with `RuntimeToolSchema.document(...)`; the framework checks the
   id the model sent (or the `<doc />` tag it passed) against the documents the agent knows. The handler receives
-  the document id as a `String` and looks the document up in `RuntimeToolContext.documents()`; a process tool
+  the document id as a `String` and looks the document up in `conversation.documentRegistry()`; a process tool
   receives the document references instead. An unknown id answers the call with an error result and the tool
   does not run. Document parameters need an
   agent instance with the `documents` feature.
-- **Creating documents.** `RuntimeToolContext.documentFactory()` creates a new Camunda document, for example
-  `context.documentFactory().create(DocumentCreationRequest.from(bytes).contentType("text/plain").fileName("report.txt").build())`.
+- **Creating documents.** Inject the `DocumentFactory` bean into the tool and create a new Camunda document with it,
+  for example `documentFactory.create(DocumentCreationRequest.from(bytes).contentType("text/plain").fileName("report.txt").build())`.
   Return the document in the content of the result to show it to the model.
-- **Availability.** `available(configuration -> ...)` offers the tool only for some configurations.
+- **Availability.** `available((executionContext, agentContext) -> ...)` offers the tool only for some agent
+  executions: `executionContext.configuration()` holds the configuration of the invocation, the `agentContext` the
+  features of the agent instance. An unavailable tool is not shown to the model and its calls go to the process.

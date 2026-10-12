@@ -131,16 +131,17 @@ public abstract class BaseAgentRequestHandler<
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
       // rest of this invocation once populated here: the durable tool definitions of the
       // AgentContext plus the runtime tools available for this agent, which are never persisted.
-      final var requestConfiguration =
-          executionContext.configuration().withFeatures(agentContext.features());
       final var configuration =
-          requestConfiguration.withToolDefinitions(
-              Stream.concat(
-                      agentContext.toolDefinitions().stream(),
-                      runtimeToolCallHandler
-                          .availableToolDefinitions(requestConfiguration)
-                          .stream())
-                  .toList());
+          executionContext
+              .configuration()
+              .withFeatures(agentContext.features())
+              .withToolDefinitions(
+                  Stream.concat(
+                          agentContext.toolDefinitions().stream(),
+                          runtimeToolCallHandler
+                              .availableToolDefinitions(executionContext, agentContext)
+                              .stream())
+                      .toList());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
@@ -308,7 +309,9 @@ public abstract class BaseAgentRequestHandler<
               ? RuntimeToolCallHandler.RuntimeToolCallSplit.allRemaining(
                   workingConversation, List.of())
               : runtimeToolCallHandler.handle(
-                  workingConversation, workingConversation.currentTurn().toolCalls());
+                  executionContext,
+                  workingConversation,
+                  workingConversation.currentTurn().toolCalls());
       workingConversation = split.conversation();
       final boolean runtimeRound = split.answersAllCalls();
       anotherRound = continued || runtimeRound;

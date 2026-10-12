@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentRefe
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * <p>{@link #currentTurn} is always non-null: it is created as a pending turn at construction time
  * and completed by {@link #ingest}.
  */
-public final class AgentConversation {
+public final class AgentConversation implements RuntimeToolConversation {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentConversation.class);
 
@@ -310,6 +311,7 @@ public final class AgentConversation {
   }
 
   /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
+  @Override
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return agentInstanceKey;
   }
@@ -328,6 +330,7 @@ public final class AgentConversation {
    * Returns the document registry of the current agent context, which includes the documents that
    * entered the conversation with this invocation's input.
    */
+  @Override
   public DocumentRegistry documentRegistry() {
     return DocumentRegistry.of(currentContext.documents());
   }
@@ -336,6 +339,7 @@ public final class AgentConversation {
    * Returns the ids of the documents whose content the model reads in the windowed conversation:
    * the documents of the references with delivery content in the windowed user messages.
    */
+  @Override
   public Set<String> documentIdsWithContent() {
     return documentIdsWithContent(
         MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
@@ -448,6 +452,7 @@ public final class AgentConversation {
    * the current turn's {@link AgentConversationTurn#configurationFingerprint()} differs from the
    * turn preceding it — once the current turn has been ingested.
    */
+  @Override
   public AgentContext toAgentContext() {
     var withMetrics = currentContext.withMetrics(totalMetrics());
     var metadata = currentContext.metadata();

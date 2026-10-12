@@ -25,6 +25,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AG
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
@@ -253,9 +254,12 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
     // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
+    final var objectMapper = new ObjectMapper();
     expected.addAll(
         DocumentParameterSchema.toProviderToolDefinitions(
-            List.of(new ReturnDocumentTool().definition(), new GetDocumentTool().definition())));
+            List.of(
+                new ReturnDocumentTool(objectMapper).definition(),
+                new GetDocumentTool(objectMapper).definition())));
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 

@@ -6,21 +6,19 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
-import io.camunda.connector.api.document.DocumentFactory;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,29 +37,23 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeToolCallHandlerImpl.class);
 
   private final RuntimeToolRegistry runtimeToolRegistry;
-  private final ObjectMapper objectMapper;
-  private final DocumentFactory documentFactory;
 
-  public RuntimeToolCallHandlerImpl(
-      RuntimeToolRegistry runtimeToolRegistry,
-      ObjectMapper objectMapper,
-      DocumentFactory documentFactory) {
+  public RuntimeToolCallHandlerImpl(RuntimeToolRegistry runtimeToolRegistry) {
     this.runtimeToolRegistry = runtimeToolRegistry;
-    this.objectMapper = objectMapper;
-    this.documentFactory = documentFactory;
   }
 
   @Override
-  public List<ToolDefinition> availableToolDefinitions(AgentConfiguration configuration) {
-    return runtimeToolRegistry.availableToolDefinitions(configuration);
+  public List<ToolDefinition> availableToolDefinitions(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+    return runtimeToolRegistry.availableToolDefinitions(executionContext, agentContext);
   }
 
   @Override
-  public RuntimeToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
-    // an agent instance without the runtime tools feature has no runtime tools: every call goes to
-    // the
-    // process as the model sent it
-    if (toolCalls.isEmpty() || !conversation.supportsRuntimeTools()) {
+  public RuntimeToolCallSplit handle(
+      AgentExecutionContext executionContext,
+      AgentConversation conversation,
+      List<ToolCall> toolCalls) {
+    if (toolCalls.isEmpty()) {
       return RuntimeToolCallSplit.allRemaining(conversation, toolCalls);
     }
 
@@ -71,10 +63,11 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
     var workingConversation = conversation;
     for (final var toolCall : toolCalls) {
       final var tool =
-          runtimeToolRegistry.findAvailable(toolCall.name(), workingConversation.configuration());
+          runtimeToolRegistry.findAvailable(
+              toolCall.name(), executionContext, workingConversation.toAgentContext());
       final RuntimeToolResult result;
       if (tool.isPresent()) {
-        result = run(tool.get(), toolCall, workingConversation);
+        result = run(tool.get(), toolCall, executionContext, workingConversation);
       } else {
         // an agent instance without the documents feature has no document parameters
         final var rejection =
@@ -104,7 +97,10 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
   }
 
   private RuntimeToolResult run(
-      RuntimeTool tool, ToolCall toolCall, AgentConversation conversation) {
+      RuntimeTool tool,
+      ToolCall toolCall,
+      AgentExecutionContext executionContext,
+      AgentConversation conversation) {
     final var documents = conversation.documentRegistry();
     final Map<String, Object> arguments =
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
@@ -125,17 +121,11 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
       }
     }
 
-    final var context =
-        new RuntimeToolContext(
-            conversation.configuration(),
-            conversation.toAgentContext().properties(),
-            documents,
-            conversation.documentIdsWithContent(),
-            conversation.agentInstanceKey(),
-            objectMapper,
-            documentFactory);
     try {
-      return tool.call(new RuntimeToolCall(toolCall.id(), toolCall.name(), toolArguments), context);
+      return tool.call(
+          new RuntimeToolCall(toolCall.id(), toolCall.name(), toolArguments),
+          executionContext,
+          conversation);
     } catch (RuntimeToolException e) {
       LOGGER.debug("Runtime tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
       return RuntimeToolResult.error(e.getMessage());
