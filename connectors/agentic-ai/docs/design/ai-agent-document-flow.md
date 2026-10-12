@@ -27,7 +27,8 @@ store and of the context window.
 1. *Pass its id to a tool.* A tool parameter declared with `fromAi(toolCall.x, "desc", "document")` takes the
    id. The agent validates it and the tool receives the full Camunda document reference JSON in the process
    variable, so a BPMN tool (an HTTP connector, a job worker) gets what any other connector would. Passing
-   ids never adds content to the conversation (sections 3.2, 3.3, 3.7, 3.13).
+   ids never adds content to the conversation (sections 3.2, 3.3, 3.7, 3.13). A parameter can also take text or a
+   document (a union parameter, section 3.2): only a value that is exactly the tag of a known document is a document.
 2. *Get its content with `c8__get_document`.* The tool takes the id and returns the whole document, no
    ranges. It is the way content enters the conversation unless the document is delivered with content
    (below). Before returning it rejects, with an error
@@ -85,8 +86,8 @@ tool, no name checked against runtime tools (section 4.2). A feature is assigned
 
 ## 1. Scope
 
-1. `fromAi(toolCall.x, "desc", "document")` tool parameters and how they materialize in the tool
-   definition sent to the model.
+1. `fromAi(toolCall.x, "desc", "document")` tool parameters, parameters that take text or a document, and how
+   they materialize in the tool definition sent to the model.
 2. The agent remembers every document in its conversation (persisted registry), independent of the
    conversation store and of the context window, and shows it to the model as a tag.
 3. The agent passes a known document to a tool. The tool receives the real Camunda document reference JSON.
@@ -193,6 +194,7 @@ Both flavors share `BaseAgentRequestHandler`, so everything above applies to bot
 | 7 | Documents are reference-only in the conversation: a tag, no content. Content enters only through `c8__get_document`, which loads a whole document, within a type allowlist and a size limit. Passing an id to a tool never loads content. | Content in the conversation costs tokens in every later model call and can make a model call fail; the model decides which documents it needs to read, and a document that is too large or of an unsupported type is handled by a tool instead (section 3.14). |
 | 8 | A document is a typed content block, a document reference with the delivery `reference` or `content`; a document delivered with content has the delivery `content` in a follow-up user message or in the user message of the prompt. The block is expanded at window time to its tag text and, with the delivery `content`, the document content from the registry; the content is never persisted in the conversation. The delivery is stored on each block, not per document. | One copy of the reference (the registry); no text parsing to find the id or the delivery; an earlier block keeps its bytes when the same document is delivered again, so request bytes are stable for prompt caching; the stored conversation stays small and replayable (section 4.1). |
 | 9 | Delivery with content is opt-in: the option of the user prompt and the marker of a tool activity. It reuses the guard and the delivery `content` of `c8__get_document`; a document the guard rejects stays a reference and a note tells the model. | Delivery as reference stays the default because content costs tokens in every later call; the opt-in serves processes that know the model needs the content, without a round trip per document; adding content automatically must not fail a run for a document the model could not read anyway (section 3.15). |
+| 10 | A tool parameter can take text or a document (a union parameter): a schema node with `anyOf` or `oneOf` alternatives, one of them a document schema. Only a value that is exactly one `<doc />` tag is a document; any other value, a bare id included, is passed on as it is. | A document parameter always demands a document. A tool that accepts a message body, a note or a file needs one parameter for both, and a plain string, which can also hold a word that equals an id, must never turn into a document by accident (section 3.2, 3.7). |
 
 ### 3.2 Document parameter representation
 
@@ -251,6 +253,39 @@ configuration fingerprint; the rewrite for the provider is a pure function at th
 finds the document parameters from the same schema it was authored in, without a second structure that has to
 stay in sync.
 
+**Union parameters (text or a document).** A parameter that accepts text or a document is a schema node with
+`anyOf` or `oneOf` alternatives, one of them the document schema above and at least one other, typically a plain
+string:
+
+```json
+{"anyOf": [{"type": "string"}, {"type": "string", "format": "camunda-document-id"}],
+ "description": "The message body. This parameter takes text or a document. To pass a document, give its tag exactly as listed for the known documents, for example <doc id=\"...\" />. Any other text is passed as text."}
+```
+
+- *Authoring.* `fromAi(value: toolCall.body, description: "The message body.", schema: {"anyOf": [{"type": "string"},
+  {"type": "document"}]})`. The shorthand type `document` is normalized to the string schema with the format inside
+  `anyOf` and `oneOf` alternatives, at any depth (`DocumentParameterSchema.normalizeAuthoredSchema`). The type array
+  form `{"type": ["string", "document"]}` in the schema argument is rewritten to the same `anyOf`, one alternative per
+  type, in the place of the `type` entry; a type array next to an `anyOf` or `oneOf` is left as it is, so combine the
+  alternatives in one `anyOf`. A node without a type gets the default type `string` from the schema generator, except a
+  union parameter, so alternatives of other types stay valid. FEEL `null` is not a string, so leave the type argument
+  out with named arguments; with the positional type `"string"` the node carries `type: string` next to `anyOf`.
+- *Detection.* A union parameter is a node with an `anyOf` or `oneOf` of at least two alternatives, at least one of
+  them a document schema, found at the top level, as array `items` and through object `properties` at any depth, with
+  the same path notation as a document parameter (`DocumentParameterSchema.documentParameters` returns every path with
+  a flag for a union). The alternatives are not searched further (3.3).
+- *Hint.* The description of a union parameter ends with its own hint `DocumentParameterSchema.UNION_HINT`, added in
+  the same place and with the same rules as `HINT`: `This parameter takes text or a document. To pass a document, give
+  its tag exactly as listed for the known documents, for example <doc id="..." />. Any other text is passed as text.`
+  The alternatives get no hint. The hints are not part of each other, so a definition holding both reads the right one
+  for each parameter.
+- *Provider schema.* The derived schema replaces the document alternative by a plain `{"type": "string"}`
+  alternative (no format), merges identical alternatives and, when one alternative is left, replaces the keyword by
+  the entries of that alternative: they take the place of the keyword in the node and the entries of the node win, so
+  the description with the hint stays. `anyOf: [string, document]` therefore reaches every provider as `{"type":
+  "string", "description": "...hint"}`. A union with another type keeps its keyword and the order of its alternatives,
+  without the format. The same instance is returned when nothing needs to change.
+
 The Ad-Hoc Tools Schema Resolver (`adhoctoolsschema/*`) returns the authored schema, so a document parameter
 carries the format in its output too. Used as is with another LLM connector, a provider that rejects the
 format needs the same rewrite, a known follow-up (section 7).
@@ -262,11 +297,11 @@ A document parameter is found at the top level, as array `items`, and recursivel
 The rewrite for the provider and `DocumentParameterResolver` walk the same schema the same way: a
 `properties` entry is `arguments.x`, `items` is every element of the array, nested nodes recurse through
 objects and arrays. Reason: tools commonly take lists of files or an object with a file field.
-The format inside `anyOf`/`oneOf`/`$ref` does not make a document parameter: it is neither rewritten nor
-resolved and would reach the provider with the format still set (a known limitation, not worth the
-schema-walking complexity now). A parameter that accepts either a string or a document is such a union, so it
-is not supported yet. Its explicit form would be the tag: a value that is exactly one `<doc />` tag is a
-document, any other value is a string.
+A union parameter (3.2) is found at the same places, and `DocumentParameterSchema.documentParameters` says for each
+path whether it is a union. The alternatives of a union are not searched: a document inside an object or array
+alternative is not a document parameter, because a value cannot be assigned to one alternative reliably; such a
+format is neither rewritten nor resolved. The format inside `$ref`, and inside an `anyOf` or `oneOf` without another
+alternative, does not make a document parameter either.
 
 ### 3.4 Tag format
 
@@ -406,6 +441,16 @@ counted):
 Parameter 'docs[1]' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'x'. Known documents:
 <doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />
 ```
+
+**Union parameters.** A union parameter (3.2) is read stricter on the side of text: only a value that is exactly one
+`<doc ... />` tag (the same recognition as above: whitespace around it, the XML-unescaped `id` attribute, no text around
+it, no second tag, a non-blank `id`) stands for a document. The id must be known; an unknown id is answered with the
+same error as for a document parameter, with the list of known documents, and the call does not run. Every other
+value is left untouched: a plain string, also one that equals the id of a known document, a string that holds a tag
+inside longer text, an escaped tag (`&lt;doc ... /&gt;`), and a value that is not a string (a number, a boolean, an
+object, an array) or is `null`. A value for a runtime tool follows the same rule with the plain id in place of the
+reference: the tool receives the id of the tag, and the text as it is, so it cannot tell a bare id written as text
+from the id of a tag. An array of union parameters is read per element.
 
 The parameter path is `name`, `parent.name` for nested objects and `name[i]` for array elements. A
 non-string value reads "Parameter 'p' must be the exact id of a known document (the id attribute of its
@@ -1206,7 +1251,7 @@ listed fails the test.
 
 | Area | Tests |
 |------|-------|
-| Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization), `AgentConversationTest` (the window rewrites, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
+| Document parameters in the tool definition | `adhoctoolsschema/schema/AdHocToolSchemaGeneratorTest` (maps the type `document` to the string schema with the format), `AdHocToolsSchemaResolverTest`, `AdHocToolsSchemaFunctionIntegrationTest`, `aiagent/model/tool/DocumentParameterSchemaTest` (paths, provider rewrite, hint, normalization; union parameters: detection at any depth and the rules of a union, normalization inside `anyOf`/`oneOf`/type arrays, provider derivation with merging, unwrapping, same instance and order, the union hint with its idempotence and separators next to the document hint), `AdHocToolSchemaGeneratorTest` (the shorthand inside alternatives and type arrays, no default type for a union), `AdHocToolElementParameterExtractorTest` (a union authored with `fromAi`, named and positional), `AgentConversationTest` (the window rewrites document and union parameters, nothing persisted changes), the converter tests under `aiagent/chatmodel/provider/` (one string schema with hint test per provider path) |
 | Registry, entry sizes, handles | `aiagent/document/DocumentRegistryTest`, `DocumentRegistryEntryTest` (entry JSON, including `serializedEntrySizes`; the limit for inline content exactly accepted, one character more rejected with the error code, Camunda and external documents of any size accepted), `DocumentHandleTest` (file name and content type of a document and of its reference) |
 | Ingestion and tags | `aiagent/agent/AgentConversationTurnInputComposerImplTest` (document references, sources and message ids), `ToolCallResultDocumentExtractorTest`, `ContentTreeDocumentWalkerTest`, `aiagent/model/message/content/DocumentReferenceContentTest` (tag rendering and its omission rules, source attribute, delivery, `withDelivery`, JSON round trip, the failure for a block that was not expanded), `aiagent/document/DocumentTagTest` (reading the id of one tag out of model text: tags inside text, two tags, escaped tags) |
 | Persisted form and expansion | `aiagent/document/DocumentExpanderTest` (reference to the tag text only, delivery `content` to the tag text and the document, idempotence, dangling and unreadable references, typed tag text stays text), `aiagent/model/AgentConversationTest` (window expansion, stored messages untouched), `aiagent/agentinstance/AgentInstanceHistoryMapperTest` (including the backticks around tags), `aiagent/chatmodel/provider/UnexpandedDocumentReferenceTest` (every provider converter rejects a document reference), `EvictedDocumentsNoteTest` (a document reference counts as visible), `AwsAgentCoreConversationStoreTest` (a document reference survives store and load) |
@@ -1214,7 +1259,7 @@ listed fails the test.
 | Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or runtime tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `RuntimeToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/document/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for runtime tools), `RuntimeToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of runtime tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls without document parameters reach the gateway handlers unchanged next to a resolved call), `aiagent/agent/GatewayToolDocumentParametersTest` (a test-double gateway handler that defines a tool with a document parameter: the stored definition keeps the format and the hint and the provider gets a plain string; the handler receives the resolved document for a known id or tag; an unknown id is answered with an error and the handler is not given the call; a gateway tool without document parameters is untouched), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (the discovered MCP and A2A tools declare no document parameters and reach the model provider as they are), `AgentConversationTurnInputComposerDocumentDeliveryTest` (a gateway tool whose definition sets the delivery gets content delivery) |
+| Documents into tools | `aiagent/document/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for runtime tools; union parameters: a tag resolves, a plain string and a bare known id stay text, a tag inside text stays text, an unknown id is reported, other types pass through, arrays and nested objects, a document parameter unchanged next to a union, ids for runtime tools), `RuntimeToolCallHandlerImplTest` (per-call split, order, document parameters and union parameters of process tools and of runtime tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls without document parameters reach the gateway handlers unchanged next to a resolved call), `aiagent/agent/GatewayToolDocumentParametersTest` (a test-double gateway handler that defines a tool with a document parameter: the stored definition keeps the format and the hint and the provider gets a plain string; the handler receives the resolved document for a known id or tag; an unknown id is answered with an error and the handler is not given the call; a gateway tool without document parameters is untouched), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (the discovered MCP and A2A tools declare no document parameters and reach the model provider as they are), `AgentConversationTurnInputComposerDocumentDeliveryTest` (a gateway tool whose definition sets the delivery gets content delivery) |
 | Delivery with content | `aiagent/document/DocumentContentGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerDocumentDeliveryTest` (user prompt with delivery `content` and `reference`, fallback note, content already in the conversation, instance without the feature; tool delivery on and off, nested documents, notes only, content returned by `c8__get_document` in the same turn, content already in the conversation, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the dropdown in the v2 templates, not in the v1 templates) |
 | Content through `c8__get_document` | `aiagent/document/GetDocumentToolTest` (content delivery, content already in the conversation, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/document/DocumentContentLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the references with content), `AgentConversationTest` (`documentIdsWithContent` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the reference with content), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/document/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a runtime tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |
@@ -1268,6 +1313,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 | (r) tool documents with content | `addsTheContentOfTheDocumentsOfAContentDeliveryToolForTheModel`, `keepsADocumentOfAContentDeliveryToolThatFailsTheGuardAsAReferenceWithANote` (both flavors; processes `agentic-ai-ahsp-connectors-documents-content.bpmn` and `agentic-ai-connectors-documents-content.bpmn`, which mark `Download_A_File`) | The result of the marked tool is followed by the message with the tag and the content (text part or file part), the model passes the id to the upload without asking for content, the tool gets the real bytes; a ZIP and a text above 256 KB stay references with the note and no content in any request. |
 | (s) history audit of content delivery | `everyModelVisibleMessageOfContentDocumentDeliveryIsInTheHistory` (`AgentSubProcessHistoryAuditTests`) | A prompt document delivered with content by the option, a tool document delivered with content by the marker and a note are all covered by items of the history. |
 | (t) returned documents across turns | `accumulatesTheResponseDocumentsOfSeveralTurnsOnTheFinalResponse`, `replacesTheResponseDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain` (`AgentSubProcessFeedbackLoopTests`, `AgentTaskFeedbackLoopTests`) | With user feedback between the turns, the final response of a later turn holds the documents returned in the earlier turns next to its own, in the order of their first return; returning a key again replaces its entry and keeps its position. |
+| (u) union parameter | `AgentSubProcessUnionDocumentParameterTests` (process `agentic-ai-ahsp-connectors-documents-union.bpmn`: the tool `Send_Message` declares `fromAi(value: toolCall.body, ..., schema: {"anyOf": [{"type": "string"}, {"type": "document"}]})` and answers what it received) | The first raw request has a plain `{type: string, description}` for the parameter, with the union hint and no `anyOf`, no format; the persisted definition keeps the alternatives and the format; a tag of the downloaded document reaches the tool as the Camunda document reference, text and a bare id as text; a tag with an unknown id is answered with the known documents, the tool does not run and the model retries with text. |
 | (p) provider wire format | `ProviderWireFormatSmokeTests` (`documentRequestedByTheModel` and the tag-only prompt document, per provider fixture) | The request of every WireMock provider that can carry id placeholders holds the tag text and the content block of a document with content; Bedrock is covered by the converter unit tests (section 7). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
@@ -1490,5 +1536,7 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
 ### 9.8 Limits
 
 - The schema helper is flat; build nested schemas as a `Map`.
-- Document parameters of runtime tools are found the same way and have the same limits as in 3.3 (no `anyOf`/`oneOf`).
+- Document parameters and union parameters of runtime tools are found the same way and have the same limits as in 3.3
+  (a document inside an object or array alternative is not found). A runtime tool declares a union parameter with a `Map`
+  schema (`RuntimeToolSchema` has no method for it).
 - A runtime tool cannot start another model call or activate a BPMN element.

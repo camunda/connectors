@@ -686,6 +686,33 @@ elements to another.
 - Required unless `options.required == false`
 - Output: `{type: "object", properties: {...}, required: [...]}`
 
+#### Document parameters
+
+A tool parameter that carries a document is declared with the type `document`:
+`fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores it as a string schema with the format
+`camunda-document-id` (the shorthand type is also normalized inside the `items` and `properties` of an authored schema) and
+appends a hint to the description; the model sends the id of a known document or its `<doc />` tag, and the tool receives the
+Camunda document reference. The model provider gets the schema without the format.
+
+A parameter that takes text or a document (a union parameter) is declared with the schema argument of `fromAi()`, an
+`anyOf` (or `oneOf`) with a plain alternative and a `document` alternative. Leave the type argument out with named
+arguments, so the type of the other alternatives stays valid:
+
+```feel
+fromAi(
+  value: toolCall.body,
+  description: "The body of the message.",
+  schema: {"anyOf": [{"type": "string"}, {"type": "document"}]}
+)
+```
+
+The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`. A union parameter gets its own
+hint: the model passes a document as its `<doc />` tag exactly as listed for the known documents, and the tool receives the
+Camunda document reference. Every other value is passed as it is: a plain string, also one that equals the id of a known
+document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that lists
+the known documents, and the tool does not run. For `anyOf: [string, document]` the model provider gets
+`{"type": "string", "description": "..."}` with the hint. See the document flow design notes, sections 3.2, 3.3 and 3.7.
+
 ---
 
 <a id="8-job-completion"></a>
@@ -1718,7 +1745,8 @@ otherwise the call is answered with an error tool result that tells the model to
 processes the document. A successful call is followed by a user message with a document reference with the
 delivery `content`; the tag text and the content are added
 from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
-`fromAi(..., "document")` never adds content: the tool receives the full Camunda document reference.
+`fromAi(..., "document")` never adds content: the tool receives the full Camunda document reference. The same holds
+for a parameter that takes text or a document, when the model passes a tag.
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content has at most 1 MiB (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`,
