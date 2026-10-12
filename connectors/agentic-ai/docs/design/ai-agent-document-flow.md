@@ -451,7 +451,7 @@ prefix is not enforced. A tool element of the process and a custom local tool ma
 no tool element of the process has the name of a registered local tool.
 `AgentToolsResolverImpl.loadAdHocToolsSchema` rejects every ad-hoc or gateway tool element whose name equals
 the name of a registered local tool, for an agent instance with the `localTools` feature (section 4.2), with a
-`ConnectorException` (`AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME`) whose message names the tool and says
+`ConnectorException` (`AgentErrorCodes.ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`) whose message names the tool and says
 to rename the element or the local tool. The check covers every registered tool, whether the agent offers it
 or not. `loadAdHocToolsSchema` runs on tool discovery and on process migration (`updateToolDefinitions`), so
 both paths are covered. Reason: a BPMN element with the name of a local tool would collide with the local tool
@@ -1106,7 +1106,7 @@ listed fails the test.
     `CONFIGURATION` history item for running instances.
   - It occupies the names of the tools. An ad-hoc or gateway tool element with the name of a local tool makes
     tool discovery, and process migration, fail with a `ConnectorException` carrying
-    `AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME` (3.9); the element has to be renamed.
+    `AgentErrorCodes.ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT` (3.9); the element has to be renamed.
   - Future local tools (for example `c8__load_skill`, `c8__save_memory`) multiply these effects, so a general
     mechanism to enable and disable local tools is needed.
 

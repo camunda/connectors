@@ -1228,7 +1228,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_RESERVED_TOOL_NAME`                         | `RESERVED_TOOL_NAME`                           | an ad-hoc or gateway tool element of an agent instance with the `localTools` feature has the name of a registered local tool (for example `c8__return_document`) |
+| `ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`                   | `LOCAL_TOOL_NAME_CONFLICT`                     | an ad-hoc or gateway tool element of an agent instance with the `localTools` feature has the name of a registered local tool (for example `c8__return_document`) |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
@@ -2131,7 +2131,7 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
 4. Register it as a Spring bean of type `LocalTool`. `LocalToolRegistryImpl` collects the beans and rejects
    blank and duplicate names at startup. For an agent instance with the `localTools` feature, tool discovery
    and process migration reject every ad-hoc or gateway tool element whose name equals the name of a registered
-   local tool (`ERROR_CODE_RESERVED_TOOL_NAME`), whether the tool is available for the agent or not. An agent
+   local tool (`ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT`), whether the tool is available for the agent or not. An agent
    instance without the feature checks no name and is offered no local tool. A tool that works with the
    document registry overrides `isAvailable` to require the `documents` feature, as the built-in document
    tools do.
@@ -2165,7 +2165,7 @@ record Lookup(String customerId) {}
 
 - **Naming.** The name is free but unique among the local tools, and it must not equal the name of a tool
   element of the process of an agent that runs it: tool discovery then fails with
-  `RESERVED_TOOL_NAME`. The prefix `c8__` is for the built-in tools; use a vendor-specific prefix such as
+  `LOCAL_TOOL_NAME_CONFLICT`. The prefix `c8__` is for the built-in tools; use a vendor-specific prefix such as
   `acme_` for a custom tool.
 - **State** belongs in the agent context, never in a field of the bean: the agent runs one job after the other,
   possibly on different workers. Change it with `LocalToolResult.withContextUpdate(...)` and read it from

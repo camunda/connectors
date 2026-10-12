@@ -72,7 +72,7 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
         .ifPresent(
             name -> {
               throw new ConnectorException(
-                  AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME,
+                  AgentErrorCodes.ERROR_CODE_LOCAL_TOOL_NAME_CONFLICT,
                   "The tool name '%s' is also the name of a local tool of the AI Agent. Rename the ad-hoc sub-process element with this ID or the local tool."
                       .formatted(name));
             });
