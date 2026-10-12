@@ -56,10 +56,10 @@ import java.util.stream.Collectors;
  * Generates the Salesforce element template by extending HTTP JSON's own generated {@link
  * ElementTemplate} object model via {@link ElementTemplateBuilder#from(ElementTemplate)}: the
  * inherited authentication block is pruned down to the two mechanisms Salesforce supports (so it
- * stays in sync with HTTP JSON's auth model as it evolves), HTTP JSON's reusable-credential chooser
- * and its embedded {@code rest-authentication} configuration template are kept, the inherited
- * response-mapping properties (resultVariable/resultExpression) are kept as-is since Salesforce has
- * no operation-specific behavior to layer onto response mapping, every other inherited
+ * stays in sync with HTTP JSON's auth model as it evolves), HTTP JSON's reusable-credential chooser is
+ * retained but points to a Salesforce-only configuration template derived from its embedded {@code
+ * rest-authentication} template. The inherited response-mapping properties are kept as-is since
+ * Salesforce has no operation-specific behavior to layer onto response mapping; every other inherited
  * group/property (raw url/method, headers, tls, timeout, retries, errors, ...) is dropped, and
  * every Salesforce-specific property -- operation type (sObject CRUD, SOQL query, or Apex REST),
  * per-operation fields, URL construction -- is hand-built on top using the same DSL builders HTTP
