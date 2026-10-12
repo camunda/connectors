@@ -148,6 +148,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
         connector ->
             openWorkerForOutboundConnector(
                 client,
+                clientName,
                 physicalTenantId,
                 documentFactory,
                 secretFilterFactory,
@@ -182,6 +183,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   private void openWorkerForOutboundConnector(
       CamundaClient client,
+      String clientName,
       String physicalTenantId,
       DocumentFactory documentFactory,
       SecretFilterFactory secretFilterFactory,
@@ -228,6 +230,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 intrinsicFunctionAllowListFactory,
                 client);
     jobWorkerManager.createJobWorker(
-        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
+        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this, clientName);
   }
 }

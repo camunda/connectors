@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -129,7 +130,8 @@ class OutboundConnectorManagerTest {
 
     manager.onStart(client, "engine-a");
 
-    verify(jobWorkerManager, times(2)).createJobWorker(any(), any(), any());
+    // the client name is handed on so the client tags its worker metrics like the connector metrics
+    verify(jobWorkerManager, times(2)).createJobWorker(any(), any(), any(), eq("engine-a"));
   }
 
   @Test
@@ -282,7 +284,7 @@ class OutboundConnectorManagerTest {
     manager.onStart(client, "engine-a");
 
     var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
-    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any(), any());
     JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
     assertThat(jobWorkerValue.getWithLease().value()).isTrue();
   }
@@ -307,7 +309,7 @@ class OutboundConnectorManagerTest {
     manager.onStart(client, "engine-a");
 
     var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
-    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any(), any());
     JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
     assertThat(jobWorkerValue.getWithLease()).isInstanceOf(SourceAware.Empty.class);
   }

@@ -55,11 +55,6 @@ public final class ConnectorMetricsAggregator {
    *     one of these physical tenants (engines) — a distinct dimension from connector {@code type}.
    *     {@code null}/empty sums across every physical tenant, matching the pre-existing behavior of
    *     this method.
-   *     <p>The {@link OutboundConnectorMetrics.Worker} section is left {@code null} whenever a
-   *     filter is applied: those counters ({@code camunda.client.worker.*}) are recorded by the
-   *     Camunda client itself, which tags them by job type only, so they cannot be attributed to a
-   *     physical tenant. Reporting the unfiltered pod-wide totals inside an otherwise filtered
-   *     response would misattribute them, and reporting zeros would read as "no jobs activated".
    */
   public static OutboundConnectorMetrics outbound(
       MeterRegistry registry,
@@ -73,13 +68,6 @@ public final class ConnectorMetricsAggregator {
       return buildOutbound(registry, connectorType, physicalTenantIds, runtimeId);
     }
     return buildOutboundAggregate(registry, physicalTenantIds, runtimeId);
-  }
-
-  /**
-   * @return {@code true} when no physical-tenant filter was requested.
-   */
-  private static boolean isUnfiltered(List<String> physicalTenantIds) {
-    return physicalTenantIds == null || physicalTenantIds.isEmpty();
   }
 
   private static OutboundConnectorMetrics buildOutboundAggregate(
@@ -119,16 +107,24 @@ public final class ConnectorMetricsAggregator {
       jobsActivated +=
           (long)
               sumCounter(
-                  registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED, type);
+                  registry,
+                  ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
+                  type,
+                  physicalTenantIds);
       jobsHandled +=
           (long)
-              sumCounter(registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED, type);
+              sumCounter(
+                  registry,
+                  ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
+                  type,
+                  physicalTenantIds);
       streamRecreations +=
           (long)
               sumCounter(
                   registry,
                   ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
-                  type);
+                  type,
+                  physicalTenantIds);
       for (Timer t :
           registry
               .find(ConnectorMetrics.Outbound.METRIC_NAME_TIME)
@@ -181,9 +177,7 @@ public final class ConnectorMetricsAggregator {
             executionTime,
             epochMsToInstant(maxLastCompleted),
             epochMsToInstant(maxLastFailed)),
-        isUnfiltered(physicalTenantIds)
-            ? new OutboundConnectorMetrics.Worker(jobsActivated, jobsHandled, streamRecreations)
-            : null);
+        new OutboundConnectorMetrics.Worker(jobsActivated, jobsHandled, streamRecreations));
   }
 
   private static OutboundConnectorMetrics buildOutbound(
@@ -230,20 +224,25 @@ public final class ConnectorMetricsAggregator {
             executionTime,
             lastCompleted,
             lastFailed),
-        isUnfiltered(physicalTenantIds)
-            ? new OutboundConnectorMetrics.Worker(
-                (long)
-                    sumCounter(
-                        registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED, type),
-                (long)
-                    sumCounter(
-                        registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED, type),
-                (long)
-                    sumCounter(
-                        registry,
-                        ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
-                        type))
-            : null);
+        new OutboundConnectorMetrics.Worker(
+            (long)
+                sumCounter(
+                    registry,
+                    ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
+                    type,
+                    physicalTenantIds),
+            (long)
+                sumCounter(
+                    registry,
+                    ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
+                    type,
+                    physicalTenantIds),
+            (long)
+                sumCounter(
+                    registry,
+                    ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
+                    type,
+                    physicalTenantIds)));
   }
 
   private static OutboundConnectorMetrics.ExecutionTime buildExecutionTime(
@@ -518,8 +517,15 @@ public final class ConnectorMetricsAggregator {
         || physicalTenantIds.contains(id.getTag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID));
   }
 
-  private static double sumCounter(MeterRegistry registry, String metricName, String type) {
+  /**
+   * Physical-tenant-aware — see {@link #matchesPhysicalTenantIds}. Also used for the {@code
+   * camunda.client.worker.*} counters, which the Camunda client tags with the same {@code
+   * physicalTenantId} value.
+   */
+  private static double sumCounter(
+      MeterRegistry registry, String metricName, String type, List<String> physicalTenantIds) {
     return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).counters().stream()
+        .filter(counter -> matchesPhysicalTenantIds(counter.getId(), physicalTenantIds))
         .mapToDouble(Counter::count)
         .sum();
   }
