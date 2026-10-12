@@ -147,6 +147,142 @@ class ProcessDefinitionIntrinsicFunctionAllowListCacheTest {
   }
 
   @Test
+  void aSiblingValueStartingWithAStringLiteralFollowedByAnOperatorDoesNotDropTheDeclaration() {
+    // A REST body concatenating a secret placeholder with a variable on one key
+    // must not make the scanner give up on the whole input and drop the base64 declared elsewhere.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;message&quot;:{&quot;subject&quot;: &quot;{{secrets.ENV_TAG}}&quot; + envVariables.SUBJECT, &quot;count&quot;: 1 + n, &quot;attachments&quot;: for document in attachments return {&quot;contentBytes&quot;:{&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}}}}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .containsExactly(
+            new AllowedIntrinsicFunction(
+                "base64", List.of("body", "message", "attachments", "contentBytes")));
+  }
+
+  @Test
+  void aConditionalWithAScalarThenBranchStillGrantsTheElseBranchDeclaration() {
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;content&quot;: if raw then &quot;none&quot; else {&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed)
+        .containsExactly(new AllowedIntrinsicFunction("base64", List.of("body", "content")));
+  }
+
+  @Test
+  void aDeclarationOverriddenByALaterDuplicateKeyStartingWithAStringLiteralIsNotGranted() {
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={x: {&quot;camunda.function.type&quot;:&quot;base64&quot;,&quot;params&quot;:[document]}, x: &quot;a&quot; + attackerValue}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
+  void aDeclarationInsideALiteralFollowedByAnOperatorContributesNoGrant() {
+    // The operator can reshape the literal (e.g. a path or filter expression), so a declaration
+    // inside it is no longer bound at the path the literal's structure suggests.
+    var xml =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                          id="defs" targetNamespace="http://bpmn.io/schema/bpmn">
+          <bpmn:process id="proc" isExecutable="true">
+            <bpmn:serviceTask id="task" name="Task">
+              <bpmn:extensionElements>
+                <zeebe:ioMapping>
+                  <zeebe:input
+                      source="={&quot;outer&quot;: {&quot;inner&quot;: {&quot;camunda.function.type&quot;:&quot;createLink&quot;,&quot;params&quot;:[]}}.inner}"
+                      target="body" />
+                </zeebe:ioMapping>
+              </bpmn:extensionElements>
+            </bpmn:serviceTask>
+          </bpmn:process>
+        </bpmn:definitions>
+        """;
+    var cache =
+        new ProcessDefinitionIntrinsicFunctionAllowListCache(
+            "tenant-a", modelCacheReturning(xml), new ConcurrentMapCache("allow-list"));
+
+    var allowed =
+        cache.getAllowedFunctions(
+            new IntrinsicFunctionAllowListContext(42L, "task", Instant.now().plusSeconds(30)));
+
+    assertThat(allowed).isEmpty();
+  }
+
+  @Test
   void aConcatenatedDiscriminatorValueIsNotRecordedAsAnAllowedDeclaration() {
     // A dynamic prefix (a process-variable reference the scanner cannot evaluate) makes the real
     // bound function name only as fixed as that variable's runtime value -- not the literal
