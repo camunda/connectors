@@ -51,7 +51,7 @@ import io.camunda.connector.slack.outbound.model.SlackTokenConfiguration;
       @ElementTemplate.PropertyGroup(id = "unpinMessage", label = "Unpin Message")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
     icon = "icon.svg")
 @OutboundConnector(
     name = "Slack Outbound",

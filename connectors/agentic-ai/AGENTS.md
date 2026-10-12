@@ -25,6 +25,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
+- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
 
@@ -139,7 +140,7 @@ suite will enforce (epic #7537):
   The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
   framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
-  (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4j only through the
+  (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
@@ -340,6 +341,7 @@ Before claiming a change is complete:
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
+- [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
 
 ## Extension points
 
@@ -375,6 +377,14 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
    Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
+
+When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
+fixtures for the new template generation in the same change. The fixtures live in
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/regression/` (one Task and one
+Sub-process BPMN per generation, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
+`AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the latest
+pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`), re-apply the new
+templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit an existing fixture.
 
 ### Agent definition marker
 
@@ -470,6 +480,10 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
   provider specifics → `native-providers.md`.
+- **`docs/breaking-changes.md`**: breaking changes for custom extensions (SPIs, public classes and
+  packages, persisted data, job types, configuration). Add an entry in the same change that
+  introduces the break, under the section of the release in development, with the old and new API
+  and a migration hint. The public docs link to it.
 - **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 

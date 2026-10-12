@@ -56,7 +56,7 @@ public record WebhookConnectorProperties(
             label = "HMAC authentication",
             group = "authentication",
             description =
-                "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+                "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
             defaultValue = "disabled",
             type = PropertyType.Dropdown)
         HMACSwitchCustomerChoice shouldValidateHmac,
@@ -131,7 +131,7 @@ public record WebhookConnectorProperties(
             id = "verificationExpression",
             label = "One time verification response expression",
             description =
-                "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
+                "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
             type = PropertyType.Text,
             group = "webhookResponse",
             feel = FeelMode.required,

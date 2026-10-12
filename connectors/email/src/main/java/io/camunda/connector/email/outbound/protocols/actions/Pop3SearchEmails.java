@@ -28,7 +28,7 @@ public record Pop3SearchEmails(
             group = "searchEmailsPop3",
             id = "searchStringEmailPop3",
             tooltip =
-                "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
+                "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true,

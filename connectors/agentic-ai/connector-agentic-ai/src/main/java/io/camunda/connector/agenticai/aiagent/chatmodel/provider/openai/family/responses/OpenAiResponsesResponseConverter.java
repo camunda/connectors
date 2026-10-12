@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.springframework.util.StringUtils;
 
@@ -64,6 +65,9 @@ public class OpenAiResponsesResponseConverter {
 
   private static final String METADATA_RESPONSE_ID = "responseId";
   private static final String METADATA_STOP_REASON = "stopReason";
+
+  /** Phase of the answer text; only stamped for phased output, so unphased history stays as is. */
+  static final String METADATA_PHASE = "phase";
 
   private final ObjectMapper objectMapper;
 
@@ -97,8 +101,9 @@ public class OpenAiResponsesResponseConverter {
    * "blocked" outcome across both mechanisms.
    */
   private boolean hasRefusal(Response response) {
-    return response.output().stream()
-        .flatMap(item -> item.message().stream())
+    final boolean hasFinalAnswerMessage = hasFinalAnswerMessage(response);
+    return responseMessages(response)
+        .filter(message -> isAnswerMessage(message, hasFinalAnswerMessage))
         .flatMap(message -> message.content().stream())
         .flatMap(content -> content.refusal().stream())
         .map(ResponseOutputRefusal::refusal)
@@ -133,11 +138,16 @@ public class OpenAiResponsesResponseConverter {
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
+        if (isCommentary(message)) {
+          // Intermediate commentary has no place in the domain model, and must not be parsed as the
+          // response text. It is preserved as ProviderContent so it replays verbatim, phase
+          // included.
+          content.add(commentaryContent(message, item));
+          continue;
+        }
         // The first message item's own id, not response.id() (the envelope this turn came from).
         // The API gives no guarantee of at most one message item per response (its own docs warn
-        // against assuming the first output item is the message), so if it ever produces more
-        // than one, only the first's id survives, the same way their content is already
-        // flattened into one list.
+        // against assuming the first output item is the message).
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
@@ -164,6 +174,42 @@ public class OpenAiResponsesResponseConverter {
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))
         .build();
+  }
+
+  private ProviderContent commentaryContent(
+      ResponseOutputMessage message, ResponseOutputItem item) {
+    final String text =
+        message.content().stream()
+            .flatMap(messageContent -> messageContent.outputText().stream())
+            .map(ResponseOutputText::text)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.joining("\n"));
+    return new ProviderContent(
+        OPENAI_ID, toRawMap(item), StringUtils.hasText(text) ? text : null, null);
+  }
+
+  private Stream<ResponseOutputMessage> responseMessages(Response response) {
+    return response.output().stream().flatMap(item -> item.message().stream());
+  }
+
+  private boolean hasFinalAnswerMessage(Response response) {
+    return responseMessages(response).anyMatch(this::isFinalAnswer);
+  }
+
+  private boolean isFinalAnswer(ResponseOutputMessage message) {
+    return message.phase().filter(ResponseOutputMessage.Phase.FINAL_ANSWER::equals).isPresent();
+  }
+
+  private boolean isCommentary(ResponseOutputMessage message) {
+    return message.phase().filter(ResponseOutputMessage.Phase.COMMENTARY::equals).isPresent();
+  }
+
+  /**
+   * Final-answer messages, or -- when the response has none -- every message that is not
+   * commentary.
+   */
+  private boolean isAnswerMessage(ResponseOutputMessage message, boolean hasFinalAnswerMessage) {
+    return hasFinalAnswerMessage ? isFinalAnswer(message) : !isCommentary(message);
   }
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
@@ -204,6 +250,9 @@ public class OpenAiResponsesResponseConverter {
   private Map<String, Object> openAiMetadata(Response response) {
     final Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put(METADATA_RESPONSE_ID, response.id());
+    if (hasFinalAnswerMessage(response)) {
+      metadata.put(METADATA_PHASE, ResponseOutputMessage.Phase.FINAL_ANSWER.asString());
+    }
     response
         .incompleteDetails()
         .flatMap(Response.IncompleteDetails::reason)
@@ -315,11 +364,15 @@ public class OpenAiResponsesResponseConverter {
 
   private AgentMetrics.TokenUsage toTokenUsage(ResponseUsage usage) {
     final long cachedTokens = usage.inputTokensDetails().cachedTokens();
+    // The typed getter throws when cache_write_tokens is absent (only some models send it).
+    final long cacheWriteTokens =
+        usage.inputTokensDetails()._cacheWriteTokens().asKnown().orElse(0L);
 
     return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount((int) (usage.inputTokens() - cachedTokens))
+        .inputTokenCount((int) Math.max(0, usage.inputTokens() - cachedTokens - cacheWriteTokens))
         .outputTokenCount((int) usage.outputTokens())
         .cacheReadTokenCount((int) cachedTokens)
+        .cacheCreationTokenCount((int) cacheWriteTokens)
         .reasoningTokenCount((int) usage.outputTokensDetails().reasoningTokens())
         .build();
   }

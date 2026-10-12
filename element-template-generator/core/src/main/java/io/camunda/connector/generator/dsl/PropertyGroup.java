@@ -156,7 +156,7 @@ public record PropertyGroup(
         .id("correlation")
         .label("Correlation")
         .tooltip(
-            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
+            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
         .properties(
             CommonProperties.correlationRequiredDropdown().build(),
             CommonProperties.correlationKeyProcess()
@@ -188,7 +188,7 @@ public record PropertyGroup(
         .id("correlation")
         .label("Correlation")
         .tooltip(
-            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
+            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
         .properties(
             CommonProperties.correlationKeyProcess().build(),
             CommonProperties.correlationKeyPayload().build(),

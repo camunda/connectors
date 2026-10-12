@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
     configurations = {MicrosoftEntraConfiguration.class},
     description = "Poll M365 Outlook emails",
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
     keywords = {
       "email",
       "Office365",

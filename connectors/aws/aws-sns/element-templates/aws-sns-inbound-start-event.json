@@ -12,9 +12,9 @@
   ],
   "deprecated": {
     "message": "None Start Events are deprecated in favor of Message Start Events for message based Connectors.",
-    "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
+    "documentationRef": "https://docs.camunda.io/docs/8.10/components/modeler/bpmn/none-events/"
   },
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version": 6,
   "category": {
     "id": "connectors",

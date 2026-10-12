@@ -15,6 +15,7 @@ public class Authentication {
   @FEEL
   @TemplateProperty(
       group = "authentication",
+      secret = true,
       label = "JSON key of the service account",
       tooltip =
           "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
