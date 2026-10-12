@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,10 +27,8 @@ import org.jspecify.annotations.Nullable;
  * <p>A successful call answers {@code Loaded document <id>.} and marks its result with the id of
  * the document ({@link ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content reaches the model
  * in the message that follows the tool results. A document that is already part of the conversation
- * is not loaded again. A document above the {@link DocumentLoadLimits limit} of its content type is
- * rejected without being loaded, and so is a document of a content type that {@link
- * DocumentLoadLimits#isLoadable is not loadable}; the size is read from the reference metadata, and
- * when the metadata has none, from at most one more byte than the limit of the document.
+ * is not loaded again. A document that does not pass the {@link DocumentLoadGuard} (a content type
+ * outside the allowlist, a size above the limit of its type) is rejected without being loaded.
  */
 public final class GetDocumentTool implements LocalTool {
 
@@ -97,44 +94,20 @@ public final class GetDocumentTool implements LocalTool {
       return LocalToolResult.success("Document %s is already in the conversation.".formatted(id));
     }
 
-    final var contentType = DocumentHandle.contentTypeFor(document);
-    if (!DocumentLoadLimits.isLoadable(contentType)) {
-      return LocalToolResult.error(
-          "The document is of type %s which cannot be loaded into the conversation; pass its id to a tool that processes it."
-              .formatted(contentType));
-    }
-
-    final var limit = DocumentLoadLimits.limitFor(contentType);
-    final var size = DocumentHandle.sizeFor(document);
-    if (size != null) {
-      if (size > limit) {
-        return tooLarge("is " + kilobytes(size), limit);
+    final var rejection = DocumentLoadGuard.check(document).orElse(null);
+    if (rejection != null) {
+      if (rejection.retryable()) {
+        final var message = "The document " + rejection.problem();
+        throw rejection.cause() == null
+            ? new LocalToolException(message)
+            : new LocalToolException(message, rejection.cause());
       }
-    } else if (exceeds(document, limit)) {
-      return tooLarge("is larger than " + kilobytes(limit), limit);
+      return LocalToolResult.error(
+          "The document %s; pass its id to a tool that processes it."
+              .formatted(rejection.problem()));
     }
 
     return LocalToolResult.success("Loaded document %s.".formatted(id))
         .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, id);
-  }
-
-  private static LocalToolResult tooLarge(String sizeText, long limit) {
-    return LocalToolResult.error(
-        "The document %s, too large to load into the conversation (limit %s); pass its id to a tool that processes it."
-            .formatted(sizeText, kilobytes(limit)));
-  }
-
-  /** Reads at most one byte more than the limit to find out whether the document exceeds it. */
-  private static boolean exceeds(Document document, long limit) {
-    try (final var in = document.asInputStream()) {
-      return in.readNBytes((int) limit + 1).length > limit;
-    } catch (IOException | RuntimeException e) {
-      throw new LocalToolException(
-          "The document could not be read to check its size: " + e.getMessage(), e);
-    }
-  }
-
-  private static String kilobytes(long bytes) {
-    return ((bytes + 1023) / 1024) + " KB";
   }
 }
