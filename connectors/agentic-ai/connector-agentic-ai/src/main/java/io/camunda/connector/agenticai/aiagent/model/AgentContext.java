@@ -72,9 +72,17 @@ public record AgentContext(
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 
   /**
+   * The feature of an agent instance that offers the local tools (see {@code LocalTool}) and
+   * reserves their names against the tools of the process. An instance created without it offers no
+   * local tool and reserves no name.
+   */
+  public static final String FEATURE_LOCAL_TOOLS = "localTools";
+
+  /**
    * The feature of an agent instance that keeps the documents of its conversation in the document
-   * registry and offers the tools of the agent that work with them. An instance created without it
-   * keeps the document handling it was created with.
+   * registry and offers the tools of the agent that work with them. It implies {@link
+   * #FEATURE_LOCAL_TOOLS}. An instance created without it keeps the document handling it was
+   * created with.
    */
   public static final String FEATURE_DOCUMENTS = "documents";
 
@@ -101,9 +109,17 @@ public record AgentContext(
     return supports(FEATURE_DOCUMENTS);
   }
 
+  /**
+   * Returns {@code true} if the agent instance was created with {@link #FEATURE_LOCAL_TOOLS} or
+   * with {@link #FEATURE_DOCUMENTS}, which implies it.
+   */
+  public boolean supportsLocalTools() {
+    return supports(FEATURE_LOCAL_TOOLS) || supportsDocuments();
+  }
+
   /** The features of an agent instance that is created now. */
   public static LinkedHashSet<String> newInstanceFeatures() {
-    return new LinkedHashSet<>(List.of(FEATURE_DOCUMENTS));
+    return new LinkedHashSet<>(List.of(FEATURE_LOCAL_TOOLS, FEATURE_DOCUMENTS));
   }
 
   public AgentContext withProperty(String key, Object value) {

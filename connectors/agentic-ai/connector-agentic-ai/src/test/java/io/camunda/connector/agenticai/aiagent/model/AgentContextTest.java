@@ -317,13 +317,27 @@ class AgentContextTest {
   }
 
   @Test
-  void newInstanceFeaturesContainTheDocumentsFeature() {
+  void newInstanceFeaturesContainTheLocalToolsAndDocumentsFeatures() {
     final var context = AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
-    assertThat(context.features()).containsExactly("documents");
+    assertThat(context.features()).containsExactly("localTools", "documents");
+    assertThat(context.supportsLocalTools()).isTrue();
     assertThat(context.supports(AgentContext.FEATURE_DOCUMENTS)).isTrue();
     assertThat(context.supportsDocuments()).isTrue();
     assertThat(context.supports("other")).isFalse();
+  }
+
+  @Test
+  void theDocumentsFeatureImpliesTheLocalToolsFeature() {
+    final var documentsOnly =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("documents")));
+    final var localToolsOnly =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("localTools")));
+
+    assertThat(documentsOnly.supportsLocalTools()).isTrue();
+    assertThat(localToolsOnly.supportsLocalTools()).isTrue();
+    assertThat(localToolsOnly.supportsDocuments()).isFalse();
+    assertThat(AgentContext.empty().supportsLocalTools()).isFalse();
   }
 
   @Test

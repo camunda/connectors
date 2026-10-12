@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +39,15 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
 
   private final LocalToolRegistry localToolRegistry;
   private final ObjectMapper objectMapper;
+  private final DocumentFactory documentFactory;
 
-  public LocalToolCallHandlerImpl(LocalToolRegistry localToolRegistry, ObjectMapper objectMapper) {
+  public LocalToolCallHandlerImpl(
+      LocalToolRegistry localToolRegistry,
+      ObjectMapper objectMapper,
+      DocumentFactory documentFactory) {
     this.localToolRegistry = localToolRegistry;
     this.objectMapper = objectMapper;
+    this.documentFactory = documentFactory;
   }
 
   @Override
@@ -51,9 +57,9 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
 
   @Override
   public LocalToolCallSplit handle(AgentConversation conversation, List<ToolCall> toolCalls) {
-    // an agent instance without the documents feature has no local tools and no document
-    // parameters: every call goes to the process as the model sent it
-    if (toolCalls.isEmpty() || !conversation.supportsDocuments()) {
+    // an agent instance without the local tools feature has no local tools: every call goes to the
+    // process as the model sent it
+    if (toolCalls.isEmpty() || !conversation.supportsLocalTools()) {
       return LocalToolCallSplit.allRemaining(conversation, toolCalls);
     }
 
@@ -68,7 +74,11 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
       if (tool.isPresent()) {
         result = run(tool.get(), toolCall, workingConversation);
       } else {
-        final var rejection = validateDocumentParameters(toolCall, workingConversation);
+        // an agent instance without the documents feature has no document parameters
+        final var rejection =
+            workingConversation.supportsDocuments()
+                ? validateDocumentParameters(toolCall, workingConversation)
+                : null;
         if (rejection == null) {
           remainingCalls.add(toolCall);
           continue;
@@ -117,7 +127,8 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
             documents,
             conversation.loadedDocumentIds(),
             conversation.agentInstanceKey(),
-            objectMapper);
+            objectMapper,
+            documentFactory);
     try {
       return tool.call(
           new LocalToolCall(toolCall.id(), toolCall.name(), arguments, resolvedArguments), context);

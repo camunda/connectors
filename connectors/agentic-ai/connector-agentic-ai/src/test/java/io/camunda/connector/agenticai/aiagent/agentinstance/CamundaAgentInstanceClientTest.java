@@ -870,7 +870,8 @@ class CamundaAgentInstanceClientTest {
           List.of(
               ToolDefinition.builder().name("getWeather").description("d").build(),
               new ReturnDocumentTool().definition());
-      final var configuration = configuration("Be nice.", tools);
+      final var configuration =
+          configuration("Be nice.", tools).withFeatures(AgentContext.newInstanceFeatures());
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),

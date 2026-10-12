@@ -13,6 +13,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -21,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,36 +45,56 @@ class AgentToolsResolverTest {
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+    agentToolsResolver =
+        new AgentToolsResolverImpl(
+            toolsSchemaResolver,
+            gatewayToolHandlers,
+            new LocalToolRegistryImpl(
+                List.of(
+                    new ReturnDocumentTool(),
+                    LocalTool.builder("acme_lookup").handler((call, context) -> null))));
   }
 
   @Nested
-  class ReservedToolNames {
+  class LocalToolNames {
 
-    private static final ToolDefinition RESERVED_TOOL =
+    private static final ToolDefinition CLASHING_TOOL =
         ToolDefinition.builder()
             .name("c8__return_document")
             .description("Clashes with the built-in tool")
             .inputSchema(Map.of("type", "object"))
             .build();
 
+    private static final ToolDefinition CLASHING_CUSTOM_TOOL =
+        ToolDefinition.builder().name("acme_lookup").inputSchema(Map.of("type", "object")).build();
+
     private static final AgentContext NEW_INSTANCE_CONTEXT =
         AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
+    private static final AgentContext LOCAL_TOOLS_ONLY_CONTEXT =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("localTools")));
+
+    private static final AgentContext DOCUMENTS_ONLY_CONTEXT =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("documents")));
+
     @Test
-    void doesNotReserveNamesForAnAgentInstanceWithoutTheDocumentsFeature() {
+    void doesNotReserveNamesForAnAgentInstanceWithoutTheLocalToolsFeature() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(CLASHING_TOOL, CLASHING_CUSTOM_TOOL), List.of()));
 
       assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
           .satisfies(
-              response -> assertThat(response.toolDefinitions()).containsExactly(RESERVED_TOOL));
+              response ->
+                  assertThat(response.toolDefinitions())
+                      .containsExactly(CLASHING_TOOL, CLASHING_CUSTOM_TOOL));
     }
 
     @Test
-    void rejectsAnAdHocToolWithTheReservedNameOnToolDiscovery() {
+    void rejectsAnAdHocToolWithTheNameOfALocalToolOnToolDiscovery() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CLASHING_TOOL), List.of()));
 
       assertThatThrownBy(
               () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
@@ -78,34 +102,46 @@ class AgentToolsResolverTest {
               ConnectorException.class,
               e -> {
                 assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME");
-                assertThat(e.getMessage()).contains("c8__return_document", "'c8__'", "reserved");
+                assertThat(e.getMessage())
+                    .contains("c8__return_document", "local tool", "Rename the ad-hoc sub-process");
               });
     }
 
     @Test
-    void reservesTheWholePrefixNotOnlyTheNamesOfRegisteredTools() {
+    void rejectsTheNameOfACustomLocalToolForAnAgentInstanceWithOnlyTheLocalToolsFeature() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(
-              new AdHocToolsSchemaResponse(
-                  List.of(
-                      ToolDefinition.builder()
-                          .name("c8__not_a_registered_tool")
-                          .inputSchema(Map.of("type", "object"))
-                          .build()),
-                  List.of()));
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CLASHING_CUSTOM_TOOL), List.of()));
 
       assertThatThrownBy(
-              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+              () ->
+                  agentToolsResolver.loadAdHocToolsSchema(
+                      executionContext, LOCAL_TOOLS_ONLY_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME");
+                assertThat(e.getMessage()).contains("acme_lookup");
+              });
+    }
+
+    @Test
+    void treatsTheDocumentsFeatureAsImplyingTheLocalToolsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CLASHING_CUSTOM_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.loadAdHocToolsSchema(executionContext, DOCUMENTS_ONLY_CONTEXT))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo("RESERVED_TOOL_NAME"));
     }
 
     @Test
-    void acceptsNamesThatOnlyContainThePrefix() {
+    void acceptsNamesInThePrefixThatAreNotLocalTools() {
       final var tool =
           ToolDefinition.builder()
-              .name("my_c8__tool")
+              .name("c8__not_a_registered_tool")
               .inputSchema(Map.of("type", "object"))
               .build();
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
@@ -116,7 +152,21 @@ class AgentToolsResolverTest {
     }
 
     @Test
-    void rejectsAGatewayToolWithTheReservedName() {
+    void acceptsNamesThatOnlyContainTheNameOfALocalTool() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("my_acme_lookup")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
+    }
+
+    @Test
+    void rejectsAGatewayToolWithTheNameOfALocalTool() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(
               new AdHocToolsSchemaResponse(
@@ -135,9 +185,9 @@ class AgentToolsResolverTest {
     }
 
     @Test
-    void rejectsAReservedToolNameIntroducedByAProcessMigration() {
+    void rejectsTheNameOfALocalToolIntroducedByAProcessMigration() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(new AdHocToolsSchemaResponse(List.of(RESERVED_TOOL), List.of()));
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CLASHING_TOOL), List.of()));
 
       assertThatThrownBy(
               () ->

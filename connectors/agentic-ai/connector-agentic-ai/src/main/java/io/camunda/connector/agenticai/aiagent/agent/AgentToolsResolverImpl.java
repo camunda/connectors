@@ -8,10 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
@@ -34,12 +34,15 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
   private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final LocalToolRegistry localToolRegistry;
 
   public AgentToolsResolverImpl(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      LocalToolRegistry localToolRegistry) {
     this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.localToolRegistry = localToolRegistry;
   }
 
   @Override
@@ -47,31 +50,31 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       AgentExecutionContext executionContext, AgentContext agentContext) {
     final var adHocToolsSchema =
         toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
-    if (agentContext.supportsDocuments()) {
-      rejectReservedToolNames(adHocToolsSchema);
+    if (agentContext.supportsLocalTools()) {
+      rejectLocalToolNames(adHocToolsSchema);
     }
     return adHocToolsSchema;
   }
 
   /**
-   * Rejects an ad-hoc or gateway tool element whose name starts with the reserved prefix {@link
-   * InternalToolNames#PREFIX} of the tools the agent runs itself, whether the agent offers such a
-   * tool or not: the namespace is the agent's, and a name in it must not turn into a collision as
-   * tools are added. An agent instance created without the documents feature reserves no name: it
-   * offers no such tool and must keep running its process.
+   * Rejects an ad-hoc or gateway tool element whose name equals the name of a registered local
+   * tool, whether the agent offers that tool or not: the tool of the process and the local tool
+   * would be indistinguishable to the model. An agent instance created without the local tools
+   * feature offers no local tool and must keep running its process.
    */
-  private void rejectReservedToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
+  private void rejectLocalToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
+    final var localToolNames = localToolRegistry.toolNames();
     Stream.concat(
             adHocToolsSchema.toolDefinitions().stream().map(ToolDefinition::name),
             adHocToolsSchema.gatewayToolDefinitions().stream().map(GatewayToolDefinition::name))
-        .filter(InternalToolNames::isReserved)
+        .filter(localToolNames::contains)
         .findFirst()
         .ifPresent(
             name -> {
               throw new ConnectorException(
                   AgentErrorCodes.ERROR_CODE_RESERVED_TOOL_NAME,
-                  "The tool name '%s' starts with the prefix '%s', which is reserved for the built-in tools of the AI Agent. Rename the ad-hoc sub-process element with this ID."
-                      .formatted(name, InternalToolNames.PREFIX));
+                  "The tool name '%s' is also the name of a local tool of the AI Agent. Rename the ad-hoc sub-process element with this ID or the local tool."
+                      .formatted(name));
             });
   }
 

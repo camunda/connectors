@@ -100,6 +100,14 @@ public record AgentConfiguration(
     return supports(AgentContext.FEATURE_DOCUMENTS);
   }
 
+  /**
+   * Returns {@code true} if the agent instance was created with the local tools feature or with the
+   * documents feature, which implies it.
+   */
+  public boolean supportsLocalTools() {
+    return supports(AgentContext.FEATURE_LOCAL_TOOLS) || supportsDocuments();
+  }
+
   public int contextWindowSize() {
     return Optional.ofNullable(memory)
         .map(MemoryConfiguration::contextWindowSize)

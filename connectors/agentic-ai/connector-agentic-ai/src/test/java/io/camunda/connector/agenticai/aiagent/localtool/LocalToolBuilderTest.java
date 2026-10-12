@@ -8,10 +8,12 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +28,8 @@ class LocalToolBuilderTest {
         DocumentRegistry.empty(),
         Set.of(),
         null,
-        TestObjectMapperSupplier.INSTANCE);
+        TestObjectMapperSupplier.INSTANCE,
+        mock(DocumentFactory.class));
   }
 
   @Test

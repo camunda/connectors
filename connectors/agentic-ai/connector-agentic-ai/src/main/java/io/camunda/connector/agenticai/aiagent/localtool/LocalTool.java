@@ -49,9 +49,10 @@ import org.jspecify.annotations.Nullable;
 public interface LocalTool {
 
   /**
-   * The definition shown to the model. The name is unique among the local tools and starts with the
-   * reserved prefix {@link InternalToolNames#PREFIX}: no BPMN element of an agent may use a name
-   * with it.
+   * The definition shown to the model. The name is unique among the local tools. A custom tool may
+   * use any name, but it must not equal the name of a tool of the process of the agent it runs in:
+   * the agent then fails with an error. Use the prefix {@link InternalToolNames#PREFIX} for
+   * built-in tools only and a vendor-specific prefix for custom tools.
    */
   ToolDefinition definition();
 

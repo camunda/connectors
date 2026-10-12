@@ -96,6 +96,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -178,7 +179,8 @@ class AgentSubProcessRequestHandlerTest {
   private LocalToolCallHandler localToolCallHandler =
       new LocalToolCallHandlerImpl(
           new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
-          TestObjectMapperSupplier.INSTANCE);
+          TestObjectMapperSupplier.INSTANCE,
+          mock(DocumentFactory.class));
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;

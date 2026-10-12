@@ -34,7 +34,11 @@ class LocalToolRegistryImplTest {
               null,
               null)
           .withFeatures(AgentContext.newInstanceFeatures());
-  private static final AgentConfiguration WITHOUT_DOCUMENTS_FEATURE = PLAIN.withFeatures(Set.of());
+  private static final AgentConfiguration WITHOUT_FEATURES = PLAIN.withFeatures(Set.of());
+  private static final AgentConfiguration LOCAL_TOOLS_ONLY =
+      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_LOCAL_TOOLS));
+  private static final AgentConfiguration DOCUMENTS_ONLY =
+      PLAIN.withFeatures(Set.of(AgentContext.FEATURE_DOCUMENTS));
 
   private final LocalToolRegistry registry =
       new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), SaveNoteTool.create()));
@@ -56,11 +60,28 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
-  void offersNoToolToAnAgentWithoutTheDocumentsFeature() {
-    assertThat(registry.availableTools(WITHOUT_DOCUMENTS_FEATURE)).isEmpty();
-    assertThat(registry.availableToolDefinitions(WITHOUT_DOCUMENTS_FEATURE)).isEmpty();
-    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITHOUT_DOCUMENTS_FEATURE))
-        .isEmpty();
+  void offersNoToolToAnAgentWithoutTheLocalToolsFeature() {
+    assertThat(registry.availableTools(WITHOUT_FEATURES)).isEmpty();
+    assertThat(registry.availableToolDefinitions(WITHOUT_FEATURES)).isEmpty();
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, WITHOUT_FEATURES)).isEmpty();
+  }
+
+  @Test
+  void offersOnlyTheToolsThatDoNotNeedDocumentsToAnAgentWithOnlyTheLocalToolsFeature() {
+    final var withMemory = WITH_MEMORY.withFeatures(Set.of(AgentContext.FEATURE_LOCAL_TOOLS));
+
+    assertThat(registry.availableToolDefinitions(LOCAL_TOOLS_ONLY)).isEmpty();
+    assertThat(registry.availableToolDefinitions(withMemory))
+        .extracting(definition -> definition.name())
+        .containsExactly(SaveNoteTool.NAME);
+    assertThat(registry.findAvailable(ReturnDocumentTool.NAME, LOCAL_TOOLS_ONLY)).isEmpty();
+  }
+
+  @Test
+  void treatsTheDocumentsFeatureAsImplyingTheLocalToolsFeature() {
+    assertThat(registry.availableToolDefinitions(DOCUMENTS_ONLY))
+        .extracting(definition -> definition.name())
+        .containsExactly(ReturnDocumentTool.NAME);
   }
 
   @Test
@@ -79,13 +100,20 @@ class LocalToolRegistryImplTest {
   }
 
   @Test
-  void rejectsAToolNameOutsideTheReservedNamespace() {
-    final var outside = LocalTool.builder("save_note").handler((call, context) -> null);
+  void acceptsAToolNameOutsideTheBuiltInPrefix() {
+    final var custom = LocalTool.builder("acme_lookup").handler((call, context) -> null);
 
-    assertThatThrownBy(() -> new LocalToolRegistryImpl(List.of(outside)))
+    assertThat(new LocalToolRegistryImpl(List.of(custom)).toolNames())
+        .containsExactly("acme_lookup");
+  }
+
+  @Test
+  void rejectsABlankToolName() {
+    final var blank = LocalTool.builder(" ").handler((call, context) -> null);
+
+    assertThatThrownBy(() -> new LocalToolRegistryImpl(List.of(blank)))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("save_note")
-        .hasMessageContaining("c8__");
+        .hasMessageContaining("non-blank");
   }
 
   @Test

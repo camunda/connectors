@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.localtool;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
@@ -32,7 +33,7 @@ import org.jspecify.annotations.Nullable;
  */
 public final class ReturnDocumentTool implements LocalTool {
 
-  /** The tool name, in the reserved namespace of the tools the agent runs itself. */
+  /** The tool name, with the prefix of the built-in tools. */
   public static final String NAME = InternalToolNames.PREFIX + "return_document";
 
   /** The parameter carrying the stable identifier the process finds the document by. */
@@ -97,6 +98,12 @@ public final class ReturnDocumentTool implements LocalTool {
   @Override
   public ToolDefinition definition() {
     return DEFINITION;
+  }
+
+  /** The tool works with the document registry: only an agent with the documents feature has it. */
+  @Override
+  public boolean isAvailable(AgentConfiguration configuration) {
+    return configuration.supportsDocuments();
   }
 
   @Override

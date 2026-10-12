@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.localtool.ReturnDocumentTool;
@@ -31,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +48,8 @@ class ReturnDocumentToolTest {
   private final LocalToolCallHandler handler =
       new LocalToolCallHandlerImpl(
           new LocalToolRegistryImpl(List.of(new ReturnDocumentTool())),
-          TestObjectMapperSupplier.INSTANCE);
+          TestObjectMapperSupplier.INSTANCE,
+          mock(DocumentFactory.class));
 
   private final Document report = createDocument("report", "report.txt");
   private final Document summary = createDocument("summary", "summary.txt");

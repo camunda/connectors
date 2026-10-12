@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.localtool.GetDocumentTool;
@@ -30,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -109,7 +111,8 @@ class GetDocumentToolTest {
   private final LocalToolCallHandler handler =
       new LocalToolCallHandlerImpl(
           new LocalToolRegistryImpl(List.of(new ReturnDocumentTool(), new GetDocumentTool())),
-          objectMapper);
+          objectMapper,
+          mock(DocumentFactory.class));
 
   private static ObjectMapper objectMapperFor(CamundaDocumentStore store) {
     final var copy = ConnectorsObjectMapperSupplier.getCopy();
@@ -366,7 +369,9 @@ class GetDocumentToolTest {
         };
     final var smallHandler =
         new LocalToolCallHandlerImpl(
-            new LocalToolRegistryImpl(List.of(new GetDocumentTool())), objectMapperFor(smallStore));
+            new LocalToolRegistryImpl(List.of(new GetDocumentTool())),
+            objectMapperFor(smallStore),
+            mock(DocumentFactory.class));
 
     final var split =
         smallHandler.handle(
@@ -402,7 +407,8 @@ class GetDocumentToolTest {
     final var failingHandler =
         new LocalToolCallHandlerImpl(
             new LocalToolRegistryImpl(List.of(new GetDocumentTool())),
-            objectMapperFor(failingStore));
+            objectMapperFor(failingStore),
+            mock(DocumentFactory.class));
 
     final var split =
         failingHandler.handle(

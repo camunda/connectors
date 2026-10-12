@@ -39,7 +39,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(List.of(tool), true);
 
     assertThat(mapped)
         .singleElement()
@@ -53,7 +53,7 @@ class AgentInstanceToolMapperTest {
 
   @Test
   void localToolHasNoElementId() {
-    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()));
+    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), true);
 
     assertThat(mapped)
         .singleElement()
@@ -63,6 +63,18 @@ class AgentInstanceToolMapperTest {
               assertThat(agentTool.getDescription()).contains("Attaches one document");
               assertThat(agentTool.getElementId()).isNull();
             });
+  }
+
+  @Test
+  void aToolOfTheProcessWithTheNameOfALocalToolKeepsItsElementIdWithoutTheLocalToolsFeature() {
+    when(gatewayToolHandlers.resolveElementId("c8__return_document")).thenReturn(Optional.empty());
+
+    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()), false);
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> assertThat(agentTool.getElementId()).isEqualTo("c8__return_document"));
   }
 
   @Test
@@ -76,7 +88,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(List.of(tool), true);
 
     assertThat(mapped)
         .singleElement()

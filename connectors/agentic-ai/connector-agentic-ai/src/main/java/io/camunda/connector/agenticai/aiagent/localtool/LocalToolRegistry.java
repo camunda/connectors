@@ -14,11 +14,15 @@ import java.util.Set;
 
 /**
  * The local tools registered as beans, and which of them an agent offers. An agent instance created
- * without the documents feature (see {@code AgentContext#FEATURE_DOCUMENTS}) offers no local tool.
+ * without the local tools feature (see {@code AgentContext#FEATURE_LOCAL_TOOLS}) offers no local
+ * tool.
  */
 public interface LocalToolRegistry {
 
-  /** The names of all registered tools, whether available or not; these names are reserved. */
+  /**
+   * The names of all registered tools, whether available or not; a tool of the process must not use
+   * one of them.
+   */
   Set<String> toolNames();
 
   /** The tools available for the agent of {@code configuration}, in registration order. */

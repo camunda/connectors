@@ -277,7 +277,7 @@ class AgentInstanceHistoryMapperTest {
 
   @Test
   void withoutTheDocumentsFeatureTextsAndLocalToolNamesAreReportedAsStored() {
-    final var withoutDocumentFlow = HistoryDocuments.withoutDocumentFlow(List.of());
+    final var withoutDocumentFlow = HistoryDocuments.withoutDocumentFlow(List.of(), false);
     final var tag = "<doc toolName=\"t\" toolCallId=\"c\" documentId=\"d1\" />";
     final var toolCall =
         ToolCall.builder().id("call-1").name(ReturnDocumentTool.NAME).arguments(Map.of()).build();

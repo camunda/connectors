@@ -197,7 +197,8 @@ public abstract class BaseAgentRequestHandler<
     return agentContext.supportsDocuments()
         ? new HistoryDocuments(
             configuration.toolDefinitions(), documentRegistryStorage.load(agentContext))
-        : HistoryDocuments.withoutDocumentFlow(configuration.toolDefinitions());
+        : HistoryDocuments.withoutDocumentFlow(
+            configuration.toolDefinitions(), agentContext.supportsLocalTools());
   }
 
   /**
@@ -389,7 +390,8 @@ public abstract class BaseAgentRequestHandler<
       AgentConfiguration configuration, AgentConversation conversation) {
     return conversation.supportsDocuments()
         ? new HistoryDocuments(configuration.toolDefinitions(), conversation.documentRegistry())
-        : HistoryDocuments.withoutDocumentFlow(configuration.toolDefinitions());
+        : HistoryDocuments.withoutDocumentFlow(
+            configuration.toolDefinitions(), conversation.supportsLocalTools());
   }
 
   /**

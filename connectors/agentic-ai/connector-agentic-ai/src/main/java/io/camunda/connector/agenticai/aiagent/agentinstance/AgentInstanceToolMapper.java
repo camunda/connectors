@@ -30,13 +30,17 @@ public class AgentInstanceToolMapper {
     this.localToolRegistry = localToolRegistry;
   }
 
-  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions) {
-    return toolDefinitions.stream().map(this::mapTool).toList();
+  /**
+   * Maps the tools of the agent. A local tool has no BPMN element; {@code localTools} tells whether
+   * the agent instance has the local tools feature, without which no tool is a local tool.
+   */
+  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions, boolean localTools) {
+    return toolDefinitions.stream().map(tool -> mapTool(tool, localTools)).toList();
   }
 
-  private AgentTool mapTool(ToolDefinition toolDefinition) {
+  private AgentTool mapTool(ToolDefinition toolDefinition, boolean localTools) {
     final @Nullable String elementId =
-        localToolRegistry.toolNames().contains(toolDefinition.name())
+        localTools && localToolRegistry.toolNames().contains(toolDefinition.name())
             ? null
             : gatewayToolHandlers
                 .resolveElementId(toolDefinition.name())

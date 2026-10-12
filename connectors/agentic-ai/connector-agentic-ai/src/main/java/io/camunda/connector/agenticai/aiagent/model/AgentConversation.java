@@ -319,6 +319,11 @@ public final class AgentConversation {
     return currentContext.supportsDocuments();
   }
 
+  /** Returns {@code true} if the agent instance has the local tools feature. */
+  public boolean supportsLocalTools() {
+    return currentContext.supportsLocalTools();
+  }
+
   /**
    * Returns the document registry of the current agent context, which includes the documents that
    * entered the conversation with this invocation's input.

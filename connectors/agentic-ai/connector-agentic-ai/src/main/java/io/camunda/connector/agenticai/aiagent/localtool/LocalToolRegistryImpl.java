@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,27 +15,21 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Collects the local tools registered as beans. Local tools belong to the documents feature: an
- * agent instance created without it offers none.
+ * Collects the local tools registered as beans. An agent instance created without the local tools
+ * feature offers none.
  */
 public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   private final Map<String, LocalTool> toolsByName = new LinkedHashMap<>();
 
   /**
-   * @throws IllegalStateException if two tools have the same name, a name is blank or a name does
-   *     not start with the reserved prefix {@link InternalToolNames#PREFIX}
+   * @throws IllegalStateException if two tools have the same name or a name is blank
    */
   public LocalToolRegistryImpl(List<LocalTool> tools) {
     for (final var tool : tools) {
       final var name = tool.definition().name();
       if (name.isBlank()) {
         throw new IllegalStateException("A local tool must have a non-blank name");
-      }
-      if (!InternalToolNames.isReserved(name)) {
-        throw new IllegalStateException(
-            "The local tool '%s' must be named in the reserved namespace, starting with '%s'."
-                .formatted(name, InternalToolNames.PREFIX));
       }
       if (toolsByName.putIfAbsent(name, tool) != null) {
         throw new IllegalStateException(
@@ -53,7 +46,7 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   @Override
   public List<LocalTool> availableTools(AgentConfiguration configuration) {
-    if (!configuration.supportsDocuments()) {
+    if (!configuration.supportsLocalTools()) {
       return List.of();
     }
     return toolsByName.values().stream().filter(tool -> tool.isAvailable(configuration)).toList();
@@ -66,7 +59,7 @@ public class LocalToolRegistryImpl implements LocalToolRegistry {
 
   @Override
   public Optional<LocalTool> findAvailable(String name, AgentConfiguration configuration) {
-    if (!configuration.supportsDocuments()) {
+    if (!configuration.supportsLocalTools()) {
       return Optional.empty();
     }
     return Optional.ofNullable(toolsByName.get(name))

@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
@@ -306,7 +307,8 @@ class LegacyDocumentConversationTest {
     assertThat(registry.availableToolDefinitions(configuration)).isEmpty();
     assertThat(registry.findAvailable(ReturnDocumentTool.NAME, configuration)).isEmpty();
 
-    final var handler = new LocalToolCallHandlerImpl(registry, objectMapper);
+    final var handler =
+        new LocalToolCallHandlerImpl(registry, objectMapper, mock(DocumentFactory.class));
     final var conversation =
         AgentConversation.rehydrate(
             configuration,

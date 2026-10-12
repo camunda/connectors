@@ -242,7 +242,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
-    if (documents.documentFlow() && localToolRegistry.toolNames().contains(toolName)) {
+    if (documents.localTools() && localToolRegistry.toolNames().contains(toolName)) {
       return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);

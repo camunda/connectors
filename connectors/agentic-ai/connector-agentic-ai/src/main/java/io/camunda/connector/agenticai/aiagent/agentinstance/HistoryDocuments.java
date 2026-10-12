@@ -18,15 +18,20 @@ import java.util.Objects;
  * the model passed its id.
  *
  * <p>The history of an agent instance created without the documents feature has no document
- * registry and no local tools: its messages are reported as they are stored.
+ * registry: its messages are reported as they are stored. The history of an agent instance created
+ * without the local tools feature has no local tools either.
  *
  * @param toolDefinitions the tools offered in the invocation (process tools and available local
  *     tools)
  * @param documents the documents known to the agent at the time of the write
  * @param documentFlow whether the agent instance has the documents feature
+ * @param localTools whether the agent instance has the local tools feature
  */
 public record HistoryDocuments(
-    List<ToolDefinition> toolDefinitions, DocumentRegistry documents, boolean documentFlow) {
+    List<ToolDefinition> toolDefinitions,
+    DocumentRegistry documents,
+    boolean documentFlow,
+    boolean localTools) {
 
   public HistoryDocuments {
     Objects.requireNonNull(toolDefinitions);
@@ -36,11 +41,15 @@ public record HistoryDocuments(
 
   /** The documents of an agent instance with the documents feature. */
   public HistoryDocuments(List<ToolDefinition> toolDefinitions, DocumentRegistry documents) {
-    this(toolDefinitions, documents, true);
+    this(toolDefinitions, documents, true, true);
   }
 
-  /** The documents of an agent instance created without the documents feature. */
-  public static HistoryDocuments withoutDocumentFlow(List<ToolDefinition> toolDefinitions) {
-    return new HistoryDocuments(toolDefinitions, DocumentRegistry.empty(), false);
+  /**
+   * The documents of an agent instance created without the documents feature; {@code localTools}
+   * tells whether it has the local tools feature.
+   */
+  public static HistoryDocuments withoutDocumentFlow(
+      List<ToolDefinition> toolDefinitions, boolean localTools) {
+    return new HistoryDocuments(toolDefinitions, DocumentRegistry.empty(), false, localTools);
   }
 }

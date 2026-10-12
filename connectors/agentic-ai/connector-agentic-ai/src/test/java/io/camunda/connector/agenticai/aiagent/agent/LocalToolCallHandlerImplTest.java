@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.localtool.LocalTool;
 import io.camunda.connector.agenticai.aiagent.localtool.LocalToolRegistryImpl;
@@ -37,12 +38,15 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -87,8 +91,32 @@ class LocalToolCallHandlerImplTest {
   private final LocalToolCallHandler handler = handlerOf(SaveNoteTool.create());
 
   private static LocalToolCallHandlerImpl handlerOf(LocalTool... tools) {
+    return handlerOf(mock(DocumentFactory.class), tools);
+  }
+
+  private static LocalToolCallHandlerImpl handlerOf(
+      DocumentFactory documentFactory, LocalTool... tools) {
     return new LocalToolCallHandlerImpl(
-        new LocalToolRegistryImpl(List.of(tools)), TestObjectMapperSupplier.INSTANCE);
+        new LocalToolRegistryImpl(List.of(tools)),
+        TestObjectMapperSupplier.INSTANCE,
+        documentFactory);
+  }
+
+  private static final LocalTool ECHO_TOOL =
+      LocalTool.builder("acme_echo")
+          .description("Echoes.")
+          .handler((call, context) -> LocalToolResult.success("echo"));
+
+  private static AgentConversation conversationWithFeatures(
+      Set<String> features, ToolCall... calls) {
+    final var featureSet = new LinkedHashSet<>(features);
+    return AgentConversation.rehydrate(
+            WITHOUT_MEMORY.withToolDefinitions(List.of(WEATHER)).withFeatures(featureSet),
+            AgentContext.builder().state(AgentState.READY).features(featureSet).build(),
+            TurnReconstructor.reconstruct(List.of()),
+            null,
+            List.of(userMessage("hi")))
+        .ingest(assistantMessage("calling", List.of(calls)), AgentMetrics.empty());
   }
 
   private AgentConversation conversation(AgentConfiguration configuration, ToolCall... calls) {
@@ -381,6 +409,81 @@ class LocalToolCallHandlerImplTest {
     assertThat(both.availableToolDefinitions(WITH_MEMORY))
         .extracting(ToolDefinition::name)
         .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, "c8__save_note");
+  }
+
+  @Test
+  void runsACustomToolForAnAgentWithOnlyTheLocalToolsFeature() {
+    final var call = new ToolCall("e1", "acme_echo", Map.of());
+    final var conversation = conversationWithFeatures(Set.of("localTools"), call);
+
+    final var split = handlerOf(ECHO_TOOL).handle(conversation, List.of(call));
+
+    assertThat(split.answersAllCalls()).isTrue();
+    assertThat(split.localResults())
+        .singleElement()
+        .satisfies(result -> assertThat(result.content()).isEqualTo("echo"));
+    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
+        .extracting(ToolDefinition::name)
+        .containsExactly("acme_echo");
+  }
+
+  @Test
+  void doesNotOfferTheDocumentToolsToAnAgentWithOnlyTheLocalToolsFeature() {
+    final var configuration = conversationWithFeatures(Set.of("localTools")).configuration();
+
+    assertThat(
+            handlerOf(ECHO_TOOL, new ReturnDocumentTool()).availableToolDefinitions(configuration))
+        .extracting(ToolDefinition::name)
+        .containsExactly("acme_echo");
+  }
+
+  @Test
+  void leavesTheCallsOfAnAgentWithoutTheLocalToolsFeatureToTheProcess() {
+    final var call = new ToolCall("e1", "acme_echo", Map.of());
+    final var conversation = conversationWithFeatures(Set.of(), call);
+
+    final var split = handlerOf(ECHO_TOOL).handle(conversation, List.of(call));
+
+    assertThat(split.hasLocalResults()).isFalse();
+    assertThat(split.remainingCalls()).containsExactly(call);
+    assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation.configuration()))
+        .isEmpty();
+  }
+
+  @Test
+  void aToolCreatesADocumentThroughTheContext() {
+    final var factory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    final var creating =
+        LocalTool.builder("acme_create")
+            .description("Creates a document.")
+            .handler(
+                (call, context) ->
+                    LocalToolResult.success(
+                        context
+                            .documentFactory()
+                            .create(
+                                DocumentCreationRequest.from(
+                                        "created".getBytes(StandardCharsets.UTF_8))
+                                    .contentType("text/plain")
+                                    .fileName("created.txt")
+                                    .build())));
+    final var call = new ToolCall("c1", "acme_create", Map.of());
+    final var conversation = conversationWithFeatures(Set.of("localTools"), call);
+
+    final var split = handlerOf(factory, creating).handle(conversation, List.of(call));
+
+    assertThat(split.localResults())
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(result.content())
+                    .isInstanceOfSatisfying(
+                        Document.class,
+                        document -> {
+                          assertThat(document.metadata().getFileName()).isEqualTo("created.txt");
+                          assertThat(new String(document.asByteArray(), StandardCharsets.UTF_8))
+                              .isEqualTo("created");
+                        }));
   }
 
   private static Document createDocument(String content, String fileName) {

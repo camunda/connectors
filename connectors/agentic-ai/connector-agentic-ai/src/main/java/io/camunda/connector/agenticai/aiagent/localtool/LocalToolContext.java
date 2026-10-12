@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.Map;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
@@ -27,6 +28,8 @@ import org.jspecify.annotations.Nullable;
  *     model reads, as of the call
  * @param agentInstanceKey the key of the agent instance, or {@code null} if there is none yet
  * @param objectMapper the mapper for converting values, for example to bind arguments
+ * @param documentFactory creates a new Camunda document, for example from the content a tool
+ *     produced; return the document in the content of the result to show it to the model
  */
 public record LocalToolContext(
     AgentConfiguration configuration,
@@ -34,4 +37,5 @@ public record LocalToolContext(
     DocumentRegistry documents,
     Set<String> loadedDocumentIds,
     @Nullable AgentInstanceKey agentInstanceKey,
-    ObjectMapper objectMapper) {}
+    ObjectMapper objectMapper,
+    DocumentFactory documentFactory) {}
