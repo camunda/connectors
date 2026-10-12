@@ -24,6 +24,7 @@
   </licenses>
 
   <properties>
+    <version.okio>3.18.1</version.okio>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -39,7 +40,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
       <version>${version.okhttp}</version>
-      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okio</groupId>
+      <artifactId>okio-jvm</artifactId>
+      <version>${version.okio}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
