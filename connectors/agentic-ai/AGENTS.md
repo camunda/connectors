@@ -136,8 +136,12 @@ High-frequency traps (detail behind each link):
   and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a document of a
   type outside the allowlist or above the size limit before loading it. A load is persisted as a tag marked
   `loaded: true` and expanded from the registry at window time; the content stays in every request until its
-  message leaves the window. Passing an id to a tool never loads content. `docs/design/ai-agent-document-flow.md`
-  "Execution model" and §3.14.
+  message leaves the window. Passing an id to a tool never loads content. Inline delivery is the opt-in exception:
+  the user prompt option `data.userPrompt.loadDocuments` (v2 templates; omitted from the frozen v1 templates through
+  `v1OmittedPropertyIds` in the pom) and the tool activity extension property
+  `io.camunda.agenticai.documents.delivery` = `inline` (`ToolDefinition.documentDelivery`) make the agent load
+  through the same guard and marker, and a rejected document stays a reference with a note, never an error.
+  `docs/design/ai-agent-document-flow.md` "Execution model", §3.14 and §3.15.
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -411,6 +415,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that `git diff origin/main` of the v1 template files stays empty.
 
 ### Deprecation marker (v1 only)
 

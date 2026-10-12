@@ -448,8 +448,8 @@ detection described above.
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `AgentConversation.window`
 also expands the document tags of its user messages that are marked as loaded from the document registry
 (`DocumentExpander`): the stored messages hold the tag of a document only, and the snapshot holds the tag
-followed by the document content for the documents the model loaded with `c8__get_document` (see the document
-flow design notes, section 4.1). For an agent instance without the `documents`
+followed by the document content for the documents the model loaded with `c8__get_document` or the agent loaded
+for it (inline delivery, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
 
@@ -634,8 +634,16 @@ Tools come from the `adHocSubProcessElements` special variable populated by Zeeb
 ```
 
 The `AdHocToolsSchemaResolver` processes these into:
-1. **ToolDefinitions**: Regular tools with name, description, and JSON schema for input parameters
+1. **ToolDefinitions**: Regular tools with name, description, and JSON schema for input parameters, and the
+   optional `documentDelivery`
 2. **GatewayToolDefinitions**: Special tools (MCP clients, A2A) that need discovery
+
+A tool activity with the extension property `io.camunda.agenticai.documents.delivery` set to `inline`
+(`AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION`) gets the `documentDelivery` `INLINE`: the agent loads the
+documents the tool returns into the conversation for the model instead of showing them as references. The field is
+part of the stored tool definition and of the configuration fingerprint when set, and the model providers do not
+get it. Any other value, or no property, leaves it absent (by reference). See the document flow design notes,
+section 3.15.
 
 ### Connector (Task) Flavor
 
@@ -1674,15 +1682,24 @@ Documents are reference-only in the conversation of an agent instance with the `
 sees a `<doc .../>` tag, not the content. Tool call results may contain Camunda `Document` instances — at the
 root, nested in maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A
 artifacts). The agent extracts those documents and registers them in the document registry of the
-`agentContext`; the tool result shows each document as its tag, and no follow-up message is added. The content
-of a document enters the conversation only when the model calls the built-in `c8__get_document` tool with the
-document id: the whole document is loaded if its content type is on the allowlist (text-based types, PDF,
+`agentContext`; the tool result shows each document as its tag, and no follow-up message is added unless the
+tool has inline delivery (below). The content of a document enters the conversation when the model calls the
+built-in `c8__get_document` tool with the document id, or when the agent loads it for the model (inline delivery,
+below): the whole document is loaded if its content type is on the allowlist (text-based types, PDF,
 PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
 otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
 processes the document. A successful load is followed by a user message whose tag is marked as loaded
 (`loaded: true` in the metadata next to `kind: document-reference` and the `documentId`); the content is added
 from the registry when the conversation is windowed. Passing a document id to a tool parameter declared with
-`fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference. See
+`fromAi(..., "document")` never loads content: the tool receives the full Camunda document reference.
+
+Inline delivery is opt-in and loads the content without a `c8__get_document` call, through the same guard
+(`DocumentLoadGuard`) and the same marker: for the documents of the user prompt, with the option *Load documents
+into the prompt* (`data.userPrompt.loadDocuments`, v2 templates only), and for the documents a tool returns, with
+the extension property `io.camunda.agenticai.documents.delivery` = `inline` on the tool activity. The documents of
+a tool go into the follow-up user message of the tool results (preamble `Documents loaded for the tool results:`).
+A document that the guard rejects stays a reference and the model gets a note that tells why it was not loaded;
+automatic loading never fails the run. Documents of events and of gateway tools are not covered. See
 [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
 "Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form
 of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
@@ -1882,8 +1899,9 @@ early report and the later batch write for the same result dedup for free), fall
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
 too. The fingerprint is a SHA-256 over model, provider, system prompt, model-call limit and a canonical
-form of the tool definitions (map keys sorted recursively, list order kept, numbers compared by value), so
-it does not change when the tool schemas are reordered by a persistence round trip.
+form of the tool definitions (map keys sorted recursively, list order kept, numbers compared by value, and the
+document delivery of a tool only when it has one), so it does not change when the tool schemas are reordered by a
+persistence round trip.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

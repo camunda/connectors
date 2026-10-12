@@ -20,6 +20,11 @@ It demonstrates:
   size limit (256 KB for text-based types, 10 MB for PDF and images), is rejected with an error tool result that tells
   the agent to pass the id to a tool that processes it; this is not an incident. A document that is already loaded is not
   loaded again. The loaded content stays in every model request until its message leaves the context window.
+- **Load documents into the prompt**: the checkbox of the user prompt group of the template (property
+  `data.userPrompt.loadDocuments`, off in this process) puts the content of the prompt documents into the conversation
+  instead of tags the model loads on demand. The same guard applies; a document that is too large or of an unsupported
+  type stays a tag, followed by a note. A tool whose activity has the extension property
+  `io.camunda.agenticai.documents.delivery` = `inline` gets the same treatment for the documents it returns.
 - **`c8__return_document`**: the agent gets a built-in tool
   to hand a document back, called once per document with a key, the document and an optional description. They arrive in
   `agent.responseDocuments`, a map from the key to `{document, description}`, and are shown in the `User Feedback` form. The
@@ -141,6 +146,13 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
     file.` Check: the first model request shows the tag of the document only (agent instance history); the agent calls
     `c8__get_document` to read it. Then ask `Upload the attached file.`: no download step is needed, `Upload_File` receives
     the prompt document, `agent.context.documents` lists it.
+
+12. **Load documents into the prompt.** Set `data.userPrompt.loadDocuments` of `AI Agent` to `=true` (the checkbox *Load
+    documents into the prompt* of the user prompt group), redeploy, start an instance with a small text file and ask
+    `Summarize the attached file.` Check: the agent instance history shows the prompt with the tag and the content of
+    the document in the first user item, and the agent answers without calling `c8__get_document`. Repeat with a binary
+    file (for example a ZIP): the user item shows the tag followed by a note that the document was not loaded because of
+    its type, and the agent passes it to `Upload_File` or explains that it cannot read it.
 
 Repeat scenarios 2 to 4 with `data.memory.storage.type` set to `camunda-document` (`data.memory.storage.timeToLive`
 `PT1H`) to check the registry with another memory store.
