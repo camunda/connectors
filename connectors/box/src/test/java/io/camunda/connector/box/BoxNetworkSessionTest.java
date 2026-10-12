@@ -143,17 +143,7 @@ public class BoxNetworkSessionTest {
     var closed = new AtomicBoolean();
     var response = new FetchResponse(200, Map.of());
     response.content = trackingStream(closed);
-    var strategy =
-        new BoxNetworkSession.StreamSafeRetryStrategy(
-            new RetryStrategy() {
-              public boolean shouldRetry(FetchOptions o, FetchResponse r, int a) {
-                return false;
-              }
-
-              public double retryAfter(FetchOptions o, FetchResponse r, int a) {
-                return 0;
-              }
-            });
+    var strategy = new BoxNetworkSession.StreamSafeRetryStrategy(retryDecision(false));
 
     assertThat(strategy.shouldRetry(plainOptions(), response, 1)).isFalse();
     assertThat(closed).isFalse();
@@ -167,10 +157,12 @@ public class BoxNetworkSessionTest {
     var strategy =
         new BoxNetworkSession.StreamSafeRetryStrategy(
             new RetryStrategy() {
+              @Override
               public boolean shouldRetry(FetchOptions o, FetchResponse r, int a) {
                 throw new IllegalStateException("cannot refresh token");
               }
 
+              @Override
               public double retryAfter(FetchOptions o, FetchResponse r, int a) {
                 return 0;
               }
@@ -186,11 +178,17 @@ public class BoxNetworkSessionTest {
   }
 
   private static RetryStrategy alwaysRetry() {
+    return retryDecision(true);
+  }
+
+  private static RetryStrategy retryDecision(boolean retry) {
     return new RetryStrategy() {
+      @Override
       public boolean shouldRetry(FetchOptions o, FetchResponse r, int a) {
-        return true;
+        return retry;
       }
 
+      @Override
       public double retryAfter(FetchOptions o, FetchResponse r, int a) {
         return 0;
       }
