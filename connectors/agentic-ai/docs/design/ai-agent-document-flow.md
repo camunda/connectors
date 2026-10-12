@@ -57,7 +57,7 @@ opt-ins.
 **Persisted form and provider form.** A document is persisted as its tag, a `TextContent` whose metadata is
 `{"kind": "document-reference", "documentId": "<id>"}`. A document that `c8__get_document` loaded, or that the
 agent loaded for a tool result, is persisted in a follow-up user message after the tool results (preamble
-`Documents loaded for the tool results:`) whose tag carries `"loaded": true` in addition; a document that the agent
+`System message, not written by the user: the content of the documents loaded for the tool results above follows.`) whose tag carries `"loaded": true` in addition; a document that the agent
 loaded for the user prompt is that marked tag in the user message itself. The content is not persisted in the conversation. When the conversation
 is windowed for a model call, the tags marked as loaded are expanded from the registry: the provider gets the
 tag text followed by the native content (text, file or image). Tags without the marker are never expanded,
@@ -575,7 +575,7 @@ check its size: ...". Bytes are a poor proxy for tokens (a PDF of 214 KB can cos
 a token-based guard is an open point (section 7).
 
 **What a successful load does.** The composer follows the tool result message with a user message
-(`composeLoadedDocumentsMessage`): the preamble `Documents loaded for the tool results:` and the tag of every
+(`composeLoadedDocumentsMessage`): the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.` and the tag of every
 document that a result of the turn loaded, each marked `loaded: true`; the metadata `toolCallDocuments` makes the
 message leave the window together with its tool results (`MessageWindowFilter`). A tag of a document that the
 registry does not know is not added. At window time `DocumentExpander` adds the content after each marked tag
@@ -602,7 +602,7 @@ migration is stored like any other change of a tool definition. It is part of th
 when set, appended after the schema of the tool, so the fingerprint of a tool without it is the one it always
 had. It is serialized only when set and never reaches the model providers
 (`DocumentParameterSchema.toProviderToolDefinitions` drops it). The composer loads the documents of the result
-of such a tool, including nested ones, into the follow-up message of the tool results: the preamble `Documents loaded for the tool results:`, the
+of such a tool, including nested ones, into the follow-up message of the tool results: the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, the
 tag of every loaded document marked as loaded with the tool origin, then the notes. The tool result itself still
 shows the tag. The documents of gateway tools (MCP, A2A) are not covered: the marker is read for the tools of the
 process, not for gateway tools.
@@ -763,7 +763,7 @@ every user prompt document and event document (the event tags follow the text `D
 the event:`), and no `DocumentContent` next to it. A tool result document has no tag message: the
 persisted `ToolCallResultMessage` keeps it unchanged and the providers render it as its tag. A document
 the model loads with `c8__get_document`, or that the agent loads for the result of a tool with inline delivery, is
-persisted in a follow-up user message (preamble `Documents loaded for the tool results:`, metadata
+persisted in a follow-up user message (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, metadata
 `toolCallDocuments`) whose tag also carries `"loaded": true`; a prompt document that the agent loads is the marked
 tag in the user message of the prompt (3.15).
 The tag carries `size="<bytes>"` for a Camunda document whose reference metadata has a size. The

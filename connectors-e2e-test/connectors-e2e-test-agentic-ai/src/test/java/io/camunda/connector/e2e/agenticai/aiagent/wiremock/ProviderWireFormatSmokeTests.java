@@ -277,7 +277,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             "get111",
             "Loaded the document <doc id=\"[0-9a-fA-F-]{36}\"[^>]*/>\\. Its content follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            "Documents loaded for the tool results:"));
+            "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
 
     assertAgentResponse(
         zeebeTest,

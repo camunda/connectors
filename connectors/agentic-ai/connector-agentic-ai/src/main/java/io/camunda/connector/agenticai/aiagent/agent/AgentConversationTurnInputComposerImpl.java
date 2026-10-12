@@ -80,7 +80,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
-  static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded for the tool results:";
+  static final String LOADED_DOCUMENTS_PREAMBLE =
+      "System message, not written by the user: the content of the documents loaded for the tool results above follows.";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;

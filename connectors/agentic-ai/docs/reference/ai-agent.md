@@ -1697,7 +1697,7 @@ Inline delivery is opt-in and loads the content without a `c8__get_document` cal
 (`DocumentLoadGuard`) and the same marker: for the documents of the user prompt, with the option *Load documents
 into the prompt* (`data.userPrompt.loadDocuments`, v2 templates only), and for the documents a tool returns, with
 the extension property `io.camunda.agenticai.documents.delivery` = `inline` on the tool activity. The documents of
-a tool go into the follow-up user message of the tool results (preamble `Documents loaded for the tool results:`).
+a tool go into the follow-up user message of the tool results (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`).
 A document that the guard rejects stays a reference and the model gets a note that tells why it was not loaded;
 automatic loading never fails the run. Documents of events and of gateway tools are not covered. See
 [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections

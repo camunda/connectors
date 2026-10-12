@@ -45,7 +45,8 @@ public final class ToolCallResultDocumentAssertions {
   public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
-  public static final String LOADED_DOCUMENTS_PREAMBLE = "Documents loaded for the tool results:";
+  public static final String LOADED_DOCUMENTS_PREAMBLE =
+      "System message, not written by the user: the content of the documents loaded for the tool results above follows.";
 
   private static final Pattern DOC_TAG = Pattern.compile("<doc ([^>]*?)\\s*/>");
   private static final Pattern TAG_ATTRIBUTE = Pattern.compile("(\\w+)=\"([^\"]*)\"");

@@ -130,7 +130,10 @@ class AgentInstanceHistoryMapperTest {
     final var loadedMessage =
         UserMessage.builder()
             .content(
-                List.of(TextContent.textContent("Documents loaded for the tool results:"), tag))
+                List.of(
+                    TextContent.textContent(
+                        "System message, not written by the user: the content of the documents loaded for the tool results above follows."),
+                    tag))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
@@ -145,7 +148,8 @@ class AgentInstanceHistoryMapperTest {
               assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
               assertThat(texts(item.content()))
                   .containsExactly(
-                      "Documents loaded for the tool results:", "`" + tag.text() + "`");
+                      "System message, not written by the user: the content of the documents loaded for the tool results above follows.",
+                      "`" + tag.text() + "`");
               assertThat(item.content()).hasSize(3);
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
