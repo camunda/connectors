@@ -106,13 +106,15 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
     final Map<String, Object> arguments =
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
 
-    final Map<String, Object> resolvedArguments;
+    // a call of a tool without document parameters keeps its arguments, the other calls get the
+    // ids of their documents
+    final Map<String, Object> toolArguments;
     if (!DocumentParameterSchema.hasDocumentParameters(tool.definition().inputSchema())) {
-      resolvedArguments = arguments;
+      toolArguments = arguments;
     } else {
-      switch (DocumentParameterResolver.resolve(toolCall, tool.definition(), documents)) {
+      switch (DocumentParameterResolver.resolveIds(toolCall, tool.definition(), documents)) {
         case DocumentParameterResolver.Resolution.Resolved resolved ->
-            resolvedArguments = resolved.arguments();
+            toolArguments = resolved.arguments();
         case DocumentParameterResolver.Resolution.Invalid invalid -> {
           return LocalToolResult.error(
               String.join(" ", invalid.problems()) + " " + documents.knownDocumentsText());
@@ -130,8 +132,7 @@ public class LocalToolCallHandlerImpl implements LocalToolCallHandler {
             objectMapper,
             documentFactory);
     try {
-      return tool.call(
-          new LocalToolCall(toolCall.id(), toolCall.name(), arguments, resolvedArguments), context);
+      return tool.call(new LocalToolCall(toolCall.id(), toolCall.name(), toolArguments), context);
     } catch (LocalToolException e) {
       LOGGER.debug("Local tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
       return LocalToolResult.error(e.getMessage());

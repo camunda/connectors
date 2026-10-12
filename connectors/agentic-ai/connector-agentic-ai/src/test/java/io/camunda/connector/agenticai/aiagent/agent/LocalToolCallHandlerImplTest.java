@@ -279,16 +279,20 @@ class LocalToolCallHandlerImplTest {
   }
 
   @Test
-  void resolvesTheDocumentParametersOfALocalToolBeforeItRuns() {
-    final var received = new ArrayList<Document>();
-    record Args(Document file) {}
+  void handsTheIdsOfTheDocumentParametersToALocalToolAfterCheckingThem() {
+    final var received = new ArrayList<Object>();
+    record Args(String file, List<String> files) {}
     final var tool =
         LocalTool.builder("c8__read_file")
-            .inputSchema(LocalToolSchema.object().document("file", "The file", true))
+            .inputSchema(
+                LocalToolSchema.object()
+                    .document("file", "The file", true)
+                    .stringArray("files", "More files", false))
             .handler(
                 Args.class,
                 (args, context) -> {
                   received.add(args.file());
+                  received.add(args.files());
                   return LocalToolResult.success("read");
                 });
     final var call = new ToolCall("r1", "c8__read_file", Map.of("file", reportId));
@@ -296,9 +300,29 @@ class LocalToolCallHandlerImplTest {
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
     assertThat(split.localResults()).extracting(ToolCallResult::content).containsExactly("read");
-    assertThat(received)
-        .singleElement()
-        .satisfies(d -> assertThat(DocumentHandle.idFor(d)).isEqualTo(reportId));
+    assertThat(received).containsExactly(reportId, null);
+  }
+
+  @Test
+  void handsTheIdOfATagPassedToADocumentParameterOfALocalTool() {
+    final var received = new ArrayList<Object>();
+    final var tool =
+        LocalTool.builder("c8__read_file")
+            .inputSchema(LocalToolSchema.object().document("file", "The file", true))
+            .handler(
+                (call, context) -> {
+                  received.add(call.arguments());
+                  return LocalToolResult.success("read");
+                });
+    final var arguments =
+        Map.<String, Object>of(
+            "file", "<doc id=\"" + reportId + "\" fileName=\"report.txt\" />", "other", "kept");
+    final var call = new ToolCall("r1", "c8__read_file", arguments);
+
+    final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
+
+    assertThat(split.localResults()).extracting(ToolCallResult::content).containsExactly("read");
+    assertThat(received).containsExactly(Map.of("file", reportId, "other", "kept"));
   }
 
   @Test

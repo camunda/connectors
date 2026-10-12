@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -28,7 +29,7 @@ import org.jspecify.annotations.Nullable;
  * the id of a known document, exactly as the {@code id} attribute of its {@code <doc />} tag, or
  * the tag itself: a value that is exactly one tag, surrounded by whitespace at most, stands for the
  * document of its {@code id} attribute. Every id is replaced by the Camunda document reference JSON
- * of the registered document.
+ * of the registered document, or, for a tool that looks the documents up itself, by its plain id.
  */
 public final class DocumentParameterResolver {
 
@@ -37,7 +38,10 @@ public final class DocumentParameterResolver {
   /** Outcome of resolving the document parameters of one tool call. */
   public sealed interface Resolution {
 
-    /** All document ids are known; {@code arguments} carry the document references. */
+    /**
+     * All document ids are known; {@code arguments} carry the document references or, from {@link
+     * #resolveIds}, the plain ids.
+     */
     record Resolved(Map<String, Object> arguments) implements Resolution {}
 
     /** At least one document parameter is invalid; one message per invalid value. */
@@ -58,8 +62,28 @@ public final class DocumentParameterResolver {
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
     final Map<String, Object> arguments =
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
+    return walkValidating(arguments, toolDefinition, registry, DocumentRegistryEntry::reference);
+  }
+
+  /**
+   * Validates the document parameters of {@code toolCall} like {@link #resolve}, but replaces each
+   * valid value by the plain id of its document: a bare id stays as it is and a tag becomes the id
+   * of the tag.
+   */
+  public static Resolution resolveIds(
+      ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
+    final Map<String, Object> arguments =
+        toolCall.arguments() == null ? Map.of() : toolCall.arguments();
+    return walkValidating(arguments, toolDefinition, registry, DocumentRegistryEntry::id);
+  }
+
+  private static Resolution walkValidating(
+      Map<String, Object> arguments,
+      ToolDefinition toolDefinition,
+      DocumentRegistry registry,
+      Function<DocumentRegistryEntry, Object> replacement) {
     final var problems = new ArrayList<String>();
-    final var resolved = walkAll(arguments, toolDefinition, registry, problems, false);
+    final var resolved = walkAll(arguments, toolDefinition, registry, replacement, problems, false);
     if (!problems.isEmpty()) {
       return new Resolution.Invalid(problems);
     }
@@ -74,7 +98,13 @@ public final class DocumentParameterResolver {
    */
   public static Map<String, Object> substituteKnownReferences(
       Map<String, Object> arguments, ToolDefinition toolDefinition, DocumentRegistry registry) {
-    return walkAll(arguments, toolDefinition, registry, new ArrayList<>(), true);
+    return walkAll(
+        arguments,
+        toolDefinition,
+        registry,
+        DocumentRegistryEntry::reference,
+        new ArrayList<>(),
+        true);
   }
 
   @SuppressWarnings("unchecked")
@@ -82,12 +112,13 @@ public final class DocumentParameterResolver {
       Map<String, Object> arguments,
       ToolDefinition toolDefinition,
       DocumentRegistry registry,
+      Function<DocumentRegistryEntry, Object> replacement,
       List<String> problems,
       boolean lenient) {
     @Nullable Object resolved = arguments;
     for (final var steps :
         DocumentParameterSchema.documentParameterPaths(toolDefinition.inputSchema())) {
-      resolved = walk(resolved, steps, 0, "", registry, problems, lenient);
+      resolved = walk(resolved, steps, 0, "", registry, replacement, problems, lenient);
     }
     // the root is the arguments object, which is never replaced by null
     return Objects.requireNonNull((Map<String, Object>) resolved);
@@ -135,10 +166,13 @@ public final class DocumentParameterResolver {
       int index,
       String path,
       DocumentRegistry registry,
+      Function<DocumentRegistryEntry, Object> replacement,
       List<String> problems,
       boolean lenient) {
     if (index == steps.size()) {
-      return lenient ? substituteKnown(node, registry) : resolveId(node, path, registry, problems);
+      return lenient
+          ? substituteKnown(node, registry)
+          : resolveId(node, path, registry, replacement, problems);
     }
 
     return switch (steps.get(index)) {
@@ -162,6 +196,7 @@ public final class DocumentParameterResolver {
                 index + 1,
                 path.isEmpty() ? name : path + "." + name,
                 registry,
+                replacement,
                 problems,
                 lenient));
         yield copy;
@@ -182,6 +217,7 @@ public final class DocumentParameterResolver {
                   index + 1,
                   path + "[" + i + "]",
                   registry,
+                  replacement,
                   problems,
                   lenient));
         }
@@ -191,7 +227,11 @@ public final class DocumentParameterResolver {
   }
 
   private static Object resolveId(
-      @Nullable Object value, String path, DocumentRegistry registry, List<String> problems) {
+      @Nullable Object value,
+      String path,
+      DocumentRegistry registry,
+      Function<DocumentRegistryEntry, Object> replacement,
+      List<String> problems) {
     if (!(value instanceof String text)) {
       problems.add(
           ("Parameter '%s' must be the exact id of a known document (the id attribute of its"
@@ -208,7 +248,7 @@ public final class DocumentParameterResolver {
               .formatted(path, id));
       return id;
     }
-    return entry.get().reference();
+    return replacement.apply(entry.get());
   }
 
   /** The id a value stands for: the id attribute of a value that is one tag, else the value. */

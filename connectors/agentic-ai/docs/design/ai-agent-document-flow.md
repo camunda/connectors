@@ -414,9 +414,8 @@ lets the model correct itself in one retry without any further tool call. The er
 "c8__return_document"`. The model calls it once per document with the arguments `key` (required string, the
 stable identifier the process finds the document by, matching `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required,
 the id of the document) and `description` (optional string). `document` is a document
-parameter (string schema with the format `camunda-document-id`), so the framework resolves the id to the
-document of the registry and reports a value that is not a known id with the texts of 3.7 before the tool
-runs; the tool receives a `Document` and takes the registry id from `DocumentHandle.idFor`. The tool
+parameter (string schema with the format `camunda-document-id`), so the framework reports a value that is not
+a known id with the texts of 3.7 before the tool runs; the tool receives the id and selects the document by it. The tool
 is offered to every agent instance with the `documents` feature. Its description tells the model to use it only for a document the
 user should receive in the answer, not for documents it merely passes to other tools, to call it once per
 document, what the key is, that the description is optional and that the same key again replaces the
@@ -538,8 +537,9 @@ inline document, and the history mapper does not support inline references at al
 ### 3.14 `c8__get_document`: loading content
 
 `GetDocumentTool` (`aiagent/localtool/GetDocumentTool.java`) is a `LocalTool` with `NAME = "c8__get_document"`.
-Its only argument is `id`, a document parameter (3.2), so the framework resolves the id and answers an unknown
-id with the text of 3.7 before the tool runs. The description tells the model to use it when it needs the
+Its only argument is `id`, a document parameter (3.2), so the framework checks the id and answers an unknown
+id with the text of 3.7 before the tool runs; the tool receives the id, also when the model passed the tag, and
+reads the document from its registry entry. The description tells the model to use it when it needs the
 content of a document it sees as a tag, that only text, PDF and image documents can be loaded, that a document
 that is too large is passed by id to a tool that processes it (a sandbox, for example), and that a document that
 is already in the conversation is not loaded again. The tool checks, in this order, and answers an error result
@@ -553,7 +553,7 @@ is already in the conversation is not loaded again. The tool checks, in this ord
 | Otherwise | Success, `Loaded the document <doc .../>. Its content follows in the next message.` with the tag of the document, built from its registry entry (the tag the model saw before); the result carries the property `loadedDocumentId`. |
 
 The checks of the three rejecting cases are `DocumentLoadGuard` (`aiagent/localtool/DocumentLoadGuard.java`), which
-also serves the automatic loads of section 3.15; `GetDocumentTool` adds the registry check and the already-loaded check.
+also serves the automatic loads of section 3.15; `GetDocumentTool` adds the registry lookup and the already-loaded check.
 
 **Type allowlist.** Text-based types (`text/*`, `application/json`, `xml`, `yaml`, `x-yaml`, `csv`, `x-ndjson`,
 `javascript`, `sql`, `toml`, and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images
@@ -1315,8 +1315,7 @@ public interface LocalTool {
 }
 
 public record LocalToolCall(String id, String name,
-    Map<String, Object> arguments,          // as the model sent them (document ids)
-    Map<String, Object> resolvedArguments)  // declared document parameters replaced by the references
+    Map<String, Object> arguments)          // as the model sent them; document parameters hold the document ids
 { <A> A argumentsAs(Class<A> type, ObjectMapper objectMapper); }
 
 public record LocalToolContext(AgentConfiguration configuration, Map<String, Object> properties,
@@ -1347,11 +1346,13 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
    a call of a process tool with an invalid document parameter is answered with an error; every other call
    remains for the process (3.6). A call of a registered but unavailable local tool remains for the process.
 3. **Document parameters.** If the definition declares document parameters, `DocumentParameterResolver`
-   resolves them against the registry first. An invalid value answers the call with the error text of 3.7 and
-   the tool does not run. The tool sees `arguments` (ids) and `resolvedArguments` (references).
+   checks them against the registry first. An invalid value answers the call with the error text of 3.7 and
+   the tool does not run. The tool receives `arguments` with the id of every document, a tag the model passed
+   replaced by its id. A local tool gets ids and looks a document up with `LocalToolContext.documents()`; a
+   process tool gets the document references (3.7).
 4. **Run.** The tool runs with a `LocalToolContext` of the working conversation. The typed handler binds
-   `resolvedArguments` to its type; a parameter of type `Document` receives the registry document, and an
-   argument that does not fit the type answers the call with "Invalid arguments for tool '<name>': ...".
+   `arguments` to its type (a document parameter is a `String`, the id), and an argument that does not fit
+   the type answers the call with "Invalid arguments for tool '<name>': ...".
 5. **Result.** The content becomes the `ToolCallResult` (text or object content, a `Document` inside renders
    as its tag, 3.4). The context updates are applied to the working conversation in order, call after call,
    so a later call of the batch sees the state an earlier one left. An error result carries no update.
@@ -1388,7 +1389,8 @@ equal the name of an element. A blank name and a duplicate name are rejected whe
 
 1. Pick a name: `c8__` is for built-in tools, use a vendor-specific prefix for a custom tool, and make sure
    no tool element of a process that uses the tool has the same name (9.6). Write the definition: description,
-   input schema, with a document parameter (`LocalToolSchema.document`) if the tool takes documents.
+   input schema, with a document parameter (`LocalToolSchema.document`) if the tool takes documents; the handler
+   receives the document id and looks the document up in `LocalToolContext.documents()`.
 2. Write the handler. Typed arguments are the usual case:
 
    ```java

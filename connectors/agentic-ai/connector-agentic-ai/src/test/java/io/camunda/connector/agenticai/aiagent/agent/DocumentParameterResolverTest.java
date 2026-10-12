@@ -272,6 +272,49 @@ class DocumentParameterResolverTest {
   }
 
   @Test
+  void resolveIdsKeepsIdsAndReplacesTagsByTheirIdInArraysAndNestedObjects() {
+    final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
+    final var arguments =
+        Map.<String, Object>of(
+            "doc",
+            firstId,
+            "docs",
+            List.of(tag, firstId),
+            "req",
+            Map.of("file", tag, "note", "n"),
+            "other",
+            "kept");
+
+    final var result =
+        resolveIds(
+            arguments,
+            object("doc", DOC, "docs", array(DOC), "req", object("file", DOC), "other", Map.of()));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "doc",
+                    firstId,
+                    "docs",
+                    List.of(secondId, firstId),
+                    "req",
+                    Map.of("file", secondId, "note", "n"),
+                    "other",
+                    "kept")));
+  }
+
+  @Test
+  void resolveIdsReportsTheSameProblemsAsResolve() {
+    final var twoTags = "<doc id=\"" + firstId + "\" /><doc id=\"" + secondId + "\" />";
+    final var arguments = Map.<String, Object>of("a", "nope", "b", twoTags, "c", 42, "d", firstId);
+    final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
+
+    assertThat(resolveIds(arguments, schema)).isInstanceOf(Resolution.Invalid.class);
+    assertThat(resolveIds(arguments, schema)).isEqualTo(resolve(arguments, schema));
+  }
+
+  @Test
   void substituteKnownReferencesReplacesAKnownId() {
     final var definition =
         ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
@@ -451,6 +494,12 @@ class DocumentParameterResolverTest {
   private Resolution resolve(Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return DocumentParameterResolver.resolve(
+        new ToolCall("call", "tool", arguments), definition, registry);
+  }
+
+  private Resolution resolveIds(Map<String, Object> arguments, Map<String, Object> inputSchema) {
+    final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
+    return DocumentParameterResolver.resolveIds(
         new ToolCall("call", "tool", arguments), definition, registry);
   }
 

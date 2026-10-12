@@ -31,10 +31,11 @@ import org.jspecify.annotations.Nullable;
  * <ol>
  *   <li>The call is looked up among the tools that are {@link #isAvailable available} for the
  *       agent; other calls go to the process.
- *   <li>The parameters the {@link DocumentParameterSchema document parameters} of the definition,
- *       the schema nodes with the document format, are checked and resolved: an unknown document
- *       answers the call with an error result listing the known documents and the tool does not
- *       run.
+ *   <li>The {@link DocumentParameterSchema document parameters} of the definition, the schema nodes
+ *       with the document format, are checked: an unknown document answers the call with an error
+ *       result listing the known documents and the tool does not run. The tool receives the id of
+ *       each document, also when the model passed the {@code <doc />} tag of the document; it looks
+ *       the document up in {@link LocalToolContext#documents()}.
  *   <li>{@link #call} runs. A {@link LocalToolException} or an {@link LocalToolResult#error error
  *       result} answers the call with an error the model can act on; any other exception propagates
  *       and fails the job.
@@ -136,9 +137,9 @@ public interface LocalTool {
 
     /**
      * Completes the tool with a handler that receives the arguments bound to {@code type}, a record
-     * or a bean the {@link ObjectMapper} of the context can read. A parameter of type {@code
-     * Document} receives the document of a declared document parameter. Arguments that do not match
-     * {@code type} answer the call with an error result.
+     * or a bean the {@link ObjectMapper} of the context can read. A document parameter is bound to
+     * a {@code String}, the id of the document. Arguments that do not match {@code type} answer the
+     * call with an error result.
      */
     public <A> LocalTool handler(Class<A> type, TypedHandler<A> handler) {
       return new DefaultLocalTool(

@@ -8,12 +8,10 @@ package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.api.document.Document;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,9 +91,8 @@ public final class ReturnDocumentTool implements LocalTool {
     return Collections.unmodifiableMap(map);
   }
 
-  /** The arguments of a call: the document is resolved from the id the model sent. */
-  record Arguments(
-      @Nullable String key, @Nullable Document document, @Nullable String description) {}
+  /** The arguments of a call: the key, the id of the document and its description. */
+  record Arguments(@Nullable String key, @Nullable String document, @Nullable String description) {}
 
   @Override
   public ToolDefinition definition() {
@@ -117,17 +114,17 @@ public final class ReturnDocumentTool implements LocalTool {
                   .formatted(PARAMETER_KEY)
               + " underscore and continues with letters, digits, underscores or hyphens.");
     }
-    if (arguments.document() == null) {
+    if (arguments.document() == null
+        || context.documents().findById(arguments.document()).isEmpty()) {
       return LocalToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
               .formatted(PARAMETER_DOCUMENT, context.documents().knownDocumentsText()));
     }
 
-    // the framework resolved the argument to a known document
     final var key = arguments.key();
     final var selected =
         new SelectedDocument(
-            DocumentHandle.idFor(arguments.document()),
+            arguments.document(),
             StringUtils.isBlank(arguments.description()) ? null : arguments.description());
     return LocalToolResult.success("Returned the document under the key '%s'.".formatted(key))
         .withContextUpdate(agentContext -> select(agentContext, key, selected));

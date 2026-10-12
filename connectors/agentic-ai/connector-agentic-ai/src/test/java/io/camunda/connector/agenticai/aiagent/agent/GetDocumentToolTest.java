@@ -451,11 +451,8 @@ class GetDocumentToolTest {
   }
 
   @Test
-  void tagsADocumentWithoutARegistryEntryFromTheDocumentItself() {
-    final var reference = camundaEntry("doc-2", "application/pdf", 20L).reference();
-    final var call =
-        new LocalToolCall(
-            "1", GetDocumentTool.NAME, Map.of("id", "doc-2"), Map.of("id", reference));
+  void answersAnIdWithoutARegistryEntryWithAnError() {
+    final var call = new LocalToolCall("1", GetDocumentTool.NAME, Map.of("id", "doc-2"));
     final var context =
         new LocalToolContext(
             CONFIGURATION,
@@ -468,11 +465,11 @@ class GetDocumentToolTest {
 
     final var result = new GetDocumentTool().call(call, context);
 
-    assertThat(result.content())
-        .isEqualTo(
-            "Loaded the document <doc id=\"doc-2\" contentType=\"application/pdf\" size=\"20\" />. Its content follows in the next message.");
-    assertThat(result.properties())
-        .containsEntry(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, "doc-2");
+    assertThat(result.error()).isTrue();
+    assertThat(result.content().toString())
+        .startsWith("Parameter 'id' must be the id of a known document.")
+        .endsWith("No documents are known.");
+    assertThat(result.properties()).isEmpty();
   }
 
   @Test

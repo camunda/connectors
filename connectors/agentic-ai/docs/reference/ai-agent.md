@@ -2118,7 +2118,8 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
 1. Build the tool with `LocalTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
    `LocalToolSchema` helper; declare a document parameter with `LocalToolSchema.document` or a string schema with the
    format `camunda-document-id`), optionally `available(configuration -> ...)`, and a `handler`. Use
-   `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. Or implement
+   `handler(Class<A>, (args, context) -> ...)` to receive a record instead of a map. A document parameter
+   arrives as the document id (`String`); look the document up with `context.documents().findById(id)`. Or implement
    `LocalTool` directly.
 2. Return `LocalToolResult.success(content)`; report failures the model can act on with
    `LocalToolResult.error(message)` or a thrown `LocalToolException`. Any other exception propagates and
@@ -2171,8 +2172,10 @@ record Lookup(String customerId) {}
   possibly on different workers. Change it with `LocalToolResult.withContextUpdate(...)` and read it from
   `LocalToolContext.properties()`.
 - **Document parameters.** Declare a parameter with `LocalToolSchema.document(...)`; the framework checks the
-  id the model sent against the documents the agent knows and a typed handler receives a `Document`. An
-  unknown id answers the call with an error result and the tool does not run. Document parameters need an
+  id the model sent (or the `<doc />` tag it passed) against the documents the agent knows. The handler receives
+  the document id as a `String` and looks the document up in `LocalToolContext.documents()`; a process tool
+  receives the document references instead. An unknown id answers the call with an error result and the tool
+  does not run. Document parameters need an
   agent instance with the `documents` feature.
 - **Creating documents.** `LocalToolContext.documentFactory()` creates a new Camunda document, for example
   `context.documentFactory().create(DocumentCreationRequest.from(bytes).contentType("text/plain").fileName("report.txt").build())`.

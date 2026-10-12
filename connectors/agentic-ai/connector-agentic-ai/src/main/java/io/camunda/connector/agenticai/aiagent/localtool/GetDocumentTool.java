@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.localtool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.InternalToolNames;
@@ -26,12 +26,12 @@ import org.jspecify.annotations.Nullable;
  * instance with the documents feature.
  *
  * <p>A successful call answers {@code Loaded the document <doc/ tag>. Its content follows in the
- * next message.} with the tag of the document, as the model saw it before when the document is
- * registered, and marks its result with the id of the document ({@link
- * ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content reaches the model in the message that
- * follows the tool results. A document that is already part of the conversation is not loaded
- * again. A document that does not pass the {@link DocumentLoadGuard} (a content type outside the
- * allowlist, a size above the limit of its type) is rejected without being loaded.
+ * next message.} with the tag of the document, as the model saw it before, and marks its result
+ * with the id of the document ({@link ToolCallResult#PROPERTY_LOADED_DOCUMENT_ID}); the content
+ * reaches the model in the message that follows the tool results. A document that is already part
+ * of the conversation is not loaded again. A document that does not pass the {@link
+ * DocumentLoadGuard} (a content type outside the allowlist, a size above the limit of its type) is
+ * rejected without being loaded.
  */
 public final class GetDocumentTool implements LocalTool {
 
@@ -68,8 +68,8 @@ public final class GetDocumentTool implements LocalTool {
     return Collections.unmodifiableMap(map);
   }
 
-  /** The arguments of a call: the document is resolved from the id the model sent. */
-  record Arguments(@Nullable Document id) {}
+  /** The arguments of a call: the id of the document to load. */
+  record Arguments(@Nullable String id) {}
 
   @Override
   public ToolDefinition definition() {
@@ -84,18 +84,20 @@ public final class GetDocumentTool implements LocalTool {
 
   @Override
   public LocalToolResult call(LocalToolCall call, LocalToolContext context) {
-    final var document = call.argumentsAs(Arguments.class, context.objectMapper()).id();
-    if (document == null) {
+    final var id = call.argumentsAs(Arguments.class, context.objectMapper()).id();
+    final var entry = id == null ? null : context.documents().findById(id).orElse(null);
+    if (entry == null) {
       return LocalToolResult.error(
           "Parameter '%s' must be the id of a known document. %s"
               .formatted(PARAMETER_ID, context.documents().knownDocumentsText()));
     }
 
-    // the framework resolved the argument to a known document
-    final var id = DocumentHandle.idFor(document);
-    if (context.loadedDocumentIds().contains(id)) {
-      return LocalToolResult.success("Document %s is already in the conversation.".formatted(id));
+    if (context.loadedDocumentIds().contains(entry.id())) {
+      return LocalToolResult.success(
+          "Document %s is already in the conversation.".formatted(entry.id()));
     }
+
+    final var document = documentOf(entry, context);
 
     final var rejection = DocumentLoadGuard.check(document).orElse(null);
     if (rejection != null) {
@@ -110,15 +112,21 @@ public final class GetDocumentTool implements LocalTool {
               .formatted(rejection.problem()));
     }
 
-    final var tag =
-        context
-            .documents()
-            .findById(id)
-            .map(DocumentReferenceXmlTag::from)
-            .orElseGet(() -> DocumentReferenceXmlTag.from(document));
     return LocalToolResult.success(
             "Loaded the document %s. Its content follows in the next message."
-                .formatted(tag.toXml()))
-        .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, id);
+                .formatted(DocumentReferenceXmlTag.from(entry).toXml()))
+        .withProperty(ToolCallResult.PROPERTY_LOADED_DOCUMENT_ID, entry.id());
+  }
+
+  /** The document of a registry entry, read from its reference. */
+  private static Document documentOf(DocumentRegistryEntry entry, LocalToolContext context) {
+    try {
+      return context.objectMapper().convertValue(entry.reference(), Document.class);
+    } catch (IllegalArgumentException e) {
+      throw new LocalToolException(
+          "The document %s could not be read from its reference: %s"
+              .formatted(entry.id(), e.getMessage()),
+          e);
+    }
   }
 }

@@ -120,10 +120,7 @@ class LocalToolBuilderTest {
                 (args, context) -> LocalToolResult.success(args.query() + ":" + args.limit()));
 
     final var result =
-        tool.call(
-            new LocalToolCall(
-                "1", "lookup", Map.of("query", "a", "limit", 3), Map.of("query", "a", "limit", 3)),
-            context());
+        tool.call(new LocalToolCall("1", "lookup", Map.of("query", "a", "limit", 3)), context());
 
     assertThat(result.content()).isEqualTo("a:3");
   }

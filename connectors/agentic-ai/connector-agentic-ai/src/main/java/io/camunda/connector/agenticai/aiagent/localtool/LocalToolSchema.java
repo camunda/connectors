@@ -68,7 +68,7 @@ public final class LocalToolSchema {
   /**
    * A document parameter, a string schema with the format {@link
    * DocumentParameterSchema#FORMAT_DOCUMENT_ID}: the model passes the id of a known document, the
-   * tool receives the document.
+   * tool receives the id and looks the document up in the registry of its context.
    */
   public LocalToolSchema document(String name, String description, boolean isRequired) {
     properties.put(
