@@ -13,6 +13,7 @@ import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleDocsServiceSupplier;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.google.GoogleApiErrors;
 import io.camunda.google.supplier.GoogleDriveServiceSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,10 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
             GoogleDriveServiceSupplier.createDriveClientInstance(request.getAuthentication()),
             GoogleDocsServiceSupplier.createDocsClientInstance(request.getAuthentication()));
 
-    return service.execute(drive, request.getResource(), useDocumentReturnFlow);
+    try {
+      return service.execute(drive, request.getResource(), useDocumentReturnFlow);
+    } catch (RuntimeException e) {
+      throw GoogleApiErrors.translate(e);
+    }
   }
 }

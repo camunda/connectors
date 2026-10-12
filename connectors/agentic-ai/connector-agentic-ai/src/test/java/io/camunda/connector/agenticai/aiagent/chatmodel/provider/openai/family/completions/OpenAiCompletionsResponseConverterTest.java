@@ -466,6 +466,56 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
+  void splitsCacheWriteTokensOutOfInputTokens() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": "Hi"}
+            """,
+            """
+            {
+              "prompt_tokens": 100,
+              "completion_tokens": 50,
+              "total_tokens": 150,
+              "prompt_tokens_details": {"cached_tokens": 20, "cache_write_tokens": 30}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(completion, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isEqualTo(50);
+    assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(20);
+    assertThat(tokenUsage.cacheCreationTokenCount()).isEqualTo(30);
+    assertThat(
+            tokenUsage.inputTokenCount()
+                + tokenUsage.cacheReadTokenCount()
+                + tokenUsage.cacheCreationTokenCount()
+                + tokenUsage.outputTokenCount())
+        .isEqualTo(150);
+  }
+
+  @Test
+  void clampsInputTokensAtZeroWhenCacheTokensExceedPromptTokens() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": "Hi"}
+            """,
+            """
+            {
+              "prompt_tokens": 10,
+              "completion_tokens": 5,
+              "total_tokens": 15,
+              "prompt_tokens_details": {"cached_tokens": 20}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(completion, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isZero();
+  }
+
+  @Test
   void surfacesReasoningTokensFromUsage() {
     final ChatCompletion completion =
         baseCompletion(

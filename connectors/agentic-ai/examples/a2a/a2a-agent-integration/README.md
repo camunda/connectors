@@ -7,7 +7,7 @@ functionalities.
 
 ## Prerequisites
 
-- **Camunda 8.8+** (SaaS or Self-Managed)
+- **Camunda 8.10+** (SaaS or Self-Managed)
 - Access to Camunda Connectors (Agentic AI, HTTP, etc.)
 - The following 3 A2A agents from the [a2a-samples](https://github.com/a2aproject/a2a-samples) repository running and
   accessible under their default URLs (needs a Google Gemini API key):

@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
     name = "Microsoft O365 Email Consumer",
     type = "io.camunda:connector-o365-email-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.MSFT.O365.Mail.inbound",
     name = "Microsoft O365 Inbound Email Connector",
     icon = "icon.svg",

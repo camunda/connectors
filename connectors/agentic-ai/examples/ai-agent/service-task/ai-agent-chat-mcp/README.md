@@ -47,7 +47,7 @@ camunda:
             #   enabled: true
             #   type: http
             #   http:
-            #     url: https://remote.mcpservers.org/fetch/mcp
+            #     url: https://example.com/mcp
             #     headers:
             #       X-Dummy: dummy-value
             #     # authentication examples
