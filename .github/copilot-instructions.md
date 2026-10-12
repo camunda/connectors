@@ -95,7 +95,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   hover); example values belong in `placeholder`; keep the always-visible `description` only for
   value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance.
 - **Documentation links must pin the current released minor**, e.g.
-  `https://docs.camunda.io/docs/8.9/components/connectors/...` — never unversioned, never `/next/`.
+  `https://docs.camunda.io/docs/8.10/components/connectors/...` — never unversioned, never `/next/`.
   Versioned URLs are kept resolving by the docs team, and the release bumper
   (`version-bump-docs-links` in `RELEASE.yaml`) rewrites every older versioned link to the new
   minor but cannot touch an unversioned one, so it would be stranded permanently. CI rejects

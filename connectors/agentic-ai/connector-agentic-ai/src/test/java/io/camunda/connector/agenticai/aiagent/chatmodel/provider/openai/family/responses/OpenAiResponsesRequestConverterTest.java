@@ -297,6 +297,84 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
+  void replaysRecordedAnswerPhaseOnAssistantMessage() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("done")))
+                    .messageId("msg_1")
+                    .metadata(Map.of("openai", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var message =
+        params.input().orElseThrow().asResponse().get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.phase()).contains(ResponseOutputMessage.Phase.FINAL_ANSWER);
+  }
+
+  @Test
+  void replaysUnphasedAndForeignProviderAssistantMessageWithoutPhase() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("unphased")))
+                    .build(),
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("other provider")))
+                    .metadata(Map.of("anthropic", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.input().orElseThrow().asResponse())
+        .extracting(item -> item.responseOutputMessage().orElseThrow().phase())
+        .containsOnly(java.util.Optional.empty());
+  }
+
+  @Test
+  void replaysCommentaryProviderContentBeforeFinalAnswerWithPhases() {
+    final Map<String, Object> commentary =
+        Map.of(
+            "type", "message",
+            "id", "msg_commentary",
+            "role", "assistant",
+            "status", "completed",
+            "phase", "commentary",
+            "content",
+                List.of(
+                    Map.of("type", "output_text", "text", "Checking", "annotations", List.of())));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ProviderContent("openai", commentary, null),
+                            TextContent.textContent("done")))
+                    .messageId("msg_final")
+                    .metadata(Map.of("openai", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(2);
+    final var first = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(first.id()).isEqualTo("msg_commentary");
+    assertThat(first.phase()).contains(ResponseOutputMessage.Phase.COMMENTARY);
+    assertThat(first.content().get(0).asOutputText().text()).isEqualTo("Checking");
+    final var second = items.get(1).responseOutputMessage().orElseThrow();
+    assertThat(second.id()).isEqualTo("msg_final");
+    assertThat(second.phase()).contains(ResponseOutputMessage.Phase.FINAL_ANSWER);
+  }
+
+  @Test
   void replaysMultipleAssistantTextBlocksAsSeparateOutputTextParts() {
     // Block boundaries are preserved rather than flattened into one joined string - see
     // OpenAiResponsesRequestConverter#assistantContentInputItem.

@@ -208,7 +208,7 @@ public class AgentInstanceHistoryMapper {
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
-      case ProviderContent providerContent -> objectHistoryContent(providerContent);
+      case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
   }
 
@@ -220,6 +220,13 @@ public class AgentInstanceHistoryMapper {
     }
     historyObject.put("payload", reasoningContent.payload());
     return objectHistoryContent(historyObject);
+  }
+
+  private AgentInstanceHistoryContent providerHistoryContent(ProviderContent providerContent) {
+    if (StringUtils.isNotBlank(providerContent.text())) {
+      return AgentInstanceHistoryContent.text(providerContent.text());
+    }
+    return objectHistoryContent(providerContent);
   }
 
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {

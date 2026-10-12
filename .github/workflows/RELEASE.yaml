@@ -123,7 +123,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Install Node.js
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -283,10 +283,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
-
-      - name: Fetch main branch
-        run: git fetch origin main
 
       - name: Configure git user
         run: |
@@ -302,12 +300,10 @@ jobs:
             major="${BASH_REMATCH[1]}"
             minor="${BASH_REMATCH[2]}"
             current_minor="${major}.${minor}"
-            previous_minor="${major}.$((minor - 1))"
           
             echo "Version $VERSION matches first minor release pattern (x.y.0)"
             echo "is_first_minor=true" >> $GITHUB_OUTPUT
             echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
-            echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
           else
             echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
             echo "is_first_minor=false" >> $GITHUB_OUTPUT
@@ -326,10 +322,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/version-bump-docs-links
-          commit-message: "ci: bump docs version from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          commit-message: "ci: bump docs links to ${{ steps.version_check.outputs.current_minor }}"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
-          title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          title: "chore(docs-links): bump docs links to ${{ steps.version_check.outputs.current_minor }}"
           body: |
             This bumps the docs version of every older versioned link in the latest element templates and connector sources to the latest minor version.
 

@@ -6,7 +6,7 @@ This example demonstrates how to deploy and run an AI-driven chat process in Cam
 
 ## Prerequisites
 
-- **Camunda 8.8+** (SaaS or Self-Managed)
+- **Camunda 8.10+** (SaaS or Self-Managed)
 - Access to Camunda Connectors (Agentic AI, HTTP, etc.)
 - Outbound internet access for connectors (to reach APIs)
 - (Optional) Credentials for any external APIs/tools you want to use

@@ -53,7 +53,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class AgentTaskElementTemplateRegressionTests extends BaseAgentTaskTest {
 
   @ParameterizedTest
-  @ValueSource(strings = {"ai-agent-task.bpmn", "ai-agent-task-8.8.0.bpmn"})
+  @ValueSource(
+      strings = {
+        "ai-agent-task-8.10.0.bpmn",
+        "ai-agent-task-8.9.0.bpmn",
+        "ai-agent-task-8.8.0.bpmn"
+      })
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var firstAiMessage =

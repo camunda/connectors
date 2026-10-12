@@ -678,7 +678,7 @@ class GeminiContentResponseConverterTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  void mapsUsageMetadataIncludingImplicitCacheReadsAndThoughtTokens() {
+  void mapsUsageMetadataIntoDisjointBuckets() {
     final var response =
         responseBuilder(candidate(FinishReason.Known.STOP, Part.fromText("ok")))
             .usageMetadata(
@@ -687,18 +687,25 @@ class GeminiContentResponseConverterTest {
                     .candidatesTokenCount(50)
                     .cachedContentTokenCount(3)
                     .thoughtsTokenCount(5)
-                    .totalTokenCount(158)
+                    .toolUsePromptTokenCount(7)
+                    .totalTokenCount(162)
                     .build())
             .build();
 
     final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
 
-    assertThat(tokenUsage.inputTokenCount()).isEqualTo(100);
-    assertThat(tokenUsage.outputTokenCount()).isEqualTo(50);
+    assertThat(tokenUsage.inputTokenCount()).isEqualTo(97 + 7);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(3);
+    assertThat(tokenUsage.outputTokenCount()).isEqualTo(55);
     assertThat(tokenUsage.reasoningTokenCount()).isEqualTo(5);
     // Gemini's implicit caching reports reads only; there is no cache-write counter to map.
     assertThat(tokenUsage.cacheCreationTokenCount()).isZero();
+    assertThat(
+            tokenUsage.inputTokenCount()
+                + tokenUsage.cacheReadTokenCount()
+                + tokenUsage.cacheCreationTokenCount()
+                + tokenUsage.outputTokenCount())
+        .isEqualTo(162);
   }
 
   @Test

@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "operation",

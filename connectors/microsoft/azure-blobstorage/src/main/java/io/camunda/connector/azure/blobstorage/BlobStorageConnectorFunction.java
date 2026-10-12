@@ -29,7 +29,7 @@ import java.util.function.Function;
     },
     type = "io.camunda:azure-blobstorage:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.azure.blobstorage.v1",
     name = "Azure Blob Storage Outbound Connector",
     description = "Upload and download files from Azure Blob Storage.",

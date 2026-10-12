@@ -27,7 +27,9 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(
     id = BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID,
-    label = "AWS Bedrock Converse")
+    label = "AWS Bedrock Converse",
+    description = "Any Bedrock model via the Converse API.",
+    keywords = {"Bedrock", "AWS"})
 public record BedrockConverseChatModelConfiguration(
     @Valid @NotNull BedrockConverseConnection bedrock) implements ProviderConfiguration {
 
