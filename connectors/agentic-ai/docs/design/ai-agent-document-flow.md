@@ -512,7 +512,9 @@ inline document, and the history mapper does not support inline references at al
   variable `toolCall` of the sub-process flavor and the task flavor's `toolCalls`) carries the
   references; the persisted assistant message keeps the ids the model sent, and the original arguments
   are never modified. A missing or `null` argument is left alone (optional parameters). Resolution
-  runs on the raw tool calls before the gateway transformation, so gateway tool calls stay untouched.
+  runs on the raw tool calls, by tool name and only for definitions that declare document parameters,
+  before the gateway transformation; the connector gives gateway tool definitions no document parameters,
+  so their calls stay untouched.
 - **Local handler abstraction.** `LocalToolCallHandler.handle(conversation, toolCalls)` returns a
   `LocalToolCallSplit(conversation, localResults, remainingCalls)`; a local tool returns a `LocalToolResult`
   with content and context updates. Reason: the loop stays generic and a future local tool is one more
@@ -876,7 +878,7 @@ Severity reflects what a user of the feature would hit, not the effort to fix.
 |---|---------|----------|--------|
 | 1 | Large inline documents | High (rare trigger) | Content is stored in the registry and in the tool result, and again in `agent.responseDocuments` when returned. A large inline image can push the job completion past the 4 MB broker message limit; there is no size guard or fallback to a reference-only entry. A load through `c8__get_document` is bounded by its size guard (3.14), the registry and the tool result are not. |
 | 2 | Local answers of a mixed batch reach the model late | Low | The agent instance history shows the local results of a batch that also holds real calls as soon as the job that answered them completes (5.1). The model only receives them with the next request, in the next job, when the real calls have completed; a real call that never completes holds that request back. A batch made of local calls alone is answered in the same job. |
-| 3 | Gateway tools unsupported | Medium | MCP and A2A tool definitions never declare document parameters; a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
+| 3 | Gateway tools unsupported | Medium | The connector never declares document parameters for MCP and A2A tool definitions (the A2A schema is fixed, the MCP schema is the one of the server, kept as it is); a document id passed to them is not resolved. Documents returned by gateway tools are ingested and passable to ad-hoc tools, but not to gateway tools. |
 | 4 | No tool error flag | Low | The domain model has no error flag on tool results, so invalid-id errors are plain text the model must interpret; a weak model may not retry. |
 | 5 | Reused tool call ids | Low | A model that reuses a tool call id across rounds reuses the agent instance history item id of the earlier result. Ids are assigned by the providers and unique in practice. |
 | 6 | History reporting of local rounds | Low (handled) | See 5.1: local calls and rounds are reported through the existing history items; what is not reported there is the document selection itself and the documents' content (the reference of an inline document holds its content). |
@@ -1104,10 +1106,10 @@ listed fails the test.
   `responseDocuments`. `AgentInstanceHistoryMapper` cannot map an inline reference and throws an
   `IllegalArgumentException`. Decide on a reference-only entry for inline documents and on how the history
   shows them (3.12, 5.1).
-- **Gateway tools (MCP, A2A).** Their definitions never declare document parameters; the gateway handler seam
-  (`transformToolCalls`) is unchanged and runs after the document resolution, which leaves their calls
-  untouched. Gateway tools with document-typed definitions, and passing documents into them, need their own
-  design because the gateway wraps the call arguments in an envelope the handler builds.
+- **Gateway tools (MCP, A2A).** The connector never declares document parameters in their definitions; the
+  gateway handler seam (`transformToolCalls`) is unchanged and runs after the document resolution, which
+  leaves their calls untouched. Gateway tools with document-typed definitions, and passing documents into
+  them, need their own design because the gateway wraps the call arguments in an envelope the handler builds.
 - **Resolver output for standalone use.** The Ad-Hoc Tools Schema Resolver returns the authored schema with the
   format `camunda-document-id` and the hint in the description (3.2), so its output carries the document id
   format. The AI Agent derives the provider schema (no format) at the snapshot, but another LLM connector that
@@ -1167,7 +1169,7 @@ listed fails the test.
 | Agent instances without the feature | `aiagent/agent/LegacyDocumentConversationTest` (golden conversation of Camunda 8.10, `backwardcompatibility/camunda-8.10`: load, compose prompt, event and tool result documents, window, no registry, features or local tool), `aiagent/model/message/LegacyDocumentReferenceXmlTagTest`, `aiagent/model/document/LegacyDocumentRenderingTest`, `aiagent/chatmodel/provider/ModelFacingJsonTest`, `AgentInstanceHistoryMapperTest`, `LocalToolRegistryImplTest`, `AgentToolsResolverTest` (no reserved name), `AgentSubProcessRequestHandlerTest` |
 | Eviction note and loop primitives | `aiagent/model/document/EvictedDocumentsNoteTest`, `aiagent/model/AgentConversationTest` (including `withContextUpdate`) |
 | Provider rendering | the converter tests under `aiagent/chatmodel/provider/` (langchain4j, Anthropic, OpenAI completions/responses, Bedrock, Gemini, Mistral) |
-| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for local tools), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools) |
+| Documents into tools | `aiagent/agent/DocumentParameterResolverTest` (exact id match, tags, escaped tags, ids and tags inside text, two tags, arrays, nested, ids for local tools), `LocalToolCallHandlerImplTest` (per-call split, order, document parameters of process tools and of local tools), `AgentResponseHandlerDocumentsTest` (gateway tool calls reach the gateway handlers unchanged next to a resolved call), `McpClientGatewayToolHandlerTest` / `A2aGatewayToolHandlerTest` (discovered gateway tools declare no document parameters and reach the model provider as they are) |
 | Inline delivery | `aiagent/localtool/DocumentLoadGuardTest` (the guard: allowlist, known size, bounded read, unreadable), `aiagent/agent/AgentConversationTurnInputComposerInlineDocumentsTest` (user prompt with the option on and off, fallback note, already loaded, instance without the feature; tool marker on and off, nested documents, notes only, loaded by `c8__get_document` in the same turn, already loaded, instance without the feature), `aiagent/model/tool/ToolDefinitionTest` (JSON round trip, omitted when absent), `aiagent/model/AgentConfigurationTest` (the fingerprint of a tool without the mode is pinned, the mode changes it), `aiagent/model/tool/DocumentParameterSchemaTest` (the mode is not part of the provider definition), `adhoctoolsschema/schema/AdHocToolsSchemaResolverTest` (marker parsing), `aiagent/AgentV2ElementTemplateTest` (the checkbox in the v2 templates, not in the v1 templates) |
 | Loading content | `aiagent/agent/GetDocumentToolTest` (loaded marker, already loaded, size limits by metadata and by reading at most one byte more, type allowlist without reading, unknown id, unreadable document, mixed batch), `aiagent/localtool/DocumentLoadLimitsTest` (allowlist, limits, unknown type), `AgentConversationTurnInputComposerImplTest` (follow-up message with the loaded tags), `AgentConversationTest` (`loadedDocumentIds` over the window), `AgentSubProcessRequestHandlerTest`, `AgentInstanceHistoryMapperTest` (expansion of the loaded tag), `EvictedDocumentsNoteTest` (introducing message windowed) |
 | Documents out | `aiagent/agent/ReturnDocumentToolTest`, `AgentResponseHandlerDocumentsTest`, `AgentToolsResolverTest` (name of a local tool), `AgentSubProcessRequestHandlerTest`, `AgentTaskRequestHandlerTest` |

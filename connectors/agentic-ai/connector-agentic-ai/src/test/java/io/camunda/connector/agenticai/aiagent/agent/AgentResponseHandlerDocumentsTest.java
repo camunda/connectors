@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,8 +30,10 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.SelectedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class AgentResponseHandlerDocumentsTest {
 
@@ -56,11 +60,12 @@ class AgentResponseHandlerDocumentsTest {
                   new IngestedDocument(report, DocumentSource.toolCall("search", "call-1", null)),
                   new IngestedDocument(summary, DocumentSource.userMessage(null))));
 
+  private GatewayToolHandlerRegistry gatewayToolHandlers;
   private AgentResponseHandler responseHandler;
 
   @BeforeEach
   void setUp() {
-    final var gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
+    gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
     when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
     responseHandler = new AgentResponseHandlerImpl(new ObjectMapper(), gatewayToolHandlers);
@@ -177,6 +182,55 @@ class AgentResponseHandlerDocumentsTest {
     assertThat(response.responseDocuments()).containsOnlyKeys("report");
   }
 
+  @Test
+  void handsTheCallsOfGatewayToolsToTheGatewayHandlersWithoutResolvingTheirDocuments() {
+    final var upload =
+        new ToolDefinition(
+            "upload",
+            "Uploads a document",
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of("document", DocumentParameterSchema.documentSchema("The document"))));
+    final var mcpTool = gatewayToolDefinition("MCP_files___read");
+    final var a2aTool = gatewayToolDefinition("A2A_assistant");
+    final var uploadCall = new ToolCall("call-1", "upload", Map.of("document", reportId));
+    // arguments that look like the id of a known document and like its tag
+    final var mcpCall =
+        new ToolCall(
+            "call-2",
+            mcpTool.name(),
+            Map.of("name", reportId, "nested", Map.of("text", docTag(summaryId))));
+    final var a2aCall = new ToolCall("call-3", a2aTool.name(), Map.of("text", docTag(reportId)));
+
+    responseHandler.createResponse(
+        conversation(
+            selection(),
+            assistantMessage("go", List.of(uploadCall, mcpCall, a2aCall)),
+            List.of(upload, mcpTool, a2aTool)));
+
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<List<ToolCall>> handed = ArgumentCaptor.forClass(List.class);
+    verify(gatewayToolHandlers).transformToolCalls(any(), handed.capture());
+    assertThat(handed.getValue()).hasSize(3);
+    assertThat(handed.getValue().get(0).arguments())
+        .containsEntry("document", registry.findById(reportId).orElseThrow().reference());
+    assertThat(handed.getValue().get(1)).isEqualTo(mcpCall);
+    assertThat(handed.getValue().get(2)).isEqualTo(a2aCall);
+  }
+
+  private static ToolDefinition gatewayToolDefinition(String name) {
+    return new ToolDefinition(
+        name,
+        "A tool behind a gateway",
+        Map.of("type", "object", "properties", Map.of("text", Map.of("type", "string"))));
+  }
+
+  private static String docTag(String documentId) {
+    return "<doc id=\"%s\" />".formatted(documentId);
+  }
+
   private static LinkedHashMap<String, SelectedDocument> selection(Object... keysAndValues) {
     final var selection = new LinkedHashMap<String, SelectedDocument>();
     for (int i = 0; i < keysAndValues.length; i += 2) {
@@ -187,9 +241,17 @@ class AgentResponseHandlerDocumentsTest {
 
   private AgentConversation conversation(
       LinkedHashMap<String, SelectedDocument> selection, AssistantMessage assistantMessage) {
+    return conversation(selection, assistantMessage, List.of());
+  }
+
+  private AgentConversation conversation(
+      LinkedHashMap<String, SelectedDocument> selection,
+      AssistantMessage assistantMessage,
+      List<ToolDefinition> toolDefinitions) {
     final var config =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-            .withFeatures(AgentContext.newInstanceFeatures());
+            .withFeatures(AgentContext.newInstanceFeatures())
+            .withToolDefinitions(toolDefinitions);
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
