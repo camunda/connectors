@@ -45,11 +45,13 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.up
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertLoadedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.LoadedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -78,6 +80,9 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
   @Value("classpath:agentic-ai-connectors-documents.bpmn")
   private Resource documentsProcess;
+
+  @Value("classpath:agentic-ai-connectors-documents-inline.bpmn")
+  private Resource inlineDocumentsProcess;
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
@@ -126,6 +131,96 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         });
 
     assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * A tool whose activity requests inline delivery returns a document: the agent loads it for the
+   * model in the message after the tool result, so the model reads it without a {@code
+   * c8__get_document} call and still passes its id to a tool. The tool receives the real bytes.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"test.txt", "test.pdf"})
+  void loadsTheDocumentsOfAnInlineToolForTheModel(String file) throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startInlineProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    assertLoadedDocumentsUserMessage(
+        afterDownload.get(4),
+        LoadedDocument.forToolCall(
+            DOWNLOAD_CALL_ID,
+            "Download_A_File",
+            tag,
+            block ->
+                assertDocumentContentBlockJson(
+                    block,
+                    file.endsWith(".pdf") ? "base64" : "text",
+                    file.endsWith(".pdf") ? "application/pdf" : "text/plain")));
+
+    // no load by the model: the next request holds the upload and nothing else
+    final var afterUpload = recorded.lastRequest().messages();
+    assertThat(afterUpload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
+    assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
+    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__get_document"));
+    assertUploaded(servedFile(file));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * A document of an inline tool that must not be loaded (a type outside the allowlist, a size
+   * above the limit) stays a reference: a note tells the model that it was not loaded and why, no
+   * content reaches the model, and the tool still receives the real bytes.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"unsupported.zip", LARGE_FILE})
+  void keepsADocumentOfAnInlineToolThatCannotBeLoadedAsAReferenceWithANote(String file)
+      throws Exception {
+    final var expectedBytes = LARGE_FILE.equals(file) ? stubLargeTextFile() : servedFile(file);
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startInlineProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    assertThat(afterDownload.get(4).textContent())
+        .startsWith("Document %s was not loaded automatically: it ".formatted(tag.id()))
+        .endsWith("Pass its id to a tool that processes it.");
+    assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
+        .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
+
+    assertUploaded(expectedBytes);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasResponseText(FINAL_TEXT));
   }
 
   @Test
@@ -392,6 +487,17 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   private ZeebeTest startProcess() throws Exception {
     return createProcessInstance(
         elementTemplate -> elementTemplate,
+        Map.of(
+            "userPrompt",
+            "Download the file, upload it and give it back to me.",
+            "uploadUrl",
+            uploadUrl(wireMock.getHttpBaseUrl())));
+  }
+
+  private ZeebeTest startInlineProcess() throws Exception {
+    return createProcessInstance(
+        inlineDocumentsProcess,
+        e -> e,
         Map.of(
             "userPrompt",
             "Download the file, upload it and give it back to me.",

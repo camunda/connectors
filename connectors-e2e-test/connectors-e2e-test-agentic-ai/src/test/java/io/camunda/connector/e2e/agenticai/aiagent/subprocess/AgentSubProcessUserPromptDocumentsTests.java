@@ -274,6 +274,124 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
+  /**
+   * With the load documents option of the user prompt the content of the document is part of the
+   * user message of the first request, next to its tag: no {@code c8__get_document} call is needed.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"test.csv", "test.jpg", "test.pdf", "test.txt"})
+  void loadsPromptDocumentsIntoThePromptWhenTheOptionIsOn(String filename) throws Exception {
+    final var initialUserPrompt = "Summarize the following document";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                elementTemplate ->
+                    elementTemplate
+                        .property("retryCount", "3")
+                        .property("retryBackoff", "PT2S")
+                        .property("data.userPrompt.loadDocuments", "=true"),
+                Map.of(
+                    "userPrompt",
+                    initialUserPrompt,
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
+    assertThat(recorded.modelCallCount()).isEqualTo(1);
+    assertThat(recorded.lastRequest().toolNames()).contains("c8__get_document");
+
+    final var userMessage = recorded.lastRequest().messages().get(1);
+    assertThat(userMessage.role()).isEqualTo("user");
+    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag + content").hasSize(3);
+    assertThat(userMessage.contentParts().get(0).path("text").asText())
+        .isEqualTo(initialUserPrompt);
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertThat(
+            parseDocumentTag(userMessage.contentParts().get(1).path("text").asText()).contentType())
+        .isEqualTo(mimeType(filename));
+    assertDocumentContentBlockJson(
+        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  /** Without the option, or with it switched off, the documents stay references. */
+  @Test
+  void keepsPromptDocumentsAsReferencesWhenTheOptionIsOff() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text("TL;DR", 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    awaitProcessCompletion(
+        createProcessInstance(
+            elementTemplate ->
+                elementTemplate
+                    .property("retryCount", "3")
+                    .property("retryBackoff", "PT2S")
+                    .property("data.userPrompt.loadDocuments", "=false"),
+            Map.of(
+                "userPrompt",
+                "Summarize the following document",
+                "downloadUrls",
+                List.of(wireMock.getHttpBaseUrl() + "/test.txt"))));
+
+    final var userMessage =
+        OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages().get(1);
+    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag").hasSize(2);
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+  }
+
+  /**
+   * A document that must not be loaded stays a reference in the user message, followed by a note
+   * that tells the model why it was not loaded; the conversation goes on without an incident.
+   */
+  @Test
+  void keepsAPromptDocumentThatCannotBeLoadedAsAReferenceWithANote() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text("I cannot read it.", 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                elementTemplate ->
+                    elementTemplate
+                        .property("retryCount", "3")
+                        .property("retryBackoff", "PT2S")
+                        .property("data.userPrompt.loadDocuments", "=true"),
+                Map.of(
+                    "userPrompt",
+                    "Summarize the following document",
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip"))));
+
+    final var userMessage =
+        OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages().get(1);
+    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag + note").hasSize(3);
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+    final var tag = parseDocumentTag(userMessage.contentParts().get(1).path("text").asText());
+    assertThat(userMessage.contentParts().get(2).path("text").asText())
+        .isEqualTo(
+            "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its id to a tool that processes it."
+                .formatted(tag.id()));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText("I cannot read it."));
+  }
+
   private static String contentBlockType(String filename) {
     return switch (filename) {
       case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" -> "text";

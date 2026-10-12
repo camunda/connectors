@@ -75,14 +75,16 @@ public final class DocumentFlowFixtures {
   }
 
   public static Turn downloadTurn(String wireMockBaseUrl, String file) {
+    return downloadTurn(wireMockBaseUrl, file, DOWNLOAD_CALL_ID);
+  }
+
+  public static Turn downloadTurn(String wireMockBaseUrl, String file, String callId) {
     return Turn.toolCalls(
         "I will download the file.",
         10,
         20,
         ToolCall.of(
-            DOWNLOAD_CALL_ID,
-            "Download_A_File",
-            "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, file)));
+            callId, "Download_A_File", "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, file)));
   }
 
   /** Loads the first known document of the request. */

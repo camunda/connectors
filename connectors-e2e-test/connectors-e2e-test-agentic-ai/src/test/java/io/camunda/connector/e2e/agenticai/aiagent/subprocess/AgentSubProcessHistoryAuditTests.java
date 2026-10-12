@@ -84,6 +84,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
 
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-inline.bpmn")
+  private Resource inlineDocumentsProcess;
+
   @Override
   protected Resource testProcess() {
     return documentsProcess;
@@ -105,6 +108,29 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
     final var agentInstanceKey = runAndGetAgentInstanceKey(e -> e);
 
+    assertHistoryCoversEveryModelRequest(agentInstanceKey);
+  }
+
+  /**
+   * Documents the agent loads without being asked: the user prompt document through the option of
+   * the prompt, the documents of a tool with inline delivery, and the note of a document that
+   * cannot be loaded. The loaded content shows in the history next to its tag, the note as text.
+   */
+  @Test
+  void everyModelVisibleMessageOfInlineDocumentDeliveryIsInTheHistory() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf"),
+        downloadTurn(wireMock.getHttpBaseUrl(), "unsupported.zip", "call_download_zip"),
+        finalTurn());
+
+    final var agentInstanceKey =
+        runAndGetAgentInstanceKey(
+            inlineDocumentsProcess, e -> e.property("data.userPrompt.loadDocuments", "=true"));
+
+    final var messages = OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
+    assertThat(messages.toString())
+        .contains("was not loaded automatically")
+        .doesNotContain("c8__get_document");
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
   }
 
@@ -151,6 +177,11 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   private long runAndGetAgentInstanceKey(Function<ElementTemplate, ElementTemplate> modifier)
       throws Exception {
+    return runAndGetAgentInstanceKey(documentsProcess, modifier);
+  }
+
+  private long runAndGetAgentInstanceKey(
+      Resource process, Function<ElementTemplate, ElementTemplate> modifier) throws Exception {
     final var promptDocument =
         InMemoryDocumentStore.INSTANCE.createDocument(
             DocumentCreationRequest.from("the prompt document".getBytes())
@@ -168,6 +199,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
+                process,
                 modifier,
                 Map.of(
                     "userPrompt",
