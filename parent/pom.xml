@@ -113,17 +113,17 @@ limitations under the License.</license.inlineheader>
          An earlier override was removed once the BOM caught up to a previous, lower threshold,
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 11.0.25, not against whatever the BOM happens to ship. -->
-    <tomcat.version>11.0.26</tomcat.version>
+    <tomcat.version>11.0.27</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
     <version.netty>4.2.19.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.2.3</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.2.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.14</version.aws-sdk2>
+    <version.aws-sdk2>2.55.15</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260930-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.76.0</version.google-genai>
+    <version.google-genai>1.77.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 

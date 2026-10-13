@@ -238,9 +238,11 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
      * Parses the value at the current position into {@code path}-tagged declarations and opaque
      * positions. A quoted string, a number, and {@code true}/{@code false}/{@code null} are
      * immutable scalars -- always exactly what they say, regardless of any surrounding process data
-     * -- so parsing them never adds to {@code opaque}. Anything this parser has no further grammar
-     * for (a bare identifier, a function call, an operator expression) could evaluate to any JSON
-     * value at runtime, so {@code path} itself is recorded as opaque.
+     * -- so parsing one that is the whole value never adds to {@code opaque}; one that only starts
+     * an operator expression is opaque like any other expression (see {@link #finishScalar}).
+     * Anything this parser has no further grammar for (a bare identifier, a function call, an
+     * operator expression) could evaluate to any JSON value at runtime, so {@code path} itself is
+     * recorded as opaque.
      */
     boolean parseValue(List<String> path, List<Declaration> found, Set<List<String>> opaque) {
       char c = peek();
@@ -252,14 +254,14 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       }
       if (c == '"') {
         skipQuotedSpan();
-        return true;
+        return finishScalar(path, opaque);
       }
       if (c == '-' || Character.isDigit(c)) {
         skipNumberLiteral();
-        return true;
+        return finishScalar(path, opaque);
       }
       if (tryConsumeKeyword("true") || tryConsumeKeyword("false") || tryConsumeKeyword("null")) {
-        return true;
+        return finishScalar(path, opaque);
       }
       if (matchesKeywordAt("if")) {
         i += 2;
@@ -268,6 +270,27 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
       if (matchesKeywordAt("for")) {
         i += 3;
         return parseForReturn(path, found, opaque);
+      }
+      opaque.add(path);
+      return skipOpaqueValue();
+    }
+
+    /**
+     * A scalar literal is only the whole value if nothing but a value terminator follows it.
+     * Otherwise it is the first operand of an expression such as {@code "{{secrets.X}}" + suffix},
+     * which -- like any other expression -- could evaluate to anything, so the remainder is skipped
+     * and {@code path} recorded as opaque instead of failing the whole input.
+     */
+    private boolean finishScalar(List<String> path, Set<List<String>> opaque) {
+      char next = peek();
+      if (next == '\0'
+          || next == ','
+          || next == '}'
+          || next == ']'
+          || next == ')'
+          || matchesKeywordAt("then")
+          || matchesKeywordAt("else")) {
+        return true;
       }
       opaque.add(path);
       return skipOpaqueValue();
