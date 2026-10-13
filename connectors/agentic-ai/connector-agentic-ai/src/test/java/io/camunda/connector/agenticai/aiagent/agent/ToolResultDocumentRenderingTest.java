@@ -14,7 +14,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -36,12 +39,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -153,6 +158,87 @@ class ToolResultDocumentRenderingTest {
       assertThat(rendered)
           .allSatisfy(text -> assertThat(text).contains(fileName).doesNotContain("storeId"));
     }
+  }
+
+  @Test
+  void theHistoryOfTheLiveResultsAndOfTheComposedMessageIsTheSame() {
+    final var bare = document("bare", "bare.pdf", "application/pdf");
+    final var nested = document("nested", "nested.txt", "text/plain");
+    final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:55+02:00");
+    final var results =
+        List.of(
+            ToolCallResult.builder()
+                .id("abcdef")
+                .name("getWeather")
+                .content(bare)
+                .completedAt(completedAt)
+                .build(),
+            ToolCallResult.builder()
+                .id("fedcba")
+                .name("getDateTime")
+                .content(Map.of("status", 200, "file", nested))
+                .completedAt(completedAt)
+                .build());
+    final var previous =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+    final var nextTurn =
+        (CompositionResult.NextTurn)
+            composer.compose(
+                CONFIGURATION,
+                CONTEXT,
+                previous,
+                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+    final var toolCallsById = previous.turns().getLast().toolCallsById();
+    final var mapper =
+        new AgentInstanceHistoryMapper(
+            mock(GatewayToolHandlerRegistry.class),
+            new RuntimeToolRegistryImpl(List.of()),
+            expander);
+
+    // the report of the results that arrived before the turn was composed knows no document of it
+    final var live =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder()
+                .results(results.stream().map(ToolCallResultContent::from).toList())
+                .build(),
+            toolCallsById,
+            completedAt,
+            new HistoryDocuments(DocumentRegistry.empty()));
+    final var composed =
+        mapper.inputHistoryItems(
+            nextTurn.messages().getFirst(),
+            toolCallsById,
+            completedAt,
+            new HistoryDocuments(DocumentRegistry.empty().withDocuments(nextTurn.documents())));
+
+    assertThat(live).hasSize(2);
+    assertThat(composed.stream().map(this::describe).toList())
+        .isEqualTo(live.stream().map(this::describe).toList());
+    assertThat(live.get(0).content()).hasSize(2);
+    assertThat(live.get(1).content()).hasSize(2);
+  }
+
+  private String describe(AgentInstanceHistoryMapper.InputHistoryItem item) {
+    return item.toolCalls().getFirst().getToolCallId()
+        + item.content().stream()
+            .map(
+                content ->
+                    switch (content) {
+                      case AgentInstanceHistoryContent.TextContent text -> "TEXT " + text.getText();
+                      case AgentInstanceHistoryContent.ObjectContent object ->
+                          "OBJECT " + object.getObject();
+                      case AgentInstanceHistoryContent.DocumentContent document -> {
+                        final var reference = document.getDocumentReference();
+                        yield "DOCUMENT %s %s %s"
+                            .formatted(
+                                reference.getDocumentId(),
+                                reference.getContentHash(),
+                                reference.getMetadata().getFileName());
+                      }
+                      default -> content.toString();
+                    })
+            .toList();
   }
 
   private static List<String> renderedByEveryProvider(

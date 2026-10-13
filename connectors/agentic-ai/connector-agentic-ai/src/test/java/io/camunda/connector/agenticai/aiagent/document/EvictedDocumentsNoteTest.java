@@ -193,7 +193,7 @@ class EvictedDocumentsNoteTest {
   }
 
   private DocumentRegistry registryOfEvictedMessage() {
-    // both documents were introduced by a message that is no longer windowed
+    // both documents were introduced by a message outside the window
     return DocumentRegistry.empty()
         .withDocuments(
             List.of(
