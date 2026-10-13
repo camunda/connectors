@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.84.2</version.grpc>
+    <version.grpc>1.84.3</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.24.0</version.mockito>
@@ -84,7 +84,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.3</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.1.4.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.1.5.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
          An earlier override was removed once the BOM caught up to a previous, lower threshold,
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 10.1.59, not against whatever the BOM happens to ship. -->
-    <tomcat.version>10.1.60</tomcat.version>
+    <tomcat.version>10.1.61</tomcat.version>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
@@ -108,12 +108,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.55.14</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.55.16</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.55.14</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.55.16</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.55.14</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.55.16</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260930-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.75.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.76.0</version.google-genai>
+    <version.google-genai>1.77.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -142,7 +142,7 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.3.1</version.kafka-clients>
+    <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-47857: reactor-core transitive override — remove once spring-boot-dependencies
          ships a reactor-bom with reactor-core >= 3.8.7
          Ref: https://spring.io/security/cve-2026-47857/ -->
@@ -193,7 +193,7 @@ limitations under the License.</license.inlineheader>
     <version.wiremock>3.13.2</version.wiremock>
     <version.system-stubs-jupiter>2.1.8</version.system-stubs-jupiter>
 
-    <version.auth0.jwt>4.6.1</version.auth0.jwt>
+    <version.auth0.jwt>4.6.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
     
     <version.langchain4j>1.22.0</version.langchain4j>
