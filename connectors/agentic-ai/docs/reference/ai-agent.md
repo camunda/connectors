@@ -709,7 +709,7 @@ fromAi(
 The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`. A union parameter gets its own
 hint: the model passes a document as its `<doc />` tag exactly as listed for the known documents, and the tool receives the
 Camunda document reference. Every other value is passed as it is: a plain string, also one that equals the id of a known
-document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that lists
+document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that says the tag is not a known document and lists
 the known documents, and the tool does not run. For `anyOf: [string, document]` the model provider gets
 `{"type": "string", "description": "..."}` with the hint. See the document flow design notes, sections 3.2, 3.3 and 3.7.
 
