@@ -53,7 +53,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg")
 @OutboundConnector(
     name = "Slack Outbound",
-    inputVariables = {"token", "method", "data"},
+    inputVariables = {"token", "baseUrl", "method", "data"},
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 
