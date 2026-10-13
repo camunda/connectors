@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 
 // "templateFile=recipeFile" tuples, one per line. Each recipe is written to the template's
-// metadata.migratesFrom, replacing any existing value. Must run after the scripts that derive
-// templates from one another, so a derived template never inherits its source's recipe.
+// metadata.migratesFrom, replacing any existing value and keeping other metadata keys. Must run
+// after the scripts that derive templates from one another, so a derived template never inherits
+// its source's recipe.
 def migrationRecipes = binding.hasVariable('migrationRecipes') ? migrationRecipes : null
 if (!migrationRecipes) {
     System.err.println("Error: migrationRecipes property required")
@@ -36,16 +37,19 @@ def mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
     def recipe = mapper.readValue(recipeFile, Map.class)
     recipe.remove('$schema')
 
+    def metadata = new LinkedHashMap((Map) (json.metadata ?: [:]))
+    metadata.put("migratesFrom", recipe)
+
     def ordered = new LinkedHashMap()
     json.each { key, value ->
         if (key == "metadata") return
         ordered.put(key, value)
         if (key == "keywords") {
-            ordered.put("metadata", [migratesFrom: recipe])
+            ordered.put("metadata", metadata)
         }
     }
     if (!ordered.containsKey("metadata")) {
-        ordered.put("metadata", [migratesFrom: recipe])
+        ordered.put("metadata", metadata)
     }
     mapper.writeValue(templateFile, ordered)
 }
