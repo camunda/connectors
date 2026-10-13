@@ -425,11 +425,13 @@ public final class AgentConversation implements RuntimeToolConversation {
    * document references in the windowed user messages are expanded to their tag text and, for the
    * references with the delivery {@code content}, the document read from the registry of the {@link
    * AgentContext#documents() context} (see {@link DocumentExpander}); every other document stays a
-   * tag. When registry documents are not visible in the windowed messages, the snapshot ends with a
-   * transient user message listing them (see {@link EvictedDocumentsNote}). For an agent instance
-   * without the feature, the documents of the tool results are marked to be rendered as their
-   * document reference (see {@link LegacyDocumentRendering}) and the messages are otherwise left as
-   * they are. {@link #allMessages()} and the stored conversation are not affected.
+   * tag. A document reference in a windowed tool result is expanded to the document of the
+   * registry, which the providers render as its tag. When registry documents are not visible in the
+   * windowed messages, the snapshot ends with a transient user message listing them (see {@link
+   * EvictedDocumentsNote}). For an agent instance without the feature, the documents of the tool
+   * results are marked to be rendered as their document reference (see {@link
+   * LegacyDocumentRendering}) and the messages are otherwise left as they are. {@link
+   * #allMessages()} and the stored conversation are not affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);

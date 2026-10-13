@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentRefe
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -176,6 +177,79 @@ class EvictedDocumentsNoteTest {
         .asString()
         .contains(DocumentHandle.idFor(notes))
         .doesNotContain(DocumentHandle.idFor(report));
+  }
+
+  private ToolCallResultMessage toolResultWith(
+      io.camunda.connector.agenticai.aiagent.model.message.content.Content... content) {
+    return ToolCallResultMessage.builder()
+        .results(
+            List.of(
+                ToolCallResultContent.builder()
+                    .id("call_2")
+                    .name("fetch")
+                    .content(List.of(content))
+                    .build()))
+        .build();
+  }
+
+  private DocumentRegistry registryOfEvictedMessage() {
+    // both documents were introduced by a message that is no longer windowed
+    return DocumentRegistry.empty()
+        .withDocuments(
+            List.of(
+                new IngestedDocument(
+                    report, DocumentSource.toolCall("search", "call_1", "evicted-message")),
+                new IngestedDocument(notes, DocumentSource.userMessage("evicted-message"))));
+  }
+
+  @Test
+  void aDocumentReferenceInAToolResultCountsAsVisible() {
+    final List<Message> windowed = List.of(toolResultWith(DocumentReferenceContent.from(report)));
+
+    final var result = EvictedDocumentsNote.appendTo(windowed, registryOfEvictedMessage());
+
+    assertThat(((UserMessage) result.getLast()).content())
+        .extracting(content -> ((TextContent) content).text())
+        .hasSize(2)
+        .last()
+        .asString()
+        .contains(DocumentHandle.idFor(notes))
+        .doesNotContain(DocumentHandle.idFor(report));
+  }
+
+  @Test
+  void aDocumentOfAnExpandedReferenceInAToolResultCountsAsVisible() {
+    final var expander = new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+    final var evictedRegistry = registryOfEvictedMessage();
+    final var withRegistryDocument =
+        expander.expandMessages(
+            List.of(toolResultWith(DocumentReferenceContent.from(report))), evictedRegistry);
+    final var withTagTextOnly =
+        expander.expandMessages(
+            List.of(toolResultWith(DocumentReferenceContent.from(report))),
+            DocumentRegistry.empty());
+
+    assertThat(
+            ((ToolCallResultMessage) withRegistryDocument.getFirst())
+                .results()
+                .getFirst()
+                .content())
+        .singleElement()
+        .isInstanceOf(DocumentContent.class);
+    assertThat(((ToolCallResultMessage) withTagTextOnly.getFirst()).results().getFirst().content())
+        .singleElement()
+        .isInstanceOf(TextContent.class);
+    for (final var windowed : List.of(withRegistryDocument, withTagTextOnly)) {
+      final var result = EvictedDocumentsNote.appendTo(windowed, evictedRegistry);
+
+      assertThat(((UserMessage) result.getLast()).content())
+          .extracting(content -> ((TextContent) content).text())
+          .hasSize(2)
+          .last()
+          .asString()
+          .contains(DocumentHandle.idFor(notes))
+          .doesNotContain(DocumentHandle.idFor(report));
+    }
   }
 
   @Test

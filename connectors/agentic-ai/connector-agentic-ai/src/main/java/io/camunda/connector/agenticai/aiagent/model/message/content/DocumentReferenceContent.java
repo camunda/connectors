@@ -37,6 +37,10 @@ import org.jspecify.annotations.Nullable;
  * Camunda document whose reference metadata carries one; it is never looked up by reading the
  * document.
  *
+ * <p>A tool result that is a document holds the block without a source, the short tag the model
+ * sees for a document of a tool result. A document nested in the object of a tool result stays a
+ * document.
+ *
  * <p>The {@code delivery} tells how the document reaches the model: with {@link
  * DocumentDelivery#REFERENCE} the model sees the tag only, with {@link DocumentDelivery#CONTENT}
  * the content of the document is added next to the tag. It is stored with every block, so a block
