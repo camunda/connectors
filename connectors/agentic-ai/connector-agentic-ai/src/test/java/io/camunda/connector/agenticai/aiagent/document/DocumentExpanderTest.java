@@ -10,13 +10,17 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -25,6 +29,7 @@ import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -264,5 +269,144 @@ class DocumentExpanderTest {
     assertThat(((UserMessage) expanded.get(2)).content()).hasSize(2);
     assertThat(expander.expandMessages(List.of(assistant, plainUser), registry))
         .containsExactly(assistant, plainUser);
+  }
+
+  private static ToolCallResultMessage toolResultMessage(Content... content) {
+    return ToolCallResultMessage.builder()
+        .results(
+            List.of(
+                ToolCallResultContent.builder()
+                    .id("call-1")
+                    .name("fetch")
+                    .content(List.of(content))
+                    .completedAt(OffsetDateTime.parse("2026-07-02T09:59:55Z"))
+                    .build()))
+        .build();
+  }
+
+  private static List<Content> resultContent(Message message) {
+    return ((ToolCallResultMessage) message).results().getFirst().content();
+  }
+
+  private String renderedByAProvider(Content content) throws Exception {
+    final var modelFacingJson = new ModelFacingJson(TestObjectMapperSupplier.INSTANCE);
+    return switch (content) {
+      case DocumentContent documentContent -> modelFacingJson.write(documentContent.document());
+      case TextContent textContent -> textContent.text();
+      default -> throw new IllegalArgumentException(content.toString());
+    };
+  }
+
+  @Test
+  void expandsAReferenceInAToolResultToTheDocumentOfTheRegistry() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+    final var reference = DocumentReferenceContent.from(document);
+    final var message = toolResultMessage(textContent("before"), reference);
+
+    final var expanded = expander.expandMessages(List.of(message), registry);
+
+    assertThat(expanded.getFirst().id()).isEqualTo(message.id());
+    assertThat(((ToolCallResultMessage) expanded.getFirst()).results().getFirst().id())
+        .isEqualTo("call-1");
+    final var content = resultContent(expanded.getFirst());
+    assertThat(content).hasSize(2);
+    assertThat(content.get(0)).isEqualTo(textContent("before"));
+    assertRebuiltDocumentIs(content.get(1), document);
+  }
+
+  @Test
+  void aReferenceInAToolResultIsRenderedAsTheTagTheModelSawForTheStoredDocument() throws Exception {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+    final var reference = DocumentReferenceContent.from(document);
+
+    final var expanded =
+        resultContent(
+            expander.expandMessages(List.of(toolResultMessage(reference)), registry).getFirst());
+    final var withoutRegistry =
+        resultContent(
+            expander
+                .expandMessages(List.of(toolResultMessage(reference)), DocumentRegistry.empty())
+                .getFirst());
+
+    final var tagOfTheStoredDocument =
+        renderedByAProvider(DocumentContent.documentContent(document));
+    assertThat(tagOfTheStoredDocument).isEqualTo(reference.toTag());
+    assertThat(renderedByAProvider(expanded.getFirst())).isEqualTo(tagOfTheStoredDocument);
+    assertThat(renderedByAProvider(withoutRegistry.getFirst())).isEqualTo(tagOfTheStoredDocument);
+  }
+
+  @Test
+  void aReferenceInAToolResultBecomesItsTagTextWhenTheRegistryCannotSupplyTheDocument() {
+    final var reference =
+        new DocumentReferenceContent(
+            "unknown", "a.pdf", null, null, null, null, null, DocumentDelivery.REFERENCE);
+
+    final var expanded =
+        expander.expandMessages(List.of(toolResultMessage(reference)), DocumentRegistry.empty());
+
+    assertThat(resultContent(expanded.getFirst())).containsExactly(tagOf(reference));
+  }
+
+  @Test
+  void aReferenceInAToolResultBecomesItsTagTextWhenTheRegistryReferenceCannotBeRead() {
+    final var registry =
+        DocumentRegistry.of(
+            List.of(
+                new DocumentRegistryEntry(
+                    "broken",
+                    DocumentSource.toolCall("fetch", "call-1", "m-1"),
+                    Map.of("camunda.document.type", "unsupported"))));
+    final var reference =
+        new DocumentReferenceContent(
+            "broken", null, null, null, null, null, null, DocumentDelivery.REFERENCE);
+
+    final var expanded = expander.expandMessages(List.of(toolResultMessage(reference)), registry);
+
+    assertThat(resultContent(expanded.getFirst())).containsExactly(tagOf(reference));
+  }
+
+  @Test
+  void aReferenceInAToolResultNeverGetsTheDocumentAfterItsTag() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(
+                toolResultMessage(
+                    DocumentReferenceContent.from(document)
+                        .withDelivery(DocumentDelivery.CONTENT))),
+            registry);
+
+    assertThat(resultContent(expanded.getFirst())).hasSize(1);
+    assertRebuiltDocumentIs(resultContent(expanded.getFirst()).getFirst(), document);
+  }
+
+  @Test
+  void leavesToolResultsWithoutReferencesAlone() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+    final var messages =
+        List.<Message>of(
+            toolResultMessage(
+                textContent("text"),
+                DocumentContent.documentContent(document),
+                ObjectContent.objectContent(Map.of("file", document))));
+
+    assertThat(expander.expandMessages(messages, registry)).isSameAs(messages);
+  }
+
+  @Test
+  void expandingAToolResultTwiceGivesTheSameResult() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+    final var messages =
+        List.<Message>of(toolResultMessage(DocumentReferenceContent.from(document)));
+
+    final var once = expander.expandMessages(messages, registry);
+
+    assertThat(expander.expandMessages(once, registry)).isSameAs(once);
   }
 }

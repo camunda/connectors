@@ -8,12 +8,14 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
@@ -24,16 +26,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Turns the persisted {@link DocumentReferenceContent document references} in user messages into
- * the form the model providers and the agent instance history see: the tag text of the document
- * and, depending on the document delivery, the content of the document next to it.
+ * Turns the persisted {@link DocumentReferenceContent document references} in user messages and
+ * tool results into the form the model providers and the agent instance history see.
  *
  * <p>The persisted form of a document is its reference only; the document is read from the {@link
- * DocumentRegistry}. The model gets the tag text of every reference and the document content of the
- * references with {@link DocumentDelivery#CONTENT} ({@link #expandMessages}); the history shows the
- * document of every reference ({@link #expandContent}). A document the registry does not know, or
- * whose reference cannot be read, leaves the tag text alone. A tag a user typed into a prompt is
- * text and stays text.
+ * DocumentRegistry}. In a user message the model gets the tag text of every reference and the
+ * document content of the references with {@link DocumentDelivery#CONTENT} ({@link
+ * #expandMessages}); the history shows the document of every reference ({@link #expandContent}). A
+ * document the registry does not know, or whose reference cannot be read, leaves the tag text
+ * alone. A tag a user typed into a prompt is text and stays text.
+ *
+ * <p>In a tool result a reference becomes the document read from the registry, which the providers
+ * render as the tag of the document inside the result, or the tag text when the registry cannot
+ * supply the document. The delivery of such a reference is not read: the providers show a document
+ * of a tool result as its tag only.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -53,9 +59,10 @@ public final class DocumentExpander {
   }
 
   /**
-   * Returns the messages with the content of their user messages expanded for the model: the tag
-   * text of every document reference, followed by the document for the references with the delivery
-   * {@code content}.
+   * Returns the messages expanded for the model: in a user message the tag text of every document
+   * reference, followed by the document for the references with the delivery {@code content}; in a
+   * tool result the document of every reference, or its tag text when the registry has no readable
+   * document.
    */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());
@@ -65,6 +72,13 @@ public final class DocumentExpander {
         final var content = expand(userMessage.content(), registry, true);
         if (content != userMessage.content()) {
           expanded.add(userMessage.withContent(content));
+          changed = true;
+          continue;
+        }
+      } else if (message instanceof ToolCallResultMessage toolCallResultMessage) {
+        final var results = expandResults(toolCallResultMessage.results(), registry);
+        if (results != toolCallResultMessage.results()) {
+          expanded.add(toolCallResultMessage.withResults(results));
           changed = true;
           continue;
         }
@@ -105,6 +119,40 @@ public final class DocumentExpander {
         if (document != null) {
           expanded.add(DocumentContent.documentContent(document));
         }
+      }
+    }
+    return changed ? List.copyOf(expanded) : content;
+  }
+
+  private List<ToolCallResultContent> expandResults(
+      List<ToolCallResultContent> results, DocumentRegistry registry) {
+    final var expanded = new ArrayList<ToolCallResultContent>(results.size());
+    boolean changed = false;
+    for (final var result : results) {
+      final var content = expandResultContent(result.content(), registry);
+      if (content != result.content()) {
+        expanded.add(result.withContent(content));
+        changed = true;
+      } else {
+        expanded.add(result);
+      }
+    }
+    return changed ? List.copyOf(expanded) : results;
+  }
+
+  private List<Content> expandResultContent(List<Content> content, DocumentRegistry registry) {
+    final var expanded = new ArrayList<Content>(content.size());
+    boolean changed = false;
+    for (final var current : content) {
+      if (current instanceof DocumentReferenceContent reference) {
+        final var document = rehydrate(registry, reference.id());
+        expanded.add(
+            document != null
+                ? new DocumentContent(document, reference.metadata())
+                : new TextContent(reference.toTag(), reference.metadata()));
+        changed = true;
+      } else {
+        expanded.add(current);
       }
     }
     return changed ? List.copyOf(expanded) : content;
