@@ -59,9 +59,8 @@ public record SlackRequest<T extends SlackRequestData>(
             label = "API base URL",
             group = "authentication",
             type = PropertyType.Hidden,
-            optional = true,
-            tooltip =
-                "Override the Slack API base URL, e.g. to use a proxy, a gateway, or a Slack-compatible endpoint. Defaults to <code>https://slack.com/api/</code>.")
+            feel = FeelMode.disabled,
+            defaultValue = DEFAULT_BASE_URL)
         String baseUrl,
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
@@ -84,6 +83,9 @@ public record SlackRequest<T extends SlackRequestData>(
         @NotNull
         @NestedProperties(addNestedPath = false)
         T data) {
+
+  /** The public Slack API endpoint, used when the base URL is not overridden. */
+  public static final String DEFAULT_BASE_URL = "https://slack.com/api/";
 
   private static final Logger LOG = LoggerFactory.getLogger(SlackRequest.class);
 
@@ -117,17 +119,21 @@ public record SlackRequest<T extends SlackRequestData>(
   }
 
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
-    if (baseUrl == null) {
+    if (baseUrl == null || DEFAULT_BASE_URL.equals(withTrailingSlash(baseUrl))) {
       return data.invoke(slack.methods(token()));
     }
     final var config = new SlackConfig();
-    config.setMethodsEndpointUrlPrefix(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
+    config.setMethodsEndpointUrlPrefix(withTrailingSlash(baseUrl));
     final Slack scopedSlack = Slack.getInstance(config);
     try {
       return data.invoke(scopedSlack.methods(token()));
     } finally {
       closeQuietly(scopedSlack);
     }
+  }
+
+  private static String withTrailingSlash(final String url) {
+    return url.endsWith("/") ? url : url + "/";
   }
 
   /** Releases the per-request client's HTTP resources without masking the invocation result. */

@@ -70,6 +70,21 @@ class SlackRequestBaseUrlTest {
   }
 
   @Test
+  void defaultBaseUrl_usesTheInjectedSlackClient() throws Exception {
+    var slack = mock(Slack.class);
+    var methods = mock(MethodsClient.class);
+    var chatResponse = mock(ChatPostMessageResponse.class);
+    when(slack.methods(TOKEN)).thenReturn(methods);
+    when(methods.chatPostMessage(any(ChatPostMessageRequest.class))).thenReturn(chatResponse);
+    when(chatResponse.isOk()).thenReturn(true);
+    when(chatResponse.getMessage()).thenReturn(new Message());
+
+    bind("\"baseUrl\": \"https://slack.com/api\",").invoke(slack);
+
+    verify(slack).methods(TOKEN);
+  }
+
+  @Test
   void blankBaseUrl_isTreatedAsUnset() {
     assertThat(bind("\"baseUrl\": \"  \",").baseUrl()).isNull();
   }

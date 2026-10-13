@@ -129,8 +129,8 @@
   }, {
     "id" : "baseUrl",
     "label" : "API base URL",
-    "optional" : true,
-    "feel" : "optional",
+    "optional" : false,
+    "value" : "https://slack.com/api/",
     "group" : "authentication",
     "binding" : {
       "name" : "baseUrl",
