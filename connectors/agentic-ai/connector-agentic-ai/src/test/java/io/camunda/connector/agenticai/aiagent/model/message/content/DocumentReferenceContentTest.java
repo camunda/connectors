@@ -172,8 +172,11 @@ class DocumentReferenceContentTest {
                 .toTag())
         .isEqualTo(expected);
     assertThat(DocumentReferenceContent.from(entry).toTag()).isEqualTo(expected);
-    assertThat(DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsText())
-        .doesNotContain("fileName");
+    assertThat(
+            DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsError("x").contentBlocks())
+        .filteredOn(DocumentReferenceContent.class::isInstance)
+        .extracting(block -> ((DocumentReferenceContent) block).toTag())
+        .containsExactly(expected);
   }
 
   @Test

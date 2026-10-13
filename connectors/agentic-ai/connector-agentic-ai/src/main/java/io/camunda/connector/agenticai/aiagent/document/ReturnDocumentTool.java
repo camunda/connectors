@@ -129,9 +129,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
               + " underscore and continues with letters, digits, underscores or hyphens.");
     }
     if (arguments.document() == null || documents.findById(arguments.document()).isEmpty()) {
-      return RuntimeToolResult.error(
-          "Parameter '%s' must be the id of a known document. %s"
-              .formatted(PARAMETER_DOCUMENT, documents.knownDocumentsText()));
+      return documents.knownDocumentsError(
+          "Parameter '%s' must be the id of a known document.".formatted(PARAMETER_DOCUMENT));
     }
 
     final var key = arguments.key();

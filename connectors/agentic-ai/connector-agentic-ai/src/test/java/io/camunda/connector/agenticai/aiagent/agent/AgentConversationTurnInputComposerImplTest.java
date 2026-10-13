@@ -32,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -806,6 +807,46 @@ class AgentConversationTurnInputComposerImplTest {
                       textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
                       tagWithContent(document, "first.txt"));
             });
+  }
+
+  @Test
+  void
+      pendingGetDocumentResultWithContentBlocks_keepsTheBlocksInTheToolResultNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var blocks =
+        List.<Content>of(
+            textContent("Loaded the document."),
+            documentReference(
+                document, "first.txt", "text/plain", "user_message", DocumentDelivery.REFERENCE),
+            textContent("Its content follows in the next message."));
+    var pending =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name(GetDocumentTool.NAME)
+            .contentBlocks(blocks)
+            .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
+            .properties(
+                Map.of(
+                    ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT,
+                    DocumentHandle.idFor(document)))
+            .build();
+    var context =
+        CTX_WITH_CONVERSATION
+            .withDocuments(registryOf(document).entries())
+            .withPendingRuntimeToolCallResults(List.of(pending));
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, context, history, input);
+
+    assertThat(resultsOf(result).getFirst().content()).isEqualTo(blocks);
+    assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(2);
+    assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
   }
 
   @Test

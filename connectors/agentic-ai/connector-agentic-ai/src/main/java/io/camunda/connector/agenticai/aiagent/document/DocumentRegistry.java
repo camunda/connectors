@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Immutable, insertion-ordered registry of the documents known to the agent, keyed by {@link
@@ -77,21 +81,28 @@ public final class DocumentRegistry {
   }
 
   /**
-   * Describes the known documents for a message to the model: their tags, at most 50 of them with
-   * the rest counted, or a sentence when no document is known.
+   * The error result that tells the model what was wrong and which documents it can use: the
+   * problems, then the known documents, at most 50 of them as references in registration order with
+   * the rest counted. The content is a list of text and document references, so the model reads
+   * each document as its own part. A sentence says when no document is known, in the text of the
+   * problems.
+   *
+   * @param problems what was wrong, as the model reads it
    */
-  public String knownDocumentsText() {
+  public RuntimeToolResult knownDocumentsError(String problems) {
     if (isEmpty()) {
-      return "No documents are known.";
+      return RuntimeToolResult.error(problems + " No documents are known.");
     }
-    final var listed =
-        entriesById.values().stream()
-            .limit(MAX_LISTED_DOCUMENTS)
-            .map(entry -> DocumentReferenceContent.from(entry).toTag())
-            .collect(Collectors.joining("\n"));
+    final var content = new ArrayList<Content>();
+    content.add(TextContent.textContent(problems + " Known documents:"));
+    entriesById.values().stream()
+        .limit(MAX_LISTED_DOCUMENTS)
+        .map(entry -> DocumentReferenceContent.from(entry, DocumentDelivery.REFERENCE))
+        .forEach(content::add);
     final var omitted = entriesById.size() - MAX_LISTED_DOCUMENTS;
-    return "Known documents:\n"
-        + listed
-        + (omitted > 0 ? "\n(and %d more)".formatted(omitted) : "");
+    if (omitted > 0) {
+      content.add(TextContent.textContent("(and %d more)".formatted(omitted)));
+    }
+    return RuntimeToolResult.errorWithContent(content);
   }
 }

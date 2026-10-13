@@ -15,7 +15,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -629,6 +632,67 @@ class AgentContextSchemaMigrationTest {
       assertThat(bound.pendingRuntimeToolCallResults())
           .usingRecursiveComparison()
           .isEqualTo(List.of(pending));
+    }
+
+    @Test
+    void
+        pendingRuntimeToolCallResultsWithContentBlocksKeepTheirBlocksThroughTheVersionedDeserialization()
+            throws Exception {
+      final var blocks =
+          List.<Content>of(
+              TextContent.textContent("Loaded the document."),
+              new DocumentReferenceContent(
+                  "doc-1",
+                  "report.txt",
+                  "text/plain",
+                  10L,
+                  null,
+                  "search",
+                  "call-1",
+                  DocumentDelivery.REFERENCE),
+              TextContent.textContent("Its content follows in the next message."));
+      final var pending =
+          ToolCallResult.builder()
+              .id("call-1")
+              .name("c8__get_document")
+              .contentBlocks(blocks)
+              .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
+              .build();
+      final var context =
+          AgentContext.builder()
+              .conversation(
+                  InProcessConversationContext.builder("conv")
+                      .messages(
+                          List.of(
+                              ToolCallResultMessage.builder()
+                                  .results(List.of(ToolCallResultContent.from(pending)))
+                                  .build()))
+                      .build())
+              .pendingRuntimeToolCallResults(List.of(pending))
+              .build();
+
+      final var serialized = objectMapper.writeValueAsString(context);
+      final var bound = objectMapper.readValue(serialized, AgentContext.class);
+
+      assertThat(bound.pendingRuntimeToolCallResults())
+          .singleElement()
+          .satisfies(
+              result -> {
+                assertThat(result.content()).isNull();
+                assertThat(result.contentBlocks()).isEqualTo(blocks);
+                assertThat(ToolCallResultContent.from(result).content()).isEqualTo(blocks);
+              });
+      assertThat(bound.conversation())
+          .isInstanceOfSatisfying(
+              InProcessConversationContext.class,
+              conversation ->
+                  assertThat(conversation.messages())
+                      .singleElement()
+                      .isInstanceOfSatisfying(
+                          ToolCallResultMessage.class,
+                          message ->
+                              assertThat(message.results().getFirst().content())
+                                  .isEqualTo(blocks)));
     }
 
     @Test

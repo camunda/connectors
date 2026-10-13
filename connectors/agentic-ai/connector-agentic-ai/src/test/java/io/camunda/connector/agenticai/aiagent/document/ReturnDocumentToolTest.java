@@ -22,6 +22,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
@@ -153,11 +155,15 @@ class ReturnDocumentToolTest {
     assertThat(split.runtimeResults())
         .singleElement()
         .satisfies(
-            result ->
-                assertThat(result.content().toString())
-                    .startsWith(
-                        "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
-                    .contains(reportId, summaryId));
+            result -> {
+              assertThat(firstText(result))
+                  .isEqualTo(
+                      "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:");
+              assertThat(result.contentBlocks())
+                  .filteredOn(DocumentReferenceContent.class::isInstance)
+                  .extracting(block -> ((DocumentReferenceContent) block).id())
+                  .contains(reportId, summaryId);
+            });
     assertThat(split.conversation().responseDocuments()).isEmpty();
   }
 
@@ -182,7 +188,7 @@ class ReturnDocumentToolTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content().toString())
+                assertThat(firstText(result))
                     .startsWith("Parameter 'document' must be the exact id of a known document")
                     .contains("got '" + tag + "'"));
     assertThat(split.conversation().responseDocuments()).isEmpty();
@@ -222,7 +228,7 @@ class ReturnDocumentToolTest {
       final var split = run(CONFIGURATION, call("1", arguments));
 
       assertThat(split.runtimeResults()).singleElement();
-      assertThat(split.runtimeResults().get(0).content().toString()).contains("Parameter");
+      assertThat(firstText(split.runtimeResults().get(0))).contains("Parameter");
       assertThat(split.conversation().responseDocuments()).isEmpty();
     }
   }
@@ -242,9 +248,16 @@ class ReturnDocumentToolTest {
     assertThat(split.remainingCalls()).extracting(ToolCall::id).containsExactly("t1");
     assertThat(split.runtimeResults().get(0).content())
         .isEqualTo("Returned the document under the key 'report'.");
-    assertThat(split.runtimeResults().get(1).content().toString())
+    assertThat(firstText(split.runtimeResults().get(1)))
         .startsWith(
             "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
+  }
+
+  /** The text of an answer, or the first text of an answer made of content blocks. */
+  private static String firstText(ToolCallResult result) {
+    return result.contentBlocks().isEmpty()
+        ? result.content().toString()
+        : ((TextContent) result.contentBlocks().getFirst()).text();
   }
 
   private static ToolCall call(String id, Map<String, Object> arguments) {

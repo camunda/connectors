@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CH
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -26,7 +27,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -119,6 +122,19 @@ class RuntimeToolCallHandlerImplTest {
     List<ToolDefinition> availableToolDefinitions(AgentConversation conversation) {
       return availableToolDefinitions(conversation.configuration(), conversation.toAgentContext());
     }
+  }
+
+  /** The block that lists the report in an answer with the known documents. */
+  private DocumentReferenceContent reportReference() {
+    return new DocumentReferenceContent(
+        reportId,
+        "report.txt",
+        "text/plain",
+        null,
+        null,
+        "search",
+        "call-1",
+        DocumentDelivery.REFERENCE);
   }
 
   private final Handler handler = handlerOf(SaveNoteTool.create());
@@ -374,10 +390,11 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content().toString())
-                    .startsWith(
-                        "Parameter 'file' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
-                    .contains(reportId));
+                assertThat(result.contentBlocks())
+                    .containsExactly(
+                        textContent(
+                            "Parameter 'file' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:"),
+                        reportReference()));
   }
 
   @Test
@@ -428,10 +445,11 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content().toString())
-                    .startsWith(
-                        "Parameter 'body' holds a <doc /> tag with the id 'bogus'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:")
-                    .contains(reportId));
+                assertThat(result.contentBlocks())
+                    .containsExactly(
+                        textContent(
+                            "Parameter 'body' holds a <doc /> tag with the id 'bogus'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:"),
+                        reportReference()));
   }
 
   // document parameters of the tools of the process
@@ -465,11 +483,11 @@ class RuntimeToolCallHandlerImplTest {
         .satisfies(
             result -> {
               assertThat(result.id()).isEqualTo("s2");
-              assertThat(result.content())
-                  .isEqualTo(
-                      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:\n"
-                          + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
-                              .formatted(reportId));
+              assertThat(result.contentBlocks())
+                  .containsExactly(
+                      textContent(
+                          "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:"),
+                      reportReference());
             });
   }
 
@@ -503,11 +521,11 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content())
-                    .isEqualTo(
-                        "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. Known documents:\n"
-                            + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
-                                .formatted(reportId)));
+                assertThat(result.contentBlocks())
+                    .containsExactly(
+                        textContent(
+                            "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. Known documents:"),
+                        reportReference()));
   }
 
   @Test

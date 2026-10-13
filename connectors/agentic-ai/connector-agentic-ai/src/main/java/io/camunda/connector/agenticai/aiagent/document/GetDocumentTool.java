@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -31,10 +33,10 @@ import org.jspecify.annotations.Nullable;
  * document, which it otherwise sees as a {@code <doc/>} tag only. It is offered to every agent
  * instance with the documents feature.
  *
- * <p>A successful call answers {@code Loaded the document <doc/ tag>. Its content follows in the
- * next message.} with the tag of the document, as the model saw it before, and marks its result
- * with the id of the document ({@link ToolCallResult#PROPERTY_DOCUMENT_ID_WITH_CONTENT}); the
- * content reaches the model in the message that follows the tool results. A document that is
+ * <p>A successful call answers with the text {@code Loaded the document.}, the document as a
+ * reference block, and the text {@code Its content follows in the next message.}, and marks its
+ * result with the id of the document ({@link ToolCallResult#PROPERTY_DOCUMENT_ID_WITH_CONTENT});
+ * the content reaches the model in the message that follows the tool results. A document that is
  * already part of the conversation is not added again. A document that does not pass the {@link
  * DocumentContentGuard} (a content type outside the allowlist, a size above the limit of its type)
  * is rejected without its content being read.
@@ -103,9 +105,8 @@ public final class GetDocumentTool implements RuntimeTool {
     final var documents = conversation.documentRegistry();
     final var entry = id == null ? null : documents.findById(id).orElse(null);
     if (entry == null) {
-      return RuntimeToolResult.error(
-          "Parameter '%s' must be the id of a known document. %s"
-              .formatted(PARAMETER_ID, documents.knownDocumentsText()));
+      return documents.knownDocumentsError(
+          "Parameter '%s' must be the id of a known document.".formatted(PARAMETER_ID));
     }
 
     if (conversation.documentIdsWithContent().contains(entry.id())) {
@@ -128,9 +129,11 @@ public final class GetDocumentTool implements RuntimeTool {
               .formatted(rejection.problem()));
     }
 
-    return RuntimeToolResult.success(
-            "Loaded the document %s. Its content follows in the next message."
-                .formatted(DocumentReferenceContent.from(entry).toTag()))
+    return RuntimeToolResult.successWithContent(
+            List.of(
+                TextContent.textContent("Loaded the document."),
+                DocumentReferenceContent.from(entry, DocumentDelivery.REFERENCE),
+                TextContent.textContent("Its content follows in the next message.")))
         .withProperty(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, entry.id());
   }
 

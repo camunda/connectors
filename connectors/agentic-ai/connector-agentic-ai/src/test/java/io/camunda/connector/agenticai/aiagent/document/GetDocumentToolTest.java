@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CH
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -138,6 +140,14 @@ class GetDocumentToolTest {
     return new DocumentRegistryEntry(id, DocumentSource.userMessage(null), reference);
   }
 
+  /** The answer of a load: the document as a reference block between two texts. */
+  private static List<Content> loadedAnswer(DocumentRegistryEntry entry) {
+    return List.of(
+        textContent("Loaded the document."),
+        DocumentReferenceContent.from(entry, DocumentDelivery.REFERENCE),
+        textContent("Its content follows in the next message."));
+  }
+
   @Test
   void definitionHasASingleRequiredDocumentParameterAndTellsAboutLargeDocuments() {
     final var definition = tool.definition();
@@ -179,9 +189,8 @@ class GetDocumentToolTest {
         .singleElement()
         .satisfies(
             result -> {
-              assertThat(result.content())
-                  .isEqualTo(
-                      "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
+              assertThat(result.contentBlocks())
+                  .isEqualTo(loadedAnswer(camundaEntry("doc-1", "text/plain", 10L)));
               assertThat(result.properties())
                   .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1");
             });
@@ -213,10 +222,12 @@ class GetDocumentToolTest {
         .singleElement()
         .satisfies(
             result -> {
-              assertThat(result.content().toString())
-                  .startsWith(
-                      "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
-                  .contains("doc-1");
+              assertThat(result.contentBlocks())
+                  .containsExactly(
+                      textContent(
+                          "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:"),
+                      DocumentReferenceContent.from(
+                          camundaEntry("doc-1", "text/plain", 10L), DocumentDelivery.REFERENCE));
               assertThat(result.properties()).isEmpty();
             });
   }
@@ -287,9 +298,8 @@ class GetDocumentToolTest {
             List.of(),
             call("1", "doc-1"));
 
-    assertThat(split.runtimeResults().getFirst().content())
-        .isEqualTo(
-            "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" size=\"262144\" source=\"user_message\" />. Its content follows in the next message.");
+    assertThat(split.runtimeResults().getFirst().contentBlocks())
+        .isEqualTo(loadedAnswer(camundaEntry("doc-1", "text/plain", TEXT_LIMIT)));
     assertThat(store.opened.get()).isZero();
   }
 
@@ -306,9 +316,8 @@ class GetDocumentToolTest {
             call("1", "pdf-ok"),
             call("2", "pdf-big"));
 
-    assertThat(split.runtimeResults().get(0).content())
-        .isEqualTo(
-            "Loaded the document <doc id=\"pdf-ok\" contentType=\"application/pdf\" size=\"5242880\" source=\"user_message\" />. Its content follows in the next message.");
+    assertThat(split.runtimeResults().get(0).contentBlocks())
+        .isEqualTo(loadedAnswer(camundaEntry("pdf-ok", "application/pdf", 5L * 1024 * 1024)));
     assertThat(split.runtimeResults().get(1).content().toString())
         .startsWith(
             "The document is 10241 KB, too large to load into the conversation (limit 10240 KB)");
@@ -336,9 +345,8 @@ class GetDocumentToolTest {
     assertThat(split.runtimeResults().get(0).properties()).isEmpty();
     assertThat(split.runtimeResults().get(1).content().toString())
         .startsWith("The document is of type image/tiff which cannot be loaded");
-    assertThat(split.runtimeResults().get(2).content())
-        .isEqualTo(
-            "Loaded the document <doc id=\"png-1\" contentType=\"image/png\" size=\"10\" source=\"user_message\" />. Its content follows in the next message.");
+    assertThat(split.runtimeResults().get(2).contentBlocks())
+        .isEqualTo(loadedAnswer(camundaEntry("png-1", "image/png", 10L)));
     assertThat(store.opened.get()).isZero();
   }
 
@@ -402,9 +410,8 @@ class GetDocumentToolTest {
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
 
-    assertThat(split.runtimeResults().getFirst().content())
-        .isEqualTo(
-            "Loaded the document <doc id=\"doc-1\" contentType=\"text/plain\" source=\"user_message\" />. Its content follows in the next message.");
+    assertThat(split.runtimeResults().getFirst().contentBlocks())
+        .isEqualTo(loadedAnswer(camundaEntry("doc-1", "text/plain", null)));
   }
 
   @Test

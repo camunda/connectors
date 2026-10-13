@@ -7,11 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The outcome of a runtime tool call: the content the model reads as the tool result and,
@@ -19,7 +21,8 @@ import java.util.function.UnaryOperator;
  *
  * <p>The content is handled like the content of any other tool result: text or an object (a map, a
  * list, a record the mapper can serialize); a document inside the content is shown to the model as
- * its tag.
+ * its tag. A list of {@link Content} blocks is the content as it is: the model reads each text and
+ * each document reference as a part of its own.
  *
  * @param content the content of the tool result
  * @param error {@code true} if the call failed in a way the model can act on; the content is the
@@ -49,6 +52,35 @@ public record RuntimeToolResult(
   /** An error result; {@code message} is what the model reads, so it says what to change. */
   public static RuntimeToolResult error(String message) {
     return new RuntimeToolResult(message, true, List.of(), Map.of());
+  }
+
+  /**
+   * A successful result whose content is the given blocks, text and document references in the
+   * order the model reads them, and no change of the agent context.
+   */
+  public static RuntimeToolResult successWithContent(List<Content> blocks) {
+    return new RuntimeToolResult(List.copyOf(blocks), false, List.of(), Map.of());
+  }
+
+  /**
+   * An error result whose content is the given blocks, text and document references in the order
+   * the model reads them.
+   */
+  public static RuntimeToolResult errorWithContent(List<Content> blocks) {
+    return new RuntimeToolResult(List.copyOf(blocks), true, List.of(), Map.of());
+  }
+
+  /**
+   * The content as typed blocks when the tool answered with a non-empty list of them ({@link
+   * #successWithContent}, {@link #errorWithContent}), {@code null} for text and object content.
+   */
+  public @Nullable List<Content> contentBlocks() {
+    if (content instanceof List<?> list
+        && !list.isEmpty()
+        && list.stream().allMatch(Content.class::isInstance)) {
+      return list.stream().<Content>map(Content.class::cast).toList();
+    }
+    return null;
   }
 
   /**

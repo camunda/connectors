@@ -81,11 +81,13 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
         result = rejection;
       }
 
+      final var blocks = result.contentBlocks();
       runtimeResults.add(
           ToolCallResult.builder()
               .id(toolCall.id())
               .name(toolCall.name())
-              .content(result.content())
+              .content(blocks == null ? result.content() : null)
+              .contentBlocks(blocks == null ? List.of() : blocks)
               .completedAt(completedAt)
               .properties(result.properties())
               .build());
@@ -115,8 +117,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
         case DocumentParameterResolver.Resolution.Resolved resolved ->
             toolArguments = resolved.arguments();
         case DocumentParameterResolver.Resolution.Invalid invalid -> {
-          return RuntimeToolResult.error(
-              String.join(" ", invalid.problems()) + " " + documents.knownDocumentsText());
+          return documents.knownDocumentsError(String.join(" ", invalid.problems()));
         }
       }
     }
@@ -153,8 +154,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
     return switch (DocumentParameterResolver.resolve(toolCall, definition.get(), documents)) {
       case DocumentParameterResolver.Resolution.Resolved ignored -> null;
       case DocumentParameterResolver.Resolution.Invalid invalid ->
-          RuntimeToolResult.error(
-              String.join(" ", invalid.problems()) + " " + documents.knownDocumentsText());
+          documents.knownDocumentsError(String.join(" ", invalid.problems()));
     };
   }
 }

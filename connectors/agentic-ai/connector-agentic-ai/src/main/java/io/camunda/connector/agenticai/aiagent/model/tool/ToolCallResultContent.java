@@ -67,16 +67,18 @@ public record ToolCallResultContent(
 
   /**
    * Forward normalization: lifts a live {@link ToolCallResult}'s untyped {@code content} into the
-   * structured {@link Content} list, preserving every other field verbatim.
+   * structured {@link Content} list, preserving every other field verbatim. The {@link
+   * ToolCallResult#contentBlocks() content blocks} of a result, when it has any, are its content.
    */
   public static ToolCallResultContent from(ToolCallResult result) {
+    final var blocks = result.contentBlocks();
     return builder()
         .id(result.id())
         .name(result.name())
         .elementId(result.elementId())
         .completedAt(result.completedAt())
         .properties(result.properties())
-        .content(contentFromObject(result.content()))
+        .content(blocks.isEmpty() ? contentFromObject(result.content()) : blocks)
         .build();
   }
 
