@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -52,9 +52,17 @@ class EvictedDocumentsNoteTest {
             .build());
   }
 
-  private static UserMessage userMessageWith(
-      io.camunda.connector.agenticai.aiagent.model.message.content.Content... content) {
+  private static UserMessage userMessageWith(Content... content) {
     return UserMessage.builder().content(List.of(content)).build();
+  }
+
+  /** The ids of the documents the note at the end of the messages lists, in order. */
+  private static List<String> listedIds(List<Message> messages) {
+    return ((UserMessage) messages.getLast())
+        .content().stream()
+            .filter(DocumentReferenceContent.class::isInstance)
+            .map(content -> ((DocumentReferenceContent) content).id())
+            .toList();
   }
 
   @Test
@@ -107,9 +115,8 @@ class EvictedDocumentsNoteTest {
                 assertThat(note.content())
                     .containsExactly(
                         textContent(EvictedDocumentsNote.PREAMBLE),
-                        textContent(
-                            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_1\" />"
-                                .formatted(DocumentHandle.idFor(report)))));
+                        DocumentReferenceContent.from(
+                            registry.entries().get(0), DocumentDelivery.REFERENCE)));
   }
 
   @Test
@@ -117,12 +124,18 @@ class EvictedDocumentsNoteTest {
     final var result = EvictedDocumentsNote.appendTo(List.of(userMessage("next")), registry);
 
     assertThat(((UserMessage) result.getLast()).content())
-        .extracting(content -> ((TextContent) content).text())
         .hasSize(3)
         .satisfies(
-            texts -> {
-              assertThat(texts.get(1)).contains(DocumentHandle.idFor(report));
-              assertThat(texts.get(2)).contains(DocumentHandle.idFor(notes));
+            content -> {
+              assertThat(content.get(0)).isEqualTo(textContent(EvictedDocumentsNote.PREAMBLE));
+              assertThat(content.get(1))
+                  .isEqualTo(
+                      DocumentReferenceContent.from(
+                          registry.entries().get(0), DocumentDelivery.REFERENCE));
+              assertThat(content.get(2))
+                  .isEqualTo(
+                      DocumentReferenceContent.from(
+                          registry.entries().get(1), DocumentDelivery.REFERENCE));
             });
   }
 
@@ -170,17 +183,10 @@ class EvictedDocumentsNoteTest {
 
     final var result = EvictedDocumentsNote.appendTo(windowed, registry);
 
-    assertThat(((UserMessage) result.getLast()).content())
-        .extracting(content -> ((TextContent) content).text())
-        .hasSize(2)
-        .last()
-        .asString()
-        .contains(DocumentHandle.idFor(notes))
-        .doesNotContain(DocumentHandle.idFor(report));
+    assertThat(listedIds(result)).containsExactly(DocumentHandle.idFor(notes));
   }
 
-  private ToolCallResultMessage toolResultWith(
-      io.camunda.connector.agenticai.aiagent.model.message.content.Content... content) {
+  private ToolCallResultMessage toolResultWith(Content... content) {
     return ToolCallResultMessage.builder()
         .results(
             List.of(
@@ -208,52 +214,20 @@ class EvictedDocumentsNoteTest {
 
     final var result = EvictedDocumentsNote.appendTo(windowed, registryOfEvictedMessage());
 
-    assertThat(((UserMessage) result.getLast()).content())
-        .extracting(content -> ((TextContent) content).text())
-        .hasSize(2)
-        .last()
-        .asString()
-        .contains(DocumentHandle.idFor(notes))
-        .doesNotContain(DocumentHandle.idFor(report));
+    assertThat(listedIds(result)).containsExactly(DocumentHandle.idFor(notes));
   }
 
   @Test
-  void aDocumentOfAnExpandedReferenceInAToolResultCountsAsVisible() {
-    final var expander = new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
-    final var evictedRegistry = registryOfEvictedMessage();
-    final var withRegistryDocument =
-        expander.expandMessages(
-            List.of(toolResultWith(DocumentReferenceContent.from(report))), evictedRegistry);
-    final var withTagTextOnly =
-        expander.expandMessages(
-            List.of(toolResultWith(DocumentReferenceContent.from(report))),
-            DocumentRegistry.empty());
+  void aDocumentContentInAToolResultCountsAsVisible() {
+    final List<Message> windowed = List.of(toolResultWith(DocumentContent.documentContent(report)));
 
-    assertThat(
-            ((ToolCallResultMessage) withRegistryDocument.getFirst())
-                .results()
-                .getFirst()
-                .content())
-        .singleElement()
-        .isInstanceOf(DocumentContent.class);
-    assertThat(((ToolCallResultMessage) withTagTextOnly.getFirst()).results().getFirst().content())
-        .singleElement()
-        .isInstanceOf(TextContent.class);
-    for (final var windowed : List.of(withRegistryDocument, withTagTextOnly)) {
-      final var result = EvictedDocumentsNote.appendTo(windowed, evictedRegistry);
+    final var result = EvictedDocumentsNote.appendTo(windowed, registryOfEvictedMessage());
 
-      assertThat(((UserMessage) result.getLast()).content())
-          .extracting(content -> ((TextContent) content).text())
-          .hasSize(2)
-          .last()
-          .asString()
-          .contains(DocumentHandle.idFor(notes))
-          .doesNotContain(DocumentHandle.idFor(report));
-    }
+    assertThat(listedIds(result)).containsExactly(DocumentHandle.idFor(notes));
   }
 
   @Test
-  void aTagInTextCountsAsVisible() {
+  void aTagTypedAsTextDoesNotCountAsVisible() {
     final List<Message> windowed =
         List.of(
             userMessageWith(
@@ -262,9 +236,37 @@ class EvictedDocumentsNoteTest {
                         .formatted(DocumentHandle.idFor(report))),
                 textContent(
                     "<doc id=\"%s\" fileName=\"notes.txt\" />"
-                        .formatted(DocumentHandle.idFor(notes)))));
+                        .formatted(DocumentHandle.idFor(notes)))),
+            toolResultWith(
+                textContent("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(report)))));
 
-    assertThat(EvictedDocumentsNote.appendTo(windowed, registry)).isSameAs(windowed);
+    final var result = EvictedDocumentsNote.appendTo(windowed, registryOfEvictedMessage());
+
+    assertThat(listedIds(result))
+        .containsExactly(DocumentHandle.idFor(report), DocumentHandle.idFor(notes));
+  }
+
+  @Test
+  void aTagTypedAsTextDoesNotHideADocumentButItsWindowedSourceMessageDoes() {
+    final var prompt =
+        userMessageWith(textContent("see <doc id=\"" + DocumentHandle.idFor(notes) + "\" />"));
+    final var introducedByPrompt =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(notes, DocumentSource.userMessage(prompt.id().toString())),
+                    new IngestedDocument(
+                        report, DocumentSource.toolCall("search", "call_1", "evicted-message"))));
+    final List<Message> windowed = List.of(prompt);
+
+    final var result = EvictedDocumentsNote.appendTo(windowed, introducedByPrompt);
+
+    // the notes document is visible because its source message is windowed, not because of the tag
+    // typed into it; the report was introduced by a message that left the window
+    assertThat(listedIds(result)).containsExactly(DocumentHandle.idFor(report));
+    final List<Message> withoutPrompt = List.of(userMessage("next"));
+    assertThat(listedIds(EvictedDocumentsNote.appendTo(withoutPrompt, introducedByPrompt)))
+        .containsExactly(DocumentHandle.idFor(notes), DocumentHandle.idFor(report));
   }
 
   @Test

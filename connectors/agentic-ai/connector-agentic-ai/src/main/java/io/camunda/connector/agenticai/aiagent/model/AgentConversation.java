@@ -422,24 +422,25 @@ public final class AgentConversation implements RuntimeToolConversation {
    * tools.
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
-   * document references in the windowed user messages are expanded to their tag text and, for the
-   * references with the delivery {@code content}, the document read from the registry of the {@link
-   * AgentContext#documents() context} (see {@link DocumentExpander}); every other document stays a
-   * tag. A document reference in a windowed tool result is expanded to the document of the
-   * registry, which the providers render as its tag. When registry documents are not visible in the
-   * windowed messages, the snapshot ends with a transient user message listing them (see {@link
-   * EvictedDocumentsNote}). For an agent instance without the feature, the documents of the tool
-   * results are marked to be rendered as their document reference (see {@link
-   * LegacyDocumentRendering}) and the messages are otherwise left as they are. {@link
-   * #allMessages()} and the stored conversation are not affected.
+   * stored windowed messages are checked first: when registry documents are not visible in them, a
+   * transient user message listing them as document references is appended (see {@link
+   * EvictedDocumentsNote}). The document references of the windowed user messages, the note
+   * included, are then expanded to their tag text and, for the references with the delivery {@code
+   * content}, the document read from the registry of the {@link AgentContext#documents() context}
+   * (see {@link DocumentExpander}); every other document stays a tag. A document reference in a
+   * windowed tool result is expanded to the document of the registry, which the providers render as
+   * its tag. For an agent instance without the feature, the documents of the tool results are
+   * marked to be rendered as their document reference (see {@link LegacyDocumentRendering}) and the
+   * messages are otherwise left as they are. {@link #allMessages()} and the stored conversation are
+   * not affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
     final List<Message> messages;
     if (supportsDocuments()) {
       var registry = documentRegistry();
-      var expanded = documentExpander.expandMessages(windowed, registry);
-      messages = EvictedDocumentsNote.appendTo(expanded, registry);
+      var withNote = EvictedDocumentsNote.appendTo(windowed, registry);
+      messages = documentExpander.expandMessages(withNote, registry);
     } else {
       messages = LegacyDocumentRendering.apply(windowed);
     }
