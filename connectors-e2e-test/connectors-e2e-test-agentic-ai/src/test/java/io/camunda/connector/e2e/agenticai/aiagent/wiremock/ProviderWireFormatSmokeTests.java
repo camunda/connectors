@@ -265,7 +265,9 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // the content of the document follows the tool result, next to its tag
+    // the content of the document follows the tool result, next to its tag; the answer is a text,
+    // the tag and a text, which the recorded text joins by a newline (chat completions formats) or
+    // by nothing (formats with a part per block)
     assertThat(fixture.modelCallCount()).isEqualTo(2);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
@@ -275,7 +277,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             toolCallMessage, "c8__get_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111",
-            "Loaded the document <doc id=\"[0-9a-fA-F-]{36}\"[^>]*/>\\. Its content follows in the next message\\."),
+            "Loaded the document\\.\n?<doc id=\"[0-9a-fA-F-]{36}\"[^>]*/>\n?Its content follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
             "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
 

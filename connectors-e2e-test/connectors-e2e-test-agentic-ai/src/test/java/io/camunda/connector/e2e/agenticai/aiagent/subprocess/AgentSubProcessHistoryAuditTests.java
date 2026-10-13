@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
@@ -190,6 +191,32 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
                             List.of(promptDocumentTag))));
     assertThat(described.getContent().get(1))
         .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+  }
+
+  /**
+   * The answer to an unknown document id is a text, a document reference per known document and the
+   * count of the rest. The history shows the text, then the tag and the document of each reference.
+   */
+  @Test
+  void everyModelVisibleMessageOfAnUnknownDocumentIdAnswerIsInTheHistory() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl()), uploadTurn("no-such-document"), finalTurn());
+
+    final var agentInstanceKey = runAndGetAgentInstanceKey(e -> e);
+
+    assertHistoryCoversEveryModelRequest(agentInstanceKey);
+
+    final var answer = toolResultOf(awaitCommittedHistory(agentInstanceKey), UPLOAD_CALL_ID);
+    assertThat(answer.getContent().getFirst())
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.TextContent.class,
+            text ->
+                assertThat(text.getText())
+                    .startsWith("Parameter 'document' must be the exact id of a known document")
+                    .endsWith("Known documents:"));
+    assertThat(answer.getContent())
+        .filteredOn(AgentInstanceHistoryContent.DocumentContent.class::isInstance)
+        .hasSize(2);
   }
 
   /**
@@ -385,7 +412,47 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   private static boolean toolResultCovers(AgentInstanceHistory item, RecordedMessage message) {
     return item.getToolCalls().size() == 1
         && item.getToolCalls().getFirst().getToolCallId().equals(message.toolCallId())
-        && blocksCover(item.getContent(), modelParts(message));
+        && joinedBlocksCover(item.getContent(), 0, message.textContent());
+  }
+
+  /**
+   * A tool result of the chat completions request is one text: its parts joined by newlines. The
+   * blocks of a history item cover it when their texts and objects follow each other in it,
+   * separated by one newline, and a document block has the tag of its document in an earlier block
+   * (the result holds no document content).
+   */
+  private static boolean joinedBlocksCover(
+      List<AgentInstanceHistoryContent> blocks, int blockIndex, String text) {
+    if (blockIndex == blocks.size()) {
+      return text.isEmpty();
+    }
+    final var block = blocks.get(blockIndex);
+    if (block instanceof AgentInstanceHistoryContent.DocumentContent document) {
+      return holdsTagBefore(blocks, blockIndex, document)
+          && joinedBlocksCover(blocks, blockIndex + 1, text);
+    }
+    final String expected;
+    if (block instanceof AgentInstanceHistoryContent.TextContent textBlock) {
+      expected = strip(textBlock.getText());
+      if (!text.startsWith(expected)) {
+        return false;
+      }
+    } else if (block instanceof AgentInstanceHistoryContent.ObjectContent object) {
+      // compact JSON has no raw newline, so the object ends at the first one
+      final var end = text.indexOf('\n');
+      expected = end < 0 ? text : text.substring(0, end);
+      if (!jsonEquals(OBJECT_MAPPER.valueToTree(object.getObject()), expected)) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+    final var remaining = text.substring(expected.length());
+    if (remaining.isEmpty()) {
+      return joinedBlocksCover(blocks, blockIndex + 1, "");
+    }
+    return remaining.startsWith("\n")
+        && joinedBlocksCover(blocks, blockIndex + 1, remaining.substring(1));
   }
 
   /** The history holds the arguments of the call as the model sent them. */

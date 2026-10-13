@@ -125,8 +125,8 @@ public final class DocumentFlowAssertions {
         .containsExactly("system", "user", "assistant", "tool", "assistant", "tool", "user");
     assertThat(afterLoad.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(afterLoad.get(5).content())
-        .startsWith("Loaded the document <doc id=\"" + tag.id() + "\"")
-        .endsWith(" />. Its content follows in the next message.");
+        .startsWith("Loaded the document.\n<doc id=\"" + tag.id() + "\"")
+        .endsWith(" />\nIts content follows in the next message.");
     assertDocumentContentUserMessage(
         afterLoad.get(6),
         DocumentWithContent.forToolCall(
