@@ -121,7 +121,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withContentDelivery_addsTheContentOfADocumentThatPassesTheGuard() {
+  void userPrompt_withTheDeliveryContent_addsTheContentOfADocumentThatPassesTheGuard() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc));
@@ -148,7 +148,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   @Test
   void
-      userPrompt_withContentDelivery_fallsBackToTheReferenceAndANoteForADocumentThatFailsTheGuard() {
+      userPrompt_withTheDeliveryContent_fallsBackToTheReferenceAndANoteForADocumentThatFailsTheGuard() {
     final var loadable = document("prompt data", "text/plain", "prompt.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
@@ -170,7 +170,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withContentDelivery_addsTheContentOfADocumentOnlyOnce() {
+  void userPrompt_withTheDeliveryContent_addsTheContentOfADocumentOnlyOnce() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc, doc));
@@ -182,7 +182,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   @Test
   void
-      userPrompt_withContentDelivery_doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
+      userPrompt_withTheDeliveryContent_doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
     final var earlier =
         UserMessage.builder()
@@ -240,7 +240,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAContentDeliveryTool_arePutIntoAFollowUpMessageAsTagsWithContent() {
+  void toolResults_ofAToolWithTheDeliveryContent_arePutIntoAFollowUpMessageAsTagsWithContent() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var nested = document("nested data", "application/json", "nested.json");
 
@@ -271,7 +271,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAGatewayToolWhoseDefinitionHasContentDelivery_arePutIntoAFollowUpMessage() {
+  void toolResults_ofAGatewayToolWhoseDefinitionHasTheDeliveryContent_arePutIntoAFollowUpMessage() {
     // a gateway handler sets the delivery on the definitions it creates; the extension property of
     // the element is not read for gateway elements
     final var doc = document("weather data", "text/plain", "weather.txt");
@@ -324,7 +324,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAContentDeliveryTool_fallBackToANoteForADocumentThatFailsTheGuard() {
+  void toolResults_ofAToolWithTheDeliveryContent_fallBackToANoteForADocumentThatFailsTheGuard() {
     final var loadable = document("weather data", "text/plain", "weather.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
@@ -347,7 +347,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAContentDeliveryTool_withOnlyDocumentsThatFailTheGuard_addOnlyTheNote() {
+  void
+      toolResults_ofAToolWithTheDeliveryContent_withOnlyDocumentsThatFailTheGuard_addOnlyTheNote() {
     final var archive = document("zip", "application/zip", "archive.zip");
 
     final var turn =
@@ -367,7 +368,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAContentDeliveryTool_doNotAddTheContentOfADocumentTheModelGotInTheSameTurn() {
+  void
+      toolResults_ofAToolWithTheDeliveryContent_doNotAddTheContentOfADocumentTheModelGotInTheSameTurn() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var id = DocumentHandle.idFor(doc);
     final var registry =
@@ -394,7 +396,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   @Test
   void
-      toolResults_ofAContentDeliveryTool_doNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
+      toolResults_ofAToolWithTheDeliveryContent_doNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var earlier =
         UserMessage.builder()

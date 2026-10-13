@@ -144,8 +144,8 @@ public class AnthropicContentConverter {
   /**
    * Converts a tool result's structured content into Anthropic tool-result blocks. Unlike {@link
    * #toContentBlockParams}, a document here is flattened to a JSON reference rather than embedded
-   * natively as an image/document block: the document's actual bytes are already delivered to the
-   * model elsewhere for tool results, so embedding it here as well would send it twice.
+   * natively as an image/document block: the document's actual bytes are already sent to the model
+   * elsewhere for tool results, so embedding it here as well would send it twice.
    */
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
     final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();

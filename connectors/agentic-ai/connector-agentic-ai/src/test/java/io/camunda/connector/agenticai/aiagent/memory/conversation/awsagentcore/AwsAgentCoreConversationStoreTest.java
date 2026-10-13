@@ -880,7 +880,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void aDocumentReferenceWithContentDeliverySurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
+  void aDocumentReferenceWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(

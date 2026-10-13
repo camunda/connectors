@@ -103,7 +103,7 @@ class AdHocToolsSchemaResolverTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"content", "CONTENT", " Content "})
-  void marksAToolWhoseActivityRequestsContentDocumentDelivery(String value) {
+  void marksAToolWhoseActivityRequestsTheDeliveryContent(String value) {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")

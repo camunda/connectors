@@ -109,8 +109,8 @@ public class GeminiContentConverter {
    * emit sibling parts sharing one name/id.
    *
    * <p>Unlike {@link #toParts(List)}, a document here is flattened to a JSON reference rather than
-   * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
-   * the model elsewhere for tool results, so embedding it here as well would send it twice. Matches
+   * embedded natively as {@code inlineData}: the document's actual bytes are already sent to the
+   * model elsewhere for tool results, so embedding it here as well would send it twice. Matches
    * {@code AnthropicContentConverter#toToolResultBlocks} and {@code
    * OpenAiContentConverter#toResponsesToolResultOutputItems}. Every branch still wraps its payload
    * in a {@code functionResponse}, the reference-only document included: a plain text {@link Part}

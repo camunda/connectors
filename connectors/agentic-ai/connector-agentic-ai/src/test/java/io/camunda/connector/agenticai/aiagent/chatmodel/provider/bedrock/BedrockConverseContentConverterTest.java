@@ -331,7 +331,7 @@ class BedrockConverseContentConverterTest {
     })
     void mapsDocumentToTagTextRegardlessOfContentType(String fileName, String contentType) {
       // The composer echoes every tool-result document in a separate synthetic user message, which
-      // is where its real bytes are delivered; embedding it here as well would send it twice and
+      // is where its real bytes are sent; embedding it here as well would send it twice and
       // trip Converse's duplicate-document-name validation. Content type is therefore irrelevant
       // here - even one with no native block shape at all just becomes a tag.
       final var doc = inlineDocument("fake-bytes", fileName, contentType);

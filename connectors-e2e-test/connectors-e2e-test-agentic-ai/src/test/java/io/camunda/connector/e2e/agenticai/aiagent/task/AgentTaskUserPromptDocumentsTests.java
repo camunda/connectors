@@ -282,7 +282,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"test.csv", "test.jpg", "test.pdf", "test.txt"})
-  void addsTheContentOfPromptDocumentsWhenTheDeliveryIsContent(String filename) throws Exception {
+  void addsTheContentOfPromptDocumentsWithTheDeliveryContent(String filename) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
 
@@ -331,7 +331,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
 
   /** With the document delivery {@code reference}, the documents stay references. */
   @Test
-  void keepsPromptDocumentsAsReferencesWhenTheDeliveryIsReference() throws Exception {
+  void keepsPromptDocumentsAsReferencesWithTheDeliveryReference() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(Turn.text("TL;DR", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 

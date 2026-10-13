@@ -117,7 +117,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
    * to its tag, the note as text.
    */
   @Test
-  void everyModelVisibleMessageOfContentDocumentDeliveryIsInTheHistory() throws Exception {
+  void everyModelVisibleMessageOfADocumentWithTheDeliveryContentIsInTheHistory() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf"),
         downloadTurn(wireMock.getHttpBaseUrl(), "unsupported.zip", "call_download_zip"),

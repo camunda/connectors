@@ -141,11 +141,12 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
-  void addsTheContentOfTheDocumentsOfAContentDeliveryToolForTheModel(String file) throws Exception {
+  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel(String file)
+      throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
 
-    final var zeebeTest = awaitProcessCompletion(startContentDeliveryProcess());
+    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -194,13 +195,13 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"unsupported.zip", LARGE_FILE})
-  void keepsADocumentOfAContentDeliveryToolThatFailsTheGuardAsAReferenceWithANote(String file)
-      throws Exception {
+  void keepsADocumentOfAToolWithTheDeliveryContentThatFailsTheGuardAsAReferenceWithANote(
+      String file) throws Exception {
     final var expectedBytes = LARGE_FILE.equals(file) ? stubLargeTextFile() : servedFile(file);
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
 
-    final var zeebeTest = awaitProcessCompletion(startContentDeliveryProcess());
+    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -495,7 +496,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             uploadUrl(wireMock.getHttpBaseUrl())));
   }
 
-  private ZeebeTest startContentDeliveryProcess() throws Exception {
+  private ZeebeTest startDocumentsContentProcess() throws Exception {
     return createProcessInstance(
         contentDocumentsProcess,
         e -> e,

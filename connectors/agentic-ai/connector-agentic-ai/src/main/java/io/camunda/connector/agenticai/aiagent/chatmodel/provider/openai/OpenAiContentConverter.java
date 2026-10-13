@@ -80,8 +80,8 @@ public class OpenAiContentConverter {
    * Converts a tool result's structured content into Responses {@code function_call_output} items.
    * A document here is flattened to a JSON reference rather than emitted natively as {@code
    * input_image}/{@code input_file}, unlike {@link #toResponsesContentParts}: the document's actual
-   * bytes are already delivered to the model elsewhere for tool results, so embedding it here as
-   * well would send it twice.
+   * bytes are already sent to the model elsewhere for tool results, so embedding it here as well
+   * would send it twice.
    */
   public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
       List<Content> content) {

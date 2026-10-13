@@ -732,7 +732,7 @@ class AgentConversationTest {
 
   @Test
   void
-      documentIdsWithContent_collectsTheReferencesWithContentDeliveryOfTheWindowedUserMessagesOnly() {
+      documentIdsWithContent_collectsTheReferencesWithTheDeliveryContentOfTheWindowedUserMessagesOnly() {
     var loaded = reference("doc-1", DocumentDelivery.CONTENT);
     var referenced = reference("doc-2", DocumentDelivery.REFERENCE);
     var conv =
