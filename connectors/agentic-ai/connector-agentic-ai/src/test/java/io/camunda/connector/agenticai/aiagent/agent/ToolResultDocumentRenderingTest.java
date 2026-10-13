@@ -24,6 +24,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -35,7 +37,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -217,6 +221,83 @@ class ToolResultDocumentRenderingTest {
         .isEqualTo(live.stream().map(this::describe).toList());
     assertThat(live.get(0).content()).hasSize(2);
     assertThat(live.get(1).content()).hasSize(2);
+  }
+
+  @Test
+  void theHistoryOfAnAnswerMadeOfBlocksIsTheSameWhenItIsWrittenEarlyAndWhenItIsComposed()
+      throws Exception {
+    final var loaded = document("loaded", "loaded.txt", "text/plain");
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(loaded, DocumentSource.userMessage("m-1"))));
+    final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:55+02:00");
+    final var answer =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name("c8__get_document")
+            .contentBlocks(
+                List.of(
+                    TextContent.textContent("Loaded the document."),
+                    DocumentReferenceContent.from(
+                        registry.entries().getFirst(), DocumentDelivery.REFERENCE),
+                    TextContent.textContent("Its content follows in the next message.")))
+            .completedAt(completedAt)
+            .properties(
+                Map.of(
+                    ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT,
+                    registry.entries().getFirst().id()))
+            .build();
+    final var processResult =
+        ToolCallResult.builder()
+            .id("fedcba")
+            .name("getDateTime")
+            .content("today")
+            .completedAt(completedAt)
+            .build();
+    final var previous =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+    // the pending answer reaches the next job as the agent context holds it in the process variable
+    final var context =
+        TestObjectMapperSupplier.INSTANCE.readValue(
+            TestObjectMapperSupplier.INSTANCE.writeValueAsString(
+                CONTEXT
+                    .withDocuments(registry.entries())
+                    .withPendingRuntimeToolCallResults(List.of(answer))),
+            AgentContext.class);
+    final var nextTurn =
+        (CompositionResult.NextTurn)
+            composer.compose(
+                CONFIGURATION,
+                context,
+                previous,
+                AgentInput.from(
+                    new UserPromptConfiguration("user input", List.of()), List.of(processResult)));
+    final var toolCallsById = previous.turns().getLast().toolCallsById();
+    final var mapper =
+        new AgentInstanceHistoryMapper(
+            mock(GatewayToolHandlerRegistry.class),
+            new RuntimeToolRegistryImpl(List.of()),
+            expander);
+    final var historyDocuments = new HistoryDocuments(registry);
+
+    final var early =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder()
+                .results(List.of(ToolCallResultContent.from(answer)))
+                .build(),
+            toolCallsById,
+            completedAt,
+            historyDocuments);
+    final var composed =
+        mapper.inputHistoryItems(
+            nextTurn.messages().getFirst(), toolCallsById, completedAt, historyDocuments);
+
+    assertThat(early).hasSize(1);
+    assertThat(early.getFirst().content()).hasSize(4);
+    assertThat(composed.getFirst().historyItemId()).isEqualTo(early.getFirst().historyItemId());
+    assertThat(describe(composed.getFirst())).isEqualTo(describe(early.getFirst()));
   }
 
   private String describe(AgentInstanceHistoryMapper.InputHistoryItem item) {

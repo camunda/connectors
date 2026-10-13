@@ -183,7 +183,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void everyDocTagOfATextIsWrappedInInlineCodeBackticks() {
+  void aTagTypedByAUserInATextIsReportedVerbatim() {
     final var userMessage =
         UserMessage.builder()
             .content(
@@ -202,12 +202,12 @@ class AgentInstanceHistoryMapperTest {
             item ->
                 assertThat(texts(item.content()))
                     .containsExactly(
-                        "Documents (`<doc />` tag + content pair): `<doc id=\"a\" />` and"
-                            + " `<doc id=\"b\" fileName=\"b.txt\" />`."));
+                        "Documents (<doc /> tag + content pair): <doc id=\"a\" /> and <doc"
+                            + " id=\"b\" fileName=\"b.txt\" />."));
   }
 
   @Test
-  void aDocTagThatIsAlreadyInsideBackticksIsLeftAsItIs() {
+  void aTagInsideBackticksAndAPlainTagInATextAreReportedVerbatim() {
     final var userMessage =
         UserMessage.builder()
             .content(
@@ -224,7 +224,7 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(
             item ->
                 assertThat(texts(item.content()))
-                    .containsExactly("quoted `<doc id=\"a\" />` and plain `<doc id=\"b\" />`"));
+                    .containsExactly("quoted `<doc id=\"a\" />` and plain <doc id=\"b\" />"));
   }
 
   @Test
@@ -246,7 +246,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aToolResultTextQuotingADocTagIsWrappedInInlineCodeBackticks() {
+  void aToolResultTextQuotingADocTagIsReportedVerbatim() {
     final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
     final var result =
         ToolCallResultContent.builder()
@@ -270,11 +270,11 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(
             item ->
                 assertThat(texts(item.content()))
-                    .containsExactly("Unknown id. Known documents:\n`<doc id=\"a\" />`"));
+                    .containsExactly("Unknown id. Known documents:\n<doc id=\"a\" />"));
   }
 
   @Test
-  void anAssistantTextWithADocTagIsWrappedInInlineCodeBackticks() {
+  void anAssistantTextWithADocTagIsReportedVerbatim() {
     final var content =
         mapper.assistantContent(
             AssistantMessage.builder()
@@ -282,7 +282,7 @@ class AgentInstanceHistoryMapperTest {
                 .build(),
             NO_DOCUMENTS);
 
-    assertThat(texts(content)).containsExactly("I use `<doc id=\"a\" />`");
+    assertThat(texts(content)).containsExactly("I use <doc id=\"a\" />");
   }
 
   @Test
@@ -875,6 +875,44 @@ class AgentInstanceHistoryMapperTest {
       final var later = item(stored, documents);
 
       assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
+    }
+
+    @Test
+    void aReferenceBlockBetweenTextsIsTheShortTagInInlineCodeAndTheDocumentInTheOrderOfTheBlocks() {
+      // the block of a registry entry carries the tool call that returned the document, the model
+      // reads the short tag of a document in a tool result
+      final var block =
+          DocumentReferenceContent.from(registry.entries().getFirst(), DocumentDelivery.REFERENCE);
+
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("Loaded the document."),
+                  block,
+                  TextContent.textContent("Its content follows in the next message.")),
+              documents);
+
+      assertThat(block.toTag()).contains("toolName").contains("toolCallId");
+      assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");
+      assertThat(item.content()).hasSize(4);
+      assertThat(described(item).get(0)).isEqualTo("TEXT Loaded the document.");
+      assertThat(described(item).get(1)).isEqualTo("TEXT `" + tag + "`");
+      assertThat(item.content().get(2))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(described(item).get(3)).isEqualTo("TEXT Its content follows in the next message.");
+    }
+
+    @Test
+    void aTagWrittenInTheTextOfAToolResultIsReportedVerbatimNextToTheReferenceBlock() {
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("The tool wrote " + tag),
+                  DocumentReferenceContent.from(otherDocument)),
+              documents);
+
+      assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + tag);
+      assertThat(texts(item.content()).get(1)).isEqualTo("`" + otherTag + "`");
     }
 
     @Test

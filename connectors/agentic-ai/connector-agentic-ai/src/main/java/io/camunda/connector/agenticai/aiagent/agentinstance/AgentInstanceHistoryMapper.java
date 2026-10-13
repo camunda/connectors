@@ -48,7 +48,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -59,8 +58,6 @@ import org.jspecify.annotations.Nullable;
  * {@link CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
-
-  private static final Pattern DOC_TAG = Pattern.compile("<doc(?:\\s[^<>]*)?>");
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final RuntimeToolRegistry runtimeToolRegistry;
@@ -102,7 +99,7 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  contentBlocks(userContent(userMessage, documents), documents),
+                  userContentBlocks(userMessage.content(), documents),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -231,11 +228,30 @@ public class AgentInstanceHistoryMapper {
         .durationMs(durationMs);
   }
 
-  /** The content of a user message, with its document tags expanded to the documents. */
-  private List<Content> userContent(UserMessage userMessage, HistoryDocuments documents) {
-    return documents.documentFlow()
-        ? documentExpander.expandContent(userMessage.content(), documents.documents())
-        : userMessage.content();
+  /**
+   * The content of a user message. A document reference is its tag in inline code followed by the
+   * document, as the registry knows it; text is reported as it is, also when it holds a tag.
+   */
+  private List<AgentInstanceHistoryContent> userContentBlocks(
+      List<Content> contents, HistoryDocuments documents) {
+    if (!documents.documentFlow()) {
+      return contentBlocks(contents, documents);
+    }
+
+    final var blocks = new ArrayList<AgentInstanceHistoryContent>();
+    for (final var content : contents) {
+      if (content instanceof DocumentReferenceContent reference) {
+        final var expanded =
+            documentExpander.expandContent(List.of(reference), documents.documents());
+        blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
+        expanded.stream()
+            .skip(1)
+            .forEach(document -> blocks.add(toHistoryContent(document, documents)));
+      } else {
+        blocks.add(toHistoryContent(content, documents));
+      }
+    }
+    return List.copyOf(blocks);
   }
 
   /**
@@ -274,7 +290,9 @@ public class AgentInstanceHistoryMapper {
       List<AgentInstanceHistoryContent> blocks,
       DocumentReferenceContent reference,
       @Nullable Document document) {
-    blocks.add(AgentInstanceHistoryContent.text(inlineCodeDocTags(reference.toTag())));
+    // the tag the model reads for the document of a tool result, the short one
+    final var tag = document != null ? DocumentReferenceContent.from(document) : reference;
+    blocks.add(AgentInstanceHistoryContent.text(inlineCode(tag.toTag())));
     if (document != null && hasHistoryDocument(document)) {
       blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
     }
@@ -310,38 +328,23 @@ public class AgentInstanceHistoryMapper {
   private AgentInstanceHistoryContent toHistoryContent(
       Content content, HistoryDocuments documents) {
     return switch (content) {
-      case TextContent textContent ->
-          AgentInstanceHistoryContent.text(
-              documents.documentFlow()
-                  ? inlineCodeDocTags(textContent.text())
-                  : textContent.text());
+      case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case DocumentReferenceContent reference ->
           AgentInstanceHistoryContent.text(
-              documents.documentFlow() ? inlineCodeDocTags(reference.toTag()) : reference.toTag());
+              documents.documentFlow() ? inlineCode(reference.toTag()) : reference.toTag());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
   }
 
   /**
-   * Wraps every {@code <doc .../>} tag of the text in inline code backticks, so a markdown renderer
-   * shows the tag instead of treating it as markup. A tag that is already inside backticks is left
-   * as it is.
+   * The tag in inline code backticks, so a markdown renderer shows it instead of treating it as
+   * markup.
    */
-  private static String inlineCodeDocTags(String text) {
-    final var matcher = DOC_TAG.matcher(text);
-    final var result = new StringBuilder();
-    int last = 0;
-    while (matcher.find()) {
-      final var inCode =
-          text.substring(0, matcher.start()).chars().filter(c -> c == '`').count() % 2;
-      result.append(text, last, matcher.start());
-      result.append(inCode == 1 ? matcher.group() : "`" + matcher.group() + "`");
-      last = matcher.end();
-    }
-    return last == 0 ? text : result.append(text, last, text.length()).toString();
+  private static String inlineCode(String tag) {
+    return "`" + tag + "`";
   }
 
   private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {
