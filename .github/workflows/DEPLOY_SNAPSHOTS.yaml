@@ -139,7 +139,7 @@ jobs:
 
       - name: Build Artifacts
         if: github.event_name != 'push' || steps.snapshot-gate.outputs.fresh != 'true'
-        run: ./mvnw -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests -Dconnectors.fatjar.attach=false
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

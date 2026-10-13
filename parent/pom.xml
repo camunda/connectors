@@ -195,7 +195,7 @@ limitations under the License.</license.inlineheader>
 
     <version.auth0.jwt>4.6.1</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
-    
+
     <version.langchain4j>1.22.0</version.langchain4j>
     <!-- CVE-2026-9563: parsson transitive override — remove once langchain4j-opensearch ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
@@ -226,6 +226,9 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.10.4</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
+
+    <!-- false still builds the with-dependencies fat jars into target/, but does not install or deploy them -->
+    <connectors.fatjar.attach>true</connectors.fatjar.attach>
   </properties>
 
   <dependencyManagement>
