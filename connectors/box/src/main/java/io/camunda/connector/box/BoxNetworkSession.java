@@ -12,11 +12,18 @@ import com.box.sdkgen.networking.fetchresponse.FetchResponse;
 import com.box.sdkgen.networking.network.NetworkSession;
 import com.box.sdkgen.networking.retries.BoxRetryStrategy;
 import com.box.sdkgen.networking.retries.RetryStrategy;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkProxySelector;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.io.IOException;
 import java.io.InputStream;
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
 import okio.BufferedSink;
 
@@ -31,11 +38,27 @@ final class BoxNetworkSession {
   private BoxNetworkSession() {}
 
   static NetworkSession create() {
-    return create(BoxNetworkClient.getDefaultOkHttpClientBuilder());
+    return create(
+        BoxNetworkClient.getDefaultOkHttpClientBuilder(),
+        EnvironmentProxyConfiguration.withDefaults());
   }
 
   static NetworkSession create(OkHttpClient.Builder httpClientBuilder) {
-    var httpClient = httpClientBuilder.addInterceptor(BoxNetworkSession::oneShot).build();
+    return create(httpClientBuilder, ProxyConfiguration.NONE);
+  }
+
+  /**
+   * The Box SDK is bound to OkHttp, so the connector HTTP client cannot be reused. Its proxy
+   * configuration (CONNECTOR_HTTP(S)_PROXY_* and non-proxy hosts) is applied to OkHttp instead.
+   */
+  static NetworkSession create(
+      OkHttpClient.Builder httpClientBuilder, ProxyConfiguration proxyConfiguration) {
+    var httpClient =
+        httpClientBuilder
+            .proxySelector(new JdkProxySelector(proxyConfiguration))
+            .proxyAuthenticator(proxyAuthenticator(proxyConfiguration))
+            .addInterceptor(BoxNetworkSession::oneShot)
+            .build();
     var defaults = new NetworkSession();
     // a custom client replaces the SDK's own, so the session's default timeouts must be reapplied
     var networkClient =
@@ -43,6 +66,28 @@ final class BoxNetworkSession {
     return defaults
         .withNetworkClient(networkClient)
         .withRetryStrategy(new StreamSafeRetryStrategy(new BoxRetryStrategy()));
+  }
+
+  private static Authenticator proxyAuthenticator(ProxyConfiguration proxyConfiguration) {
+    return (route, response) -> {
+      Request request = response.request();
+      // a second 407 means the credentials were rejected, do not loop
+      if (request.header("Proxy-Authorization") != null) {
+        return null;
+      }
+      return proxyConfiguration
+          .getProxyDetails(request.url().scheme())
+          .filter(ProxyDetails::hasCredentials)
+          .map(
+              details ->
+                  request
+                      .newBuilder()
+                      .header(
+                          "Proxy-Authorization",
+                          Credentials.basic(details.user(), details.password()))
+                      .build())
+          .orElse(null);
+    };
   }
 
   // OkHttp resends e.g. a 503 with "Retry-After: 0" on its own unless the body is one-shot.
