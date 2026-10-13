@@ -85,6 +85,12 @@ class SlackRequestBaseUrlTest {
   }
 
   @Test
+  void defaultBaseUrl_matchesTheSlackSdkDefaultEndpoint() {
+    assertThat(SlackRequest.DEFAULT_BASE_URL)
+        .isEqualTo(Slack.getInstance().getConfig().getMethodsEndpointUrlPrefix());
+  }
+
+  @Test
   void blankBaseUrl_isTreatedAsUnset() {
     assertThat(bind("\"baseUrl\": \"  \",").baseUrl()).isNull();
   }
