@@ -83,7 +83,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.3</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>8.0.5.Final</version.hibernate-validator>
+    <version.hibernate-validator>8.0.6.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
 
@@ -102,7 +102,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.55.14</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.55.15</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -182,7 +182,7 @@ limitations under the License.</license.inlineheader>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
     <version.wiremock>3.13.2</version.wiremock>
-    <version.auth0.jwt>4.6.1</version.auth0.jwt>
+    <version.auth0.jwt>4.6.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
