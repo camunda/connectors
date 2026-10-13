@@ -1155,7 +1155,7 @@
         {
           "id" : "url",
           "label" : "Salesforce instance URL",
-          "description" : "The Salesforce instance this bearer token was issued for.",
+          "description" : "Required for bearer credentials. Requests always go to the Salesforce base URL set on the task.",
           "constraints" : {
             "notEmpty" : true,
             "pattern" : {

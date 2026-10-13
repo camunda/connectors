@@ -441,7 +441,9 @@ public class GenerateElementTemplate {
       case "url" ->
           p.toBuilder()
               .label("Salesforce instance URL")
-              .description("The Salesforce instance this bearer token was issued for.")
+              .description(
+                  "Required for bearer credentials. Requests always go to the Salesforce base URL"
+                      + " set on the task.")
               .placeholder("https://MyDomainName.my.salesforce.com")
               .condition(new Equals("authentication.type", "bearer"))
               .build();
