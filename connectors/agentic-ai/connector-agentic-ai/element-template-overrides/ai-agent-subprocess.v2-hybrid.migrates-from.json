@@ -5,7 +5,7 @@
     {
       "kind": "change",
       "sourceTemplateId": "io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid",
-      "minSourceVersion": 10,
+      "minSourceVersion": 12,
       "paths": [
         {
           "from": "provider.type",
