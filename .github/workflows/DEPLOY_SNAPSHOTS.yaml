@@ -33,9 +33,9 @@ jobs:
           # Get the current branch name
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           echo "branch=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
-          
+
           echo "::notice::Current branch: ${BRANCH_NAME}"
-          
+
           # Determine if this is the main branch
           if [ "$BRANCH_NAME" = "main" ]; then
             echo "is_main=true" >> "$GITHUB_OUTPUT"
@@ -98,17 +98,17 @@ jobs:
           # Extract minor version from Maven project (e.g., "8.9" from "8.9.0-SNAPSHOT")
           MINOR_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d'.' -f1-2)
           FINAL_VERSION="${MINOR_VERSION}.0-SNAPSHOT"
-          
+
           echo "::notice::Detected minor version: ${MINOR_VERSION}"
-          
+
           # Set the version locally (no need to commit)
           ./mvnw -B versions:set -DnewVersion="${FINAL_VERSION}" -DgenerateBackupPoms=false -f parent
-          
+
           # Output versions for use in later steps
           echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
           echo "minor_version=${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
           echo "docker_version=${MINOR_VERSION}-SNAPSHOT" >> "$GITHUB_OUTPUT"
-          
+
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
@@ -139,7 +139,7 @@ jobs:
 
       - name: Build Artifacts
         if: github.event_name != 'push' || steps.snapshot-gate.outputs.fresh != 'true'
-        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests -Dconnectors.fatjar.attach=false
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

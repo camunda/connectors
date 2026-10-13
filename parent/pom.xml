@@ -242,6 +242,9 @@ limitations under the License.</license.inlineheader>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
+
+    <!-- false still builds the with-dependencies fat jars into target/, but does not install or deploy them -->
+    <connectors.fatjar.attach>true</connectors.fatjar.attach>
   </properties>
 
   <dependencyManagement>
