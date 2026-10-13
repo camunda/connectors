@@ -58,7 +58,7 @@ public record SlackRequest<T extends SlackRequestData>(
             id = "baseUrl",
             label = "API base URL",
             group = "authentication",
-            feel = FeelMode.optional,
+            type = PropertyType.Hidden,
             optional = true,
             tooltip =
                 "Override the Slack API base URL, e.g. to use a proxy, a gateway, or a Slack-compatible endpoint. Defaults to <code>https://slack.com/api/</code>.")
