@@ -22,9 +22,9 @@ import org.jspecify.annotations.Nullable;
  * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
  * built.
  *
- * <p>{@code documentDelivery} is the optional mode in which the documents the tool returns reach
- * the model ({@link DocumentDelivery}); absent means by reference. It is part of the stored
- * definition and of the configuration fingerprint, but not of what the model providers get.
+ * <p>{@code documentDelivery} is the optional document delivery of the documents the tool returns
+ * ({@link DocumentDelivery}); absent means {@code reference}. It is part of the stored definition
+ * and of the configuration fingerprint, but not of what the model providers get.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
@@ -39,7 +39,7 @@ public record ToolDefinition(
     inputSchema = DocumentParameterSchema.withHint(inputSchema);
   }
 
-  /** Creates a tool definition whose documents are delivered by reference. */
+  /** Creates a tool definition with the document delivery {@code reference}. */
   public ToolDefinition(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
     this(name, description, inputSchema, null);

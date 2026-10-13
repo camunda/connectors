@@ -134,9 +134,10 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   }
 
   /**
-   * A tool whose activity requests content delivery returns a document: the agent adds its content
-   * for the model in the message after the tool result, so the model reads it without a {@code
-   * c8__get_document} call and still passes its id to a tool. The tool receives the real bytes.
+   * A tool whose activity sets the document delivery {@code content} returns a document: the agent
+   * adds its content to the request in the message after the tool result, so the model reads it
+   * without a {@code c8__get_document} call and still passes its id to a tool. The tool receives
+   * the real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
@@ -186,9 +187,10 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   }
 
   /**
-   * A document of a content delivery tool that fails the content guard (a type outside the
-   * allowlist, a size above the limit) stays a reference: a note tells the model that no content
-   * was added and why, no content reaches the model, and the tool still receives the real bytes.
+   * A document of a tool with the delivery {@code content} that fails the content guard (a type
+   * outside the allowlist, a size above the limit) stays a reference: a note tells the model that
+   * no content was added and why, no content reaches the model, and the tool still receives the
+   * real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"unsupported.zip", LARGE_FILE})

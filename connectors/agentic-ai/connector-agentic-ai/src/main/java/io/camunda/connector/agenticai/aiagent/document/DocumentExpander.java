@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Turns the persisted {@link DocumentReferenceContent document references} in user messages into
  * the form the model providers and the agent instance history see: the tag text of the document
- * and, depending on the delivery, the content of the document next to it.
+ * and, depending on the document delivery, the content of the document next to it.
  *
  * <p>The persisted form of a document is its reference only; the document is read from the {@link
  * DocumentRegistry}. The model gets the tag text of every reference and the document content of the
@@ -54,8 +54,8 @@ public final class DocumentExpander {
 
   /**
    * Returns the messages with the content of their user messages expanded for the model: the tag
-   * text of every document reference, followed by the document for the references with delivery
-   * content.
+   * text of every document reference, followed by the document for the references with the delivery
+   * {@code content}.
    */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());

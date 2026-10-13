@@ -358,7 +358,7 @@ instance with the `documents` feature: the document id, the attributes of its `<
 renders the tag the model sees. `AgentConversation.window` expands it before a request is built (the tag text and,
 with the delivery `content`, the document content); a provider converter that is handed one fails with an
 `IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes
-when a document is delivered again later (prompt caching).
+when the same document gets another delivery later (prompt caching).
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
@@ -458,7 +458,7 @@ also expands the document references of its user messages (`DocumentReferenceCon
 with the delivery `reference` or `content`) with the document registry
 (`DocumentExpander`): the stored messages hold the document reference only, and the snapshot holds its tag text
 followed, for a reference with the delivery `content`, by the document content for the documents whose content the model asked for with `c8__get_document` or the agent added
-for it (content delivery, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
+for it (the delivery `content`, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
 
@@ -649,9 +649,9 @@ The `AdHocToolsSchemaResolver` processes these into:
 
 A tool activity with the extension property `io.camunda.agenticai.documents.delivery` set to `content`
 (`AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION`) gets the `documentDelivery` `CONTENT`: the agent adds the
-content of the documents the tool returns to the conversation for the model instead of delivering them as references. The field is
+content of the documents the tool returns to the request instead of leaving them as references. The field is
 part of the stored tool definition and of the configuration fingerprint when set, and the model providers do not
-get it. Any other value, or no property, leaves it absent (by reference). See the document flow design notes,
+get it. Any other value, or no property, leaves it absent (the delivery `reference`). See the document flow design notes,
 section 3.15.
 
 ### Connector (Task) Flavor
@@ -1716,10 +1716,10 @@ the model, and the handler is not given the call; a call of a tool without docum
 A2A handlers declare no document parameters, because the schema of an MCP tool comes from the remote server and the A2A schema
 is fixed, and neither has a document type; nothing of theirs is resolved.
 
-The delivery of the documents a tool returns with content (`ToolDefinition.documentDelivery`) is set by the extension property
+The document delivery of the documents a tool returns (`ToolDefinition.documentDelivery`) is set by the extension property
 `io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
 it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
-their documents are delivered as references. See the document flow design notes, sections 3.3 and 3.15.
+their documents keep the delivery `reference`. See the document flow design notes, sections 3.3 and 3.15.
 
 ### Agent Context Properties
 
@@ -1737,8 +1737,8 @@ sees a `<doc .../>` tag, not the content. Tool call results may contain Camunda 
 root, nested in maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A
 artifacts). The agent extracts those documents and registers them in the document registry of the
 `agentContext`; the tool result shows each document as its tag, and no follow-up message is added unless the
-tool has content delivery (below). The content of a document enters the conversation when the model calls the
-built-in `c8__get_document` tool with the document id, or when the agent adds it for the model (content delivery,
+tool has the delivery `content` (below). The content of a document enters the conversation when the model calls the
+built-in `c8__get_document` tool with the document id, or when the agent adds it to the request (the delivery `content`,
 below): the whole document is added if its content type is on the allowlist (text-based types, PDF,
 PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
 otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
@@ -1755,13 +1755,13 @@ counted in characters of the base64 or text content). A larger one fails the job
 response documents, which together can exceed the message size limit of the broker; the message
 names the document, its size and the limit and asks to return the file as a Camunda document instead.
 
-Delivery with content is opt-in and adds the content without a `c8__get_document` call, through the same guard
+The delivery `content` is opt-in and adds the content without a `c8__get_document` call, through the same guard
 (`DocumentContentGuard`) and the same marker: for the documents of the user prompt, with the dropdown *Document
 delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`, v2 templates only), and for the documents a tool returns, with
 the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool activity. The documents of
 a tool go into the follow-up user message of the tool results (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`).
 A document that the guard rejects stays a reference and the model gets a note that tells why no content was added;
-delivery with content never fails the run. Documents of events stay references, and so do those of the MCP and A2A gateway
+the delivery `content` never fails the run. Documents of events stay references, and so do those of the MCP and A2A gateway
 tools (a gateway handler can opt its tools in through `ToolDefinition.documentDelivery`). See
 [ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
 "Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form

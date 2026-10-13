@@ -1070,8 +1070,8 @@ class AgentSubProcessRequestHandlerTest {
                               .isEqualTo(documentId));
             });
 
-    // the stored conversation keeps the follow-up message as the document reference with content
-    // delivery only
+    // the stored conversation keeps the follow-up message as the document reference with the
+    // delivery content only
     assertThat(response.responseValue().context().conversation())
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,

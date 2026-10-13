@@ -161,7 +161,7 @@ functions that return SDK `ConnectorResponse` types.
 - The content model gains `ReasoningContent` (opaque provider reasoning payload),
   `ProviderContent` (a provider native block, preserved verbatim) and `DocumentReferenceContent` (the
   persisted form of a document of an agent instance with the documents feature: the document id, the
-  attributes of its `<doc/>` tag and a delivery of `reference` or `content`). Code that switches over
+  attributes of its `<doc/>` tag and a document delivery of `reference` or `content`). Code that switches over
   `Content` must handle or ignore them. A chat model provider never receives a `DocumentReferenceContent`:
   the conversation window expands it to its tag text and, with the delivery `content`, the document content
   before the request is built, and the provider converters of the connector fail with an

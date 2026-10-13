@@ -214,7 +214,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var source = DocumentSource.userMessage(messageId.toString());
     if (documentFlow) {
       // add documents as references; the content is only added, from the registry when the model
-      // is called, for the references with delivery content
+      // is called, for the references with the delivery content
       final var handledDocumentIds = new HashSet<>(idsWithContent);
       for (var doc : userPrompt.documents()) {
         final var reference = DocumentReferenceContent.from(doc, source);
@@ -339,8 +339,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The content for the documents of the results of tools with content document delivery: the tag
-   * with content of every document that passes the content guard, and a note for every document
+   * The content for the documents of the results of tools with the document delivery content: the
+   * tag with content of every document that passes the content guard, and a note for every document
    * that does not. A document whose content is already in the conversation, or added by another
    * result of the turn, is left out.
    */

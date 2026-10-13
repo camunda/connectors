@@ -28,8 +28,8 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO. With {@code documentDelivery} {@link DocumentDelivery#CONTENT}, the content of the
-   * documents is part of the conversation instead of references.
+   * DTO. With the {@code documentDelivery} {@link DocumentDelivery#CONTENT}, the agent adds the
+   * content of the documents to the request instead of leaving them as references.
    */
   public record UserPrompt(
       String prompt, List<Document> documents, DocumentDelivery documentDelivery) {

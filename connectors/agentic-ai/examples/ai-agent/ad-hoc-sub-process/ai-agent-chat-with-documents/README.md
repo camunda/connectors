@@ -21,8 +21,8 @@ It demonstrates:
   the agent to pass the id to a tool that processes it; this is not an incident. A document whose content is already in the
   conversation is not added again. The document content stays in every model request until its message leaves the context window.
 - **Document delivery**: the dropdown of the user prompt group of the template (property
-  `data.userPrompt.documentDelivery`, `reference` in this process) with the choice `content` puts the content of the
-  prompt documents into the conversation instead of tags the model asks content for on demand. The same guard applies; a document that is too large or of an unsupported
+  `data.userPrompt.documentDelivery`, `reference` in this process) with the choice `content` adds the content of the
+  prompt documents to the request instead of tags the model loads on demand. The same guard applies; a document that is too large or of an unsupported
   type stays a tag, followed by a note. A tool whose activity has the extension property
   `io.camunda.agenticai.documents.delivery` = `content` gets the same treatment for the documents it returns.
 - **`c8__return_document`**: the agent gets a built-in tool
@@ -120,7 +120,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    next feedback task `agent.responseDocuments` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
    (preview/download).
 4. **Read a document.** Start a new instance and prompt: `Download <baseUrl>/image/svg and describe what it shows.`
-   Check: the agent calls `c8__get_document` with the id of the downdocument with content, the tool result reads
+   Check: the agent calls `c8__get_document` with the id of the downloaded document, the tool result reads
    `Loaded the document <doc .../>. Its content follows in the next message.`, and the agent instance history shows a follow-up user item with the tag and the content of
    the document. Ask a second question about the same document: the agent answers without another load, or
    `c8__get_document` answers that the document is already in the conversation.
@@ -148,7 +148,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
     `c8__get_document` to read it. Then ask `Upload the attached file.`: no download step is needed, `Upload_File` receives
     the prompt document, `agent.context.documents` lists it.
 
-12. **Deliver the prompt documents with content.** Set `data.userPrompt.documentDelivery` of `AI Agent` to `content` (the
+12. **Set the delivery `content` for the prompt documents.** Set `data.userPrompt.documentDelivery` of `AI Agent` to `content` (the
     dropdown *Document delivery* of the user prompt group), redeploy, start an instance with a small text file and ask
     `Summarize the attached file.` Check: the agent instance history shows the prompt with the tag and the content of
     the document in the first user item, and the agent answers without calling `c8__get_document`. Repeat with a binary

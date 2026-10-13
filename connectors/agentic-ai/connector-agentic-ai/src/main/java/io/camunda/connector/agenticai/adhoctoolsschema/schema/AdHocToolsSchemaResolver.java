@@ -17,13 +17,14 @@ import java.util.List;
 public interface AdHocToolsSchemaResolver {
 
   /**
-   * The extension property of a tool activity that sets how the documents the tool returns reach
-   * the model. The value {@value #DOCUMENT_DELIVERY_CONTENT} makes the agent add their content for
-   * the model; any other value, or no property, keeps the documents by reference.
+   * The extension property of a tool activity that sets the document delivery of the documents the
+   * tool returns. The value {@value #DOCUMENT_DELIVERY_CONTENT} sets the delivery {@code content},
+   * so the agent adds the content of the documents to the request; any other value, or no property,
+   * keeps the delivery {@code reference}.
    */
   String DOCUMENT_DELIVERY_EXTENSION = "io.camunda.agenticai.documents.delivery";
 
-  /** The value of {@link #DOCUMENT_DELIVERY_EXTENSION} for delivering documents with content. */
+  /** The value of {@link #DOCUMENT_DELIVERY_EXTENSION} that sets the delivery {@code content}. */
   String DOCUMENT_DELIVERY_CONTENT = "content";
 
   AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);

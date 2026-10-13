@@ -18,8 +18,8 @@ import org.jspecify.annotations.Nullable;
  * metadata has none, at most one byte more than the limit is read.
  *
  * <p>The model asks for content with {@code c8__get_document}, the agent adds it for the documents
- * of a user prompt or of a tool result with content delivery. All of them use this guard, so the
- * same documents pass whoever asks.
+ * of a user prompt or of a tool result with the delivery {@code content}. All of them use this
+ * guard, so the same documents pass whoever asks.
  */
 public final class DocumentContentGuard {
 

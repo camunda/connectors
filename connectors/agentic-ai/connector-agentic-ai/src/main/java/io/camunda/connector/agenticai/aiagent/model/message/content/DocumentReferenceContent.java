@@ -40,9 +40,9 @@ import org.jspecify.annotations.Nullable;
  * <p>The {@code delivery} tells how the document reaches the model: with {@link
  * DocumentDelivery#REFERENCE} the model sees the tag only, with {@link DocumentDelivery#CONTENT}
  * the content of the document is added next to the tag. It is stored with every block, so a block
- * that was delivered with its content keeps doing so for as long as it is in the context window.
- * Provider chat models never see this block: it is expanded to its tag text and, for the delivery
- * with content, the document content before the request is built.
+ * with the delivery {@code content} keeps it for as long as it is in the context window. Provider
+ * chat models never see this block: it is expanded to its tag text and, for the delivery {@code
+ * content}, the document content before the request is built.
  *
  * @param id the stable id of the document
  * @param fileName the file name the model is shown, if known
@@ -108,14 +108,14 @@ public record DocumentReferenceContent(
   }
 
   /**
-   * Creates the block of a document and where it entered the conversation, delivered as a
-   * reference.
+   * Creates the block of a document and where it entered the conversation, with the delivery {@code
+   * reference}.
    */
   public static DocumentReferenceContent from(Document document, DocumentSource documentSource) {
     return from(document, documentSource, DocumentDelivery.REFERENCE);
   }
 
-  /** Creates the block of a document without a source, delivered as a reference. */
+  /** Creates the block of a document without a source, with the delivery {@code reference}. */
   public static DocumentReferenceContent from(Document document) {
     return new DocumentReferenceContent(
         DocumentHandle.idFor(document),
@@ -143,7 +143,7 @@ public record DocumentReferenceContent(
         delivery);
   }
 
-  /** Creates the block of a registry entry, delivered as a reference. */
+  /** Creates the block of a registry entry, with the delivery {@code reference}. */
   public static DocumentReferenceContent from(DocumentRegistryEntry entry) {
     return from(entry, DocumentDelivery.REFERENCE);
   }

@@ -337,7 +337,8 @@ public final class AgentConversation implements RuntimeToolConversation {
 
   /**
    * Returns the ids of the documents whose content the model reads in the windowed conversation:
-   * the documents of the references with delivery content in the windowed user messages.
+   * the documents of the references with the delivery {@code content} in the windowed user
+   * messages.
    */
   @Override
   public Set<String> documentIdsWithContent() {
@@ -347,7 +348,7 @@ public final class AgentConversation implements RuntimeToolConversation {
 
   /**
    * Returns the ids of the documents whose content the model reads in the given messages: the
-   * documents of the references with delivery content in the user messages.
+   * documents of the references with the delivery {@code content} in the user messages.
    */
   public static Set<String> documentIdsWithContent(List<Message> messages) {
     final var ids = new LinkedHashSet<String>();
@@ -422,7 +423,7 @@ public final class AgentConversation implements RuntimeToolConversation {
    *
    * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
    * document references in the windowed user messages are expanded to their tag text and, for the
-   * references with delivery content, the document read from the registry of the {@link
+   * references with the delivery {@code content}, the document read from the registry of the {@link
    * AgentContext#documents() context} (see {@link DocumentExpander}); every other document stays a
    * tag. When registry documents are not visible in the windowed messages, the snapshot ends with a
    * transient user message listing them (see {@link EvictedDocumentsNote}). For an agent instance

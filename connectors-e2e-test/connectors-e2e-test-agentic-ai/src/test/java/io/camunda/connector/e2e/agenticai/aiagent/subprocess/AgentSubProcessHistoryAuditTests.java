@@ -112,9 +112,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   /**
    * Documents whose content the agent adds without being asked: the user prompt document through
-   * the delivery option of the prompt, the documents of a tool with content delivery, and the note
-   * of a document that fails the content guard. The content shows in the history next to its tag,
-   * the note as text.
+   * the document delivery of the prompt, the documents of a tool with the delivery {@code content},
+   * and the note of a document that fails the content guard. The content shows in the history next
+   * to its tag, the note as text.
    */
   @Test
   void everyModelVisibleMessageOfContentDocumentDeliveryIsInTheHistory() throws Exception {
