@@ -41,6 +41,8 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -85,6 +87,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
   private Resource contentDocumentsProcess;
+
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-results.bpmn")
+  private Resource resultDocumentsProcess;
 
   @Override
   protected Resource testProcess() {
@@ -133,6 +138,58 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
         .contains("was not loaded automatically")
         .doesNotContain("c8__get_document");
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
+  }
+
+  /**
+   * Two tools return the attached document: one as the whole result, one nested in an object (and
+   * twice in it). The history shows each result as the model receives it: the tag of the document
+   * in inline code followed by the document, or the object with the tag strings followed by the
+   * document once.
+   */
+  @Test
+  void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "I will fetch the file and describe it.",
+            10,
+            20,
+            ToolCall.of("call_fetch", "Fetch_A_File", "{}"),
+            ToolCall.of("call_describe", "Describe_A_File", "{}")),
+        finalTurn());
+
+    final var agentInstanceKey = runAndGetAgentInstanceKey(resultDocumentsProcess, e -> e);
+
+    assertHistoryCoversEveryModelRequest(agentInstanceKey);
+
+    final var history = awaitCommittedHistory(agentInstanceKey);
+    final var fetched = toolResultOf(history, "call_fetch");
+    final var described = toolResultOf(history, "call_describe");
+    final var promptDocumentTag = promptDocumentTagIn(fetched);
+    assertThat(fetched.getContent()).hasSize(2);
+    assertThat(fetched.getContent().get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.TextContent.class,
+            text -> assertThat(text.getText()).isEqualTo("`" + promptDocumentTag + "`"));
+    assertThat(fetched.getContent().get(1))
+        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    assertThat(promptDocumentTag).doesNotContain("toolName").doesNotContain("toolCallId");
+
+    assertThat(described.getContent()).hasSize(2);
+    assertThat(described.getContent().get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .isEqualTo(
+                        Map.of(
+                            "status",
+                            "found",
+                            "file",
+                            promptDocumentTag,
+                            "related",
+                            List.of(promptDocumentTag))));
+    assertThat(described.getContent().get(1))
+        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
   }
 
   /**
@@ -234,6 +291,21 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     assertThat(uncovered)
         .as("model-visible messages without a covering agent instance history item")
         .isEmpty();
+  }
+
+  private static AgentInstanceHistory toolResultOf(
+      List<AgentInstanceHistory> history, String toolCallId) {
+    return history.stream()
+        .filter(item -> item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
+        .filter(item -> toolCallId.equals(item.getToolCalls().getFirst().getToolCallId()))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  /** The tag the history shows for the document of a tool result, read from its text block. */
+  private static String promptDocumentTagIn(AgentInstanceHistory item) {
+    final var text = (AgentInstanceHistoryContent.TextContent) item.getContent().getFirst();
+    return text.getText().replace("`", "");
   }
 
   private List<AgentInstanceHistory> awaitCommittedHistory(long agentInstanceKey) {
@@ -344,10 +416,10 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   /**
    * The blocks of a history item cover the parts of a request message when they pair up one to one:
    * a text block equals its text part without the inline code backticks of the history, an object
-   * block is the JSON of its part with the document references shown as tags, and a document block
-   * is a part that is not a tag (the document content, as text or as a file). A document block that
-   * follows a tag text has no part when the document is only referenced: the model sees the tag and
-   * the history adds the document reference.
+   * block is the JSON of its part, and a document block is a part that is not a tag (the document
+   * content, as text or as a file). A document block has no part when an earlier block of the same
+   * item holds the tag of the document, as text or as a string of an object: the model sees the tag
+   * and the history adds the document reference.
    */
   private static boolean blocksCover(
       List<AgentInstanceHistoryContent> blocks, List<ModelPart> parts) {
@@ -364,14 +436,11 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     }
     final var block = blocks.get(blockIndex);
     final var part = partIndex < parts.size() ? parts.get(partIndex) : null;
-    if (block instanceof AgentInstanceHistoryContent.DocumentContent) {
-      final var followsTag =
-          blockIndex > 0
-              && blocks.get(blockIndex - 1) instanceof AgentInstanceHistoryContent.TextContent tag
-              && tag.getText().contains("<doc ");
+    if (block instanceof AgentInstanceHistoryContent.DocumentContent document) {
+      final var referenced = holdsTagBefore(blocks, blockIndex, document);
       final var loaded = part != null && (part.text() == null || !part.text().contains("<doc "));
       return (loaded && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1))
-          || (followsTag && blocksCover(blocks, blockIndex + 1, parts, partIndex));
+          || (referenced && blocksCover(blocks, blockIndex + 1, parts, partIndex));
     }
     if (part == null) {
       return false;
@@ -382,47 +451,49 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
               part.text() != null && strip(text.getText()).equals(strip(part.text()));
           case AgentInstanceHistoryContent.ObjectContent object ->
               part.text() != null
-                  && jsonCovers(OBJECT_MAPPER.valueToTree(object.getObject()), part.text());
+                  && jsonEquals(OBJECT_MAPPER.valueToTree(object.getObject()), part.text());
           default -> false;
         };
     return covered && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1);
   }
 
-  private static boolean jsonCovers(JsonNode reported, String sentText) {
+  /** The reported JSON equals the sent JSON exactly. */
+  private static boolean jsonEquals(JsonNode reported, String sentText) {
     try {
-      return jsonCovers(reported, OBJECT_MAPPER.readTree(sentText));
+      return reported.equals(OBJECT_MAPPER.readTree(sentText));
     } catch (Exception e) {
       return false;
     }
   }
 
-  /** The reported JSON equals the sent JSON, except that a document reference is a tag there. */
-  private static boolean jsonCovers(JsonNode reported, JsonNode sent) {
-    if (reported.isObject() && reported.has("camunda.document.type")) {
-      return sent.isTextual()
-          && sent.asText().contains("<doc id=\"" + reported.path("documentId").asText() + "\"");
+  /** Whether an earlier block of the item holds the tag of the document. */
+  private static boolean holdsTagBefore(
+      List<AgentInstanceHistoryContent> blocks,
+      int blockIndex,
+      AgentInstanceHistoryContent.DocumentContent document) {
+    final var tagStart = "<doc id=\"" + document.getDocumentReference().getDocumentId() + "\"";
+    return blocks.subList(0, blockIndex).stream()
+        .anyMatch(
+            earlier ->
+                switch (earlier) {
+                  case AgentInstanceHistoryContent.TextContent text ->
+                      text.getText().contains(tagStart);
+                  case AgentInstanceHistoryContent.ObjectContent object ->
+                      holdsString(OBJECT_MAPPER.valueToTree(object.getObject()), tagStart);
+                  default -> false;
+                });
+  }
+
+  private static boolean holdsString(JsonNode node, String fragment) {
+    if (node.isTextual()) {
+      return node.asText().contains(fragment);
     }
-    if (reported.isObject()) {
-      return sent.isObject()
-          && reported.size() == sent.size()
-          && reported.properties().stream()
-              .allMatch(
-                  field ->
-                      sent.has(field.getKey())
-                          && jsonCovers(field.getValue(), sent.get(field.getKey())));
-    }
-    if (reported.isArray()) {
-      if (!sent.isArray() || reported.size() != sent.size()) {
-        return false;
+    for (final var child : node) {
+      if (holdsString(child, fragment)) {
+        return true;
       }
-      for (int i = 0; i < reported.size(); i++) {
-        if (!jsonCovers(reported.get(i), sent.get(i))) {
-          return false;
-        }
-      }
-      return true;
     }
-    return reported.equals(sent);
+    return false;
   }
 
   private static String strip(String text) {
