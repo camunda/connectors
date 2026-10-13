@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.sendgrid.model;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Configuration;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Text;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sendgrid.helpers.mail.objects.Email;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -16,6 +18,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import jakarta.validation.Valid;
@@ -28,8 +31,28 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 public class SendGridRequest {
-  @TemplateProperty(group = "authentication", label = "SendGrid API key")
-  @NotEmpty
+  /**
+   * Reusable API key credential; when bound, its key takes precedence over the inline one (see
+   * {@link #getApiKey()}). Declared first so it renders before the field it gates, as required by
+   * ConditionPropertyOrderRule.
+   */
+  @TemplateProperty(
+      id = "sendGridCredential",
+      label = "SendGrid credential",
+      group = "authentication",
+      type = Configuration,
+      optional = true,
+      binding = @PropertyBinding(name = "sendGridCredential"),
+      description = "Choose a reusable SendGrid credential, or configure a one-time API key below.")
+  @Valid
+  private SendGridApiKeyConfiguration sendGridCredential;
+
+  @TemplateProperty(
+      group = "authentication",
+      label = "SendGrid API key",
+      condition =
+          @PropertyCondition(property = "sendGridCredential", isEmpty = NullableBoolean.TRUE),
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   private String apiKey;
 
   public record Sender(
@@ -150,12 +173,27 @@ public class SendGridRequest {
         .noneMatch(StringUtils::isBlank);
   }
 
+  @AssertTrue(message = "No API key provided by the reusable credential or the element template")
+  @JsonIgnore
+  public boolean isApiKeyPresent() {
+    return getApiKey() != null;
+  }
+
+  /** The bound credential's API key wins over the inline one. */
   public String getApiKey() {
-    return apiKey;
+    return sendGridCredential != null ? sendGridCredential.apiKey() : apiKey;
   }
 
   public void setApiKey(final String apiKey) {
-    this.apiKey = apiKey;
+    this.apiKey = (apiKey == null || apiKey.isBlank()) ? null : apiKey;
+  }
+
+  public SendGridApiKeyConfiguration getSendGridCredential() {
+    return sendGridCredential;
+  }
+
+  public void setSendGridCredential(final SendGridApiKeyConfiguration sendGridCredential) {
+    this.sendGridCredential = sendGridCredential;
   }
 
   public Email getInnerSenGridEmailFrom() {
@@ -231,7 +269,8 @@ public class SendGridRequest {
       return false;
     }
     final SendGridRequest that = (SendGridRequest) o;
-    return Objects.equals(apiKey, that.apiKey)
+    return Objects.equals(sendGridCredential, that.sendGridCredential)
+        && Objects.equals(apiKey, that.apiKey)
         && Objects.equals(from, that.from)
         && Objects.equals(to, that.to)
         && Objects.equals(template, that.template)
@@ -241,13 +280,15 @@ public class SendGridRequest {
 
   @Override
   public int hashCode() {
-    return Objects.hash(apiKey, from, to, template, content, attachments);
+    return Objects.hash(sendGridCredential, apiKey, from, to, template, content, attachments);
   }
 
   @Override
   public String toString() {
     return "SendGridRequest{"
-        + "apiKey=[REDACTED]"
+        + "sendGridCredential="
+        + sendGridCredential
+        + ", apiKey=[REDACTED]"
         + ", from="
         + from
         + ", to="
