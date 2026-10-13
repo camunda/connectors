@@ -409,4 +409,37 @@ class DocumentExpanderTest {
 
     assertThat(expander.expandMessages(once, registry)).isSameAs(once);
   }
+
+  @Test
+  void rendersADocumentAtAnyDepthAsItsTagAndCollectsTheDocuments() {
+    final var first = camundaDocument("one");
+    final var second = camundaDocument("two");
+
+    final var tagged =
+        expander.renderWithTags(
+            Map.of("status", 200, "files", List.of(Map.of("file", first), Map.of("file", second))));
+
+    assertThat(tagged.tree())
+        .isEqualTo(
+            Map.of(
+                "status",
+                200,
+                "files",
+                List.of(
+                    Map.of("file", DocumentReferenceContent.from(first).toTag()),
+                    Map.of("file", DocumentReferenceContent.from(second).toTag()))));
+    assertThat(tagged.documents()).containsExactly(first, second);
+  }
+
+  @Test
+  void findsTheDocumentOfARegistryEntryOnly() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+
+    assertRebuiltDocumentIs(
+        DocumentContent.documentContent(
+            expander.findDocument(registry, DocumentHandle.idFor(document)).orElseThrow()),
+        document);
+    assertThat(expander.findDocument(registry, "unknown")).isEmpty();
+  }
 }

@@ -6,7 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -19,8 +25,11 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +57,10 @@ public final class DocumentExpander {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DocumentExpander.class);
 
+  private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
+
   private final ObjectMapper objectMapper;
+  private final ObjectMapper taggingMapper;
 
   /**
    * @param objectMapper the mapper that binds a document reference to a {@link Document}, the one
@@ -56,6 +68,43 @@ public final class DocumentExpander {
    */
   public DocumentExpander(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.taggingMapper =
+        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new TagCollector()));
+  }
+
+  /**
+   * An object with every document at any depth replaced by its tag, as the model providers render
+   * it, and the documents that were replaced, in order of appearance.
+   *
+   * @param tree the object as plain JSON values (maps, lists, strings, numbers)
+   * @param documents the documents the tags stand for, one entry per occurrence
+   */
+  public record TaggedObject(Object tree, List<Document> documents) {}
+
+  /**
+   * Renders the object the way the model providers do, a {@link Document} at any depth as its tag
+   * (see {@link DocumentReferenceContent#toTag()}), and returns the rendered tree with the
+   * documents it replaced.
+   */
+  public TaggedObject renderWithTags(Object value) {
+    final var documents = new ArrayList<Document>();
+    try (var buffer = new TokenBuffer(taggingMapper, false)) {
+      taggingMapper
+          .writer()
+          .withAttribute(COLLECTED_DOCUMENTS, documents)
+          .writeValue(buffer, value);
+      final Object tree = taggingMapper.readValue(buffer.asParser(), Object.class);
+      return new TaggedObject(tree, List.copyOf(documents));
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Failed to render the object with document tags", e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /** The document of the registry entry with the given id; empty when unknown or unreadable. */
+  public Optional<Document> findDocument(DocumentRegistry registry, String id) {
+    return Optional.ofNullable(rehydrate(registry, id));
   }
 
   /**
@@ -182,6 +231,25 @@ public final class DocumentExpander {
           id,
           e);
       return null;
+    }
+  }
+
+  private static final class TagCollector extends JsonSerializer<Document> {
+
+    @Override
+    public Class<Document> handledType() {
+      return Document.class;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void serialize(Document document, JsonGenerator gen, SerializerProvider provider)
+        throws IOException {
+      final var collected = (List<Document>) provider.getAttribute(COLLECTED_DOCUMENTS);
+      if (collected != null) {
+        collected.add(document);
+      }
+      gen.writeString(DocumentReferenceContent.from(document).toTag());
     }
   }
 }

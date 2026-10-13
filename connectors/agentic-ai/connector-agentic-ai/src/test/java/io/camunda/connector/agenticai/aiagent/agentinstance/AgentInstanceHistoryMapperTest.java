@@ -9,8 +9,11 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
@@ -22,6 +25,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -36,6 +41,8 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -732,5 +739,342 @@ class AgentInstanceHistoryMapperTest {
     assertThat(result.getCacheCreationTokenCount()).isEqualTo(30L);
     assertThat(result.getReasoningTokenCount()).isEqualTo(20L);
     assertThat(result.getDurationMs()).isEqualTo(1234L);
+  }
+
+  @Nested
+  class ToolResultDocuments {
+
+    private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
+    private final DocumentFactoryImpl documentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+    private final Document document =
+        documentFactory.create(
+            DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                .contentType("application/pdf")
+                .fileName("report.pdf")
+                .timeToLive(Duration.ofHours(2))
+                .processDefinitionId("process-1")
+                .processInstanceKey(42L)
+                .customProperties(Map.of("origin", "test"))
+                .build());
+    private final Document otherDocument =
+        documentFactory.create(
+            DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("other.txt")
+                .build());
+    private final String tag = DocumentReferenceContent.from(document).toTag();
+    private final String otherTag = DocumentReferenceContent.from(otherDocument).toTag();
+
+    private final DocumentRegistry registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("fetch", "call-1", "m-1")),
+                    new IngestedDocument(
+                        otherDocument, DocumentSource.toolCall("fetch", "call-1", "m-1"))));
+    private final HistoryDocuments documents = new HistoryDocuments(registry);
+
+    private final ToolCall call =
+        ToolCall.builder()
+            .id("call-1")
+            .name("fetch")
+            .arguments(Map.of("document", DocumentHandle.idFor(document), "n", 1))
+            .build();
+
+    private ToolCallResultMessage message(Content... content) {
+      return ToolCallResultMessage.builder()
+          .results(
+              List.of(
+                  ToolCallResultContent.builder()
+                      .id("call-1")
+                      .name("fetch")
+                      .elementId("fetch")
+                      .content(List.of(content))
+                      .completedAt(TOOL_RESULT_COMPLETED_AT)
+                      .build()))
+          .build();
+    }
+
+    private AgentInstanceHistoryMapper.InputHistoryItem item(
+        ToolCallResultMessage message, HistoryDocuments historyDocuments) {
+      final var items =
+          mapper.inputHistoryItems(
+              message, Map.of("call-1", call), TURN_INGESTION_TIMESTAMP, historyDocuments);
+      assertThat(items).hasSize(1);
+      return items.getFirst();
+    }
+
+    /** The message as the conversation store gives it back in the next job. */
+    private ToolCallResultMessage persisted(ToolCallResultMessage message) throws Exception {
+      return objectMapper.readValue(
+          objectMapper.writeValueAsString(message), ToolCallResultMessage.class);
+    }
+
+    private String describe(AgentInstanceHistoryContent content) {
+      return switch (content) {
+        case AgentInstanceHistoryContent.TextContent text -> "TEXT " + text.getText();
+        case AgentInstanceHistoryContent.ObjectContent object ->
+            "OBJECT " + objectMapper.valueToTree(object.getObject());
+        case AgentInstanceHistoryContent.DocumentContent doc -> {
+          final var reference = doc.getDocumentReference();
+          final var metadata = reference.getMetadata();
+          yield "DOCUMENT %s %s %s %s %s %s %s %s %s"
+              .formatted(
+                  reference.getDocumentId(),
+                  reference.getStoreId(),
+                  reference.getContentHash(),
+                  metadata.getFileName(),
+                  metadata.getContentType(),
+                  metadata.getSize(),
+                  metadata.getExpiresAt(),
+                  metadata.getProcessDefinitionId() + "/" + metadata.getProcessInstanceKey(),
+                  metadata.getCustomProperties());
+        }
+        default -> content.toString();
+      };
+    }
+
+    private JsonNode tree(Object value) {
+      return objectMapper.valueToTree(value);
+    }
+
+    private List<String> described(AgentInstanceHistoryMapper.InputHistoryItem item) {
+      return item.content().stream().map(this::describe).toList();
+    }
+
+    @Test
+    void aBareLiveDocumentIsTheShortTagInInlineCodeFollowedByTheDocument() {
+      final var item = item(message(DocumentContent.documentContent(document)), documents);
+
+      assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+      assertThat(item.content()).hasSize(2);
+      assertThat(texts(item.content())).containsExactly("`" + tag + "`");
+      assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void aBareTypedReferenceIsReportedLikeTheLiveDocument() {
+      final var live = item(message(DocumentContent.documentContent(document)), documents);
+      final var stored = item(message(DocumentReferenceContent.from(document)), documents);
+
+      assertThat(described(stored)).isEqualTo(described(live));
+    }
+
+    @Test
+    void theEarlyAndTheLaterWriteOfABareDocumentAreIdentical() throws Exception {
+      final var live = message(DocumentContent.documentContent(document));
+      final var stored = persisted(message(DocumentReferenceContent.from(document)));
+
+      // the early write knows no document of this turn yet
+      final var early = item(live, new HistoryDocuments(DocumentRegistry.empty()));
+      final var later = item(stored, documents);
+
+      assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
+    }
+
+    @Test
+    void aTypedReferenceOfAnUnknownDocumentIsItsTagOnly() {
+      final var unknown =
+          new DocumentReferenceContent(
+              "unknown", "u.txt", null, null, null, null, null, DocumentDelivery.REFERENCE);
+
+      final var item = item(message(unknown), new HistoryDocuments(DocumentRegistry.empty()));
+
+      assertThat(item.content()).hasSize(1);
+      assertThat(texts(item.content())).containsExactly("`" + unknown.toTag() + "`");
+    }
+
+    @Test
+    void aNestedDocumentIsTheTagStringInTheObjectAndTheDocumentFollowsTheObject() {
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      Map.of("status", 200, "file", document, "meta", Map.of("kind", "pdf")))),
+              documents);
+
+      assertThat(item.content()).hasSize(2);
+      assertThat(item.content().getFirst())
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object ->
+                  assertThat(tree(object.getObject()))
+                      .isEqualTo(
+                          tree(Map.of("status", 200, "file", tag, "meta", Map.of("kind", "pdf")))));
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void theTagInAnObjectIsNotWrappedInBackticksAndEqualsWhatTheModelSees() throws Exception {
+      final var item =
+          item(message(ObjectContent.objectContent(Map.of("file", document))), documents);
+
+      final var reported =
+          ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
+      assertThat(reported).isEqualTo(Map.of("file", tag));
+      assertThat(new ModelFacingJson(objectMapper).write(Map.of("file", document)))
+          .isEqualTo(objectMapper.writeValueAsString(reported));
+    }
+
+    @Test
+    void aDocumentNestedAtAnyDepthAndInARecordIsReplacedByItsTag() {
+      record Attachment(String name, Document file) {}
+
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      Map.of("attachments", List.of(new Attachment("a", document))))),
+              documents);
+
+      assertThat(item.content()).hasSize(2);
+      assertThat(
+              tree(
+                  ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst())
+                      .getObject()))
+          .isEqualTo(tree(Map.of("attachments", List.of(Map.of("name", "a", "file", tag)))));
+    }
+
+    @Test
+    void theDocumentsOfAnObjectAreReportedOnceEachInOrderOfAppearance() {
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      List.of(
+                          Map.of("file", document),
+                          Map.of("file", otherDocument),
+                          Map.of("again", document)))),
+              documents);
+
+      assertThat(item.content()).hasSize(3);
+      assertThat(item.content().get(1))
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              doc ->
+                  assertThat(doc.getDocumentReference().getDocumentId())
+                      .isEqualTo(DocumentHandle.idFor(document)));
+      assertThat(item.content().get(2))
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              doc ->
+                  assertThat(doc.getDocumentReference().getDocumentId())
+                      .isEqualTo(DocumentHandle.idFor(otherDocument)));
+    }
+
+    @Test
+    void theEarlyAndTheLaterWriteOfANestedDocumentAreIdentical() throws Exception {
+      final var content =
+          ObjectContent.objectContent(
+              Map.of("status", 200, "file", document, "list", List.of(otherDocument)));
+
+      final var early = item(message(content), new HistoryDocuments(DocumentRegistry.empty()));
+      final var later = item(persisted(message(content)), documents);
+
+      assertThat(described(later)).isEqualTo(described(early)).hasSize(3);
+    }
+
+    @Test
+    void aMixedResultKeepsTheOrderOfItsContent() {
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("done"),
+                  DocumentReferenceContent.from(otherDocument),
+                  ObjectContent.objectContent(Map.of("file", document))),
+              documents);
+
+      assertThat(item.content()).hasSize(5);
+      assertThat(texts(item.content())).containsExactly("done", "`" + otherTag + "`");
+      assertThat(item.content().get(2))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(item.content().get(3))
+          .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
+      assertThat(item.content().get(4))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void anObjectWithoutDocumentsIsReportedAsItIs() {
+      final var value = Map.of("status", 200, "items", List.of("a", "b"));
+
+      final var item = item(message(ObjectContent.objectContent(value)), documents);
+
+      assertThat(item.content())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object -> assertThat(object.getObject()).isSameAs(value));
+    }
+
+    @Test
+    void anExternalDocumentIsItsTagAndTheExternalReference() {
+      final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
+      final var externalTag = DocumentReferenceContent.from(external).toTag();
+
+      final var item = item(message(DocumentContent.documentContent(external)), documents);
+
+      assertThat(texts(item.content())).containsExactly("`" + externalTag + "`");
+      assertThat(item.content()).hasSize(2);
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
+      assertThat(externalTag).doesNotContain("example.com");
+    }
+
+    @Test
+    void anInlineDocumentHasItsTagOnly() {
+      final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+      final var inlineTag = DocumentReferenceContent.from(inline).toTag();
+
+      final var bare = item(message(DocumentContent.documentContent(inline)), documents);
+      final var nested =
+          item(message(ObjectContent.objectContent(Map.of("file", inline))), documents);
+
+      assertThat(texts(bare.content())).containsExactly("`" + inlineTag + "`");
+      assertThat(bare.content()).hasSize(1);
+      assertThat(nested.content()).hasSize(1);
+      assertThat(
+              ((AgentInstanceHistoryContent.ObjectContent) nested.content().getFirst()).getObject())
+          .isEqualTo(Map.of("file", inlineTag));
+    }
+
+    @Test
+    void theArgumentsAreTheOnesTheModelSent() {
+      final var item =
+          item(
+              message(
+                  DocumentReferenceContent.from(document),
+                  ObjectContent.objectContent(Map.of("file", otherDocument))),
+              documents);
+
+      assertThat(item.toolCalls())
+          .singleElement()
+          .satisfies(reported -> assertThat(reported.getArguments()).isEqualTo(call.arguments()));
+    }
+
+    @Test
+    void withoutTheDocumentsFeatureAToolResultIsReportedAsStored() {
+      final var legacy = HistoryDocuments.withoutDocumentFlow(false);
+
+      final var bare = item(message(DocumentContent.documentContent(document)), legacy);
+      final var nested =
+          item(message(ObjectContent.objectContent(Map.of("file", document))), legacy);
+
+      assertThat(bare.content())
+          .singleElement()
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(nested.content())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object ->
+                  assertThat(((Map<?, ?>) object.getObject()).get("file")).isSameAs(document));
+    }
   }
 }
