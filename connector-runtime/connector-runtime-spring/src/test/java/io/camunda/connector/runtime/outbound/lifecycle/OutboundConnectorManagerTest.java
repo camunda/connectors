@@ -155,6 +155,29 @@ class OutboundConnectorManagerTest {
   }
 
   @Test
+  void onStart_normalizesTheConfiguredPhysicalTenantIdLikeTheCamundaClientDoes() {
+    var jobWorkerManager = mock(JobWorkerManager.class);
+    var connectorFactory = mock(OutboundConnectorFactory.class);
+    when(connectorFactory.getActiveConfigurations()).thenReturn(Set.of());
+    var manager =
+        managerWith(
+            jobWorkerManager,
+            connectorFactory,
+            Map.of(
+                "tenant-a", mock(DocumentFactory.class), "engine-c", mock(DocumentFactory.class)),
+            Map.of(
+                "tenant-a",
+                mock(SecretFilterFactory.class),
+                "engine-c",
+                mock(SecretFilterFactory.class)));
+
+    // trimmed, so it matches the physicalTenantId tag the client puts on its worker metrics
+    manager.onStart(clientWithPhysicalTenantId(" tenant-a "), "engine-a");
+    // blank counts as unset, so it falls back to the client name like the client does
+    manager.onStart(clientWithPhysicalTenantId(" "), "engine-c");
+  }
+
+  @Test
   void onStart_fallsBackToClientNameWhenConfigurationCannotBeRead() {
     var jobWorkerManager = mock(JobWorkerManager.class);
     var connectorFactory = mock(OutboundConnectorFactory.class);

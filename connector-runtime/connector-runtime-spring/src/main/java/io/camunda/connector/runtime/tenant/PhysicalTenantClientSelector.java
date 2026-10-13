@@ -171,7 +171,7 @@ public class PhysicalTenantClientSelector {
    */
   private static String readPhysicalTenantIdForRouting(CamundaClient client) {
     try {
-      return client.getConfiguration().getPhysicalTenantId();
+      return PhysicalTenantClients.configuredPhysicalTenantId(client);
     } catch (RuntimeException e) {
       throw new IllegalStateException(
           "Cannot read the physical tenant of a configured CamundaClient, so jobs cannot be routed "
