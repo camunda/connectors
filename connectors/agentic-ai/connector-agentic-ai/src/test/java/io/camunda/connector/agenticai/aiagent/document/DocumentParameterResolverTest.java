@@ -49,6 +49,12 @@ class DocumentParameterResolverTest {
         + " <doc /> tag) or that tag itself, got '%s'.".formatted(value);
   }
 
+  private static String unionProblem(String path, String id) {
+    return "Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
+            .formatted(path, id)
+        + " Pass the tag of a known document, or pass other text.";
+  }
+
   private Map<String, Object> reference(String id) {
     return registry.findById(id).orElseThrow().reference();
   }
@@ -404,13 +410,25 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void aUnionParameterReportsATagWithAnUnknownIdLikeADocumentParameter() {
+  void aUnionParameterReportsATagWithAnUnknownIdWithItsOwnText() {
     final var tag = "<doc id=\"nope\" fileName=\"x\" />";
 
     assertThat(resolve(Map.of("doc", tag), object("doc", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("doc", "nope"))));
     assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
-        .isEqualTo(resolve(Map.of("doc", tag), object("doc", UNION)));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+  }
+
+  @Test
+  void aUnionParameterReportsATagWithAnUnknownIdWithItsOwnTextForRuntimeTools() {
+    final var tag = "<doc id=\"nope\" fileName=\"x\" />";
+
+    assertThat(resolveIds(Map.of("doc", tag), object("doc", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("doc", "nope"))));
+    assertThat(resolveIds(Map.of("doc", tag), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+    assertThat(resolveIds(Map.of("doc", "nope"), object("doc", UNION)))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", "nope")));
   }
 
   @Test
@@ -454,7 +472,7 @@ class DocumentParameterResolverTest {
         resolve(
             Map.of("items", List.of("text", "<doc id=\"nope\" />")), object("items", array(UNION)));
 
-    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("items[1]", "nope"))));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unionProblem("items[1]", "nope"))));
   }
 
   @Test
@@ -533,7 +551,7 @@ class DocumentParameterResolverTest {
                     "doc",
                     secondId)));
     assertThat(resolveIds(Map.of("tagged", "<doc id=\"nope\" />"), object("tagged", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("tagged", "nope"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("tagged", "nope"))));
   }
 
   @Test

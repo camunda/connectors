@@ -161,8 +161,9 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
 
     // the call is answered in the loop and never reaches the tool
     assertThat(toolResult(recorded.requests().get(2).messages(), UNKNOWN_CALL_ID))
-        .contains("Parameter 'body' must be the exact id of a known document")
-        .contains("got 'gone'")
+        .contains(
+            "Parameter 'body' holds a <doc /> tag with the id 'gone'. That is not a known"
+                + " document. Pass the tag of a known document, or pass other text.")
         .contains("Known documents:")
         .contains(id);
     assertThat(toolResult(recorded.lastRequest().messages(), RETRY_CALL_ID))

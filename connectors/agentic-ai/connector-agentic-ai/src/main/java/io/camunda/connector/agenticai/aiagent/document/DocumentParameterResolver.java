@@ -228,7 +228,7 @@ public final class DocumentParameterResolver {
     }
     final var entry = registry.findById(tagId);
     if (entry.isEmpty()) {
-      problems.add(unknownIdProblem(path, tagId));
+      problems.add(unknownUnionTagProblem(path, tagId));
       return text;
     }
     return replacement.apply(entry.get());
@@ -259,6 +259,12 @@ public final class DocumentParameterResolver {
   private static String unknownIdProblem(String path, String id) {
     return ("Parameter '%s' must be the exact id of a known document (the id attribute of its"
             + " <doc /> tag) or that tag itself, got '%s'.")
+        .formatted(path, id);
+  }
+
+  private static String unknownUnionTagProblem(String path, String id) {
+    return ("Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
+            + " Pass the tag of a known document, or pass other text.")
         .formatted(path, id);
   }
 

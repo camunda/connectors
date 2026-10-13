@@ -430,7 +430,7 @@ class RuntimeToolCallHandlerImplTest {
             result ->
                 assertThat(result.content().toString())
                     .startsWith(
-                        "Parameter 'body' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:")
+                        "Parameter 'body' holds a <doc /> tag with the id 'bogus'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:")
                     .contains(reportId));
   }
 
@@ -467,7 +467,7 @@ class RuntimeToolCallHandlerImplTest {
               assertThat(result.id()).isEqualTo("s2");
               assertThat(result.content())
                   .isEqualTo(
-                      "Parameter 'body' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'. Known documents:\n"
+                      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:\n"
                           + "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" toolName=\"search\" toolCallId=\"call-1\" />"
                               .formatted(reportId));
             });
