@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -159,8 +160,11 @@ class AgentV2ElementTemplateTest {
   void migratesFromRecipe(String file, String recipeFile, String sourceTemplateId)
       throws IOException {
     final var recipe =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readTree(Path.of("element-template-overrides", recipeFile).toFile());
+        (ObjectNode)
+            ConnectorsObjectMapperSupplier.getCopy()
+                .readTree(Path.of("element-template-overrides", recipeFile).toFile());
+    assertThat(recipe.has("$schema")).isTrue();
+    recipe.remove("$schema");
     final var migratesFrom = template(file).path("metadata").path("migratesFrom");
     assertThat(migratesFrom).isEqualTo(recipe);
     assertThat(migratesFrom.has("$schema")).isFalse();

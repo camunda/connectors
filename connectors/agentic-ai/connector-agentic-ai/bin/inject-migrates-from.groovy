@@ -34,6 +34,7 @@ def mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
     println("Injecting ${recipeFile.name} into ${templateFile.name}")
     def json = mapper.readValue(templateFile, Map.class)
     def recipe = mapper.readValue(recipeFile, Map.class)
+    recipe.remove('$schema')
 
     def ordered = new LinkedHashMap()
     json.each { key, value ->
