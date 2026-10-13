@@ -14,9 +14,10 @@ on:
   pull_request:
     types: [ opened, reopened, synchronize, labeled ]
 
-# Scoped to the PR and label so an unrelated label event cannot cancel an authorized run.
+# Target-label and non-label events share a key so a push cancels stale authorized work.
+# Other label events remain isolated and cannot cancel it.
 concurrency:
-  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.action == 'labeled' && github.event.label.name != 'ai-agent-model-e2e-test' && format('label-{0}', github.event.label.name) || 'current-head' }}
   cancel-in-progress: true
 
 permissions:
