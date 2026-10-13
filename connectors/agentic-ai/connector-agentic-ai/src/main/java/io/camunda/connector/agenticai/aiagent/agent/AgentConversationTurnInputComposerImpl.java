@@ -144,16 +144,27 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       }
 
       final var toolCallResults = resolution.results();
-      final var toolCallResultMessage =
+      final var composedResultMessage =
           ToolCallResultMessage.builder()
               .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
               .metadata(defaultMessageMetadata())
               .build();
-      messages.add(toolCallResultMessage);
+      final ToolCallResultMessage toolCallResultMessage;
       if (documentFlow) {
         // the documents of the results are shown as their tags inside the tool results
         ingestToolCallResultDocuments(
-            toolCallResults, toolCallResultMessage.id(), ingestedDocuments);
+            toolCallResults, composedResultMessage.id(), ingestedDocuments);
+        // a document that is a whole result is persisted as its reference, like the other documents
+        toolCallResultMessage =
+            composedResultMessage.withResults(
+                composedResultMessage.results().stream()
+                    .map(ToolCallResultContent::withDocumentReferences)
+                    .toList());
+      } else {
+        toolCallResultMessage = composedResultMessage;
+      }
+      messages.add(toolCallResultMessage);
+      if (documentFlow) {
         final var documentContentMessage =
             composeDocumentContentMessage(
                 getDocumentTags(DocumentRegistry.of(agentContext.documents()), toolCallResults),

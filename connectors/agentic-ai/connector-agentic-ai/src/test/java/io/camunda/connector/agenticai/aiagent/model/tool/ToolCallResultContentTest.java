@@ -12,11 +12,17 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -166,6 +172,50 @@ class ToolCallResultContentTest {
           objectMapper.readValue(json, ToolCallResultContent.class);
 
       assertThat(deserialized.completedAt()).isEqualTo(completedAt);
+    }
+  }
+
+  @Nested
+  class WithDocumentReferences {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+
+    private ToolCallResultContent result(Content... content) {
+      return ToolCallResultContent.builder()
+          .id("call-1")
+          .name("fetch")
+          .content(List.of(content))
+          .build();
+    }
+
+    @Test
+    void aTopLevelDocumentBecomesItsReferenceWithoutASource() {
+      final var converted =
+          result(DocumentContent.documentContent(document)).withDocumentReferences();
+
+      assertThat(converted.content()).singleElement().isInstanceOf(DocumentReferenceContent.class);
+      assertThat(converted.id()).isEqualTo("call-1");
+    }
+
+    @Test
+    void aNestedDocumentStaysADocument() {
+      final var nested = ObjectContent.objectContent(Map.of("file", document));
+      final var original = result(TextContent.textContent("text"), nested);
+
+      assertThat(original.withDocumentReferences()).isSameAs(original);
+    }
+
+    @Test
+    void convertingTwiceGivesTheSameResult() {
+      final var once = result(DocumentContent.documentContent(document)).withDocumentReferences();
+
+      assertThat(once.withDocumentReferences()).isSameAs(once);
     }
   }
 }

@@ -442,10 +442,9 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_liftsToDocumentContentWithoutADocumentMessage() {
-    // a tool call result whose whole content is a Document (not nested in an object): the
-    // ToolCallResultContent lift turns this into a first-class DocumentContent, which the provider
-    // converters render as the tag
+  void toolResultTurn_bareDocumentResult_isPersistedAsItsReferenceWithoutADocumentMessage() {
+    // a tool call result whose whole content is a Document (not nested in an object) is persisted
+    // as the reference that renders the tag the model sees, and is still ingested into the registry
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -467,9 +466,53 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(1);
-    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
+    var nextTurn = (CompositionResult.NextTurn) result;
+    assertThat(nextTurn.messages()).hasSize(1);
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(
+            r ->
+                assertThat(r.content()).containsExactly(DocumentReferenceContent.from(weatherDoc)));
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            new IngestedDocument(
+                weatherDoc,
+                DocumentSource.toolCall(
+                    "getWeather", "abcdef", toolCallResultMessage.id().toString())));
+  }
+
+  @Test
+  void toolResultTurn_bareDocumentResult_withoutTheDocumentsFeature_staysTheBareDocument() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(weatherDoc)
+                    .build(),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, legacyContext, history, input);
+
+    var nextTurn = (CompositionResult.NextTurn) result;
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
@@ -477,6 +520,7 @@ class AgentConversationTurnInputComposerImplTest {
             r ->
                 assertThat(r.content())
                     .containsExactly(DocumentContent.documentContent(weatherDoc)));
+    assertThat(nextTurn.documents()).isEmpty();
   }
 
   @Test

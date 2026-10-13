@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
@@ -77,6 +78,26 @@ public record ToolCallResultContent(
         .properties(result.properties())
         .content(contentFromObject(result.content()))
         .build();
+  }
+
+  /**
+   * The result with every document that is the whole content of the result (a top-level {@link
+   * DocumentContent}) as a {@link DocumentReferenceContent} without a source, the tag the model
+   * sees for it. Documents nested in an {@link ObjectContent} stay documents. A result that holds
+   * no top-level document is returned as it is, so applying this twice gives the same result.
+   */
+  public ToolCallResultContent withDocumentReferences() {
+    if (content.stream().noneMatch(DocumentContent.class::isInstance)) {
+      return this;
+    }
+    return withContent(
+        content.stream()
+            .<Content>map(
+                block ->
+                    block instanceof DocumentContent documentContent
+                        ? DocumentReferenceContent.from(documentContent.document())
+                        : block)
+            .toList());
   }
 
   /**
