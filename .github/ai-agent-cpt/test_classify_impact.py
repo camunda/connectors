@@ -163,11 +163,11 @@ class ClassifyImpactTest(unittest.TestCase):
     def test_annotations_make_each_state_visible_without_errors(self):
         expected = {
             classify_impact.STATE_AFFECTED_AUTHORIZED: (
-                "::notice title=AI Agent CPT impact::AI Agent CPT changes are affected "
+                "::notice title=AI Agent CPT impact::AI Agent CPT is affected "
                 "and authorized for the current head SHA."
             ),
             classify_impact.STATE_AFFECTED_WAITING: (
-                "::warning title=AI Agent CPT impact::AI Agent CPT changes are affected "
+                "::warning title=AI Agent CPT impact::AI Agent CPT is affected "
                 "and waiting for ai-agent-model-e2e-test authorization on the current "
                 "head SHA."
             ),

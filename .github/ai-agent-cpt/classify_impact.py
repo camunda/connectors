@@ -36,11 +36,11 @@ STATE_SUMMARIES = {
 STATE_ANNOTATIONS = {
     STATE_AFFECTED_AUTHORIZED: (
         "notice",
-        "AI Agent CPT changes are affected and authorized for the current head SHA.",
+        "AI Agent CPT is affected and authorized for the current head SHA.",
     ),
     STATE_AFFECTED_WAITING: (
         "warning",
-        "AI Agent CPT changes are affected and waiting for ai-agent-model-e2e-test "
+        "AI Agent CPT is affected and waiting for ai-agent-model-e2e-test "
         "authorization on the current head SHA.",
     ),
     STATE_NOT_AFFECTED: (
