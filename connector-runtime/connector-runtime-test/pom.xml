@@ -15,6 +15,7 @@
   <description>Camunda Connector Runtime Test</description>
   <artifactId>connector-runtime-test</artifactId>
 
+  <!-- Disposable positive control for #8970 workflow validation. -->
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
