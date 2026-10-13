@@ -12,6 +12,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
@@ -142,5 +145,55 @@ class DocumentRegistryTest {
 
     assertThat(DocumentRegistry.of(List.of(entry1, entry2, entry3)).entries())
         .containsExactly(entry1, entry3);
+  }
+
+  private static DocumentRegistry registryOfEntries(int count) {
+    return DocumentRegistry.of(
+        java.util.stream.IntStream.rangeClosed(1, count)
+            .mapToObj(
+                i ->
+                    new DocumentRegistryEntry(
+                        "doc-" + i, DocumentSource.userMessage(null), Map.of("k", "" + i)))
+            .toList());
+  }
+
+  @Test
+  void theKnownDocumentsErrorIsTheProblemsTheReferencesInRegistryOrderAndNoCount() {
+    final var registry = registryOfEntries(3);
+
+    final var result = registry.knownDocumentsError("Parameter 'p' is wrong.");
+
+    assertThat(result.error()).isTrue();
+    assertThat(result.contentBlocks())
+        .containsExactly(
+            TextContent.textContent("Parameter 'p' is wrong. Known documents:"),
+            DocumentReferenceContent.from(registry.entries().get(0), DocumentDelivery.REFERENCE),
+            DocumentReferenceContent.from(registry.entries().get(1), DocumentDelivery.REFERENCE),
+            DocumentReferenceContent.from(registry.entries().get(2), DocumentDelivery.REFERENCE));
+  }
+
+  @Test
+  void theKnownDocumentsErrorListsAtMostFiftyReferencesAndCountsTheRest() {
+    final var registry = registryOfEntries(52);
+
+    final var blocks = registry.knownDocumentsError("Parameter 'p' is wrong.").contentBlocks();
+
+    assertThat(blocks).hasSize(52);
+    assertThat(blocks.getFirst())
+        .isEqualTo(TextContent.textContent("Parameter 'p' is wrong. Known documents:"));
+    assertThat(blocks.subList(1, 51))
+        .extracting(block -> ((DocumentReferenceContent) block).id())
+        .containsExactlyElementsOf(
+            registry.entries().stream().limit(50).map(DocumentRegistryEntry::id).toList());
+    assertThat(blocks.getLast()).isEqualTo(TextContent.textContent("(and 2 more)"));
+  }
+
+  @Test
+  void theKnownDocumentsErrorOfAnEmptyRegistryIsOneText() {
+    final var result = DocumentRegistry.empty().knownDocumentsError("Parameter 'p' is wrong.");
+
+    assertThat(result.error()).isTrue();
+    assertThat(result.contentBlocks()).isNull();
+    assertThat(result.content()).isEqualTo("Parameter 'p' is wrong. No documents are known.");
   }
 }
