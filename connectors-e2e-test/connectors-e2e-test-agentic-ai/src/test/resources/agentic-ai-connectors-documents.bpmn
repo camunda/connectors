@@ -95,12 +95,6 @@
           <zeebe:script expression="=&#34;pong&#34;" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
       </bpmn:scriptTask>
-      <bpmn:serviceTask id="Slow_Tool" name="Slow tool">
-        <bpmn:documentation>A tool that keeps running until its job is completed from outside.</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="slow-tool" />
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_tool_results" name="Tool results" sourceRef="Agent_Tools" targetRef="Gateway_merge" />
   </bpmn:process>
@@ -111,11 +105,10 @@
       <bpmndi:BPMNShape id="AI_Agent_di" bpmnElement="AI_Agent"><dc:Bounds x="266" y="100" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_tool_calls_di" bpmnElement="Gateway_tool_calls"><dc:Bounds x="406" y="100" width="50" height="50" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_ExecuteAgent_di" bpmnElement="EndEvent_ExecuteAgent"><dc:Bounds x="496" y="100" width="36" height="36" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Agent_Tools_di" bpmnElement="Agent_Tools" isExpanded="true"><dc:Bounds x="572" y="100" width="400" height="240" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Agent_Tools_di" bpmnElement="Agent_Tools" isExpanded="true"><dc:Bounds x="572" y="100" width="400" height="160" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Download_A_File_di" bpmnElement="Download_A_File"><dc:Bounds x="592" y="160" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Upload_A_File_di" bpmnElement="Upload_A_File"><dc:Bounds x="732" y="160" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Ping_di" bpmnElement="Ping"><dc:Bounds x="872" y="160" width="100" height="80" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Slow_Tool_di" bpmnElement="Slow_Tool"><dc:Bounds x="592" y="250" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start"><di:waypoint x="136" y="118" /><di:waypoint x="176" y="125" /></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_to_agent_di" bpmnElement="Flow_to_agent"><di:waypoint x="226" y="125" /><di:waypoint x="266" y="140" /></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_agent_done_di" bpmnElement="Flow_agent_done"><di:waypoint x="366" y="140" /><di:waypoint x="406" y="125" /></bpmndi:BPMNEdge>
