@@ -12,12 +12,16 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.ErrorCode;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.sendgrid.model.SendGridApiKeyConfiguration;
+import java.time.Duration;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Validates a stored {@link SendGridApiKeyConfiguration} by listing the API key's scopes, a
- * read-only call every valid key may make regardless of its permissions.
+ * read-only call every valid key may make regardless of its permissions. The call is bounded by a
+ * timeout so that an unresponsive endpoint fails the validation instead of blocking it.
  */
 public class SendGridConfigurationValidator
     implements ConfigurationValidator<SendGridApiKeyConfiguration> {
@@ -28,14 +32,24 @@ public class SendGridConfigurationValidator
   static final String UNAUTHORIZED_MESSAGE = "SendGrid rejected the API key (unauthorized).";
   static final String GENERIC_MESSAGE = "The SendGrid credential could not be validated.";
 
+  private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+
   private final SendGridClientSupplier sendGridSupplier;
+  private final RequestConfig requestConfig;
 
   public SendGridConfigurationValidator() {
-    this(new SendGridClientSupplier());
+    this(new SendGridClientSupplier(), DEFAULT_TIMEOUT);
   }
 
-  SendGridConfigurationValidator(SendGridClientSupplier sendGridSupplier) {
+  SendGridConfigurationValidator(SendGridClientSupplier sendGridSupplier, Duration timeout) {
     this.sendGridSupplier = sendGridSupplier;
+    final int timeoutMs = Math.toIntExact(timeout.toMillis());
+    this.requestConfig =
+        RequestConfig.custom()
+            .setConnectTimeout(timeoutMs)
+            .setConnectionRequestTimeout(timeoutMs)
+            .setSocketTimeout(timeoutMs)
+            .build();
   }
 
   @Override
@@ -46,9 +60,12 @@ public class SendGridConfigurationValidator
     final var request = new Request();
     request.setMethod(Method.GET);
     request.setEndpoint("scopes");
-    try {
+    try (var httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
       final int statusCode =
-          sendGridSupplier.sendGrid(configuration.apiKey()).api(request).getStatusCode();
+          sendGridSupplier
+              .sendGrid(configuration.apiKey(), httpClient)
+              .api(request)
+              .getStatusCode();
       if (statusCode >= 200 && statusCode < 300) {
         return ConfigurationValidationResult.success();
       }
