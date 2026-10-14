@@ -13,11 +13,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -58,11 +58,11 @@ public record DocumentRegistryEntry(
    */
   public static final int MAX_INLINE_CONTENT_LENGTH = 1024 * 1024;
 
+  // the persisted reference keeps the numeric form of durations in the custom properties
   private static final ObjectMapper REFERENCE_MAPPER =
-      new ObjectMapper()
-          .registerModule(new JavaTimeModule())
+      ConnectorsObjectMapperSupplier.getCopy()
           .registerModule(new JacksonModuleDocumentSerializer())
-          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .enable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
   private static final TypeReference<LinkedHashMap<String, Object>> REFERENCE_TYPE =
