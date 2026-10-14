@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.agent.HandledToolCalls;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
@@ -411,7 +412,8 @@ class GetDocumentToolTest {
             new RuntimeToolRegistryImpl(List.of(new GetDocumentTool(objectMapperFor(smallStore)))));
 
     final var split =
-        smallHandler.handle(
+        HandledToolCalls.of(
+            smallHandler,
             withConfiguration(CONFIGURATION),
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
@@ -449,7 +451,8 @@ class GetDocumentToolTest {
                 List.of(new GetDocumentTool(objectMapperFor(failingStore)))));
 
     final var split =
-        failingHandler.handle(
+        HandledToolCalls.of(
+            failingHandler,
             withConfiguration(CONFIGURATION),
             conversation(List.of(camundaEntry("doc-1", "text/plain", null)), List.of()),
             List.of(call("1", "doc-1")));
@@ -510,9 +513,12 @@ class GetDocumentToolTest {
         .ingest(assistantMessage("calling"), AgentMetrics.empty());
   }
 
-  private RuntimeToolCallHandler.RuntimeToolCallSplit run(
+  private HandledToolCalls run(
       List<DocumentRegistryEntry> entries, List<Message> messages, ToolCall... toolCalls) {
-    return handler.handle(
-        withConfiguration(CONFIGURATION), conversation(entries, messages), List.of(toolCalls));
+    return HandledToolCalls.of(
+        handler,
+        withConfiguration(CONFIGURATION),
+        conversation(entries, messages),
+        List.of(toolCalls));
   }
 }

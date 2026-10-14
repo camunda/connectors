@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -94,7 +96,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
-      AgentInput agentInput) {
+      AgentInput agentInput,
+      RuntimeToolCallSplit deferredCalls) {
     // tool call results arriving without a previous conversation is most likely a modeling error
     if (agentContext.conversation() == null && !agentInput.toolCallResults().isEmpty()) {
       throw new ConnectorException(
@@ -121,6 +124,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .toList();
 
     List<Message> messages = new ArrayList<>();
+    List<UnaryOperator<AgentContext>> contextUpdates = List.of();
 
     boolean expectingToolCallResults =
         !previousConversation.turns().isEmpty()
@@ -134,7 +138,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
       final var resolution =
           resolveOrderedToolCallResults(
-              agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
+              agentContext,
+              toolCalls,
+              agentInput.toolCallResults(),
+              deferredCalls,
+              interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
@@ -143,6 +151,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       }
 
       final var resolvedResults = resolution.results();
+      contextUpdates = resolution.contextUpdates();
+      // the registry as the answers of the agent left it
+      final var documentRegistry =
+          RuntimeToolCallAnswers.applyContextUpdates(agentContext, contextUpdates)
+              .documentRegistry();
       final var toolCallResults =
           resolvedResults.stream().map(ResolvedToolCallResult::content).toList();
       final var composedResultMessage =
@@ -168,7 +181,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       if (documentFlow) {
         final var documentContentMessage =
             composeDocumentContentMessage(
-                getDocumentTags(agentContext.documentRegistry(), toolCallResults),
+                getDocumentTags(documentRegistry, toolCallResults),
                 toolDocumentContent(
                     agentContext,
                     configuration,
@@ -205,7 +218,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     ingestedDocuments.addAll(eventDocuments);
-    return new CompositionResult.NextTurn(messages, ingestedDocuments);
+    return new CompositionResult.NextTurn(messages, ingestedDocuments, contextUpdates);
   }
 
   private @Nullable UserMessage createUserPromptMessage(
@@ -268,16 +281,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * @param results the currently resolved results in tool-call order: the results the agent
-   *     answered itself, the correlated and gateway-transformed process results and, when
-   *     interrupting, the cancelled ones; partial when {@code complete} is {@code false}
+   * @param results the resolved results in tool-call order: the answers of the agent itself, the
+   *     correlated and gateway-transformed process results and, when interrupting, the cancelled
+   *     ones; empty when {@code complete} is {@code false}
    * @param arrivedResults the process results among {@code results} (correlated and
    *     gateway-transformed), in tool-call order
+   * @param contextUpdates the changes of the agent context the answers of the agent itself made
    * @param complete whether every tool call has a result (or was cancelled via interrupt)
    */
   private record ToolCallResultsResolution(
       List<ResolvedToolCallResult> results,
       List<ToolCallResult> arrivedResults,
+      List<UnaryOperator<AgentContext>> contextUpdates,
       boolean complete) {}
 
   /**
@@ -301,41 +316,30 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
+      RuntimeToolCallSplit deferredCalls,
       boolean interruptMissingToolCalls) {
     final var transformedToolCallResults =
         gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
     final var toolCallResultsById =
         transformedToolCallResults.stream()
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
-    // answered by the agent when the tool calls were issued; never gateway-transformed
-    final var runtimeToolCallResultsById =
-        agentContext.pendingRuntimeToolCallResults().stream()
-            .collect(Collectors.toMap(ToolCallResultContent::id, Function.identity(), (a, b) -> a));
+    // the calls the agent answers itself are not waited for
+    final var answeredCallIds =
+        deferredCalls.answeredCalls().stream().map(ToolCall::id).collect(Collectors.toSet());
 
     final var missingToolCalls = new ArrayList<ToolCall>();
-    final var orderedToolCallResults = new ArrayList<ResolvedToolCallResult>();
     final var arrivedToolCallResults = new ArrayList<ToolCallResult>();
-    toolCalls.forEach(
-        toolCall -> {
-          final var runtimeResult = runtimeToolCallResultsById.get(toolCall.id());
-          final var result = toolCallResultsById.get(toolCall.id());
-          if (runtimeResult != null) {
-            orderedToolCallResults.add(ResolvedToolCallResult.ofRuntime(runtimeResult));
-          } else if (result != null) {
-            orderedToolCallResults.add(ResolvedToolCallResult.ofProcess(result));
-            arrivedToolCallResults.add(result);
-          } else {
-            missingToolCalls.add(toolCall);
-            if (interruptMissingToolCalls) {
-              LOGGER.debug(
-                  "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
-              orderedToolCallResults.add(
-                  ResolvedToolCallResult.ofProcess(
-                      ToolCallResult.forCancelledToolCall(
-                          toolCall.id(), toolCall.name(), OffsetDateTime.now())));
-            }
-          }
-        });
+    toolCalls.stream()
+        .filter(toolCall -> !answeredCallIds.contains(toolCall.id()))
+        .forEach(
+            toolCall -> {
+              final var result = toolCallResultsById.get(toolCall.id());
+              if (result != null) {
+                arrivedToolCallResults.add(result);
+              } else {
+                missingToolCalls.add(toolCall);
+              }
+            });
 
     // some results still missing, not interrupting due to events -> we wait for more to arrive
     if (!missingToolCalls.isEmpty() && !interruptMissingToolCalls) {
@@ -344,10 +348,35 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, false);
+      return new ToolCallResultsResolution(List.of(), arrivedToolCallResults, List.of(), false);
     }
 
-    return new ToolCallResultsResolution(orderedToolCallResults, arrivedToolCallResults, true);
+    // answered also when interrupting: the answers are cheap and complete the results of the turn
+    final var answers = deferredCalls.answer();
+    final var answersById =
+        answers.results().stream()
+            .collect(Collectors.toMap(ToolCallResultContent::id, Function.identity(), (a, b) -> a));
+    final var orderedToolCallResults = new ArrayList<ResolvedToolCallResult>();
+    toolCalls.forEach(
+        toolCall -> {
+          final var answer = answersById.get(toolCall.id());
+          final var result = toolCallResultsById.get(toolCall.id());
+          if (answeredCallIds.contains(toolCall.id()) && answer != null) {
+            orderedToolCallResults.add(ResolvedToolCallResult.ofRuntime(answer));
+          } else if (result != null) {
+            orderedToolCallResults.add(ResolvedToolCallResult.ofProcess(result));
+          } else {
+            LOGGER.debug(
+                "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
+            orderedToolCallResults.add(
+                ResolvedToolCallResult.ofProcess(
+                    ToolCallResult.forCancelledToolCall(
+                        toolCall.id(), toolCall.name(), OffsetDateTime.now())));
+          }
+        });
+
+    return new ToolCallResultsResolution(
+        orderedToolCallResults, arrivedToolCallResults, answers.contextUpdates(), true);
   }
 
   @Override

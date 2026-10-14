@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
@@ -61,6 +62,9 @@ import org.junit.jupiter.api.Test;
  * provider converter renders the result of the window with the tags.
  */
 class ToolResultDocumentRenderingTest {
+
+  private static final RuntimeToolCallSplit NO_DEFERRED_CALLS =
+      RuntimeToolCallSplit.allRemaining(List.of());
 
   private static final AgentContext CONTEXT =
       AgentContext.builder()
@@ -123,7 +127,8 @@ class ToolResultDocumentRenderingTest {
                 CONFIGURATION,
                 CONTEXT,
                 previous,
-                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results),
+                NO_DEFERRED_CALLS);
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();
@@ -191,7 +196,8 @@ class ToolResultDocumentRenderingTest {
                 CONFIGURATION,
                 CONTEXT,
                 previous,
-                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results),
+                NO_DEFERRED_CALLS);
     final var toolCallsById = previous.turns().getLast().toolCallsById();
     final var mapper =
         new AgentInstanceHistoryMapper(
@@ -226,8 +232,7 @@ class ToolResultDocumentRenderingTest {
   }
 
   @Test
-  void theHistoryOfAnAnswerMadeOfBlocksIsTheSameWhenItIsWrittenEarlyAndWhenItIsComposed()
-      throws Exception {
+  void theHistoryOfAnAnswerMadeOfBlocksReportsItsTextsAndItsDocument() throws Exception {
     final var loaded = document("loaded", "loaded.txt", "text/plain");
     final var registry =
         DocumentRegistry.empty()
@@ -260,14 +265,7 @@ class ToolResultDocumentRenderingTest {
     final var previous =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
-    // the pending answer reaches the next job as the agent context holds it in the process variable
-    final var context =
-        TestObjectMapperSupplier.INSTANCE.readValue(
-            TestObjectMapperSupplier.INSTANCE.writeValueAsString(
-                CONTEXT
-                    .withDocuments(registry.entries())
-                    .withPendingRuntimeToolCallResults(List.of(answer))),
-            AgentContext.class);
+    final var context = CONTEXT.withDocuments(registry.entries());
     final var nextTurn =
         (CompositionResult.NextTurn)
             composer.compose(
@@ -275,7 +273,9 @@ class ToolResultDocumentRenderingTest {
                 context,
                 previous,
                 AgentInput.from(
-                    new UserPromptConfiguration("user input", List.of()), List.of(processResult)));
+                    new UserPromptConfiguration("user input", List.of()), List.of(processResult)),
+                TestRuntimeToolCallSplit.answering(
+                    List.of(TOOL_CALLS.getFirst()), List.of(answer)));
     final var toolCallsById = previous.turns().getLast().toolCallsById();
     final var mapper =
         new AgentInstanceHistoryMapper(
@@ -287,20 +287,17 @@ class ToolResultDocumentRenderingTest {
             .withFeatures(AgentContext.newInstanceFeatures())
             .withDocumentRegistry(registry);
 
-    final var early =
-        mapper.inputHistoryItems(
-            ToolCallResultMessage.builder().results(List.of(answer)).build(),
-            toolCallsById,
-            completedAt,
-            historyContext);
     final var composed =
         mapper.inputHistoryItems(
             nextTurn.messages().getFirst(), toolCallsById, completedAt, historyContext);
 
-    assertThat(early).hasSize(1);
-    assertThat(early.getFirst().content()).hasSize(4);
-    assertThat(composed.getFirst().historyItemId()).isEqualTo(early.getFirst().historyItemId());
-    assertThat(describe(composed.getFirst())).isEqualTo(describe(early.getFirst()));
+    // one history item per tool call result, in the order of the tool calls
+    assertThat(composed)
+        .extracting(item -> item.historyItemId())
+        .containsExactly("abcdef", "fedcba");
+    assertThat(composed.getFirst().content()).hasSize(4);
+    assertThat(describe(composed.getFirst()))
+        .contains("TEXT Loaded the document.", "DOCUMENT " + registry.entries().getFirst().id());
   }
 
   private String describe(AgentInstanceHistoryMapper.InputHistoryItem item) {

@@ -10,6 +10,7 @@ import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
@@ -144,8 +145,11 @@ public abstract class BaseAgentRequestHandler<
           TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
       LOGGER.trace("Composing turn input from history and invocation state");
+      final var deferredCalls =
+          splitDeferredCalls(executionContext, configuration, agentContext, previousConversation);
       final var compositionResult =
-          agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
+          agentInputComposer.compose(
+              configuration, agentContext, previousConversation, agentInput, deferredCalls);
       return switch (compositionResult) {
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
@@ -157,21 +161,48 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
-        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
-            proceed(
-                executionContext,
-                agentContext.supportsDocuments()
-                    // the pending runtime results are part of newMessages now
-                    ? registerDocuments(agentContext, newDocuments)
-                        .withPendingRuntimeToolCallResults(List.of())
-                    : agentContext,
-                configuration,
-                previousConversation,
-                newMessages,
-                session,
-                store);
+        case CompositionResult.NextTurn(var newMessages, var newDocuments, var contextUpdates) -> {
+          final var updatedContext =
+              RuntimeToolCallAnswers.applyContextUpdates(agentContext, contextUpdates);
+          yield proceed(
+              executionContext,
+              updatedContext.supportsDocuments()
+                  ? registerDocuments(updatedContext, newDocuments)
+                  : updatedContext,
+              configuration,
+              previousConversation,
+              newMessages,
+              session,
+              store);
+        }
       };
     }
+  }
+
+  /**
+   * Splits the tool calls of the last assistant message of the previous conversation, which the
+   * composer answers when the tool call results of that turn are composed: the calls of runtime
+   * tools and the calls rejected for their document parameters are answered by the agent itself.
+   */
+  private RuntimeToolCallSplit splitDeferredCalls(
+      C executionContext,
+      AgentConfiguration configuration,
+      AgentContext agentContext,
+      PreviousConversation previousConversation) {
+    if (previousConversation.turns().isEmpty()
+        || !previousConversation.turns().getLast().hasToolCalls()) {
+      return RuntimeToolCallSplit.allRemaining(List.of());
+    }
+
+    final var conversation =
+        AgentConversation.rehydrate(
+            configuration,
+            agentContext,
+            previousConversation,
+            previousConversation.systemMessage().orElse(null),
+            List.of());
+    return runtimeToolCallHandler.split(
+        executionContext, conversation, previousConversation.turns().getLast().toolCalls());
   }
 
   /**
@@ -233,12 +264,13 @@ public abstract class BaseAgentRequestHandler<
         OffsetDateTime.now(),
         conversation.toAgentContext());
 
-    final AgentConversation updatedConversation;
+    final ContinuationOutcome outcome;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
-      updatedConversation =
+      outcome =
           driveContinuationLoop(
               executionContext, agentConfiguration, conversation, chatModel, agentInstanceKey);
     }
+    final var updatedConversation = outcome.conversation();
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
@@ -247,7 +279,8 @@ public abstract class BaseAgentRequestHandler<
             ConversationStoreRequest.of(updatedConversation.allMessages()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
-    final var agentResponse = responseHandler.createResponse(storedConversation);
+    final var agentResponse =
+        responseHandler.createResponse(storedConversation, outcome.processToolCalls());
 
     LOGGER.debug("Request processing completed with agent response, completing job");
 
@@ -258,20 +291,29 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
+   * The conversation after the continuation loop and the tool calls of its last assistant message
+   * that go to the process.
+   */
+  private record ContinuationOutcome(
+      AgentConversation conversation, List<ToolCall> processToolCalls) {}
+
+  /**
    * Drives the given chat model until it returns a {@code Completed} result whose tool calls (if
    * any) are left to the process, ingesting each round as its own turn. Further rounds are
    * intermediate {@code Continuation} rounds and rounds that follow a batch of tool calls the agent
-   * answered completely itself (see {@link RuntimeToolCallHandler}). A batch that mixes local and
-   * process calls ends the loop; its runtime results are kept as pending results of the
-   * conversation.
+   * answered completely itself (see {@link RuntimeToolCallHandler}). A batch that mixes calls the
+   * agent answers itself and calls of the process ends the loop; only the calls of the process are
+   * handed out, and the agent answers its own calls when it composes the turn that follows the
+   * process results.
    */
-  private AgentConversation driveContinuationLoop(
+  private ContinuationOutcome driveContinuationLoop(
       C executionContext,
       AgentConfiguration agentConfiguration,
       AgentConversation conversation,
       ChatModel chatModel,
       @Nullable AgentInstanceKey agentInstanceKey) {
     var workingConversation = conversation;
+    RuntimeToolCallSplit split;
     boolean anotherRound;
     do {
       LOGGER.debug(
@@ -286,17 +328,18 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
       final boolean continued = chatResult instanceof ChatResult.Continuation;
-      final var split =
+      split =
           continued
-              ? RuntimeToolCallHandler.RuntimeToolCallSplit.allRemaining(
-                  workingConversation, List.of())
-              : runtimeToolCallHandler.handle(
+              ? RuntimeToolCallSplit.allRemaining(List.of())
+              : runtimeToolCallHandler.split(
                   executionContext,
                   workingConversation,
                   workingConversation.currentTurn().toolCalls());
-      workingConversation = split.conversation();
       final boolean runtimeRound = split.answersAllCalls();
       anotherRound = continued || runtimeRound;
+
+      final var answers = runtimeRound ? split.answer() : RuntimeToolCallAnswers.none();
+      workingConversation = answers.applyTo(workingConversation);
 
       // Exactly one status per round (engine constraint): a round that is followed by another one
       // within this job re-asserts THINKING alongside its assistant item, the final round sends its
@@ -329,10 +372,10 @@ public abstract class BaseAgentRequestHandler<
         throwIfLimitsReached(workingConversation, agentConfiguration);
         final var documentContentMessage =
             agentInputComposer.composeDocumentContentMessage(
-                workingConversation.documentRegistry(), split.runtimeResults());
+                workingConversation.documentRegistry(), answers.results());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
-                ToolCallResultMessage.builder().results(split.runtimeResults()).build(),
+                ToolCallResultMessage.builder().results(answers.results()).build(),
                 documentContentMessage == null ? List.of() : List.of(documentContentMessage));
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(
@@ -343,30 +386,15 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.lastTurn(),
             OffsetDateTime.now(),
             workingConversation.toAgentContext());
-      } else if (split.hasRuntimeResults()) {
+      } else if (split.hasAnsweredCalls()) {
         LOGGER.debug(
-            "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
-            split.runtimeResults().size(),
+            "{} of the tool calls of turn (iterationKey={}) are answered locally with the next turn; {} go to the process",
+            split.answeredCalls().size(),
             workingConversation.currentTurn().iterationKey(),
             split.remainingCalls().size());
-
-        // the runtime results become visible in the history right away, correlated to the assistant
-        // turn that was just completed (no status change: the round already carries its one
-        // status). The next job reports them again with its turn start under the same history item
-        // ids, which the engine deduplicates.
-        agentInstanceClient.applyToolCallResults(
-            executionContext,
-            agentInstanceKey,
-            split.runtimeResults(),
-            workingConversation.currentTurn(),
-            workingConversation.toAgentContext());
-
-        // the results join the process results of the remaining calls in the next job
-        workingConversation =
-            workingConversation.withPendingRuntimeToolCallResults(split.runtimeResults());
       }
     } while (anotherRound);
-    return workingConversation;
+    return new ContinuationOutcome(workingConversation, split.remainingCalls());
   }
 
   /**

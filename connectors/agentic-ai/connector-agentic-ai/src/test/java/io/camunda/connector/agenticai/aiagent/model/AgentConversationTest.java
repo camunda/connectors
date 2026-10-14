@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -749,20 +748,6 @@ class AgentConversationTest {
       // the window holds the system message, the user message and the assistant message
       assertThat(conv.windowedMessages().contains(userMessage)).isEqualTo(windowSize == 3);
     }
-  }
-
-  @Test
-  void withPendingRuntimeToolCallResults_carriesTheResultsInTheAgentContext() {
-    var pending = ToolCallResultContent.from(TOOL_CALL_RESULTS.getFirst());
-    var conv =
-        rehydrate(List.of(), List.of(userMessage("hi")))
-            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
-            .withPendingRuntimeToolCallResults(List.of(pending));
-
-    assertThat(conv.pendingRuntimeToolCallResults()).containsExactly(pending);
-    assertThat(conv.toAgentContext().pendingRuntimeToolCallResults()).containsExactly(pending);
-    // a mixed batch ends the invocation: no further round is opened
-    assertThat(conv.currentTurn().assistantMessage()).isNotNull();
   }
 
   @Test

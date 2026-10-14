@@ -24,14 +24,16 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs the calls of available {@link RuntimeTool}s of a batch and validates the document parameters
- * of the calls of process tools. A call that gets a runtime result is answered by the agent, every
- * other call remains for the process.
+ * Splits the calls of a batch into the calls of available {@link RuntimeTool}s, the calls of
+ * process tools whose document parameters are not valid, and the calls that remain for the process.
+ * The first two kinds are answered by the agent.
  */
 public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
 
@@ -50,55 +52,106 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
   }
 
   @Override
-  public RuntimeToolCallSplit handle(
+  public RuntimeToolCallSplit split(
       AgentExecutionContext executionContext,
       AgentConversation conversation,
       List<ToolCall> toolCalls) {
-    if (toolCalls.isEmpty()) {
-      return RuntimeToolCallSplit.allRemaining(conversation, toolCalls);
-    }
-
-    final var completedAt = OffsetDateTime.now();
-    final var runtimeResults = new ArrayList<ToolCallResultContent>();
+    final var agentContext = conversation.toAgentContext();
+    final var answeredCalls = new ArrayList<AnsweredCall>();
     final var remainingCalls = new ArrayList<ToolCall>();
-    var workingConversation = conversation;
     for (final var toolCall : toolCalls) {
       final var tool =
-          runtimeToolRegistry.findAvailable(
-              toolCall.name(), executionContext, workingConversation.toAgentContext());
-      final RuntimeToolResult result;
+          runtimeToolRegistry.findAvailable(toolCall.name(), executionContext, agentContext);
       if (tool.isPresent()) {
-        result = run(tool.get(), toolCall, executionContext, workingConversation);
-      } else {
-        // an agent instance without the documents feature has no document parameters
-        final var rejection =
-            workingConversation.supportsDocuments()
-                ? validateDocumentParameters(toolCall, workingConversation)
-                : null;
-        if (rejection == null) {
-          remainingCalls.add(toolCall);
-          continue;
-        }
-        result = rejection;
+        answeredCalls.add(new AnsweredCall(toolCall, tool.get(), null));
+        continue;
       }
 
-      final var blocks = result.contentBlocks();
-      runtimeResults.add(
-          ToolCallResultContent.builder()
-              .id(toolCall.id())
-              .name(toolCall.name())
-              .content(
-                  blocks == null
-                      ? ToolCallResultContent.contentFromObject(result.content())
-                      : blocks)
-              .completedAt(completedAt)
-              .properties(result.properties())
-              .build());
-      for (final var update : result.contextUpdates()) {
-        workingConversation = workingConversation.withContextUpdate(update);
+      // an agent instance without the documents feature has no document parameters
+      final var rejection =
+          conversation.supportsDocuments()
+              ? validateDocumentParameters(toolCall, conversation)
+              : null;
+      if (rejection == null) {
+        remainingCalls.add(toolCall);
+      } else {
+        answeredCalls.add(new AnsweredCall(toolCall, null, rejection));
       }
     }
-    return new RuntimeToolCallSplit(workingConversation, runtimeResults, remainingCalls);
+    return new Split(executionContext, conversation, answeredCalls, remainingCalls);
+  }
+
+  /**
+   * A call the agent answers itself: the call of a runtime tool, or a call of a process tool that
+   * is answered with the rejection.
+   */
+  private record AnsweredCall(
+      ToolCall toolCall, @Nullable RuntimeTool tool, @Nullable RuntimeToolResult rejection) {}
+
+  private final class Split implements RuntimeToolCallSplit {
+
+    private final AgentExecutionContext executionContext;
+    private final AgentConversation conversation;
+    private final List<AnsweredCall> answeredCalls;
+    private final List<ToolCall> remainingCalls;
+
+    private Split(
+        AgentExecutionContext executionContext,
+        AgentConversation conversation,
+        List<AnsweredCall> answeredCalls,
+        List<ToolCall> remainingCalls) {
+      this.executionContext = executionContext;
+      this.conversation = conversation;
+      this.answeredCalls = List.copyOf(answeredCalls);
+      this.remainingCalls = List.copyOf(remainingCalls);
+    }
+
+    @Override
+    public List<ToolCall> remainingCalls() {
+      return remainingCalls;
+    }
+
+    @Override
+    public List<ToolCall> answeredCalls() {
+      return answeredCalls.stream().map(AnsweredCall::toolCall).toList();
+    }
+
+    @Override
+    public RuntimeToolCallAnswers answer() {
+      final var completedAt = OffsetDateTime.now();
+      final var results = new ArrayList<ToolCallResultContent>();
+      final var contextUpdates = new ArrayList<UnaryOperator<AgentContext>>();
+      var workingConversation = conversation;
+      for (final var answered : answeredCalls) {
+        final var toolCall = answered.toolCall();
+        final var result =
+            answered.rejection() != null
+                ? answered.rejection()
+                : run(
+                    Objects.requireNonNull(answered.tool()),
+                    toolCall,
+                    executionContext,
+                    workingConversation);
+
+        final var blocks = result.contentBlocks();
+        results.add(
+            ToolCallResultContent.builder()
+                .id(toolCall.id())
+                .name(toolCall.name())
+                .content(
+                    blocks == null
+                        ? ToolCallResultContent.contentFromObject(result.content())
+                        : blocks)
+                .completedAt(completedAt)
+                .properties(result.properties())
+                .build());
+        for (final var update : result.contextUpdates()) {
+          contextUpdates.add(update);
+          workingConversation = workingConversation.withContextUpdate(update);
+        }
+      }
+      return new RuntimeToolCallAnswers(results, contextUpdates);
+    }
   }
 
   private RuntimeToolResult run(

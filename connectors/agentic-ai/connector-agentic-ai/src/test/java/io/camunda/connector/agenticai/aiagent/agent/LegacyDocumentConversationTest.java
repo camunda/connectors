@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -56,6 +57,9 @@ import org.junit.jupiter.api.Test;
  * never gets a registry, features, response documents or runtime tools.
  */
 class LegacyDocumentConversationTest {
+
+  private static final RuntimeToolCallSplit NO_DEFERRED_CALLS =
+      RuntimeToolCallSplit.allRemaining(List.of());
 
   private static final String FIXTURE =
       "/backwardcompatibility/camunda-8.10/agentContext-documents-inprocess.json";
@@ -121,7 +125,6 @@ class LegacyDocumentConversationTest {
     assertThat(context.supportsDocuments()).isFalse();
     assertThat(context.documents()).isEmpty();
     assertThat(context.responseDocuments()).isEmpty();
-    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
   }
 
   @Test
@@ -138,8 +141,8 @@ class LegacyDocumentConversationTest {
             context,
             TurnReconstructor.reconstruct(messagesOf(context), context.metadata()),
             AgentInput.from(
-                new UserPromptConfiguration("Next", List.of(promptDocument)),
-                List.of(eventResult)));
+                new UserPromptConfiguration("Next", List.of(promptDocument)), List.of(eventResult)),
+            NO_DEFERRED_CALLS);
 
     final var nextTurn = (CompositionResult.NextTurn) composition;
     assertThat(nextTurn.documents()).isEmpty();
@@ -189,7 +192,8 @@ class LegacyDocumentConversationTest {
             configuration(),
             context,
             TurnReconstructor.reconstruct(messages, context.metadata()),
-            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)));
+            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)),
+            NO_DEFERRED_CALLS);
 
     final var nextTurn = (CompositionResult.NextTurn) composition;
     assertThat(nextTurn.documents()).isEmpty();
@@ -221,7 +225,8 @@ class LegacyDocumentConversationTest {
                 previous,
                 AgentInput.from(
                     new UserPromptConfiguration("Next", List.of(newDocument("next.txt"))),
-                    List.of()));
+                    List.of()),
+                NO_DEFERRED_CALLS);
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
@@ -250,7 +255,6 @@ class LegacyDocumentConversationTest {
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
     assertThat(serialized.has("responseDocuments")).isFalse();
-    assertThat(serialized.has("pendingRuntimeToolCallResults")).isFalse();
   }
 
   @Test
@@ -317,9 +321,9 @@ class LegacyDocumentConversationTest {
                 .arguments(Map.of("key", "k", "document", "d"))
                 .build());
 
-    final var split = handler.handle(executionContext, conversation, calls);
+    final var split = handler.split(executionContext, conversation, calls);
 
-    assertThat(split.hasRuntimeResults()).isFalse();
+    assertThat(split.hasAnsweredCalls()).isFalse();
     assertThat(split.remainingCalls()).isEqualTo(calls);
   }
 }

@@ -283,7 +283,6 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
               .hasNoToolCalls()
               .hasResponseText(FINAL_TEXT);
           assertResponseDocument(agentResponse.responseDocuments(), documentId);
-          assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
   }
@@ -322,12 +321,13 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   }
 
   /**
-   * The runtime result of a mixed batch is in the agent instance history as soon as the job that
-   * answered it completes, while the real call of the batch is still running. The next job reports
-   * it again with the merged results, and the history still holds it exactly once.
+   * The runtime result of a mixed batch is in the agent instance history when the turn that follows
+   * the results of the process is composed: while the real call of the batch is still running, the
+   * history holds no result of the batch, and then it holds the results in the order of the calls,
+   * each once.
    */
   @Test
-  void runtimeResultOfAMixedBatchIsInTheHistoryBeforeTheRealCallCompletesAndStaysUnique()
+  void runtimeResultOfAMixedBatchIsInTheHistoryWithTheTurnThatFollowsTheRealCall()
       throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithSlowToolTurn(), finalTurn());
@@ -339,9 +339,9 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         AgentInstanceEngineVerifier.awaitAgentInstanceKey(
             camundaClient, processInstance.getProcessInstanceKey());
 
-    // the slow tool has not answered, the runtime result is already reported
+    // the slow tool has not answered, the runtime call is not answered yet
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
-        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document")
+        .hasExactlyToolResultsInOrder("Download_A_File")
         .verify();
     CamundaAssert.assertThat(processInstance).hasActiveElements("Slow_Tool");
 
@@ -351,7 +351,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         Map.of("toolCallResult", "slow tool done"));
     awaitProcessCompletion(zeebeTest);
 
-    // the next job reported the runtime result again: no duplicate, call order kept
+    // the next job reports the results of the batch together: call order kept
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
         .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document", "Slow_Tool")
         .verify();
@@ -387,7 +387,6 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
         zeebeTest,
         agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(FINAL_TEXT);
-          assertThat(agentResponse.context().pendingRuntimeToolCallResults()).isEmpty();
         });
     assertNoDocumentInternalsInLlmRequests();
   }

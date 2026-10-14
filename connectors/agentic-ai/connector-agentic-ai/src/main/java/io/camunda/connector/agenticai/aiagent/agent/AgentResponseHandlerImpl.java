@@ -23,8 +23,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseCon
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
@@ -53,35 +53,25 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   @Override
   public AgentResponse createResponse(AgentConversation conversation) {
+    return createResponse(
+        conversation,
+        Optional.ofNullable(assistantMessageOf(conversation).toolCalls()).orElse(List.of()));
+  }
+
+  @Override
+  public AgentResponse createResponse(
+      AgentConversation conversation, List<ToolCall> processToolCalls) {
     final var agentContext = conversation.toAgentContext();
-    final var assistantMessage =
-        Objects.requireNonNull(
-            conversation
-                .lastTurn()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "Cannot create an agent response: the conversation has no completed turn"))
-                .assistantMessage(),
-            "Cannot create an agent response: the last turn has no assistant message");
-    // calls the agent answered itself (pending runtime results) never reach the process
-    final var runtimeAnsweredIds =
-        conversation.pendingRuntimeToolCallResults().stream()
-            .map(ToolCallResultContent::id)
-            .collect(Collectors.toSet());
-    final var rawToolCalls =
-        Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of()).stream()
-            .filter(toolCall -> !runtimeAnsweredIds.contains(toolCall.id()))
-            .toList();
+    final var assistantMessage = assistantMessageOf(conversation);
     // the stored assistant message keeps the document ids the model sent; only the tool call
     // handed to the process carries the document references
     final var resolvedToolCalls =
         conversation.supportsDocuments()
             ? DocumentParameterResolver.resolveAll(
-                rawToolCalls,
+                processToolCalls,
                 conversation.configuration().toolDefinitions(),
                 conversation.documentRegistry())
-            : rawToolCalls;
+            : processToolCalls;
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, resolvedToolCalls).stream()
             .map(ToolCallProcessVariable::from)
@@ -107,6 +97,18 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
+  }
+
+  private static AssistantMessage assistantMessageOf(AgentConversation conversation) {
+    return Objects.requireNonNull(
+        conversation
+            .lastTurn()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Cannot create an agent response: the conversation has no completed turn"))
+            .assistantMessage(),
+        "Cannot create an agent response: the last turn has no assistant message");
   }
 
   private LinkedHashMap<String, ReturnedDocument> responseDocuments(

@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
@@ -50,6 +51,9 @@ import org.junit.jupiter.api.Test;
 
 /** The document delivery: the option of the user prompt and the marker of a tool activity. */
 class AgentConversationTurnInputComposerDocumentDeliveryTest {
+
+  private static final RuntimeToolCallSplit NO_DEFERRED_CALLS =
+      RuntimeToolCallSplit.allRemaining(List.of());
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null, null);
@@ -117,7 +121,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var input =
         AgentInput.from(new UserPromptConfiguration("Hello?", List.of(docs), delivery), List.of());
     return composer.compose(
-        CONFIG, context, TurnReconstructor.reconstruct(previousMessages), input);
+        CONFIG, context, TurnReconstructor.reconstruct(previousMessages), input, NO_DEFERRED_CALLS);
   }
 
   @Test
@@ -224,7 +228,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
-    return composer.compose(CONFIG, context, history, input);
+    return composer.compose(CONFIG, context, history, input, NO_DEFERRED_CALLS);
   }
 
   private static ToolCallResult result(String id, String name, Object content) {
@@ -300,7 +304,11 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn =
         nextTurn(
             gatewayComposer.compose(
-                CONFIG, contextWithTools(CONTENT_TOOL, REFERENCE_TOOL), history, input));
+                CONFIG,
+                contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
+                history,
+                input,
+                NO_DEFERRED_CALLS));
 
     assertThat(turn.messages()).hasSize(2);
     final var source =
@@ -412,7 +420,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         TurnReconstructor.reconstruct(List.of(earlier, assistantMessage("thinking", TOOL_CALLS)));
 
     final var turn =
-        nextTurn(composer.compose(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
+        nextTurn(
+            composer.compose(
+                CONFIG, contextWithTools(CONTENT_TOOL), history, input, NO_DEFERRED_CALLS));
 
     assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }

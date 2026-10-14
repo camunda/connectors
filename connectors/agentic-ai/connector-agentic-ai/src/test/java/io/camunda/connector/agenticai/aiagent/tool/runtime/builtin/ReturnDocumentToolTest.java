@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.agent.HandledToolCalls;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
@@ -277,8 +278,7 @@ class ReturnDocumentToolTest {
     return new ToolCall(id, ReturnDocumentTool.NAME, arguments);
   }
 
-  private RuntimeToolCallHandler.RuntimeToolCallSplit run(
-      AgentConfiguration configuration, ToolCall... toolCalls) {
+  private HandledToolCalls run(AgentConfiguration configuration, ToolCall... toolCalls) {
     final var conversation =
         AgentConversation.rehydrate(
                 configuration,
@@ -291,7 +291,8 @@ class ReturnDocumentToolTest {
                 null,
                 List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", List.of(toolCalls)), AgentMetrics.empty());
-    return handler.handle(withConfiguration(configuration), conversation, List.of(toolCalls));
+    return HandledToolCalls.of(
+        handler, withConfiguration(configuration), conversation, List.of(toolCalls));
   }
 
   private static Document createDocument(String content, String fileName) {

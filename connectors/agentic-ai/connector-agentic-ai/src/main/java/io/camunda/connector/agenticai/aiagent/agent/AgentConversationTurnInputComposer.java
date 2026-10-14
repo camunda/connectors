@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -18,11 +19,21 @@ import org.jspecify.annotations.Nullable;
 
 /** Composes the next conversation turn input from raw history and the current invocation state. */
 public interface AgentConversationTurnInputComposer {
+
+  /**
+   * Composes the next turn input.
+   *
+   * @param deferredCalls the calls of the last assistant message of {@code previousConversation}:
+   *     the calls the agent answers itself are answered when the tool call results of the turn are
+   *     composed, in the order of the tool calls among the results of the process; a turn that
+   *     waits for results of the process answers nothing
+   */
   CompositionResult compose(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
-      AgentInput agentInput);
+      AgentInput agentInput,
+      RuntimeToolCallSplit deferredCalls);
 
   /**
    * Composes the message that carries the content of the documents the given tool call results get

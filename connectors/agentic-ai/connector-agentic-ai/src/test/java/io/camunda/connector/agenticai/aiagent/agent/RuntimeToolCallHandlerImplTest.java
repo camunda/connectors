@@ -106,10 +106,16 @@ class RuntimeToolCallHandlerImplTest {
    */
   private record Handler(RuntimeToolCallHandler delegate) {
 
-    RuntimeToolCallHandler.RuntimeToolCallSplit handle(
+    RuntimeToolCallHandler.RuntimeToolCallSplit split(
         AgentConversation conversation, List<ToolCall> toolCalls) {
-      return delegate.handle(
+      return delegate.split(
           withConfiguration(conversation.configuration()), conversation, toolCalls);
+    }
+
+    /** Splits the batch and answers the calls the agent answers itself. */
+    HandledToolCalls handle(AgentConversation conversation, List<ToolCall> toolCalls) {
+      return HandledToolCalls.of(
+          delegate, withConfiguration(conversation.configuration()), conversation, toolCalls);
     }
 
     List<ToolDefinition> availableToolDefinitions(
@@ -617,7 +623,8 @@ class RuntimeToolCallHandlerImplTest {
 
     final var executionContext = withConfiguration(WITH_MEMORY);
 
-    handlerOf(reading).delegate().handle(executionContext, conversation, List.of(call));
+    HandledToolCalls.of(
+        handlerOf(reading).delegate(), executionContext, conversation, List.of(call));
 
     assertThat(seen)
         .containsExactly(

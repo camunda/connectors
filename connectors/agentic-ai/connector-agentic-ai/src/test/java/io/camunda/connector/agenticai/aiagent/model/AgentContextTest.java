@@ -17,11 +17,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -230,69 +226,6 @@ class AgentContextTest {
   }
 
   @Test
-  void pendingRuntimeToolCallResultsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
-      throws JsonProcessingException {
-    final var context = AgentContext.empty();
-    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
-
-    assertThat(objectMapper.writeValueAsString(context))
-        .doesNotContain("pendingRuntimeToolCallResults");
-  }
-
-  @Test
-  void agentContextWithoutPendingRuntimeToolCallResultsFieldBindsToEmptyList()
-      throws JsonProcessingException {
-    final var json =
-        """
-        {
-          "schemaVersion": 1,
-          "state": "READY",
-          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
-          "toolDefinitions": []
-        }
-        """;
-
-    final var context = objectMapper.readValue(json, AgentContext.class);
-
-    assertThat(context.pendingRuntimeToolCallResults()).isEmpty();
-    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
-  }
-
-  @Test
-  void pendingRuntimeToolCallResultsAreSerializedAndDeserialized() throws JsonProcessingException {
-    final var textResult =
-        ToolCallResultContent.builder()
-            .id("call-1")
-            .name("c8__return_document")
-            .content(
-                List.of(TextContent.textContent("Returned the document under the key 'report'.")))
-            .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
-            .build();
-    final var structuredResult =
-        ToolCallResultContent.builder()
-            .id("call-2")
-            .name("load_skill")
-            .content(
-                List.of(
-                    ObjectContent.objectContent(
-                        Map.of("skill", "pdf", "files", List.of("a.md", "b.md")))))
-            .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.456+02:00"))
-            .build();
-    final var context =
-        AgentContext.builder()
-            .pendingRuntimeToolCallResults(List.of(textResult, structuredResult))
-            .build();
-
-    final var serialized = objectMapper.writeValueAsString(context);
-    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
-
-    assertThat(serialized).contains("\"pendingRuntimeToolCallResults\"");
-    assertThat(deserialized.pendingRuntimeToolCallResults())
-        .usingRecursiveComparison()
-        .isEqualTo(List.of(textResult, structuredResult));
-  }
-
-  @Test
   void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
     final var context = AgentContext.empty();
 
@@ -376,8 +309,7 @@ class AgentContextTest {
         context
             .withState(AgentState.READY)
             .withProperty("hello", "world")
-            .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-            .withPendingRuntimeToolCallResults(List.of());
+            .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0));
 
     assertThat(copy.features())
         .containsExactly("zeta", "alpha", "documents", "beta", "omega", "gamma");
@@ -412,7 +344,6 @@ class AgentContextTest {
                     InProcessConversationContext.builder("test-conversation").build(),
                     List.of(),
                     new LinkedHashMap<>(),
-                    List.of(),
                     new LinkedHashSet<>(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)

@@ -580,60 +580,7 @@ class AgentContextSchemaMigrationTest {
     }
 
     @Test
-    void legacyContextWithoutPendingRuntimeToolCallResultsBindsToEmptyList() throws Exception {
-      JsonNode tree =
-          objectMapper.readTree(
-              """
-              {
-                "state": "READY",
-                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
-                "toolDefinitions": [],
-                "properties": {}
-              }
-              """);
-
-      AgentContext agentContext =
-          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
-
-      assertThat(agentContext).isNotNull();
-      assertThat(agentContext.pendingRuntimeToolCallResults()).isEmpty();
-      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
-    }
-
-    @Test
-    void pendingRuntimeToolCallResultsSurviveTheRoundTripOfTheVersionedDeserialization()
-        throws Exception {
-      final var pending =
-          ToolCallResultContent.builder()
-              .id("call-1")
-              .name("c8__return_document")
-              .content(
-                  List.of(TextContent.textContent("Returned the document under the key 'report'.")))
-              .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
-              .build();
-      final var context =
-          AgentContext.builder()
-              .conversation(
-                  InProcessConversationContext.builder("conv")
-                      .messages(
-                          List.of(
-                              ToolCallResultMessage.builder().results(List.of(pending)).build()))
-                      .build())
-              .pendingRuntimeToolCallResults(List.of(pending))
-              .build();
-
-      // the process variable is written as JSON and bound again by the next job
-      final var serialized = objectMapper.writeValueAsString(context);
-      final var bound = objectMapper.readValue(serialized, AgentContext.class);
-
-      assertThat(serialized).contains("\"pendingRuntimeToolCallResults\"");
-      assertThat(bound.pendingRuntimeToolCallResults())
-          .usingRecursiveComparison()
-          .isEqualTo(List.of(pending));
-    }
-
-    @Test
-    void pendingRuntimeToolCallResultsKeepTheirTypedBlocksThroughTheVersionedDeserialization()
+    void toolCallResultMessagesKeepTheirTypedBlocksThroughTheVersionedDeserialization()
         throws Exception {
       final var blocks =
           List.<Content>of(
@@ -648,7 +595,7 @@ class AgentContextSchemaMigrationTest {
                   "call-1",
                   DocumentDelivery.REFERENCE),
               TextContent.textContent("Its content follows in the next message."));
-      final var pending =
+      final var result =
           ToolCallResultContent.builder()
               .id("call-1")
               .name("c8__get_document")
@@ -660,22 +607,13 @@ class AgentContextSchemaMigrationTest {
               .conversation(
                   InProcessConversationContext.builder("conv")
                       .messages(
-                          List.of(
-                              ToolCallResultMessage.builder().results(List.of(pending)).build()))
+                          List.of(ToolCallResultMessage.builder().results(List.of(result)).build()))
                       .build())
-              .pendingRuntimeToolCallResults(List.of(pending))
               .build();
 
       final var serialized = objectMapper.writeValueAsString(context);
       final var bound = objectMapper.readValue(serialized, AgentContext.class);
 
-      assertThat(bound.pendingRuntimeToolCallResults())
-          .singleElement()
-          .satisfies(
-              result -> {
-                assertThat(result.content()).isEqualTo(blocks);
-                assertThat(result.content().get(1)).isInstanceOf(DocumentReferenceContent.class);
-              });
       assertThat(bound.conversation())
           .isInstanceOfSatisfying(
               InProcessConversationContext.class,

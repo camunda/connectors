@@ -17,9 +17,11 @@ import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMe
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -154,7 +156,7 @@ class AgentTaskRequestHandlerTest {
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build());
-    when(responseHandler.createResponse(any(AgentConversation.class)))
+    when(responseHandler.createResponse(any(AgentConversation.class), anyList()))
         .thenAnswer(
             i -> {
               final var conversation = i.getArgument(0, AgentConversation.class);
@@ -170,16 +172,6 @@ class AgentTaskRequestHandlerTest {
     final var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
-    assertThat(agentResponse.context().pendingRuntimeToolCallResults())
-        .singleElement()
-        .satisfies(
-            result -> {
-              assertThat(result.id()).isEqualTo("call-1");
-              assertThat(result.content())
-                  .containsExactly(
-                      TextContent.textContent(
-                          "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
-            });
     verify(agentInstanceClient)
         .applyTurnCompletion(
             eq(agentExecutionContext),
@@ -188,13 +180,9 @@ class AgentTaskRequestHandlerTest {
             any(),
             eq(AgentInstanceUpdateStatus.TOOL_CALLING),
             any());
-    // the runtime result is reported right away, without a status of its own
-    final var reportedResultsCaptor = ArgumentCaptor.forClass(List.class);
-    verify(agentInstanceClient)
-        .applyToolCallResults(
-            eq(agentExecutionContext), any(), reportedResultsCaptor.capture(), any(), any());
-    assertThat(reportedResultsCaptor.getValue())
-        .isEqualTo(agentResponse.context().pendingRuntimeToolCallResults());
+    // the call the agent answers itself is not answered when the process is handed its call
+    verify(agentInstanceClient, never()).applyToolCallResults(any(), any(), any(), any(), any());
+    verify(responseHandler).createResponse(any(AgentConversation.class), eq(List.of(otherCall)));
   }
 
   @Test
@@ -345,7 +333,7 @@ class AgentTaskRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
@@ -461,22 +449,20 @@ class AgentTaskRequestHandlerTest {
   }
 
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {
-    when(responseHandler.createResponse(any(AgentConversation.class)))
+    when(responseHandler.createResponse(any(AgentConversation.class), anyList()))
         .thenAnswer(
             i -> {
               final var conversation = i.getArgument(0, AgentConversation.class);
               final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
               final var toolCalls =
-                  assistantMessage.toolCalls() == null
-                      ? List.<ToolCallProcessVariable>of()
-                      : assistantMessage.toolCalls().stream()
-                          .map(ToolCallProcessVariable::from)
-                          .toList();
+                  i.<List<ToolCall>>getArgument(1).stream()
+                      .map(ToolCallProcessVariable::from)
+                      .toList();
               return AgentResponse.builder()
                   .context(conversation.toAgentContext())
                   .responseMessage(assistantMessage)

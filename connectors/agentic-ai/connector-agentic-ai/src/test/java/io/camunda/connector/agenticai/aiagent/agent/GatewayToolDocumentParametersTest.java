@@ -171,11 +171,12 @@ class GatewayToolDocumentParametersTest {
 
     final var split =
         new RuntimeToolCallHandlerImpl(new RuntimeToolRegistryImpl(List.of()))
-            .handle(withConfiguration(conversation.configuration()), conversation, List.of(call));
+            .split(withConfiguration(conversation.configuration()), conversation, List.of(call));
+    final var answers = split.answer();
 
     assertThat(split.answersAllCalls()).isTrue();
     assertThat(split.remainingCalls()).isEmpty();
-    assertThat(split.runtimeResults())
+    assertThat(answers.results())
         .singleElement()
         .satisfies(
             result -> {
@@ -187,9 +188,7 @@ class GatewayToolDocumentParametersTest {
             });
 
     // the answered call does not reach the process: the handler is not given it
-    final var response =
-        responseHandler.createResponse(
-            split.conversation().withPendingRuntimeToolCallResults(split.runtimeResults()));
+    final var response = responseHandler.createResponse(conversation, split.remainingCalls());
 
     assertThat(filesHandler.receivedCalls).isEmpty();
     assertThat(response.toolCalls()).isEmpty();
@@ -211,8 +210,8 @@ class GatewayToolDocumentParametersTest {
 
     final var split =
         new RuntimeToolCallHandlerImpl(new RuntimeToolRegistryImpl(List.of()))
-            .handle(withConfiguration(conversation.configuration()), conversation, List.of(call));
-    assertThat(split.runtimeResults()).isEmpty();
+            .split(withConfiguration(conversation.configuration()), conversation, List.of(call));
+    assertThat(split.answer().results()).isEmpty();
     assertThat(split.remainingCalls()).containsExactly(call);
 
     responseHandler.createResponse(conversation);

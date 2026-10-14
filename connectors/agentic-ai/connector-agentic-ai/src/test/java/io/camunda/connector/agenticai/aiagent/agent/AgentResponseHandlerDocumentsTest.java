@@ -29,10 +29,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
@@ -148,22 +146,16 @@ class AgentResponseHandlerDocumentsTest {
   }
 
   @Test
-  void handsOnlyTheCallsThePendingRuntimeResultsDoNotAnswerToTheProcess() {
+  void handsOnlyTheGivenProcessToolCallsToTheProcess() {
     final var runtimeCall = new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of());
     final var realCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
-    final var runtimeResult =
-        ToolCallResultContent.builder()
-            .id("call-1")
-            .name(ReturnDocumentTool.NAME)
-            .content(List.of(TextContent.textContent("ok")))
-            .build();
 
     final var response =
         responseHandler.createResponse(
             conversation(
-                    responseDocuments("report", new ResponseDocumentSelection(reportId, null)),
-                    assistantMessage("both", List.of(runtimeCall, realCall)))
-                .withPendingRuntimeToolCallResults(List.of(runtimeResult)));
+                responseDocuments("report", new ResponseDocumentSelection(reportId, null)),
+                assistantMessage("both", List.of(runtimeCall, realCall))),
+            List.of(realCall));
 
     assertThat(response.toolCalls())
         .extracting(call -> call.metadata().id())
@@ -171,7 +163,6 @@ class AgentResponseHandlerDocumentsTest {
     // the batch is not final, the responseDocuments stays and no documents are returned yet
     assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().responseDocuments()).containsOnlyKeys("report");
-    assertThat(response.context().pendingRuntimeToolCallResults()).containsExactly(runtimeResult);
   }
 
   @Test

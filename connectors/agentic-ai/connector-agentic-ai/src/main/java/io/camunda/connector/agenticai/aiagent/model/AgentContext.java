@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
@@ -45,10 +44,6 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentContext.class, value = "noResponseDocuments")
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         LinkedHashMap<String, ResponseDocumentSelection> responseDocuments,
-    // results the agent answered itself for tool calls of the last assistant message whose other
-    // calls were handed to the process; merged into the next turn input, then cleared
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        List<ToolCallResultContent> pendingRuntimeToolCallResults,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with; a LinkedHashSet because the
     // record builder copies a Set into an immutable set of unspecified iteration order
@@ -95,8 +90,6 @@ public record AgentContext(
     Objects.requireNonNull(documents, "Documents must not be null");
     Objects.requireNonNull(responseDocuments, "Response documents must not be null");
     responseDocuments = new LinkedHashMap<>(responseDocuments);
-    Objects.requireNonNull(
-        pendingRuntimeToolCallResults, "Pending runtime tool call results must not be null");
     Objects.requireNonNull(features, "Features must not be null");
     features = new LinkedHashSet<>(features);
   }
