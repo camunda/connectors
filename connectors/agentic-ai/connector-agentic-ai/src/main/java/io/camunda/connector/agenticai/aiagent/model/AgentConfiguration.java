@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -14,17 +18,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -46,6 +45,11 @@ public record AgentConfiguration(
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+
+  private static final ObjectMapper FINGERPRINT_MAPPER =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+          .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
@@ -84,105 +88,29 @@ public record AgentConfiguration(
    * send with unchanged content dedups for free. The result is the SHA-256 digest as lower-case
    * hex.
    *
-   * <p>The tool definitions enter the hash in a canonical form that does not depend on the
-   * iteration order of the maps they hold (a definition rebuilt through {@link
-   * ToolDefinition#builder()} or a JSON round trip holds its schema in an immutable map of
-   * unspecified order). Per tool, in list order: {@code name}, {@code description} and {@code
-   * inputSchema}, followed by the {@code documentDelivery} when the tool has one. The rules for the
-   * schema:
-   *
-   * <ul>
-   *   <li>maps are written with their keys sorted, recursively, including maps nested in lists;
-   *   <li>lists keep their order, so the order of the tools and of values such as {@code required}
-   *       is significant;
-   *   <li>numbers are compared by value: every number is read as a decimal, an integral value (any
-   *       {@link Integer}, {@link Long}, {@link Short}, {@link Byte}, or an integral {@link
-   *       Double}, {@link Float}, {@link java.math.BigDecimal}) is written as that integer, so
-   *       {@code 5L}, {@code 5} and {@code 5.0} agree, and any other value as its plain decimal
-   *       string without trailing zeros;
-   *   <li>{@code null} is written explicitly; strings are written length-prefixed so that no value
-   *       can run into its neighbour.
-   * </ul>
-   *
-   * Nothing is sorted or changed on the definitions themselves, so the order of what is sent to the
-   * model and what is persisted stays as authored.
+   * <p>The attributes enter the hash as JSON with the keys of every map and the properties of every
+   * tool definition sorted, so the fingerprint does not depend on the iteration order of the maps
+   * the definitions hold (a definition rebuilt through {@link ToolDefinition#builder()} or a JSON
+   * round trip holds its schema in an immutable map of unspecified order). Lists keep their order,
+   * so the order of the tools and of values such as {@code required} is significant. Nothing is
+   * sorted or changed on the definitions themselves, so the order of what is sent to the model and
+   * what is persisted stays as authored.
    */
   public String fingerprint() {
-    var canonical = new StringBuilder();
-    appendCanonical(canonical, chatModel.model());
-    appendCanonical(canonical, chatModel.descriptiveProvider());
-    appendCanonical(canonical, systemPrompt.prompt());
-    appendCanonical(canonical, maxModelCalls());
-    canonical.append('[');
-    for (var tool : toolDefinitions) {
-      canonical.append('{');
-      appendCanonical(canonical, tool.name());
-      appendCanonical(canonical, tool.description());
-      appendCanonical(canonical, tool.inputSchema());
-      // written only when set, so the fingerprint of a tool without it is the one it always had
-      if (tool.documentDelivery() != null) {
-        appendCanonical(canonical, tool.documentDelivery().name());
-      }
-      canonical.append('}');
-    }
-    canonical.append(']');
     try {
-      var digest =
-          MessageDigest.getInstance("SHA-256")
-              .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest);
+      var json =
+          FINGERPRINT_MAPPER.writeValueAsBytes(
+              List.of(
+                  chatModel.model(),
+                  chatModel.descriptiveProvider(),
+                  systemPrompt.prompt(),
+                  maxModelCalls(),
+                  toolDefinitions));
+      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json));
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("The configuration cannot be serialized", e);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 is not available", e);
     }
-  }
-
-  private static void appendCanonical(StringBuilder out, @Nullable Object value) {
-    if (value == null) {
-      out.append("null,");
-    } else if (value instanceof Map<?, ?> map) {
-      var sorted = new TreeMap<String, Object>();
-      map.forEach((key, entry) -> sorted.put(String.valueOf(key), entry));
-      out.append('{');
-      sorted.forEach(
-          (key, entry) -> {
-            appendCanonical(out, key);
-            appendCanonical(out, entry);
-          });
-      out.append("},");
-    } else if (value instanceof Collection<?> collection) {
-      out.append('[');
-      collection.forEach(entry -> appendCanonical(out, entry));
-      out.append("],");
-    } else if (value instanceof Number number) {
-      out.append('n').append(canonicalNumber(number)).append(',');
-    } else if (value instanceof Boolean bool) {
-      out.append(bool ? "true," : "false,");
-    } else {
-      var text = value.toString();
-      out.append('s').append(text.length()).append(':').append(text).append(',');
-    }
-  }
-
-  private static String canonicalNumber(Number number) {
-    BigDecimal decimal;
-    if (number instanceof BigDecimal bigDecimal) {
-      decimal = bigDecimal;
-    } else if (number instanceof BigInteger bigInteger) {
-      decimal = new BigDecimal(bigInteger);
-    } else if (number instanceof Integer
-        || number instanceof Long
-        || number instanceof Short
-        || number instanceof Byte) {
-      decimal = BigDecimal.valueOf(number.longValue());
-    } else {
-      try {
-        decimal = new BigDecimal(number.toString());
-      } catch (NumberFormatException e) {
-        // NaN and infinities have no decimal form
-        return number.toString();
-      }
-    }
-    decimal = decimal.stripTrailingZeros();
-    return decimal.scale() <= 0 ? decimal.toBigInteger().toString() : decimal.toPlainString();
   }
 }

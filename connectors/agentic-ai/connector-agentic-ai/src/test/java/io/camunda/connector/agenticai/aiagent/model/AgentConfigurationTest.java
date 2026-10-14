@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpo
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -291,18 +290,11 @@ class AgentConfigurationTest {
     }
 
     @Test
-    void numbersAreNormalizedByValue() {
-      final var asLong = fingerprintOfSchema(ordered("maxItems", 5L));
-
-      assertThat(fingerprintOfSchema(ordered("maxItems", 5))).isEqualTo(asLong);
-      assertThat(fingerprintOfSchema(ordered("maxItems", (short) 5))).isEqualTo(asLong);
-      assertThat(fingerprintOfSchema(ordered("maxItems", 5.0))).isEqualTo(asLong);
-      assertThat(fingerprintOfSchema(ordered("maxItems", 5.0f))).isEqualTo(asLong);
-      assertThat(fingerprintOfSchema(ordered("maxItems", new BigDecimal("5.00"))))
-          .isEqualTo(asLong);
-      assertThat(fingerprintOfSchema(ordered("maxItems", 6))).isNotEqualTo(asLong);
+    void changedNumberYieldsDifferentFingerprint() {
+      assertThat(fingerprintOfSchema(ordered("maxItems", 5)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maxItems", 6)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.5)));
       assertThat(fingerprintOfSchema(ordered("minimum", 0.5)))
-          .isEqualTo(fingerprintOfSchema(ordered("minimum", new BigDecimal("0.50"))))
           .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.6)));
     }
 
@@ -390,7 +382,7 @@ class AgentConfigurationTest {
                   .build());
 
       assertThat(configuration("gpt-4o", "Be nice.", 10, tools).fingerprint())
-          .isEqualTo("26048a00651b1b3de08ae8573907ecedaa240349a017052f117e995812de6f69");
+          .isEqualTo("9241fa644a82100f4363f36a9f84ec809096a740b5db25dd446af544579c8088");
     }
 
     @Test
