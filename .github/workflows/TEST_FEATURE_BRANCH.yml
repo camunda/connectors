@@ -6,11 +6,13 @@ on:
       - opened
       - synchronize
       - reopened
+  # Feature branches are covered by pull_request (and merge_group for main);
+  # running on push too would test every PR commit twice. Push only covers
+  # long-lived branches whose merges are not tested by merge_group.
   push:
     branches:
-      - '**'
-      - '!main'
-      - '!gh-readonly-queue/**'
+      - 'stable/**'
+      - 'alpha/**'
   merge_group:
     branches: [ main ]
 
@@ -18,8 +20,7 @@ permissions:
   contents: read
   checks: write
 
-# Cancel stale runs of the same type (push-on-push, PR-on-PR) without
-# letting push and pull_request events cancel each other. Merge-queue runs
+# Cancel stale runs of the same type (push-on-push, PR-on-PR). Merge-queue runs
 # are keyed on the merge group's head ref so entries queued behind others
 # don't collide into the same group and get cancelled.
 concurrency:
