@@ -88,6 +88,16 @@ public record DocumentRegistryEntry(
         DocumentHandle.idFor(document), ingested.source(), serializeReference(document));
   }
 
+  /**
+   * Reads the document from its reference.
+   *
+   * @param objectMapper the mapper that binds a document reference to a {@link Document}
+   * @throws IllegalArgumentException if the reference cannot be read as a document
+   */
+  public Document toDocument(ObjectMapper objectMapper) {
+    return objectMapper.convertValue(reference, Document.class);
+  }
+
   private static void rejectLargeInlineContent(Document document) {
     if (document.reference() instanceof InlineDocumentReference inline
         && inline.content() != null

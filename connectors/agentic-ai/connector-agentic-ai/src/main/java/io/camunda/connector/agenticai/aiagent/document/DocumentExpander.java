@@ -224,7 +224,7 @@ public final class DocumentExpander {
       return null;
     }
     try {
-      return objectMapper.convertValue(entry.get().reference(), Document.class);
+      return entry.get().toDocument(objectMapper);
     } catch (RuntimeException e) {
       LOGGER.warn(
           "Document {} could not be read from its registry reference, leaving its tag without content",

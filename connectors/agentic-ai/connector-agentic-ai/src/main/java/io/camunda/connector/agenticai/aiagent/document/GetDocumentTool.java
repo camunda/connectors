@@ -129,7 +129,7 @@ public final class GetDocumentTool implements RuntimeTool {
   /** The document of a registry entry, read from its reference. */
   private Document documentOf(DocumentRegistryEntry entry) {
     try {
-      return objectMapper.convertValue(entry.reference(), Document.class);
+      return entry.toDocument(objectMapper);
     } catch (IllegalArgumentException e) {
       throw new RuntimeToolException(
           "The document %s could not be read from its reference: %s"
